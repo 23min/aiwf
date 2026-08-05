@@ -36,9 +36,14 @@ rule restating the first: a forced act by an authorized agent raises both
 `provenance-force-non-human` and a `provenance-trailer-incoherent` whose message
 is "force is human-only".
 
+One rule is outside that set and unchanged: `provenance-untrailered-entity-commit`
+still needs `--for-entity <id>`, because its findings are per-(commit, entity)
+pairs and the verb checks that binding against the commit's own diff before
+recording it. A blanket acknowledgment does not clear it.
+
 If you are silencing a finding you did not intend to silence, the scope to check
-is the commit, not the rule — an acknowledgment is a judgment about one commit
-and exempts nothing else.
+is the commit, not the rule — a reason written about one finding retires the
+commit's others too, and nothing on any other commit.
 
 ### Changed — `--force` by a non-human actor is now refused when the verb runs
 

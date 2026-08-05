@@ -58,7 +58,11 @@ aiwf-entity: <id>           (only when --for-entity is supplied)
 
 ### Exemption semantics
 
-The consuming rules walk HEAD's reachable history for `aiwf-force-for:` trailers and exempt findings whose offending commit appears in that set. The exemption is **DAG-scoped** (only trailers reachable from HEAD count, so a cherry-pick onto a branch lacking the original violation doesn't exempt it) and **per-SHA** (one ack covers every entity the historical SHA touched). The `aiwf-verb: acknowledge-illegal` trailer value is unchanged by the subverb regroup — the command path `acknowledge illegal` enumerates to the same string, so history validates with no shim.
+The consuming rules walk HEAD's reachable history for `aiwf-force-for:` trailers and exempt findings whose offending commit appears in that set. The exemption is **DAG-scoped** (only trailers reachable from HEAD count, so a cherry-pick onto a branch lacking the original violation doesn't exempt it) and **per-SHA** — one ack covers every rule that consumes the blanket set, including the whole `provenance-*` family, against that one commit and no other. So a reason written about one finding retires the commit's others too.
+
+One rule is outside the blanket set: `provenance-untrailered-entity-commit` is per-`(commit, entity)` and clears only under `--for-entity <id>`, whose binding the verb verifies against the commit's own diff. Acking a SHA without `--for-entity` leaves it firing.
+
+The `aiwf-verb: acknowledge-illegal` trailer value is unchanged by the subverb regroup — the command path `acknowledge illegal` enumerates to the same string, so history validates with no shim.
 
 ## aiwf acknowledge mistag
 

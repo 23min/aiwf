@@ -1,5 +1,7 @@
 package check
 
+import "strings"
+
 // hintTable maps a finding's Code+Subcode to a one-line "what to do
 // about it" hint. Render layers append `— hint: <hint>` to the
 // human-readable line; JSON consumers see the same string in the
@@ -265,7 +267,7 @@ var hintTable = map[string]string{
 	// not on tree state — hints point to the verb / repair path that
 	// would have produced a coherent commit.
 	"provenance-trailer-incoherent":                     "amend the offending commit via `git commit --amend` so its trailer set obeys the required-together / mutually-exclusive rules in `docs/design/provenance-model.md`",
-	"provenance-force-non-human":                        "`--force` requires `aiwf-actor: human/...`; have a human re-run the mutation as `aiwf <verb> <id> --force --reason \"...\"`, or drop the force and re-route through the normal verb. A commit already in history cannot be re-run — ratify it with `aiwf acknowledge illegal <sha> --reason \"...\"`",
+	"provenance-force-non-human":                        "`--force` requires `aiwf-actor: human/...`; have a human re-run the mutation as `aiwf <verb> <id> --force --reason \"...\"`, or drop the force and re-route through the normal verb",
 	"provenance-actor-malformed":                        "set `git config user.email` to a valid address and re-run via `aiwf doctor`; the actor trailer is derived from `<localpart>` of the email",
 	"provenance-principal-non-human":                    "`aiwf-principal:` must be `human/<id>` (agents and bots cannot be principals); re-run the verb with `--principal human/<id>`, or amend the trailer via `git commit --amend`",
 	"provenance-on-behalf-of-non-human":                 "`aiwf-on-behalf-of:` must name a human principal; read the originating authorize commit with `aiwf history <scope-entity>` and amend the trailer via `git commit --amend`",
@@ -274,7 +276,7 @@ var hintTable = map[string]string{
 	"provenance-authorization-out-of-scope":             "the scope-entity does not reach the target via the reference graph; open a scope on the right entity with `aiwf authorize <id> --to <agent>`, or run the verb on something the existing scope already reaches",
 	"provenance-authorization-ended":                    "the scope was already ended (terminal-promote or revoke); open a fresh scope with `aiwf authorize <id> --to <agent>`",
 	"provenance-no-active-scope":                        "an `ai/...` actor needs an active authorization; run `aiwf authorize <id> --to <agent>` before retrying the verb",
-	"provenance-audit-only-non-human":                   "`--audit-only` is a sovereign act; only humans may backfill audit trails (have a human invoke `aiwf <verb> --audit-only --reason ...`). A commit already in history cannot be re-run — ratify it with `aiwf acknowledge illegal <sha> --reason \"...\"`",
+	"provenance-audit-only-non-human":                   "`--audit-only` is a sovereign act; only humans may backfill audit trails (have a human invoke `aiwf <verb> --audit-only --reason ...`)",
 	"provenance-untrailered-entity-commit":              "the commit modified this entity via plain `git commit`; two recovery paths: (1) `aiwf acknowledge illegal <sha> --for-entity <id> --reason \"...\"` — SHA-verified per-(commit, entity) ack, the kernel walks `git diff-tree` to confirm the binding (G-0231 item 3); (2) `aiwf promote <id> <state> --audit-only --reason \"...\"` or `aiwf cancel <id> --audit-only --reason \"...\"` — per-entity blanket, no SHA binding. Use (1) for body-edit acks where the SHA is real and the kernel should verify; use (2) for status flips where the per-entity blanket fits. Either clears the matching finding on the next push.",
 	"provenance-untrailered-entity-commit/squash-merge": "the squash-merge from the GitHub UI dropped the original commits' aiwf-verb trailers; switch the repo's merge strategy to rebase-merge or `--no-ff` merge for branches that touch entity files, OR run `aiwf <verb> <id> --audit-only --reason \"...\"` per entity touched to backfill the audit trail",
 	"provenance-untrailered-scope-undefined":            "the audit range is undefined; configure an upstream (`git push -u origin <branch>`) or pass `aiwf check --since <ref>` to opt back in",
@@ -337,13 +339,78 @@ var hintTable = map[string]string{
 // Returns "" when no hint is registered. Verb-side findings (e.g.,
 // reallocate-body-reference) call this so the human-facing suggestion
 // stays in one place.
+//
+// A ratifiable code's hint gains the acknowledgment sentence here
+// rather than carrying it in the table — see ratificationSentence.
 func HintFor(code, subcode string) string {
 	if subcode != "" {
 		if h, ok := hintTable[code+"/"+subcode]; ok {
-			return h
+			return withRatificationHint(code, h)
 		}
 	}
-	return hintTable[code]
+	return withRatificationHint(code, hintTable[code])
+}
+
+// ratifiableByAcknowledgment reports whether `aiwf acknowledge illegal
+// <sha>` clears code. It mirrors RunProvenance's scoping — that
+// function skips an acknowledged commit ahead of every rule it runs, so
+// every code it emits is ratifiable — without importing the rule set:
+// the prefix is what both sides agree on, and
+// TestHintFor_EveryRatifiableProvenanceCodeAdvertisesTheRemedy holds the
+// two together by enumerating the codes the rules actually emit.
+//
+// provenance-untrailered-entity-commit is the exception, and not a
+// cosmetic one: its findings are per-(commit, entity) pairs cleared only
+// by the `--for-entity` shape, whose binding the verb verifies against
+// the commit's own diff. A blanket acknowledgment does not clear it, so
+// advertising the blanket form on it would send an operator at a command
+// that changes nothing. Its own hint names the repair it does have.
+func ratifiableByAcknowledgment(code string) bool {
+	if !strings.HasPrefix(code, "provenance-") {
+		return false
+	}
+	switch code {
+	case CodeProvenanceUntrailedEntityCommit, CodeProvenanceUntrailedScopeUndefined:
+		return false
+	}
+	return true
+}
+
+// ratificationSentence is the one copy of the remedy every ratifiable
+// provenance finding ends with. These rules audit git history, so the
+// commit they name is already written: the fix each hint suggests —
+// re-run the verb, correct a git config, amend the commit — either
+// cannot be performed on a commit that has landed, or performs it by
+// rewriting history. Ratification is the third option, and an operator
+// who is not told about it at the moment of the finding is told only
+// about the two that do not apply.
+//
+// It states the scope as well as the command, because the scope is the
+// part that surprises: the acknowledgment clears the commit, so a
+// reason written about one finding retires every other finding against
+// the same commit too.
+const ratificationSentence = "A commit already in history cannot be re-run or corrected in place — " +
+	"ratify it with `aiwf acknowledge illegal <sha> --reason \"...\"`, which clears every " +
+	"provenance finding against that one commit (and nothing on any other)."
+
+// withRatificationHint appends ratificationSentence when code is
+// ratifiable and hint is non-empty. An empty hint stays empty: a code
+// with no registered hint emits none at all, and a finding whose only
+// advice is "you may ratify this" would not tell the reader what it is
+// they would be ratifying.
+//
+// Table hints are written without trailing punctuation, so the join
+// supplies the sentence break rather than assuming one; a hint that
+// does end in punctuation keeps it.
+func withRatificationHint(code, hint string) string {
+	if hint == "" || !ratifiableByAcknowledgment(code) {
+		return hint
+	}
+	sep := ". "
+	if strings.ContainsRune(".!?", rune(hint[len(hint)-1])) {
+		sep = " "
+	}
+	return hint + sep + ratificationSentence
 }
 
 // applyHints fills in Hint on every finding from the hint table.

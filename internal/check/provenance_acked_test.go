@@ -18,15 +18,21 @@ import (
 // The integration tests drive the same property through the real verb
 // and the real gather layer, which is what proves the wiring. These
 // reach RunProvenance directly, because that is where the scoping
-// decision lives and because a rule reachable only through a CLI
-// fixture is a rule whose boundary cannot be enumerated cheaply — this
-// file walks every code the function emits.
+// decision lives, and they enumerate its codes so the boundary is read
+// off a list rather than inferred.
+//
+// The enumeration is a reader's aid, not the guarantee. The skip
+// precedes all three rule groups, so a code is cleared by construction
+// rather than by appearing below — which is why a code added later
+// needs no row here to be ratifiable.
 
-// offendingTrailerSets names each provenance code together with a
-// trailer set that raises it. Several codes need a companion commit
-// (an authorize opener) or a tree, which is why the two that depend on
-// cross-commit state are exercised in their own test below rather than
-// forced into this table.
+// offendingTrailerSets names each provenance code raised by a
+// single commit's own trailers, together with a trailer set that
+// raises it. The codes needing cross-commit state — an authorize
+// opener, a tree to resolve reachability against — take a companion
+// commit and so are covered by
+// TestRunProvenance_AcknowledgedCommitClearsCrossCommitRules below
+// rather than forced into this table.
 var offendingTrailerSets = []struct {
 	code     string
 	trailers []gitops.Trailer
@@ -151,6 +157,70 @@ func TestRunProvenance_AcknowledgedCommitReportsNothing(t *testing.T) {
 			if len(acked) != 0 {
 				t.Errorf("acknowledged commit still reports %v; an acknowledgment is a judgment "+
 					"about the commit, so every provenance finding against it clears", codesFrom(acked))
+			}
+		})
+	}
+}
+
+// TestRunProvenance_AcknowledgedCommitClearsCrossCommitRules covers
+// the two codes the table above cannot reach: they are raised by
+// provenanceAuthorizationFindings against cross-commit state — a scope
+// that has ended, a target outside the scope-entity's reach — so each
+// needs an opener commit and a tree rather than one commit's trailers.
+//
+// The fixtures are the ones the baseline rule tests use, re-run with
+// the offending commit acknowledged.
+func TestRunProvenance_AcknowledgedCommitClearsCrossCommitRules(t *testing.T) {
+	t.Parallel()
+	authSHA := strings.Repeat("a", 40)
+
+	cases := []struct {
+		code     string
+		offender string
+		commits  func() []scope.Commit
+	}{
+		{
+			code:     CodeProvenanceAuthorizationEnded,
+			offender: "dddd444",
+			commits: func() []scope.Commit {
+				return []scope.Commit{
+					authorizeOpenedCommit(authSHA, "E-0001", "human/peter", "ai/claude"),
+					agentCommit("bbbb222", "promote", "M-0001", "ai/claude", "human/peter", authSHA, nil),
+					agentCommit("cccc333", "promote", "E-0001", "ai/claude", "human/peter", authSHA, []gitops.Trailer{
+						{Key: gitops.TrailerScopeEnds, Value: authSHA},
+					}),
+					agentCommit("dddd444", "promote", "M-0002", "ai/claude", "human/peter", authSHA, nil),
+				}
+			},
+		},
+		{
+			code:     CodeProvenanceAuthorizationOutOfScope.ID,
+			offender: "bbbb222",
+			commits: func() []scope.Commit {
+				return []scope.Commit{
+					authorizeOpenedCommit(authSHA, "E-0009", "human/peter", "ai/claude"),
+					agentCommit("bbbb222", "promote", "M-0001", "ai/claude", "human/peter", authSHA, nil),
+				}
+			},
+		},
+	}
+
+	for _, tc := range cases {
+		t.Run(tc.code, func(t *testing.T) {
+			t.Parallel()
+			tr := buildProvenanceTree(t)
+			commits := tc.commits()
+
+			if got := RunProvenance(commits, tr, nil); !hasFinding(got, tc.code) {
+				t.Fatalf("fixture raised %v, want it to include %s", findingCodes(got), tc.code)
+			}
+
+			acked := RunProvenance(commits, tr, map[string]bool{tc.offender: true})
+			for i := range acked {
+				if acked[i].Code == tc.code {
+					t.Errorf("%s still fires against the acknowledged commit %s: %s",
+						tc.code, tc.offender, acked[i].Message)
+				}
 			}
 		})
 	}

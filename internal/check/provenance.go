@@ -83,23 +83,15 @@ var CodeProvenanceAuthorizationOutOfScope = codespkg.Code{ID: "provenance-author
 //
 // ackedSHAs is the gather-layer-computed set of retroactively
 // acknowledged commits (M-0292). A commit it names reports no
-// provenance finding at all, which is the same all-or-nothing scoping
-// every other consumer of that map already has.
+// provenance finding at all — the same all-or-nothing scoping every
+// other consumer of that map already has.
 //
-// Per-code ratifiability was considered and rejected. It cannot be
-// drawn where it would need to be: `aiwf-force` on a non-human actor
-// raises provenance-force-non-human, and the same trailer alongside
-// the aiwf-on-behalf-of that the provenance-decoration layer adds for
-// an authorized agent independently raises
-// provenance-trailer-incoherent, whose message restates the rule the
-// acknowledgment just ratified. Clearing one and not the other leaves
-// the push blocked by the same objection under a different code. The
-// distinction a per-code line would rest on — that some of these are
-// acts a human may accept and others are defects — does not survive
-// contact with a historical commit, where every one of them is equally
-// unfixable without rewriting history. What an acknowledgment does is
-// stop blocking one named commit on one named human's written reason;
-// that is a judgment about a commit, not about a rule.
+// The guard sits here rather than inside the three rule groups because
+// the scoping is per-commit, not per-code. Per-code was considered and
+// rejected: one trailer can raise two codes that say the same thing,
+// so clearing a chosen subset leaves the push blocked by the objection
+// already ratified. docs/design/provenance-model.md §Ratification
+// carries the argument and the worked case.
 //
 // The commit still participates in the cross-commit indexes built
 // below — it can open a scope or end one — since those describe
@@ -580,7 +572,8 @@ func RunUntrailedAudit(commits []UntrailedCommit, ackedSHAEntities map[string]ma
 			// entity); the rule trusts that write-time check by
 			// keying off the ack-commit trailers here. SHA-only
 			// acks (without `aiwf-entity`) do NOT suppress this
-			// rule — they cover only the legacy seven rules.
+			// rule — they cover the SHA-scoped rules, which this one
+			// is not.
 			if isShaEntityAcked(c.SHA, canonID, ackedSHAEntities) {
 				continue
 			}

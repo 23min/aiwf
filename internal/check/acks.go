@@ -50,7 +50,7 @@ import (
 // Every consumer silences wholesale: an acknowledged SHA reports
 // nothing from that rule. RunProvenance is the only one that emits
 // more than one code, and it skips the commit ahead of all of them
-// rather than selecting among them — its own doc carries why.
+// rather than selecting among them — see its doc.
 //
 // The verb consumes the walker too, to recognize
 // a SHA it has already acknowledged and converge rather than append a
