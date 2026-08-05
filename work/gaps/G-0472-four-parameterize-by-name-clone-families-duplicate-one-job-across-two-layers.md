@@ -12,28 +12,28 @@ config's path exclusions lifted and `--max-issues-per-linter 0
 --max-same-issues 0`, without which golangci-lint truncates at 50 findings —
 surfaces the pairs. Reading them as families rather than pairs shows the shape.
 
-**Hook installers** — `internal/initrepo/initrepo.go`: `ensurePreHook` (1332),
-`ensurePreCommitHook` (1445), `ensureCommitMsgHook` (1520) and
-`ensurePostCommitHook` (1601). All four return `(StepResult, bool, error)`,
+**Hook installers** — `internal/initrepo/initrepo.go`: `ensurePreHook` (1331),
+`ensurePreCommitHook` (1444), `ensureCommitMsgHook` (1519) and
+`ensurePostCommitHook` (1600). All four return `(StepResult, bool, error)`,
 resolve the hooks dir, join a filename, compare a marker and branch on dry-run.
 Three take `(ctx, root, dryRun)`; `ensurePostCommitHook` takes a fourth
-`regenStatus` and carries a `if !regenStatus` opt-out block (1613-1648) that no
+`regenStatus` and carries a `if !regenStatus` opt-out block (1613-1646) that no
 sibling has. So three collapse on the hook name alone, and the fourth has a
 second behavioral axis to absorb or to leave documented as a sibling.
 
-`dupl` reports only the 1445/1520 pair at threshold 100. That is the token
+`dupl` reports only the 1444/1519 pair at threshold 100. That is the token
 threshold, not a limitation of pairwise output: dupl does cluster, emitting
 pairwise edges that form a cycle. At threshold 60 the three later installers
-appear as one — `1459-1475` → `1534-1550` → `1650-1666` → back to `1459-1475`.
+appear as one — `1458-1474` → `1533-1549` → `1649-1665` → back to `1458-1474`.
 Their common fragment is about seventeen lines, which clears 60 and not 100.
 `ensurePreHook` shares no clone fragment with any sibling even at 60; it belongs
 to the family by shape, not by dupl's measure.
 
-**Legacy-key strippers** — `config.StripLegacyActor` (897) and
-`config.StripLegacyAiwfVersion` (954) differ only by which key they remove (27
-lines). `initrepo.ensureLegacyActorClean` (969) and
-`ensureLegacyAiwfVersionClean` (1012) differ the same way (36 lines) and
-*delegate* to the config pair (initrepo.go:996, 1039) — they are dry-run and
+**Legacy-key strippers** — `config.StripLegacyActor` (977) and
+`config.StripLegacyAiwfVersion` (1034) differ only by which key they remove (27
+lines). `initrepo.ensureLegacyActorClean` (968) and
+`ensureLegacyAiwfVersionClean` (1011) differ the same way (36 lines) and
+*delegate* to the config pair (initrepo.go:995, 1038) — they are dry-run and
 `StepResult` reporting wrappers, not a second implementation of stripping.
 
 The cross-layer redundancy is narrower than duplicated behaviour. `initrepo`
@@ -68,10 +68,10 @@ these two files.
 **YAML block replacers** — `aiwfyaml.(*Doc).replaceContracts` (726) and
 `(*Doc).replaceHooks` (105) differ by which block they target (28 lines), and
 `replaceHooks`'s own doc comment says it "Mirrors replaceContracts".
-`appendContracts` and `appendHooks` (hooks.go:117) are a second mirror pair in the
-same file that dupl does not flag.
+`appendContracts` (739) and `appendHooks` (hooks.go:118) are a second mirror
+pair in the same file that dupl does not flag.
 
-**Verb scaffolds** — `internal/cli/contract/recipes.go` (247-279) and
+**Verb scaffolds** — `internal/cli/contract/recipes.go` (244-276) and
 `internal/cli/contract/unbind.go` (41-73) differ by a verb-name string and the
 verb function they call (33 lines). This family is the residue of the shared
 prelude extraction that landed under E-0072, and its structure is already pinned
