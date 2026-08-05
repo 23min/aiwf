@@ -2,6 +2,7 @@
 id: G-0445
 title: diff-shape gate hardcodes docs/ exclusion, wrong for some consumer repos
 status: open
+priority: low
 discovered_in: M-0276
 ---
 `isPlanningPath` in the red/green diff-shape gate (M-0276/AC-6) hardcodes two
