@@ -1,7 +1,7 @@
 ---
 id: E-0077
 title: Collapse convergent duplication and own the exclusion inventory
-status: proposed
+status: cancelled
 ---
 ## Goal
 
