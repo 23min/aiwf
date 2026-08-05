@@ -1073,18 +1073,24 @@ Addresses G-0465, G-0471 and G-0474.
 
 _No milestones yet._
 
-## E-0077 — Collapse convergent duplication and own the exclusion inventory (proposed)
+## E-0077 — Collapse convergent duplication and own the exclusion inventory (cancelled)
 
 ### Goal
 
 Collapse the convergent duplication a structural sweep and the earlier
-verb-layer-cleanup audit both surfaced, put the acknowledged-duplication
-inventory back under an owner, and repair the instrument that measures both.
+verb-layer-cleanup audit both surfaced, and put the acknowledged-duplication
+inventory back under an owner — deleted where the duplication it exempts is
+gone, and mechanically policed where it is not.
 
-Addresses G-0472, G-0473 and G-0462, and clears the G-0447 remainder — G-0453,
-G-0454, G-0455.
+Addresses G-0472, G-0473, G-0533 and G-0543.
 
-_No milestones yet._
+| Milestone | Title | Status |
+|---|---|---|
+| M-0295 | Pin the guarded-rule harness's own claims | cancelled |
+| M-0296 | Land the dormant-exemption test and drop the stale entries | cancelled |
+| M-0297 | Collapse the three within-package clone families | cancelled |
+| M-0298 | Collapse the legacy-key family across the layer boundary | cancelled |
+| M-0299 | Gate duplication in the test corpus, diff-scoped | cancelled |
 
 ## E-0078 — Purge narrow-id debris from shipped surfaces and retire rewidth (done)
 
@@ -1101,7 +1107,7 @@ work is finished.
 | M-0289 | Lint and sweep narrow ids from README and the workflows guide | done |
 | M-0290 | Retire the rewidth verb and fire the drift check on any narrow active id | done |
 
-## E-0079 — Enforce sovereign force where the kernel claims to enforce it (proposed)
+## E-0079 — Enforce sovereign force where the kernel claims to enforce it (active)
 
 ### Goal
 
@@ -1110,5 +1116,10 @@ claimed, and give the finding it produces a way to be cleared. Five surfaces
 state the guarantee as enforced; the verb route enforces it for one verb of four,
 and no verb clears the resulting error.
 
-_No milestones yet._
+| Milestone | Title | Status |
+|---|---|---|
+| M-0291 | Wire trailer coherence at the apply seam | draft |
+| M-0292 | Give provenance-force-non-human a ratification path | draft |
+| M-0293 | Correct the surfaces that claim force enforcement | draft |
+| M-0294 | Register rule-space cells without an FSM coordinate | draft |
 
