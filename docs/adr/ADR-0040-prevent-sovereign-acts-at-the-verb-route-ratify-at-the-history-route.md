@@ -56,14 +56,18 @@ caller reaching `Apply` is covered without being enumerated.
 ## Consequences
 
 The guard enforces the rules predicated on a force trailer, not the whole
-coherence rule set. The scope is load-bearing rather than incidental: a verb
-whose trailer set is incomplete for a reason unrelated to force may have no
-invocation that could complete it. The contract verbs are the measured case —
-they never pass through the provenance-decoration layer and register no flag
-that could supply a principal, so a seam enforcing the whole set closed all
-four to non-human actors outright. Sovereignty is what this seam exists to
-enforce, and force is what makes an act sovereign; everything else a trailer
-set can get wrong is the push's business.
+coherence rule set. Membership is decided by satisfiability: a rule belongs at
+the seam only if every verb that can reach it has some invocation that satisfies
+it. The contract verbs are the measured case — they never pass through the
+provenance-decoration layer and register no flag that could supply a principal,
+so a seam enforcing the whole set closed all four to non-human actors outright.
+
+Satisfiability rather than sovereignty, and the difference is not cosmetic.
+Audit-only is sovereign too, and `audit-only-non-human` is deliberately not at
+the seam because it fails the same test for the same reason. A criterion of
+"the sovereign rules" would give the wrong answer for the next rule added. What
+retires an exclusion is provenance wiring on the verbs that lack it, not a
+change of principle (D-0060).
 
 Two of the three rules in that subset are backstops rather than live paths.
 `audit-only-with-force` sits behind a flag mutex that refuses `--force`
@@ -86,6 +90,13 @@ A refusal here is a legality refusal, not an internal failure. It exits with
 the findings code and carries the same finding identifier `aiwf check` reports
 for the same act once it has landed, so one consumer routes on a denial without
 needing to know which of the two moments produced it.
+
+That reclassification reaches further than the seam. The two verbs that already
+consulted the rule set at the verb layer — `authorize` and the audit-only
+path — raised the same error type, so their coherence refusals move from the
+usage exit to the findings exit with it. That is the intended end state: one
+violation class, one exit, wherever it is caught. It is still a CLI-contract
+change on paths this decision does not otherwise touch.
 
 Refusals move from push time to verb time. Automation that was forcing as a
 non-human actor was already blocked at push, so no working pipeline breaks —
