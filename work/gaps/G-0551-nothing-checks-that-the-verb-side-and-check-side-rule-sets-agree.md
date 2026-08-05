@@ -16,7 +16,10 @@ predicate would require extracting it to a third package below both.
 
 ## Why it matters
 
-Two divergences already exist. The principal rule is wide on the verb side and
+The divergences are a class rather than a list. The audit returns no findings
+at all for a commit carrying no `aiwf-actor`, so every coherence rule diverges
+on actor-less commits — G-0550 records the force instance; the same silence
+covers the rest. Two further divergences are specific. The principal rule is wide on the verb side and
 narrow on the check side — recorded in D-0059 and deliberately not filed,
 because the two are equivalent for every commit the audit can actually see. And
 `audit-only-with-force` exists verb-side with no check-side counterpart, which
