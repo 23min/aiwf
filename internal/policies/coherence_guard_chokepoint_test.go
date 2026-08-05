@@ -223,17 +223,23 @@ func TestPolicyCoherenceGuardChokepoint_FiresOnALowerLevelPrimitive(t *testing.T
 // TestPolicyCoherenceGuardChokepoint_IgnoresAPrimitiveNamedInAString
 // pins the false positive the resolved scan removes.
 //
-// This package's own policies quote these primitive names as string
-// literals; a textual scan cannot tell a quoted name from a call, so it
-// would report a policy source file as an off-seam commit site.
+// internal/verb/apply.go names CommitTree in comments inside function
+// bodies; a textual scan cannot tell a mentioned name from a call, so
+// it would report those functions as off-seam commit sites.
+//
+// The fixture deliberately does NOT live under internal/policies/,
+// which WalkGoFiles skips wholesale so that scanners do not trip the
+// policies they implement. A fixture placed there is never read, and
+// the test would pass no matter what the scan did.
 func TestPolicyCoherenceGuardChokepoint_IgnoresAPrimitiveNamedInAString(t *testing.T) {
 	t.Parallel()
 
 	root := writeFixtureTree(t,
 		"\tCheckForceTrailerCoherence(p.Trailers)\n\tgitops.CommitVerbChange(ctx)",
 		map[string]string{
-			filepath.Join("internal", "policies", "quoter.go"): goFixture("policies",
-				"func Names() []string {\n\treturn []string{\"gitops.CommitVerbChange(\", \"gitops.CommitTree(\"}\n}\n"),
+			filepath.Join("internal", "cli", "quoter", "quoter.go"): goFixture("quoter",
+				"func Names() []string {\n\t// gitops.CommitTree is named here, not called.\n"+
+					"\treturn []string{\"gitops.CommitVerbChange(\", \"gitops.CommitTree(\"}\n}\n"),
 		})
 
 	violations, err := PolicyCoherenceGuardChokepoint(root)

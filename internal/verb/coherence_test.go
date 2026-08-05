@@ -269,7 +269,8 @@ func TestCoherenceError_Code(t *testing.T) {
 		want string
 	}{
 		{
-			// The only rule with a check-side code of its own.
+			// One of the two rules the audit names with a code of
+			// its own.
 			name: "force by a non-human actor",
 			rule: CoherenceRuleForceNonHuman,
 			want: check.CodeProvenanceForceNonHuman,

@@ -178,6 +178,12 @@ func scanFuncBody(body *ast.BlockStmt, gitopsLocal string) (commits, guarded boo
 // would satisfy it. Ordering is pinned behaviorally instead, by the
 // unmoved-HEAD and no-write-landed assertions in
 // internal/verb/apply_coherence_test.go.
+//
+// It resolves direct calls only. A primitive taken as a function value,
+// held in a variable, passed as an argument, or reached through a
+// dot-import is not seen. None of those forms appears in the tree, and
+// each would be a strange way to build a commit — but a caller
+// determined to bypass the seam has them.
 func PolicyCoherenceGuardChokepoint(root string) ([]Violation, error) {
 	sites, unparseable, err := verbCommitSites(root)
 	if err != nil {

@@ -33,9 +33,14 @@ func (e *CoherenceError) Error() string { return e.Message }
 // than the internal-failure one — see the exit-code contract on
 // cliutil.FinishVerb.
 //
-// Two rules have a finding code of their own check-side; the rest are
-// reported there under the one incoherent-trailer code, and the refusal
-// follows that rather than inventing a second vocabulary.
+// Two rules have a finding code of their own check-side; the rest map
+// to the one incoherent-trailer code, and the refusal follows that
+// rather than inventing a second vocabulary.
+//
+// The mapping says what the audit calls a violation it reports, not
+// that it reports every one. audit-only-with-force has no
+// history-walking counterpart at all, so its code here names the class
+// the audit would use rather than one it ever emits (G-0551).
 func (e *CoherenceError) Code() string {
 	switch e.Rule {
 	case CoherenceRuleForceNonHuman:
