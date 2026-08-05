@@ -40,11 +40,20 @@ missing, and CI reports green.
 
 ## Resolution shape
 
-A workflow step running `aiwf check` on push and pull request. Two wrinkles keep
-it from being a one-liner. The history-walking rules need full history, so the
-checkout needs `fetch-depth: 0` rather than the default shallow one; and the
+A workflow step running `aiwf check` on push and pull request. Three wrinkles
+keep it from being a one-liner. The history-walking rules need full history, so
+the checkout needs `fetch-depth: 0` rather than the default shallow one; and the
 step needs the binary on PATH, which the `selfcheck` job already arranges for
 the same reason, so the pattern to copy is in the same file.
+
+The third is not a configuration detail and blocks the step from landing green:
+reference resolution consults the refs the asking machine holds, so an id minted
+on a local branch that was never pushed is unreachable from any CI checkout and
+resolves as an error there while the author's pre-push hook reports a warning.
+`fetch-depth` does not reach it — the ref is absent from the remote, not merely
+unfetched. On the tree as it stands the step reports errors on day one. Which
+view is authoritative is a question this gap inherits rather than answers;
+G-0556 holds it.
 
 The pre-push position stays where it is. This adds a backstop rather than
 relocating the chokepoint: an oracle that only speaks in CI arrives after the
