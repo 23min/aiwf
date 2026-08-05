@@ -2,6 +2,7 @@
 id: G-0518
 title: A body citing a real entity at a legacy width passes body-prose-id
 status: open
+priority: medium
 ---
 ## Problem
 
