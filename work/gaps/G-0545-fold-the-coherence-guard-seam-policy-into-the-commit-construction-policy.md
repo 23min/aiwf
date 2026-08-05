@@ -10,19 +10,24 @@ Two policies now assert the same property about the same seam.
 `PolicyCommitConstructionSingleSeam` already holds that nothing outside
 `verb.Apply` calls `gitops.CommitVerbChange`, by AST selector inspection with
 the seam's identity in named constants.
-`PolicyCoherenceGuardChokepoint` re-derives that claim by substring match over
-raw function-body text, with the seam's identity re-encoded inline.
+`PolicyCoherenceGuardChokepoint` re-derives the same claim by its own AST scan,
+with the seam's identity re-encoded inline rather than read from the shared
+constants.
 
-The genuinely new assertion in the second is one field: whether the seam's body
-also names the sovereign-force guard.
+The genuinely new assertions in the second are the guard-presence field and a
+wider reach: it resolves the gitops import's local name, so an aliased import is
+caught, and it watches every commit-construction primitive rather than only the
+one a verb is meant to call. Both of those are properties the older policy
+should have and does not.
 
 ## Why it matters
 
 One fact, two implementations, and they can drift apart one plausible edit at a
-time — the case H1 exists to prevent. The copies already differ in mechanism
-and in scope: the older policy filters to two package prefixes, the newer walks
-the tree. That difference is not principled, it is an artifact of writing the
-second one separately.
+time — the case H1 exists to prevent. The copies already differ in scope: the older policy
+filters to two package prefixes, the newer walks the tree; the older resolves
+no import alias and watches a narrower primitive set. Those differences are not
+principled, they are artifacts of writing the second one separately — and the
+newer one is now the stricter, which means the fold has a direction.
 
 The older policy's narrower scope is itself a known hole, recorded when it was
 written: a second caller appearing in another package would not be caught. So
