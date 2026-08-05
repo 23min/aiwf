@@ -247,8 +247,10 @@ func TestForceReplaceVerbs_NonHumanActor_StillWork(t *testing.T) {
 		[]byte("## Purpose\n\nPin the rendered shape.\n\n## Stability\n\nStable.\n"), 0o644); err != nil {
 		t.Fatalf("writing contract body: %v", err)
 	}
-	if err := os.MkdirAll(filepath.Join(root, "fixtures", "render"), 0o755); err != nil {
-		t.Fatalf("mkdir fixtures: %v", err)
+	for _, dir := range []string{"render", "render2"} {
+		if err := os.MkdirAll(filepath.Join(root, "fixtures", dir), 0o755); err != nil {
+			t.Fatalf("mkdir fixtures/%s: %v", dir, err)
+		}
 	}
 	if err := os.MkdirAll(filepath.Join(root, "schemas"), 0o755); err != nil {
 		t.Fatalf("mkdir schemas: %v", err)
@@ -274,6 +276,15 @@ func TestForceReplaceVerbs_NonHumanActor_StillWork(t *testing.T) {
 			"contract", "bind", "C-0001", "--validator", "jsonschema",
 			"--schema", "schemas/render.json", "--fixtures", "fixtures/render",
 		}},
+		// --force here is the force-replace sense: overwrite the binding
+		// just made. It is the flag the constraint is about, so a step
+		// has to actually pass it — otherwise the test would stay green
+		// if contract bind began emitting a sovereign aiwf-force trailer.
+		{"bind --force (replace)", []string{
+			"contract", "bind", "C-0001", "--validator", "jsonschema",
+			"--schema", "schemas/render.json", "--fixtures", "fixtures/render2",
+			"--force",
+		}},
 		{"unbind", []string{"contract", "unbind", "C-0001"}},
 		{"recipe remove", []string{"contract", "recipe", "remove", "jsonschema"}},
 	}
@@ -287,5 +298,46 @@ func TestForceReplaceVerbs_NonHumanActor_StillWork(t *testing.T) {
 		if after := headSHA(t, root); after == before {
 			t.Fatalf("%s: exited zero but committed nothing; the verb is closed, not working", step.name)
 		}
+	}
+}
+
+// TestAuditOnly_NonHumanActor_ExitsAsALegalityRefusal pins the exit
+// class of the coherence refusals raised inside a verb, not at the
+// commit seam.
+//
+// Making *verb.CoherenceError carry a finding code moved these from the
+// usage exit to the findings exit. That is the documented contract for
+// a Coded error — a legality refusal takes the same exit as the
+// check-time finding for its violation class — but it is a CLI-contract
+// change on a path this milestone did not otherwise touch, and nothing
+// pinned the old value or the new one.
+//
+// The refusal itself is correct policy: audit-only is sovereign, so a
+// non-human actor cannot wield it. The message is not, and is tracked
+// rather than fixed here — the principal it names was supplied, because
+// the verb consults the rule set before the CLI layer decorates the
+// plan.
+func TestAuditOnly_NonHumanActor_ExitsAsALegalityRefusal(t *testing.T) {
+	t.Parallel()
+	testutil.SkipIfShortOrUnsupported(t)
+
+	root, binDir := sovereignForceRepo(t)
+	before := headSHA(t, root)
+	// The epic's current status: audit-only records what is already true,
+	// so any other target is refused by the FSM before the trailer set is
+	// consulted, and the case would pass without reaching the rule.
+	out, err := testutil.RunBin(t, root, binDir, nil,
+		"promote", "E-0001", "proposed", "--audit-only", "--reason", "backfill",
+		"--actor", "ai/claude", "--principal", "human/peter")
+
+	if err == nil {
+		t.Fatalf("audit-only by a non-human actor succeeded; want refusal\n%s", out)
+	}
+	if !testutil.ExitedWithCode(err, 1) {
+		t.Errorf("exited %v, want 1; a coherence refusal is a legality refusal wherever it is raised, "+
+			"and reporting one exit at the verb and another at the seam splits one violation class\n%s", err, out)
+	}
+	if after := headSHA(t, root); after != before {
+		t.Errorf("HEAD moved %s -> %s; the refusal must precede the commit", before[:8], after[:8])
 	}
 }
