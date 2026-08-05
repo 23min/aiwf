@@ -23,7 +23,7 @@ So: which rules belong at a verb-time refusal?
 
 Enforce only the rules predicated on a force trailer —
 `force-non-human`, `force-with-on-behalf-of` and `audit-only-with-force` — in
-`CheckSovereignForceCoherence`. `CheckTrailerCoherence` keeps the full set for
+`CheckForceTrailerCoherence`. `CheckTrailerCoherence` keeps the full set for
 its existing callers. The commit seam refuses sovereign acts; every other way a
 trailer set can be incoherent stays the push's business.
 
