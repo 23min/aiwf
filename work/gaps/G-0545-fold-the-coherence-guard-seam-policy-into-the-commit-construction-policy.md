@@ -34,6 +34,16 @@ written: a second caller appearing in another package would not be caught. So
 merging is not only deduplication — it closes that hole as a side effect,
 because the surviving policy would inherit the wider scan.
 
+Two smaller things belong with the fold rather than on their own. The newer
+policy's roster of gitops commit primitives is hand-maintained with no owner and
+no retirement trigger — it is complete today, but a fifth exported primitive
+would leave its reach silently. Deriving the set from the package's exported
+surface is the census the fold could carry. And the scan resolves direct calls
+only: a primitive taken as a function value, held in a variable, passed as an
+argument, or reached through a dot-import is not seen. None of those appears in
+the tree and each is a strange way to build a commit, but a caller intent on
+bypassing the seam has them.
+
 ## Options
 
 1. **Fold the guard-presence clause into `PolicyCommitConstructionSingleSeam`
