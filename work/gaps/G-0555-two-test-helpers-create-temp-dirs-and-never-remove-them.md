@@ -18,8 +18,10 @@ Each directory holds a compiled binary — 18 MB measured. `AiwfBinary` is used
 across many test packages, and `go test` runs one process per package, so a
 `sync.Once` bounds the builds per *process* rather than per run: a full
 `go test ./...` mints one directory per consuming package and keeps all of them.
-Measured in one devcontainer: 40 `aiwf-int-build-` directories totalling 727 MB,
-plus 11 shared-binary directories, none older than that day's runs.
+Measured in one devcontainer, dated 2026-08-05: 52 `aiwf-int-build-` directories
+totalling 922 MB, plus 16 shared-binary directories at 284 MB. The count rose by
+twelve during the hour the measurement was taken, tracking another session's
+test runs.
 
 The correct shape is already present elsewhere in the tree.
 `aiwf doctor --self-check` creates its temp repo the same way and removes it on
@@ -31,6 +33,16 @@ crash residue rather than a leak.
 The growth is monotonic in test runs, so the cost lands on whoever runs the
 suite most, and it lands on any machine that runs it — a CI runner and a
 contributor's laptop, not only this repo's devcontainer.
+
+**Periodic cleanup cannot substitute for the fix.** On the day measured, every
+one of these directories had been created within the preceding 24 hours: a sweep
+holding to a 24-hour safety margin — the shortest margin that is safe when
+concurrent sessions may still hold a built binary — would have found nothing to
+delete, while the day's accumulation stood at over a gigabyte. The leak
+regenerates faster than an age-based sweep can safely reclaim it, so any
+operational workaround either lags the growth or risks deleting a directory a
+running test is using. That leaves the code as the only place the problem can
+actually be solved.
 
 It also compounds the failure G-0552 describes. A full disk surfaces as test
 failures in whichever tests write most, which is exactly the binary-building and
