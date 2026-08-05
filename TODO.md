@@ -31,11 +31,14 @@ line saying what it is.
   .git/config and broke TestResolveActor_*; the failures read as environmental
 - E-0079 is active and owns M-0291..M-0294, all four with empty bodies and no
   ACs. The ordering below predates it and does not account for it
+- Tests leave tens of GB of temp dirs in /tmp (aiwf-int-build-*,
+  aiwf-self-check-*, stresstest-shared-bin-*) — filled the disk mid-session
+  and blocked a commit. Nothing tracks it
 - `readStatusAt` and the walker's path-resolving fallback arm are dead in
   production — reachable only through conditions no BulkRevwalk flag produces.
   Annotated rather than deleted, deliberately; nothing tracks the choice
 
-## Next, in order (2026-08-04)
+## Next, in order (2026-08-05)
 
 These clusters cover the *defect* surface; the low-priority feature and
 enhancement gaps fit none and are not listed. Each gap sits in exactly one
@@ -57,7 +60,22 @@ coverage finds a guard and stops looking.
   whole-tree sibling's under-inclusiveness is a calibrated precision trade
   argued in the source, so this asks to reverse a decision, not to fill a hole
 
-### 2. Oracles — what tells the builder it is wrong *(design first; one cheap member)*
+### 2. Shipped surfaces that state something false *(one decision, then a milestone)*
+
+A consumer reads these and acts on them. Unlike a stale citation, a wrong claim
+about behaviour reads as authoritative and stops the reader looking further.
+Nothing mechanical covers the claim itself: G-0542 pinned where a row sits, not
+what it says.
+
+- **G-0547** — a quarter of the `aiwf-check` table duplicates the hint the tool
+  already prints. Decide first (delete / derive / pin); it settles whether the
+  Fix column is touched at all by the entry below
+- **G-0553** — six Meaning cells state a trigger the code contradicts; ~18 more
+  omit the guard that decides whether the rule fires. Larger than a patch
+- **G-0549** — a documented row for a code nothing emits, and a conditional code
+  with no row inheriting the wrong table. Two ends of one broken mapping
+
+### 3. Oracles — what tells the builder it is wrong *(design first; one cheap member)*
 
 Cluster 1 is the acute form of this: a gate that passes bad state. These are the
 milder forms — a gate shallower than its name, a gate that judges its own author,
@@ -83,7 +101,7 @@ initiative context in `quality-signal-and-cadence.md` Q2 and Q6.
   `tdd-cycle-subagent-boundaries.md` before opening anything: three captures
   already circle this *(unfiled)*
 
-### 3. Cheap fixes, batchable now *(two wf-patches)*
+### 4. Cheap fixes, batchable now *(two wf-patches)*
 
 Small, no design content between them.
 
@@ -96,7 +114,7 @@ Small, no design content between them.
 - **G-0479** — epic template nests out-of-scope below the level three surfaces require
 - **G-0482** — milestone template omits the Approach section `entity-body-empty` requires
 
-### 4. Write scope — what a verb may commit *(epic; spec first)*
+### 5. Write scope — what a verb may commit *(epic; spec first)*
 
 A verb commits bytes it did not compute. The guard shipped; these are the routes
 it cannot see, plus the missing verbs that are the upstream cause — where no verb
@@ -112,7 +130,7 @@ exists, hand-editing is the only route, and the guard then refuses the result.
 - **G-0506** — the AC phase promote refuses from working-copy bytes HEAD contradicts
 - **G-0512** — a directory sitting at a move's destination is invisible to the decline
 
-### 5. E-0074 — same-state convergence *(small epic, parallel any time)*
+### 6. E-0074 — same-state convergence *(small epic, parallel any time)*
 
 Finish what the convergence milestone started, so the convention the kernel
 advertises holds everywhere it claims to. Done-condition is mechanical: zero
@@ -123,7 +141,7 @@ OPEN entries in the NoOp allowlist.
 - **G-0461** — a composite `--for-entity` ack suppresses nothing
 - **G-0458** — same-phase AC promote refuses where every other verb converges
 
-### 6. What aiwf ships — does it arrive, stay current, and bind? *(unscoped)*
+### 7. What aiwf ships — does it arrive, stay current, and bind? *(unscoped)*
 
 Each member is a shipped surface whose failure is silent: it never arrives, it
 silently goes stale, or it cannot be enforced at all.
@@ -141,7 +159,7 @@ silently goes stale, or it cannot be enforced at all.
   constants, so an operator reading a skill misjudges whether a finding blocks a
   push. In flight on a patch worktree
 
-### 7. Error contract *(epic, parallel any time)*
+### 8. Error contract *(epic, parallel any time)*
 
 Everything a machine caller reads when a verb refuses. Six gaps on one surface
 with no decision outstanding first.
@@ -154,7 +172,7 @@ with no decision outstanding first.
 - **G-0432** — `version` / `doctor` and the envelope resolve the version differently
 - **G-0070** — `doctor` has no `--format=json`
 
-### 8. E-0077 — duplication and the instrument that measures it *(epic)*
+### 9. E-0077 — duplication and the instrument that measures it *(epic)*
 
 Collapse convergent duplication and put the acknowledged-duplication inventory
 back under an owner. The instrument is repaired — G-0462 closed the two ways the
@@ -166,7 +184,7 @@ free to run in any order.
 - **G-0508** — three near-copies of the `internal/verb` AST scan drift apart
 - **G-0453 / G-0454 / G-0455** — the remainder, each decide-before-extracting
 
-### 9. Doc drift *(one wf-patch, whenever)*
+### 10. Doc drift *(one wf-patch, whenever)*
 
 Citations that no longer resolve. Cheap, isolated, no thesis between them beyond
 staleness.
@@ -179,3 +197,5 @@ staleness.
 - **G-0444** — the id-allocation doc cites renamed functions
 - **G-0517** — narrow id citations remain in the design docs, overview and architecture
 - **G-0519** — documentation is not reference-checked; a cited id need not resolve
+- **G-0548** — shipped surfaces cite this repo's own paths; the id half of that
+  rule is enforced at error severity, the path half has no check
