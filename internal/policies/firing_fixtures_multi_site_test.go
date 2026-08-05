@@ -177,6 +177,34 @@ func TestFiringFixtures_MultiSite(t *testing.T) {
 			},
 		},
 
+		// flake-hunt-package-isolation: a `...` pattern outside the
+		// `go list` enumerator is the whole-module sweep the workflow
+		// must not run. One fixture per way it can reappear — on the
+		// test invocation, across a continuation, and in a
+		// hand-written matrix — each alongside the prose and
+		// enumerator lines that must stay silent.
+		{
+			name:   "flake-hunt-package-isolation/on-the-invocation",
+			policy: PolicyFlakeHuntPackageIsolation,
+			files: map[string]string{
+				".github/workflows/flake-hunt.yml": "name: y\n# prose mentioning ./... is not an invocation\nrun: go list ./...\nrun: go test -race -parallel 8 -count=10 ./...\n",
+			},
+		},
+		{
+			name:   "flake-hunt-package-isolation/across-a-continuation",
+			policy: PolicyFlakeHuntPackageIsolation,
+			files: map[string]string{
+				".github/workflows/flake-hunt.yml": "name: y\nrun: go test -race -parallel 8 \\\n  ./...\n",
+			},
+		},
+		{
+			name:   "flake-hunt-package-isolation/in-the-matrix",
+			policy: PolicyFlakeHuntPackageIsolation,
+			files: map[string]string{
+				".github/workflows/flake-hunt.yml": "name: y\nstrategy:\n  matrix:\n    package: [\"./internal/...\", \"./cmd/...\"]\n",
+			},
+		},
+
 		// read-only-verbs: a read-only verb that mutates lights the
 		// mutation line; the other expected verbs being absent lights the
 		// "not found" line.
