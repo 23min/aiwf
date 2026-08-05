@@ -325,6 +325,18 @@ closure went unnoticed, and the test now exists.
 - G-0545 — fold this milestone's seam policy into the existing
   commit-construction seam policy. Both assert the seam is singular; only the
   guard-presence clause is new. Deferred as a refactor with its own review.
+- G-0550 — a commit carrying force and no actor at all is refused by neither
+  rule set, though the design doc says it should be. Not verb-reachable, so it
+  concerns hand-crafted and imported history; the domain test cannot catch it
+  today because its doc-sourced invariant routes through the implementation's
+  own notion of a non-human actor.
+- G-0551 — nothing checks that the verb-side and check-side rule sets agree.
+  Two divergences already exist and both are currently benign, which is the
+  state in which a third would go unnoticed.
+- G-0552 — nothing bounds the Go build cache in the devcontainer. It filled the
+  filesystem during this wrap and surfaced as three consecutive runs failing
+  three different packages, which reads as a flaky suite rather than as a full
+  disk.
 - G-0546 — the two-shape trailer assembly. The CLI layer completes a plan the
   verb layer produced, which is why no verb can validate its own provenance and
   why a refusal speaks in trailer keys. Deferred as epic-sized.
