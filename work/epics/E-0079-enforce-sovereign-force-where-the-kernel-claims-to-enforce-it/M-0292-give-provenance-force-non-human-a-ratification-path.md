@@ -7,7 +7,7 @@ tdd: required
 acs:
     - id: AC-1
       title: Acknowledging a forced non-human commit clears its finding
-      status: open
+      status: met
       tdd_phase: done
     - id: AC-2
       title: The acknowledged commit is unchanged and its reason is readable
