@@ -26,7 +26,6 @@ line saying what it is.
 - Area skill perhaps too big?
 - Do we have anything in CLAUDE.md that really should belong in shipped surfaces?
 - E-0019 and ADR-0001 both still `proposed` — deferred, no forcing function yet
-- G-0436 and G-0439 still carry no priority
 - G-0375 has a live sighting: a probe wrote user.email into the repo's own
   .git/config and broke TestResolveActor_*; the failures read as environmental
 - E-0079 is active and owns M-0291..M-0294, all four with empty bodies and no
@@ -70,7 +69,7 @@ what it says.
 - **G-0547** — a quarter of the `aiwf-check` table duplicates the hint the tool
   already prints. Decide first (delete / derive / pin); it settles whether the
   Fix column is touched at all by the entry below
-- **G-0553** — six Meaning cells state a trigger the code contradicts; ~18 more
+- **G-0553** *(high)* — six Meaning cells state a trigger the code contradicts; ~18 more
   omit the guard that decides whether the rule fires. Larger than a patch
 - **G-0549** — a documented row for a code nothing emits, and a conditional code
   with no row inheriting the wrong table. Two ends of one broken mapping
@@ -83,9 +82,12 @@ and one absence. The apparatus decides *shape* well and decides nothing about
 whether the spec going in is any good. Vocabulary in `docs/design/oracles.md`;
 initiative context in `quality-signal-and-cadence.md` Q2 and Q6.
 
+- **G-0438** *(high)* — flake-hunt is the gate that decides whether a tag is safe
+  to push, and on a stock GitHub runner it cannot separate a real regression from
+  its own resource ceiling. Every release cut redoes the local repro by hand
 - **G-0533** — `dupl` is off across the test corpus, the larger and
-  faster-growing half. Cheap, and the only member with a known fix: diff-scope
-  it. Unblocked — G-0462 repaired the instrument this was waiting on
+  faster-growing half. Cheap, and it has a known fix: diff-scope it.
+  Unblocked — G-0462 repaired the instrument this was waiting on
 - **G-0110** — mutation testing's diff filter excludes new files, which is the
   code most likely to carry an untested mutant. Blocks the idea below it
 - **G-0253** — the coverage gate is statement-scoped, so a defensive arm that
@@ -107,7 +109,6 @@ Small, no design content between them.
 
 - **G-0464** — three check predicates treat a `deferred` AC as still in scope
 - **G-0493** — `edit-body`'s two modes judge frontmatter divergence by different rules
-- **G-0498** — verb commits store raw bytes, bypassing git's clean filters
 - **G-0502** — a submodule under a moved directory is stranded, unseen by the guard
 - **G-0510** — the `enums:ignore` escape accepts three spellings that aren't the directive
 - **G-0513** — the archive sweep reports "converged" when a candidate won't parse
@@ -123,10 +124,14 @@ exists, hand-editing is the only route, and the guard then refuses the result.
 - **G-0168** *(high)* — four set-at-create fields have no mutation verb
 - **G-0276** *(high)* — verb commit isolation rests on `git stash`; leaves orphans
 - **G-0471** *(high)* — nothing catches a verb run by a binary older than the source
+- **G-0498** *(high)* — verb commits store raw bytes, bypassing git's clean filters,
+  so on a repo with `core.autocrlf` set every mutating verb is unusable. Decide
+  the storage convention first: filter on write, or ship a filter-exempt
+  `.gitattributes` for the paths aiwf owns
+- **G-0500** *(high)* — `edit-body` over a hand-moved file lands a duplicate id the local check misses
+- **G-0501** *(high)* — `init` / `update` replace a symlinked `CLAUDE.md` with a frozen copy
 - **G-0442** — `addressed_by` / `superseded_by` have no amend path
 - **G-0486** — a directory move rewrites a symlink as a copy and drops the exec bit
-- **G-0500** — `edit-body` over a hand-moved file lands a duplicate id the local check misses
-- **G-0501** — `init` / `update` replace a symlinked `CLAUDE.md` with a frozen copy
 - **G-0506** — the AC phase promote refuses from working-copy bytes HEAD contradicts
 - **G-0512** — a directory sitting at a move's destination is invisible to the decline
 
@@ -148,16 +153,13 @@ silently goes stale, or it cannot be enforced at all.
 
 - **G-0523** *(high)* — guidance reaches an assistant through one channel that can
   fail unobserved
+- **G-0504** *(high)* — `doctor` byte-checks verb skills only; ritual and guidance drift read as healthy
 - **G-0541** — the guidance tells an assistant to fill a body from a template
   path that resolves for two of six kinds; gap and contract have none
-- **G-0504** — `doctor` byte-checks verb skills only; ritual and guidance drift read as healthy
 - **G-0526** — source-discipline rules ship as prose with no seam to enforce them
 - **G-0529** — CHANGELOG completeness rests on recall at epic wrap; nothing checks it
 - **G-0514** — `skill-body-id` tells CLI metavariables and non-id acronyms to become placeholders
 - **G-0530** — milestone specs mandate four sections that duplicate structured data
-- **G-0542** — a shipped skill's severity claims are not tied to the code's
-  constants, so an operator reading a skill misjudges whether a finding blocks a
-  push. In flight on a patch worktree
 
 ### 8. Error contract *(epic, parallel any time)*
 
