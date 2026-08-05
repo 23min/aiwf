@@ -16,6 +16,26 @@ section in this file.
 
 ## [Unreleased]
 
+### Changed — `--force` by a non-human actor is now refused when the verb runs
+
+A forced act by an `ai/...` or `bot/...` actor used to succeed at the verb and
+commit, then fail the pre-push check with no verb able to clear the resulting
+commit. It is now refused before anything is written: the verb exits non-zero,
+`HEAD` is unchanged, and the message names `--force` rather than the trailers
+behind it.
+
+Automation that was forcing as a non-human actor was already blocked at push, so
+no working pipeline changes behavior — but a pipeline that treated the verb's
+exit code as success and the push as a separate concern now fails a step
+earlier.
+
+Two exit codes move, in both cases from `2` to `1`. A provenance-coherence
+refusal now reports as a legality refusal, the same exit `aiwf check` uses for
+the same violation once it has landed, and carries a machine-routable
+`error.code` under `--format=json` where it previously carried none. This
+affects the seam refusal above and the coherence refusals already raised by
+`aiwf authorize` and the `--audit-only` paths.
+
 ### Changed — installed hooks and hook-collision messages no longer cite aiwf's own gap ids
 
 The four hook scripts `aiwf init` writes into your repo — `pre-push`,
