@@ -125,8 +125,13 @@ func Text(w io.Writer, findings []check.Finding) error {
 // alphabetically by code (also pinned in *Constraints* — pinned here
 // so the golden files in the test suite don't drift).
 //
-// The footer line ("N findings (E errors, W warnings)") is unchanged
-// and reflects raw instance counts, not summary-line counts.
+// The footer line ("N findings (E errors, W warnings)") reflects raw
+// instance counts, not summary-line counts.
+//
+// Collapsing a warning drops its Hint, which the per-instance shape
+// appends. So whenever any warning was collapsed the footer carries a
+// pointer to --verbose, where the hint — the single source of
+// remediation guidance for a finding — is reachable.
 func TextSummary(w io.Writer, findings []check.Finding) error {
 	if len(findings) == 0 {
 		_, err := fmt.Fprintln(w, "ok — no findings")
@@ -184,8 +189,15 @@ func TextSummary(w io.Writer, findings []check.Finding) error {
 		}
 	}
 
-	_, err := fmt.Fprintf(w, "\n%d findings (%d errors, %d warnings)\n", len(findings), errCount, warnCount)
-	return err
+	if _, err := fmt.Fprintf(w, "\n%d findings (%d errors, %d warnings)\n", len(findings), errCount, warnCount); err != nil {
+		return err
+	}
+	if warnCount > 0 {
+		if _, err := fmt.Fprint(w, "run `aiwf check --verbose` for each warning's location and remediation hint\n"); err != nil {
+			return err
+		}
+	}
+	return nil
 }
 
 // renderPerInstance writes the per-finding text rendering used by
