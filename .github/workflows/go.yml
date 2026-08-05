@@ -61,6 +61,14 @@ jobs:
       # from the action pin above so there is a single source of truth.
       # AIWF_REQUIRE_GOLANGCI=1 makes the harness fail (not skip) if
       # golangci-lint is somehow absent: no silent vacuous skip.
+      #
+      # The -run pattern is a prefix, not an anchored single name: this is
+      # the only job with golangci-lint on PATH, so every test that needs
+      # the real binary — the firing harness and the isolation pin that
+      # holds a lock against it — runs here or nowhere. An anchored
+      # pattern deselects such a test before AIWF_REQUIRE_GOLANGCI can
+      # turn its absence into a failure, which is the silent skip this
+      # wiring exists to prevent.
       - name: Linter-config rule firing harness
         env:
           AIWF_REQUIRE_GOLANGCI: "1"
@@ -69,7 +77,7 @@ jobs:
           echo "installing golangci-lint $ver (sourced from the action pin)"
           curl -sSfL https://raw.githubusercontent.com/golangci/golangci-lint/HEAD/install.sh | sh -s -- -b "$(go env GOPATH)/bin" "$ver"
           golangci-lint version
-          go test -run '^TestGolangciConfigRulesFire$' -count=1 ./internal/policies/
+          go test -run '^TestGolangci' -count=1 ./internal/policies/
 
   test:
     runs-on: ubuntu-latest

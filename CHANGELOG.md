@@ -27,6 +27,44 @@ Two rows were saying something false about their own severity. `entity-body-empt
 Placement is now mechanically pinned for every row whose emission the checker can read statically, rather than for a single hardcoded code. Both halves of the contract are derived: the expected severity from the rule's own `Severity:` field plus any strictness pass that rewrites it, and the severity a section claims from its own heading text — so neither side can drift from what it describes. A renamed heading fires rather than silently unclassifying the rows beneath it, and one code documented under two tables that disagree fires as the self-contradiction it is.
 
 The scan also now reaches the contract packages, whose findings `aiwf check` surfaces as part of its own run rather than leaving to `aiwf contract verify`. That exposed one more mismatch: `contract-config/no-binding` is advisory, unlike its blocking siblings, and was filed under errors.
+### Fixed — G-0462: the golangci-lint firing harness no longer fails when another linter is running
+
+Internal only; no user-visible change to `aiwf` itself.
+
+`TestGolangciConfigRulesFire` proves each guarded golangci-lint config rule
+actually fires by running a real `golangci-lint` against a fixture. It inherited
+the ambient environment, so it competed for golangci-lint's start-up lock at
+`$TMPDIR/golangci-lint.lock` with any other instance on the machine — another
+worktree's `make lint`, a pre-push hook, an editor integration. The loser exits
+with `parallel golangci-lint is running` and no findings at all, which the
+harness reported as the rule being *dormant, disabled, or dropped from the
+enable list* — accusing the lint configuration of precisely the defect the
+harness exists to detect.
+
+The harness now passes `--allow-parallel-runners`, which is what stops it
+blocking, and scopes `GOLANGCI_LINT_CACHE` to a per-subtest directory so each
+run is hermetic. If a refusal ever reaches a reader anyway, it is now reported
+as a refusal — naming the lock, and stating that the run ended before the config
+was applied and so is no evidence about any rule.
+
+Note for anyone reaching for the same fix elsewhere: the lock is keyed to the
+temp directory, **not** to the lint cache, so scoping `GOLANGCI_LINT_CACHE`
+alone does not avoid it.
+
+### Fixed — G-0462: the `gocritic` row of that same harness was never able to fail
+
+Found while fixing the above. Each harness row asserts that a substring appears
+in golangci-lint's output, and golangci-lint echoes the fixture's path — which
+`t.TempDir()` derives from the subtest name. The `gocritic-filepathJoin` row
+asserted only `filepathJoin`, so it was matched by the directory the test was
+running in. Removing `gocritic` from the enabled linters entirely left the row
+passing: the guard against a dormant rule was itself dormant. The same mechanism
+partly hollowed the `forbidigo-panic` row, whose `panic` element was likewise
+satisfied by its own path.
+
+Assertions now run against the message half of each finding line, with the
+echoed path stripped, so a row can only pass on something a linter actually
+reported.
 
 ### Fixed — G-0532: `entity-id-narrow-width` now reads the frontmatter id, not just the filename
 
