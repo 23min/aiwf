@@ -2,6 +2,7 @@
 id: G-0516
 title: comment-history-attrition misses stale comments outside the changed hunk
 status: open
+priority: medium
 discovered_in: M-0288
 ---
 ## What's missing
