@@ -17,6 +17,13 @@ actor carries an actor with nothing naming who it acts for.
 is blocked. The verb succeeds, the push fails, and nothing between the two says
 why.
 
+The audit-only path has the same shape and is worth fixing alongside. A verb
+run as `--audit-only` by a non-human actor is refused with "aiwf-principal is
+required" *even when the principal was supplied*, because the verb consults the
+rule set before the CLI layer decorates the plan. The refusal is correct policy
+— audit-only is sovereign, so an agent cannot wield it — but the reason names a
+rule the act did not violate, and tells the operator to pass a flag they passed.
+
 ## Why it matters
 
 Every other mutating verb states its provenance completely. These four state
