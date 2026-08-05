@@ -63,6 +63,11 @@ The force-replace verbs stay open to non-human actors. `contract bind`,
 force-replace, emit no sovereign trailer, and would break legitimate automation
 if swept in — a different word spelled the same.
 
+`update --remove` is named for completeness and cannot carry a case: it
+registers no `--actor` flag, builds no plan, and never reaches the seam, so
+there is no non-human invocation of it to pass or fail. The evidence below
+covers the verbs that do reach it.
+
 Evidence: subprocess-level tests per force-trailer construction site asserting
 the unmoved `HEAD`, plus a passing case for each force-replace verb under a
 non-human actor.
@@ -375,6 +380,21 @@ That pass also found the design doc missing two rules the code enforces
 finding-code table missing one code. AC-2's claim that its invariants are
 doc-sourced rather than code-sourced rested on that section, so the doc was
 corrected rather than the claim softened.
+
+A fourth pass ran 13 mutation probes with no survivors, which is what closed
+the vacuity question the third pass opened. Its one blocking finding was in the
+change's blast radius rather than the guard: the sovereign-act refusal told a
+non-human actor to `use --force --reason` to override, and this milestone made
+that remedy refuse. The message is reachable only for a non-human actor, so it
+was wrong every time it was shown — an operator following it moved from exit 2
+to exit 1 and no further. Corrected to name only the human-run path, and pinned.
+The same false remedy appears in two surfaces outside this milestone's reach;
+both are now rows in M-0293's table.
+
+That pass also found the seam policy treating a *method* named `Apply` under
+`internal/verb/` as the seam, so a second commit site wearing the seam's name
+was exempt from the policy looking for exactly that. One condition, and a
+fixture that measured zero violations before it.
 
 Two review findings were considered and declined, recorded here so the next
 reader meets a decision rather than a blank.
