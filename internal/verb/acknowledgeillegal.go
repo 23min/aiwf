@@ -45,7 +45,7 @@ import (
 //   - sha must match the 7-40-hex SHA pattern (the trailer's value
 //     constraint, enforced via gitops.ValidateTrailer).
 //   - forEntity is OPTIONAL. When empty, the ack is per-SHA blanket
-//     (the legacy shape covering the first six rules). When set, the
+//     (the shape every SHA-scoped rule consumes). When set, the
 //     verb verifies <sha>'s diff touches <id>'s file and emits
 //     `aiwf-entity: <id>` in the ack commit (the per-(SHA, entity)
 //     shape required by provenance-untrailered-entity-commit).

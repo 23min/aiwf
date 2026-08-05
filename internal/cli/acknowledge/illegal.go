@@ -49,6 +49,10 @@ aiwf-force-for trailer:
     - promote-on-wrong-branch                         (M-0161/AC-8)
     - id-rename-untrailered                           (M-0160/AC-4)
     - trailer-verb-unknown                            (G-0150 lift)
+    - every provenance-* rule on the acknowledged commit (M-0292) —
+      the trailer-shape, coherence and authorization rules alike, since
+      an acknowledgment is a judgment about a commit rather than about
+      one of the rules it happens to trip
     - provenance-untrailered-entity-commit            (G-0231 item 3; --for-entity required)
 
 The acknowledgment is a separate, current-day empty commit carrying:
@@ -81,11 +85,16 @@ the diff's paths resolves to <id>. This is what makes the per-(SHA, entity)
 ack tamper-resistant against operator-attested bindings (LLM or human writing
 the wrong entity id with a real SHA): the kernel walks the actual git diff
 and refuses if <sha> doesn't touch <id>. Required for
-provenance-untrailered-entity-commit acks; optional for the other seven
-rules (which use the per-SHA blanket shape).
+provenance-untrailered-entity-commit acks; optional for every other rule
+above (which use the per-SHA blanket shape).
 
 Per-SHA closed-set scoping: an acknowledgment for one SHA exempts only that
 SHA. There is no "exempt everything" knob.
+
+No verb undoes an acknowledgment, deliberately: it is an audit record, and
+retracting it would rewrite the audit trail this verb exists to preserve. To
+withdraw the judgment, restore the finding by fixing what it reports — or
+record the reversal as a new entity referencing the acknowledgment.
 
 Both --reason (non-empty after trim) and a human/... actor are required
 — sovereign acts trace to a named human with written rationale.`,

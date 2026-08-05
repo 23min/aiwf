@@ -41,12 +41,12 @@ import (
 //
 // M-0159/AC-3: ackedSHAs is the gather-layer-computed map of
 // retroactively-acknowledged commit SHAs (via
-// check.WalkAcknowledgedSHAs called once at check.go::Run).
-// Passed through to three rules that consume it from this gather
-// (check.RunIsolationEscape, check.RunTrailerVerbUnknown,
-// check.RunIDRenameUntrailered — the third added at M-0160/AC-4);
-// the fourth consumer (check.FSMHistoryConsistent) is called
-// directly from check.go::Run with the same map.
+// check.WalkAcknowledgedSHAs called once at check.go::Run), passed
+// through to the consumers this function forwards it to.
+// check.WalkAcknowledgedSHAs' own doc enumerates the full consumer
+// set and is the copy class 4f of PolicyAcksHelperLift holds to the
+// policy rosters; re-listing them here would be a second copy that
+// nothing checks.
 //
 // G-0218 Patch 2: postCutoffSHAs is the gather-layer-computed map of
 // commit SHAs that descend from check.HookInstallSHA (via

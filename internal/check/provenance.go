@@ -82,11 +82,28 @@ var CodeProvenanceAuthorizationOutOfScope = codespkg.Code{ID: "provenance-author
 // authorization-out-of-scope rule for reference reachability.
 //
 // ackedSHAs is the gather-layer-computed set of retroactively
-// acknowledged commits (M-0292). It clears the two sovereign-trailer
-// rules — provenance-force-non-human and
-// provenance-audit-only-non-human — for the commits it names; see
-// provenanceShapeFindings for why only those two of this function's
-// codes are ratifiable. The remaining rules ignore it.
+// acknowledged commits (M-0292). A commit it names reports no
+// provenance finding at all, which is the same all-or-nothing scoping
+// every other consumer of that map already has.
+//
+// Per-code ratifiability was considered and rejected. It cannot be
+// drawn where it would need to be: `aiwf-force` on a non-human actor
+// raises provenance-force-non-human, and the same trailer alongside
+// the aiwf-on-behalf-of that the provenance-decoration layer adds for
+// an authorized agent independently raises
+// provenance-trailer-incoherent, whose message restates the rule the
+// acknowledgment just ratified. Clearing one and not the other leaves
+// the push blocked by the same objection under a different code. The
+// distinction a per-code line would rest on — that some of these are
+// acts a human may accept and others are defects — does not survive
+// contact with a historical commit, where every one of them is equally
+// unfixable without rewriting history. What an acknowledgment does is
+// stop blocking one named commit on one named human's written reason;
+// that is a judgment about a commit, not about a rule.
+//
+// The commit still participates in the cross-commit indexes built
+// below — it can open a scope or end one — since those describe
+// history rather than judge it. Only its findings are skipped.
 //
 // The function is pure (no I/O, no git subprocess); the caller
 // (cmd/aiwf) gathers commits via gitops and hands them in.
@@ -103,8 +120,11 @@ func RunProvenance(commits []scope.Commit, t *tree.Tree, ackedSHAs map[string]bo
 	var findings []Finding
 	for i := range commits {
 		c := &commits[i]
+		if ackedSHAs[c.SHA] {
+			continue
+		}
 		idx := indexCommitTrailersForProvenance(c.Trailers)
-		findings = append(findings, provenanceShapeFindings(c, idx, ackedSHAs)...)
+		findings = append(findings, provenanceShapeFindings(c, idx)...)
 		findings = append(findings, provenanceCoherenceFindings(c, idx)...)
 		findings = append(findings, provenanceAuthorizationFindings(c, idx, authIndex, endedAt, endedBy, chronoIdx, renameChain, t)...)
 	}
@@ -115,18 +135,9 @@ func RunProvenance(commits []scope.Commit, t *tree.Tree, ackedSHAs map[string]bo
 // principal, on-behalf-of, authorized-by, plus the human-only
 // constraints on aiwf-force / aiwf-audit-only.
 //
-// ackedSHAs clears the last two of those and nothing else (M-0292).
-// The line between them is what an acknowledgment can honestly say:
-// `aiwf acknowledge illegal` is a human ratifying an act — "a
-// non-human wielded a sovereign trailer here, and I accept it" — which
-// is a judgment a human is positioned to make. The four rules above
-// report a trailer that is malformed or contradicts another trailer on
-// the same commit, and no ratification makes an unparseable actor
-// parse; clearing those would hide a defect rather than accept an act.
-// So the ratifiable set is the sovereign-trailer pair, not every code
-// this function emits.
-func provenanceShapeFindings(c *scope.Commit, idx map[string]string, ackedSHAs map[string]bool) []Finding {
-	acked := ackedSHAs[c.SHA]
+// Acknowledgment is not consulted here — RunProvenance skips an
+// acknowledged commit before reaching any of the three rule groups.
+func provenanceShapeFindings(c *scope.Commit, idx map[string]string) []Finding {
 	var findings []Finding
 	actor := idx[gitops.TrailerActor]
 	if actor != "" && !roleIDOK(actor) {
@@ -161,7 +172,7 @@ func provenanceShapeFindings(c *scope.Commit, idx map[string]string, ackedSHAs m
 			EntityID: idx[gitops.TrailerEntity],
 		})
 	}
-	if _, hasForce := idx[gitops.TrailerForce]; hasForce && actor != "" && !strings.HasPrefix(actor, "human/") && !acked {
+	if _, hasForce := idx[gitops.TrailerForce]; hasForce && actor != "" && !strings.HasPrefix(actor, "human/") {
 		findings = append(findings, Finding{
 			Code:     CodeProvenanceForceNonHuman,
 			Severity: SeverityError,
@@ -169,7 +180,7 @@ func provenanceShapeFindings(c *scope.Commit, idx map[string]string, ackedSHAs m
 			EntityID: idx[gitops.TrailerEntity],
 		})
 	}
-	if _, hasAudit := idx[gitops.TrailerAuditOnly]; hasAudit && actor != "" && !strings.HasPrefix(actor, "human/") && !acked {
+	if _, hasAudit := idx[gitops.TrailerAuditOnly]; hasAudit && actor != "" && !strings.HasPrefix(actor, "human/") {
 		findings = append(findings, Finding{
 			Code:     CodeProvenanceAuditOnlyNonHuman,
 			Severity: SeverityError,

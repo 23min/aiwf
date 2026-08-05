@@ -271,6 +271,18 @@ New finding codes added in I2.5. All error severity unless noted; all run as sta
 
 The pairing of write-time-refuse + standing-rule (Q3.6a/b) means each rule is enforced twice: once as the verb's pre-commit check (the chokepoint), once as the standing audit. The standing rule catches commits that bypassed the kernel verb (hand-edited, imported, pre-I2.5 history).
 
+### Ratification
+
+A commit the standing rules flag cannot be repaired by re-running the verb — it is already in history, and the alternatives are rewriting it or leaving the push blocked indefinitely. `aiwf acknowledge illegal <sha> --reason "<why>"` is the third option: a human records a separate, current-day empty commit carrying `aiwf-force-for: <sha>`, and the standing rules stop reporting the named commit.
+
+Three properties make this a ratification rather than a mute switch. It is **human-only** — the verb refuses a non-human actor, so the actor whose act is in question cannot clear it. It **carries a written reason**, which lands in the acknowledging commit and is queryable through `aiwf history`. And it **appends**: the acknowledged commit keeps its author, its trailers, and its SHA, so the record of what happened and the record of who accepted it are both in the history.
+
+The exemption is scoped to the named commit and covers every provenance rule against it, not a chosen subset. An acknowledgment is a judgment about a commit — the same scoping the SHA-keyed rules outside this family already use. Per-code acknowledgment was considered and rejected: `aiwf-force` on a non-human actor raises `provenance-force-non-human`, and the same trailer beside the `aiwf-on-behalf-of` an authorized agent's commit carries independently raises `provenance-trailer-incoherent`, whose message restates the same rule. Clearing one without the other leaves the push blocked by the same objection under a second name.
+
+No verb undoes an acknowledgment, deliberately: it is an audit record, and retracting it would rewrite the trail it exists to preserve.
+
+The narrower per-`(SHA, entity)` shape (`--for-entity`) belongs to `provenance-untrailered-entity-commit`, whose findings are per-`(commit, entity)` pairs; see that rule for why it requires the tighter binding.
+
 ### Backwards compatibility
 
 Pre-I2.5 commits do not carry the new trailers. The standing rules treat absence as benign for pre-I2.5 commits: a commit with `aiwf-actor: human/peter` and no `aiwf-principal:` is fine (Q3.6b: principal forbidden when actor is human). A commit with `aiwf-actor: ai/claude` and no principal *would* fire `provenance-trailer-incoherent` — but in practice no pre-I2.5 commits had `ai/...` as the actor, so no false positives are expected.

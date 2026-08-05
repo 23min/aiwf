@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"os"
 	"path/filepath"
+	"sort"
 	"strings"
 	"testing"
 
@@ -30,6 +31,14 @@ import (
 // what distinguishes an ack keyed on the commit from the rule having
 // been switched off, which is the failure this milestone must not
 // produce: the epic forbids clearing the finding by weakening it.
+//
+// Two claims are asserted at two scopes, and both are needed. Per code:
+// the named rule clears for the acknowledged commit and still fires for
+// its sibling. Per commit: no error-severity finding names the
+// acknowledged commit afterwards. A code-scoped assertion alone is
+// satisfied while a second rule still blocks the same push, which is
+// the difference between a code leaving a list and an operator being
+// able to proceed.
 
 // forcedCommit writes a uniquely-named file and commits it carrying a
 // sovereign trailer (`aiwf-force` or `aiwf-audit-only`) alongside a
@@ -37,8 +46,11 @@ import (
 //
 // `aiwf-verb: promote` rides along so the commit does not also trip
 // provenance-untrailered-entity-commit, and `aiwf-principal` so it does
-// not trip the missing-principal coherence rule. Neither is the subject;
-// both keep the finding list to the one code under test.
+// not trip the missing-principal coherence rule. The commit still
+// raises provenance-no-active-scope — an `ai/` actor with no
+// on-behalf-of — which is left in deliberately: the per-commit
+// assertion has to face a commit carrying more than one finding, or it
+// asserts nothing.
 func forcedCommit(t *testing.T, root, name, sovereignKey string) string {
 	t.Helper()
 	if err := os.WriteFile(filepath.Join(root, name+".txt"), []byte(name+"\n"), 0o644); err != nil {
@@ -139,6 +151,130 @@ func assertAckClearsOnlyItsOwnCommit(t *testing.T, sovereignKey, code string) {
 	if after[0].Severity != check.SeverityError {
 		t.Errorf("surviving %s severity = %q, want error", code, after[0].Severity)
 	}
+	// Nothing else still blocks on the acknowledged commit. Asserting
+	// only that one code cleared cannot see a second rule firing on the
+	// same commit and leaving the push blocked anyway, which is what
+	// makes the difference between a code disappearing from a list and
+	// an operator being able to proceed.
+	assertNoErrorNames(t, root, acked)
+}
+
+// assertNoErrorNames fails when any error-severity finding still names
+// sha. `aiwf check`'s exit code cannot stand in for this: the
+// unacknowledged sibling these tests deliberately leave behind keeps the
+// run at exit 1, so the claim has to be scoped to the acknowledged
+// commit rather than to the run.
+func assertNoErrorNames(t *testing.T, root, sha string) {
+	t.Helper()
+	captured := testutil.CaptureStdout(t, func() {
+		_ = cli.Execute([]string{"check", "--root", root, "--format", "json"})
+	})
+	var env render.Envelope
+	if err := json.Unmarshal(captured, &env); err != nil {
+		t.Fatalf("parsing check envelope: %v\nraw output:\n%s", err, captured)
+	}
+	for i := range env.Findings {
+		f := env.Findings[i]
+		if f.Severity == check.SeverityError && strings.Contains(f.Message, sha[:7]) {
+			t.Errorf("commit %s is acknowledged but still reports a blocking finding %s: %s\n"+
+				"an acknowledgment that clears one code while another still blocks the push "+
+				"leaves the operator exactly where they started", sha[:7], f.Code, f.Message)
+		}
+	}
+}
+
+// TestAcknowledgeIllegal_UnblocksTheShapeTheVerbsActuallyProduce is the
+// claim the per-code tests above cannot make. A forced promote by an
+// authorized agent does not carry the bare trailer set those tests
+// build: gateAndDecorate adds aiwf-principal, aiwf-on-behalf-of and
+// aiwf-authorized-by after the verb returns, and the resulting commit
+// raises provenance-trailer-incoherent — "aiwf-force: and
+// aiwf-on-behalf-of: are mutually exclusive (force is human-only)" —
+// alongside provenance-force-non-human.
+//
+// The two say the same thing about the same trailer. An acknowledgment
+// that cleared only the first would leave the push blocked by a
+// restatement of the rule it had just ratified, which is a ratification
+// path in name only. This test is scoped to the operator's actual
+// question — can I proceed? — rather than to a code.
+func TestAcknowledgeIllegal_UnblocksTheShapeTheVerbsActuallyProduce(t *testing.T) {
+	// Serial by design — see the skip-list note above.
+	root := setupCLITestRepo(t)
+	mustRun(t, "init", "--root", root, "--actor", "human/test", "--skip-hook")
+
+	// A scope opener, so the forced commit's aiwf-authorized-by resolves
+	// and the authorization rules judge it as a real delegated act.
+	if err := os.WriteFile(filepath.Join(root, "opener.txt"), []byte("x\n"), 0o644); err != nil {
+		t.Fatalf("writing opener: %v", err)
+	}
+	if err := osExec(t, root, "git", "add", "opener.txt"); err != nil {
+		t.Fatalf("git add opener: %v", err)
+	}
+	if err := osExec(t, root, "git", "commit", "-q", "-m", "open scope",
+		"--trailer", "aiwf-verb: authorize", "--trailer", "aiwf-entity: E-0001",
+		"--trailer", "aiwf-actor: human/test", "--trailer", "aiwf-scope: opened",
+	); err != nil {
+		t.Fatalf("git commit opener: %v", err)
+	}
+	opener := headSHA(t, root)
+
+	if err := os.WriteFile(filepath.Join(root, "forced.txt"), []byte("y\n"), 0o644); err != nil {
+		t.Fatalf("writing forced: %v", err)
+	}
+	if err := osExec(t, root, "git", "add", "forced.txt"); err != nil {
+		t.Fatalf("git add forced: %v", err)
+	}
+	if err := osExec(t, root, "git", "commit", "-q", "-m", "forced promote by an authorized agent",
+		"--trailer", "aiwf-verb: promote", "--trailer", "aiwf-entity: E-0001",
+		"--trailer", "aiwf-actor: ai/claude", "--trailer", "aiwf-principal: human/test",
+		"--trailer", "aiwf-on-behalf-of: human/test", "--trailer", "aiwf-authorized-by: "+opener,
+		"--trailer", "aiwf-force: true",
+	); err != nil {
+		t.Fatalf("git commit forced: %v", err)
+	}
+	forced := headSHA(t, root)
+
+	// Positive control: more than one code fires, which is the whole
+	// point — a single-code fixture cannot exhibit the defect.
+	codesBefore := errorCodesNaming(t, root, forced)
+	if len(codesBefore) < 2 {
+		t.Fatalf("fixture fired %v; it must raise at least two distinct provenance codes "+
+			"or it cannot demonstrate that clearing one is insufficient", codesBefore)
+	}
+
+	mustRun(t, "acknowledge", "illegal", forced, "--reason",
+		"forced by a delegated agent during the migration; reviewed and accepted",
+		"--actor", "human/test", "--root", root)
+
+	if got := errorCodesNaming(t, root, forced); len(got) != 0 {
+		t.Errorf("after acknowledging %s, these still block: %v (before: %v)\n"+
+			"the acknowledgment must clear the commit, not one of the codes it raises",
+			forced[:7], got, codesBefore)
+	}
+}
+
+// errorCodesNaming returns the sorted, de-duplicated set of
+// error-severity finding codes whose message names sha.
+func errorCodesNaming(t *testing.T, root, sha string) []string {
+	t.Helper()
+	captured := testutil.CaptureStdout(t, func() {
+		_ = cli.Execute([]string{"check", "--root", root, "--format", "json"})
+	})
+	var env render.Envelope
+	if err := json.Unmarshal(captured, &env); err != nil {
+		t.Fatalf("parsing check envelope: %v\nraw output:\n%s", err, captured)
+	}
+	seen := map[string]bool{}
+	var out []string
+	for i := range env.Findings {
+		f := env.Findings[i]
+		if f.Severity == check.SeverityError && strings.Contains(f.Message, sha[:7]) && !seen[f.Code] {
+			seen[f.Code] = true
+			out = append(out, f.Code)
+		}
+	}
+	sort.Strings(out)
+	return out
 }
 
 // TestAcknowledgeIllegal_ForceNonHuman_LeavesTheAcknowledgedCommitIntact
@@ -162,7 +298,6 @@ func TestAcknowledgeIllegal_ForceNonHuman_LeavesTheAcknowledgedCommitIntact(t *t
 
 	target := forcedCommit(t, root, "target", "aiwf-force")
 	before := revListHead(t, root)
-	targetObject := gitOutput(t, root, "cat-file", "commit", target)
 
 	const reason = "ratified after review; the actor was a bot with a human principal"
 	mustRun(t, "acknowledge", "illegal", target, "--reason", reason, "--actor", "human/test", "--root", root)
@@ -178,11 +313,6 @@ func TestAcknowledgeIllegal_ForceNonHuman_LeavesTheAcknowledgedCommitIntact(t *t
 				i, before[i], after[i])
 		}
 	}
-	// The target is still where it was, still the same object.
-	if got := gitOutput(t, root, "cat-file", "commit", target); got != targetObject {
-		t.Errorf("the acknowledged commit's object changed.\nbefore:\n%s\nafter:\n%s", targetObject, got)
-	}
-
 	// The reason is readable from the acknowledging commit — the record
 	// is what makes the ratification auditable rather than a silent
 	// suppression.

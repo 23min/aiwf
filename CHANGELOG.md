@@ -16,6 +16,30 @@ section in this file.
 
 ## [Unreleased]
 
+### Added — `aiwf acknowledge illegal` now clears provenance findings
+
+`provenance-force-non-human` and its siblings fire on commit history, so they
+also fire on commits no verb produced — imported history, commits predating the
+verb-time guard, hand-composed trailer sets. Until now nothing cleared them: the
+rules were absent from the acknowledged-SHA set the verb writes to, and the only
+remaining exits were rewriting the commit or leaving the push blocked.
+
+`aiwf acknowledge illegal <sha> --reason "<why>"` now clears the provenance
+findings against the named commit. It is human-only, records the reason in a
+separate commit, and leaves the acknowledged commit byte-identical — same
+author, same trailers, same SHA.
+
+The exemption covers every provenance rule against that commit rather than a
+chosen subset, matching how the acknowledgment already works for the rules
+outside this family. Clearing only some would leave the push blocked by a second
+rule restating the first: a forced act by an authorized agent raises both
+`provenance-force-non-human` and a `provenance-trailer-incoherent` whose message
+is "force is human-only".
+
+If you are silencing a finding you did not intend to silence, the scope to check
+is the commit, not the rule — an acknowledgment is a judgment about one commit
+and exempts nothing else.
+
 ### Changed — `--force` by a non-human actor is now refused when the verb runs
 
 A forced act by an `ai/...` or `bot/...` actor used to succeed at the verb and

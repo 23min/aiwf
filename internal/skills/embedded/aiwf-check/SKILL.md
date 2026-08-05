@@ -172,7 +172,7 @@ These fire on commit history, not tree state. Each names the offending commit's 
 | Code | Meaning | Typical fix |
 |---|---|---|
 | `provenance-trailer-incoherent` | A required-together pair is partial, or a mutually-exclusive pair are both present (e.g., `aiwf-on-behalf-of:` without `aiwf-authorized-by:`, `aiwf-actor: ai/...` without `aiwf-principal:`, `aiwf-actor: human/...` *with* `aiwf-principal:`). | Re-create the commit using the correct verb invocation; `--principal human/<id>` is required when the actor is non-human. |
-| `provenance-force-non-human` | `aiwf-force:` present on a commit whose `aiwf-actor:` is not `human/...`. | `--force` is sovereign — only humans wield it. Have a human invoke the verb directly. |
+| `provenance-force-non-human` | `aiwf-force:` present on a commit whose `aiwf-actor:` is not `human/...`. | `--force` is sovereign — only humans wield it. Have a human invoke the verb directly. For a commit already in history, which cannot be re-run, sovereign-human override: `aiwf acknowledge illegal <sha> --reason "..."` clears the commit's findings without rewriting it. |
 | `provenance-actor-malformed` | `aiwf-actor:` does not match `<role>/<id>`. | `git config user.email` is malformed; fix it (see `aiwf doctor`). |
 | `provenance-principal-non-human` | `aiwf-principal:` role is not `human/`. | Principal must be human/<id>; agents and bots cannot be principals. |
 | `provenance-on-behalf-of-non-human` | `aiwf-on-behalf-of:` role is not `human/`. | Same as principal — rebuild from the originating authorize commit. |
@@ -181,7 +181,7 @@ These fire on commit history, not tree state. Each names the offending commit's 
 | `provenance-authorization-out-of-scope` | The verb's target entity has no reference path to the scope-entity. | Either authorize the right entity or work on something the existing scope already reaches. |
 | `provenance-authorization-ended` | The scope was already ended (terminal-promote / revoke). | Open a fresh scope with `aiwf authorize <id> --to <agent>`. |
 | `provenance-no-active-scope` | An `ai/...` actor produced a commit with no `aiwf-on-behalf-of:`. | Open an authorization scope, or run the verb as the human directly. |
-| `provenance-audit-only-non-human` | `aiwf-audit-only:` present on a non-human actor's commit. | Only humans may backfill audit trails. |
+| `provenance-audit-only-non-human` | `aiwf-audit-only:` present on a non-human actor's commit. | Only humans may backfill audit trails. For a commit already in history, sovereign-human override: `aiwf acknowledge illegal <sha> --reason "..."` clears the commit's findings without rewriting it. |
 
 ## Don't
 

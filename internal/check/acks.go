@@ -38,23 +38,19 @@ import (
 // RunOrphanedAICommits, RunPromoteOnWrongBranch and RunProvenance
 // (M-0292).
 //
-// Those rules, plus the leaf predicates at the end of a forwarding
-// chain — illegalTransitionFindings and forcedUntraileredFindings
-// under FSMHistoryConsistent, provenanceShapeFindings under
-// RunProvenance — make up the roster whose bodies must keep
-// referencing the map, which is what class 4d checks
-// (ackedSHAsBodyConsumers). So the second roster is the first plus
-// those three predicates. FSMHistoryConsistent and RunProvenance are
-// in it by forwarding the map to their chain rather than indexing it,
-// the reference shape 4d accepts for a rule that delegates its lookup.
+// Those rules, plus the two leaf predicates at the end of
+// FSMHistoryConsistent's forwarding chain —
+// illegalTransitionFindings and forcedUntraileredFindings — make up
+// the roster whose bodies must keep referencing the map, which is what
+// class 4d checks (ackedSHAsBodyConsumers). So the second roster is
+// the first plus those predicates. FSMHistoryConsistent is in it
+// by forwarding the map to that chain rather than indexing it, the
+// reference shape 4d accepts for a rule that delegates its lookup.
 //
-// RunProvenance is the one consumer that does not silence wholesale:
-// it emits ten codes and an acknowledgment clears two of them, the
-// sovereign-trailer pair (provenance-force-non-human and
-// provenance-audit-only-non-human). provenanceShapeFindings' own doc
-// carries the reason. Every other consumer here emits a single code,
-// so for them "the rule is acknowledged for this SHA" and "this
-// finding is acknowledged" are the same statement.
+// Every consumer silences wholesale: an acknowledged SHA reports
+// nothing from that rule. RunProvenance is the only one that emits
+// more than one code, and it skips the commit ahead of all of them
+// rather than selecting among them — its own doc carries why.
 //
 // The verb consumes the walker too, to recognize
 // a SHA it has already acknowledged and converge rather than append a

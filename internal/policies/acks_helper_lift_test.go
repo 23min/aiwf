@@ -368,8 +368,9 @@ func TestAckedSHAsDocRosterPattern_RecognizesEveryPolicedConsumer(t *testing.T) 
 // capitalized words, which would fire on the walker's own doc prose.
 func TestAckedSHAsDocRosterPattern_IgnoresOrdinaryProse(t *testing.T) {
 	t.Parallel()
-	// Words that appear in WalkAcknowledgedSHAs' doc comment today, each
-	// close enough to a roster shape to catch an over-broad pattern.
+	// Ordinary prose near enough to a roster shape to catch an over-broad
+	// pattern. "Runtime" is the load-bearing one: it is the only entry
+	// that a pattern relaxed from `^Run[A-Z]` to `^Run` would match.
 	for _, word := range []string{"Returns", "Rules", "Runtime", "Consumers", "findings", "provenance"} {
 		if ackedSHAsDocRosterPattern.MatchString(word) {
 			t.Errorf("ackedSHAsDocRosterPattern matches the ordinary word %q; the reverse check "+
