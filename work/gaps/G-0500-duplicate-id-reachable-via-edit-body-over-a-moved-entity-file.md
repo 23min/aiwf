@@ -2,6 +2,7 @@
 id: G-0500
 title: Duplicate id reachable via edit-body over a moved entity file
 status: open
+priority: high
 discovered_in: M-0284
 ---
 ## What's missing
