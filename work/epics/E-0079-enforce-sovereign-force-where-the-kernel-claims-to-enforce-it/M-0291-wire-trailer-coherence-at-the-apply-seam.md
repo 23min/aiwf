@@ -115,8 +115,9 @@ commit-construction primitive rather than only the one a verb is meant to use.
 Both matter: an aliased import renames the selector so a name-based search finds
 nothing, and holding only the intended call would watch the front door while
 leaving three side doors open. Resolving calls also stops a primitive named in a
-comment or a string literal from reading as a call site — this repo's own
-policies quote those names.
+comment or a string literal from reading as a call site — `internal/verb/apply.go`
+names `CommitTree` in comments inside function bodies, which a textual scan
+cannot tell from a call.
 
 Evidence: the policy failing against a fixture that reaches a commit off-seam —
 directly, through an alias, and through each lower-level primitive — and passing
@@ -359,6 +360,21 @@ audit-only is sovereign and is deliberately *not* at the seam. The criterion is
 satisfiability, which gives the same cut, gives the right answer for the next
 rule, and survives its own repair — G-0544 makes the principal rules satisfiable
 and they could then move without re-deriving the argument.
+
+A third pass found two more, both about whether a claim was held rather than
+about behavior. `TestPolicyCoherenceGuardChokepoint_IgnoresAPrimitiveNamedInAString`
+could not fail: its fixture was written under `internal/policies/`, which the
+shared walker skips wholesale so that scanners do not trip the policies they
+implement, so the scan never read the file the test was about. Relocated to a
+scanned path and mutation-probed. The other was the sole survivor of the guard's
+rename, in D-0060's Decision paragraph — the accepted record both the ADR and
+AC-2 defer to for the subset's boundary, pointing at a symbol nothing resolves.
+
+That pass also found the design doc missing two rules the code enforces
+(`audit-only` with force, and `audit-only` by a non-human actor) and its
+finding-code table missing one code. AC-2's claim that its invariants are
+doc-sourced rather than code-sourced rested on that section, so the doc was
+corrected rather than the claim softened.
 
 Two review findings were considered and declined, recorded here so the next
 reader meets a decision rather than a blank.
