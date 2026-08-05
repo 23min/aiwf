@@ -2,6 +2,7 @@
 id: G-0501
 title: aiwf init and update replace a symlinked CLAUDE.md with a copy
 status: open
+priority: high
 discovered_in: M-0284
 ---
 ## What's missing
