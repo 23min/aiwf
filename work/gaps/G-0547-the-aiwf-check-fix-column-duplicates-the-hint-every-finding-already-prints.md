@@ -2,6 +2,7 @@
 id: G-0547
 title: The aiwf-check fix column duplicates the hint every finding already prints
 status: open
+priority: medium
 ---
 ## What's missing
 
