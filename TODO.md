@@ -241,3 +241,20 @@ staleness.
 - **G-0519** — documentation is not reference-checked; a cited id need not resolve
 - **G-0548** — shipped surfaces cite this repo's own paths; the id half of that
   rule is enforced at error severity, the path half has no check
+
+### 12. Development environment — the machine the gates run on *(unscoped)*
+
+A full disk surfaces as failures in whichever tests write most, which is the
+binary-building and repo-creating ones. That signature reads as a flaky suite,
+so the response it invites — re-run, then hunt a race — is aimed a layer below
+the cause. Neither member is a kernel concern; both cost review cycles, and a
+green run on a nearly-full disk is not evidence either way.
+
+- **G-0552** — nothing bounds the Go build cache; it reached 84 GB and filled
+  the overlay. Carries the preflight idea: a gate that cannot tell a full disk
+  from a broken test will mislead every time *(lives on the M-0291 branch, not
+  yet on main)*
+- **G-0555** — two test helpers build into a temp dir and never remove it. Over
+  a gigabyte in a day here, and every directory younger than any age cutoff a
+  concurrent session makes safe — so no sweep can reclaim it and the fix has to
+  be in the code
