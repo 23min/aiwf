@@ -95,9 +95,25 @@ func PolicyFindingCodesDocumentedInSkill(root string) ([]Violation, error) {
 
 // isCheckLayerFile reports whether a repo-relative path is part of the
 // check layer whose finding codes `aiwf check` surfaces.
+//
+// The criterion is reachability from `aiwf check`, not package naming.
+// The contract packages qualify because `aiwf check` runs contract
+// validation as part of its own pass rather than leaving it to
+// `aiwf contract verify`, so their findings reach the same operator
+// through the same command and are documented in the same skill.
 func isCheckLayerFile(path string) bool {
-	return strings.HasPrefix(path, "internal/check/") ||
-		strings.HasPrefix(path, "internal/cli/check/")
+	for _, prefix := range []string{
+		"internal/check/",
+		"internal/cli/check/",
+		"internal/contractcheck/",
+		"internal/contractconfig/",
+		"internal/cli/contract/",
+	} {
+		if strings.HasPrefix(path, prefix) {
+			return true
+		}
+	}
+	return false
 }
 
 // loadSkillDocumentedCodes reads the aiwf-check skill and returns the set

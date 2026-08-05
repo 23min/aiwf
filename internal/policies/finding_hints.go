@@ -74,13 +74,54 @@ func PolicyFindingCodesHaveHints(root string) ([]Violation, error) {
 }
 
 // findingCodeSite is one finding code observed at a Finding{}/pseudo-
-// finding composite-literal construction site, with its optional subcode
-// and source location.
+// finding composite-literal construction site, with its optional subcode,
+// the severity it emits, and its source location.
 type findingCodeSite struct {
 	Code    string
 	Subcode string
 	File    string
 	Line    int
+	// Severity is what the site's `Severity:` field emits, as far as
+	// static reading can tell. Empty when the literal carries no
+	// Severity field at all.
+	Severity findingSeverity
+}
+
+// findingSeverity is the severity a Finding{} construction site emits,
+// read off the source rather than by running the rule.
+type findingSeverity string
+
+const (
+	findingSeverityError   findingSeverity = "error"
+	findingSeverityWarning findingSeverity = "warning"
+	// findingSeverityVaries marks a site whose `Severity:` is not a
+	// severity literal — a local assigned on a branch, or a call. The
+	// value it takes is decided at run time by config or entity state,
+	// which a static read cannot evaluate.
+	findingSeverityVaries findingSeverity = "varies"
+)
+
+// resolveSeverityExpr classifies a `Severity:` field expression. A bare
+// or package-qualified SeverityError / SeverityWarning is determinate;
+// anything else varies, since resolving it would mean evaluating the
+// condition that picks between the arms.
+func resolveSeverityExpr(expr ast.Expr) findingSeverity {
+	name := ""
+	switch v := expr.(type) {
+	case *ast.Ident:
+		name = v.Name
+	case *ast.SelectorExpr:
+		name = v.Sel.Name
+	default:
+		return findingSeverityVaries
+	}
+	switch name {
+	case "SeverityError":
+		return findingSeverityError
+	case "SeverityWarning":
+		return findingSeverityWarning
+	}
+	return findingSeverityVaries
 }
 
 // emittedFindingCodeSites walks every non-test .go file's composite
@@ -114,6 +155,7 @@ func emittedFindingCodeSites(files []FileEntry) []findingCodeSite {
 			// literal — works for any struct that has those fields,
 			// including check.Finding and any pseudo-finding type.
 			var code, subcode string
+			var severity findingSeverity
 			for _, elt := range cl.Elts {
 				kv, ok := elt.(*ast.KeyValueExpr)
 				if !ok {
@@ -128,16 +170,19 @@ func emittedFindingCodeSites(files []FileEntry) []findingCodeSite {
 					code = resolveStringExpr(kv.Value, codeConsts)
 				case "Subcode":
 					subcode = resolveStringExpr(kv.Value, codeConsts)
+				case "Severity":
+					severity = resolveSeverityExpr(kv.Value)
 				}
 			}
 			if code == "" {
 				return true
 			}
 			out = append(out, findingCodeSite{
-				Code:    code,
-				Subcode: subcode,
-				File:    f.Path,
-				Line:    fset.Position(cl.Pos()).Line,
+				Code:     code,
+				Subcode:  subcode,
+				File:     f.Path,
+				Line:     fset.Position(cl.Pos()).Line,
+				Severity: severity,
 			})
 			return true
 		})
@@ -245,10 +290,23 @@ func compositeLitStringField(cl *ast.CompositeLit, field string) (string, bool) 
 
 // resolveStringExpr extracts a string value from an AST expression
 // when possible. Handles bare string literals, identifiers that resolve
-// via codeConsts (`CodeFoo`), and `.ID` selectors on a descriptor —
-// both same-package (`CodeFoo.ID`) and cross-package (`pkg.CodeFoo.ID`).
-// Returns "" otherwise — callers treat unresolved values as opaque and
-// skip the policy check (we can't fairly judge a code we can't read).
+// via codeConsts (`CodeFoo`), `.ID` selectors on a descriptor — both
+// same-package (`CodeFoo.ID`) and cross-package (`pkg.CodeFoo.ID`) —
+// and a cross-package reference to a string-constant code
+// (`pkg.CodeFoo`). Returns "" otherwise — callers treat unresolved
+// values as opaque and skip the policy check (we can't fairly judge a
+// code we can't read).
+//
+// Names resolve through codeConsts, so the package qualifier carries no
+// information and is dropped: a selector naming nothing the check
+// package declares misses the map and reads as unresolved, exactly as
+// an unknown bare identifier does. codeConsts indexes every string
+// const and var in the check package, not only the Code* ones, so a
+// `Code: pkg.SeverityError` would resolve to "error" rather than to
+// nothing — a fabricated code that the documented-in-skill and hint
+// policies both reject on sight, which is why the map is left broad
+// rather than filtered down to a naming convention that would instead
+// drop a future code someone names differently.
 func resolveStringExpr(expr ast.Expr, codeConsts map[string]string) string {
 	switch v := expr.(type) {
 	case *ast.BasicLit:
@@ -263,11 +321,10 @@ func resolveStringExpr(expr ast.Expr, codeConsts map[string]string) string {
 	case *ast.Ident:
 		return codeConsts[v.Name]
 	case *ast.SelectorExpr:
-		// Resolve `CodeFoo.ID` / `pkg.CodeFoo.ID` to the descriptor's ID
-		// via its var name. Descriptor names are unique across the check
-		// layer, so the package qualifier is not needed for the lookup.
 		if v.Sel.Name != "ID" {
-			return ""
+			// `pkg.CodeFoo` — a cross-package reference to a
+			// string-constant code, which carries no `.ID` to select.
+			return codeConsts[v.Sel.Name]
 		}
 		switch x := v.X.(type) {
 		case *ast.Ident:

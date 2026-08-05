@@ -16,6 +16,18 @@ section in this file.
 
 ## [Unreleased]
 
+### Fixed — G-0542: the `aiwf-check` skill's finding tables now match the severities the rules emit
+
+Which table a finding code sits in is how you answer "will this block my push?", and a run of rows disagreed with the rule they described. Errors filed under warnings: `area-required`, `provenance-untrailered-entity-commit` and its `squash-merge` subcode, and the `illegal-transition`, `forced-untrailered` and `history-walk-error` subcodes of `fsm-history-consistent`. Warnings filed under errors: the three `acs-body-coherence` subcodes, `milestone-done-zero-acs`, and `milestone-draft-incomplete-acs`. Each is now filed where its severity says.
+
+A further set of rules has no fixed severity to file under at all: each emits error in some runs and warning in others, decided by an `aiwf.yaml` knob, by the milestone's own `tdd:` policy, by whether a commit descends from the hook-install SHA, or by which subcode fired. They move to a new **Findings (conditional severity)** table whose rows say which way, so neither fixed table makes a promise it cannot keep for every consumer. This covers both ways aiwf escalates — a rule that picks its severity where the finding is built (`unexpected-tree-file`, `acs-tdd-audit`, `trailer-verb-unknown`, `body-prose-id`, `entity-body-empty`) and one that emits a warning which a later strictness pass rewrites (`doc-id-width`, `doc-id-slug`, `milestone-tdd-undeclared`, `archive-sweep-pending`, and the six `area-*` findings `areas.required` escalates). A consumer cannot tell those two apart, so the table no longer does either.
+
+Two rows were saying something false about their own severity. `entity-body-empty` claimed a blanket warning default; it is an **error unconditionally** for gap, ADR, decision and contract, which are live from their create commit, and a warning only for epic and milestone. `terminal-entity-not-archived` claimed `archive.sweep_threshold` escalates it; the knob escalates only the aggregate `archive-sweep-pending`, so a backlog past the threshold blocks once rather than once per entity.
+
+Placement is now mechanically pinned for every row whose emission the checker can read statically, rather than for a single hardcoded code. Both halves of the contract are derived: the expected severity from the rule's own `Severity:` field plus any strictness pass that rewrites it, and the severity a section claims from its own heading text — so neither side can drift from what it describes. A renamed heading fires rather than silently unclassifying the rows beneath it, and one code documented under two tables that disagree fires as the self-contradiction it is.
+
+The scan also now reaches the contract packages, whose findings `aiwf check` surfaces as part of its own run rather than leaving to `aiwf contract verify`. That exposed one more mismatch: `contract-config/no-binding` is advisory, unlike its blocking siblings, and was filed under errors.
+
 ### Fixed — G-0532: `entity-id-narrow-width` now reads the frontmatter id, not just the filename
 
 An entity carries its id twice — in its filename and in its frontmatter `id:` —
