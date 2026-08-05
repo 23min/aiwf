@@ -66,7 +66,7 @@ requires the entity to be at the terminal-cancel target already.`,
 	cmd.Flags().StringVar(&principal, "principal", "", "the human/<id> the actor is acting on behalf of (required when --actor is non-human; gates the verb through the I2.5 allow-rule)")
 	cmd.Flags().StringVar(&root, "root", "", "consumer repo root")
 	cmd.Flags().StringVar(&reason, "reason", "", "free-form prose explaining why; lands in the commit body, surfaces in `aiwf history`")
-	cmd.Flags().BoolVar(&force, "force", false, "record an audit trailer even when the verb's existing checks would normally allow it (requires --reason)")
+	cmd.Flags().BoolVar(&force, "force", false, "record an audit trailer even when the verb's existing checks would normally allow it (requires --reason); sovereign, so the actor must be human/... — a force trailer from a non-human actor is refused before anything is written")
 	cmd.Flags().BoolVar(&auditOnly, "audit-only", false, "record an audit-trail commit without mutating files; entity must already be at the kind's terminal-cancel target (requires --reason; mutex with --force; G24 recovery path)")
 	out = cliutil.AddFormatFlags(cmd)
 	out.CorrelationID = correlationID
@@ -111,6 +111,10 @@ func Run(opts Options) (code int) {
 	rootDir, actorStr, code, ok := cliutil.ResolvePrelude("aiwf cancel", opts.Root, opts.Actor)
 	if !ok { //coverage:ignore prelude resolution failure is covered by the shared helper's own tests; this per-verb short-circuit is not separately reproducible
 		return code
+	}
+
+	if forceCode, forceOK := cliutil.RefuseNonHumanSovereignForce("aiwf cancel", actorStr, opts.Force); !forceOK {
+		return forceCode
 	}
 
 	ctx := context.Background()

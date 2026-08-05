@@ -69,6 +69,21 @@ none. That is new at the commit seam described above, and a move from `2` for
 the coherence refusals `aiwf authorize` and the `--audit-only` paths already
 raised.
 
+`aiwf promote` and `aiwf cancel` decide it as soon as they have resolved the
+actor, before taking the repo lock or loading the tree, so a refused invocation
+cannot be delayed behind a lock it was never going to use. The verdict, the
+message and the exit code are the seam's own — both moments consult one rule.
+`aiwf add` is deliberately not checked this early: its `--force` bypasses the
+empty-body gate and is inert on kinds that have none, so an invocation carrying
+the flag does not necessarily carry a sovereign act, and the seam is where the
+distinction is visible.
+
+The `--force` help on `aiwf promote`, `cancel`, `add` and `authorize` now says
+the flag is sovereign and names what it does not relax. Where a finding's hint
+offers `--force` as the remedy, it now says the same — that the override
+reaches the FSM transition rule and nothing else, and that every other check
+still runs.
+
 ### Changed — installed hooks and hook-collision messages no longer cite aiwf's own gap ids
 
 The four hook scripts `aiwf init` writes into your repo — `pre-push`,

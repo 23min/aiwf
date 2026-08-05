@@ -67,7 +67,7 @@ func NewCmd(correlationID string) *cobra.Command {
 	cmd.Flags().StringVar(&by, "by", "", "comma-separated entity ids to write into addressed_by (gap → addressed only); satisfies gap-addressed-has-resolver atomically with the status change")
 	cmd.Flags().StringVar(&byCommit, "by-commit", "", "comma-separated commit SHAs to write into addressed_by_commit (gap → addressed only); use when the gap was closed by a specific commit rather than a milestone")
 	cmd.Flags().StringVar(&supersededBy, "superseded-by", "", "ADR id to write into superseded_by (adr → superseded only); also records the reciprocal supersedes on that ADR, satisfying adr-supersession-mutual atomically with the status change")
-	cmd.Flags().BoolVar(&force, "force", false, "skip the FSM transition rule (requires --reason); coherence checks still run")
+	cmd.Flags().BoolVar(&force, "force", false, "skip the FSM transition rule (requires --reason); sovereign, so the actor must be human/... — a force trailer from a non-human actor is refused before anything is written; coherence checks still run and the standing audit keeps reporting")
 	cmd.Flags().BoolVar(&auditOnly, "audit-only", false, "record an audit-trail commit without mutating files; entity must already be at <new-status> (requires --reason; mutex with --force; G24 recovery path)")
 	out = cliutil.AddFormatFlags(cmd)
 	out.CorrelationID = correlationID
@@ -146,6 +146,10 @@ func Run(args []string, actor, principal, root, reason,
 	rootDir, actorStr, code, ok := cliutil.ResolvePrelude("aiwf promote", root, actor)
 	if !ok {
 		return code
+	}
+
+	if forceCode, forceOK := cliutil.RefuseNonHumanSovereignForce("aiwf promote", actorStr, force); !forceOK {
+		return forceCode
 	}
 
 	ctx := context.Background()

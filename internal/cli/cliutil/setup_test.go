@@ -14,6 +14,9 @@ import (
 //     redirects the process-global os.Stderr to /dev/null; parallel would
 //     race any concurrent reader (e.g. RunStatuslineRemove's Fprintf paths).
 //   - TestTextIO_Wrappers (textio_test.go) — uses captureStdStreams.
+//   - TestRefuseNonHumanSovereignForce,
+//     TestRefuseNonHumanSovereignForce_SpeaksTheSeamsMessage
+//     (sovereign_force_test.go) — use captureStdStreams.
 //   - TestResolveLogger_StderrDestination_NeverClosesRealStderr
 //     (resolvelogger_test.go) — uses captureStdStreams.
 //   - TestAcquireRepoLock_JSONEnvelopeOnBusy,

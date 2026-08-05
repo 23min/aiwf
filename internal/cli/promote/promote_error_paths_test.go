@@ -163,3 +163,35 @@ func TestRun_PhaseAuditOnlyRejectsTests(t *testing.T) {
 		t.Errorf("rc = %d, want ExitUsage", rc)
 	}
 }
+
+// TestRun_NonHumanForceIsRefusedAtTheDispatcher covers the
+// sovereign-force pre-check Run makes right after the prelude
+// (M-0293/AC-3). The guard's own arms — message, exit class, actor
+// shapes — are covered in internal/cli/cliutil; what this pins is that
+// the dispatcher calls it at all, and that a human is not caught by it.
+//
+// The human case is the discriminator. Both invocations name an entity
+// no tree here contains, so both fail; only the non-human one may fail
+// with the legality exit the coherence refusal carries.
+func TestRun_NonHumanForceIsRefusedAtTheDispatcher(t *testing.T) {
+	t.Parallel()
+	root := t.TempDir()
+	base := runArgs{
+		args: []string{"E-0001", "active"}, root: root,
+		reason: "an agent reaching for a sovereign act", force: true,
+	}
+
+	nonHuman := base
+	nonHuman.actor = "ai/claude"
+	if rc := nonHuman.run(); rc != cliutil.ExitFindings {
+		t.Errorf("non-human --force: rc = %d, want ExitFindings (%d) — the dispatcher never "+
+			"consulted the sovereign-force guard", rc, cliutil.ExitFindings)
+	}
+
+	human := base
+	human.actor = "human/test"
+	if rc := human.run(); rc == cliutil.ExitFindings {
+		t.Error("human --force reached the same exit as the non-human one, so the assertion " +
+			"above proves nothing about the guard — both may simply be failing on the missing entity")
+	}
+}
