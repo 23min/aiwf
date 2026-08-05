@@ -16,6 +16,14 @@ section in this file.
 
 ## [Unreleased]
 
+### Changed — G-0547: the `aiwf-check` skill's findings tables answer what a code means, and the tool answers what to do about it
+
+The skill's four findings tables carried a `Typical fix` column — a second copy of the hint `aiwf check` already prints beside every finding it emits. The copy was the weaker of the two and had drifted: it told operators to resolve a case collision with `git mv` where the hint says `aiwf rename`, to fix an empty AC title by hand where the hint names `aiwf retitle`, and to find a validator's install instructions in the recipe where the hint names `aiwf contract recipe install`. Nothing derived one from the other, so nothing caught any of it.
+
+The column is gone, and with it the `Fix:` clauses that carried the same guidance inline in the warnings table. All four tables are now `Code | Meaning`. Remediation has one home — `hintTable`, where two existing checks already require every emitted code to have a hint and every hint to name its command. Guidance that lived only in the column moved there rather than being dropped: the partial-clone recovery for `fsm-history-consistent/history-walk-error` now names `git fetch --refetch --no-filter`. Clauses that were describing the rule rather than fixing it moved into the meaning cell, so `refs-resolve/wrong-kind` still says a milestone's `parent` must be an epic, and `milestone-tdd-undeclared` still says `tdd.strict` escalates it. This trims about 11KB from the largest surface `aiwf init` materializes into a consumer repo.
+
+Default `aiwf check` output collapses warnings into one line per code, which drops their hints. Runs that collapse a warning now close with a pointer to `aiwf check --verbose`, where each warning's location and hint are reachable. Errors are unaffected — they already print per instance, hint included.
+
 ### Fixed — G-0542: the `aiwf-check` skill's finding tables now match the severities the rules emit
 
 Which table a finding code sits in is how you answer "will this block my push?", and a run of rows disagreed with the rule they described. Errors filed under warnings: `area-required`, `provenance-untrailered-entity-commit` and its `squash-merge` subcode, and the `illegal-transition`, `forced-untrailered` and `history-walk-error` subcodes of `fsm-history-consistent`. Warnings filed under errors: the three `acs-body-coherence` subcodes, `milestone-done-zero-acs`, and `milestone-draft-incomplete-acs`. Each is now filed where its severity says.

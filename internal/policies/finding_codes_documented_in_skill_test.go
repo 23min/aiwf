@@ -20,9 +20,9 @@ func writeAt(t *testing.T, root, rel, content string) {
 // findingTableSkill returns a minimal aiwf-check skill body whose
 // Findings table documents exactly the given codes (one row each).
 func findingTableSkill(codes ...string) string {
-	s := "# aiwf-check\n\n## Findings (errors)\n\n| Code | Meaning | Typical fix |\n|---|---|---|\n"
+	s := "# aiwf-check\n\n## Findings (errors)\n\n| Code | Meaning |\n|---|---|\n"
 	for _, c := range codes {
-		s += "| `" + c + "` | meaning | fix |\n"
+		s += "| `" + c + "` | meaning |\n"
 	}
 	return s
 }

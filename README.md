@@ -197,7 +197,7 @@ Run `aiwf doctor` to confirm: the `rituals:` line reports the artifacts material
 
 ### Sample of `aiwf check` output
 
-When validation finds something, each error prints on its own line in linter form: `path:line: severity code: message — hint: <action>`. Warnings are summarized per code; `--verbose` expands them to the same per-instance form.
+When validation finds something, each error prints on its own line in linter form: `path:line: severity code: message — hint: <action>`. Warnings are summarized per code, which drops their hint, so a run carrying one closes with a pointer to `--verbose` — which expands every warning to the same per-instance form.
 
 ```text
 work/epics/E-NNNN-foo/M-NNNN-bad.md:1: error frontmatter-shape: milestone missing required field: parent — hint: add the missing frontmatter field by hand and re-run `aiwf check`; if the id itself is malformed, renumber via `aiwf reallocate <path>` so it emits at canonical width
@@ -205,6 +205,7 @@ work/epics/E-NNNN-foo/epic.md:4: error status-valid: status "bogus" is not allow
 titles-nonempty (warning) × 1 — title is empty or whitespace-only
 
 3 findings (2 errors, 1 warnings)
+run `aiwf check --verbose` for each warning's location and remediation hint
 ```
 
 Pipe through `--format=json` (with optional `--pretty`) when feeding CI. Exit codes: `0` clean, `1` errors found, `2` usage error, `3` internal error.
