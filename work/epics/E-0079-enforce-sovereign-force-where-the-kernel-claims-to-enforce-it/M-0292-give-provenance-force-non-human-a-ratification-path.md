@@ -1,7 +1,7 @@
 ---
 id: M-0292
 title: Give provenance-force-non-human a ratification path
-status: draft
+status: in_progress
 parent: E-0079
 tdd: required
 acs:
