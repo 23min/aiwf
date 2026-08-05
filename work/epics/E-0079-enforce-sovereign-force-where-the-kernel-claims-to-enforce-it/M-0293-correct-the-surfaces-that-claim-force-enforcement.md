@@ -48,6 +48,14 @@ replace one false claim with another.
 | 9 | `internal/verb/promote_sovereign_act.go`, the helper comment | the coherence chokepoint makes the override human-only by construction |
 | 10 | `internal/verb/add.go`, the force branch comment | the check-time audit is the backstop every force path relies on, rather than a verb-time gate |
 | 11 | [ADR-0029](../../../docs/adr/ADR-0029-verb-shape-correctness-comes-from-pre-write-projection.md), the pre-write-projection rationale | `verb.Apply` performs no validation and adding a check inside it would duplicate the real gate |
+| 12 | `internal/entity/sovereign.go`, the `SovereignActShape` doc comment | the sovereign gesture is a `human/` actor by default, or `--force --reason` from a non-human actor |
+| 13 | `internal/policies/aiwf_promote_epic_active_audit_test.go`, the policy's failure message | tells the reader to append `--force --reason` or have a human run the verb |
+
+Rows 12 and 13 are the same shape as each other: both offer `--force` by a
+non-human actor as a working remedy, which M-0291 made false. The runtime
+message that said the same thing was corrected there, because it is reachable
+only for the population the advice is wrong for; these two are prose and a test
+message, so they wait here.
 
 Row 11 is the mirror of the rest: a surface asserting the *absence* of a
 guarantee that now exists. Its scope was content and shape validation, so it
