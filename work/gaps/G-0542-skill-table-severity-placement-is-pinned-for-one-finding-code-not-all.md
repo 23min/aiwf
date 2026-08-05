@@ -1,7 +1,9 @@
 ---
 id: G-0542
 title: Skill-table severity placement is pinned for one finding code, not all
-status: open
+status: addressed
+addressed_by_commit:
+    - 8b6b30061
 ---
 ## What's missing
 
