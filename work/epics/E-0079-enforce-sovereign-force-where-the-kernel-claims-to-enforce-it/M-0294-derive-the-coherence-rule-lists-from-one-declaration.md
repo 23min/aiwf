@@ -10,7 +10,7 @@ acs:
     - id: AC-1
       title: Three hand-maintained rule lists derive from one declaration
       status: open
-      tdd_phase: red
+      tdd_phase: green
     - id: AC-2
       title: The declaration's per-rule claims are verified against behavior
       status: open
