@@ -56,6 +56,17 @@ view, so it counts the same references as errors in its Health line while
 wrong. Two local surfaces render opposite verdicts on the same bytes, neither
 says so, and the one the hook runs is the permissive one.
 
+That split is wider than status-versus-check, and runs through `aiwf check`
+itself. Measured 2026-08-06: five paths load the tree through two loaders. Every
+mutating verb and the full `aiwf check` build the cross-branch view;
+`aiwf check --fast`, `aiwf check --shape-only` — the pre-commit hook — and
+`aiwf status` do not, and on this repo's own tree the first group reports zero
+errors while the second reports two. So the write path and the authoritative
+read path agree, and three secondary read paths dissent. That half is tracked
+separately as G-0558, is fixable ahead of this gap, and turns on a different
+argument: `unresolved` is a claim about every tier, and a loader that built one
+tier cannot substantiate it.
+
 The condition is reachable through ordinary, sanctioned use. Filing a gap
 mid-flight on whatever branch is checked out is the workflow ADR-0030 exists to
 support; referring to it from a later gap on mainline is the friction that ADR
@@ -128,6 +139,37 @@ G-0536 waits on this. It proposes a CI position for `aiwf check`, which is the
 third observer of the same divergence and the one that would report it as a
 push-blocking failure of the check itself rather than of a test. Its resolution
 is sound only once this decision is made.
+
+## Decided — ADR-0041
+
+The answer is none of the four above; it is a fifth shape they all miss, because
+each of them accepts the premise that a cross-branch reference is one condition.
+It is two. A reference resolvable from a remote-tracking ref is published —
+anyone who fetches can follow it. A reference resolvable only from a local branch
+exists on one working copy on earth. ADR-0030 fires the same non-blocking subcode
+for both, and the distinction is already computed and discarded: `trunk.RefHit`
+carries the ref that answered, and the resolver groups on the union.
+
+ADR-0041 splits them. Remote-visible stays a warning; local-only becomes an error
+that blocks at the push boundary; absent from every tier stays `unresolved`. The
+remedy the error names is push the branch — neither of the two remedies ADR-0030
+rejected, and what the standing guidance on allocating and pushing promptly
+already asks for.
+
+What decided it against the four: option 1 taxes the published case to protect
+against the unpublished one; option 2 cannot generalize, since ref-seeding does
+not reach `TestPolicy_ThisRepoTreeIsClean`, which is blind by loader choice
+rather than by repo topology; option 3 is right on its own terms and now
+uncontroversial, but scopes one test rather than answering the question; option 4
+is satisfied locally once G-0558 and the agreement invariants land. And the
+measured frequency — instances with a window long enough to span a push run at
+about one per three weeks — makes option 1's standing cost the wrong trade for
+the protection it buys.
+
+Sequencing that follows: G-0558 first, then the agreement invariants D-0063
+records, then ADR-0041's classification, then the fixture that drives its
+lifecycle. G-0536's CI position is what finally makes CI's verdict converge with
+the operator's, and it is the last step rather than a precondition.
 
 ## Provenance
 
