@@ -67,6 +67,90 @@ const (
 	CoherenceRuleAuditOnlyNonHuman                = "audit-only-non-human"
 )
 
+// coherenceRuleSpec declares one coherence rule.
+//
+// This describes the rules; it does not drive them. CheckTrailerCoherence
+// evaluates its conditions directly, so an entry here is a claim about a
+// rule rather than the rule itself — which is why every claim is asserted
+// against the rule's behavior rather than trusted (D-0062).
+type coherenceRuleSpec struct {
+	// Rule is the name AsCoherenceError reports for this rule.
+	Rule string
+
+	// Reads are the presence-bearing trailer keys the rule's condition
+	// consults. The generated domain varies exactly their union, so a
+	// rule declaring a trailer no other rule reads widens the domain
+	// instead of going unexercised in it.
+	//
+	// The actor is not listed. It is the domain's other axis and any
+	// rule may consult it, so listing it would carry no information.
+	Reads []string
+
+	// RequiresForce reports that the rule cannot fire without an
+	// aiwf-force trailer, which is what puts it in the subset
+	// verb.Apply enforces at the seam.
+	RequiresForce bool
+}
+
+// coherenceRuleSpecs declares every rule this package checks. It is the
+// single source the rule roster, the seam's enforced subset, and the
+// generated domain's trailer axis all derive from, so a rule added here
+// enters all three at once rather than in three separate edits that can
+// each be forgotten.
+//
+// Order is for reading and carries no meaning: every consumer treats
+// these as a set.
+var coherenceRuleSpecs = []coherenceRuleSpec{
+	{Rule: CoherenceRuleOnBehalfOfMissingAuthorizedBy, Reads: []string{gitops.TrailerOnBehalfOf, gitops.TrailerAuthorizedBy}},
+	{Rule: CoherenceRuleAuthorizedByMissingOnBehalfOf, Reads: []string{gitops.TrailerAuthorizedBy, gitops.TrailerOnBehalfOf}},
+	{Rule: CoherenceRulePrincipalMissingForNonHumanActor, Reads: []string{gitops.TrailerPrincipal}},
+	{Rule: CoherenceRulePrincipalRequiresNonHumanActor, Reads: []string{gitops.TrailerPrincipal}},
+	{Rule: CoherenceRuleOnBehalfOfForbiddenForHumanActor, Reads: []string{gitops.TrailerOnBehalfOf}},
+	{Rule: CoherenceRuleForceWithOnBehalfOf, Reads: []string{gitops.TrailerForce, gitops.TrailerOnBehalfOf}, RequiresForce: true},
+	{Rule: CoherenceRuleForceNonHuman, Reads: []string{gitops.TrailerForce}, RequiresForce: true},
+	{Rule: CoherenceRuleAuditOnlyWithForce, Reads: []string{gitops.TrailerAuditOnly, gitops.TrailerForce}, RequiresForce: true},
+	{Rule: CoherenceRuleAuditOnlyNonHuman, Reads: []string{gitops.TrailerAuditOnly}},
+}
+
+// declaredCoherenceRules returns every declared rule name.
+func declaredCoherenceRules() []string {
+	out := make([]string, 0, len(coherenceRuleSpecs))
+	for _, s := range coherenceRuleSpecs {
+		out = append(out, s.Rule)
+	}
+	return out
+}
+
+// declaredForcePredicatedRules returns the rules that cannot fire
+// without a force trailer — the subset verb.Apply enforces.
+func declaredForcePredicatedRules() []string {
+	var out []string
+	for _, s := range coherenceRuleSpecs {
+		if s.RequiresForce {
+			out = append(out, s.Rule)
+		}
+	}
+	return out
+}
+
+// declaredCoherenceTrailerAxis returns every presence-bearing trailer
+// any rule reads, deduplicated in first-appearance order. This is the
+// axis the generated domain varies.
+func declaredCoherenceTrailerAxis() []string {
+	seen := map[string]bool{}
+	var out []string
+	for _, s := range coherenceRuleSpecs {
+		for _, key := range s.Reads {
+			if seen[key] {
+				continue
+			}
+			seen[key] = true
+			out = append(out, key)
+		}
+	}
+	return out
+}
+
 // CheckTrailerCoherence validates the I2.5 required-together /
 // mutually-exclusive trailer rules on an assembled trailer set.
 // Returns nil when the set is coherent; returns a *CoherenceError

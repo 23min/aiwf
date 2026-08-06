@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"sort"
 	"strings"
 	"testing"
 
@@ -26,16 +27,29 @@ var coherenceActors = []struct{ name, value string }{
 	{"nonhuman", "ai/claude"},
 }
 
-// coherenceFlags is the trailer-presence axis: the five trailers whose
-// presence or absence any coherence rule reads. Values are irrelevant to
-// every rule — each reads presence only — so one representative value
-// per trailer covers the axis.
-var coherenceFlags = []struct{ name, key, value string }{
-	{"principal", gitops.TrailerPrincipal, "human/peter"},
-	{"onbehalfof", gitops.TrailerOnBehalfOf, "human/peter"},
-	{"authorizedby", gitops.TrailerAuthorizedBy, "abc1234"},
-	{"force", gitops.TrailerForce, "override"},
-	{"auditonly", gitops.TrailerAuditOnly, "true"},
+// coherenceFlag is one trailer on the presence axis.
+type coherenceFlag struct{ name, key, value string }
+
+// coherenceFlags is the trailer-presence axis, derived from the rule
+// declaration rather than listed. A rule reading a trailer no other
+// rule reads widens this axis by construction, so it is exercised
+// somewhere in the domain instead of firing at no point in it.
+//
+// Values are irrelevant to every rule — each reads presence only — so
+// one representative value covers the axis.
+var coherenceFlags = func() []coherenceFlag {
+	axis := declaredCoherenceTrailerAxis()
+	out := make([]coherenceFlag, 0, len(axis))
+	for _, key := range axis {
+		out = append(out, coherenceFlag{name: coherenceFlagName(key), key: key, value: "set"})
+	}
+	return out
+}()
+
+// coherenceFlagName renders a trailer key as the compact label the
+// domain's case names use: aiwf-on-behalf-of becomes onbehalfof.
+func coherenceFlagName(trailerKey string) string {
+	return strings.ReplaceAll(strings.TrimPrefix(trailerKey, "aiwf-"), "-", "")
 }
 
 // coherenceCase is one point in the domain.
@@ -64,15 +78,21 @@ func coherenceDomain() []coherenceCase {
 				trailers = append(trailers, gitops.Trailer{Key: gitops.TrailerActor, Value: actor.value})
 			}
 			present := make(map[string]bool, len(coherenceFlags))
-			parts := []string{"actor=" + actor.name}
+			var set []string
 			for i, f := range coherenceFlags {
 				on := mask&(1<<i) != 0
 				present[f.name] = on
 				if on {
 					trailers = append(trailers, gitops.Trailer{Key: f.key, Value: f.value})
-					parts = append(parts, f.name)
+					set = append(set, f.name)
 				}
 			}
+			// Sorted, so a case name states which trailers are present
+			// and not the order the axis happens to carry them in. That
+			// decouples the golden from the axis: a rule widening the
+			// axis adds lines rather than rewriting every one.
+			sort.Strings(set)
+			parts := append([]string{"actor=" + actor.name}, set...)
 			out = append(out, coherenceCase{
 				name:     strings.Join(parts, "+"),
 				trailers: trailers,
@@ -107,11 +127,16 @@ func verdict(trailers []gitops.Trailer) string {
 func TestCheckTrailerCoherence_FullDomain_MatchesGolden(t *testing.T) {
 	t.Parallel()
 
-	var b strings.Builder
-	for _, tc := range coherenceDomain() {
-		fmt.Fprintf(&b, "%s => %s\n", tc.name, verdict(tc.trailers))
+	domain := coherenceDomain()
+	lines := make([]string, 0, len(domain))
+	for _, tc := range domain {
+		lines = append(lines, fmt.Sprintf("%s => %s", tc.name, verdict(tc.trailers)))
 	}
-	got := b.String()
+	// Sorted for the same reason the case names are: the golden records
+	// a set of verdicts, so its diff shows a changed verdict rather than
+	// a changed iteration order.
+	sort.Strings(lines)
+	got := strings.Join(lines, "\n") + "\n"
 
 	path := filepath.Join("testdata", "coherence_domain.golden")
 	if *updateCoherenceGolden {
@@ -250,24 +275,6 @@ func isNonHumanActor(actor string) bool {
 	return actor != "" && !strings.HasPrefix(actor, "human/")
 }
 
-// coherenceRules is every rule the package declares.
-//
-// Hand-maintained, and deliberately so for now: the rule space has no
-// registry to enumerate, which is the gap M-0294 exists to close. Until
-// it does, the golden is the backstop — a rule added or removed changes
-// the golden's diff whether or not someone updates this list.
-var coherenceRules = []string{
-	CoherenceRuleOnBehalfOfMissingAuthorizedBy,
-	CoherenceRuleAuthorizedByMissingOnBehalfOf,
-	CoherenceRulePrincipalMissingForNonHumanActor,
-	CoherenceRulePrincipalRequiresNonHumanActor,
-	CoherenceRuleOnBehalfOfForbiddenForHumanActor,
-	CoherenceRuleForceWithOnBehalfOf,
-	CoherenceRuleForceNonHuman,
-	CoherenceRuleAuditOnlyWithForce,
-	CoherenceRuleAuditOnlyNonHuman,
-}
-
 // TestCheckTrailerCoherence_EveryRuleIsReachable asserts each declared
 // rule fires at some point in the domain.
 //
@@ -280,11 +287,11 @@ var coherenceRules = []string{
 func TestCheckTrailerCoherence_EveryRuleIsReachable(t *testing.T) {
 	t.Parallel()
 
-	fired := make(map[string]bool, len(coherenceRules))
+	fired := make(map[string]bool, len(coherenceRuleSpecs))
 	for _, c := range coherenceDomain() {
 		fired[verdict(c.trailers)] = true
 	}
-	for _, rule := range coherenceRules {
+	for _, rule := range declaredCoherenceRules() {
 		if !fired[rule] {
 			t.Errorf("rule %q fires at no point in the domain; it is shadowed by an earlier rule or unreachable", rule)
 		}
@@ -292,19 +299,18 @@ func TestCheckTrailerCoherence_EveryRuleIsReachable(t *testing.T) {
 }
 
 // forcePredicatedRules are the rules whose condition requires an
-// aiwf-force trailer. Written out rather than derived from the
-// function under test, so a rule silently added to or dropped from
-// the seam's subset shows up as a failure here.
-//
-// Hand-maintained, like coherenceRules above, and retired by the same
-// thing: M-0294's rule registry, which makes both derivable. Until
-// then a fourth force-predicated rule must be added here by hand or
-// this test stops covering it.
-var forcePredicatedRules = map[string]bool{
-	CoherenceRuleForceNonHuman:       true,
-	CoherenceRuleForceWithOnBehalfOf: true,
-	CoherenceRuleAuditOnlyWithForce:  true,
-}
+// aiwf-force trailer, derived from the rule declaration rather than
+// from the function under test. Deriving it from
+// CheckForceTrailerCoherence would make the subset assertion below
+// compare that function to itself; the declaration is data stated
+// beside each rule, and M-0294/AC-2 holds it to the rule's behavior.
+var forcePredicatedRules = func() map[string]bool {
+	out := map[string]bool{}
+	for _, rule := range declaredForcePredicatedRules() {
+		out[rule] = true
+	}
+	return out
+}()
 
 // TestCheckForceTrailerCoherence_IsTheForcePredicatedSubset pins what
 // verb.Apply enforces, across the same generated domain the full rule
