@@ -6,6 +6,13 @@ parent: E-0080
 depends_on:
     - M-0301
 tdd: required
+acs:
+    - id: AC-1
+      title: No AC is met under a tdd-required milestone whose phase is not done
+      status: open
+    - id: AC-2
+      title: The walker reaches a state where the invariant could fail
+      status: open
 ---
 ## Goal
 
@@ -39,6 +46,37 @@ condition this milestone exists to end.
 ## Acceptance criteria
 
 Each criterion below is asserted by the harness itself, not by review.
+
+### AC-1 — No AC is met under a tdd-required milestone whose phase is not done
+
+After every step of a composed sequence, the harness asserts that no acceptance
+criterion is `met` while its parent milestone carries `tdd: required` and that
+criterion's `tdd_phase` is anything other than `done`.
+
+The invariant reads a relationship the kernel already claims to maintain — an
+AC's status, its phase, and its milestone's policy — rather than a transition
+table. Encoding the phase FSM here would put a second copy of
+`entity.ValidateTransition` in the harness, drifting against the first.
+
+A violation is a result, not a defect in the assertion. If a legal sequence
+reaches this state, that is the composition defect G-0121 predicted, and it is
+filed as its own gap rather than assertion-tuned away.
+
+### AC-2 — The walker reaches a state where the invariant could fail
+
+A test demonstrates that the walker reaches a state where this invariant could
+fail — an acceptance criterion seeded, its phase moved, and its milestone's
+`tdd` policy flipped underneath it — so a passing run is evidence rather than
+silence.
+
+This is the whole reason the invariant has stayed unasserted. E-0071 made the
+policy mutable mid-sequence by a real verb, but the walker seeds no acceptance
+criteria, so the state was unreachable and any assertion over it would have
+passed forever while reporting nothing. D-0063 records that reasoning.
+
+Reachability is asserted against the walker's real generated sequences, not
+against a fixture built to order. A fixture would prove the invariant can fail;
+only the walker proves this harness can find it.
 
 ## Constraints
 
