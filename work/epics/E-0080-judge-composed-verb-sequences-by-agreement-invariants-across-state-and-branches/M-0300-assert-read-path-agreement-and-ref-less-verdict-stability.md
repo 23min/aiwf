@@ -4,6 +4,16 @@ title: Assert read-path agreement and ref-less verdict stability
 status: draft
 parent: E-0080
 tdd: required
+acs:
+    - id: AC-1
+      title: Every verdict-rendering read path renders the same verdict on the same bytes
+      status: open
+    - id: AC-2
+      title: A verdict is stable under refs the tree does not need
+      status: open
+    - id: AC-3
+      title: Each property is demonstrated failing against a constructed violation
+      status: open
 ---
 ## Goal
 
@@ -42,6 +52,51 @@ space widens.
 ## Acceptance criteria
 
 Each criterion below is asserted by the harness itself, not by review.
+
+### AC-1 — Every verdict-rendering read path renders the same verdict on the same bytes
+
+After each step of a composed sequence, the harness runs every verdict-rendering
+read path over the repository that step produced and compares the resulting
+finding sets — code, subcode, severity, and the entity each finding is attached
+to. A divergence in any of those fields fails the property, and the failure
+names the two surfaces and the finding that differs.
+
+The comparison is between observations. The harness never states which surface
+is correct, so the property carries no model of the tier rules and needs no
+update when those rules change.
+
+The measured instance this must catch: `aiwf check` classifying a reference as a
+non-blocking warning while `aiwf check --fast` reports the same reference as a
+blocking error, on the same bytes in the same working copy (G-0558).
+
+### AC-2 — A verdict is stable under refs the tree does not need
+
+For a repository produced by a sequence, the harness computes the verdict twice
+— once on the working checkout, once on a copy from which the refs the tree does
+not need have been removed — and requires the two to agree.
+
+A verdict that changes when an unrelated ref disappears is reporting on the
+repository's ref graph rather than on the tree, which is the shape G-0556
+records: a reference resolving against refs only the author's machine holds
+passes locally and fails in every clone.
+
+Which refs a tree does not need is decided by what the verdict claims, not by a
+fixed list, so the property does not go stale as the tier rules evolve.
+
+### AC-3 — Each property is demonstrated failing against a constructed violation
+
+For each property, a test constructs a repository state that violates it and
+asserts the property reports the violation, naming the observations that
+diverged.
+
+A property observed only passing is not evidence that it can fail. E-0080's
+success criteria require the failing direction explicitly, and this is where it
+is discharged — at plan time, rather than as a review finding once the
+implementation is already written.
+
+The constructed violation is separate from the red state the current binary
+produces. That one is incidental and disappears when G-0558's fix lands; this
+one is permanent and keeps the property honest afterwards.
 
 ## Constraints
 
