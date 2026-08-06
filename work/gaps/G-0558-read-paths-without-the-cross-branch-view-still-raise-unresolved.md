@@ -1,8 +1,10 @@
 ---
 id: G-0558
 title: Read paths without the cross-branch view still raise unresolved
-status: open
+status: addressed
 priority: medium
+addressed_by_commit:
+    - b0975f2f6bc3ab73600e81ec8abf9c421d96d531
 ---
 ## What's missing
 
