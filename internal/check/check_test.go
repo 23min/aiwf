@@ -593,13 +593,16 @@ func TestRefsResolve_UnresolvedWhenAbsentFromEveryTier(t *testing.T) {
 // --- M-0259/AC-2: refs-resolve consults the cross-branch view on a
 // local-tree miss, before firing unresolved (ADR-0030). ---
 
+// The hit is on a remote-tracking ref, which is what makes the target
+// published and therefore non-blocking (ADR-0041). A hit on local
+// branch refs alone is the cross-branch-local-only case below.
 func TestRefsResolve_CrossBranchPending(t *testing.T) {
 	t.Parallel()
 	tr := makeTree(
 		&entity.Entity{ID: "M-0001", Kind: entity.KindMilestone, Parent: "E-0099"}, // E-0099 not local
 	)
 	tr.CrossBranchHits = []trunk.RefHit{
-		{Kind: entity.KindEpic, ID: "E-0099", Path: "work/epics/E-0099-x/epic.md", Ref: "refs/heads/sibling"},
+		{Kind: entity.KindEpic, ID: "E-0099", Path: "work/epics/E-0099-x/epic.md", Ref: "refs/remotes/origin/sibling"},
 	}
 	got := refsResolve(tr)
 	if len(got) != 1 {
@@ -613,6 +616,115 @@ func TestRefsResolve_CrossBranchPending(t *testing.T) {
 	}
 }
 
+// --- ADR-0041: a cross-branch hit carried by local branch refs alone
+// names an entity reachable from one working copy, and blocks. ---
+
+func TestRefsResolve_CrossBranchLocalOnly(t *testing.T) {
+	t.Parallel()
+	tr := makeTree(
+		&entity.Entity{ID: "M-0001", Kind: entity.KindMilestone, Parent: "E-0099"},
+	)
+	tr.CrossBranchHits = []trunk.RefHit{
+		{Kind: entity.KindEpic, ID: "E-0099", Path: "work/epics/E-0099-x/epic.md", Ref: "refs/heads/sibling"},
+	}
+	// The repository has a remote, so publication is expressible here and
+	// an unpushed branch is a real omission rather than the only option.
+	tr.HasRemoteTrackingRefs = true
+	got := refsResolve(tr)
+	if len(got) != 1 {
+		t.Fatalf("got %+v, want exactly one finding", got)
+	}
+	if got[0].Subcode != "cross-branch-local-only" {
+		t.Errorf("Subcode = %q, want cross-branch-local-only — E-0099 is on no remote-tracking ref", got[0].Subcode)
+	}
+	if got[0].Severity != SeverityError {
+		t.Errorf("Severity = %q, want error (blocking, per ADR-0041)", got[0].Severity)
+	}
+	if !strings.Contains(got[0].Message, "refs/heads/sibling") {
+		t.Errorf("Message = %q, want it to name the unpublished ref", got[0].Message)
+	}
+}
+
+// A repository with no remote-tracking ref at all has nowhere to push,
+// so it has no push boundary for the blocking classification to guard
+// and no way to act on it. It stays the ordinary pending warning —
+// mirroring trunk.Read, which skips the trunk read outright in the same
+// repositories.
+func TestRefsResolve_CrossBranchLocalOnlyStaysPendingWithoutARemote(t *testing.T) {
+	t.Parallel()
+	tr := makeTree(
+		&entity.Entity{ID: "M-0001", Kind: entity.KindMilestone, Parent: "E-0099"},
+	)
+	tr.CrossBranchHits = []trunk.RefHit{
+		{Kind: entity.KindEpic, ID: "E-0099", Path: "work/epics/E-0099-x/epic.md", Ref: "refs/heads/sibling"},
+	}
+	tr.HasRemoteTrackingRefs = false
+
+	got := refsResolve(tr)
+	if len(got) != 1 {
+		t.Fatalf("got %+v, want exactly one finding", got)
+	}
+	if got[0].Subcode != "cross-branch-pending" {
+		t.Errorf("Subcode = %q, want cross-branch-pending — this repository cannot publish anything, so local-only names no remedy", got[0].Subcode)
+	}
+	if got[0].Severity != SeverityWarning {
+		t.Errorf("Severity = %q, want warning", got[0].Severity)
+	}
+}
+
+// One remote-tracking ref is enough to publish the id: the
+// classification reads the MOST visible ref, so a hit set mixing a
+// local branch with a pushed one is pending, not local-only.
+func TestRefsResolve_CrossBranchMixedRefsClassifyAsPublished(t *testing.T) {
+	t.Parallel()
+	tr := makeTree(
+		&entity.Entity{ID: "M-0001", Kind: entity.KindMilestone, Parent: "E-0099"},
+	)
+	tr.CrossBranchHits = []trunk.RefHit{
+		{Kind: entity.KindEpic, ID: "E-0099", Path: "work/epics/E-0099-x/epic.md", Ref: "refs/heads/sibling"},
+		{Kind: entity.KindEpic, ID: "E-0099", Path: "work/epics/E-0099-x/epic.md", Ref: "refs/remotes/origin/sibling"},
+	}
+	got := refsResolve(tr)
+	if len(got) != 1 {
+		t.Fatalf("got %+v, want exactly one finding", got)
+	}
+	if got[0].Subcode != "cross-branch-pending" {
+		t.Errorf("Subcode = %q, want cross-branch-pending — the remote-tracking hit publishes the id", got[0].Subcode)
+	}
+	if got[0].Severity != SeverityWarning {
+		t.Errorf("Severity = %q, want warning", got[0].Severity)
+	}
+}
+
+// Divergent content across two unpushed branches is still a reference
+// no other machine resolves, so the blocking classification wins over
+// the non-blocking collision one. Without the ordering this test
+// reports cross-branch-collision at warning severity, and the tree
+// pushes.
+func TestRefsResolve_CrossBranchLocalOnlyOutranksCollision(t *testing.T) {
+	t.Parallel()
+	tr := makeTree(
+		&entity.Entity{ID: "M-0001", Kind: entity.KindMilestone, Parent: "E-0099"},
+	)
+	tr.CrossBranchHits = []trunk.RefHit{
+		{Kind: entity.KindEpic, ID: "E-0099", Path: "work/epics/E-0099-x/epic.md", Ref: "refs/heads/sibling"},
+		{Kind: entity.KindEpic, ID: "E-0099", Path: "work/epics/E-0099-x/epic.md", Ref: "refs/heads/other"},
+	}
+	tr.CrossBranchCollisions = map[string]bool{"E-0099": true}
+	tr.HasRemoteTrackingRefs = true
+
+	got := refsResolve(tr)
+	if len(got) != 1 {
+		t.Fatalf("got %+v, want exactly one finding", got)
+	}
+	if got[0].Subcode != "cross-branch-local-only" {
+		t.Errorf("Subcode = %q, want cross-branch-local-only — neither ref is published, so divergence must not soften it", got[0].Subcode)
+	}
+	if got[0].Severity != SeverityError {
+		t.Errorf("Severity = %q, want error", got[0].Severity)
+	}
+}
+
 // --- M-0259/AC-3: divergent content across refs escalates to
 // cross-branch-collision instead of the soft pending tier. ---
 
@@ -621,9 +733,12 @@ func TestRefsResolve_CrossBranchCollision(t *testing.T) {
 	tr := makeTree(
 		&entity.Entity{ID: "M-0001", Kind: entity.KindMilestone, Parent: "E-0099"},
 	)
+	// Both refs are remote-tracking, so the id is published and the
+	// classification reaches the collision arm (ADR-0041 would
+	// otherwise block it as local-only before divergence is consulted).
 	tr.CrossBranchHits = []trunk.RefHit{
-		{Kind: entity.KindEpic, ID: "E-0099", Path: "work/epics/E-0099-x/epic.md", Ref: "refs/heads/sibling"},
-		{Kind: entity.KindEpic, ID: "E-0099", Path: "work/epics/E-0099-x/epic.md", Ref: "refs/heads/other"},
+		{Kind: entity.KindEpic, ID: "E-0099", Path: "work/epics/E-0099-x/epic.md", Ref: "refs/remotes/origin/sibling"},
+		{Kind: entity.KindEpic, ID: "E-0099", Path: "work/epics/E-0099-x/epic.md", Ref: "refs/remotes/origin/other"},
 	}
 	tr.CrossBranchCollisions = map[string]bool{"E-0099": true}
 
@@ -690,7 +805,9 @@ func TestRefsResolve_LocallyPresentIDWithCollisionResolvesLocally(t *testing.T) 
 	tr.CrossBranchCollisions = map[string]bool{"E-0001": true}
 
 	for _, f := range refsResolve(tr) {
-		if f.Subcode == "cross-branch-collision" || f.Subcode == "cross-branch-pending" {
+		// Any subcode from the cross-branch tier, so a classification
+		// added to that tier is caught rather than passing unnoticed.
+		if strings.HasPrefix(f.Subcode, "cross-branch-") {
 			t.Errorf("got %+v, want no cross-branch finding — E-0001 resolves locally, its collision must never surface", f)
 		}
 	}

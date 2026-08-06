@@ -244,7 +244,7 @@ func Import(ctx context.Context, t *tree.Tree, m *manifest.Manifest, actor strin
 		importBPFindings = append(importBPFindings, check.ScanBodyProseID(
 			[]byte(body), entities[i].ID, entities[i].Path, bpidx)...)
 	}
-	if check.HasErrors(importBPFindings) {
+	if blocksWrite(importBPFindings) {
 		return &ImportResult{Findings: importBPFindings}, nil
 	}
 

@@ -104,6 +104,54 @@ func TestScanCrossBranch_SkipsLocallyPresentColliders(t *testing.T) {
 	}
 }
 
+// --- ADR-0041: HasRemoteRefs reports whether the repository can
+// express publication at all, which is what the check layer consults
+// before escalating an unpublished reference to a blocking error. ---
+
+// TestScanCrossBranch_HasRemoteRefs measures the fact against real
+// repositories rather than asserting it about a struct: one with no
+// remote at all, and one whose remote has been pushed to.
+//
+// The two are the same repository a moment apart, so nothing but the
+// remote differs. The assertion is deliberately about REFS and not
+// hits: adding the remote also adds a ref carrying entity files, and a
+// test keyed on hits would pass without distinguishing the two.
+func TestScanCrossBranch_HasRemoteRefs(t *testing.T) {
+	t.Parallel()
+	ctx := context.Background()
+	dir := initRepo(t)
+	commitFile(t, ctx, dir, "work/gaps/G-0001-a.md", "G-0001 main\n")
+
+	if scan := ScanCrossBranch(ctx, dir, nil); scan.HasRemoteRefs {
+		t.Error("HasRemoteRefs = true for a repository with no remote configured, want false")
+	}
+
+	bare := t.TempDir() + "/origin.git"
+	mustRun(t, ctx, dir, "init", "--bare", "-q", "-b", "main", bare)
+	mustRun(t, ctx, dir, "remote", "add", "origin", bare)
+	mustRun(t, ctx, dir, "push", "-q", "-u", "origin", "main")
+
+	if scan := ScanCrossBranch(ctx, dir, nil); !scan.HasRemoteRefs {
+		t.Error("HasRemoteRefs = false after pushing to a remote, want true")
+	}
+}
+
+// A configured-but-never-fetched remote has no remote-tracking ref, so
+// nothing is published and the answer is still false. This is the same
+// line Read draws in its own policy, where it names the case
+// "remote configured but never fetched (transient setup)".
+func TestScanCrossBranch_HasRemoteRefs_ConfiguredButNeverPushed(t *testing.T) {
+	t.Parallel()
+	ctx := context.Background()
+	dir := initRepo(t)
+	commitFile(t, ctx, dir, "work/gaps/G-0001-a.md", "G-0001 main\n")
+	mustRun(t, ctx, dir, "remote", "add", "origin", t.TempDir()+"/never-created.git")
+
+	if scan := ScanCrossBranch(ctx, dir, nil); scan.HasRemoteRefs {
+		t.Error("HasRemoteRefs = true for a remote that was configured but never pushed to, want false — no ref under refs/remotes/ exists")
+	}
+}
+
 // --- E-0067/M-0265/AC-4: when every id is present locally, the lazy
 // scan hands DetectCollisions a hit set requiring zero blob-stat
 // round-trips — the scale property that cost tracks the locally-absent

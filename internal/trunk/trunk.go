@@ -38,10 +38,11 @@
 // LocalRefHits/RemoteRefHits and detectCollisions (M-0259) widen this
 // further into a second consumer beyond the allocator: the per-id
 // path/ref view they carry, plus blob-content comparison across refs,
-// feed the check layer's cross-branch-pending/cross-branch-collision
-// classification (ADR-0030) — so the package's scope is no longer
-// "for the allocator" alone, but every read-only consumer of "what ids
-// are visible where, across every locally-knowable ref."
+// feed the check layer's cross-branch classification (ADR-0030, and
+// ADR-0041 for the ref class that decides it, via RemoteVisible) — so
+// the package's scope is no longer "for the allocator" alone, but every
+// read-only consumer of "what ids are visible where, across every
+// locally-knowable ref."
 //
 // The package is read-only and has no per-process cache; callers
 // invoke once per verb run.
@@ -51,6 +52,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"strings"
 
 	"github.com/23min/aiwf/internal/config"
 	"github.com/23min/aiwf/internal/entity"
@@ -201,14 +203,16 @@ func RemoteRefIDs(ctx context.Context, workdir string) []string {
 // Same best-effort, read-only, allocation-plus-check-consumer contract
 // as LocalRefIDs — never errors, degrades to nil on odd repo states.
 func LocalRefHits(ctx context.Context, workdir string) []RefHit {
-	return refHits(ctx, workdir, gitops.LocalBranchRefs)
+	hits, _ := refHits(ctx, workdir, gitops.LocalBranchRefs)
+	return hits
 }
 
 // RemoteRefHits is RemoteRefIDs' widened form (M-0259/AC-1): every hit
 // on every remote-tracking ref, carrying kind/path/ref alongside the
 // id. Same best-effort, read-only contract as RemoteRefIDs.
 func RemoteRefHits(ctx context.Context, workdir string) []RefHit {
-	return refHits(ctx, workdir, gitops.RemoteTrackingRefs)
+	hits, _ := refHits(ctx, workdir, gitops.RemoteTrackingRefs)
+	return hits
 }
 
 // refHits scans every ref returned by listRefs — ls-treeing each and
@@ -218,15 +222,19 @@ func RemoteRefHits(ctx context.Context, workdir string) []RefHit {
 // on any odd repo state. Shared by LocalRefHits (local branches,
 // M-0212/M-0259) and RemoteRefHits (remote-tracking refs, M-0214/
 // M-0259); the two differ only in which refs they enumerate.
-func refHits(ctx context.Context, workdir string, listRefs func(context.Context, string) ([]string, error)) []RefHit {
+// It also reports how many refs it enumerated, which is not the same as
+// how many hits it found: a ref carrying no entity file contributes to
+// the count and nothing to the hits. ScanCrossBranch reads that count
+// for the remote side to tell "no ref is published" apart from "no
+// published ref happens to carry an entity" (ADR-0041).
+func refHits(ctx context.Context, workdir string, listRefs func(context.Context, string) ([]string, error)) (hits []RefHit, refsScanned int) {
 	if !gitops.IsRepo(ctx, workdir) {
-		return nil
+		return nil, 0
 	}
 	refs, err := listRefs(ctx, workdir)
 	if err != nil { //coverage:ignore not portably triggerable: once IsRepo passed, the `git for-each-ref` that backs both listers returns 0 even for a repo with broken refs (it warns and skips them); a non-zero exit needs a git-level failure (missing binary) that the unit harness cannot stage. Degrade to the rest of the allocator's view.
-		return nil
+		return nil, 0
 	}
-	var hits []RefHit
 	for _, ref := range refs {
 		paths, err := gitops.LsTreePaths(ctx, workdir, ref, "work/", "docs/adr/")
 		if err != nil {
@@ -239,7 +247,7 @@ func refHits(ctx context.Context, workdir string, listRefs func(context.Context,
 			hits = append(hits, RefHit{Kind: id.Kind, ID: id.ID, Path: id.Path, Ref: ref})
 		}
 	}
-	return hits
+	return hits, len(refs)
 }
 
 // DistinctRefs returns the distinct ref names carried by hits, in
@@ -257,6 +265,32 @@ func DistinctRefs(hits []RefHit) []string {
 		refs = append(refs, h.Ref)
 	}
 	return refs
+}
+
+// remoteRefPrefix is the refname namespace gitops.RemoteTrackingRefs
+// enumerates, and the one refs/heads/* can never fall inside.
+const remoteRefPrefix = "refs/remotes/"
+
+// RemoteVisible reports whether any hit in hits comes from a
+// remote-tracking ref — that is, whether the entity those hits name has
+// been published. A published entity is reachable by anyone who
+// fetches; hits confined to local branch refs name one that exists on a
+// single working copy and that no clone, teammate, or CI checkout can
+// resolve. ADR-0041 classifies a cross-branch reference on exactly that
+// distinction, blocking the local-only case and leaving the published
+// case non-blocking.
+//
+// Read off the ref name rather than stored on RefHit: the listers behind
+// LocalRefHits and RemoteRefHits enumerate exactly refs/heads/ and
+// refs/remotes/, so the name already decides the class and a second copy
+// carried alongside it could only disagree.
+func RemoteVisible(hits []RefHit) bool {
+	for _, h := range hits {
+		if strings.HasPrefix(h.Ref, remoteRefPrefix) {
+			return true
+		}
+	}
+	return false
 }
 
 // HitIDStrings returns just the id strings from hits, in order.
@@ -395,6 +429,19 @@ type CrossBranchScan struct {
 	// the read-side resolver (crossBranchIndex / show / list) groups by
 	// id on a local-tree miss (ADR-0030).
 	Hits []RefHit
+	// HasRemoteRefs reports whether the repository has any
+	// remote-tracking ref at all — whether, that is, publication is
+	// something this repository can express. It is deliberately about
+	// the refs and not about the hits: a repo with a remote whose
+	// branches carry no entity file yields no RemoteHits but is still
+	// one where pushing means something.
+	//
+	// ADR-0041's blocking classification rests on the push boundary, so
+	// a repo with nowhere to push has no boundary for it to guard and
+	// the check-side resolver leaves such a reference non-blocking. This
+	// mirrors Read's policy above, which skips the trunk read outright
+	// when no tracking refs exist.
+	HasRemoteRefs bool
 	// Collisions is the canonicalized-id set whose hits carry divergent
 	// blob content across refs (detectCollisions, G-0415), consulted on
 	// a local-tree miss to escalate cross-branch-pending to
@@ -433,14 +480,15 @@ type CrossBranchScan struct {
 // detectCollisions' contract: it never errors, degrading to empty
 // slices and an empty collision map on odd repo state.
 func ScanCrossBranch(ctx context.Context, workdir string, presentLocally func(canonicalID string) bool) CrossBranchScan {
-	local := LocalRefHits(ctx, workdir)
-	remote := RemoteRefHits(ctx, workdir)
+	local, _ := refHits(ctx, workdir, gitops.LocalBranchRefs)
+	remote, remoteRefCount := refHits(ctx, workdir, gitops.RemoteTrackingRefs)
 	hits := append(append([]RefHit(nil), local...), remote...)
 	return CrossBranchScan{
-		LocalHits:  local,
-		RemoteHits: remote,
-		Hits:       hits,
-		Collisions: detectCollisions(ctx, workdir, absentHits(hits, presentLocally)),
+		LocalHits:     local,
+		RemoteHits:    remote,
+		Hits:          hits,
+		HasRemoteRefs: remoteRefCount > 0,
+		Collisions:    detectCollisions(ctx, workdir, absentHits(hits, presentLocally)),
 	}
 }
 

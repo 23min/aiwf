@@ -208,7 +208,7 @@ func Reallocate(ctx context.Context, t *tree.Tree, idOrPath, actor string) (*Res
 		bpidFindings = append(bpidFindings,
 			check.ScanBodyProseID(body, parsed.ID, op.Path, bpidx)...)
 	}
-	if check.HasErrors(bpidFindings) {
+	if blocksWrite(bpidFindings) {
 		return findings(bpidFindings), nil
 	}
 

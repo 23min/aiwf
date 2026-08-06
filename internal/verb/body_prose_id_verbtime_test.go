@@ -9,6 +9,8 @@ import (
 	"github.com/23min/aiwf/internal/check"
 	"github.com/23min/aiwf/internal/entity"
 	"github.com/23min/aiwf/internal/manifest"
+	"github.com/23min/aiwf/internal/tree"
+	"github.com/23min/aiwf/internal/trunk"
 	"github.com/23min/aiwf/internal/verb"
 )
 
@@ -197,6 +199,139 @@ func TestReallocate_RefusesMalformedIDInProseRewrite(t *testing.T) {
 		if f.EntityID != "M-0002" {
 			t.Errorf("finding.EntityID = %q, want %q (parsed from op.Content frontmatter)", f.EntityID, "M-0002")
 		}
+	}
+}
+
+// --- ADR-0041: the verb layer does not refuse a write for a
+// cross-branch classification. Which refs carry a target is a fact
+// about the repository, not a defect in the bytes being written, and
+// the author cannot answer it by editing them — so it is enforced at
+// the push boundary by `aiwf check`, and authoring stays open. ---
+
+// decisionBody satisfies the born-complete body gate so these tests
+// reach the reference gate they are about.
+const decisionBody = "## Question\n\nWhat follows from the gap?\n\n## Decision\n\nCite it.\n\n## Reasoning\n\nThe structured reference is the surface under test.\n"
+
+// seedUnpushedBranchHit puts G-0500 on a local branch that has not been
+// pushed, in a repository that HAS a remote — the state that classifies
+// cross-branch-local-only at error severity.
+//
+// Both halves are load-bearing. Without HasRemoteTrackingRefs the
+// classification degrades to the non-blocking pending warning, which no
+// verb ever refused, and every test below would pass without exercising
+// the exclusion it exists to pin.
+func seedUnpushedBranchHit(tr *tree.Tree) {
+	tr.CrossBranchHits = []trunk.RefHit{
+		{Kind: entity.KindGap, ID: "G-0500", Path: "work/gaps/G-0500-sibling.md", Ref: "refs/heads/sibling"},
+	}
+	tr.HasRemoteTrackingRefs = true
+}
+
+func TestAdd_AllowsBodyCitingAnIDOnAnUnpushedBranch(t *testing.T) {
+	t.Parallel()
+	r := newRunner(t)
+	tr := r.tree()
+	seedUnpushedBranchHit(tr)
+	body := "## What's missing\n\nDepends on G-0500, filed on a branch nobody has pushed.\n\n## Why it matters\n\nMatters.\n"
+
+	res, err := verb.Add(r.ctx, tr, entity.KindGap, "Cites an unpushed branch", testActor, verb.AddOptions{
+		BodyOverride: []byte(body),
+	})
+	if err != nil {
+		t.Fatalf("verb error: %v", err)
+	}
+	if res.Plan == nil {
+		t.Errorf("expected a Plan; the reference is well-formed and its target exists, so authoring must not be refused — got findings %+v", res.Findings)
+	}
+}
+
+// The companion control. Without it, deleting the whole verb-time gate
+// would pass the test above, so this pins that the exclusion reaches
+// the cross-branch classification and nothing else. The cross-branch
+// view is populated with a DIFFERENT id, so the tier is demonstrably
+// consulted and the fabricated one still misses it.
+func TestAdd_StillRefusesAnUnresolvedIDWhileTheCrossBranchViewIsPopulated(t *testing.T) {
+	t.Parallel()
+	r := newRunner(t)
+	tr := r.tree()
+	seedUnpushedBranchHit(tr)
+	body := "## What's missing\n\nDepends on G-0999, which no branch carries.\n\n## Why it matters\n\nMatters.\n"
+
+	res, err := verb.Add(r.ctx, tr, entity.KindGap, "Cites a fabricated id", testActor, verb.AddOptions{
+		BodyOverride: []byte(body),
+	})
+	if err != nil {
+		t.Fatalf("verb error: %v", err)
+	}
+	if res.Plan != nil {
+		t.Errorf("expected no Plan; a fabricated id is a defect in the bytes being written and must still be refused")
+	}
+	if !findingsContainSubcode(res.Findings, check.CodeBodyProseID, "unresolved") {
+		t.Errorf("expected body-prose-id/unresolved finding; got %+v", res.Findings)
+	}
+}
+
+// The structured-reference half. A frontmatter reference reaches the
+// gate through projectionFindings rather than the body-prose scan, and
+// a newly-added entity's cross-branch reference is absent from the
+// pre-change tree — so without the exclusion there it reads as a
+// finding this verb introduced, and the add is refused.
+func TestAdd_AllowsStructuredReferenceToAnIDOnAnUnpushedBranch(t *testing.T) {
+	t.Parallel()
+	r := newRunner(t)
+	tr := r.tree()
+	seedUnpushedBranchHit(tr)
+
+	res, err := verb.Add(r.ctx, tr, entity.KindDecision, "Relates to an unpushed gap", testActor, verb.AddOptions{
+		RelatesTo:    []string{"G-0500"},
+		BodyOverride: []byte(decisionBody),
+	})
+	if err != nil {
+		t.Fatalf("verb error: %v", err)
+	}
+	if res.Plan == nil {
+		t.Errorf("expected a Plan; relates_to names an entity that exists, so authoring must not be refused — got findings %+v", res.Findings)
+	}
+}
+
+// The companion control for the structured path: a frontmatter
+// reference to an id no ref carries is still the verb's own defect.
+func TestAdd_StillRefusesAStructuredReferenceToAFabricatedID(t *testing.T) {
+	t.Parallel()
+	r := newRunner(t)
+	tr := r.tree()
+	seedUnpushedBranchHit(tr)
+
+	res, err := verb.Add(r.ctx, tr, entity.KindDecision, "Relates to nothing", testActor, verb.AddOptions{
+		RelatesTo:    []string{"G-0999"},
+		BodyOverride: []byte(decisionBody),
+	})
+	if err != nil {
+		t.Fatalf("verb error: %v", err)
+	}
+	if res.Plan != nil {
+		t.Errorf("expected no Plan; a relates_to naming no entity anywhere must still be refused")
+	}
+	if !findingsContainSubcode(res.Findings, check.CodeRefsResolve, "unresolved") {
+		t.Errorf("expected refs-resolve/unresolved finding; got %+v", res.Findings)
+	}
+}
+
+func TestEditBody_Explicit_AllowsBodyCitingAnIDOnAnUnpushedBranch(t *testing.T) {
+	t.Parallel()
+	r := newRunner(t)
+	r.must(verb.Add(r.ctx, r.tree(), entity.KindEpic, "Carrier epic", testActor, verb.AddOptions{}))
+
+	tr := r.tree()
+	seedUnpushedBranchHit(tr)
+	body := []byte("## Goal\n\nDepends on G-0500, filed on a branch nobody has pushed.\n\n## Scope\n\nScope.\n\n## Out of scope\n\nOOS.\n")
+
+	res, err := verb.EditBody(r.ctx, tr, "E-0001", body, testActor, "")
+	if err != nil {
+		t.Fatalf("verb error: %v", err)
+	}
+	if res.Plan == nil {
+		t.Errorf("expected a Plan; edit-body must not be refused for a cross-branch classification — got findings %+v", res.Findings)
 	}
 }
 

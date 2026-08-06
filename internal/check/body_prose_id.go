@@ -44,7 +44,6 @@ import (
 	"os"
 	"path/filepath"
 	"regexp"
-	"strings"
 
 	"github.com/yuin/goldmark"
 	"github.com/yuin/goldmark/ast"
@@ -143,9 +142,12 @@ func bodyProseID(t *tree.Tree) []Finding {
 // CrossBranch is the third tier (M-0259/AC-2): canonicalized id →
 // the cross-branch hits carrying it (see crossBranchIndex). Consulted
 // only after both ByID and Trunk miss. Unlike Trunk, a hit here is
-// VISIBLE — it fires the non-blocking cross-branch-pending subcode —
-// because a sibling branch is provisional (it can be rebased, renamed,
-// or abandoned before merging), unlike trunk which is authoritative.
+// VISIBLE — because a sibling branch is provisional (it can be
+// rebased, renamed, or abandoned before merging), unlike trunk which is
+// authoritative. Whether it blocks depends on the refs carrying it: a
+// published id is the non-blocking cross-branch-pending, one on local
+// branch refs alone is cross-branch-local-only at error severity
+// (ADR-0041).
 type BodyProseIndex struct {
 	ByID        map[string]*entity.Entity
 	Trunk       map[string]bool
@@ -154,8 +156,16 @@ type BodyProseIndex struct {
 	// canonicalized-id set whose cross-branch hits diverge in content.
 	// classifyBodyToken escalates a CrossBranch hit here to the
 	// distinct cross-branch-collision subcode instead of the ordinary
-	// cross-branch-pending one — both are non-blocking warnings (D-0036).
+	// cross-branch-pending one — both are non-blocking warnings
+	// (D-0036). Read only once the id is known to be published: an
+	// unpublished one classifies cross-branch-local-only and blocks
+	// before divergence is consulted (ADR-0041).
 	Collisions map[string]bool
+	// HasRemoteTrackingRefs is t.HasRemoteTrackingRefs verbatim: whether
+	// this repository can express publication at all. classifyBodyToken
+	// escalates a local-only hit to error severity only when it can
+	// (ADR-0041).
+	HasRemoteTrackingRefs bool
 }
 
 // BodyProseIDIndex builds the id-resolution index that ScanBodyProseID
@@ -191,6 +201,7 @@ func BodyProseIDIndex(t *tree.Tree) BodyProseIndex {
 	}
 	idx.CrossBranch = crossBranchIndex(t)
 	idx.Collisions = t.CrossBranchCollisions
+	idx.HasRemoteTrackingRefs = t.HasRemoteTrackingRefs
 	return idx
 }
 
@@ -392,10 +403,17 @@ func classifyBodyToken(tok string, idx BodyProseIndex) (subcode, msg string) {
 		}
 		// M-0259/AC-2: a miss against both ByID and the (silent) Trunk
 		// tier consults the cross-branch view before hard-failing
-		// (ADR-0030). Unlike Trunk, a hit here is visible: it fires
-		// cross-branch-pending rather than resolving silently, since a
+		// (ADR-0030). Unlike Trunk, a hit here is visible: it fires a
+		// cross-branch subcode rather than resolving silently, since a
 		// sibling branch — unlike trunk — is provisional.
 		if hits, known := idx.CrossBranch[canon]; known {
+			// ADR-0041: hits confined to local branch refs name an
+			// entity reachable from this working copy alone, which
+			// blocks. Ordered ahead of the collision branch for the
+			// reason spelled out on refsResolve's mirror in check.go.
+			if idx.HasRemoteTrackingRefs && !trunk.RemoteVisible(hits) {
+				return "cross-branch-local-only", fmt.Sprintf("id %q known only on unpublished local refs (%s) — the reference resolves on this machine and nowhere else", tok, joinRefNames(hits))
+			}
 			// Non-blocking (D-0036): see the identical rationale on
 			// refsResolve's collision branch in check.go.
 			if idx.Collisions[canon] {
@@ -409,18 +427,26 @@ func classifyBodyToken(tok string, idx BodyProseIndex) (subcode, msg string) {
 }
 
 // bodyProseIDSeverity maps a classifyBodyToken subcode to its finding
-// severity. Every subcode is a hard, blocking error except the two
-// cross-branch-* subcodes (M-0259/AC-2/AC-3, ADR-0030, D-0036), which
-// are visible but non-blocking warnings: cross-branch-pending because
-// the id is real, just not merged into this branch yet; and
-// cross-branch-collision because divergent content is ambiguous
+// severity. Every subcode is a hard, blocking error except
+// cross-branch-pending and cross-branch-collision (M-0259/AC-2/AC-3,
+// ADR-0030, D-0036), which are visible but non-blocking warnings:
+// cross-branch-pending because the id is published and merely unmerged;
+// and cross-branch-collision because divergent content is ambiguous
 // between a genuine duplicate-mint collision and an ordinary
 // same-entity edit on an unmerged sibling branch — the actual
 // duplicate-mint case is still caught, just later, by the
 // pre-existing blocking ids-unique/trunk-collision check.
+//
+// The two are named rather than matched on the cross-branch- prefix
+// they share, so membership in that family does not by itself confer
+// non-blocking severity: cross-branch-local-only is an error, since a
+// reference resolvable from no published ref makes the tree valid on
+// one machine only (ADR-0041).
 func bodyProseIDSeverity(subcode string) Severity {
-	if strings.HasPrefix(subcode, "cross-branch-") {
+	switch subcode {
+	case "cross-branch-pending", "cross-branch-collision":
 		return SeverityWarning
+	default:
+		return SeverityError
 	}
-	return SeverityError
 }

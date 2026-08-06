@@ -110,8 +110,10 @@ func LoadTreeWithTrunk(ctx context.Context, rootDir string) (*tree.Tree, []tree.
 	// AllocationIDs only, never the ids-unique check (which reads
 	// TrunkIDs). CrossBranchHits is the union the check-side/read-side
 	// resolver groups on a local-tree miss before firing unresolved
-	// (ADR-0030); CrossBranchCollisions escalates that classification to
-	// cross-branch-collision on divergent content (G-0415, D-0036).
+	// (ADR-0030), classifying by whether a remote-tracking ref carries
+	// the id (ADR-0041); CrossBranchCollisions escalates a published
+	// id's classification to cross-branch-collision on divergent
+	// content (G-0415, D-0036).
 	// Best-effort and read-only — ScanCrossBranch never errors,
 	// degrading to empty on odd repo state, so it can never block the
 	// load. E-0067 (G-0418): the union+collision composition lives once
@@ -121,6 +123,7 @@ func LoadTreeWithTrunk(ctx context.Context, rootDir string) (*tree.Tree, []tree.
 	tr.RemoteRefIDs = trunk.HitIDStrings(scan.RemoteHits)
 	tr.CrossBranchHits = scan.Hits
 	tr.CrossBranchCollisions = scan.Collisions
+	tr.HasRemoteTrackingRefs = scan.HasRemoteRefs
 	return tr, loadErrs, nil
 }
 
