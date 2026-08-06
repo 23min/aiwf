@@ -14,6 +14,7 @@ acs:
     - id: AC-2
       title: The declaration's per-rule claims are verified against behavior
       status: open
+      tdd_phase: red
     - id: AC-3
       title: Declared rules and firing rules are in bijection, failing by name
       status: open
