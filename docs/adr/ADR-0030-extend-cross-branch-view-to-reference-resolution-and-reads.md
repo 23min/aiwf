@@ -73,6 +73,17 @@ scanning mechanism — as an input to two additional, read-only surfaces:
    `cross-branch-pending`, instead. An id absent from *both* the local tree and
    the cross-branch view is unchanged: it still hard-fails as `unresolved`, exactly
    as today, because that case is still indistinguishable from a fabricated id.
+
+   That verdict belongs to a caller that consulted the view. A surface loading
+   without the cross-branch scan — `aiwf check --fast`, `aiwf status`, `aiwf
+   show`, `aiwf render` — has established only that the id is absent from the
+   local tree, and an empty hit set does not distinguish *looked and found
+   nothing* from *never looked*. Those surfaces report a non-blocking
+   `unresolved-unverified` instead, naming the full check as what can settle it
+   (G-0558). This is not the softening the escalation invariant below forbids:
+   the classification tracks the caller's evidence rather than the reference's
+   age, and the authoritative surfaces — `aiwf check` and the pre-push hook —
+   build every tier and still hard-fail.
 2. **Read-side.** `aiwf show` and `aiwf list` may resolve and render an entity's
    content by reading its blob directly from the other branch or ref (e.g. `git
    show <ref>:<path>`) — strictly read-only, nothing is written to the working
