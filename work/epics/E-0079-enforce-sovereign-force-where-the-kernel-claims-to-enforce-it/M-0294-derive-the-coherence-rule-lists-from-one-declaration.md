@@ -70,12 +70,30 @@ assumed; the removal is what makes the derivation load-bearing.
 
 The declaration is data a human writes, so a test that reads its claims and
 believes them proves nothing about the rules. Each entry is asserted against what
-its rule actually does across the domain: one declared to fire only under a force
-trailer must fire at no point lacking one, and one must not fire at a point where
-every input it declares is absent.
+its rule actually does across the domain.
 
-Evidence: both directions asserted across the generated domain, each with a
-fixture whose deliberately mis-declared entry makes the assertion fail.
+The force claim is checked in both directions: a rule declaring it needs a force
+trailer must fire at no point lacking one, and a rule not declaring it must fire
+at some point lacking one. Checking only the first direction would let the claim
+be dropped from a rule that needs it, which narrows what the seam enforces
+without anything saying so.
+
+Each declared input is checked for relevance: the domain must hold two points
+differing only in that trailer where the rule fires at one and not the other. An
+input that never changes the rule's firing is a false statement about the rule,
+and the next reader takes it for true.
+
+Completeness of the declared inputs — that no trailer outside them affects the
+rule — is deliberately not asserted here, because it is not observable through
+the verdict. The rules are checked in order and only the first violation is
+reported, so toggling an undeclared trailer can change which rule reports without
+any rule's condition having consulted it. AC-3 covers what that completeness was
+wanted for: a rule whose input is missing from the axis fires nowhere in the
+domain, and the bijection reports it by name.
+
+Evidence: both force directions and the relevance check asserted across the
+generated domain, each with a fixture whose deliberately mis-declared entry makes
+the assertion fail.
 
 ### AC-3 — Declared rules and firing rules are in bijection, failing by name
 
