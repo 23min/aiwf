@@ -151,7 +151,7 @@ func TestMarkUnverifiedResolution_ContractWithTheRules(t *testing.T) {
 			{ID: "M-0001", Kind: entity.KindMilestone, Parent: "E-9999", Path: "synthetic.md"},
 		}}
 		got := MarkUnverifiedResolution(refsResolve(tr), tr)
-		if len(got) != 1 || got[0].Subcode != unverifiedSubcode {
+		if len(got) != 1 || got[0].Subcode != SubcodeUnresolvedUnverified {
 			t.Fatalf("want one downgraded finding, got %+v", got)
 		}
 		assertStatesOnlyWhatWasEstablished(t, got[0].Message)
@@ -163,7 +163,7 @@ func TestMarkUnverifiedResolution_ContractWithTheRules(t *testing.T) {
 		ents := writeBodyProseFixture(t, root, "See M-9999 for the proposed rule.")
 		tr := &tree.Tree{Root: root, Entities: ents}
 		got := MarkUnverifiedResolution(bodyProseID(tr), tr)
-		if len(got) != 1 || got[0].Subcode != unverifiedSubcode {
+		if len(got) != 1 || got[0].Subcode != SubcodeUnresolvedUnverified {
 			t.Fatalf("want one downgraded finding, got %+v", got)
 		}
 		assertStatesOnlyWhatWasEstablished(t, got[0].Message)
@@ -195,7 +195,7 @@ func TestMarkUnverifiedResolution_ContractWithTheRules(t *testing.T) {
 		ents := writeBodyProseFixture(t, root, "See M-9999/AC-1 for the proposed rule.")
 		tr := &tree.Tree{Root: root, Entities: ents}
 		got := MarkUnverifiedResolution(bodyProseID(tr), tr)
-		if len(got) != 1 || got[0].Subcode != unverifiedSubcode {
+		if len(got) != 1 || got[0].Subcode != SubcodeUnresolvedUnverified {
 			t.Fatalf("want one downgraded finding, got %+v", got)
 		}
 		assertStatesOnlyWhatWasEstablished(t, got[0].Message)

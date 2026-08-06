@@ -7,10 +7,13 @@ import (
 	"github.com/23min/aiwf/internal/tree"
 )
 
-// unverifiedSubcode is the non-blocking classification a read-only
-// surface substitutes for `unresolved` when it never built the
-// cross-branch view (G-0558).
-const unverifiedSubcode = "unresolved-unverified"
+// SubcodeUnresolvedUnverified is the non-blocking classification a
+// read-only surface substitutes for `unresolved` when it never built
+// the cross-branch view (G-0558). It is exported because it travels the
+// `--format=json` wire, where a reader has to tell a declined judgment
+// apart from a stated one — the stress harness's read-path agreement
+// oracle (M-0300) is the caller outside this package.
+const SubcodeUnresolvedUnverified = "unresolved-unverified"
 
 // MarkUnverifiedResolution downgrades the `unresolved` verdicts in
 // findings when t was loaded without the cross-branch ref scan.
@@ -48,10 +51,10 @@ func MarkUnverifiedResolution(findings []Finding, t *tree.Tree) []Finding {
 		if !dependsOnTheTierStack(findings[i].Code, findings[i].Subcode) {
 			continue
 		}
-		findings[i].Subcode = unverifiedSubcode
+		findings[i].Subcode = SubcodeUnresolvedUnverified
 		findings[i].Severity = SeverityWarning
 		findings[i].Message = unverifiedMessage(findings[i].Message)
-		findings[i].Hint = HintFor(findings[i].Code, unverifiedSubcode)
+		findings[i].Hint = HintFor(findings[i].Code, SubcodeUnresolvedUnverified)
 	}
 	return findings
 }
