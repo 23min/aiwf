@@ -26,30 +26,39 @@ with `file:line` citations and measured counter-evidence in
   refused by the born-complete-kind body gate, and every `aiwf add milestone`
   example omits the now-required `--tdd`. This includes the single worked
   example in the skill-author guide — the first thing a scaffolder copies.
-- **Stale enumerations.** Verb lists missing eleven verbs; id-format tables at
-  narrow width against ADR-0008; a commitment count matching neither
-  `design-decisions.md` nor CLAUDE.md; three of CLAUDE.md's ten commitments
-  absent from the file CLAUDE.md names as their distillation.
+- **Stale enumerations.** Verb lists missing eleven verbs; a commitment count
+  matching neither `design-decisions.md` nor CLAUDE.md; three of CLAUDE.md's ten
+  commitments absent from the file CLAUDE.md names as their distillation. The
+  narrow-width id tables in the same section are G-0517's subject, not this
+  gap's — see below.
 - **Cross-references resolving to nothing.** A principle cited by name into two
   files that do not contain it; verbs cited that aiwf does not have; a pointer
   to a section that does not exist; two finding codes the kernel never emits;
-  a self-contradiction inside one document.
+  a self-contradiction inside one document. G-0519 asks for the mechanical rule
+  that would catch the id-citation subset of this; none of the instances above
+  is an id citation, so they need reading rather than a rule.
 - **Framing two migrations out of date**, plus drafting-history narration
   against the repo's own rule.
 
 The audit doc is the work list. Fixing it is the deliverable; it is not itself
 current truth and ages by construction.
 
-Two adjacent items are deliberately **out of scope here**, because each needs
-its own decision before any prose changes:
+Three adjacent items are **out of scope here**, two of them already tracked:
 
-- The narrow id-format strings originate in `internal/entity/entity.go`, which
-  `aiwf schema` prints. Correcting the doc tables without correcting the emitter
-  leaves the published surface contradicting ADR-0008 and regrows the drift.
-  That is a published-surface change.
-- ADR-0003 is `accepted` and unimplemented — an accepted decision to add a
-  seventh entity kind, against a kernel that hardcodes six. That is a
-  planning-state disposition, not a doc fix.
+- **Narrow id widths in the same docs are G-0517**, which argues the disposition
+  better than a restatement would: those citations are mostly real entities that
+  existed at a narrow width, so the fix is per-reference research rather than a
+  sweep. G-0559 gates it — the strings originate in `internal/entity/entity.go`
+  and `aiwf schema` prints them, so widening the doc tables while the emitter
+  still says `E-NN` leaves the published surface contradicting ADR-0008 and
+  regrows the drift. Sequence is G-0559, then G-0517, then this gap's tables.
+- **G-0519** asks for reference-checking of ids cited in documentation. It
+  reaches the id-shaped subset of the cross-reference class above and none of
+  the rest.
+- **ADR-0003 is `accepted` and unimplemented** — an accepted decision to add a
+  seventh entity kind, against a kernel that hardcodes six. ADR-0001 handles the
+  identical situation by staying `proposed` with D-0037 recording the deferral.
+  This is a planning-state disposition, not a doc fix, and nothing tracks it.
 
 ## Why it matters
 
