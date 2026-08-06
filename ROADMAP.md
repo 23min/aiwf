@@ -1123,7 +1123,7 @@ enforces it for one verb of four, and no verb clears the resulting error.
 | M-0293 | Correct the surfaces that claim force enforcement | done |
 | M-0294 | Derive the coherence rule lists from one declaration | done |
 
-## E-0080 — Judge composed verb sequences by agreement invariants across state and branches (proposed)
+## E-0080 — Judge composed verb sequences by agreement invariants across state and branches (active)
 
 ### Goal
 
@@ -1141,4 +1141,18 @@ Addresses G-0121. Its two non-mechanizable remainders move to G-0564.
 | M-0302 | Compose a sequence across a branch boundary and assert verdict independence | draft |
 | M-0303 | Assert the acceptance-criterion composition invariant | draft |
 | M-0304 | Classify every catalog scenario against the named-scenario rule | draft |
+
+## E-0081 — One table owns entity body sections; the check fires on an absent one (proposed)
+
+### Goal
+
+Give "which body sections an entity carries" a single owner, so the surfaces that
+state it today cannot disagree — and repair the rule that names the requirement but
+stays silent when a section is missing.
+
+| Milestone | Title | Status |
+|---|---|---|
+| M-0305 | Single-source the per-kind section set and fire on an absent one | draft |
+| M-0306 | Check the prose templates contain the required set and fix the epic nesting | draft |
+| M-0307 | Route the body-scaffold instruction through the verb covering every kind | draft |
 
