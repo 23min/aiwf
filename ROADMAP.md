@@ -1114,6 +1114,6 @@ enforces it for one verb of four, and no verb clears the resulting error.
 |---|---|---|
 | M-0291 | Wire trailer coherence at the apply seam | done |
 | M-0292 | Give provenance-force-non-human a ratification path | done |
-| M-0293 | Correct the surfaces that claim force enforcement | draft |
+| M-0293 | Correct the surfaces that claim force enforcement | in_progress |
 | M-0294 | Register rule-space cells without an FSM coordinate | draft |
 
