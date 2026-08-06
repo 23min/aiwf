@@ -1,8 +1,10 @@
 ---
 id: G-0438
 title: flake-hunt.yml's -count=10 sweep is undersized for its GitHub runner
-status: open
+status: addressed
 priority: high
+addressed_by_commit:
+    - 2c051a1e9
 ---
 ## What's missing
 
