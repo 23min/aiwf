@@ -40,6 +40,39 @@ func TestCrossBranchIndex_NilHits_EmptyIndex(t *testing.T) {
 	}
 }
 
+// TestIsCrossBranchClassification pins what the verb layer excludes
+// from the writes it refuses (ADR-0041): every cross-branch subcode,
+// and nothing else. The severities differ across the family — local-only
+// is an error, the other two are warnings — so this must not be read as
+// a severity test; it asks whether the finding is about which refs carry
+// a target rather than about the content being written.
+func TestIsCrossBranchClassification(t *testing.T) {
+	t.Parallel()
+	cases := []struct {
+		subcode string
+		want    bool
+	}{
+		{"cross-branch-pending", true},
+		{"cross-branch-collision", true},
+		{"cross-branch-local-only", true},
+		{"unresolved", false},
+		{"unresolved-ac", false},
+		{"unresolved-milestone", false},
+		{"malformed-shape", false},
+		{"wrong-kind", false},
+		{"", false},
+	}
+	for _, tc := range cases {
+		t.Run(tc.subcode, func(t *testing.T) {
+			t.Parallel()
+			got := IsCrossBranchClassification(Finding{Code: CodeBodyProseID, Subcode: tc.subcode})
+			if got != tc.want {
+				t.Errorf("IsCrossBranchClassification(subcode=%q) = %v, want %v", tc.subcode, got, tc.want)
+			}
+		})
+	}
+}
+
 func TestJoinRefNames_MultipleDistinctRefs(t *testing.T) {
 	t.Parallel()
 	got := joinRefNames([]trunk.RefHit{

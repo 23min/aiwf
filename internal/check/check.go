@@ -635,8 +635,38 @@ func refsResolve(t *tree.Tree) []Finding {
 				// cross-branch view before hard-failing (ADR-0030). A
 				// hit there is real — just not merged into this
 				// branch's working tree yet — so it classifies as a
-				// distinct, non-blocking subcode instead of unresolved.
+				// distinct cross-branch subcode instead of unresolved.
+				// Which one, and whether it blocks, turns on the refs
+				// carrying it (ADR-0041).
 				if hits, known := crossBranch[entity.Canonicalize(ref.Target)]; known {
+					if t.HasRemoteTrackingRefs && !trunk.RemoteVisible(hits) {
+						// ADR-0041: the hit set is confined to local
+						// branch refs, so the target exists on this
+						// working copy alone — no clone, teammate, or CI
+						// checkout resolves it. Blocking, unlike the
+						// published case below, because the boundary a
+						// push crosses is the boundary at which "valid
+						// only here" starts to matter.
+						//
+						// Ahead of the collision branch deliberately:
+						// content diverging across two unpushed branches
+						// is still a reference nothing off this machine
+						// can follow, so classifying it as the
+						// non-blocking collision would let divergence
+						// mask the blocking condition. Pushing re-runs
+						// this as pending or collision, whichever fits.
+						findings = append(findings, Finding{
+							Code:     CodeRefsResolve,
+							Severity: SeverityError,
+							Subcode:  "cross-branch-local-only",
+							Message: fmt.Sprintf("%s field %q references %q, known only on unpublished local refs (%s) — the reference resolves on this machine and nowhere else",
+								e.Kind, ref.Field, ref.Target, joinRefNames(hits)),
+							Path:     e.Path,
+							EntityID: e.ID,
+							Field:    ref.Field,
+						})
+						continue
+					}
 					if t.CrossBranchCollisions[entity.Canonicalize(ref.Target)] {
 						// Non-blocking (D-0036): divergent content is
 						// ambiguous between a genuine duplicate-mint

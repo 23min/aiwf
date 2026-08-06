@@ -117,7 +117,7 @@ func editBodyExplicit(ctx context.Context, t *tree.Tree, e *entity.Entity, body 
 	// G-0184 verb-time scan: vet the new body bytes for malformed or
 	// unallocated id-shaped tokens. Catches operator-supplied content
 	// (--body-file / stdin) before the commit lands.
-	if fs := check.ScanBodyProseID(body, e.ID, e.Path, check.BodyProseIDIndex(t)); check.HasErrors(fs) {
+	if fs := check.ScanBodyProseID(body, e.ID, e.Path, check.BodyProseIDIndex(t)); blocksWrite(fs) {
 		return findings(fs), nil
 	}
 
@@ -256,7 +256,7 @@ func editBodyBless(ctx context.Context, t *tree.Tree, e *entity.Entity, actor, r
 	// whatever the user edited, so the working-copy bytes are what
 	// will land; scanning here catches a malformed id-shape edit
 	// before the commit lands.
-	if fs := check.ScanBodyProseID(workingBody, e.ID, e.Path, check.BodyProseIDIndex(t)); check.HasErrors(fs) {
+	if fs := check.ScanBodyProseID(workingBody, e.ID, e.Path, check.BodyProseIDIndex(t)); blocksWrite(fs) {
 		return findings(fs), nil
 	}
 

@@ -146,12 +146,15 @@ type Tree struct {
 	// M-0259/AC-1), carrying kind/path/ref per hit rather than bare id
 	// strings. refs-resolve and body-prose-id consult it as a second-tier
 	// resolver on a local-tree miss, before firing unresolved (ADR-0030,
-	// M-0259/AC-2): a hit here classifies as the non-blocking
-	// cross-branch-pending subcode instead. Recomputed fresh on every
-	// `aiwf check` run (no cache), so a source branch's disappearance
-	// re-escalates the next reference resolution to unresolved on its own
-	// (M-0259/AC-4) — nothing here needs its own escalation-tracking
-	// mechanism.
+	// M-0259/AC-2). A hit is then classified by the most visible ref
+	// carrying it (ADR-0041): any remote-tracking ref means the entity is
+	// published, and fires the non-blocking cross-branch-pending subcode;
+	// local branch refs alone mean it exists on this working copy and
+	// nowhere else, and fire the blocking cross-branch-local-only subcode.
+	// Recomputed fresh on every `aiwf check` run (no cache), so both a
+	// source branch's disappearance and its publication re-classify the
+	// next reference resolution on their own (M-0259/AC-4) — nothing here
+	// needs its own escalation-tracking mechanism.
 	//
 	// Populated alongside LocalRefIDs/RemoteRefIDs by the cmd dispatcher.
 	// Tests that build trees in-memory leave it nil, degrading resolution
@@ -181,13 +184,29 @@ type Tree struct {
 	// a sibling branch/worktree (D-0036) — so refs-resolve and
 	// body-prose-id escalate a hit here to the distinct, visible
 	// cross-branch-collision subcode instead of the ordinary
-	// cross-branch-pending one, but both are non-blocking warnings; a
+	// cross-branch-pending one, and both are non-blocking warnings; a
 	// genuine duplicate mint is still caught, just later, by the
 	// blocking ids-unique/trunk-collision check once both copies land
-	// in a shared tree. Tests that build trees in-memory leave this
-	// nil, degrading every cross-branch hit to the pending tier (the
-	// pre-AC-3 default).
+	// in a shared tree. Divergence is consulted only once the id is
+	// known to be published, since an unpublished one classifies
+	// cross-branch-local-only and blocks ahead of it (ADR-0041). Tests
+	// that build trees in-memory leave this nil, degrading every
+	// cross-branch hit to the pending tier (the pre-AC-3 default).
 	CrossBranchCollisions map[string]bool
+	// HasRemoteTrackingRefs is trunk.CrossBranchScan.HasRemoteRefs
+	// verbatim: whether this repository has any remote-tracking ref, and
+	// so whether publication is something it can express at all.
+	// refs-resolve and body-prose-id consult it before escalating a
+	// local-only reference to error severity (ADR-0041) — a repository
+	// with nowhere to push has no push boundary for that error to guard,
+	// and the operator could not act on it.
+	//
+	// Populated alongside CrossBranchHits by the cmd dispatcher. Tests
+	// that build trees in-memory leave it false, which leaves every
+	// cross-branch hit at the pending tier; a fixture exercising the
+	// local-only classification sets it, since the repository it is
+	// modelling is one that has a remote.
+	HasRemoteTrackingRefs bool
 }
 
 // TrunkIDStrings returns the id strings from TrunkIDs. Convenience

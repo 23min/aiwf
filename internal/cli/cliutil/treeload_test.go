@@ -201,13 +201,22 @@ func TestLoadTreeWithTrunk_PopulatesCrossBranchHits(t *testing.T) {
 // since nothing here is cached, that falls out of a plain re-run
 // against a mutated repo, with no separate escalation-tracking
 // mechanism to drift.
+//
+// The sibling branch is published to a bare remote, because it is the
+// SOFT classification whose impermanence is the claim: since ADR-0041 an
+// unpushed branch classifies cross-branch-local-only at error severity,
+// so an unpublished fixture would demonstrate one error re-classifying
+// as another and leave the softening half unpinned.
 func TestCrossBranchEscalation_PendingThenUnresolved_M0259AC4(t *testing.T) {
 	t.Parallel()
 	ctx := context.Background()
 	root := t.TempDir()
-	runGit(t, root, "init", "-q")
+	runGit(t, root, "init", "-q", "-b", "main")
 	runGit(t, root, "config", "user.email", "test@example.com")
 	runGit(t, root, "config", "user.name", "aiwf-test")
+	bare := filepath.Join(t.TempDir(), "origin.git")
+	runGit(t, root, "init", "--bare", "-q", "-b", "main", bare)
+	runGit(t, root, "remote", "add", "origin", bare)
 
 	// main carries a milestone whose parent epic (E-0099) does not
 	// exist on this branch at all.
@@ -221,9 +230,13 @@ func TestCrossBranchEscalation_PendingThenUnresolved_M0259AC4(t *testing.T) {
 	}
 	runGit(t, root, "add", mRel)
 	runGit(t, root, "commit", "-q", "-m", "seed: milestone referencing E-0099")
+	// The default trunk ref is refs/remotes/origin/main, and trunk.Read
+	// hard-errors on a repo carrying tracking refs with no resolvable
+	// trunk — so mainline is published before the sibling branch is.
+	runGit(t, root, "push", "-q", "-u", "origin", "main")
 
-	// A sibling branch mints E-0099 — the reference is real, just not
-	// merged into main yet.
+	// A sibling branch mints E-0099 — the reference is real and
+	// published, just not merged into main yet.
 	runGit(t, root, "checkout", "-q", "-b", "sibling")
 	eRel := "work/epics/E-0099-baz/epic.md"
 	if err := os.MkdirAll(filepath.Join(root, "work", "epics", "E-0099-baz"), 0o755); err != nil {
@@ -235,7 +248,8 @@ func TestCrossBranchEscalation_PendingThenUnresolved_M0259AC4(t *testing.T) {
 	}
 	runGit(t, root, "add", eRel)
 	runGit(t, root, "commit", "-q", "-m", "sibling: mint E-0099")
-	runGit(t, root, "checkout", "-q", "-") // back to whatever the init default branch was
+	runGit(t, root, "push", "-q", "origin", "sibling")
+	runGit(t, root, "checkout", "-q", "main")
 
 	// Phase 1: sibling exists — the reference classifies
 	// cross-branch-pending, not unresolved.
@@ -251,10 +265,20 @@ func TestCrossBranchEscalation_PendingThenUnresolved_M0259AC4(t *testing.T) {
 	if f.Subcode != "cross-branch-pending" {
 		t.Errorf("phase 1: Subcode = %q, want cross-branch-pending (sibling branch still exists)", f.Subcode)
 	}
+	// Severity, not just the subcode: it is the SOFTNESS of phase 1 that
+	// phase 2 shows to be impermanent, so a test asserting only the
+	// subcode here would pass with the claim's first half unpinned.
+	if f.Severity != check.SeverityWarning {
+		t.Errorf("phase 1: Severity = %q, want warning — the soft half of the claim", f.Severity)
+	}
 
 	// Phase 2: sibling branch disappears (deleted, never merged) —
 	// re-run against the mutated repo. Nothing here is cached, so the
-	// same reference must now hard-fail unresolved.
+	// same reference must now hard-fail unresolved. Both copies go: with
+	// either one left the id is still reachable from some ref, and the
+	// reference would re-classify rather than fall through to
+	// unresolved.
+	runGit(t, root, "push", "-q", "origin", "--delete", "sibling")
 	runGit(t, root, "branch", "-D", "sibling")
 
 	tr2, loadErrs2, err := LoadTreeWithTrunk(ctx, root)

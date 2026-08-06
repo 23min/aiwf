@@ -339,6 +339,65 @@ func TestDistinctRefs_Empty(t *testing.T) {
 	}
 }
 
+// --- ADR-0041: RemoteVisible answers whether the entity a hit set
+// names has been published, which is what decides whether a
+// cross-branch reference blocks. ---
+
+func TestRemoteVisible(t *testing.T) {
+	t.Parallel()
+	cases := []struct {
+		name string
+		hits []RefHit
+		want bool
+	}{
+		{
+			name: "local branch refs alone are not published",
+			hits: []RefHit{
+				{ID: "G-0001", Ref: "refs/heads/sibling"},
+				{ID: "G-0001", Ref: "refs/heads/other"},
+			},
+			want: false,
+		},
+		{
+			name: "a remote-tracking ref publishes the id",
+			hits: []RefHit{{ID: "G-0001", Ref: "refs/remotes/origin/sibling"}},
+			want: true,
+		},
+		{
+			// The classification reads the MOST visible ref, so one
+			// pushed branch is enough even when unpushed ones sit
+			// alongside it.
+			name: "one remote-tracking ref among local ones is enough",
+			hits: []RefHit{
+				{ID: "G-0001", Ref: "refs/heads/sibling"},
+				{ID: "G-0001", Ref: "refs/remotes/upstream/sibling"},
+			},
+			want: true,
+		},
+		{
+			// Scoped to the refs/remotes/ namespace rather than to the
+			// substring "remote", so a local branch someone named after
+			// it is still local.
+			name: "a local branch named for a remote is still local",
+			hits: []RefHit{{ID: "G-0001", Ref: "refs/heads/remotes/origin/x"}},
+			want: false,
+		},
+		{
+			name: "no hits",
+			hits: nil,
+			want: false,
+		},
+	}
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			t.Parallel()
+			if got := RemoteVisible(tc.hits); got != tc.want {
+				t.Errorf("RemoteVisible(%+v) = %v, want %v", tc.hits, got, tc.want)
+			}
+		})
+	}
+}
+
 // --- M-0259/AC-3: DetectCollisions compares blob content across every
 // ref holding the same id, escalating genuine divergence. ---
 

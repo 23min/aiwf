@@ -144,11 +144,39 @@ func projectionFindings(original, projected *tree.Tree) []check.Finding {
 			// findings against the stale-or-absent on-disk content.
 			continue
 		}
+		if check.IsCrossBranchClassification(post[i]) {
+			// ADR-0041: which refs carry a target is a fact about the
+			// repository's refs, not about this verb's change, so it
+			// never counts as introduced by it. A verb that renames or
+			// moves the REFERENCING entity would otherwise look like
+			// the cause: the finding's key carries the entity's path,
+			// so the pre-change and post-change copies of one
+			// unchanged cross-branch condition compare as different
+			// findings. Enforcement is the push boundary's
+			// (`aiwf check`), which sees the condition either way.
+			continue
+		}
 		if !seen[findingKey(&post[i])] {
 			introduced = append(introduced, post[i])
 		}
 	}
 	return introduced
+}
+
+// blocksWrite reports whether fs carries an error the verb layer must
+// refuse a write for: an error-severity finding that is not a
+// cross-branch classification (see check.IsCrossBranchClassification).
+//
+// It is the gate for the body-prose scans each body-supplying verb runs
+// against its planned-write bytes. projectionFindings applies the same
+// exclusion itself, so its callers can keep using check.HasErrors.
+func blocksWrite(fs []check.Finding) bool {
+	for i := range fs {
+		if fs[i].Severity == check.SeverityError && !check.IsCrossBranchClassification(fs[i]) {
+			return true
+		}
+	}
+	return false
 }
 
 // entityWrite carries the commit-shaping fields of a single-entity

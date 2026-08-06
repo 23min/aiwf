@@ -16,6 +16,42 @@ section in this file.
 
 ## [Unreleased]
 
+### Changed — G-0556: a cross-branch reference is classified by whether its branch is published
+
+A reference to an id that lives on another branch was non-blocking whichever
+branch that was. Two situations were being treated as one: an id on a
+remote-tracking ref is published, so anyone who fetches resolves the reference;
+an id on a local branch alone exists on a single working copy, and no clone,
+teammate, or CI checkout can reach it. `aiwf check` passed the second case as a
+warning while CI, seeing only what was pushed, failed on the identical bytes.
+
+`refs-resolve` and `body-prose-id` now split it. A hit carried by any
+remote-tracking ref stays `cross-branch-pending` at warning severity, unchanged.
+A hit carried by local branch refs alone is the new `cross-branch-local-only`
+subcode at **error** severity, so it blocks at the push — the boundary where the
+tree stops being local. Resolvable at no tier is still `unresolved`.
+
+The remedy the error names is to push the branch carrying the id. Classification
+is recomputed from live refs on every run, so publishing that branch
+de-escalates the finding and deleting the remote branch re-escalates it, with
+nothing cached in between.
+
+A repository with no remote-tracking ref has nowhere to push, so it has no push
+boundary for the error to guard and no way to act on it. There the reference
+stays `cross-branch-pending` — the same line `aiwf check` already draws when it
+skips the trunk read in a repository with no remote.
+
+The push is the only boundary it blocks. Authoring stays open: `aiwf add`,
+`edit-body`, `import` and `reallocate` do not refuse a write for any
+cross-branch classification, because which refs carry a target is a fact about
+the repository rather than a defect in the bytes being written — and the author
+cannot answer it by editing them. A malformed or genuinely unallocated id is
+still refused at verb time exactly as before.
+
+This can block a push that previously succeeded, in exactly the case where the
+tree references an id nobody else can see. See
+[ADR-0041](docs/adr/ADR-0041-classify-a-cross-branch-reference-by-whether-its-branch-is-published.md).
+
 ### Fixed — the read paths no longer raise an error the full check does not (G-0558)
 
 `aiwf check --fast`, `aiwf status`, `aiwf show`, and `aiwf render` load the planning tree without the cross-branch ref scan, to stay fast. Each then reported a reference resolving to no local entity as `refs-resolve/unresolved` or `body-prose-id/unresolved` — a blocking error. That verdict claims the id exists at no tier: not the working tree, not trunk, not any local or remote-tracking ref. A load that skipped the scan has evidence for the working tree alone, and an empty hit set cannot distinguish *looked everywhere and found nothing* from *never looked*.

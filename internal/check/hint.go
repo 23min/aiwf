@@ -44,6 +44,13 @@ var hintTable = map[string]string{
 	// fix needed; it resolves on its own once the source branch merges,
 	// or escalates to unresolved if that branch is deleted/abandoned.
 	"refs-resolve/cross-branch-pending": "no action needed — the target exists on another local or remote-tracking branch and will resolve locally once that branch merges; run `git fetch` if the branch is a teammate's not-yet-fetched remote work",
+	// ADR-0041: the target resolves from local branch refs only, so it
+	// exists on this working copy and nowhere else — blocking, unlike
+	// the published case above. The remedy is neither of the two
+	// ADR-0030 rejected (editing the prose, waiting for the merge): it
+	// is publishing the branch, which the standing guidance on
+	// allocating an id and pushing promptly already asks for.
+	"refs-resolve/cross-branch-local-only": "publish the branch carrying the target with `git push -u origin <branch>`, then re-run `aiwf check` — until it is pushed the reference resolves in this working copy alone, and every clone and CI checkout reports it unresolved; if that branch is abandoned, drop the reference instead",
 	// G-0558: the surface that emitted this loaded without the
 	// cross-branch view, so it can say the target is absent here but not
 	// that it is absent everywhere. Full `aiwf check` builds every tier
@@ -74,6 +81,9 @@ var hintTable = map[string]string{
 	// M-0259/AC-2: the mirror of refs-resolve/cross-branch-pending for
 	// prose tokens — non-blocking, per ADR-0030.
 	"body-prose-id/cross-branch-pending": "no action needed — the id exists on another local or remote-tracking branch and will resolve locally once that branch merges; run `git fetch` if the branch is a teammate's not-yet-fetched remote work",
+	// ADR-0041: the mirror of refs-resolve/cross-branch-local-only for
+	// prose tokens — blocking, because the id is published nowhere.
+	"body-prose-id/cross-branch-local-only": "publish the branch carrying the id with `git push -u origin <branch>`, then re-run `aiwf check` — until it is pushed the reference resolves in this working copy alone, and every clone and CI checkout reports it unresolved; if that branch is abandoned, fix the prose with `aiwf edit-body <id>` instead",
 	// G-0558: the mirror of refs-resolve/unresolved-unverified for prose
 	// tokens.
 	"body-prose-id/unresolved-unverified": "run `aiwf check` to settle it — this surface skipped the cross-branch scan, so it cannot tell an id that exists nowhere from one on an unmerged branch; the full check builds every tier",

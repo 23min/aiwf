@@ -527,30 +527,45 @@ func TestBodyProseID_TrunkTier_G0241(t *testing.T) {
 // TestBodyProseID_CrossBranchPendingTier_M0259AC2 mirrors the
 // TrunkTier (G-0241) test's shape but for the cross-branch view
 // (ADR-0030, M-0259/AC-2): unlike the silent Trunk tier, a
-// cross-branch hit is a VISIBLE, non-blocking finding — trunk is
-// authoritative, a sibling branch is provisional.
+// cross-branch hit is a VISIBLE finding — trunk is authoritative, a
+// sibling branch is provisional. Whether it blocks is decided by the
+// ref carrying it (ADR-0041), which is why `ref` is per-case: the same
+// prose and the same id classify differently from a pushed branch than
+// from an unpushed one.
 func TestBodyProseID_CrossBranchPendingTier_M0259AC2(t *testing.T) {
 	t.Parallel()
 	cases := []struct {
 		name            string
 		body            string
 		crossBranchIDs  []string
+		ref             string
 		wantSubcode     string
 		wantSeverity    Severity
 		wantFindingsLen int
 	}{
 		{
-			name:            "bare cross-branch-only id fires visibly, non-blocking",
+			name:            "published cross-branch-only id fires visibly, non-blocking",
 			body:            "Depends on G-0500 which was filed on a sibling branch.",
 			crossBranchIDs:  []string{"G-0500"},
+			ref:             "refs/remotes/origin/sibling",
 			wantSubcode:     "cross-branch-pending",
 			wantSeverity:    SeverityWarning,
+			wantFindingsLen: 1,
+		},
+		{
+			name:            "same id on an unpushed branch blocks instead",
+			body:            "Depends on G-0500 which was filed on a sibling branch.",
+			crossBranchIDs:  []string{"G-0500"},
+			ref:             "refs/heads/sibling",
+			wantSubcode:     "cross-branch-local-only",
+			wantSeverity:    SeverityError,
 			wantFindingsLen: 1,
 		},
 		{
 			name:            "truly-unknown id still hard-fails despite a populated cross-branch set",
 			body:            "See M-9999 for the proposed rule.",
 			crossBranchIDs:  []string{"G-0500"},
+			ref:             "refs/remotes/origin/sibling",
 			wantSubcode:     "unresolved",
 			wantSeverity:    SeverityError,
 			wantFindingsLen: 1,
@@ -559,6 +574,7 @@ func TestBodyProseID_CrossBranchPendingTier_M0259AC2(t *testing.T) {
 			name:            "narrow-legacy cross-branch id resolves canonical-width token",
 			body:            "Depends on G-0500 from a pre-rewidth sibling branch.",
 			crossBranchIDs:  []string{"G-500"},
+			ref:             "refs/remotes/origin/sibling",
 			wantSubcode:     "cross-branch-pending",
 			wantSeverity:    SeverityWarning,
 			wantFindingsLen: 1,
@@ -570,10 +586,12 @@ func TestBodyProseID_CrossBranchPendingTier_M0259AC2(t *testing.T) {
 			t.Parallel()
 			root := t.TempDir()
 			ents := writeBodyProseFixture(t, root, tc.body)
-			tr := &tree.Tree{Root: root, Entities: ents}
+			// A repository with a remote: publication is expressible, so
+			// an id on local refs alone classifies local-only.
+			tr := &tree.Tree{Root: root, Entities: ents, HasRemoteTrackingRefs: true}
 			for _, id := range tc.crossBranchIDs {
 				tr.CrossBranchHits = append(tr.CrossBranchHits, trunk.RefHit{
-					Kind: entity.KindGap, ID: id, Path: "work/gaps/" + id + "-x.md", Ref: "refs/heads/sibling",
+					Kind: entity.KindGap, ID: id, Path: "work/gaps/" + id + "-x.md", Ref: tc.ref,
 				})
 			}
 
@@ -601,9 +619,12 @@ func TestBodyProseID_CrossBranchCollision_M0259AC3(t *testing.T) {
 	root := t.TempDir()
 	ents := writeBodyProseFixture(t, root, "Depends on G-0500 which diverges across two sibling branches.")
 	tr := &tree.Tree{Root: root, Entities: ents}
+	// Both refs are remote-tracking, so the id is published and the
+	// classification reaches the collision arm rather than blocking as
+	// local-only first (ADR-0041).
 	tr.CrossBranchHits = []trunk.RefHit{
-		{Kind: entity.KindGap, ID: "G-0500", Path: "work/gaps/G-0500-x.md", Ref: "refs/heads/sibling"},
-		{Kind: entity.KindGap, ID: "G-0500", Path: "work/gaps/G-0500-x.md", Ref: "refs/heads/other"},
+		{Kind: entity.KindGap, ID: "G-0500", Path: "work/gaps/G-0500-x.md", Ref: "refs/remotes/origin/sibling"},
+		{Kind: entity.KindGap, ID: "G-0500", Path: "work/gaps/G-0500-x.md", Ref: "refs/remotes/origin/other"},
 	}
 	tr.CrossBranchCollisions = map[string]bool{"G-0500": true}
 
@@ -616,6 +637,87 @@ func TestBodyProseID_CrossBranchCollision_M0259AC3(t *testing.T) {
 	}
 	if got[0].Severity != SeverityWarning {
 		t.Errorf("Severity = %q, want warning (non-blocking — see D-0036)", got[0].Severity)
+	}
+}
+
+// TestBodyProseID_CrossBranchLocalOnlyOutranksCollision is the prose
+// mirror of the refsResolve twin: content diverging across two unpushed
+// branches is still a reference no other machine can follow, so the
+// blocking classification is reached before the collision one. Without
+// the ordering this reports a warning and the tree pushes.
+func TestBodyProseID_CrossBranchLocalOnlyOutranksCollision(t *testing.T) {
+	t.Parallel()
+	root := t.TempDir()
+	ents := writeBodyProseFixture(t, root, "Depends on G-0500 which diverges across two sibling branches.")
+	tr := &tree.Tree{Root: root, Entities: ents}
+	tr.CrossBranchHits = []trunk.RefHit{
+		{Kind: entity.KindGap, ID: "G-0500", Path: "work/gaps/G-0500-x.md", Ref: "refs/heads/sibling"},
+		{Kind: entity.KindGap, ID: "G-0500", Path: "work/gaps/G-0500-x.md", Ref: "refs/heads/other"},
+	}
+	tr.CrossBranchCollisions = map[string]bool{"G-0500": true}
+	tr.HasRemoteTrackingRefs = true
+
+	got := bodyProseID(tr)
+	if len(got) != 1 {
+		t.Fatalf("findings = %d, want 1: %+v", len(got), got)
+	}
+	if got[0].Subcode != "cross-branch-local-only" {
+		t.Errorf("Subcode = %q, want cross-branch-local-only — neither ref is published", got[0].Subcode)
+	}
+	if got[0].Severity != SeverityError {
+		t.Errorf("Severity = %q, want error", got[0].Severity)
+	}
+	if !strings.Contains(got[0].Message, "refs/heads/sibling") {
+		t.Errorf("Message = %q, want it to name the unpublished refs", got[0].Message)
+	}
+}
+
+// TestBodyProseID_CrossBranchLocalOnlyStaysPendingWithoutARemote is the
+// prose mirror: with nowhere to push, the blocking classification names
+// no remedy, so the reference stays the ordinary pending warning.
+func TestBodyProseID_CrossBranchLocalOnlyStaysPendingWithoutARemote(t *testing.T) {
+	t.Parallel()
+	root := t.TempDir()
+	ents := writeBodyProseFixture(t, root, "Depends on G-0500, filed on a branch in a repo with no remote.")
+	tr := &tree.Tree{Root: root, Entities: ents, HasRemoteTrackingRefs: false}
+	tr.CrossBranchHits = []trunk.RefHit{
+		{Kind: entity.KindGap, ID: "G-0500", Path: "work/gaps/G-0500-x.md", Ref: "refs/heads/sibling"},
+	}
+
+	got := bodyProseID(tr)
+	if len(got) != 1 {
+		t.Fatalf("findings = %d, want 1: %+v", len(got), got)
+	}
+	if got[0].Subcode != "cross-branch-pending" {
+		t.Errorf("Subcode = %q, want cross-branch-pending — nothing here can be published", got[0].Subcode)
+	}
+	if got[0].Severity != SeverityWarning {
+		t.Errorf("Severity = %q, want warning", got[0].Severity)
+	}
+}
+
+// TestBodyProseID_CrossBranchMixedRefsClassifyAsPublished pins that one
+// remote-tracking ref is enough: the classification reads the MOST
+// visible ref carrying the id, not every ref.
+func TestBodyProseID_CrossBranchMixedRefsClassifyAsPublished(t *testing.T) {
+	t.Parallel()
+	root := t.TempDir()
+	ents := writeBodyProseFixture(t, root, "Depends on G-0500 filed on a branch that has since been pushed.")
+	tr := &tree.Tree{Root: root, Entities: ents}
+	tr.CrossBranchHits = []trunk.RefHit{
+		{Kind: entity.KindGap, ID: "G-0500", Path: "work/gaps/G-0500-x.md", Ref: "refs/heads/sibling"},
+		{Kind: entity.KindGap, ID: "G-0500", Path: "work/gaps/G-0500-x.md", Ref: "refs/remotes/origin/sibling"},
+	}
+
+	got := bodyProseID(tr)
+	if len(got) != 1 {
+		t.Fatalf("findings = %d, want 1: %+v", len(got), got)
+	}
+	if got[0].Subcode != "cross-branch-pending" {
+		t.Errorf("Subcode = %q, want cross-branch-pending — the remote-tracking hit publishes the id", got[0].Subcode)
+	}
+	if got[0].Severity != SeverityWarning {
+		t.Errorf("Severity = %q, want warning", got[0].Severity)
 	}
 }
 
@@ -688,7 +790,9 @@ func TestBodyProseID_LocallyPresentIDWithCollisionResolvesLocally(t *testing.T) 
 	tr.CrossBranchCollisions = map[string]bool{"G-0002": true}
 
 	for _, f := range bodyProseID(tr) {
-		if f.Subcode == "cross-branch-collision" || f.Subcode == "cross-branch-pending" {
+		// Any subcode from the cross-branch tier, so a classification
+		// added to that tier is caught rather than passing unnoticed.
+		if strings.HasPrefix(f.Subcode, "cross-branch-") {
 			t.Errorf("got %+v, want no cross-branch finding — G-0002 resolves locally, its collision must never surface", f)
 		}
 	}

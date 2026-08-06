@@ -176,7 +176,7 @@ func Add(ctx context.Context, t *tree.Tree, kind entity.Kind, title, actor strin
 	// allocated entity in the index so self-references resolve cleanly.
 	bpidx := check.BodyProseIDIndex(t)
 	bpidx.ByID[entity.Canonicalize(e.ID)] = e
-	if fs := check.ScanBodyProseID(body, e.ID, e.Path, bpidx); check.HasErrors(fs) {
+	if fs := check.ScanBodyProseID(body, e.ID, e.Path, bpidx); blocksWrite(fs) {
 		return findings(fs), nil
 	}
 

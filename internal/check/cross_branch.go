@@ -1,12 +1,21 @@
 package check
 
-// M-0259/AC-2: the cross-branch-pending tier shared by refsResolve
+// M-0259/AC-2: the cross-branch tier shared by refsResolve
 // (structured fields) and classifyBodyToken (prose tokens). Both
 // consult the same second-tier resolver on a local-tree miss, before
 // firing a hard `unresolved` (ADR-0030): an id known only on another
 // local branch or remote-tracking ref is real, just not merged into
-// this branch's working tree yet, so it classifies as a distinct,
-// non-blocking `cross-branch-pending` subcode instead.
+// this branch's working tree yet, so it classifies as a distinct
+// cross-branch subcode instead.
+//
+// Which one is decided by the most visible ref carrying the id
+// (ADR-0041, via trunk.RemoteVisible). A remote-tracking hit means the
+// entity is published — anyone who fetches resolves the reference — and
+// stays the non-blocking `cross-branch-pending`. Hits confined to local
+// branch refs mean the entity exists on one working copy on earth, so
+// the tree is not one that can be handed to anyone; that fires
+// `cross-branch-local-only` at error severity, and the remedy it names
+// is publishing the branch.
 //
 // Unlike the silent Trunk tier (G-0241, trunk is authoritative), the
 // cross-branch tier is deliberately visible: a sibling branch is
@@ -15,8 +24,9 @@ package check
 // masquerade as valid forever. Recomputed fresh from tree.CrossBranchHits
 // on every `aiwf check` run (nothing here is cached), so a source
 // branch's disappearance re-escalates the next run's classification
-// back to `unresolved` on its own (M-0259/AC-4) — no separate
-// escalation-tracking mechanism to drift.
+// back to `unresolved` on its own, and publishing or unpublishing that
+// branch moves it between the two cross-branch subcodes the same way
+// (M-0259/AC-4) — no separate escalation-tracking mechanism to drift.
 
 import (
 	"strings"
@@ -25,6 +35,21 @@ import (
 	"github.com/23min/aiwf/internal/tree"
 	"github.com/23min/aiwf/internal/trunk"
 )
+
+// IsCrossBranchClassification reports whether f classifies a reference
+// by which git refs currently carry its target, rather than reporting a
+// defect in the content being checked. The three cross-branch subcodes
+// share that character: the reference is well-formed and the entity it
+// names exists — what varies is where it is reachable from.
+//
+// The verb layer consults this to decide what it refuses a write for
+// (ADR-0041). A cross-branch classification is not something an author
+// can answer by changing the bytes they are writing: the fix is to push
+// a branch, which may not even be theirs. So the boundary that enforces
+// it is the push, via `aiwf check`, and authoring stays open.
+func IsCrossBranchClassification(f Finding) bool {
+	return strings.HasPrefix(f.Subcode, "cross-branch-")
+}
 
 // crossBranchIndex groups t.CrossBranchHits by canonicalized id. Nil
 // t.CrossBranchHits (in-memory test trees, no-remote repos) yields an
