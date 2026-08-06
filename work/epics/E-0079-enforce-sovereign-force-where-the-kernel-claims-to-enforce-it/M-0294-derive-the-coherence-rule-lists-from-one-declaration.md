@@ -8,7 +8,7 @@ depends_on:
 tdd: required
 acs:
     - id: AC-1
-      title: Coherence rule cells are registered and each is pinned by a test
+      title: Three hand-maintained rule lists derive from one declaration
       status: open
     - id: AC-2
       title: An unpinned cell fails the bijection check by name
@@ -33,7 +33,7 @@ rule and nothing noticed the guard reached one verb of four.
 
 ## Acceptance criteria
 
-### AC-1 — Coherence rule cells are registered and each is pinned by a test
+### AC-1 — Three hand-maintained rule lists derive from one declaration
 
 Every cell in the coherence rule space is registered, and each carries a named
 test that exercises it.
