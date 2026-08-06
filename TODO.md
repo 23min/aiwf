@@ -35,8 +35,6 @@ line saying what it is.
 - `readStatusAt` and the walker's path-resolving fallback arm are dead in
   production — reachable only through conditions no BulkRevwalk flag produces.
   Annotated rather than deleted, deliberately; nothing tracks the choice
-- main is well ahead of origin/main and unpushed; the push fails CI until G-0556
-  is settled, and no local surface says so — the hook passes
 
 ## Next, in order (2026-08-05)
 
@@ -65,12 +63,14 @@ coverage finds a guard and stops looking.
   whole-tree sibling's under-inclusiveness is a calibrated precision trade
   argued in the source, so this asks to reverse a decision, not to fill a hole
 
-### 2. Shipped surfaces that state something false *(one decision, then a milestone)*
+### 2. Surfaces that state something false *(one decision, then a milestone)*
 
-A consumer reads these and acts on them. Unlike a stale citation, a wrong claim
-about behaviour reads as authoritative and stops the reader looking further.
-Nothing mechanical covers the claim itself: G-0542 pinned where a row sits and
-G-0547 pinned its shape; neither reads what it says.
+A reader acts on these and is wrong. Unlike a stale citation, a wrong claim
+about behaviour reads as authoritative and stops the reader looking further —
+the same failure whether the surface ships to a consumer or stays in this repo;
+shipping changes the blast radius, not the thesis. Nothing mechanical covers the
+claim itself: G-0542 pinned where a row sits and G-0547 pinned its shape;
+neither reads what it says.
 
 - **G-0553** *(high)* — six Meaning cells state a trigger the code contradicts; ~18 more
   omit the guard that decides whether the rule fires. Larger than a patch. Re-count
@@ -78,6 +78,13 @@ G-0547 pinned its shape; neither reads what it says.
   in from the deleted Fix column
 - **G-0549** — a documented row for a code nothing emits, and a conditional code
   with no row inheriting the wrong table. Two ends of one broken mapping
+- **G-0559** — `aiwf schema` prints pre-ADR-0008 narrow id formats from literals
+  in `internal/entity/entity.go`. The docs copy it, so this gates G-0517 and the
+  id half of G-0560
+- **G-0560** — the Normative doc tree states behaviour the kernel reverses or
+  refuses: epic roll-up, the `CLAUDE.md` carve-out, `render roadmap --write`
+  committing, and worked examples the verbs now refuse. Dated inventory in
+  `docs/initiatives/normative-docs-drift-audit.md`
 
 ### 3. Oracles — what tells the builder it is wrong *(design first; one cheap member)*
 
