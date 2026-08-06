@@ -2,6 +2,7 @@
 id: G-0551
 title: Nothing checks that the verb-side and check-side rule sets agree
 status: open
+priority: medium
 discovered_in: M-0291
 ---
 ## What's missing
