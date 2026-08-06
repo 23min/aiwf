@@ -1,7 +1,7 @@
 ---
 id: D-0061
 title: Retire the sovereign-dispatcher policy; the force rule lives at the apply seam
-status: proposed
+status: accepted
 relates_to:
     - M-0293
     - ADR-0040
