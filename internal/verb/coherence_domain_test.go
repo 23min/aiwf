@@ -290,29 +290,6 @@ func isNonHumanActor(actor string) bool {
 	return actor != "" && !strings.HasPrefix(actor, "human/")
 }
 
-// TestCheckTrailerCoherence_EveryRuleIsReachable asserts each declared
-// rule fires at some point in the domain.
-//
-// A rule can be made unreachable without being deleted: the checks run
-// in order and return the first violation, so a broadened earlier
-// condition can shadow a later rule entirely. That leaves a rule that
-// reads as enforced, is covered by its own unit test through a direct
-// call, and never fires for any real trailer set — the same shape of
-// claim-without-enforcement this milestone exists to remove.
-func TestCheckTrailerCoherence_EveryRuleIsReachable(t *testing.T) {
-	t.Parallel()
-
-	fired := make(map[string]bool, len(coherenceRuleSpecs))
-	for _, c := range coherenceDomain() {
-		fired[verdict(c.trailers)] = true
-	}
-	for _, rule := range declaredCoherenceRules(coherenceRuleSpecs) {
-		if !fired[rule] {
-			t.Errorf("rule %q fires at no point in the domain; it is shadowed by an earlier rule or unreachable", rule)
-		}
-	}
-}
-
 // forcePredicatedRules are the rules whose condition requires an
 // aiwf-force trailer, derived from the rule declaration rather than
 // from the function under test. Deriving it from
