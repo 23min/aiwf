@@ -59,13 +59,13 @@ func ruleSpecClaimViolations(specs []coherenceRuleSpec) []string {
 		}
 
 		switch {
-		case s.RequiresForce && firesWithoutForce:
+		case s.FiresOnlyWithForce && firesWithoutForce:
 			out = append(out, fmt.Sprintf(
-				"%s: declares RequiresForce, but fires at a point carrying no %s trailer",
+				"%s: declares FiresOnlyWithForce, but fires at a point carrying no %s trailer",
 				s.Rule, gitops.TrailerForce))
-		case !s.RequiresForce && !firesWithoutForce:
+		case !s.FiresOnlyWithForce && !firesWithoutForce:
 			out = append(out, fmt.Sprintf(
-				"%s: fires only where %s is present but does not declare RequiresForce, so the seam would not enforce it",
+				"%s: fires only where %s is present but does not declare FiresOnlyWithForce, so the seam would not enforce it",
 				s.Rule, gitops.TrailerForce))
 		}
 
@@ -136,7 +136,7 @@ func TestRuleSpecClaimViolations_CatchesMisdeclaredClaims(t *testing.T) {
 			name: "force claimed for a rule that fires without force",
 			mutate: func(in []coherenceRuleSpec) []coherenceRuleSpec {
 				return withSpec(in, CoherenceRulePrincipalMissingForNonHumanActor, func(s coherenceRuleSpec) coherenceRuleSpec {
-					s.RequiresForce = true
+					s.FiresOnlyWithForce = true
 					return s
 				})
 			},
@@ -149,7 +149,7 @@ func TestRuleSpecClaimViolations_CatchesMisdeclaredClaims(t *testing.T) {
 			name: "force claim dropped from a force-only rule",
 			mutate: func(in []coherenceRuleSpec) []coherenceRuleSpec {
 				return withSpec(in, CoherenceRuleForceNonHuman, func(s coherenceRuleSpec) coherenceRuleSpec {
-					s.RequiresForce = false
+					s.FiresOnlyWithForce = false
 					return s
 				})
 			},
@@ -211,7 +211,7 @@ func TestRuleSpecClaimViolations_ForceOffAxis(t *testing.T) {
 			continue
 		}
 		s.Reads = reads
-		s.RequiresForce = false
+		s.FiresOnlyWithForce = false
 		specs = append(specs, s)
 	}
 
@@ -223,6 +223,35 @@ func TestRuleSpecClaimViolations_ForceOffAxis(t *testing.T) {
 	if got := ruleSpecClaimViolations(specs); len(got) != 0 {
 		t.Errorf("reported %d violation(s) against a declaration that reads no force trailer:\n  %s",
 			len(got), strings.Join(got, "\n  "))
+	}
+}
+
+// TestRuleSpecClaimViolations_ShadowingSatisfiesTheRelevanceCheck
+// records the limit of the relevance check, so a reader meets it here
+// rather than discovering it against a declaration they trusted.
+//
+// This pins current behavior; it does not endorse it. A check that
+// established "the condition reads this trailer" would fail this case,
+// and strengthening it — by parsing each rule's condition rather than
+// watching the verdict — should break this test and be updated with it.
+//
+// audit-only-non-human's condition is `hasAuditOnly && actorIsNonHuman`
+// and never consults a force trailer. Declaring that it reads one is
+// nonetheless accepted, because force-non-human is checked first: at a
+// non-human point carrying audit-only, adding force changes the
+// reported verdict from audit-only-non-human to force-non-human. The
+// rule's own firing is unchanged; only which rule reports it moves.
+func TestRuleSpecClaimViolations_ShadowingSatisfiesTheRelevanceCheck(t *testing.T) {
+	t.Parallel()
+
+	specs := withSpec(coherenceRuleSpecs, CoherenceRuleAuditOnlyNonHuman, func(s coherenceRuleSpec) coherenceRuleSpec {
+		s.Reads = append(append([]string(nil), s.Reads...), gitops.TrailerForce)
+		return s
+	})
+	if got := ruleSpecClaimViolations(specs); len(got) != 0 {
+		t.Errorf("the relevance check now rejects a shadow-satisfied input, which is stronger than it was;"+
+			" update this characterization and the Reads doc on coherenceRuleSpec:\n  %s",
+			strings.Join(got, "\n  "))
 	}
 }
 

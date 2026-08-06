@@ -206,13 +206,13 @@ func TestCheckTrailerCoherence_FullDomain_SatisfiesDesignDocRules(t *testing.T) 
 		{
 			name: "a principal requires a non-human actor",
 			applies: func(c coherenceCase) bool {
-				return c.present["principal"] && !isNonHumanActor(c.actor)
+				return c.present["principal"] && !domainNonHumanActor(c.actor)
 			},
 		},
 		{
 			name: "a non-human actor requires a principal",
 			applies: func(c coherenceCase) bool {
-				return isNonHumanActor(c.actor) && !c.present["principal"]
+				return domainNonHumanActor(c.actor) && !c.present["principal"]
 			},
 		},
 		{
@@ -230,7 +230,7 @@ func TestCheckTrailerCoherence_FullDomain_SatisfiesDesignDocRules(t *testing.T) 
 		{
 			name: "force requires a human actor",
 			applies: func(c coherenceCase) bool {
-				return c.present["force"] && isNonHumanActor(c.actor)
+				return c.present["force"] && domainNonHumanActor(c.actor)
 			},
 		},
 		{
@@ -242,7 +242,7 @@ func TestCheckTrailerCoherence_FullDomain_SatisfiesDesignDocRules(t *testing.T) 
 		{
 			name: "audit-only requires a human actor",
 			applies: func(c coherenceCase) bool {
-				return c.present["auditonly"] && isNonHumanActor(c.actor)
+				return c.present["auditonly"] && domainNonHumanActor(c.actor)
 			},
 		},
 		{
@@ -284,9 +284,14 @@ func TestCheckTrailerCoherence_FullDomain_SatisfiesDesignDocRules(t *testing.T) 
 	}
 }
 
-// isNonHumanActor mirrors the domain's own notion of a non-human actor:
-// present, and not a human/ role. An absent actor is neither.
-func isNonHumanActor(actor string) bool {
+// domainNonHumanActor states the domain's own notion of a non-human
+// actor: present, and not a human/ role. An absent actor is neither.
+//
+// Spelled out here rather than calling the package's own predicate on
+// purpose. The invariants below encode the design doc's rules
+// independently of the implementation, so borrowing the implementation's
+// notion of "non-human" would let a wrong predicate satisfy both sides.
+func domainNonHumanActor(actor string) bool {
 	return actor != "" && !strings.HasPrefix(actor, "human/")
 }
 
@@ -322,7 +327,7 @@ func TestCheckForceTrailerCoherence_IsTheForcePredicatedSubset(t *testing.T) {
 	for _, tc := range coherenceDomain() {
 		t.Run(tc.name, func(t *testing.T) {
 			t.Parallel()
-			actorIsNonHuman := tc.actor != "" && !strings.HasPrefix(tc.actor, "human/")
+			actorIsNonHuman := domainNonHumanActor(tc.actor)
 			err := CheckForceTrailerCoherence(tc.trailers)
 
 			// Derived from the three rule statements, not from the code:
