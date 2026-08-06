@@ -1,7 +1,7 @@
 ---
 id: D-0062
 title: Derive the coherence rule lists instead of a Pin-and-bijection cell registry
-status: proposed
+status: accepted
 relates_to:
     - M-0294
     - E-0079
