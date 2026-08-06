@@ -1123,3 +1123,16 @@ enforces it for one verb of four, and no verb clears the resulting error.
 | M-0293 | Correct the surfaces that claim force enforcement | done |
 | M-0294 | Derive the coherence rule lists from one declaration | done |
 
+## E-0080 — Judge composed verb sequences by agreement invariants across state and branches (proposed)
+
+### Goal
+
+Make workflow-level legality mechanically checkable past a single axis of state
+and a single branch, so a sequence of individually-legal verbs that leaves the
+tree in a state nobody intended is caught by the harness rather than by a
+downstream consumer.
+
+Addresses G-0121. Its two non-mechanizable remainders move to G-0564.
+
+_No milestones yet._
+

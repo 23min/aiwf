@@ -7,9 +7,9 @@ priority: medium
 ## What's missing
 
 G-0121 named four sub-gaps. Two of them — composition tests across verb chains,
-and tree-level post-conditions under arbitrary legal composition — are being
-mechanized. Two remainders are not, and they differ in kind from each other as
-well as from the mechanized pair.
+and tree-level post-conditions under arbitrary legal composition — are
+mechanized by E-0080. Two remainders are not, and they differ in kind from each
+other as well as from the mechanized pair.
 
 **No declarative enumeration of blessed workflows** (G-0121 sub-gap 1). There is
 no artifact a contributor, human or LLM, can read to learn which sequences of
@@ -50,8 +50,8 @@ assumption changes, which is what the initiative tracks.
 
 ## Why neither is epic-ready
 
-Neither remainder has a settled design question behind it, which is why the
-composition epic excludes both rather than carrying them.
+Neither remainder has a settled design question behind it, which is why E-0080
+excludes both rather than carrying them.
 
 The enumeration needs a prior answer to what makes a workflow blessed. E-0033
 examined this exact surface and chose advisory; reversing that is a decision,
@@ -64,8 +64,9 @@ not where work happens — so it does not close this either.
 
 ## Related
 
-- G-0121 — the parent. Its composition sub-gaps are mechanized elsewhere; this
-  gap carries what that work deliberately leaves behind.
+- G-0121 — the parent. E-0080 mechanizes its composition sub-gaps and closes it;
+  this gap carries what that work deliberately leaves behind.
+- E-0080 — the epic whose scope this gap is the complement of.
 - D-0063 — the accepted direction for the mechanized half.
 - E-0033 — built the per-verb legality vocabulary and scoped ritual choreography
   out as advisory.
