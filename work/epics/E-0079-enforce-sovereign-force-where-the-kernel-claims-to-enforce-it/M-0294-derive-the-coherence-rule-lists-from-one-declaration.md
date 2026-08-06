@@ -20,66 +20,101 @@ acs:
 
 ## Goal
 
-Give a rule space with no FSM coordinate the same pin-and-bijection discipline
-the branch spec already has, so a rule cannot again reach one call site of four
-with nothing noticing.
+Collapse the three hand-maintained lists that describe the coherence rule set into
+one declaration beside the rules, so a rule added without it fails by name rather
+than reading as covered while nothing exercises it.
 
 ## Context
 
-Three shapes are in play, and conflating them is why the coherence guard drifted.
-The entity FSM is cell-keyed by kind, from-state and verb, with a Pin registry and
-a bijection meta-test proving each cell has a test. Sovereign-act shape is a
-closed tuple set over FSM edges and fits that same key. Trailer coherence fits
-neither: it is a predicate over *(actor role × trailer presence-vector)* — no
-kind, no from-state, no verb. It has no cell, so no Pin, so nothing indexed the
-rule and nothing noticed the guard reached one verb of four.
+M-0291 pinned the rule set across a generated domain: every actor role crossed
+with every subset of the presence-bearing trailers, a golden verdict at each
+point, design-doc invariants each carrying a non-vacuity guard, a reachability
+assertion over the declared rules, and a bidirectional property for the subset
+`verb.Apply` enforces.
+
+Three lists still describe that rule set by hand, and each sits in a different
+file from the rules it describes: the rule roster, the seam's force-predicated
+subset, and the domain's own trailer axis. The first two already carry comments
+naming this milestone as their retirement.
+
+The axis is the one nobody named, and it is the one that matters most. A rule
+predicated on a trailer outside the five the domain varies fires at no point in
+that domain — so the golden never moves, the reachability assertion never sees
+it, and the rule reads as covered while nothing exercises it. Retiring the two
+named lists leaves that open; deriving the axis from the same source closes it,
+because a rule declaring a new input widens the domain by construction.
+
+D-0062 records why this is a declaration rather than the Pin-and-bijection
+registry the epic originally scoped.
 
 ## Acceptance criteria
 
 ### AC-1 — Three hand-maintained rule lists derive from one declaration
 
-Every cell in the coherence rule space is registered, and each carries a named
-test that exercises it.
+One table beside the rules declares each rule: the presence-bearing trailers its
+condition consults, and whether it fires only when a force trailer is present.
+The rule roster, the seam's force-predicated subset, and the domain's trailer
+axis all derive from it.
 
-Evidence: the registry enumerated against the rule set, with the count of pinned
-cells derived from the registry rather than written down.
+The hand-maintained copies are deleted rather than left alongside. A derivation
+that coexists with the list it replaces is a second source of truth, and the two
+answer the same question differently the first time one is edited.
+
+Evidence: each derived value asserted equal to the list it replaces before that
+list is removed, so the change is measured behavior-preserving rather than
+assumed; the removal is what makes the derivation load-bearing.
 
 ### AC-2 — The declaration's per-rule claims are verified against behavior
 
-The check fails when a cell has no pinning test, and its message names which
-cell. A meta-test that reports only that something is unpinned sends the reader
-back to a search the check already did.
+The declaration is data a human writes, so a test that reads its claims and
+believes them proves nothing about the rules. Each entry is asserted against what
+its rule actually does across the domain: one declared to fire only under a force
+trailer must fire at no point lacking one, and one must not fire at a point where
+every input it declares is absent.
 
-Evidence: a fixture registering a cell with no test, asserting the failure names
-that cell.
+Evidence: both directions asserted across the generated domain, each with a
+fixture whose deliberately mis-declared entry makes the assertion fail.
 
 ### AC-3 — Declared rules and firing rules are in bijection, failing by name
 
+Every declared rule fires somewhere in the domain, and every rule that fires is
+declared. The failure names the rule; one reporting only that a mismatch exists
+sends the reader back to the search the check just performed.
+
+Evidence: both directions, each with a fixture — a declared rule that fires
+nowhere, and a rule firing under a name absent from the declaration — asserting
+the message names it.
+
 ## Design notes
 
-- **Widen the existing Pin registry; do not build a parallel one.** A second
-  registry drifts from the first one plausible line at a time, and the two would
-  answer the same question differently within a release or two.
-- **The registry lands with what retires it.** This is a mandate — every cell
-  needs a pinning test — and a mandate costs per subject forever. It lands with a
-  named owner and a stated retirement trigger, or it is a permanent tax.
-
-## Open questions
-
-| Question | Blocking? | Resolution path |
-|---|---|---|
-| Is a cell one rule, or one point in the input cross-product? | yes, before implementing | Per-rule is cheap and catches a rule nothing references. Per-combination is what would actually have caught this drift, at a much larger cell count. Decide against M-0291/AC-2's generated domain, which is the same cross-product. |
+- **The declaration lives beside the rules, not in the test.** The lists it
+  replaces drifted because each sat in a different file from the thing it
+  described; moving the copies into one place elsewhere would repeat that.
+- **Declaring inputs, not just names, is what closes the axis.** A roster of rule
+  names retires two lists and leaves the third — the one whose absence lets a rule
+  go unexercised.
+- **Adding a rule still means adding its entry.** That obligation is real and
+  worth naming: it is one line beside the rule rather than three edits in another
+  file, and AC-3 catches the omission for every rule that fires within the current
+  axis. What it does not catch is a rule both undeclared and predicated on a new
+  trailer — stated here rather than closed, per D-0062.
 
 ## Out of scope
 
-- Re-keying the existing FSM cell space. This adds a second shape alongside it.
+- Table-driven evaluation — dispatching the rules from the declaration so an
+  undeclared rule cannot run. Rejected in D-0062; it refactors a working guard for
+  the residual named above.
+- The branch spec's Pin registry and any change to it. Different rule space,
+  different key.
+- Which rules `verb.Apply` enforces. Membership stays satisfiability per D-0060;
+  this milestone changes only where that subset is written down.
 
 ## Dependencies
 
-- M-0291 — its generated coherence domain is what this registry indexes.
+- M-0291 — its generated domain, and the two lists that name this milestone as
+  their retirement.
 
 ## References
 
-- This milestone is the epic's candidate for promotion to its own epic; the
-  decision to build it is settled, only its placement is open.
-
+- D-0062 — why a declaration rather than a cell registry.
+- D-0060 — the satisfiability criterion for the seam's subset, unchanged here.
