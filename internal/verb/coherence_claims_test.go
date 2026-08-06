@@ -248,10 +248,14 @@ func TestRuleSpecClaimViolations_ShadowingSatisfiesTheRelevanceCheck(t *testing.
 		s.Reads = append(append([]string(nil), s.Reads...), gitops.TrailerForce)
 		return s
 	})
-	if got := ruleSpecClaimViolations(specs); len(got) != 0 {
-		t.Errorf("the relevance check now rejects a shadow-satisfied input, which is stronger than it was;"+
-			" update this characterization and the Reads doc on coherenceRuleSpec:\n  %s",
-			strings.Join(got, "\n  "))
+	// Scoped to violations naming this rule. Asserting over the whole
+	// declaration would report any unrelated mis-declaration under this
+	// test's message, which names a cause it did not measure.
+	for _, v := range ruleSpecClaimViolations(specs) {
+		if strings.Contains(v, CoherenceRuleAuditOnlyNonHuman) {
+			t.Errorf("the relevance check now rejects a shadow-satisfied input, which is stronger than"+
+				" it was; update this characterization and the Reads doc on coherenceRuleSpec:\n  %s", v)
+		}
 	}
 }
 

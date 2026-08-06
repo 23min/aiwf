@@ -81,9 +81,9 @@ func TestRuleSpecBijectionViolations_NamesTheOffendingRule(t *testing.T) {
 		wantRule string
 	}{
 		{
-			// The survivor from this milestone's own mutation probe: an
-			// entry dropped for a rule whose trailer another rule still
-			// reads, so the axis is unchanged and the golden never moves.
+			// An entry dropped for a rule whose trailer another rule
+			// still reads: the axis is unchanged and the golden never
+			// moves, so nothing else in the suite catches it.
 			name:     "a rule fires under a name the declaration omits",
 			specs:    withoutSpec(coherenceRuleSpecs, CoherenceRuleAuditOnlyNonHuman),
 			wantRule: CoherenceRuleAuditOnlyNonHuman,

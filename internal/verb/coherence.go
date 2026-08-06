@@ -102,6 +102,12 @@ type coherenceRuleSpec struct {
 	// FiresOnlyWithForce reports that the rule cannot fire without an
 	// aiwf-force trailer. It is a statement about the rule.
 	//
+	// Its check is verdict-scoped exactly as Reads' is: it watches which
+	// rule is reported, so a rule shadowed at every force-absent point
+	// would read as force-only without being so. Every rule carrying the
+	// flag today is guarded literally by a force lookup, so the gap is
+	// open rather than exercised.
+	//
 	// verb.Apply enforces exactly the rules carrying this flag today,
 	// but the flag is not the membership criterion — satisfiability is
 	// (D-0060, ADR-0040): a rule belongs at the seam only if every verb
