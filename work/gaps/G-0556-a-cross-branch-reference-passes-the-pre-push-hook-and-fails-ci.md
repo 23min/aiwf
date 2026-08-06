@@ -1,7 +1,9 @@
 ---
 id: G-0556
 title: A cross-branch reference passes the pre-push hook and fails CI
-status: open
+status: addressed
+addressed_by_commit:
+    - 50a642903
 ---
 ## What's missing
 
