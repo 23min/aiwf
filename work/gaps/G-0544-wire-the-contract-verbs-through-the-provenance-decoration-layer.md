@@ -2,6 +2,7 @@
 id: G-0544
 title: Wire the contract verbs through the provenance decoration layer
 status: open
+priority: high
 discovered_in: M-0291
 ---
 ## What's missing
