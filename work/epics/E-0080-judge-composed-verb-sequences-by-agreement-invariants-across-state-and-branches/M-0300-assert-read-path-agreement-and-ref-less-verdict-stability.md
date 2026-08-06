@@ -6,7 +6,7 @@ parent: E-0080
 tdd: required
 acs:
     - id: AC-1
-      title: Every verdict-rendering read path renders the same verdict on the same bytes
+      title: No two read paths contradict each other on the same bytes
       status: open
     - id: AC-2
       title: A verdict is stable under refs the tree does not need
@@ -61,7 +61,7 @@ space widens.
 
 Each criterion below is asserted by the harness itself, not by review.
 
-### AC-1 — Every verdict-rendering read path renders the same verdict on the same bytes
+### AC-1 — No two read paths contradict each other on the same bytes
 
 After each step of a composed sequence, the harness runs every verdict-rendering
 read path over the repository that step produced and fails when two of them
