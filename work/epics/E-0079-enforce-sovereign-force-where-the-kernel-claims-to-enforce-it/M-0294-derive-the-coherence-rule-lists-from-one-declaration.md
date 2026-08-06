@@ -17,7 +17,7 @@ acs:
       tdd_phase: done
     - id: AC-3
       title: Declared rules and firing rules are in bijection, failing by name
-      status: open
+      status: met
       tdd_phase: done
 ---
 
