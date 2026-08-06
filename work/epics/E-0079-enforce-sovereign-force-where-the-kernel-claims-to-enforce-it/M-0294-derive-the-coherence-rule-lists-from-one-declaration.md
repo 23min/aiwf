@@ -1,7 +1,7 @@
 ---
 id: M-0294
 title: Derive the coherence rule lists from one declaration
-status: draft
+status: in_progress
 parent: E-0079
 depends_on:
     - M-0291
