@@ -127,19 +127,24 @@ the direction this epic implements.
 
 ## Milestones
 
-<!-- Candidates, in execution order. Ids are allocated by aiwfx-plan-milestones;
-     no id-shaped label is written here before the verb assigns one. -->
+- `M-0300` — the invariant-oracle seam plus the two properties that judge a
+  single tree · depends on: —
+- `M-0301` — widen what a sequence may mutate beyond `status` · depends on:
+  `M-0300`
+- `M-0302` — compose across a branch boundary; assert verdict independence ·
+  depends on: `M-0300`
+- `M-0303` — assert the acceptance-criterion composition invariant · depends on:
+  `M-0301`
+- `M-0304` — classify every catalog scenario against the named-scenario rule ·
+  depends on: —
 
-- Agreement-invariant oracle — the three properties from D-0063, red against
-  today's tree · depends on: —
-- Widened mutation space — seed acceptance criteria, set areas and priorities,
-  edit bodies · depends on: the oracle milestone
-- Two-branch-plus-merge scenario — deterministic, untagged, every push ·
-  depends on: the oracle milestone
-- Acceptance-criterion composition fuzz — the met-under-`tdd: required`
-  invariant · depends on: the widened mutation space
-- Catalog reclassification — named scenarios reserved for document-specified
-  verdicts · depends on: —
+`M-0301` and `M-0302` are parallel once `M-0300` lands; `M-0304` is parallel
+throughout.
+
+The third agreement invariant D-0063 names — a sequence's verdict does not
+depend on which branch ran which step — ships in `M-0302` rather than `M-0300`.
+It is unreachable until a sequence can cross a branch boundary, so asserting it
+earlier would be a property nothing generates a condition for.
 
 ## References
 
