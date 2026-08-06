@@ -105,13 +105,12 @@ Absorbs G-0482, G-0479 and G-0541.
 
 ## Milestones
 
-Sequenced; ids allocated by `aiwf add milestone` during milestone planning.
-
-- Single-source the section set and make a missing required section fire · depends on: —
-- Reconcile the shipped prose templates against the derived set, with a test that
-  proves containment · depends on: the first
-- Route the guidance's body-scaffold instruction through the verb that covers all six
-  kinds · depends on: —
+- `M-0305` — one owner for the per-kind section set; the rule fires on an absent
+  section and `Approach` leaves the milestone set · depends on: —
+- `M-0306` — the shipped prose templates become a checked superset of that set, and
+  the epic template's out-of-scope heading moves to top level · depends on: `M-0305`
+- `M-0307` — the always-on guidance's body-scaffold instruction routes through the
+  verb that covers every kind · depends on: —
 
 ## References
 
