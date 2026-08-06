@@ -139,3 +139,45 @@ the message names it.
 
 - D-0062 — why a declaration rather than a cell registry.
 - D-0060 — the satisfiability criterion for the seam's subset, unchanged here.
+
+## Work log
+
+### AC-1 — Three hand-maintained rule lists derive from one declaration
+
+The roster, the seam's force-predicated subset, and the domain's trailer axis all
+derive from `coherenceRuleSpecs`; the three hand-maintained copies are gone ·
+commit 9d327705d
+
+The equality between each derivation and the list it replaced was asserted while
+both existed and removed with them — a transitional proof rather than a durable
+pin. What stays durable is the golden: regenerated and verified a pure
+permutation, so every actor-and-trailer point maps to the verdict it did before.
+Case names and golden lines are now sorted, which decouples the golden from the
+axis order, so a rule widening the axis adds lines instead of rewriting all of
+them.
+
+### AC-2 — The declaration's per-rule claims are verified against behavior
+
+Both force directions and the per-input relevance check assert against the
+verdicts the rules actually produce, with a mis-declaration fixture for each ·
+commit 772516caf
+
+Building this falsified the criterion as first written. It required that a rule
+not fire where every input it declares is absent, which
+`principal-missing-for-non-human-actor` contradicts: it fires precisely when
+`aiwf-principal` is absent, and declares that trailer. The criterion was
+corrected before the AC was promoted. Input completeness is not asserted and is
+not observable through the verdict — only the first violation is reported, so an
+undeclared trailer can change which rule reports without any condition having
+consulted it.
+
+### AC-3 — Declared rules and firing rules are in bijection, failing by name
+
+Both directions asserted, each with a fixture, the failure naming the offending
+rule · commit 5ad260301
+
+`TestCheckTrailerCoherence_EveryRuleIsReachable` was removed rather than kept
+alongside: direction one asserts what it asserted, over the same domain, and its
+shadowing rationale moved into the new check's failure message. The mutation that
+survived at AC-1 — dropping a rule's entry while another rule keeps its trailer
+on the axis — now fails naming `audit-only-non-human`.
