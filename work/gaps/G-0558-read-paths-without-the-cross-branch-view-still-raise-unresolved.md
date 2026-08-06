@@ -1,6 +1,6 @@
 ---
 id: G-0558
-title: The cross-branch view is applied at one of four read paths
+title: Read paths without the cross-branch view still raise unresolved
 status: open
 priority: medium
 ---
