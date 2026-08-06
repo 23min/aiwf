@@ -99,6 +99,13 @@ func TestRunSchema_JSONEnvelope(t *testing.T) {
 		if env.Result.Schemas[i].Kind != k {
 			t.Errorf("Schemas[%d].Kind = %q, want %q", i, env.Result.Schemas[i].Kind, k)
 		}
+		// id_format is the wire field consumers script against, and the
+		// no-argument path reaches it through AllSchemas rather than
+		// SchemaForKind. Asserting the value here is what makes a schema
+		// published without its derived id shape a failure.
+		if got, want := env.Result.Schemas[i].IDFormat, entity.IDFormat(k); got != want {
+			t.Errorf("Schemas[%d].IDFormat = %q, want %q", i, got, want)
+		}
 	}
 }
 
@@ -116,7 +123,7 @@ func TestWriteSchemaText_WriterError(t *testing.T) {
 	// Confirms the error-return path on an io.Writer that fails on the
 	// first byte — covers the defensive `if _, err := ...; err != nil`
 	// branches that stdout in normal tests can never reach.
-	got := schema.WriteSchemaText(brokenWriter{}, []entity.Schema{{Kind: entity.KindEpic, IDFormat: "E-NN"}})
+	got := schema.WriteSchemaText(brokenWriter{}, []entity.Schema{{Kind: entity.KindEpic, IDFormat: entity.IDFormat(entity.KindEpic)}})
 	if got == nil {
 		t.Error("expected error from broken writer")
 	}

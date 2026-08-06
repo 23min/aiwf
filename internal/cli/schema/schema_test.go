@@ -55,7 +55,7 @@ func TestWriteSchemaText_AllowedStatusesWriteError(t *testing.T) {
 	t.Parallel()
 	s := entity.Schema{
 		Kind:            entity.KindEpic,
-		IDFormat:        "E-NN",
+		IDFormat:        entity.IDFormat(entity.KindEpic),
 		AllowedStatuses: []entity.Status{entity.StatusActive, entity.StatusDone},
 	}
 	err := schema.WriteSchemaText(&failAfterNWriter{n: 2}, []entity.Schema{s})

@@ -16,6 +16,14 @@ section in this file.
 
 ## [Unreleased]
 
+### Fixed — G-0559: `aiwf schema` advertises the id width the allocator actually emits
+
+`aiwf schema` published the per-kind widths ADR-0008 replaced — `E-NN`, `M-NNN`, `G-NNN`, `D-NNN`, `C-NNN` — in both its text output and the `id_format` field of its JSON. The same strings reached the `frontmatter-shape` finding, so an id below the digit floor was answered with `does not match E-NN format`: advice that, if followed, lands on a width `entity-id-narrow-width` reports at error severity. All six now read at canonical width. Consumers parsing `id_format` see a changed value.
+
+The shape is no longer stored per kind. `entity.IDFormat` derives it from the kind's prefix and `CanonicalPad`, the two facts `AllocateID` already formats with, so what the kernel advertises and what it emits cannot drift apart — the table can no longer carry a stale copy. Parser tolerance is untouched: narrower legacy widths still validate on input, which is what keeps references into entities archived before the width convention resolving.
+
+Two checks pin it. `TestIDFormat_MatchesAllocatedIDShape` measures the advertised shape against a real allocation rather than recomputing it, so the two sides stay independent. `TestPolicy_NarrowIDPlaceholderLiteralsAllowlisted` bans a Go string literal that *is* a below-canonical id placeholder, the sibling of the existing sweep for real ids at legacy width — the axis that let this survive, since the numeric sweep's grammar never matched a placeholder. Its scope is the whole-literal form; a narrow placeholder inside comment prose describing composite-id syntax is descriptive text, not an advertised contract.
+
 ### Fixed — G-0557: a git hook `aiwf init` cannot read is refused, not overwritten
 
 `aiwf init` and `aiwf update` install four git hooks, and three of them replaced a pre-existing hook they could not read, reporting the result as a successful create. The operator's script was overwritten in place with aiwf's own, no `.local` sibling was written, no conflict was reported, and the step ledger showed `created` at exit 0.
