@@ -21,17 +21,17 @@ import (
 //
 // The two halves of the AC:
 //   - --fast catches content findings that --shape-only is blind to
-//     (refs-resolve here), and a clean tree exits 0.
+//     (body-prose-id here), and a clean tree exits 0.
 //   - --fast is a strict subset of the full check: a git-history-layer
 //     finding (provenance-untrailered-entity-commit) the full check
 //     emits is absent under --fast.
 
 // initFastFixture inits an aiwf repo, commits a clean base, then writes
-// a shape-valid gap whose addressed_by points at a non-existent
-// milestone (a refs-resolve content finding) via a plain `git commit`
-// with no aiwf trailers (a provenance-untrailered finding). Returns the
-// repo root and the base SHA to pass as --since for the provenance
-// audit.
+// a shape-valid gap carrying two content findings — an addressed_by
+// pointing at a non-existent milestone, and a malformed id-shaped token
+// in its body — via a plain `git commit` with no aiwf trailers (a
+// provenance-untrailered finding). Returns the repo root and the base
+// SHA to pass as --since for the provenance audit.
 func initFastFixture(t *testing.T) (root, baseSHA string) {
 	t.Helper()
 	root = setupCLITestRepo(t)
@@ -61,7 +61,14 @@ func initFastFixture(t *testing.T) (root, baseSHA string) {
 	if err := os.MkdirAll(gapDir, 0o755); err != nil {
 		t.Fatal(err)
 	}
-	gap := "---\nid: G-0001\ntitle: ref fixture\nstatus: addressed\naddressed_by:\n    - M-9999\n---\nbody\n"
+	// Two content findings with deliberately different fates. The
+	// dangling `addressed_by` is a claim only the cross-branch view can
+	// settle, so a ref-less surface reports it as a non-blocking
+	// unresolved-unverified warning (G-0558); the malformed prose token
+	// needs no such view and stays a blocking error, which is what
+	// makes it the vehicle for the "--fast runs the content rules"
+	// assertions below.
+	gap := "---\nid: G-0001\ntitle: ref fixture\nstatus: addressed\naddressed_by:\n    - M-9999\n---\nbody mentioning M-foo\n"
 	if err := os.WriteFile(filepath.Join(gapDir, "G-0001-ref-fixture.md"), []byte(gap), 0o644); err != nil {
 		t.Fatal(err)
 	}
@@ -87,19 +94,20 @@ func TestRun_CheckFast_CatchesContentFindingShapeOnlyMisses(t *testing.T) {
 	if shapeRC != cliutil.ExitOK {
 		t.Errorf("shape-only rc = %d, want %d (blind to content findings)", shapeRC, cliutil.ExitOK)
 	}
-	if strings.Contains(shapeOut, check.CodeRefsResolve) {
-		t.Errorf("shape-only should not report %q:\n%s", check.CodeRefsResolve, shapeOut)
+	if strings.Contains(shapeOut, check.CodeBodyProseID) {
+		t.Errorf("shape-only should not report %q:\n%s", check.CodeBodyProseID, shapeOut)
 	}
 
-	// --fast: reports the refs-resolve error and exits with findings.
+	// --fast: reports the malformed prose token as an error and exits
+	// with findings.
 	fastRC, fastOut, _ := testutil.CaptureRun(t, func() int {
 		return cli.Execute([]string{"check", "--fast", "--root", root})
 	})
 	if fastRC != cliutil.ExitFindings {
-		t.Errorf("fast rc = %d, want %d (refs-resolve is an error)", fastRC, cliutil.ExitFindings)
+		t.Errorf("fast rc = %d, want %d (body-prose-id malformed-shape is an error)", fastRC, cliutil.ExitFindings)
 	}
-	if !strings.Contains(fastOut, check.CodeRefsResolve) {
-		t.Errorf("fast should report %q:\n%s", check.CodeRefsResolve, fastOut)
+	if !strings.Contains(fastOut, check.CodeBodyProseID) {
+		t.Errorf("fast should report %q:\n%s", check.CodeBodyProseID, fastOut)
 	}
 
 	// full check: also reports refs-resolve.
@@ -133,14 +141,15 @@ func TestRun_CheckFast_SkipsGitHistoryLayer(t *testing.T) {
 		return cli.Execute([]string{"check", "--fast", "--root", root, "--since", base})
 	})
 	// --fast must actually run the content rules (not error out): it
-	// reports the refs-resolve error here. Asserting this keeps the
-	// scope check below non-vacuous — an absent or broken --fast would
-	// trivially "not contain" the provenance code for the wrong reason.
+	// reports the malformed prose token as an error here. Asserting
+	// this keeps the scope check below non-vacuous — an absent or
+	// broken --fast would trivially "not contain" the provenance code
+	// for the wrong reason.
 	if fastRC != cliutil.ExitFindings {
 		t.Fatalf("fast rc = %d, want %d (must run the content rules)", fastRC, cliutil.ExitFindings)
 	}
-	if !strings.Contains(fastOut, check.CodeRefsResolve) {
-		t.Fatalf("fast should report %q:\n%s", check.CodeRefsResolve, fastOut)
+	if !strings.Contains(fastOut, check.CodeBodyProseID) {
+		t.Fatalf("fast should report %q:\n%s", check.CodeBodyProseID, fastOut)
 	}
 	if strings.Contains(fastOut, check.CodeProvenanceUntrailedEntityCommit) {
 		t.Errorf("--fast must skip the provenance/git-history layer; got %q:\n%s",
@@ -209,6 +218,7 @@ func TestRun_CheckFast_JSONEnvelope(t *testing.T) {
 		Findings []struct {
 			Code     string `json:"code"`
 			Severity string `json:"severity"`
+			Subcode  string `json:"subcode"`
 		} `json:"findings"`
 		Metadata map[string]any `json:"metadata"`
 	}
@@ -218,16 +228,62 @@ func TestRun_CheckFast_JSONEnvelope(t *testing.T) {
 	if env.Status != "findings" {
 		t.Errorf("envelope status = %q, want \"findings\"", env.Status)
 	}
-	gotRefErr := false
+	// The dangling ref rides the envelope as the downgraded warning,
+	// carrying its subcode and hint — the shape a JSON consumer sees
+	// for a verdict this surface could not settle (G-0558).
+	gotUnverified := false
 	for _, f := range env.Findings {
+		if f.Code == check.CodeRefsResolve && f.Severity == "warning" && f.Subcode == "unresolved-unverified" {
+			gotUnverified = true
+		}
 		if f.Code == check.CodeRefsResolve && f.Severity == "error" {
-			gotRefErr = true
+			t.Errorf("--fast raised a blocking %q the full check does not:\n out: %s", check.CodeRefsResolve, out)
 		}
 	}
-	if !gotRefErr {
-		t.Errorf("envelope findings must include a %q error\n out: %s", check.CodeRefsResolve, out)
+	if !gotUnverified {
+		t.Errorf("envelope findings must include a %q/unresolved-unverified warning\n out: %s", check.CodeRefsResolve, out)
 	}
 	if env.Metadata["fast"] != true {
 		t.Errorf("envelope metadata.fast = %v, want true", env.Metadata["fast"])
+	}
+}
+
+// TestRun_CheckFast_DoesNotBlockOnAVerdictItCannotReach pins the
+// G-0558 contract at the exit-code level, which is what a caller
+// actually branches on.
+//
+// A dangling reference is the only content finding in this fixture, and
+// `unresolved` is a claim about tiers --fast never built. It therefore
+// reports a warning and exits 0, where the full check — which does
+// build them — is free to exit 1. A cheap approximation of the
+// authoritative gate must not be the stricter of the two: an operator
+// who runs it between commits would be sent to fix prose no gate will
+// ever object to.
+func TestRun_CheckFast_DoesNotBlockOnAVerdictItCannotReach(t *testing.T) {
+	root := setupCLITestRepo(t)
+	if rc := cli.Execute([]string{"init", "--root", root, "--actor", "human/test", "--skip-hook"}); rc != cliutil.ExitOK {
+		t.Fatalf("init: %d", rc)
+	}
+	gapDir := filepath.Join(root, "work", "gaps")
+	if err := os.MkdirAll(gapDir, 0o755); err != nil {
+		t.Fatal(err)
+	}
+	gap := "---\nid: G-0001\ntitle: ref fixture\nstatus: open\n---\nSee M-9999 for the rule.\n"
+	if err := os.WriteFile(filepath.Join(gapDir, "G-0001-ref-fixture.md"), []byte(gap), 0o644); err != nil {
+		t.Fatal(err)
+	}
+
+	rc, out, _ := testutil.CaptureRun(t, func() int {
+		return cli.Execute([]string{"check", "--fast", "--root", root})
+	})
+	if rc != cliutil.ExitOK {
+		t.Errorf("fast rc = %d, want %d — this surface cannot substantiate `unresolved`, so it must not block on it:\n%s",
+			rc, cliutil.ExitOK, out)
+	}
+	if !strings.Contains(out, "unmerged branch") {
+		t.Errorf("fast should say why it is not deciding:\n%s", out)
+	}
+	if strings.Contains(out, "no entity allocated at this id") {
+		t.Errorf("fast still asserts the id is unallocated, which it did not establish:\n%s", out)
 	}
 }

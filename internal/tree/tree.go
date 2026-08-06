@@ -160,6 +160,21 @@ type Tree struct {
 	// Tests that build trees in-memory leave it nil, degrading resolution
 	// to today's two-tier (working tree, unresolved) behavior.
 	CrossBranchHits []trunk.RefHit
+	// CrossBranchScanned records whether the cross-branch ref scan ran,
+	// which empty CrossBranchHits cannot express on its own: "scanned,
+	// found nothing" and "never scanned" are the same nil slice. Only
+	// the first substantiates `unresolved`, which is a claim about every
+	// tier (G-0558).
+	//
+	// Read by check.MarkUnverifiedResolution, the post-pass a read-only
+	// reporting surface applies to its own findings before printing
+	// them. The resolution rules themselves ignore this field, because
+	// the verbs consult them to decide whether to refuse a mutation and
+	// must keep getting the strict answer.
+	//
+	// False is the safe default: a caller that never sets it is treated
+	// as not having looked.
+	CrossBranchScanned bool
 	// CrossBranchCollisions is the canonicalized-id set for which
 	// CrossBranchHits carries divergent blob content across two or more
 	// refs (computed by trunk.ScanCrossBranch, M-0259/AC-3, G-0415).

@@ -372,7 +372,12 @@ func runFast(ctx context.Context, root, format string, pretty bool) int {
 		cliutil.Errorf("aiwf check: loading tree: %v\n", err)
 		return cliutil.ExitInternal
 	}
-	findings := check.Run(tr, loadErrs)
+	// This surface trades the cross-branch scan for speed, so it cannot
+	// substantiate `unresolved` and reports the non-blocking
+	// unresolved-unverified subcode instead (G-0558). Without this, a
+	// cheaper approximation of the pre-push gate is stricter than the
+	// gate — it raises blocking errors the authoritative check will not.
+	findings := check.MarkUnverifiedResolution(check.Run(tr, loadErrs), tr)
 
 	var allow []string
 	var areaMembers []string
