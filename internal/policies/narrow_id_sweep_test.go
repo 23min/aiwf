@@ -210,6 +210,12 @@ func TestPolicy_NarrowIDLiteralsAllowlisted(t *testing.T) {
 		// same shape as the AC-2 parser-tolerance tests above.
 		"internal/stresstest/readpath_agreement_test.go": "M-0300/AC-1 narrow-vs-canonical subject identity in the read-path agreement invariant",
 
+		// M-0300/AC-2: blockingSubjectsFrom canonicalizes a finding's
+		// entity id for the same reason, so the two runs of the ref-less
+		// stability property key one subject rather than two when the
+		// surface spells an id at legacy narrow width.
+		"internal/stresstest/refless_stability_test.go": "M-0300/AC-2 narrow-vs-canonical subject identity in the ref-less stability invariant",
+
 		// M-0264: writeFixtureTree's own fixture entities are seeded at
 		// narrow width on disk (id: G-001, E-01, ...), and idToFileName
 		// renders filenames/hrefs verbatim from that on-disk id rather

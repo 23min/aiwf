@@ -107,7 +107,7 @@ func TestWalkInvariants_JudgesEveryStateAgainstBothProperties(t *testing.T) {
 		got = append(got, inv.Name())
 	}
 
-	want := []string{"list-vs-ground-truth", "read-path agreement"}
+	want := []string{"list-vs-ground-truth", "read-path agreement", "ref-less verdict stability"}
 	if diff := cmp.Diff(want, got); diff != "" {
 		t.Errorf("walkInvariants() mismatch (-want +got):\n%s", diff)
 	}

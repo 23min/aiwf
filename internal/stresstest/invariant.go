@@ -40,6 +40,7 @@ func walkInvariants() []Invariant {
 	return []Invariant{
 		listGroundTruthInvariant{},
 		readPathAgreementInvariant{},
+		refLessStabilityInvariant{},
 	}
 }
 
