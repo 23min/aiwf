@@ -8,7 +8,7 @@ acs:
     - id: AC-1
       title: The per-kind section set has one definition the add scaffold derives from
       status: open
-      tdd_phase: red
+      tdd_phase: green
     - id: AC-2
       title: The JSON body-map help text is checked against that definition
       status: open
