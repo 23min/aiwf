@@ -1107,7 +1107,7 @@ work is finished.
 | M-0289 | Lint and sweep narrow ids from README and the workflows guide | done |
 | M-0290 | Retire the rewidth verb and fire the drift check on any narrow active id | done |
 
-## E-0079 — Enforce sovereign force where the kernel claims to enforce it (active)
+## E-0079 — Enforce sovereign force where the kernel claims to enforce it (done)
 
 ### Goal
 
