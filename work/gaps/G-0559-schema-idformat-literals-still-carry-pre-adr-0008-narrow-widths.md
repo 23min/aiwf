@@ -1,8 +1,10 @@
 ---
 id: G-0559
 title: Schema IDFormat literals still carry pre-ADR-0008 narrow widths
-status: open
+status: addressed
 priority: medium
+addressed_by_commit:
+    - b778bc9f32ad147df12bb83df3fa6c7c032175ce
 ---
 ## What's missing
 
