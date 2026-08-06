@@ -107,13 +107,15 @@ nothing indexed the rule and nothing noticed the guard reached one verb of four.
   built. M-0293's table is the enumeration; it spans the kernel's own
   documentation, the audit catalogue, a flag's help text, and the two
   contradicting code comments named in *Context*.
-- **Re-aim the sovereign dispatcher policy** (G-0534) at a code reference. Its
-  subject narrows once the guard sits at `verb.Apply`: routing is then structural
-  rather than policed, and what is left to assert is that no production path
-  reaches a commit bypassing that seam.
-- **A cell registry for rule spaces not keyed `(Kind, FromState, Verb)`**, so a
-  rule without an FSM coordinate still gets the Pin-and-bijection discipline.
-  Recorded as decided; its placement is an open question below.
+- **Settle the sovereign dispatcher policy** (G-0534). Its subject narrows once
+  the guard sits at `verb.Apply`: routing is then structural rather than policed,
+  and what is left to assert is that no production path reaches a commit
+  bypassing that seam — which the seam's own chokepoint already asserts, so the
+  policy is retired rather than re-aimed (D-0061).
+- **One declaration for the coherence rule set**, so the domain's trailer axis,
+  the seam's force-predicated subset, and the reachability roster all derive from
+  it instead of from three hand-maintained copies. The Pin-and-bijection
+  machinery the branch spec carries is deliberately not mirrored (D-0062).
 - **One ADR** recording the stance: sovereign acts are prevented at the verb
   route and ratifiable at the history route.
 
@@ -152,14 +154,14 @@ nothing indexed the rule and nothing noticed the guard reached one verb of four.
   the reason recorded, and the finding is gone on the next check run.
 - Every surface listed in the *In scope* correction item states what the kernel
   actually does.
-- Every rule-space cell introduced by this epic is pinned by a test, under the
-  same bijection discipline the branch spec already has.
+- The coherence rule set has one declaration that its trailer axis, the subset
+  the seam enforces, and its reachability check all derive from, so a rule added
+  without an entry fails by name rather than reading as covered.
 
 ## Open questions
 
 | Question | Blocking? | Resolution path |
 |---|---|---|
-| Does the cell registry for non-FSM-keyed rule spaces belong in this epic or its own? | no | Milestone planning. Decided to build it; only placement is open, and it can spawn an epic without blocking the wiring. |
 | Does adding the rule to the ack roster silence it too broadly, since an acknowledgement is keyed on SHA alone? | no | Accepted for now: an acknowledgement is a judgment about a commit, which is what the existing consumers assume. Revisit if someone needs to accept one rule while another still blocks. |
 | Is the check-time absence of `audit-only-with-force` a gap of its own? | no | Surfaces during the wiring, which covers it at verb time regardless. Decide there whether the history-walking side needs it too. |
 
@@ -180,9 +182,8 @@ deliverables, in execution order:
 - The ratification path: the ack roster entry, its coverage, and the real-repo
   test that the acknowledgement clears the finding.
 - The surface corrections, including the folded-in finding-hint audit, and the
-  sovereign dispatcher policy re-aimed at a code reference.
-- The cell registry for rule spaces without an FSM coordinate — last, and the
-  candidate for promotion to its own epic.
+  sovereign dispatcher policy retired (D-0061).
+- The single declaration the coherence rule lists derive from — last.
 
 ## References
 
