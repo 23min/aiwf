@@ -36,14 +36,22 @@ machinery. It deliberately does not widen what a sequence may mutate — D-0063 
 explicit that a wider state space under a monotonic oracle buys reachability
 without judgment, so the oracle comes first.
 
+Two fixes landed after D-0063 was accepted and both shape what agreement means
+here. G-0558 gave a ref-less surface a way to say it did not build the
+cross-branch tier, via the `unresolved-unverified` subcode at warning severity.
+G-0556 split a cross-branch hit by whether its branch is published, so the full
+check reports `cross-branch-local-only` at error severity where it previously
+reported a warning. A property demanding byte-identical finding sets across
+surfaces would therefore fire on a correct tree.
+
 ## Approach
 
 Add an invariant-oracle seam to the walker: after every step of a sequence,
 evaluate a set of registered properties against the repository that step
 produced. Two properties land here. Read-path agreement runs each surface that
-renders a verdict over the same bytes and compares the finding sets. Ref-less
-stability recomputes the verdict on a copy stripped of refs the tree does not
-need, and compares.
+renders a verdict over the same bytes and looks for contradiction between them.
+Ref-less stability recomputes the verdict on a copy stripped of refs the tree
+does not need, and compares.
 
 Neither property knows the correct verdict. Both compare two observations of the
 same bytes, which is what makes them cost nothing per axis once the mutation
@@ -56,18 +64,28 @@ Each criterion below is asserted by the harness itself, not by review.
 ### AC-1 — Every verdict-rendering read path renders the same verdict on the same bytes
 
 After each step of a composed sequence, the harness runs every verdict-rendering
-read path over the repository that step produced and compares the resulting
-finding sets — code, subcode, severity, and the entity each finding is attached
-to. A divergence in any of those fields fails the property, and the failure
-names the two surfaces and the finding that differs.
+read path over the repository that step produced and fails when two of them
+**contradict** each other about the same subject. The failure names both
+surfaces and the subject they disagree on.
 
-The comparison is between observations. The harness never states which surface
-is correct, so the property carries no model of the tier rules and needs no
-update when those rules change.
+Agreement is non-contradiction, not identity of finding sets. A surface
+reporting `unresolved-unverified` is declining to judge — it is saying it did
+not build the tier that would settle the question — and a declined judgment
+contradicts nothing. Two surfaces contradict when both make a substantive claim
+about one subject and those claims cannot both hold: one blocks while the other
+is clean, or they classify the same subject differently.
 
-The measured instance this must catch: `aiwf check` classifying a reference as a
-non-blocking warning while `aiwf check --fast` reports the same reference as a
-blocking error, on the same bytes in the same working copy (G-0558).
+The distinction is load-bearing rather than pedantic. On today's main, a
+cross-branch reference draws `cross-branch-local-only` at error severity from
+the full check and `unresolved-unverified` at warning severity from a ref-less
+one. That is correct behavior, and an identity-shaped property would report it
+as a defect on every run.
+
+The comparison stays between observations. The harness never states which
+surface is right, so the property holds no model of the tier rules and needs no
+update when they change — which is what let it survive G-0556's classification
+change arriving between this milestone's planning and its implementation.
+
 
 ### AC-2 — A verdict is stable under refs the tree does not need
 
@@ -94,9 +112,10 @@ success criteria require the failing direction explicitly, and this is where it
 is discharged — at plan time, rather than as a review finding once the
 implementation is already written.
 
-The constructed violation is separate from the red state the current binary
-produces. That one is incidental and disappears when G-0558's fix lands; this
-one is permanent and keeps the property honest afterwards.
+The constructed violation is the only non-vacuity evidence available. The
+defects that motivated these properties are fixed on main — G-0558 and G-0556
+both landed — so neither property fails against the tree as it stands, and a
+green run proves nothing on its own.
 
 ## Constraints
 
@@ -107,10 +126,12 @@ one is permanent and keeps the property honest afterwards.
   test.
 - **No property measures the runner** — not how many actors get through, not how
   fast (G-0468).
-- **Both properties fail against the current binary** and turn green when
-  G-0558's fix lands. Do not weaken a property to make it pass early, and do not
-  merge this milestone to mainline ahead of that fix: the red-to-green flip
-  across it is the evidence the oracle works.
+- **Agreement is non-contradiction.** A property demanding identical finding
+  sets across surfaces would fire on correct trees, because a ref-less surface
+  legitimately declines to judge where a full one classifies. Identity is the
+  shape to refuse at review, on the same footing as an exact-verdict oracle.
+- **A green run is not evidence.** Both properties pass against main as it
+  stands, so AC-3's constructed violation is what proves either can fail.
 
 ## Design notes
 
@@ -120,6 +141,10 @@ one is permanent and keeps the property honest afterwards.
 - The surfaces read-path agreement compares are the ones G-0558 measured as
   disagreeing: `aiwf check`, `aiwf check --fast`, `aiwf check --shape-only`, and
   `aiwf status`.
+- The subcodes that make a declined judgment legible are
+  `refs-resolve/unresolved-unverified` and `body-prose-id/unresolved-unverified`
+  (G-0558), both at warning severity. The property treats them as
+  non-substantive; every other classification is substantive.
 
 ## Surfaces touched
 
@@ -132,21 +157,24 @@ one is permanent and keeps the property honest afterwards.
 - The branch-independence property. It is unreachable until a sequence can cross
   a branch boundary, so it ships with the scenario that makes it reachable
   rather than as a test no generated condition ever exercises.
-- Fixing the disagreement these properties detect — that is G-0558.
+- Repairing any disagreement these properties detect. G-0558 and G-0556 fixed
+  the two known instances; a new one is filed, not fixed here.
 
 ## Dependencies
 
 - D-0063, accepted.
-- G-0558's fix must land before either property can reach green. That edge is
-  prose-only: `depends_on` is milestone-to-milestone and G-0558 is patch-shaped.
-  It is the G-0073 ceiling E-0080 names, met on the epic's own first milestone.
+- No milestone dependency. G-0558 and G-0556 are both `addressed` on main, so
+  the properties are written against a tree where the known instances are
+  already repaired — which is why AC-3 carries the whole non-vacuity burden.
 
 ## References
 
 - D-0063 — widen the stress walker; keep its oracle invariant-shaped.
-- G-0558, G-0556 — the measured instances these properties judge.
+- G-0558 — the measured read-path disagreement, and the
+  `unresolved-unverified` subcode that makes a declined judgment legible.
+- G-0556 — the published-versus-local split that makes the full check's
+  severity differ from a ref-less surface's on the same subject.
 - G-0468 — the precedent for holding an oracle to a shape rather than a subject.
-- G-0073 — why the G-0558 edge cannot be declared structurally.
 - G-0121, E-0062 — the parent gap and the epic that built the walker.
 
 ## Work log
