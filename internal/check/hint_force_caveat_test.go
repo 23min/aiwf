@@ -192,10 +192,18 @@ func TestWithForceCaveat_JoinsOnOneSentenceBreak(t *testing.T) {
 func TestForceCaveatSentence_StatesBothHalves(t *testing.T) {
 	t.Parallel()
 
-	// What it relaxes.
-	if !strings.Contains(forceCaveatSentence, "transition rule") {
-		t.Error("the caveat does not name what --force relaxes; without it the reader cannot " +
-			"tell how far the override reaches")
+	// What it reaches. Deliberately not "the FSM transition rule": the
+	// flag gates six non-FSM preconditions in promote and relaxes no FSM
+	// rule at all in cancel, so naming the FSM would be false on more
+	// findings than it was true on.
+	if !strings.Contains(forceCaveatSentence, "only the precondition this finding names") {
+		t.Error("the caveat does not scope what --force overrides to the finding's own " +
+			"precondition; without that the reader cannot tell how far the override reaches")
+	}
+	if strings.Contains(forceCaveatSentence, "FSM transition rule") {
+		t.Error("the caveat claims --force relaxes the FSM transition rule. Measured, it gates " +
+			"non-FSM preconditions too (a gap's resolver requirement on an FSM-legal " +
+			"transition), and in cancel it relaxes no FSM rule at all")
 	}
 	// What it leaves standing: the actor constraint, and every other check.
 	if !strings.Contains(forceCaveatSentence, "human/") {

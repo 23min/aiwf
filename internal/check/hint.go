@@ -360,10 +360,30 @@ var hintTable = map[string]string{
 func HintFor(code, subcode string) string {
 	if subcode != "" {
 		if h, ok := hintTable[code+"/"+subcode]; ok {
-			return withRatificationHint(code, withForceCaveat(h))
+			return composeHint(code, h)
 		}
 	}
-	return withRatificationHint(code, withForceCaveat(hintTable[code]))
+	return composeHint(code, hintTable[code])
+}
+
+// hintComposers are the sentence appenders, in the order a reader meets
+// them. Held as a list rather than nested at each call site so the order
+// is declared once: HintFor returns from two places, and nesting made
+// every added composer two edits and two chances to disagree about
+// order.
+var hintComposers = []func(code, hint string) string{
+	func(_, hint string) string { return withForceCaveat(hint) },
+	withRatificationHint,
+}
+
+// composeHint folds every composer over a table hint. Each decides for
+// itself whether it applies, so a hint no composer claims comes back
+// unchanged.
+func composeHint(code, hint string) string {
+	for _, compose := range hintComposers {
+		hint = compose(code, hint)
+	}
+	return hint
 }
 
 // ratifiableByAcknowledgment reports whether `aiwf acknowledge illegal
@@ -449,12 +469,20 @@ func offersForceAsRemedy(hint string) bool {
 // forceCaveatSentence is the one copy of what the override does and does
 // not reach. A hint that offers `--force` without it reads as a general
 // escape from the finding it is attached to, which is wrong twice over:
-// the override relaxes one rule rather than the finding, and the actor
-// constraint it does not relax is the one an agent reading the hint will
-// hit first.
-const forceCaveatSentence = "`--force` relaxes the FSM transition rule and nothing else: it is " +
-	"sovereign, so the actor must be `human/...` — a force trailer from a non-human actor is " +
-	"refused before anything is written — and every other check still runs."
+// the override reaches one precondition rather than the finding, and the
+// actor constraint it does not reach is the one an agent reading the
+// hint will hit first.
+//
+// It names the precondition indirectly — "the one this finding names" —
+// because what `--force` relaxes is verb-specific and is not, in
+// general, the FSM transition. `aiwf promote` gates six non-FSM
+// preconditions behind it (a gap's resolver requirement among them, on a
+// transition the FSM already allows), and in `aiwf cancel` the flag
+// relaxes no FSM rule at all. A sentence naming the FSM would be false
+// on more findings than it was true on.
+const forceCaveatSentence = "`--force` overrides only the precondition this finding names, not the " +
+	"finding itself: it is sovereign, so it requires a `human/...` actor, and every other " +
+	"check still runs."
 
 // withForceCaveat appends forceCaveatSentence to a hint that offers the
 // flag. An empty hint stays empty, for the reason withRatificationHint

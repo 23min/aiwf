@@ -3,9 +3,10 @@ package entity
 // SovereignActShape names a (kind, from, to) tuple that is FSM-legal
 // but treated by the kernel as requiring an explicit sovereign-act
 // gesture: a `human/` actor. `--force --reason "..."` does not stand in
-// for one — it relaxes the FSM transition rule, and a force trailer
-// from a non-human actor is itself refused at the apply seam, so both
-// routes into these transitions require a human (ADR-0040). Exported so
+// for one — it relaxes this gate rather than the FSM (these tuples are
+// FSM-legal, and a human reaches them with no flag at all), and a force
+// trailer from a non-human actor is itself refused at the apply seam,
+// so both routes into these transitions require a human. Exported so
 // policy-layer code (which lives outside the entity package) can build
 // per-entry regexes or other derived structures against the closed set.
 type SovereignActShape struct {

@@ -113,10 +113,6 @@ func Run(opts Options) (code int) {
 		return code
 	}
 
-	if forceCode, forceOK := cliutil.RefuseNonHumanSovereignForce("aiwf cancel", actorStr, opts.Force); !forceOK {
-		return forceCode
-	}
-
 	ctx := context.Background()
 
 	finish := cliutil.BeginVerbDiag(rootDir, "cancel", opts.ID, actorStr, opts.Out.CorrelationID)

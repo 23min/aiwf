@@ -148,10 +148,6 @@ func Run(args []string, actor, principal, root, reason,
 		return code
 	}
 
-	if forceCode, forceOK := cliutil.RefuseNonHumanSovereignForce("aiwf promote", actorStr, force); !forceOK {
-		return forceCode
-	}
-
 	ctx := context.Background()
 
 	finish := cliutil.BeginVerbDiag(rootDir, "promote", id, actorStr, out.CorrelationID)

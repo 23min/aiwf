@@ -209,8 +209,17 @@ func TestM0293_KernelGuidanceStatesForceIsHumanOnly(t *testing.T) {
 
 	// Row 4 — the provenance model's own bullet.
 	provenance := mdSection(t, "docs/design/design-decisions.md", 3, "Provenance model")
-	provenance.mustSay(t, "refuses `--force` from any actor whose role is not `human/",
+	provenance.mustSay(t, "refuses an `aiwf-force:` trailer from any actor whose role is not `human/",
 		"this is the design record of the refusal itself")
+	// The rule is keyed on the trailer, not the flag, and the difference
+	// is observable: `aiwf add --force` by a non-human actor exits 0 on a
+	// kind with no body gate, because the flag is inert there and no
+	// sovereign act is recorded. A record claiming the flag is refused
+	// would be false in exactly the case this milestone exempted `add`
+	// for.
+	provenance.mustNotSay(t, "refuses `--force` from any actor",
+		"the kernel refuses the trailer rather than the flag; stating it as the flag contradicts "+
+			"the measured behaviour of `aiwf add --force` under a non-human actor")
 }
 
 // ---------------------------------------------------------------------
@@ -234,8 +243,8 @@ func TestM0293_AuditCatalogueCitesTheSeamThatRefuses(t *testing.T) {
 	rule076.mustNotSay(t, "cliutil sovereign guard",
 		"no such guard exists in internal/cli/cliutil — the citation sends a reader to nothing")
 	rule076.mustNotSay(t, "policies/sovereign.go",
-		"that policy's guard predicate is satisfied by a flag-help string (G-0534), so citing it "+
-			"as the chokepoint claims an enforcement it does not perform")
+		"internal/policies/sovereign.go does not exist; the rule is kept at the apply seam, and "+
+			"a citation pointing anywhere else sends a reader to nothing")
 
 	// Row 6 — the universal mutating-verb rule. Its scope column covers
 	// --force and --audit-only together, and they are enforced at
@@ -282,8 +291,8 @@ func TestM0293_AuditCatalogueCitesTheSeamThatRefuses(t *testing.T) {
 	rule078.mustSay(t, "does not substitute",
 		"the row must say what --force fails to do here")
 	rule078.mustNotSay(t, "policies/sovereign.go",
-		"that policy's guard predicate is satisfied by a flag-help string (G-0534), so citing "+
-			"it as a chokepoint claims an enforcement it does not perform")
+		"internal/policies/sovereign.go does not exist; the rule is kept at the apply seam, and "+
+			"a citation pointing anywhere else sends a reader to nothing")
 }
 
 // ---------------------------------------------------------------------

@@ -166,11 +166,6 @@ func TestFiringFixtures_SingleSite(t *testing.T) {
 			files:  map[string]string{"internal/foo/role.go": "package foo\n\nimport \"regexp\"\n\nvar _ = regexp.MustCompile(\"^[^/]+/[^/]+/.+\")\n"},
 		},
 		{
-			id:     "sovereign-dispatchers-guard-human-actor",
-			policy: PolicySovereignDispatchersGuardHumanActor,
-			files:  map[string]string{"internal/cli/sv/sv.go": "package sv\n\nfunc NewCmd() {\n\t_ = \"force\"\n\t_ = \"reason\"\n}\n"},
-		},
-		{
 			id:     "tests-real-clone-not-update-ref",
 			policy: PolicyTestsRealCloneNotUpdateRef,
 			files:  map[string]string{"cmd/aiwf/c_test.go": "package main\n\nfunc TestX() { _ = \"git update-ref refs/remotes/origin/main\" }\n"},
