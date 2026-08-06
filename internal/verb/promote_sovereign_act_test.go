@@ -10,8 +10,14 @@ import (
 
 // TestPromote_EpicActive_RefusesNonHumanActor pins M-0095/AC-1: the
 // `epic / proposed → active` edge is a sovereign act. Any actor that
-// does not begin with `human/` is refused with a typed error pointing
-// at the rule and the `--force --reason` override path.
+// does not begin with `human/` is refused with a typed error naming the
+// rule and a remedy that works.
+//
+// The remedy is the human-run path only. `--force` was a real override
+// for a non-human actor until the coherence guard at verb.Apply began
+// refusing a force trailer from one, and this message is reachable only
+// for a non-human actor — so offering it would be wrong every time the
+// message is shown.
 func TestPromote_EpicActive_RefusesNonHumanActor(t *testing.T) {
 	t.Parallel()
 	r := newRunner(t)
@@ -25,8 +31,12 @@ func TestPromote_EpicActive_RefusesNonHumanActor(t *testing.T) {
 	if !strings.Contains(msg, "human/") {
 		t.Errorf("error should reference the human/ requirement; got %v", err)
 	}
-	if !strings.Contains(msg, "--force") {
-		t.Errorf("error should mention --force override path; got %v", err)
+	if strings.Contains(msg, "--force") {
+		t.Errorf("error offers --force, which this actor cannot use: the coherence guard "+
+			"refuses a force trailer from a non-human actor, so following the advice fails; got %v", err)
+	}
+	if !strings.Contains(msg, "have a human run the verb") {
+		t.Errorf("error should name a remedy that works; got %v", err)
 	}
 	if !strings.Contains(msg, "sovereign") {
 		t.Errorf("error should name the act as sovereign so the reader understands why; got %v", err)

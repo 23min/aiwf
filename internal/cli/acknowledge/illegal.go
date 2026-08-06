@@ -49,7 +49,22 @@ aiwf-force-for trailer:
     - promote-on-wrong-branch                         (M-0161/AC-8)
     - id-rename-untrailered                           (M-0160/AC-4)
     - trailer-verb-unknown                            (G-0150 lift)
+    - every rule the provenance history audit raises (M-0292) — the
+      trailer-shape, coherence and authorization rules alike, since an
+      acknowledgment is a judgment about a commit rather than about one
+      of the rules it happens to trip
     - provenance-untrailered-entity-commit            (G-0231 item 3; --for-entity required)
+
+Because that audit's rules clear as a set, a reason written about one finding
+retires the commit's others too — an acknowledgment recorded for a stray force
+trailer also retires an out-of-scope authorization finding on the same commit.
+It reaches exactly one commit and no other.
+
+Two provenance-prefixed findings are outside all of this.
+provenance-untrailered-entity-commit is listed above and needs --for-entity.
+provenance-untrailered-scope-undefined reports that the audit range could not
+be determined, which is a property of the invocation rather than of a commit,
+so no acknowledgment addresses it — configure an upstream or pass --since.
 
 The acknowledgment is a separate, current-day empty commit carrying:
 
@@ -63,9 +78,11 @@ The CLI gather layer at internal/cli/check/check.go walks HEAD's reachable
 history for aiwf-force-for trailers once per check invocation (the M-0159/AC-3
 lift) and threads the resulting SHA set to every rule above; each rule
 exempts findings whose offending commit appears in the set. The acknowledgment
-lives in git (queryable via aiwf history); it does NOT pollute aiwf.yaml and
-does NOT rewrite the offending commit's history — the original author,
-trailers, and SHA are preserved per M-0136's no-history-rewrite principle.
+lives in git; it does NOT pollute aiwf.yaml and does NOT rewrite the offending
+commit's history — the original author, trailers, and SHA are preserved per
+M-0136's no-history-rewrite principle. Read one back with git show <ack-sha> or
+git log --grep; only the --for-entity shape carries an aiwf-entity trailer, so
+only that shape appears in aiwf history <id>.
 
 Target-SHA validity (M-0136/AC-4 + G-0236): the target must either be
 reachable from HEAD (the primary case — covers FSM-history rules and
@@ -81,11 +98,16 @@ the diff's paths resolves to <id>. This is what makes the per-(SHA, entity)
 ack tamper-resistant against operator-attested bindings (LLM or human writing
 the wrong entity id with a real SHA): the kernel walks the actual git diff
 and refuses if <sha> doesn't touch <id>. Required for
-provenance-untrailered-entity-commit acks; optional for the other seven
-rules (which use the per-SHA blanket shape).
+provenance-untrailered-entity-commit acks; optional for every other rule
+above (which use the per-SHA blanket shape).
 
 Per-SHA closed-set scoping: an acknowledgment for one SHA exempts only that
 SHA. There is no "exempt everything" knob.
+
+No verb undoes an acknowledgment, deliberately: it is an audit record, and
+retracting it would rewrite the audit trail this verb exists to preserve. A
+judgment you want to withdraw is recorded the same way it was made — as a new
+entity referencing the acknowledgment.
 
 Both --reason (non-empty after trim) and a human/... actor are required
 — sovereign acts trace to a named human with written rationale.`,

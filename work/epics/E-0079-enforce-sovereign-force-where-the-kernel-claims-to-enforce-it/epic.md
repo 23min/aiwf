@@ -9,9 +9,9 @@ status: active
 ## Goal
 
 Make the kernel's "`--force` is human-only" guarantee true at the moment it is
-claimed, and give the finding it produces a way to be cleared. Five surfaces
-state the guarantee as enforced; the verb route enforces it for one verb of four,
-and no verb clears the resulting error.
+claimed, and give the finding it produces a way to be cleared. Every surface
+listed in M-0293's table states the guarantee as enforced; the verb route
+enforces it for one verb of four, and no verb clears the resulting error.
 
 ## Context
 
@@ -61,14 +61,16 @@ assembles a complete set itself — as do `archive` and `import`. The two shapes
 meet at exactly one point downstream of both: `verb.Apply`, whose single
 production caller is `internal/cli/cliutil/apply.go`.
 
-A guard at that seam enforces the whole coherence rule set, not the force rule
-alone, because the set is what the function checks. That costs nothing in reach:
-`internal/check/provenance.go` already reports every rule but one at error
-severity over git history, so a trailer set that would newly fail at the seam is
-one the push already rejected, and the only change is where the operator learns
-it. The exception is `audit-only-with-force`, which no history-walking rule
-covers; the seam is its first enforcement anywhere outside `audit-only`'s own
-call.
+A guard at that seam enforces the rules predicated on a force trailer, not the
+whole coherence rule set (D-0060). Membership is decided by satisfiability: a
+rule belongs at the seam only if every verb reaching it has some invocation that
+satisfies it. The force rules qualify, because a verb emitting no force trailer
+satisfies them vacuously. The principal rules do not — the contract verbs never
+pass through the provenance-decoration layer and register no flag that could
+supply a principal, so enforcing those at the seam closes them outright rather
+than constraining them. The history-walking audit keeps reporting the rest
+after the fact — with one exception it has never covered: `audit-only` alongside
+`force` has no history-walking counterpart at all.
 
 Two code comments are load-bearing and wrong, and one of them is why a second gate
 has a hole. `requireHumanActorForSovereignAct`
@@ -93,24 +95,27 @@ nothing indexed the rule and nothing noticed the guard reached one verb of four.
 
 ### In scope
 
-- **Finish the coherence wiring.** `CheckTrailerCoherence` at `verb.Apply`, the
-  one seam downstream of both trailer-assembly shapes, so every commit a verb
-  produces is checked against the complete set rather than the verb's partial one.
+- **Finish the coherence wiring.** The force-predicated rules at `verb.Apply`,
+  the one seam downstream of both trailer-assembly shapes, so a sovereign act is
+  refused where it is attempted rather than reported once it has landed.
 - **Ratification.** Add `provenance-force-non-human` to the `ackedSHAs` consumer
   roster so `aiwf acknowledge illegal` clears it with a human's written reason.
   Needed independently of the wiring: the rule walks git history and fires on
   commits no verb produced.
-- **Correct the surfaces that claim enforcement that does not exist** — the
-  chokepoint column of the audit catalogue's force rule, the two claims in
-  `CLAUDE.md`, the claim in `design-decisions.md`, `promote --help`'s "coherence
-  checks still run", and the two contradicting code comments named in *Context*.
-- **Re-aim the sovereign dispatcher policy** (G-0534) at a code reference. Its
-  subject narrows once the guard sits at `verb.Apply`: routing is then structural
-  rather than policed, and what is left to assert is that no production path
-  reaches a commit bypassing that seam.
-- **A cell registry for rule spaces not keyed `(Kind, FromState, Verb)`**, so a
-  rule without an FSM coordinate still gets the Pin-and-bijection discipline.
-  Recorded as decided; its placement is an open question below.
+- **Correct the surfaces that claim enforcement that does not exist**, so each
+  names the seam that actually refuses rather than a chokepoint that was never
+  built. M-0293's table is the enumeration; it spans the kernel's own
+  documentation, the audit catalogue, a flag's help text, and the two
+  contradicting code comments named in *Context*.
+- **Settle the sovereign dispatcher policy** (G-0534). Its subject narrows once
+  the guard sits at `verb.Apply`: routing is then structural rather than policed,
+  and what is left to assert is that no production path reaches a commit
+  bypassing that seam — which the seam's own chokepoint already asserts, so the
+  policy is retired rather than re-aimed (D-0061).
+- **One declaration for the coherence rule set**, so the domain's trailer axis,
+  the seam's force-predicated subset, and the reachability roster all derive from
+  it instead of from three hand-maintained copies. The Pin-and-bijection
+  machinery the branch spec carries is deliberately not mirrored (D-0062).
 - **One ADR** recording the stance: sovereign acts are prevented at the verb
   route and ratifiable at the history route.
 
@@ -149,14 +154,14 @@ nothing indexed the rule and nothing noticed the guard reached one verb of four.
   the reason recorded, and the finding is gone on the next check run.
 - Every surface listed in the *In scope* correction item states what the kernel
   actually does.
-- Every rule-space cell introduced by this epic is pinned by a test, under the
-  same bijection discipline the branch spec already has.
+- The coherence rule set has one declaration that its trailer axis, the subset
+  the seam enforces, and its reachability check all derive from, so a rule added
+  without an entry fails by name rather than reading as covered.
 
 ## Open questions
 
 | Question | Blocking? | Resolution path |
 |---|---|---|
-| Does the cell registry for non-FSM-keyed rule spaces belong in this epic or its own? | no | Milestone planning. Decided to build it; only placement is open, and it can spawn an epic without blocking the wiring. |
 | Does adding the rule to the ack roster silence it too broadly, since an acknowledgement is keyed on SHA alone? | no | Accepted for now: an acknowledgement is a judgment about a commit, which is what the existing consumers assume. Revisit if someone needs to accept one rule while another still blocks. |
 | Is the check-time absence of `audit-only-with-force` a gap of its own? | no | Surfaces during the wiring, which covers it at verb time regardless. Decide there whether the history-walking side needs it too. |
 
@@ -165,7 +170,7 @@ nothing indexed the rule and nothing noticed the guard reached one verb of four.
 | Risk | Impact | Mitigation |
 | --- | --- | --- |
 | The wiring makes a previously-succeeding command fail, breaking a consumer's automation | med | The ADR records the change; the CHANGELOG states it plainly. Automation legitimately forcing as a non-human actor was already blocked at push, so no working pipeline is broken — only the failure point moves earlier. |
-| A verb's trailer set is assembled in more than one place, so a single coherence call misses a path | med | The bijection check is keyed on trailer construction, not on call sites, so an unrouted construction fails the gate. |
+| A verb's trailer set is assembled in more than one place, so a single coherence call misses a path | med | The guard sits inside `verb.Apply` rather than in its callers, so every path reaching a verb commit passes it by construction; a policy holds that seam singular and guarded. |
 
 ## Milestones
 
@@ -177,9 +182,8 @@ deliverables, in execution order:
 - The ratification path: the ack roster entry, its coverage, and the real-repo
   test that the acknowledgement clears the finding.
 - The surface corrections, including the folded-in finding-hint audit, and the
-  sovereign dispatcher policy re-aimed at a code reference.
-- The cell registry for rule spaces without an FSM coordinate — last, and the
-  candidate for promotion to its own epic.
+  sovereign dispatcher policy retired (D-0061).
+- The single declaration the coherence rule lists derive from — last.
 
 ## References
 

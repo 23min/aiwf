@@ -62,6 +62,25 @@ import (
 // caller gets a simple "sha present means clean success" contract
 // instead of having to special-case a partial-success sha.
 func Apply(ctx context.Context, root string, p *Plan) (sha string, err error) {
+	// The sovereign-force rules are checked here, not inside each verb,
+	// because a verb's trailer set is incomplete when the verb returns:
+	// the CLI layer appends aiwf-principal, aiwf-on-behalf-of,
+	// aiwf-authorized-by and aiwf-scope-ends to the plan afterwards.
+	// Apply is the one seam downstream both of that decoration and of the
+	// verbs that assemble a complete set themselves, so it is the only
+	// point where the whole set is visible while nothing has been written
+	// yet.
+	//
+	// The subset is deliberate and its reasoning lives on
+	// CheckForceTrailerCoherence. In short: a verb whose trailer set is
+	// incomplete for a reason unrelated to force is the push's business,
+	// not this seam's.
+	//
+	// It runs first so a refusal costs no filesystem work and leaves HEAD
+	// where it was.
+	if cohErr := CheckForceTrailerCoherence(p.Trailers); cohErr != nil {
+		return "", cohErr
+	}
 	staged, stagedErr := gitops.StagedPaths(ctx, root)
 	if stagedErr != nil {
 		return "", fmt.Errorf("checking pre-staged changes: %w", stagedErr)
