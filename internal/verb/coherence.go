@@ -67,6 +67,120 @@ const (
 	CoherenceRuleAuditOnlyNonHuman                = "audit-only-non-human"
 )
 
+// coherenceRuleSpec declares one coherence rule.
+//
+// This describes the rules; it does not drive them. CheckTrailerCoherence
+// evaluates its conditions directly, so an entry here is a claim about a
+// rule rather than the rule itself. Each claim is checked against the
+// rules' behavior rather than trusted — but only as far as the verdict
+// exposes it, which is less than the claims read as. Each field states
+// what its check does and does not establish (D-0062).
+type coherenceRuleSpec struct {
+	// Rule is the name AsCoherenceError reports for this rule.
+	Rule string
+
+	// Reads are the presence-bearing trailer keys this rule turns on.
+	// The generated domain varies exactly their union, so a rule
+	// declaring a trailer no other rule reads widens the domain instead
+	// of going unexercised in it. Widening the domain is what the field
+	// is for.
+	//
+	// What the check establishes is narrower than "the condition reads
+	// this trailer": it establishes that toggling the trailer changes
+	// whether this rule is the *reported* verdict. Only the first
+	// violation is reported, so an earlier rule shadowing this one
+	// satisfies that without this rule's condition touching the trailer
+	// at all. A declared input is load-bearing for the domain; it is not
+	// proven to be read.
+	//
+	// The actor is not listed. It is the domain's other axis, and unlike
+	// the trailer axis it is a closed three-valued classification no new
+	// rule can widen — one splitting it finer would fire nowhere in the
+	// domain and be named by the bijection check.
+	Reads []string
+
+	// FiresOnlyWithForce reports that the rule cannot fire without an
+	// aiwf-force trailer. It is a statement about the rule.
+	//
+	// Its check is verdict-scoped exactly as Reads' is: it watches which
+	// rule is reported, so a rule shadowed at every force-absent point
+	// would read as force-only without being so. Every rule carrying the
+	// flag today is guarded literally by a force lookup, so the gap is
+	// open rather than exercised.
+	//
+	// verb.Apply enforces exactly the rules carrying this flag today,
+	// but the flag is not the membership criterion — satisfiability is
+	// (D-0060, ADR-0040): a rule belongs at the seam only if every verb
+	// reaching it has some invocation that satisfies it. Recording
+	// membership here would key the seam on a property that merely
+	// coincides with it, so a rule admitted on satisfiability grounds
+	// without being force-predicated has no way to be recorded in this
+	// declaration. That is deliberate: seam membership is a D-0060
+	// decision, not a fact about the rule.
+	FiresOnlyWithForce bool
+}
+
+// coherenceRuleSpecs declares every rule this package checks. It is the
+// single source the rule roster, the seam's enforced subset, and the
+// generated domain's trailer axis all derive from, so a rule added here
+// enters all three at once rather than in three separate edits that can
+// each be forgotten.
+//
+// Order is for reading and carries no meaning: every consumer treats
+// these as a set.
+var coherenceRuleSpecs = []coherenceRuleSpec{
+	{Rule: CoherenceRuleOnBehalfOfMissingAuthorizedBy, Reads: []string{gitops.TrailerOnBehalfOf, gitops.TrailerAuthorizedBy}},
+	{Rule: CoherenceRuleAuthorizedByMissingOnBehalfOf, Reads: []string{gitops.TrailerAuthorizedBy, gitops.TrailerOnBehalfOf}},
+	{Rule: CoherenceRulePrincipalMissingForNonHumanActor, Reads: []string{gitops.TrailerPrincipal}},
+	{Rule: CoherenceRulePrincipalRequiresNonHumanActor, Reads: []string{gitops.TrailerPrincipal}},
+	{Rule: CoherenceRuleOnBehalfOfForbiddenForHumanActor, Reads: []string{gitops.TrailerOnBehalfOf}},
+	{Rule: CoherenceRuleForceWithOnBehalfOf, Reads: []string{gitops.TrailerForce, gitops.TrailerOnBehalfOf}, FiresOnlyWithForce: true},
+	{Rule: CoherenceRuleForceNonHuman, Reads: []string{gitops.TrailerForce}, FiresOnlyWithForce: true},
+	{Rule: CoherenceRuleAuditOnlyWithForce, Reads: []string{gitops.TrailerAuditOnly, gitops.TrailerForce}, FiresOnlyWithForce: true},
+	{Rule: CoherenceRuleAuditOnlyNonHuman, Reads: []string{gitops.TrailerAuditOnly}},
+}
+
+// declaredCoherenceRules returns every rule name the given declaration
+// carries.
+func declaredCoherenceRules(specs []coherenceRuleSpec) []string {
+	out := make([]string, 0, len(specs))
+	for _, s := range specs {
+		out = append(out, s.Rule)
+	}
+	return out
+}
+
+// declaredForcePredicatedRules returns the rules that cannot fire
+// without a force trailer. That is the set verb.Apply enforces today;
+// see FiresOnlyWithForce for why it is not the membership criterion.
+func declaredForcePredicatedRules(specs []coherenceRuleSpec) []string {
+	var out []string
+	for _, s := range specs {
+		if s.FiresOnlyWithForce {
+			out = append(out, s.Rule)
+		}
+	}
+	return out
+}
+
+// declaredCoherenceTrailerAxis returns every presence-bearing trailer
+// any rule reads, deduplicated in first-appearance order. This is the
+// axis the generated domain varies.
+func declaredCoherenceTrailerAxis(specs []coherenceRuleSpec) []string {
+	seen := map[string]bool{}
+	var out []string
+	for _, s := range specs {
+		for _, key := range s.Reads {
+			if seen[key] {
+				continue
+			}
+			seen[key] = true
+			out = append(out, key)
+		}
+	}
+	return out
+}
+
 // CheckTrailerCoherence validates the I2.5 required-together /
 // mutually-exclusive trailer rules on an assembled trailer set.
 // Returns nil when the set is coherent; returns a *CoherenceError
@@ -103,7 +217,7 @@ func CheckTrailerCoherence(trailers []gitops.Trailer) error {
 
 	actor := idx[gitops.TrailerActor]
 	actorIsHuman := strings.HasPrefix(actor, "human/")
-	actorIsNonHuman := actor != "" && !actorIsHuman
+	actorIsNonHuman := isNonHumanActor(actor)
 
 	_, hasPrincipal := idx[gitops.TrailerPrincipal]
 	_, hasOnBehalfOf := idx[gitops.TrailerOnBehalfOf]
@@ -204,7 +318,7 @@ func CheckForceTrailerCoherence(trailers []gitops.Trailer) error {
 	idx := indexTrailers(trailers)
 
 	actor := idx[gitops.TrailerActor]
-	actorIsNonHuman := actor != "" && !strings.HasPrefix(actor, "human/")
+	actorIsNonHuman := isNonHumanActor(actor)
 
 	_, hasOnBehalfOf := idx[gitops.TrailerOnBehalfOf]
 	_, hasForce := idx[gitops.TrailerForce]
@@ -235,6 +349,13 @@ func CheckForceTrailerCoherence(trailers []gitops.Trailer) error {
 	}
 
 	return nil
+}
+
+// isNonHumanActor reports whether actor names an agent: present, and
+// not a human/ role. An absent actor is neither human nor non-human,
+// which is a distinction several rules turn on.
+func isNonHumanActor(actor string) bool {
+	return actor != "" && !strings.HasPrefix(actor, "human/")
 }
 
 // indexTrailers builds a key→value map. When a key appears more than

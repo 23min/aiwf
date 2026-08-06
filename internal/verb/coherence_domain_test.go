@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"sort"
 	"strings"
 	"testing"
 
@@ -26,16 +27,34 @@ var coherenceActors = []struct{ name, value string }{
 	{"nonhuman", "ai/claude"},
 }
 
-// coherenceFlags is the trailer-presence axis: the five trailers whose
-// presence or absence any coherence rule reads. Values are irrelevant to
-// every rule — each reads presence only — so one representative value
-// per trailer covers the axis.
-var coherenceFlags = []struct{ name, key, value string }{
-	{"principal", gitops.TrailerPrincipal, "human/peter"},
-	{"onbehalfof", gitops.TrailerOnBehalfOf, "human/peter"},
-	{"authorizedby", gitops.TrailerAuthorizedBy, "abc1234"},
-	{"force", gitops.TrailerForce, "override"},
-	{"auditonly", gitops.TrailerAuditOnly, "true"},
+// coherenceFlag is one trailer on the presence axis.
+type coherenceFlag struct{ name, key, value string }
+
+// coherenceFlags is the trailer-presence axis, derived from the rule
+// declaration rather than listed. A rule reading a trailer no other
+// rule reads widens this axis by construction, so it is exercised
+// somewhere in the domain instead of firing at no point in it.
+//
+// Values are irrelevant to every rule — each reads presence only — so
+// one representative value covers the axis.
+var coherenceFlags = flagsFor(coherenceRuleSpecs)
+
+// flagsFor renders a declaration's trailer axis as the presence axis
+// the domain varies. Parameterized so AC-2's fixtures can build a
+// domain from a deliberately mis-declared set.
+func flagsFor(specs []coherenceRuleSpec) []coherenceFlag {
+	axis := declaredCoherenceTrailerAxis(specs)
+	out := make([]coherenceFlag, 0, len(axis))
+	for _, key := range axis {
+		out = append(out, coherenceFlag{name: coherenceFlagName(key), key: key, value: "set"})
+	}
+	return out
+}
+
+// coherenceFlagName renders a trailer key as the compact label the
+// domain's case names use: aiwf-on-behalf-of becomes onbehalfof.
+func coherenceFlagName(trailerKey string) string {
+	return strings.ReplaceAll(strings.TrimPrefix(trailerKey, "aiwf-"), "-", "")
 }
 
 // coherenceCase is one point in the domain.
@@ -45,6 +64,10 @@ type coherenceCase struct {
 	// present reports whether a given flag name is set in this case.
 	present map[string]bool
 	actor   string
+	// actorName and mask locate this case on the domain's two axes, so
+	// AC-2 can find the case differing from it in exactly one trailer.
+	actorName string
+	mask      int
 }
 
 // coherenceDomain enumerates the complete input domain: every actor role
@@ -52,10 +75,14 @@ type coherenceCase struct {
 // rather than enumerated, so coverage is a property of this function and
 // a rule added against a new trailer is a one-line change here rather
 // than a fresh set of hand-written cases someone must remember to add.
-func coherenceDomain() []coherenceCase {
+func coherenceDomain() []coherenceCase { return coherenceDomainFrom(coherenceFlags) }
+
+// coherenceDomainFrom builds the domain over an explicit presence axis,
+// so a fixture can generate the domain a mis-declared set would produce.
+func coherenceDomainFrom(flags []coherenceFlag) []coherenceCase {
 	var out []coherenceCase
 	for _, actor := range coherenceActors {
-		for mask := 0; mask < 1<<len(coherenceFlags); mask++ {
+		for mask := 0; mask < 1<<len(flags); mask++ {
 			trailers := []gitops.Trailer{
 				{Key: gitops.TrailerVerb, Value: "promote"},
 				{Key: gitops.TrailerEntity, Value: "E-0001"},
@@ -63,21 +90,29 @@ func coherenceDomain() []coherenceCase {
 			if actor.value != "" {
 				trailers = append(trailers, gitops.Trailer{Key: gitops.TrailerActor, Value: actor.value})
 			}
-			present := make(map[string]bool, len(coherenceFlags))
-			parts := []string{"actor=" + actor.name}
-			for i, f := range coherenceFlags {
+			present := make(map[string]bool, len(flags))
+			var set []string
+			for i, f := range flags {
 				on := mask&(1<<i) != 0
 				present[f.name] = on
 				if on {
 					trailers = append(trailers, gitops.Trailer{Key: f.key, Value: f.value})
-					parts = append(parts, f.name)
+					set = append(set, f.name)
 				}
 			}
+			// Sorted, so a case name states which trailers are present
+			// and not the order the axis happens to carry them in. That
+			// decouples the golden from the axis: a rule widening the
+			// axis adds lines rather than rewriting every one.
+			sort.Strings(set)
+			parts := append([]string{"actor=" + actor.name}, set...)
 			out = append(out, coherenceCase{
-				name:     strings.Join(parts, "+"),
-				trailers: trailers,
-				present:  present,
-				actor:    actor.value,
+				name:      strings.Join(parts, "+"),
+				trailers:  trailers,
+				present:   present,
+				actor:     actor.value,
+				actorName: actor.name,
+				mask:      mask,
 			})
 		}
 	}
@@ -107,11 +142,16 @@ func verdict(trailers []gitops.Trailer) string {
 func TestCheckTrailerCoherence_FullDomain_MatchesGolden(t *testing.T) {
 	t.Parallel()
 
-	var b strings.Builder
-	for _, tc := range coherenceDomain() {
-		fmt.Fprintf(&b, "%s => %s\n", tc.name, verdict(tc.trailers))
+	domain := coherenceDomain()
+	lines := make([]string, 0, len(domain))
+	for _, tc := range domain {
+		lines = append(lines, fmt.Sprintf("%s => %s", tc.name, verdict(tc.trailers)))
 	}
-	got := b.String()
+	// Sorted for the same reason the case names are: the golden records
+	// a set of verdicts, so its diff shows a changed verdict rather than
+	// a changed iteration order.
+	sort.Strings(lines)
+	got := strings.Join(lines, "\n") + "\n"
 
 	path := filepath.Join("testdata", "coherence_domain.golden")
 	if *updateCoherenceGolden {
@@ -166,13 +206,13 @@ func TestCheckTrailerCoherence_FullDomain_SatisfiesDesignDocRules(t *testing.T) 
 		{
 			name: "a principal requires a non-human actor",
 			applies: func(c coherenceCase) bool {
-				return c.present["principal"] && !isNonHumanActor(c.actor)
+				return c.present["principal"] && !domainNonHumanActor(c.actor)
 			},
 		},
 		{
 			name: "a non-human actor requires a principal",
 			applies: func(c coherenceCase) bool {
-				return isNonHumanActor(c.actor) && !c.present["principal"]
+				return domainNonHumanActor(c.actor) && !c.present["principal"]
 			},
 		},
 		{
@@ -190,7 +230,7 @@ func TestCheckTrailerCoherence_FullDomain_SatisfiesDesignDocRules(t *testing.T) 
 		{
 			name: "force requires a human actor",
 			applies: func(c coherenceCase) bool {
-				return c.present["force"] && isNonHumanActor(c.actor)
+				return c.present["force"] && domainNonHumanActor(c.actor)
 			},
 		},
 		{
@@ -202,7 +242,7 @@ func TestCheckTrailerCoherence_FullDomain_SatisfiesDesignDocRules(t *testing.T) 
 		{
 			name: "audit-only requires a human actor",
 			applies: func(c coherenceCase) bool {
-				return c.present["auditonly"] && isNonHumanActor(c.actor)
+				return c.present["auditonly"] && domainNonHumanActor(c.actor)
 			},
 		},
 		{
@@ -244,67 +284,30 @@ func TestCheckTrailerCoherence_FullDomain_SatisfiesDesignDocRules(t *testing.T) 
 	}
 }
 
-// isNonHumanActor mirrors the domain's own notion of a non-human actor:
-// present, and not a human/ role. An absent actor is neither.
-func isNonHumanActor(actor string) bool {
+// domainNonHumanActor states the domain's own notion of a non-human
+// actor: present, and not a human/ role. An absent actor is neither.
+//
+// Spelled out here rather than calling the package's own predicate on
+// purpose. The invariants below encode the design doc's rules
+// independently of the implementation, so borrowing the implementation's
+// notion of "non-human" would let a wrong predicate satisfy both sides.
+func domainNonHumanActor(actor string) bool {
 	return actor != "" && !strings.HasPrefix(actor, "human/")
 }
 
-// coherenceRules is every rule the package declares.
-//
-// Hand-maintained, and deliberately so for now: the rule space has no
-// registry to enumerate, which is the gap M-0294 exists to close. Until
-// it does, the golden is the backstop — a rule added or removed changes
-// the golden's diff whether or not someone updates this list.
-var coherenceRules = []string{
-	CoherenceRuleOnBehalfOfMissingAuthorizedBy,
-	CoherenceRuleAuthorizedByMissingOnBehalfOf,
-	CoherenceRulePrincipalMissingForNonHumanActor,
-	CoherenceRulePrincipalRequiresNonHumanActor,
-	CoherenceRuleOnBehalfOfForbiddenForHumanActor,
-	CoherenceRuleForceWithOnBehalfOf,
-	CoherenceRuleForceNonHuman,
-	CoherenceRuleAuditOnlyWithForce,
-	CoherenceRuleAuditOnlyNonHuman,
-}
-
-// TestCheckTrailerCoherence_EveryRuleIsReachable asserts each declared
-// rule fires at some point in the domain.
-//
-// A rule can be made unreachable without being deleted: the checks run
-// in order and return the first violation, so a broadened earlier
-// condition can shadow a later rule entirely. That leaves a rule that
-// reads as enforced, is covered by its own unit test through a direct
-// call, and never fires for any real trailer set — the same shape of
-// claim-without-enforcement this milestone exists to remove.
-func TestCheckTrailerCoherence_EveryRuleIsReachable(t *testing.T) {
-	t.Parallel()
-
-	fired := make(map[string]bool, len(coherenceRules))
-	for _, c := range coherenceDomain() {
-		fired[verdict(c.trailers)] = true
-	}
-	for _, rule := range coherenceRules {
-		if !fired[rule] {
-			t.Errorf("rule %q fires at no point in the domain; it is shadowed by an earlier rule or unreachable", rule)
-		}
-	}
-}
-
 // forcePredicatedRules are the rules whose condition requires an
-// aiwf-force trailer. Written out rather than derived from the
-// function under test, so a rule silently added to or dropped from
-// the seam's subset shows up as a failure here.
-//
-// Hand-maintained, like coherenceRules above, and retired by the same
-// thing: M-0294's rule registry, which makes both derivable. Until
-// then a fourth force-predicated rule must be added here by hand or
-// this test stops covering it.
-var forcePredicatedRules = map[string]bool{
-	CoherenceRuleForceNonHuman:       true,
-	CoherenceRuleForceWithOnBehalfOf: true,
-	CoherenceRuleAuditOnlyWithForce:  true,
-}
+// aiwf-force trailer, derived from the rule declaration rather than
+// from the function under test. Deriving it from
+// CheckForceTrailerCoherence would make the subset assertion below
+// compare that function to itself; the declaration is data stated
+// beside each rule, and M-0294/AC-2 holds it to the rule's behavior.
+var forcePredicatedRules = func() map[string]bool {
+	out := map[string]bool{}
+	for _, rule := range declaredForcePredicatedRules(coherenceRuleSpecs) {
+		out[rule] = true
+	}
+	return out
+}()
 
 // TestCheckForceTrailerCoherence_IsTheForcePredicatedSubset pins what
 // verb.Apply enforces, across the same generated domain the full rule
@@ -324,7 +327,7 @@ func TestCheckForceTrailerCoherence_IsTheForcePredicatedSubset(t *testing.T) {
 	for _, tc := range coherenceDomain() {
 		t.Run(tc.name, func(t *testing.T) {
 			t.Parallel()
-			actorIsNonHuman := tc.actor != "" && !strings.HasPrefix(tc.actor, "human/")
+			actorIsNonHuman := domainNonHumanActor(tc.actor)
 			err := CheckForceTrailerCoherence(tc.trailers)
 
 			// Derived from the three rule statements, not from the code:
