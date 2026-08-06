@@ -88,9 +88,6 @@ apparatus decides *shape* well and decides nothing about whether the spec going
 in is any good. Vocabulary in `docs/design/oracles.md`; initiative context in
 `quality-signal-and-cadence.md` Q2 and Q6.
 
-- **G-0438** *(high)* — flake-hunt is the gate that decides whether a tag is safe
-  to push, and on a stock GitHub runner it cannot separate a real regression from
-  its own resource ceiling. Every release cut redoes the local repro by hand
 - **G-0375** *(high)* — the same shape locally: a contributor whose global config
   sets `commit.gpgsign` sees 221 failures in `internal/verb` that say nothing
   about their change. The blanket fix was tried and reverted — actor resolution
