@@ -11,7 +11,7 @@ acs:
       title: Three hand-maintained rule lists derive from one declaration
       status: open
     - id: AC-2
-      title: An unpinned cell fails the bijection check by name
+      title: The declaration's per-rule claims are verified against behavior
       status: open
 ---
 
@@ -41,7 +41,7 @@ test that exercises it.
 Evidence: the registry enumerated against the rule set, with the count of pinned
 cells derived from the registry rather than written down.
 
-### AC-2 — An unpinned cell fails the bijection check by name
+### AC-2 — The declaration's per-rule claims are verified against behavior
 
 The check fails when a cell has no pinning test, and its message names which
 cell. A meta-test that reports only that something is unpinned sends the reader
