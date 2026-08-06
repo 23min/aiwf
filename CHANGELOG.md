@@ -16,6 +16,20 @@ section in this file.
 
 ## [Unreleased]
 
+### Fixed — the read paths no longer raise an error the full check does not (G-0558)
+
+`aiwf check --fast`, `aiwf status`, `aiwf show`, and `aiwf render` load the planning tree without the cross-branch ref scan, to stay fast. Each then reported a reference resolving to no local entity as `refs-resolve/unresolved` or `body-prose-id/unresolved` — a blocking error. That verdict claims the id exists at no tier: not the working tree, not trunk, not any local or remote-tracking ref. A load that skipped the scan has evidence for the working tree alone, and an empty hit set cannot distinguish *looked everywhere and found nothing* from *never looked*.
+
+The result was local surfaces rendering opposite verdicts on the same bytes, with the cheap ones stricter than the authoritative one. On this repo's own tree: full `aiwf check` reported 0 errors, `--fast` and `status` reported 2. `status` then closed its Health line by directing the reader to `aiwf check` — the one surface that would tell them nothing was wrong.
+
+Those four surfaces now report `unresolved-unverified` instead: a non-blocking warning that states what was actually established (the id is absent *here*) and names the surface that can settle it. `body-prose-id/unresolved-milestone` is downgraded on the same reasoning, since that rule consults the trunk tier before deciding a composite id's parent is unallocated. Two neighbours are deliberately left alone: `unresolved-ac`, which fires only once the parent entity is in hand and asserts something about the AC list in that file; and `refs-resolve/unresolved-milestone`, which resolves the parent against the working tree alone, so every surface already agrees on it.
+
+`aiwf check --fast` consequently exits 0 where it used to exit 1 for this class; a caller wanting the authoritative answer should run the full check, which is also what the pre-push hook runs.
+
+The downgrade is a presentation pass a reporting surface applies to its own findings, not a change to the resolution rules. The rules are shared with the verb layer, where an error-severity `unresolved` is what suppresses a mutation's plan — softening them there would let a verb commit a reference that resolves nowhere. A surface that only prints may decline to make a claim it cannot support; a surface that acts on the claim has to build the evidence instead.
+
+`aiwf check --shape-only`, and with it the pre-commit hook, was never affected: it runs the tree-discipline rules only and raises no reference findings at all.
+
 ### Fixed — G-0557: a git hook `aiwf init` cannot read is refused, not overwritten
 
 `aiwf init` and `aiwf update` install four git hooks, and three of them replaced a pre-existing hook they could not read, reporting the result as a successful create. The operator's script was overwritten in place with aiwf's own, no `.local` sibling was written, no conflict was reported, and the step ledger showed `created` at exit 0.

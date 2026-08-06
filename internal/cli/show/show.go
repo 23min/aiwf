@@ -346,7 +346,11 @@ func finishShowView(ctx context.Context, root string, t *tree.Tree, loadErrs []t
 	}
 	view.Scopes = scopes
 
-	allFindings := check.Run(t, loadErrs)
+	// show loads without the cross-branch scan, so it cannot substantiate
+	// `unresolved` and reports the non-blocking unresolved-unverified
+	// subcode instead (G-0558) — otherwise an entity page contradicts
+	// `aiwf check` about its own references.
+	allFindings := check.MarkUnverifiedResolution(check.Run(t, loadErrs), t)
 	view.Findings = filterFindingsByID(allFindings, id, scopeBy)
 
 	return view, true, nil

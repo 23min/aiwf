@@ -550,7 +550,13 @@ func BuildStatus(tr *tree.Tree, loadErrs []tree.LoadError, now time.Time) Status
 	// tree-health section, not in the general warnings stream. The
 	// per-file `terminal-entity-not-archived` warnings stay in
 	// r.Warnings alongside other finding codes.
-	findings := check.Run(tr, loadErrs)
+	// status loads without the cross-branch scan, so it downgrades
+	// `unresolved` to the non-blocking unresolved-unverified subcode
+	// (G-0558). The Health line ends by pointing at `aiwf check`, and
+	// counting an error here that the full check does not raise sends
+	// the reader to the one surface that will tell them nothing is
+	// wrong.
+	findings := check.MarkUnverifiedResolution(check.Run(tr, loadErrs), tr)
 	for i := range findings {
 		switch findings[i].Severity {
 		case check.SeverityError:

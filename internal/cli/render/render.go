@@ -312,7 +312,12 @@ func RunSite(root, format, out, scope string, noHistory, pretty bool) int {
 		return cliutil.ExitInternal
 	}
 	cfg, _ := config.Load(rootDir)
-	findings := check.Run(tr, loadErrs)
+	// render loads without the cross-branch scan, so it cannot
+	// substantiate `unresolved` and reports the non-blocking
+	// unresolved-unverified subcode instead (G-0558) — a published page
+	// asserting an id exists nowhere is the same overclaim as a terminal
+	// one, and outlives the run that made it.
+	findings := check.MarkUnverifiedResolution(check.Run(tr, loadErrs), tr)
 
 	// One shared HEAD-history walk feeds every per-entity history row and
 	// scope view (E-0054 / M-0221), replacing render's ~N-per-milestone
