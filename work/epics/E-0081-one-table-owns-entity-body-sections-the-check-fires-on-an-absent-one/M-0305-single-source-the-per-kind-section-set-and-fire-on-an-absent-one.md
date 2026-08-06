@@ -1,7 +1,7 @@
 ---
 id: M-0305
 title: Single-source the per-kind section set and fire on an absent one
-status: draft
+status: in_progress
 parent: E-0081
 tdd: required
 acs:
