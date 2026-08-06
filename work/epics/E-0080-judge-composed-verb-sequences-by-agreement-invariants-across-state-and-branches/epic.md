@@ -41,12 +41,21 @@ G-0558 is the first measured instance of what that misses: `aiwf check` and
 working copy, a composition no scenario walks. D-0063 is accepted and records
 the direction this epic implements.
 
+Both known instances are now repaired on mainline — G-0558 by giving a ref-less
+surface the `unresolved-unverified` subcode to declare it did not build a tier,
+G-0556 by splitting a cross-branch hit on whether its branch is published. That
+changes what this epic is for, and sharpens it. It is not here to catch those
+two; it is here so the next one is caught by the harness rather than by a
+reader. It also fixes the shape of the agreement property: with a legitimate way
+to decline a judgment in the vocabulary, agreement cannot mean identical finding
+sets.
+
 ## Scope
 
 ### In scope
 
-- The three agreement invariants D-0063 names: every read path renders the same
-  verdict on the same bytes; a verdict is stable under refs the tree does not
+- The three agreement invariants D-0063 names: no two read paths contradict each
+  other on the same bytes; a verdict is stable under refs the tree does not
   need, so a ref-less clone and a full checkout agree; a sequence's verdict does
   not depend on which branch ran which step.
 - Widening the walker's mutation space beyond `status`: seed acceptance
@@ -68,9 +77,10 @@ the direction this epic implements.
   far the mutation space can widen. They are constraints here, not deliverables.
 - Any change to the reference-resolution tier policy of ADR-0030 or ADR-0041.
   The agreement invariants are policy-independent by construction, which is what
-  makes them safe to build while that policy is still in flight.
-- Fixing G-0558 or G-0556. This epic builds the oracle that judges them; the
-  fixes are their own patches.
+  let them survive G-0556's classification change arriving between this epic's
+  planning and its implementation.
+- Repairing any disagreement the invariants find. G-0558 and G-0556 fixed the
+  two known instances; a new one is filed as its own gap, not fixed here.
 
 ## Constraints
 
@@ -87,11 +97,17 @@ the direction this epic implements.
   scheduled subprocesses and would slow every push, and stays untagged
   otherwise. The two-branch scenario is untagged, and its per-push cost is
   accepted here deliberately rather than discovered later.
-- **The agreement invariants land red and must not merge red.** They fail
-  against today's tree and turn green when G-0558's fix lands. Nothing from the
-  first milestone merges to mainline before that fix does — the red-to-green
-  flip across that merge is the evidence the oracle works, and it is what keeps
-  the oracle independent of the fix it judges.
+- **Agreement is non-contradiction, not identity.** A surface that reports
+  `unresolved-unverified` is declining to judge, not disagreeing; two surfaces
+  contradict only when both make substantive claims that cannot both hold. An
+  identity-shaped property fires on correct trees — G-0558 gave surfaces a way
+  to decline, and G-0556 made the full check's severity differ from a ref-less
+  one on the same subject — so identity is refused at review alongside an
+  exact-verdict oracle.
+- **A green run is not evidence.** Both known instances are repaired on
+  mainline, so every invariant here must be demonstrated failing against a
+  constructed violation. An invariant observed only passing is indistinguishable
+  from one that cannot fire.
 
 ## Success criteria
 
@@ -104,7 +120,9 @@ the direction this epic implements.
 - [ ] The acceptance-criterion invariant holds under composition, and the walker
       can reach a state that would violate it, so the assertion is not vacuous.
 - [ ] `aiwf check` and `aiwf check --fast` are covered by the read-path
-      agreement invariant, and it is green on mainline.
+      agreement invariant; it is green on mainline, and it stays green across
+      the `unresolved-unverified` and `cross-branch-local-only` classifications
+      rather than reporting them as a disagreement.
 - [ ] Every scenario in the catalog carries an explicit classification under
       D-0063's named-scenario rule.
 - [ ] G-0121 is `addressed`, with its remainder carried by G-0564.
@@ -123,7 +141,7 @@ the direction this epic implements.
 |---|---|---|
 | The oracle drifts toward exact-verdict assertions as coverage pressure grows | high | D-0063 rejects it explicitly; an exact-verdict assertion is a review refusal, same as a runner-measuring one |
 | The two-branch scenario's wall time later gets it tagged, hiding the class again | med | Cost accepted deliberately in D-0063; measure and record it rather than discovering it under pressure |
-| The first milestone merges before G-0558 and lands red on mainline | med | Named as a constraint above and checked at that milestone's wrap gate |
+| Every invariant passes from the day it lands, so the suite reports coverage it does not have | high | Both known instances are already fixed on mainline; each invariant carries a constructed-violation test, and a green-only invariant is a review refusal |
 
 ## Milestones
 
