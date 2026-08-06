@@ -1,7 +1,7 @@
 ---
 id: D-0063
 title: Widen the stress walker; keep its oracle invariant-shaped
-status: proposed
+status: accepted
 ---
 ## Question
 
