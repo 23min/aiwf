@@ -1134,5 +1134,11 @@ downstream consumer.
 
 Addresses G-0121. Its two non-mechanizable remainders move to G-0564.
 
-_No milestones yet._
+| Milestone | Title | Status |
+|---|---|---|
+| M-0300 | Assert read-path agreement and ref-less verdict stability | draft |
+| M-0301 | Widen the walker's mutation space beyond status | draft |
+| M-0302 | Compose a sequence across a branch boundary and assert verdict independence | draft |
+| M-0303 | Assert the acceptance-criterion composition invariant | draft |
+| M-0304 | Classify every catalog scenario against the named-scenario rule | draft |
 
