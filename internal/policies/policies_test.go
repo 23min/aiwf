@@ -48,11 +48,6 @@ func TestPolicy_TrailerKeysViaConstants(t *testing.T) {
 	runPolicy(t, PolicyTrailerKeysViaConstants)
 }
 
-func TestPolicy_SovereignDispatchersGuardHumanActor(t *testing.T) {
-	t.Parallel()
-	runPolicy(t, PolicySovereignDispatchersGuardHumanActor)
-}
-
 func TestPolicy_EmptyDiffCommitsCarryMarker(t *testing.T) {
 	t.Parallel()
 	runPolicy(t, PolicyEmptyDiffCommitsCarryMarker)

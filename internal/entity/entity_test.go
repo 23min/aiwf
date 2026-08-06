@@ -335,13 +335,65 @@ func TestAllowedStatuses_DelegatesToSchemas(t *testing.T) {
 	}
 }
 
-func TestIDFormat_DelegatesToSchemas(t *testing.T) {
+// TestIDFormat_MatchesSchemaField pins that the Schema a caller receives
+// carries the same id shape the IDFormat accessor reports. The field is
+// derived, so this is the assertion that the accessors fill it.
+func TestIDFormat_MatchesSchemaField(t *testing.T) {
 	t.Parallel()
 	for _, k := range AllKinds() {
 		s, _ := SchemaForKind(k)
 		if got, want := IDFormat(k), s.IDFormat; got != want {
 			t.Errorf("kind %v: IDFormat=%q, schema.IDFormat=%q", k, got, want)
 		}
+	}
+}
+
+// TestIDFormat_UnknownKind covers the fallback for a kind with no id
+// prefix: there is no shape to describe, so the kind's own name stands
+// in for the prefix.
+func TestIDFormat_UnknownKind(t *testing.T) {
+	t.Parallel()
+	if got, want := IDFormat("nonsense"), "nonsense"; got != want {
+		t.Errorf("IDFormat(unknown kind) = %q, want %q", got, want)
+	}
+}
+
+// TestIDFormat_MatchesAllocatedIDShape pins the invariant the advertised
+// id shape exists to state: what `aiwf schema` publishes, and what the
+// frontmatter-shape error tells an operator to write, is the shape
+// AllocateID actually emits.
+//
+// The expectation is measured against a real allocation rather than
+// recomputed from IDPrefix and CanonicalPad, which makes it independent
+// of IDFormat's body: a shape assembled wrongly there fails here even
+// though it is spelled plausibly in isolation. It is not independent of
+// the two facts both sides read — moving IDPrefix or CanonicalPad moves
+// the expectation with it, and those are pinned by the allocator's own
+// tests.
+func TestIDFormat_MatchesAllocatedIDShape(t *testing.T) {
+	t.Parallel()
+	for _, k := range AllKinds() {
+		t.Run(string(k), func(t *testing.T) {
+			t.Parallel()
+			format := IDFormat(k)
+			allocated := AllocateID(k, nil, nil)
+			if len(format) != len(allocated) {
+				t.Fatalf("id format %q is %d chars but first allocated id %q is %d",
+					format, len(format), allocated, len(allocated))
+			}
+			for i := range len(format) {
+				switch {
+				case format[i] == 'N':
+					if allocated[i] < '0' || allocated[i] > '9' {
+						t.Errorf("id format %q has a digit placeholder at index %d, but allocated id %q has %q there",
+							format, i, allocated, allocated[i])
+					}
+				case format[i] != allocated[i]:
+					t.Errorf("id format %q and allocated id %q diverge at index %d (%q vs %q)",
+						format, allocated, i, format[i], allocated[i])
+				}
+			}
+		})
 	}
 }
 

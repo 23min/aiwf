@@ -1,8 +1,10 @@
 ---
 id: G-0559
 title: Schema IDFormat literals still carry pre-ADR-0008 narrow widths
-status: open
+status: addressed
 priority: medium
+addressed_by_commit:
+    - b778bc9f32ad147df12bb83df3fa6c7c032175ce
 ---
 ## What's missing
 
@@ -56,16 +58,27 @@ M-0083 removed this same per-kind enumeration from CLAUDE.md's commitment on
 stable ids and pinned its absence with a test. The prose copy was swept; the
 table the CLI prints was not.
 
-## Resolution shape
+## Resolution
 
-One design question settles first: whether `IDFormat` stays a single string
-widened to canonical, or splits into a canonical-emit shape and a separate
-accepted-input shape for the two consumers to draw from.
+`IDFormat` stays a single string and is derived, not stored: `entity.IDPrefix`
+and `entity.CanonicalPad` already hold the two facts it assembles from, and
+`IDPrefix`'s doc comment already directs consumers to call it rather than
+re-hardcode a prefix — which the `schemas` table did. `SchemaForKind` and
+`AllSchemas` fill the struct field, so the table cannot carry a stale copy.
 
-Whichever lands, `entity.IDPrefix` and `entity.CanonicalPad` already hold the
-two facts the string is assembled from, and `IDPrefix`'s doc comment already
-directs consumers to call it rather than re-hardcode a prefix — which the
-`schemas` table does.
+Splitting into a canonical-emit shape and a separate accepted-input shape was
+rejected. Both consumers want the canonical shape. `aiwf schema` publishes what
+an author should write, and the `frontmatter-shape` message is only ever reached
+by an id below the kind's digit floor — a narrow-but-legal id like `E-07` passes
+the regex and is caught by `entity-id-narrow-width` instead, so the tolerated
+grammar is never the thing the operator needs at that seam. Naming the tolerance
+floor there is what built the trap. A second field would also be a hand-copy of
+`idPatterns`, which is the failure this gap records, at a new site.
+
+Contracts were considered as the oracle and do not fit: `aiwf contract verify`
+runs a validator over stored fixtures, so it compares a schema against curated
+examples and never sees live output. Deriving the value removes the drift it
+would have been asked to detect.
 
 ## Where to fix
 

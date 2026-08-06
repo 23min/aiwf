@@ -35,16 +35,22 @@ import (
 // rules, and their wiring is what classes 4a-4c check
 // (ackedSHAsConsumers): FSMHistoryConsistent, RunIsolationEscape,
 // RunTrailerVerbUnknown, RunIDRenameUntrailered (M-0160/AC-4),
-// RunOrphanedAICommits and RunPromoteOnWrongBranch.
+// RunOrphanedAICommits, RunPromoteOnWrongBranch and RunProvenance
+// (M-0292).
 //
-// Those rules, plus the two leaf predicates at the end of
+// Those rules, plus the leaf predicates at the end of
 // FSMHistoryConsistent's forwarding chain —
 // illegalTransitionFindings and forcedUntraileredFindings — make up
 // the roster whose bodies must keep referencing the map, which is what
 // class 4d checks (ackedSHAsBodyConsumers). So the second roster is
-// the first plus those two predicates. FSMHistoryConsistent is in it
+// the first plus those predicates. FSMHistoryConsistent is in it
 // by forwarding the map to that chain rather than indexing it, the
 // reference shape 4d accepts for a rule that delegates its lookup.
+//
+// Every consumer silences wholesale: an acknowledged SHA reports
+// nothing from that rule. RunProvenance is the only one that emits
+// more than one code, and it skips the commit ahead of all of them
+// rather than selecting among them — see its doc.
 //
 // The verb consumes the walker too, to recognize
 // a SHA it has already acknowledged and converge rather than append a

@@ -16,7 +16,7 @@ import (
 // no findings (a fresh repo or pre-aiwf-only history is silent).
 func TestRunProvenance_Empty(t *testing.T) {
 	t.Parallel()
-	got := RunProvenance(nil, nil)
+	got := RunProvenance(nil, nil, nil)
 	if len(got) != 0 {
 		t.Fatalf("findings = %v, want empty", got)
 	}
@@ -40,7 +40,7 @@ func TestRunProvenance_CleanCommits(t *testing.T) {
 			{Key: gitops.TrailerScopeEnds, Value: authSHA},
 		}),
 	}
-	got := RunProvenance(commits, tr)
+	got := RunProvenance(commits, tr, nil)
 	if len(got) != 0 {
 		for i := range got {
 			f := &got[i]
@@ -56,7 +56,7 @@ func TestRunProvenance_CleanCommits(t *testing.T) {
 // rules are defensive.
 func TestRunProvenance_PreAiwfCommitsSilent(t *testing.T) {
 	t.Parallel()
-	got := RunProvenance([]scope.Commit{{SHA: "abc1234"}}, nil)
+	got := RunProvenance([]scope.Commit{{SHA: "abc1234"}}, nil, nil)
 	if len(got) != 0 {
 		t.Fatalf("pre-aiwf commit produced %d findings, want 0", len(got))
 	}
@@ -141,7 +141,7 @@ func TestRunProvenance_ShapeRules(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
-			got := RunProvenance([]scope.Commit{tt.commit}, nil)
+			got := RunProvenance([]scope.Commit{tt.commit}, nil, nil)
 			if !hasFinding(got, tt.wantCode) {
 				t.Fatalf("findings = %v, want code %q", findingCodes(got), tt.wantCode)
 			}
@@ -204,7 +204,7 @@ func TestRunProvenance_CoherenceRules(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
-			got := RunProvenance([]scope.Commit{tt.commit}, nil)
+			got := RunProvenance([]scope.Commit{tt.commit}, nil, nil)
 			found := false
 			for i := range got {
 				f := &got[i]
@@ -231,7 +231,7 @@ func TestRunProvenance_NoActiveScope(t *testing.T) {
 		{Key: gitops.TrailerActor, Value: "ai/claude"},
 		{Key: gitops.TrailerPrincipal, Value: "human/peter"},
 	}}
-	got := RunProvenance([]scope.Commit{c}, nil)
+	got := RunProvenance([]scope.Commit{c}, nil, nil)
 	if !hasFinding(got, CodeProvenanceNoActiveScope) {
 		t.Fatalf("findings = %v, want %q", findingCodes(got), CodeProvenanceNoActiveScope)
 	}
@@ -249,7 +249,7 @@ func TestRunProvenance_AuthorizationMissing(t *testing.T) {
 		{Key: gitops.TrailerOnBehalfOf, Value: "human/peter"},
 		{Key: gitops.TrailerAuthorizedBy, Value: strings.Repeat("0", 40)},
 	}}
-	got := RunProvenance([]scope.Commit{c}, nil)
+	got := RunProvenance([]scope.Commit{c}, nil, nil)
 	if !hasFinding(got, CodeProvenanceAuthorizationMissing) {
 		t.Fatalf("findings = %v, want %q", findingCodes(got), CodeProvenanceAuthorizationMissing)
 	}
@@ -272,7 +272,7 @@ func TestRunProvenance_AuthorizationEnded(t *testing.T) {
 		// LATE commit references the now-ended scope.
 		agentCommit("dddd444", "promote", "M-0002", "ai/claude", "human/peter", authSHA, nil),
 	}
-	got := RunProvenance(commits, tr)
+	got := RunProvenance(commits, tr, nil)
 	if !hasFinding(got, CodeProvenanceAuthorizationEnded) {
 		t.Fatalf("findings = %v, want %q", findingCodes(got), CodeProvenanceAuthorizationEnded)
 	}
@@ -290,7 +290,7 @@ func TestRunProvenance_AuthorizationOutOfScope(t *testing.T) {
 		// Agent acts on M-001, which is under E-01 — out of scope.
 		agentCommit("bbbb222", "promote", "M-0001", "ai/claude", "human/peter", authSHA, nil),
 	}
-	got := RunProvenance(commits, tr)
+	got := RunProvenance(commits, tr, nil)
 	if !hasFinding(got, CodeProvenanceAuthorizationOutOfScope.ID) {
 		t.Fatalf("findings = %v, want %q", findingCodes(got), CodeProvenanceAuthorizationOutOfScope.ID)
 	}
@@ -322,7 +322,7 @@ func TestRunProvenance_PriorEntityChainResolves(t *testing.T) {
 		// Agent acts on M-001 (under E-01, reallocated from E-07 above).
 		agentCommit("bbbb222", "promote", "M-0001", "ai/claude", "human/peter", authSHA, nil),
 	}
-	got := RunProvenance(commits, tr)
+	got := RunProvenance(commits, tr, nil)
 	if hasFinding(got, CodeProvenanceAuthorizationOutOfScope.ID) {
 		t.Fatalf("findings = %v, did not expect out-of-scope after rename chain", findingCodes(got))
 	}
@@ -352,7 +352,7 @@ func TestRunProvenance_OutOfScope_TargetResolvedViaPriorIDs(t *testing.T) {
 		// renumbered entity's prior_ids witnesses the lineage.
 		agentCommit("bbbb222", "promote", "M-0099", "ai/claude", "human/peter", authSHA, nil),
 	}
-	got := RunProvenance(commits, tr)
+	got := RunProvenance(commits, tr, nil)
 	if hasFinding(got, CodeProvenanceAuthorizationOutOfScope.ID) {
 		t.Fatalf("findings = %v; old-id target should resolve via prior_ids and reach scope-entity",
 			findingCodes(got))
@@ -378,7 +378,7 @@ func TestRunProvenance_OutOfScope_TargetResolvedViaPriorIDs_CollisionCase(t *tes
 		// prefer the prior_ids lineage.
 		agentCommit("ccc1234", "promote", "M-0099", "ai/claude", "human/peter", authSHA, nil),
 	}
-	got := RunProvenance(commits, tr)
+	got := RunProvenance(commits, tr, nil)
 	if hasFinding(got, CodeProvenanceAuthorizationOutOfScope.ID) {
 		t.Fatalf("findings = %v; renamed-target with collision must resolve via prior_ids",
 			findingCodes(got))
@@ -403,7 +403,7 @@ func TestRunProvenance_OutOfScope_PriorIDsDoesNotMaskGenuineOutOfScope(t *testin
 		// reach E-0009. The rule must fire.
 		agentCommit("dddd444", "promote", "M-0099", "ai/claude", "human/peter", authSHA, nil),
 	}
-	got := RunProvenance(commits, tr)
+	got := RunProvenance(commits, tr, nil)
 	if !hasFinding(got, CodeProvenanceAuthorizationOutOfScope.ID) {
 		t.Fatalf("findings = %v; prior_ids lookup must not mask a genuine out-of-scope target",
 			findingCodes(got))
@@ -423,7 +423,7 @@ func TestRunProvenance_AuthorizeCommitNoActiveScopeSkipped(t *testing.T) {
 		{Key: gitops.TrailerTo, Value: "ai/claude"},
 		{Key: gitops.TrailerScope, Value: "opened"},
 	}}
-	got := RunProvenance([]scope.Commit{c}, nil)
+	got := RunProvenance([]scope.Commit{c}, nil, nil)
 	if hasFinding(got, CodeProvenanceNoActiveScope) {
 		t.Fatalf("authorize commit fired no-active-scope: %v", findingCodes(got))
 	}
@@ -1000,7 +1000,7 @@ func TestRunProvenance_CompositeTargetRollsUp(t *testing.T) {
 		agentCommit("bbbb222", "promote", "M-0001/AC-1",
 			"ai/claude", "human/peter", authSHA, nil),
 	}
-	got := RunProvenance(commits, tr)
+	got := RunProvenance(commits, tr, nil)
 	if hasFinding(got, CodeProvenanceAuthorizationOutOfScope.ID) {
 		t.Fatalf("out-of-scope fired on composite target that rolls up correctly: %v", findingCodes(got))
 	}
@@ -1019,7 +1019,7 @@ func TestRunProvenance_SelfReferentialOutOfScope(t *testing.T) {
 		agentCommit("bbbb222", "promote", "E-0001",
 			"ai/claude", "human/peter", authSHA, nil),
 	}
-	got := RunProvenance(commits, tr)
+	got := RunProvenance(commits, tr, nil)
 	if hasFinding(got, CodeProvenanceAuthorizationOutOfScope.ID) {
 		t.Fatalf("out-of-scope fired on self-referential target: %v", findingCodes(got))
 	}
@@ -1053,7 +1053,7 @@ func TestRunProvenance_MultipleAuthorizedByLastWins(t *testing.T) {
 			},
 		},
 	}
-	got := RunProvenance(commits, tr)
+	got := RunProvenance(commits, tr, nil)
 	if !hasFinding(got, CodeProvenanceAuthorizationMissing) {
 		t.Fatalf("expected last-wins to drive -authorization-missing on the second SHA; got %v",
 			findingCodes(got))
@@ -1119,7 +1119,7 @@ func TestRunProvenance_WrapBundleCommitTolerated_AuthorizationEnded(t *testing.T
 		// the scope ended. Must not fire authorization-ended.
 		agentCommit("dddd444", "wrap-epic", "E-0001", "ai/claude", "human/peter", authSHA, nil),
 	}
-	got := RunProvenance(commits, tr)
+	got := RunProvenance(commits, tr, nil)
 	if hasFinding(got, CodeProvenanceAuthorizationEnded) {
 		t.Fatalf("findings = %v; wrap-bundle commit after same-entity terminal promote must not fire authorization-ended",
 			findingCodes(got))
@@ -1141,7 +1141,7 @@ func TestRunProvenance_WrapBundleCommitTolerated_WrapMilestone(t *testing.T) {
 		}),
 		agentCommit("dddd444", "wrap-milestone", "M-0001", "ai/claude", "human/peter", authSHA, nil),
 	}
-	got := RunProvenance(commits, tr)
+	got := RunProvenance(commits, tr, nil)
 	if hasFinding(got, CodeProvenanceAuthorizationEnded) {
 		t.Fatalf("findings = %v; wrap-milestone bundle commit must be tolerated",
 			findingCodes(got))
@@ -1168,7 +1168,7 @@ func TestRunProvenance_WrapBundleExceptionScoped_DifferentEntityStillFires(t *te
 		// narrowed to same-entity to avoid silently broadening scope.
 		agentCommit("dddd444", "wrap-epic", "M-0001", "ai/claude", "human/peter", authSHA, nil),
 	}
-	got := RunProvenance(commits, tr)
+	got := RunProvenance(commits, tr, nil)
 	if !hasFinding(got, CodeProvenanceAuthorizationEnded) {
 		t.Fatalf("findings = %v; wrap commit on a different entity from the scope-ender must still fire",
 			findingCodes(got))
@@ -1192,7 +1192,7 @@ func TestRunProvenance_WrapBundleExceptionScoped_NonWrapVerbStillFires(t *testin
 		// Non-wrap verb on the same entity after scope ended.
 		agentCommit("dddd444", "promote", "E-0001", "ai/claude", "human/peter", authSHA, nil),
 	}
-	got := RunProvenance(commits, tr)
+	got := RunProvenance(commits, tr, nil)
 	if !hasFinding(got, CodeProvenanceAuthorizationEnded) {
 		t.Fatalf("findings = %v; non-wrap verb in post-promote window must still fire",
 			findingCodes(got))
@@ -1224,7 +1224,7 @@ func TestRunProvenance_WrapBundleExceptionScoped_NonPromoteEnderStillFires(t *te
 		},
 		agentCommit("dddd444", "wrap-epic", "E-0001", "ai/claude", "human/peter", authSHA, nil),
 	}
-	got := RunProvenance(commits, tr)
+	got := RunProvenance(commits, tr, nil)
 	if !hasFinding(got, CodeProvenanceAuthorizationEnded) {
 		t.Fatalf("findings = %v; wrap commit after non-promote scope-end must still fire",
 			findingCodes(got))
@@ -1248,7 +1248,7 @@ func TestRunProvenance_WrapBundleExceptionScoped_MissingAuthSHAStillFires(t *tes
 		agentCommit("dddd444", "wrap-epic", "E-0001", "ai/claude", "human/peter",
 			strings.Repeat("0", 40), nil),
 	}
-	got := RunProvenance(commits, tr)
+	got := RunProvenance(commits, tr, nil)
 	if !hasFinding(got, CodeProvenanceAuthorizationMissing) {
 		t.Fatalf("findings = %v; missing authorize-opener must still fire -authorization-missing",
 			findingCodes(got))
@@ -1282,7 +1282,7 @@ func TestRunProvenance_WrapBundleExceptionScoped_PriorIDsRenameResolves(t *testi
 		// as the same entity.
 		agentCommit("dddd444", "wrap-milestone", "M-0001", "ai/claude", "human/peter", authSHA, nil),
 	}
-	got := RunProvenance(commits, tr)
+	got := RunProvenance(commits, tr, nil)
 	if hasFinding(got, CodeProvenanceAuthorizationEnded) {
 		t.Fatalf("findings = %v; same-entity match via prior_ids must enable wrap-bundle exception",
 			findingCodes(got))
@@ -1305,7 +1305,7 @@ func TestRunProvenance_WrapBundleExceptionScoped_CompositeRolledUp(t *testing.T)
 		// Composite target on a child AC; rolls up to M-0001.
 		agentCommit("dddd444", "wrap-milestone", "M-0001/AC-1", "ai/claude", "human/peter", authSHA, nil),
 	}
-	got := RunProvenance(commits, tr)
+	got := RunProvenance(commits, tr, nil)
 	if hasFinding(got, CodeProvenanceAuthorizationEnded) {
 		t.Fatalf("findings = %v; composite target must roll up to same scope-entity",
 			findingCodes(got))

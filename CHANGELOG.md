@@ -29,6 +29,78 @@ Those four surfaces now report `unresolved-unverified` instead: a non-blocking w
 The downgrade is a presentation pass a reporting surface applies to its own findings, not a change to the resolution rules. The rules are shared with the verb layer, where an error-severity `unresolved` is what suppresses a mutation's plan — softening them there would let a verb commit a reference that resolves nowhere. A surface that only prints may decline to make a claim it cannot support; a surface that acts on the claim has to build the evidence instead.
 
 `aiwf check --shape-only`, and with it the pre-commit hook, was never affected: it runs the tree-discipline rules only and raises no reference findings at all.
+### Added — `aiwf acknowledge illegal` now clears provenance findings
+
+`provenance-force-non-human` and its siblings fire on commit history, so they
+also fire on commits no verb produced — imported history, commits predating the
+verb-time guard, hand-composed trailer sets. Until now nothing cleared them:
+these rules never consulted the set of acknowledged commits, so the only
+remaining exits were rewriting the commit or leaving the push blocked.
+
+`aiwf acknowledge illegal <sha> --reason "<why>"` now clears the provenance
+findings against the named commit. It is human-only, records the reason in a
+separate commit, and leaves the acknowledged commit byte-identical — same
+author, same trailers, same SHA.
+
+The exemption covers every provenance rule against that commit rather than a
+chosen subset, matching how the acknowledgment already works for the rules
+outside this family. Clearing only some would leave the push blocked by a second
+rule restating the first: a forced act by an authorized agent raises both
+`provenance-force-non-human` and a `provenance-trailer-incoherent` whose message
+is "force is human-only".
+
+Two provenance-prefixed findings are outside that set and unchanged.
+`provenance-untrailered-entity-commit` still needs `--for-entity <id>`, because
+its findings are per-(commit, entity) pairs and the verb checks that binding
+against the commit's own diff before recording it.
+`provenance-untrailered-scope-undefined` reports that the audit range could not
+be determined — a property of how you invoked `aiwf check`, not of any commit —
+so it is answered by configuring an upstream or passing `--since`, not by an
+acknowledgment.
+
+If you are silencing a finding you did not intend to silence, the scope to check
+is the commit, not the rule — a reason written about one finding retires the
+commit's others too, and nothing on any other commit.
+
+### Changed — `--force` by a non-human actor is now refused when the verb runs
+
+A forced act by an `ai/...` or `bot/...` actor used to succeed at the verb and
+commit, then fail the pre-push check with no verb able to clear the resulting
+commit. It is now refused before anything is written: the verb exits non-zero,
+`HEAD` is unchanged, and the message names `--force` rather than the trailers
+behind it.
+
+Automation that was forcing as a non-human actor was already blocked at push, so
+no working pipeline changes behavior — but a pipeline that treated the verb's
+exit code as success and the push as a separate concern now fails a step
+earlier.
+
+A provenance-coherence refusal now exits `1` wherever it is raised — the same
+exit `aiwf check` uses for the same violation once it has landed — and carries a
+machine-routable `error.code` under `--format=json` where it previously carried
+none. That is new at the commit seam described above, and a move from `2` for
+the coherence refusals `aiwf authorize` and the `--audit-only` paths already
+raised.
+
+The rule is keyed on the `aiwf-force:` trailer rather than on the `--force`
+flag, and the two are not the same. `aiwf add --force` bypasses the
+born-complete body gate and is inert on kinds that have none, so it records no
+sovereign act and is accepted from any actor — an invocation that overrides
+nothing has nothing to refuse. That is why the check lives where the assembled
+trailers are visible rather than where the flag is parsed.
+
+The `--force` help on `aiwf promote`, `cancel`, `add` and `authorize` now says
+the flag is sovereign and names what it does not relax. Where a finding's hint
+offers `--force` as the remedy, it now says the same — that the override
+reaches only the precondition that finding names, not the finding itself, and
+that every other check still runs.
+### Fixed — G-0559: `aiwf schema` advertises the id width the allocator actually emits
+
+`aiwf schema` published the per-kind widths ADR-0008 replaced — `E-NN`, `M-NNN`, `G-NNN`, `D-NNN`, `C-NNN` — in both its text output and the `id_format` field of its JSON. The same strings reached the `frontmatter-shape` finding, so an id below the digit floor was answered with `does not match E-NN format`: advice that, if followed, lands on a width `entity-id-narrow-width` reports at error severity. All six now read at canonical width. Consumers parsing `id_format` see a changed value.
+
+The shape is no longer stored per kind. `entity.IDFormat` derives it from the kind's prefix and `CanonicalPad`, the two facts `AllocateID` already formats with, so what the kernel advertises and what it emits cannot drift apart — the table can no longer carry a stale copy. Parser tolerance is untouched: narrower legacy widths still validate on input, which is what keeps references into entities archived before the width convention resolving.
+
+Two checks pin it. `TestIDFormat_MatchesAllocatedIDShape` measures the advertised shape against a real allocation rather than recomputing it, so the two sides stay independent. `TestPolicy_NarrowIDPlaceholderLiteralsAllowlisted` bans a Go string literal that *is* a below-canonical id placeholder, the sibling of the existing sweep for real ids at legacy width — the axis that let this survive, since the numeric sweep's grammar never matched a placeholder. Its scope is the whole-literal form; a narrow placeholder inside comment prose describing composite-id syntax is descriptive text, not an advertised contract.
 
 ### Fixed — G-0557: a git hook `aiwf init` cannot read is refused, not overwritten
 

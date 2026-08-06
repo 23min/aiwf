@@ -179,6 +179,8 @@ These rules emit **error in some runs and warning in others**, so neither table 
 
 These fire on commit history, not tree state. Each names the offending commit's short SHA in its message.
 
+`aiwf check` prints a hint beside each of these naming what to do, and every one of those hints assumes you can still shape the commit. Once it has landed most cannot be performed — a verb cannot be re-run into the past, and correcting a git config does not reach a commit already written. For a landed commit the remedy is ratification: `aiwf acknowledge illegal <sha> --reason "<why>"` records a human's acceptance in a new commit and stops every rule in this table reporting that one commit, leaving it and every other commit untouched. It is human-only and the reason is required. `provenance-untrailered-entity-commit`, listed under warnings rather than here, is the exception that needs the narrower `--for-entity <id>` form.
+
 | Code | Meaning |
 |---|---|
 | `provenance-trailer-incoherent` | A required-together pair is partial, or a mutually-exclusive pair are both present (e.g., `aiwf-on-behalf-of:` without `aiwf-authorized-by:`, `aiwf-actor: ai/...` without `aiwf-principal:`, `aiwf-actor: human/...` *with* `aiwf-principal:`). |

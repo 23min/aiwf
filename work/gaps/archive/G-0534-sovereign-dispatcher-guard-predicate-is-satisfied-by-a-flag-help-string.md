@@ -1,8 +1,10 @@
 ---
 id: G-0534
 title: Sovereign-dispatcher guard predicate is satisfied by a flag-help string
-status: open
+status: addressed
 priority: medium
+addressed_by_commit:
+    - 72c914ecd
 ---
 ## What's missing
 

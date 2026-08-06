@@ -147,7 +147,7 @@ func TestValidate_Errors(t *testing.T) {
 		{
 			name:    "id wrong format for kind",
 			src:     "version: 1\nentities:\n  - kind: epic\n    id: M-001\n    frontmatter: {title: X, status: active}\n",
-			wantSub: "does not match E-NN format",
+			wantSub: "does not match E-NNNN format",
 		},
 		{
 			name:    "missing frontmatter",

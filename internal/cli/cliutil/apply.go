@@ -44,7 +44,10 @@ func ErrInternal(err error) error { return &internalError{err: err} }
 //   - an ErrInternal-wrapped error → ExitInternal (3): the caller's
 //     own infrastructure broke, not a usage mistake;
 //   - any other verb error → ExitUsage (2);
-//   - nil result / no plan / apply failure → ExitInternal (3);
+//   - a Coded apply failure → ExitFindings (1): the same legality
+//     class as a Coded verb error, refused at the commit seam instead
+//     of inside the verb;
+//   - nil result / no plan / any other apply failure → ExitInternal (3);
 //   - error-severity findings → ExitFindings (1);
 //   - success (incl. NoOp, warnings) → ExitOK (0).
 //
@@ -182,7 +185,17 @@ func FinishVerbOutcome(ctx context.Context, root, label string, outcome *Outcome
 			if len(outcome.Plans) > 1 {
 				msg = fmt.Sprintf("applying plan %d: %v", i, applyErr)
 			}
-			out.emitErrorEnvelope(label, "", msg)
+			codeStr, isCoded := entity.Code(applyErr)
+			out.emitErrorEnvelope(label, codeStr, msg)
+			// A Coded apply error is a legality refusal, so it exits like
+			// the check-time finding for the same violation class rather
+			// than joining the internal-failure class the rest of this
+			// branch covers. A sovereign-force refusal is the case that
+			// matters: an operator and a machine consumer both meet the
+			// same code here that `aiwf check` reports for the act.
+			if isCoded {
+				return ExitFindings, ""
+			}
 			// A working-copy refusal is the operator's to resolve and
 			// leaves nothing broken behind it, so it reports as usage
 			// rather than joining the internal-failure class the rest of

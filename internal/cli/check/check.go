@@ -135,16 +135,16 @@ func Run(root, format string, pretty bool, since string, shapeOnly, fast, verbos
 	// once per check invocation, then pass it to every rule that
 	// consumes it. The single-compute invariant is policed by
 	// internal/policies/acks_helper_lift.go; rule-internal recompute
-	// is forbidden (violation class 3c). The four consumers below
-	// are RunProvenanceCheck (which forwards to RunIsolationEscape,
-	// RunTrailerVerbUnknown, and RunIDRenameUntrailered — the
-	// fourth added at M-0160/AC-4) and FSMHistoryConsistent. Now
-	// derived from the shared head walk (AC-5).
+	// is forbidden (violation class 3c). The consumers are reached
+	// through RunProvenanceCheck, which forwards the map on, and
+	// through the direct FSMHistoryConsistent call below;
+	// check.WalkAcknowledgedSHAs' doc enumerates them, and class 4f
+	// holds that enumeration to the policy rosters. Now derived from
+	// the shared head walk (AC-5).
 	ackedSHAs := check.WalkAcknowledgedSHAs(ctx, resolved, head)
 
 	// G-0231 item 3: per-(SHA, entity) ack set, consumed only by
-	// RunUntrailedAudit (the seventh ack consumer, added in this
-	// item). Distinct from the per-SHA blanket set above because
+	// RunUntrailedAudit. Distinct from the per-SHA blanket set above because
 	// the rule's findings are per-(commit, entity) — requiring a
 	// per-pair ack rather than a SHA-only blanket. Same
 	// single-compute / cascading-pass-through pattern.
