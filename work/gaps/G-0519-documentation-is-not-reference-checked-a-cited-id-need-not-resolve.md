@@ -2,6 +2,7 @@
 id: G-0519
 title: 'Documentation is not reference-checked: a cited id need not resolve'
 status: open
+priority: medium
 ---
 ## Problem
 

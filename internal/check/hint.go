@@ -106,12 +106,12 @@ var hintTable = map[string]string{
 	// skill consumes this finding to surface "no work queued" before
 	// activation; post-activation, drafting the next milestone (or wrapping
 	// the epic) clears it.
-	"epic-active-no-drafted-milestones": "draft the next milestone with `aiwf add milestone --epic E-NN --tdd <policy> --title \"...\"`, or wrap the epic if all planned work is in flight or done — the rule is the start-epic preflight signal from G-0063",
+	"epic-active-no-drafted-milestones": "draft the next milestone with `aiwf add milestone --epic E-NNNN --tdd <policy> --title \"...\"`, or wrap the epic via `aiwf promote E-NNNN done` if all planned work is in flight or done — the rule is the start-epic preflight signal from G-0063",
 
 	// Any narrow id in the active tree, at error severity. No verb
 	// widens an id in place, so the fix is to undo the change that
 	// produced it — hence a git command rather than an aiwf one.
-	"entity-id-narrow-width": "an active entity's filename carries an id below canonical width; undo the change that produced it (`git checkout -- <path>` if uncommitted, `git revert <sha>` if it landed) — no verb widens an id in place, and `aiwf reallocate` would assign a different number rather than the same one at canonical width",
+	"entity-id-narrow-width": "an active entity carries an id below canonical width, in its filename or its frontmatter `id:` (when only one of the two diverges, the message names which); undo the change that produced it (`git checkout -- <path>` if uncommitted, `git revert <sha>` if it landed) — no verb widens an id in place, and `aiwf reallocate` would assign a different number rather than the same one at canonical width",
 
 	// M-0086: ADR-0004 §"Reversal" forbids relocation as the
 	// remediation. The remediation is to revert the hand-edit, not
@@ -249,7 +249,7 @@ var hintTable = map[string]string{
 	// silently swallowed walker failures; M-0137 surfaces them as
 	// findings so one transient subprocess error doesn't wipe the
 	// rule's output (per CLAUDE.md §Engineering principles).
-	"fsm-history-consistent/history-walk-error": "the walker hit a real failure reading the named entity's commit history (subprocess crash, blob read error, context cancelled mid-walk); other entities' findings are still surfaced alongside per the partial-preservation contract. Re-run `aiwf check` to confirm whether the failure is transient; if it repeats, inspect git's reachable-objects health (`git fsck`) or the consumer-repo permissions on `.git/objects/`",
+	"fsm-history-consistent/history-walk-error": "the walker hit a real failure reading the named entity's commit history (subprocess crash, blob read error, context cancelled mid-walk); other entities' findings are still surfaced alongside per the partial-preservation contract. Re-run `aiwf check` to confirm whether the failure is transient; if it repeats on a full clone, inspect git's reachable-objects health (`git fsck`) or the consumer-repo permissions on `.git/objects/`. On a partial clone (`--filter=blob:none` or similar) the blob is omitted by design and the walk needs it: re-enable lazy fetching if it is off, restore the remote it fetches from, or backfill with `git fetch --refetch --no-filter` — a clone that can still fetch backfills on read and never reports this",
 
 	"contract-config/missing-entity":        "create a contract entity for this id (`aiwf add contract`), or remove the entry from aiwf.yaml.contracts.entries[]",
 	"contract-config/missing-schema":        "correct the `schema:` path under `contracts` in aiwf.yaml (or create the file at that location), then re-run `aiwf contract verify`",
@@ -290,7 +290,7 @@ var hintTable = map[string]string{
 	// value (e.g. `aiwf-verb: implement`) on a hand-rolled Conventional-
 	// Commits commit. Known ritual lifecycle verbs (e.g. `wrap-epic`) are
 	// allowlisted (G-0180) and do not fire.
-	"trailer-verb-unknown": "the commit's `aiwf-verb:` value is not a registered top-level verb or subverb, nor a recognized ritual verb; if it's a typo (or an LLM fabrication), `git commit --amend` and drop the trailer — plain `feat(...)` / `fix(...)` commits don't need an `aiwf-verb:` line; if it's a new ritual verb, add it to the ritualVerbs allowlist in internal/check/trailer_verb_unknown.go",
+	"trailer-verb-unknown": "the commit's `aiwf-verb:` value is not a registered top-level verb or subverb, nor a recognized ritual verb; if it's a typo (or an LLM fabrication), `git commit --amend` and drop the trailer — plain `feat(...)` / `fix(...)` commits don't need an `aiwf-verb:` line; if it's a new ritual verb, add it to the ritualVerbs allowlist in internal/check/trailer_verb_unknown.go; when the commit is already merged and rewriting it is wrong, a human can silence it with `aiwf acknowledge illegal <sha> --reason \"...\"`",
 
 	// M-0160/AC-4: id-rename-untrailered fires when a commit between
 	// merge-base(HEAD, trunk) and HEAD renames an id-bearing entity

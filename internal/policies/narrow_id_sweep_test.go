@@ -22,9 +22,13 @@ func repoRootFromTest(t *testing.T) (string, error) {
 }
 
 // TestPolicy_NarrowIDLiteralsAllowlisted is the AC-5 chokepoint for
-// M-081's test-fixture sweep. It greps for narrow-width entity-id
-// string literals (`"E-NN"`, `"M-NNN"`, etc.) under internal/ and
-// cmd/aiwf/, and reports any match outside the allowlist.
+// M-081's test-fixture sweep. It greps for string literals holding a
+// real entity id at narrow numeric width (`E-01`, `M-007`) under
+// internal/ and cmd/aiwf/, and reports any match outside the allowlist.
+//
+// The placeholder axis — a literal spelling an id *shape* below
+// canonical width — is a different grammar and belongs to
+// TestPolicy_NarrowIDPlaceholderLiteralsAllowlisted below.
 //
 // The allowlist is the fixed set of test files that intentionally
 // exercise parser tolerance (AC-2 and AC-4 in M-081) plus a handful
@@ -37,9 +41,10 @@ func repoRootFromTest(t *testing.T) (string, error) {
 //	"[EMGDC]-[0-9]{1,3}"   // narrow widths only; ADR is exempt
 //
 // ADR is exempt: its grammar (`ADR-\d{4,}`) was always at canonical
-// width, so there is no narrow-legacy form to track. The test does
-// scan composite-id literals (`"M-NNN/AC-N"`) under the same
-// regex; those are also covered by the allowlist mechanism.
+// width, so there is no narrow-legacy form to track. A composite-id
+// literal is not scanned — the regex requires the closing quote right
+// after the digits, so `"M-007/AC-1"` does not match; a file carrying
+// one reaches the allowlist through its bare narrow ids instead.
 //
 // Per CLAUDE.md "framework correctness must not depend on the LLM's
 // behavior," AC-5's discipline lives in this test, not in reviewer
@@ -207,41 +212,8 @@ func TestPolicy_NarrowIDLiteralsAllowlisted(t *testing.T) {
 		"internal/htmlrender/htmlrender_test.go": "M-0264: defaultResolver fixture tree seeded at narrow width; idToFileName renders verbatim, not canonicalized",
 	}
 
-	// Run grep from the repo root. Pipe stderr alongside stdout so
-	// the rare "no match" exit-1 case still shows up in CI output
-	// without the test panicking.
-	cmd := exec.Command("grep", "-rEl", `"[EMGDC]-[0-9]{1,3}"`, "internal/", "cmd/aiwf/")
-	cmd.Dir = repoRoot
-	out, err := cmd.Output()
-	if err != nil {
-		// grep -rE returns:
-		//   0  matches found
-		//   1  no matches (clean pass for AC-5)
-		//   2  syntax error or some files unreadable (e.g. transient
-		//       index lock during a verb commit). Skip rather than
-		//       fail — CI's standalone `go test` run is the chokepoint.
-		var ee *exec.ExitError
-		if asExitErr(err, &ee) {
-			switch ee.ExitCode() {
-			case 1:
-				return
-			case 2:
-				t.Skipf("grep returned 2 (likely transient file access); CI standalone run is the chokepoint: %s", ee.Stderr)
-			}
-		}
-		t.Fatalf("grep failed: %v", err)
-	}
-	files := strings.Split(strings.TrimSpace(string(out)), "\n")
 	var unallowed []string
-	for _, f := range files {
-		f = strings.TrimSpace(f)
-		if f == "" {
-			continue
-		}
-		// grep reports paths like `internal//entity/...` because we
-		// passed `internal/` as a directory arg. Normalize the double
-		// slash so the allowlist lookup matches.
-		f = filepath.Clean(f)
+	for _, f := range grepSourceFiles(t, repoRoot, `"[EMGDC]-[0-9]{1,3}"`) {
 		// Embedded skill markdown: not Go source, narrow ids in prose
 		// are SKILL.md content the kernel doesn't canonicalize.
 		if strings.Contains(f, "/embedded/") {
@@ -286,4 +258,89 @@ func TestPolicy_NarrowIDLiteralsAllowlisted(t *testing.T) {
 // imports lean.
 func asExitErr(err error, target **exec.ExitError) bool {
 	return errors.As(err, target)
+}
+
+// grepSourceFiles runs `grep -rEl pattern` over the Go source trees from
+// repoRoot and returns the matching paths, cleaned (grep reports
+// `internal//entity/...` because `internal/` is passed as a directory
+// arg). A pattern with no matches returns nil.
+//
+// grep's exit 2 — some file unreadable, typically a transient index lock
+// during a verb commit — skips rather than fails; CI's standalone run is
+// the chokepoint.
+func grepSourceFiles(t *testing.T, repoRoot, pattern string) []string {
+	t.Helper()
+	cmd := exec.Command("grep", "-rEl", pattern, "internal/", "cmd/aiwf/")
+	cmd.Dir = repoRoot
+	out, err := cmd.Output()
+	if err != nil {
+		var ee *exec.ExitError
+		if asExitErr(err, &ee) {
+			switch ee.ExitCode() {
+			case 1:
+				return nil
+			case 2:
+				t.Skipf("grep returned 2 (likely transient file access); CI standalone run is the chokepoint: %s", ee.Stderr)
+			}
+		}
+		t.Fatalf("grep failed: %v", err)
+	}
+	var files []string
+	for _, f := range strings.Split(strings.TrimSpace(string(out)), "\n") {
+		if f = strings.TrimSpace(f); f != "" {
+			files = append(files, filepath.Clean(f))
+		}
+	}
+	return files
+}
+
+// TestPolicy_NarrowIDPlaceholderLiteralsAllowlisted is the sibling of
+// TestPolicy_NarrowIDLiteralsAllowlisted on the placeholder axis. Where
+// that one catches a real id written at legacy width, this one catches a
+// Go string literal that *is* a below-canonical id placeholder —
+// `"E-NN"`, `"M-NNN"`, `"ADR-NNN"`. That is the shape the kernel
+// advertises being spelled at a width no allocator emits, which is how
+// `aiwf schema` came to publish a contract the tree would reject
+// (G-0559).
+//
+// The match grammar:
+//
+//	"(ADR|[EMGDC])-N{1,3}"   // 1-3 placeholder digits; canonical is entity.CanonicalPad
+//
+// Scope is the whole-literal form deliberately. A narrow placeholder
+// inside comment prose — `M-NNN/AC-N` describing composite-id syntax —
+// is descriptive text rather than an advertised contract, and is common
+// enough across the tree that banning it would be a per-subject tax, not
+// a chokepoint. The whole-literal form is the one a program prints.
+func TestPolicy_NarrowIDPlaceholderLiteralsAllowlisted(t *testing.T) {
+	t.Parallel()
+	if runtime.GOOS == "windows" {
+		t.Skip("grep dependency: skip on windows CI")
+	}
+	repoRoot, err := repoRootFromTest(t)
+	if err != nil {
+		t.Fatalf("locate repo root: %v", err)
+	}
+
+	// Each entry holds narrow placeholder literals because the literal
+	// is the input space of a rule that rejects exactly that shape.
+	allowlist := map[string]string{
+		"internal/policies/narrow_id_sweep_test.go": "this file: the doc comments name the shapes both sweeps ban",
+		"internal/policies/m083_test.go":            "input space of the CLAUDE.md commitment sweep: the per-kind narrow enumeration whose absence it asserts",
+		"internal/check/doc_id_width_test.go":       "input space of the doc-id-width rule: the narrow placeholder tokens it rejects in documentation",
+	}
+
+	var unallowed []string
+	for _, f := range grepSourceFiles(t, repoRoot, `"(ADR|[EMGDC])-N{1,3}"`) {
+		if _, ok := allowlist[f]; !ok {
+			unallowed = append(unallowed, f)
+		}
+	}
+	if len(unallowed) > 0 {
+		t.Errorf("narrow id-placeholder literals found outside allowlist:\n  %s\n\n"+
+			"Each match is either:\n"+
+			"  (a) an advertised id shape that should read at canonical width (entity.IDFormat derives it — don't spell it), or\n"+
+			"  (b) the input space of a rule that rejects narrow placeholders, needing an entry in this file's allowlist.\n",
+			strings.Join(unallowed, "\n  "))
+	}
 }

@@ -13,6 +13,36 @@ import (
 // duplicated fixture.
 const aiwfCheckSkillPath = "internal/skills/embedded/aiwf-check/SKILL.md"
 
+// assertDocumentedAsFindingRow asserts each code is documented as a
+// table ROW in a severity-declaring findings section of the aiwf-check
+// skill — the structural upgrade over PolicyFindingCodesAreDiscoverable,
+// which only proves a code is mentioned somewhere in the file.
+//
+// It deliberately does not name the section. Which one is correct is
+// derived from the severity the rule emits, and
+// PolicySkillTableSeverityPlacement is the single surface that decides
+// it; naming a section here too would mean two places to update when a
+// rule's severity changes, and one of them would eventually be wrong.
+func assertDocumentedAsFindingRow(t *testing.T, root string, codes ...string) {
+	t.Helper()
+	rows, err := loadSkillFindingRows(root)
+	if err != nil {
+		t.Fatalf("read aiwf-check skill: %v", err)
+	}
+	for _, code := range codes {
+		row, ok := rows[code]
+		if !ok {
+			t.Errorf("aiwf-check skill has no findings-table row for %q", code)
+			continue
+		}
+		class, unambiguous := row.class()
+		if !unambiguous || class == "" {
+			t.Errorf("%q is documented under %s, which declares no single severity; it must sit in one severity-declaring findings section",
+				code, row.sections())
+		}
+	}
+}
+
 // TestAreaPathFindings_StructurallyDocumented pins M-0180/AC-6: the two
 // path-axis finding codes are documented as ROWS in the aiwf-check skill's
 // "Findings (warnings)" table — the structural upgrade over
@@ -28,26 +58,7 @@ func TestAreaPathFindings_StructurallyDocumented(t *testing.T) {
 	}
 	body := string(data)
 
-	warnings := markdownSection(body, "## Findings (warnings)")
-	if warnings == "" {
-		t.Fatal("aiwf-check skill has no `## Findings (warnings)` section")
-	}
-	// Guard the scoping itself, so the row assertions below cannot pass
-	// vacuously: if markdownSection ever regressed to return the whole file,
-	// the extracted slice would contain the NEXT section's heading and "in the
-	// warnings section" would collapse to "anywhere in the file". This makes
-	// the structural claim self-verifying rather than assumed.
-	if strings.Contains(warnings, "## Provenance findings") {
-		t.Fatal("warnings section over-extends past `## Provenance findings`: markdownSection scoping regressed, so the table-row assertions below would be vacuous")
-	}
-	// Structural: each code must be the leading cell of a table row INSIDE the
-	// warnings section, not merely text somewhere in the file.
-	for _, code := range []string{"area-dead-glob", "area-overlap"} {
-		row := "| `" + code + "` |"
-		if !strings.Contains(warnings, row) {
-			t.Errorf("aiwf-check `Findings (warnings)` section has no table row for %q (looked for %q)", code, row)
-		}
-	}
+	assertDocumentedAsFindingRow(t, root, "area-dead-glob", "area-overlap")
 
 	// The now-observable `paths` schema note (toward G-0288). Scope the
 	// schema-field and forward-reference assertions to the note region so this
@@ -82,27 +93,9 @@ func TestAreaCoverageFinding_StructurallyDocumented(t *testing.T) {
 	}
 	body := string(data)
 
-	warnings := markdownSection(body, "## Findings (warnings)")
-	if warnings == "" {
-		t.Fatal("aiwf-check skill has no `## Findings (warnings)` section")
-	}
-	// Self-guard the scoping so the row assertion below cannot pass vacuously:
-	// if markdownSection ever regressed to return the whole file, the extracted
-	// slice would contain the next section's heading and "in the warnings
-	// section" would collapse to "anywhere in the file".
-	if strings.Contains(warnings, "## Provenance findings") {
-		t.Fatal("warnings section over-extends past `## Provenance findings`: markdownSection scoping regressed, so the table-row assertion below would be vacuous")
-	}
-	// Structural: each coverage finding code must be the leading cell of a
-	// table row INSIDE the warnings section, not merely text somewhere in the
-	// file. area-coverage-root-missing / area-coverage-no-paths are the M-0185
+	// area-coverage-root-missing / area-coverage-no-paths are the M-0185
 	// AC-8 misconfiguration findings.
-	for _, code := range []string{"area-unslotted", "area-coverage-root-missing", "area-coverage-no-paths"} {
-		row := "| `" + code + "` |"
-		if !strings.Contains(warnings, row) {
-			t.Errorf("aiwf-check `Findings (warnings)` section has no table row for %q (looked for %q)", code, row)
-		}
-	}
+	assertDocumentedAsFindingRow(t, root, "area-unslotted", "area-coverage-root-missing", "area-coverage-no-paths")
 
 	// The coverage_roots schema note. Scope assertions to the note region so
 	// this stays structural, not a whole-file grep. The note once carried a

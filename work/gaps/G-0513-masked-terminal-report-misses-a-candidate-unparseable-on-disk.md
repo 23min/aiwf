@@ -2,6 +2,7 @@
 id: G-0513
 title: Masked-terminal report misses a candidate unparseable on disk
 status: open
+priority: low
 discovered_in: M-0286
 ---
 ## What's missing

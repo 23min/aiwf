@@ -1,28 +1,16 @@
 package check
 
-// archive_hint_test.go — M-0085 AC-8: hint-text regression pin and
-// SKILL.md table-cell polish.
+// archive_hint_test.go — the two archive findings name their remedy as
+// a runnable command.
 //
-// Per the M-0086 wrap log, the SKILL.md table cells for the two
-// finding codes (`terminal-entity-not-archived`, `archive-sweep-pending`)
-// dropped backticked references to `aiwf archive --apply` to satisfy
-// the skill-coverage policy (which fails CI on backticked references
-// to non-existent verbs). With M-0085 landing the verb, the backticks
-// are restored. This file pins both surfaces:
-//
-//   - The hint-table regression (HintFor returns the backticked form
-//     the user reads in `aiwf check` output).
-//   - The SKILL.md table-cell polish: each row's "Fix:" cell now
-//     contains the backticked verb form, not the prose-name fallback.
-//
-// Per CLAUDE.md "Substring assertions are not structural assertions":
-// the SKILL.md test scopes the substring search to the table row for
-// the named finding code, not a flat-grep over the whole file. A
-// stray backticked mention elsewhere in the document would not count.
+// `terminal-entity-not-archived` and `archive-sweep-pending` are both
+// cleared by the same two-step sweep, and the hint is the surface that
+// says so: it is what `aiwf check` prints beside the finding and what
+// JSON consumers read. So both invocation forms appear backticked
+// rather than named in prose, pinned at each surface the value passes
+// through — HintFor, and the Hint field applyHints fills.
 
 import (
-	"os"
-	"path/filepath"
 	"strings"
 	"testing"
 )
@@ -92,98 +80,4 @@ func TestApplyHints_ArchiveFindings_CarryBacktickedHint(t *testing.T) {
 			}
 		})
 	}
-}
-
-// TestSkillCheckSkillMd_ArchiveTableRowsBacktickedVerb is the
-// SKILL.md polish surface: the aiwf-check SKILL.md's table row for
-// each of the two finding codes contains a backticked
-// `aiwf archive --apply` reference in the row's Fix cell, not a
-// prose name like "the archive sweep verb (M-0085)".
-//
-// Per CLAUDE.md "Substring assertions are not structural assertions":
-// we scope the substring match to the row whose first column literally
-// names the finding code, so a stray reference elsewhere in the
-// document doesn't satisfy the assertion.
-func TestSkillCheckSkillMd_ArchiveTableRowsBacktickedVerb(t *testing.T) {
-	t.Parallel()
-	// Locate the SKILL.md by walking up to the kernel root, then
-	// dropping into the embedded path.
-	skillPath := findSkillMd(t, "aiwf-check")
-	body, err := os.ReadFile(skillPath)
-	if err != nil {
-		t.Fatalf("read %s: %v", skillPath, err)
-	}
-	cases := []struct {
-		findingCode string
-	}{
-		{CodeTerminalEntityNotArchived},
-		{CodeArchiveSweepPending},
-	}
-	for _, tc := range cases {
-		t.Run(tc.findingCode, func(t *testing.T) {
-			t.Parallel()
-			row := findTableRowForCode(string(body), tc.findingCode)
-			if row == "" {
-				t.Fatalf("no table row whose first column names `%s` in %s", tc.findingCode, skillPath)
-			}
-			if !strings.Contains(row, "`aiwf archive --apply`") {
-				t.Errorf("table row for `%s` does not name `aiwf archive --apply` in backticks (M-0085 AC-8 polish):\n  row: %s", tc.findingCode, strings.TrimSpace(row))
-			}
-		})
-	}
-}
-
-// findSkillMd locates `internal/skills/embedded/<dir>/SKILL.md` from
-// the test working directory. Walks upward until a `go.mod` is found
-// and joins the canonical embedded path. Mirrors the lookup the
-// AC-7 binary-integration test uses.
-func findSkillMd(t *testing.T, skillDir string) string {
-	t.Helper()
-	dir, err := os.Getwd()
-	if err != nil {
-		t.Fatalf("getwd: %v", err)
-	}
-	for i := 0; i < 8; i++ {
-		if _, statErr := os.Stat(filepath.Join(dir, "go.mod")); statErr == nil {
-			return filepath.Join(dir, "internal", "skills", "embedded", skillDir, "SKILL.md")
-		}
-		parent := filepath.Dir(dir)
-		if parent == dir {
-			break
-		}
-		dir = parent
-	}
-	t.Fatalf("could not find go.mod walking up from test cwd")
-	return "" //coverage:ignore unreachable: t.Fatalf above terminates
-}
-
-// findTableRowForCode returns the markdown-table row whose first cell
-// literally backticks the named finding code. Empty when no such row
-// exists. The match is scoped to the row, not flat over the file —
-// per CLAUDE.md "Substring assertions are not structural assertions",
-// a single literal occurring elsewhere in the document doesn't count.
-//
-// Markdown table grammar: rows are lines that start with `|` (after
-// leading whitespace). A row's first cell is the substring between
-// the first `|` and the second `|`. We extract that, trim, and check
-// for the backticked code form `\`<code>\“.
-func findTableRowForCode(body, code string) string {
-	want := "`" + code + "`"
-	for _, line := range strings.Split(body, "\n") {
-		trimmed := strings.TrimSpace(line)
-		if !strings.HasPrefix(trimmed, "|") {
-			continue
-		}
-		// Find the second `|` to delimit the first cell.
-		rest := trimmed[1:]
-		end := strings.Index(rest, "|")
-		if end < 0 {
-			continue
-		}
-		firstCell := strings.TrimSpace(rest[:end])
-		if firstCell == want {
-			return line
-		}
-	}
-	return ""
 }

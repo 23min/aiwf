@@ -2,6 +2,7 @@
 id: G-0436
 title: CLAUDE.md and id-allocation.md cite stale cmd/aiwf/ paths for relocated verbs
 status: open
+priority: medium
 discovered_in: E-0034
 ---
 ## What's missing

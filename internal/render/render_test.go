@@ -354,9 +354,63 @@ func TestTextSummary_WriteErrorBubblesUp(t *testing.T) {
 		t.Error("expected error from failing writer (footer branch); got nil")
 	}
 
+	// Failure on the fourth write (the --verbose pointer line, which
+	// follows the footer whenever any warning was collapsed).
+	if err := TextSummary(&failWriter{failOn: 4}, findings); err == nil {
+		t.Error("expected error from failing writer (verbose-pointer branch); got nil")
+	}
+
 	// Empty-findings branch's error path.
 	if err := TextSummary(&failWriter{failOn: 1}, nil); err == nil {
 		t.Error("expected error from failing writer on empty findings; got nil")
+	}
+}
+
+// TestTextSummary_PointsAtVerboseWhenWarningsCollapse covers the cost
+// of bucketing: a collapsed warning loses the Hint the per-instance
+// shape appends, and the hint is the single source of remediation
+// guidance for a finding. So the pointer rides exactly the runs that
+// dropped one — present when a warning collapsed, absent when the run
+// was errors-only and every hint already printed.
+func TestTextSummary_PointsAtVerboseWhenWarningsCollapse(t *testing.T) {
+	t.Parallel()
+	const pointer = "run `aiwf check --verbose` for each warning's location and remediation hint"
+
+	warning := check.Finding{Code: "fizz", Severity: check.SeverityWarning, Message: "a warning", Hint: "run `aiwf archive --apply`"}
+	err := check.Finding{Code: "boom", Severity: check.SeverityError, Message: "an error", Path: "a.md", Line: 1, Hint: "run `aiwf reallocate`"}
+
+	cases := []struct {
+		name     string
+		findings []check.Finding
+		want     bool
+	}{
+		{name: "warnings collapsed", findings: []check.Finding{warning}, want: true},
+		{name: "mixed run still collapses a warning", findings: []check.Finding{err, warning}, want: true},
+		{name: "errors only", findings: []check.Finding{err}},
+		{name: "no findings", findings: nil},
+	}
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			t.Parallel()
+			var buf bytes.Buffer
+			if err := TextSummary(&buf, tc.findings); err != nil {
+				t.Fatalf("TextSummary: %v", err)
+			}
+			if got := strings.Contains(buf.String(), pointer); got != tc.want {
+				t.Errorf("pointer present=%v, want %v; output:\n%s", got, tc.want, buf.String())
+			}
+		})
+	}
+
+	// The errors-only run needs no pointer because its hint is already
+	// on screen — assert that premise rather than assuming it, or the
+	// case above would pass for the wrong reason.
+	var buf bytes.Buffer
+	if e := TextSummary(&buf, []check.Finding{err}); e != nil {
+		t.Fatalf("TextSummary: %v", e)
+	}
+	if !strings.Contains(buf.String(), "hint: run `aiwf reallocate`") {
+		t.Errorf("an error's hint should print per-instance; got:\n%s", buf.String())
 	}
 }
 

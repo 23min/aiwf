@@ -260,15 +260,23 @@ func CarriesOwnPriority(k Kind) bool {
 	return k == KindGap || k == KindDecision
 }
 
-// IDFormat returns a human-readable description of the kind's id shape.
-// Used in error messages produced by the frontmatter-shape check.
-// Delegates to the schemas table so there is a single source of truth.
+// IDFormat returns a human-readable description of the kind's id shape
+// at canonical width — "E-NNNN", "ADR-NNNN", and so on. Used in error
+// messages produced by the frontmatter-shape check and published by
+// `aiwf schema`.
+//
+// Derived from IDPrefix and CanonicalPad rather than stored per kind, so
+// the shape the kernel advertises is always the shape AllocateID emits.
+// Parsers accept narrower legacy widths on input (ADR-0008), but that
+// tolerance is not what this describes: canonical width is the only legal
+// width for an entity in the active tree, so it is the width to advertise
+// to anyone about to write an id.
 func IDFormat(k Kind) string {
-	s, ok := schemas[k]
-	if !ok {
+	prefix := IDPrefix(k)
+	if prefix == "" {
 		return string(k)
 	}
-	return s.IDFormat
+	return prefix + strings.Repeat("N", CanonicalPad)
 }
 
 // idPatterns maps each kind to the regex that matches its id format.
@@ -561,13 +569,11 @@ var commonRequired = []string{"id", "title", "status"}
 var schemas = map[Kind]Schema{
 	KindEpic: {
 		Kind:            KindEpic,
-		IDFormat:        "E-NN",
 		AllowedStatuses: []Status{StatusProposed, StatusActive, StatusDone, StatusCancelled},
 		RequiredFields:  commonRequired,
 	},
 	KindMilestone: {
 		Kind:            KindMilestone,
-		IDFormat:        "M-NNN",
 		AllowedStatuses: []Status{StatusDraft, StatusInProgress, StatusDone, StatusCancelled},
 		RequiredFields:  append(append([]string(nil), commonRequired...), "parent"),
 		OptionalFields:  []string{"depends_on", "tdd", "acs"},
@@ -578,7 +584,6 @@ var schemas = map[Kind]Schema{
 	},
 	KindADR: {
 		Kind:            KindADR,
-		IDFormat:        "ADR-NNNN",
 		AllowedStatuses: []Status{StatusProposed, StatusAccepted, StatusSuperseded, StatusRejected},
 		RequiredFields:  commonRequired,
 		OptionalFields:  []string{"supersedes", "superseded_by"},
@@ -589,7 +594,6 @@ var schemas = map[Kind]Schema{
 	},
 	KindGap: {
 		Kind:            KindGap,
-		IDFormat:        "G-NNN",
 		AllowedStatuses: []Status{StatusOpen, StatusAddressed, StatusWontfix},
 		RequiredFields:  commonRequired,
 		OptionalFields:  []string{"discovered_in", "addressed_by", "addressed_by_commit", "priority"},
@@ -604,7 +608,6 @@ var schemas = map[Kind]Schema{
 	},
 	KindDecision: {
 		Kind:            KindDecision,
-		IDFormat:        "D-NNN",
 		AllowedStatuses: []Status{StatusProposed, StatusAccepted, StatusSuperseded, StatusRejected},
 		RequiredFields:  commonRequired,
 		OptionalFields:  []string{"relates_to", "priority"},
@@ -615,7 +618,6 @@ var schemas = map[Kind]Schema{
 	},
 	KindContract: {
 		Kind:            KindContract,
-		IDFormat:        "C-NNN",
 		AllowedStatuses: []Status{StatusProposed, StatusAccepted, StatusDeprecated, StatusRetired, StatusRejected},
 		RequiredFields:  commonRequired,
 		OptionalFields:  []string{"linked_adrs"},
@@ -628,16 +630,25 @@ var schemas = map[Kind]Schema{
 // SchemaForKind returns the Schema for k. The second return is false
 // if k is not one of the six aiwf kinds. The returned Schema shares
 // slice memory with the package-level table; callers must not mutate it.
+//
+// IDFormat is filled here rather than stored in the table, because it is
+// derivable from the kind — a stored copy is one the table can carry
+// stale.
 func SchemaForKind(k Kind) (Schema, bool) {
 	s, ok := schemas[k]
-	return s, ok
+	if !ok {
+		return s, false
+	}
+	s.IDFormat = IDFormat(k)
+	return s, true
 }
 
 // AllSchemas returns one Schema per kind, in AllKinds() order.
 func AllSchemas() []Schema {
 	out := make([]Schema, 0, len(schemas))
 	for _, k := range AllKinds() {
-		out = append(out, schemas[k])
+		s, _ := SchemaForKind(k)
+		out = append(out, s)
 	}
 	return out
 }

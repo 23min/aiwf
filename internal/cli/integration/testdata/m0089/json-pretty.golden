@@ -150,7 +150,7 @@
       "path": "work/epics/E-0002-no-drafts/epic.md",
       "line": 4,
       "entity_id": "E-0002",
-      "hint": "draft the next milestone with `aiwf add milestone --epic E-NN --tdd \u003cpolicy\u003e --title \"...\"`, or wrap the epic if all planned work is in flight or done — the rule is the start-epic preflight signal from G-0063"
+      "hint": "draft the next milestone with `aiwf add milestone --epic E-NNNN --tdd \u003cpolicy\u003e --title \"...\"`, or wrap the epic via `aiwf promote E-NNNN done` if all planned work is in flight or done — the rule is the start-epic preflight signal from G-0063"
     },
     {
       "code": "gap-addressed-has-resolver",

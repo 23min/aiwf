@@ -21,6 +21,8 @@ A one-screen project snapshot for human readers. Reach for this whenever the use
 
 By design, the verb shows *only in-flight state* at the top level — closed epics, accepted ADRs, addressed gaps, and cancelled work are not surfaced. The view is forward-looking. For history of a specific entity, use `aiwf history <id>`.
 
+**Counts here are of the current checkout, and undercount while an epic is in flight.** An entity created on an epic or patch branch that has not merged is not in this tree, so `aiwf status` — and the `STATUS.md` it regenerates — cannot see it. `aiwf list` resolves those, reporting the ref each cross-branch row came from. So take a narrative reading from `status`, and take any count you intend to act on, or any survey that must be complete, from `list`.
+
 ## Scoping to one workstream (`--area`)
 
 `aiwf status --area <A>` scopes the snapshot to a single workstream: the **entity-derived** sections — in-flight epics (and their milestones), planned epics, open decisions, open gaps — keep only entities whose effective area equals `<A>` (root kinds by their own field, epics carrying their milestones along). Recent activity, warnings, and health stay **global** — they are cross-cutting tree-health signals, not per-area concepts. An undeclared `--area` value prints a one-line note to stderr and scopes everything out (reads never reject). Reach for it when the user asks *"what's in flight in the platform workstream?"*.

@@ -81,6 +81,120 @@ the flag is sovereign and names what it does not relax. Where a finding's hint
 offers `--force` as the remedy, it now says the same — that the override
 reaches only the precondition that finding names, not the finding itself, and
 that every other check still runs.
+### Fixed — G-0559: `aiwf schema` advertises the id width the allocator actually emits
+
+`aiwf schema` published the per-kind widths ADR-0008 replaced — `E-NN`, `M-NNN`, `G-NNN`, `D-NNN`, `C-NNN` — in both its text output and the `id_format` field of its JSON. The same strings reached the `frontmatter-shape` finding, so an id below the digit floor was answered with `does not match E-NN format`: advice that, if followed, lands on a width `entity-id-narrow-width` reports at error severity. All six now read at canonical width. Consumers parsing `id_format` see a changed value.
+
+The shape is no longer stored per kind. `entity.IDFormat` derives it from the kind's prefix and `CanonicalPad`, the two facts `AllocateID` already formats with, so what the kernel advertises and what it emits cannot drift apart — the table can no longer carry a stale copy. Parser tolerance is untouched: narrower legacy widths still validate on input, which is what keeps references into entities archived before the width convention resolving.
+
+Two checks pin it. `TestIDFormat_MatchesAllocatedIDShape` measures the advertised shape against a real allocation rather than recomputing it, so the two sides stay independent. `TestPolicy_NarrowIDPlaceholderLiteralsAllowlisted` bans a Go string literal that *is* a below-canonical id placeholder, the sibling of the existing sweep for real ids at legacy width — the axis that let this survive, since the numeric sweep's grammar never matched a placeholder. Its scope is the whole-literal form; a narrow placeholder inside comment prose describing composite-id syntax is descriptive text, not an advertised contract.
+
+### Fixed — G-0557: a git hook `aiwf init` cannot read is refused, not overwritten
+
+`aiwf init` and `aiwf update` install four git hooks, and three of them replaced a pre-existing hook they could not read, reporting the result as a successful create. The operator's script was overwritten in place with aiwf's own, no `.local` sibling was written, no conflict was reported, and the step ledger showed `created` at exit 0.
+
+The G45 auto-migration that moves a pre-existing hook aside can only run once the file's content is known. The pre-commit, commit-msg, and post-commit installers each derived two booleans from the read, and both went false on any read fault — so the migration was skipped and control fell through to the write, where `os.Rename` replaces an unreadable file whenever the containing directory is writable. An unreadable hook is ordinary: a restrictive umask, a file owned by another account in a shared checkout, or a permissions change made after the hook was written each produce one.
+
+All four installers now refuse a hook they cannot read, wrapping the underlying error with the hook's name — the contract `pre-push` already had. The refusal covers `--dry-run`, so a preview no longer reports a create it could not perform. It aborts the install at the point of refusal, so hooks earlier in the sequence are installed and later ones are not; fix the file's permissions and re-run, which refreshes what is already there.
+
+`post-commit` reached this refusal on its regeneration-opt-out route and not on its install route. The check now sits ahead of both, and the opt-out route's own read-fault arm is gone with it.
+
+### Fixed — G-0438: flake-hunt runs one package per runner, so its red means a regression
+
+Internal only; no user-visible change to `aiwf` itself.
+
+`flake-hunt` is the workflow whose green says a tag is safe to push, and as a whole-module `go test -race -count=10 ./...` sweep on one runner it could not say that. A v0.28.0 release cut burned an investigation cycle establishing that its four red packages were not a code defect. What separates the causes is a later measurement on four cores: co-tenancy, not machine size, is what fails this repo's subprocess-bearing packages — run alone they pass every repeat, and sharing cores with a broad sweep they report scheduling delay as a defect.
+
+The sweep now fans out over a matrix derived from `go list`, one package per runner, `-count=10` unchanged. A new package joins with no edit to the workflow. `fail-fast: false` keeps one red package from cancelling the rest, since which packages flake is the result the run exists to report.
+
+`-timeout` goes to `45m` under a `60m` job cap. It was already per test binary, and a package always got its own — the raise is headroom, not a correction: on four cores with a warm cache the heaviest package's ten repeats measured around 20 minutes against the previous `30m`, and a runner building cold has less room than that. The job cap sits above the Go timeout so the panic and its goroutine dump land before the runner is killed.
+
+What the fan-out gives up is cross-package interference — two packages contending over the repo lock, `$HOME`, or fd limits only surfaces when they run concurrently. That is the class being reclassified as noise here, and `go.yml` still sweeps `./...` once per push.
+
+`internal/policies/flake_hunt_package_isolation.go` pins the shape by banning a `...` pattern anywhere in the workflow but the `go list` enumerator, which covers the test invocation and a hand-written matrix alike. It scans logical lines, so a wildcard on a backslash continuation counts, and the enumerator's exemption ends on a line that also runs `go test`. A matrix sourced from outside the file is beyond a single-file scan.
+
+### Changed — G-0547: the `aiwf-check` skill's findings tables answer what a code means, and the tool answers what to do about it
+
+The skill's four findings tables carried a `Typical fix` column — a second copy of the hint `aiwf check` already prints beside every finding it emits. The copy was the weaker of the two and had drifted: it told operators to resolve a case collision with `git mv` where the hint says `aiwf rename`, to fix an empty AC title by hand where the hint names `aiwf retitle`, and to find a validator's install instructions in the recipe where the hint names `aiwf contract recipe install`. Nothing derived one from the other, so nothing caught any of it.
+
+The column is gone, and with it the `Fix:` clauses that carried the same guidance inline in the warnings table. All four tables are now `Code | Meaning`. Remediation has one home — `hintTable`, where two existing checks already require every emitted code to have a hint and every hint to name its command. Guidance that lived only in the column moved there rather than being dropped: the partial-clone recovery for `fsm-history-consistent/history-walk-error` now names `git fetch --refetch --no-filter`. Clauses that were describing the rule rather than fixing it moved into the meaning cell, so `refs-resolve/wrong-kind` still says a milestone's `parent` must be an epic, and `milestone-tdd-undeclared` still says `tdd.strict` escalates it. This trims about 11KB from the largest surface `aiwf init` materializes into a consumer repo.
+
+Default `aiwf check` output collapses warnings into one line per code, which drops their hints. Runs that collapse a warning now close with a pointer to `aiwf check --verbose`, where each warning's location and hint are reachable. Errors are unaffected — they already print per instance, hint included.
+
+### Fixed — G-0542: the `aiwf-check` skill's finding tables now match the severities the rules emit
+
+Which table a finding code sits in is how you answer "will this block my push?", and a run of rows disagreed with the rule they described. Errors filed under warnings: `area-required`, `provenance-untrailered-entity-commit` and its `squash-merge` subcode, and the `illegal-transition`, `forced-untrailered` and `history-walk-error` subcodes of `fsm-history-consistent`. Warnings filed under errors: the three `acs-body-coherence` subcodes, `milestone-done-zero-acs`, and `milestone-draft-incomplete-acs`. Each is now filed where its severity says.
+
+A further set of rules has no fixed severity to file under at all: each emits error in some runs and warning in others, decided by an `aiwf.yaml` knob, by the milestone's own `tdd:` policy, by whether a commit descends from the hook-install SHA, or by which subcode fired. They move to a new **Findings (conditional severity)** table whose rows say which way, so neither fixed table makes a promise it cannot keep for every consumer. This covers both ways aiwf escalates — a rule that picks its severity where the finding is built (`unexpected-tree-file`, `acs-tdd-audit`, `trailer-verb-unknown`, `body-prose-id`, `entity-body-empty`) and one that emits a warning which a later strictness pass rewrites (`doc-id-width`, `doc-id-slug`, `milestone-tdd-undeclared`, `archive-sweep-pending`, and the six `area-*` findings `areas.required` escalates). A consumer cannot tell those two apart, so the table no longer does either.
+
+Two rows were saying something false about their own severity. `entity-body-empty` claimed a blanket warning default; it is an **error unconditionally** for gap, ADR, decision and contract, which are live from their create commit, and a warning only for epic and milestone. `terminal-entity-not-archived` claimed `archive.sweep_threshold` escalates it; the knob escalates only the aggregate `archive-sweep-pending`, so a backlog past the threshold blocks once rather than once per entity.
+
+Placement is now mechanically pinned for every row whose emission the checker can read statically, rather than for a single hardcoded code. Both halves of the contract are derived: the expected severity from the rule's own `Severity:` field plus any strictness pass that rewrites it, and the severity a section claims from its own heading text — so neither side can drift from what it describes. A renamed heading fires rather than silently unclassifying the rows beneath it, and one code documented under two tables that disagree fires as the self-contradiction it is.
+
+The scan also now reaches the contract packages, whose findings `aiwf check` surfaces as part of its own run rather than leaving to `aiwf contract verify`. That exposed one more mismatch: `contract-config/no-binding` is advisory, unlike its blocking siblings, and was filed under errors.
+### Fixed — G-0462: the golangci-lint firing harness no longer fails when another linter is running
+
+Internal only; no user-visible change to `aiwf` itself.
+
+`TestGolangciConfigRulesFire` proves each guarded golangci-lint config rule
+actually fires by running a real `golangci-lint` against a fixture. It inherited
+the ambient environment, so it competed for golangci-lint's start-up lock at
+`$TMPDIR/golangci-lint.lock` with any other instance on the machine — another
+worktree's `make lint`, a pre-push hook, an editor integration. The loser exits
+with `parallel golangci-lint is running` and no findings at all, which the
+harness reported as the rule being *dormant, disabled, or dropped from the
+enable list* — accusing the lint configuration of precisely the defect the
+harness exists to detect.
+
+The harness now passes `--allow-parallel-runners`, which is what stops it
+blocking, and scopes `GOLANGCI_LINT_CACHE` to a per-subtest directory so each
+run is hermetic. If a refusal ever reaches a reader anyway, it is now reported
+as a refusal — naming the lock, and stating that the run ended before the config
+was applied and so is no evidence about any rule.
+
+Note for anyone reaching for the same fix elsewhere: the lock is keyed to the
+temp directory, **not** to the lint cache, so scoping `GOLANGCI_LINT_CACHE`
+alone does not avoid it.
+
+### Fixed — G-0462: the `gocritic` row of that same harness was never able to fail
+
+Found while fixing the above. Each harness row asserts that a substring appears
+in golangci-lint's output, and golangci-lint echoes the fixture's path — which
+`t.TempDir()` derives from the subtest name. The `gocritic-filepathJoin` row
+asserted only `filepathJoin`, so it was matched by the directory the test was
+running in. Removing `gocritic` from the enabled linters entirely left the row
+passing: the guard against a dormant rule was itself dormant. The same mechanism
+partly hollowed the `forbidigo-panic` row, whose `panic` element was likewise
+satisfied by its own path.
+
+Assertions now run against the message half of each finding line, with the
+echoed path stripped, so a row can only pass on something a linter actually
+reported.
+
+### Fixed — G-0532: `entity-id-narrow-width` now reads the frontmatter id, not just the filename
+
+An entity carries its id twice — in its filename and in its frontmatter `id:` —
+and `aiwf check` tested only the filename for canonical width. An active entity
+whose `id:` was narrower than its own canonical-width filename produced no
+finding of any code: it loaded, `aiwf list` showed it, and `aiwf check` exited
+0. Neither of the other two candidates caught it. `id-path-consistent`
+canonicalizes both sides before comparing, so a width-only divergence reads as a
+match to it; `frontmatter-shape` validates against the kind's minimum digit
+count, which admits narrow ids permanently.
+
+Both axes are now in scope, and each is judged independently — a filename below
+the kind's minimum digit count no longer masks a narrow `id:` sitting under it.
+An entity narrow on either axis fires `entity-id-narrow-width` at error
+severity, and one narrow on both still fires exactly once — the count stays per
+entity, not per axis. The message names
+whichever axis diverges and quotes only the narrow spelling, so it never prints
+a canonical id and calls it narrow. An `id:` below the kind's minimum digit
+count is malformed rather than narrow and remains `frontmatter-shape`'s to
+report, mirroring the filename axis.
+
+If your tree carries such an entity, `aiwf check` will now report it where it
+previously passed. The fix is unchanged: undo the hand-edit or file move that
+produced the narrow id — no verb widens an id in place.
 
 ### Changed — installed hooks and hook-collision messages no longer cite aiwf's own gap ids
 

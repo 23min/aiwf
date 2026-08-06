@@ -79,7 +79,9 @@ func ApplyAreaRequiredStrict(findings []Finding, required bool) {
 // sourced from config — the same seam TreeDiscipline, the contract
 // checks, and the tests-metrics check use — so the pure check.Run stays
 // config-agnostic (the boundary M-0171/AC-4's metamorphic guard pins).
-// Severity is warning with no strictness knob (E-0043 / M-0172 decision).
+// Emits warning; ApplyAreaRequiredStrict raises it to error when
+// `aiwf.yaml: areas.required` is set, alongside the other area findings
+// that pass escalates.
 func AreaUnknown(t *tree.Tree, declared []string) []Finding {
 	if len(declared) == 0 {
 		return nil
