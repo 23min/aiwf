@@ -1,6 +1,6 @@
 ---
 id: M-0294
-title: Register rule-space cells without an FSM coordinate
+title: Derive the coherence rule lists from one declaration
 status: draft
 parent: E-0079
 depends_on:
