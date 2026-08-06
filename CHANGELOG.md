@@ -16,6 +16,20 @@ section in this file.
 
 ## [Unreleased]
 
+### Fixed — G-0438: flake-hunt runs one package per runner, so its red means a regression
+
+Internal only; no user-visible change to `aiwf` itself.
+
+`flake-hunt` is the workflow whose green says a tag is safe to push, and as a whole-module `go test -race -count=10 ./...` sweep on one runner it could not say that. A v0.28.0 release cut burned an investigation cycle establishing that its four red packages were not a code defect. What separates the causes is a later measurement on four cores: co-tenancy, not machine size, is what fails this repo's subprocess-bearing packages — run alone they pass every repeat, and sharing cores with a broad sweep they report scheduling delay as a defect.
+
+The sweep now fans out over a matrix derived from `go list`, one package per runner, `-count=10` unchanged. A new package joins with no edit to the workflow. `fail-fast: false` keeps one red package from cancelling the rest, since which packages flake is the result the run exists to report.
+
+`-timeout` goes to `45m` under a `60m` job cap. It was already per test binary, and a package always got its own — the raise is headroom, not a correction: on four cores with a warm cache the heaviest package's ten repeats measured around 20 minutes against the previous `30m`, and a runner building cold has less room than that. The job cap sits above the Go timeout so the panic and its goroutine dump land before the runner is killed.
+
+What the fan-out gives up is cross-package interference — two packages contending over the repo lock, `$HOME`, or fd limits only surfaces when they run concurrently. That is the class being reclassified as noise here, and `go.yml` still sweeps `./...` once per push.
+
+`internal/policies/flake_hunt_package_isolation.go` pins the shape by banning a `...` pattern anywhere in the workflow but the `go list` enumerator, which covers the test invocation and a hand-written matrix alike. It scans logical lines, so a wildcard on a backslash continuation counts, and the enumerator's exemption ends on a line that also runs `go test`. A matrix sourced from outside the file is beyond a single-file scan.
+
 ### Changed — G-0547: the `aiwf-check` skill's findings tables answer what a code means, and the tool answers what to do about it
 
 The skill's four findings tables carried a `Typical fix` column — a second copy of the hint `aiwf check` already prints beside every finding it emits. The copy was the weaker of the two and had drifted: it told operators to resolve a case collision with `git mv` where the hint says `aiwf rename`, to fix an empty AC title by hand where the hint names `aiwf retitle`, and to find a validator's install instructions in the recipe where the hint names `aiwf contract recipe install`. Nothing derived one from the other, so nothing caught any of it.

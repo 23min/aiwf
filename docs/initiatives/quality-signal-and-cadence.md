@@ -156,10 +156,11 @@ The flake tracks co-tenancy, not machine size. Run in isolation on four cores
 both stress packages pass five repeats out of five; run co-tenant with the
 full `./...` on those same four cores, `internal/stresstest` takes 66.7s,
 matching what CI observes. Placement is therefore load-bearing, and any
-destination sharing a runner with a broad sweep reproduces the flake —
-`flake-hunt.yml` already does, which
+destination sharing a runner with a broad sweep reproduces the flake.
 [G-0438](../../work/gaps/G-0438-flake-hunt-yml-s-count-10-sweep-is-undersized-for-its-github-runner.md)
-records independently, naming these same packages.
+records the same finding from `flake-hunt.yml`, naming these same packages;
+that workflow now fans out one package per runner, so it no longer runs a
+broad sweep for anything to be co-tenant with.
 
 `CLAUDE.md` describes the harness as *"dev-only tooling, never installed
 alongside `cmd/aiwf`, run by hand rather than scheduled or wired into
@@ -472,8 +473,12 @@ Intentionally not answered here.
   split inside `go.yml`, a separate `workflow_dispatch` job, and a scheduled
   nightly are three different answers with three different failure modes. The
   answer settles Q1b's shape and reconciles `CLAUDE.md` with the workflow.
-  One candidate is already excluded: `flake-hunt.yml` fails on the same
-  runner for the same reason, so it moves the problem rather than solving it.
+  `flake-hunt.yml` is back in the option set: it was excluded for running a
+  broad sweep these scenarios would be co-tenant with, and it now fans out
+  one package per runner, which is the isolation they were measured to need.
+  What it does not yet do is pass `-tags stress`, so adopting it is a change
+  to that workflow rather than a placement that already exists — and it runs
+  on dispatch before a tag, which answers a different question than "in CI".
 - **Should `govulncheck` block on stdlib CVEs?** A dependency CVE is
   actionable on the spot; a stdlib CVE waits on a toolchain release the
   repository does not control. Blocking on both treats them as one class.

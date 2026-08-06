@@ -1,16 +1,42 @@
 # flake-hunt — manual pre-release flake detector.
 #
-# Runs `go test -race -count=10` against ./... to shake out
+# Repeats the race-instrumented test suite to shake out
 # ordering-dependent races and timing-flaky tests that the once-per-push
 # `test` job (in go.yml) won't reliably surface.
 #
 # Triggered manually via the GitHub Actions "Run workflow" button (or
 # `gh workflow run flake-hunt.yml`). Never blocks a push or a PR. The
-# intended cadence is: run before tagging a release; if it stays green
-# across the relevant test packages (verb, cmd/aiwf, contractverify all
-# do real git/filesystem work), the tag is safe to push.
+# intended cadence is: run before tagging a release; if it stays green,
+# the tag is safe to push.
 #
-# Filed under G43 item 5.
+# One package per runner, and that isolation is the point. Co-tenancy
+# rather than machine size is what fails the subprocess-bearing packages
+# here: run alone they pass every repeat, run alongside a whole-module
+# sweep on the same cores they report scheduling delay as a defect. A
+# `./...` sweep therefore cannot separate a real regression from its own
+# contention, which is exactly the judgment this workflow exists to
+# make. Isolation applies uniformly instead of to a curated list of
+# heavy packages, so the shape can't drift as packages come and go.
+# `internal/policies/flake_hunt_package_isolation.go` bans a `...`
+# pattern anywhere but the enumerator below, which is what keeps both
+# the test invocation and the matrix from putting packages back
+# together.
+#
+# The matrix comes from `go list`, so a new package joins the sweep with
+# no edit here. `//go:build stress` scenarios stay out, as they do on
+# every other untagged path — `make stress-tests` owns them.
+#
+# What the fan-out gives up is cross-package interference: only a
+# concurrent sweep can surface two packages contending over the repo
+# lock, `$HOME`, or fd limits. That class is the noise this workflow is
+# being taught to ignore, and go.yml still runs `./...` once per push.
+#
+# `-timeout` is per test binary — each package gets its own. 45m is
+# headroom over the heaviest package's ten repeats, which measured ~20
+# min on four cores with a warm cache; a runner building cold is slower.
+# The job cap sits above it so the Go timeout panics, dumping
+# goroutines, before the runner is killed. Worst case is one job per
+# package holding that cap, which is why this stays workflow_dispatch.
 
 name: flake-hunt
 
@@ -18,9 +44,38 @@ on:
   workflow_dispatch:
 
 jobs:
-  flake-hunt:
+  packages:
     runs-on: ubuntu-latest
-    timeout-minutes: 45
+    outputs:
+      matrix: ${{ steps.list.outputs.matrix }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v5
+        with:
+          go-version: "1.25"
+          cache: true
+      - name: Enumerate packages carrying tests
+        id: list
+        # `shell: bash` for pipefail: without it the pipeline reports
+        # jq's status and a failed `go list` would yield a short matrix
+        # that still looks like a run.
+        shell: bash
+        run: |
+          matrix=$(go list -f '{{if or .TestGoFiles .XTestGoFiles}}{{.ImportPath}}{{end}}' ./... \
+            | jq -R -s -c 'split("\n") | map(select(length > 0))')
+          test "$(jq -r 'length' <<<"$matrix")" -gt 0
+          echo "matrix=$matrix" >> "$GITHUB_OUTPUT"
+
+  flake-hunt:
+    needs: packages
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    strategy:
+      # One red package must not cancel the others: which packages flake
+      # is the result this workflow reports.
+      fail-fast: false
+      matrix:
+        package: ${{ fromJSON(needs.packages.outputs.matrix) }}
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-go@v5
@@ -32,4 +87,4 @@ jobs:
           git config --global user.name "aiwf-ci"
           git config --global user.email "ci@example.com"
       - name: Run race-detector test sweep
-        run: go test -exec=$GITHUB_WORKSPACE/scripts/sign-and-run.sh -race -parallel 8 -count=10 -timeout 30m ./...
+        run: go test -exec=$GITHUB_WORKSPACE/scripts/sign-and-run.sh -race -parallel 8 -count=10 -timeout 45m "${{ matrix.package }}"
