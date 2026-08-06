@@ -53,6 +53,15 @@ Either shape is a mandate, and a mandate costs per subject forever. M-0294's own
 design notes required the registry to land with a named owner and a stated
 retirement trigger; neither had one.
 
+The declaration is held to that same bar, and passes on arithmetic rather than on
+exemption. It does create a standing obligation — a new rule needs an entry — but
+it retires three hand-maintained obligations to create one, and that one is
+enforced by name (the bijection check reports the rule that lacks an entry) where
+the three rested on someone remembering. Obligation count falls and residual
+vigilance goes to near zero, which is the trade H3 asks for. Its retirement
+trigger is table-driven evaluation, rejected below on its own grounds rather than
+forgotten.
+
 The remaining hole is real but different in kind from the one a rule-name registry
 closes. Because the domain's trailer axis is hand-maintained too, a rule
 predicated on a sixth trailer fires at no point in the domain, so the golden never
@@ -64,10 +73,17 @@ construction.
 The blocking question dissolves rather than being answered. With no cells, there
 is nothing to decide about their granularity.
 
-This is not a verdict against the branch spec's registry. That rule space genuinely
-is a cross-product of independent coordinates, which is what makes cells the right
-key for it; trailer coherence is nine predicates over one small trailer vocabulary,
-which wants a list.
+This is not a verdict against the branch spec's registry, and what separates the
+two spaces is enumerability rather than size. Trailer coherence is also a
+cross-product — actor crossed with the trailer presence-vector — but its domain
+is small enough to generate exhaustively, so "every rule is exercised" is a
+property of the generator and a Pin asserts something strictly weaker. The branch
+spec's cells are hand-selected scenarios with preconditions over repository
+state, which cannot be generated; there, per-cell pinning is the only way to know
+a cell has a test.
+
+That is the criterion to carry to the next rule space with no FSM coordinate: ask
+whether its domain can be generated. "Small vocabulary" merely correlates.
 
 ## Consequences
 
