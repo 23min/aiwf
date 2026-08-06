@@ -9,7 +9,7 @@ tdd: required
 acs:
     - id: AC-1
       title: Three hand-maintained rule lists derive from one declaration
-      status: open
+      status: met
       tdd_phase: done
     - id: AC-2
       title: The declaration's per-rule claims are verified against behavior
