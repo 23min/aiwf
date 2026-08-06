@@ -1,7 +1,7 @@
 ---
 id: M-0300
 title: Assert read-path agreement and ref-less verdict stability
-status: draft
+status: in_progress
 parent: E-0080
 tdd: required
 acs:
