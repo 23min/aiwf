@@ -4,6 +4,13 @@ title: Classify every catalog scenario against the named-scenario rule
 status: draft
 parent: E-0080
 tdd: required
+acs:
+    - id: AC-1
+      title: Every catalog entry carries a recorded classification
+      status: open
+    - id: AC-2
+      title: A scenario registered without a classification fails a policy test
+      status: open
 ---
 ## Goal
 
@@ -35,6 +42,33 @@ it into the walker is a separate decision with its own evidence.
 ## Acceptance criteria
 
 Each criterion below is asserted by the harness itself, not by review.
+
+### AC-1 — Every catalog entry carries a recorded classification
+
+Every entry in the scenario catalog carries a recorded classification under
+D-0063's rule: whether it judges a verdict some document specifies, or a state
+some sequence reaches.
+
+The classification is stored beside the registration, not derived from a name or
+a file path — a derived rule goes stale the first time either changes, and lets
+a new scenario inherit a group nobody chose.
+
+Where the census finds a scenario judging a state rather than a specified
+verdict, that is what its classification records. Retiring it or folding it into
+the walker is a separate decision resting on this census, not part of it.
+
+### AC-2 — A scenario registered without a classification fails a policy test
+
+A scenario registered without a classification fails a policy test naming the
+entry, so the next one cannot arrive unclassified.
+
+This is the chokepoint the drift needed and did not have. D-0063 rejected more
+named scenarios as the primary route precisely because they accrete on the
+concurrency side by default; a census without a chokepoint is a snapshot that
+starts drifting the day it lands.
+
+Per the kernel's rule that framework correctness must not depend on the LLM's
+behavior, this discipline lives in a test rather than in reviewer attention.
 
 ## Constraints
 
