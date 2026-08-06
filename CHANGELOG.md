@@ -69,6 +69,19 @@ none. That is new at the commit seam described above, and a move from `2` for
 the coherence refusals `aiwf authorize` and the `--audit-only` paths already
 raised.
 
+The rule is keyed on the `aiwf-force:` trailer rather than on the `--force`
+flag, and the two are not the same. `aiwf add --force` bypasses the
+born-complete body gate and is inert on kinds that have none, so it records no
+sovereign act and is accepted from any actor — an invocation that overrides
+nothing has nothing to refuse. That is why the check lives where the assembled
+trailers are visible rather than where the flag is parsed.
+
+The `--force` help on `aiwf promote`, `cancel`, `add` and `authorize` now says
+the flag is sovereign and names what it does not relax. Where a finding's hint
+offers `--force` as the remedy, it now says the same — that the override
+reaches only the precondition that finding names, not the finding itself, and
+that every other check still runs.
+
 ### Changed — installed hooks and hook-collision messages no longer cite aiwf's own gap ids
 
 The four hook scripts `aiwf init` writes into your repo — `pre-push`,

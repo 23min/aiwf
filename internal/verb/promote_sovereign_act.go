@@ -23,10 +23,12 @@ import (
 // this gate fires on them automatically with no verb-layer change.
 //
 // Caller has already verified !force; this helper does not re-check
-// that. --force is the explicit override, and the existing provenance
-// coherence rule (`aiwf-force requires a human/ actor`) ensures
-// non-human + --force still fails at the coherence chokepoint, so the
-// override path is human-only by construction.
+// that. --force is the explicit override, and it reaches a guard of its
+// own: verb.Apply runs CheckForceTrailerCoherence over the assembled
+// trailer set ahead of any filesystem work, and refuses a force trailer
+// from a non-human actor. So the two routes into a sovereign act are
+// each closed — this helper covers the unforced one, the apply seam
+// covers the forced one (ADR-0040).
 func requireHumanActorForSovereignAct(kind entity.Kind, from, to entity.Status, actor string) error {
 	if !entity.IsSovereignActShape(kind, from, to) {
 		return nil

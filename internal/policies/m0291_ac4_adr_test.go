@@ -7,19 +7,19 @@ import (
 	"testing"
 )
 
-// loadADR0040 reads ADR-0040 by resolving its id through the loader,
-// per CLAUDE.md §"Policy tests that read entity files resolve via the
+// adrBody reads an ADR by resolving its id through the loader, per
+// CLAUDE.md §"Policy tests that read entity files resolve via the
 // loader" — a hardcoded path breaks on a retitle or an archive sweep.
-func loadADR0040(t *testing.T) string {
+func adrBody(t *testing.T, id string) string {
 	t.Helper()
 	root, tr := sharedRepoTree(t)
-	e := tr.ByID("ADR-0040")
+	e := tr.ByID(id)
 	if e == nil {
-		t.Fatal("ADR-0040 not found in tree (active or archive)")
+		t.Fatalf("%s not found in tree (active or archive)", id)
 	}
 	data, err := os.ReadFile(filepath.Join(root, e.Path))
 	if err != nil {
-		t.Fatalf("reading ADR-0040 at %s: %v", e.Path, err)
+		t.Fatalf("reading %s at %s: %v", id, e.Path, err)
 	}
 	return string(data)
 }
@@ -33,7 +33,7 @@ func loadADR0040(t *testing.T) string {
 // the Context section has not been decided.
 func TestM0291AC4_ADRRecordsTheTwoRouteStance(t *testing.T) {
 	t.Parallel()
-	doc := loadADR0040(t)
+	doc := adrBody(t, "ADR-0040")
 
 	if !strings.Contains(doc, "status: accepted") {
 		t.Error("ADR-0040 is not at status accepted; AC-4 requires a ratified record, not a proposal")

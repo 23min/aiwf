@@ -266,8 +266,11 @@ var hintTable = map[string]string{
 	// I2.5 provenance standing rules. These fire on commit history,
 	// not on tree state — hints point to the verb / repair path that
 	// would have produced a coherent commit.
-	"provenance-trailer-incoherent":                     "amend the offending commit via `git commit --amend` so its trailer set obeys the required-together / mutually-exclusive rules in `docs/design/provenance-model.md`",
-	"provenance-force-non-human":                        "`--force` requires `aiwf-actor: human/...`; have a human re-run the mutation as `aiwf <verb> <id> --force --reason \"...\"`, or drop the force and re-route through the normal verb",
+	"provenance-trailer-incoherent": "amend the offending commit via `git commit --amend` so its trailer set obeys the required-together / mutually-exclusive rules in `docs/design/provenance-model.md`",
+	// The actor constraint is not restated here: this hint offers
+	// --force, so forceCaveatSentence supplies it, and leading with it
+	// too put the same claim in adjacent sentences.
+	"provenance-force-non-human":                        "have a human re-run the mutation as `aiwf <verb> <id> --force --reason \"...\"`, or drop the force and re-route through the normal verb",
 	"provenance-actor-malformed":                        "set `git config user.email` to a valid address and re-run via `aiwf doctor`; the actor trailer is derived from `<localpart>` of the email",
 	"provenance-principal-non-human":                    "`aiwf-principal:` must be `human/<id>` (agents and bots cannot be principals); re-run the verb with `--principal human/<id>`, or amend the trailer via `git commit --amend`",
 	"provenance-on-behalf-of-non-human":                 "`aiwf-on-behalf-of:` must name a human principal; read the originating authorize commit with `aiwf history <scope-entity>` and amend the trailer via `git commit --amend`",
@@ -340,18 +343,47 @@ var hintTable = map[string]string{
 // reallocate-body-reference) call this so the human-facing suggestion
 // stays in one place.
 //
-// A ratifiable code's hint gains the acknowledgment sentence here
-// rather than carrying it in the table — see ratificationSentence.
+// Two sentences are appended here rather than carried in the table: a
+// ratifiable code's acknowledgment remedy (see ratificationSentence)
+// and, for a hint that offers `--force`, the bounds of that override
+// (see forceCaveatSentence). Both are conditions the table cannot
+// express, and both would otherwise be a copy per hint.
 //
-// The join supplies a sentence break, since most table hints are
+// Each join supplies a sentence break, since most table hints are
 // written without closing punctuation and a few are not.
+//
+// The two overlap on exactly one code — provenance-force-non-human,
+// which both offers the flag and is ratifiable — and it takes both.
+// Neither is conditioned on the other: the actor constraint has one
+// home, forceCaveatSentence, and a hint that would otherwise state it
+// again leaves it to the caveat.
 func HintFor(code, subcode string) string {
 	if subcode != "" {
 		if h, ok := hintTable[code+"/"+subcode]; ok {
-			return withRatificationHint(code, h)
+			return composeHint(code, h)
 		}
 	}
-	return withRatificationHint(code, hintTable[code])
+	return composeHint(code, hintTable[code])
+}
+
+// hintComposers are the sentence appenders, in the order a reader meets
+// them. Held as a list rather than nested at each call site so the order
+// is declared once: HintFor returns from two places, and nesting made
+// every added composer two edits and two chances to disagree about
+// order.
+var hintComposers = []func(code, hint string) string{
+	func(_, hint string) string { return withForceCaveat(hint) },
+	withRatificationHint,
+}
+
+// composeHint folds every composer over a table hint. Each decides for
+// itself whether it applies, so a hint no composer claims comes back
+// unchanged.
+func composeHint(code, hint string) string {
+	for _, compose := range hintComposers {
+		hint = compose(code, hint)
+	}
+	return hint
 }
 
 // ratifiableByAcknowledgment reports whether `aiwf acknowledge illegal
@@ -417,6 +449,54 @@ func withRatificationHint(code, hint string) string {
 		sep = " "
 	}
 	return hint + sep + ratificationSentence
+}
+
+// offersForceAsRemedy reports whether hint presents `--force` as
+// something the reader can type to clear the finding.
+//
+// The pairing with `--reason` is the discriminator, taken from the
+// kernel's own reading of the flag in internal/policies/sovereign.go:
+// `--force` alone is force-replace on the contract and update verbs, a
+// different word spelled the same, and the sovereign override always
+// requires a reason alongside it. It also separates offering the flag
+// from naming it — milestone-cancelled-incomplete-acs mentions `--force`
+// precisely to say no such override exists for that transition, and
+// appending the caveat there would contradict the hint it lengthened.
+func offersForceAsRemedy(hint string) bool {
+	return strings.Contains(hint, "--force --reason")
+}
+
+// forceCaveatSentence is the one copy of what the override does and does
+// not reach. A hint that offers `--force` without it reads as a general
+// escape from the finding it is attached to, which is wrong twice over:
+// the override reaches one precondition rather than the finding, and the
+// actor constraint it does not reach is the one an agent reading the
+// hint will hit first.
+//
+// It names the precondition indirectly — "the one this finding names" —
+// because what `--force` relaxes is verb-specific and is not, in
+// general, the FSM transition. `aiwf promote` gates six non-FSM
+// preconditions behind it (a gap's resolver requirement among them, on a
+// transition the FSM already allows), and in `aiwf cancel` the flag
+// relaxes no FSM rule at all. A sentence naming the FSM would be false
+// on more findings than it was true on.
+const forceCaveatSentence = "`--force` overrides only the precondition this finding names, not the " +
+	"finding itself: it is sovereign, so it requires a `human/...` actor, and every other " +
+	"check still runs."
+
+// withForceCaveat appends forceCaveatSentence to a hint that offers the
+// flag. An empty hint stays empty, for the reason withRatificationHint
+// gives: a finding with no advice of its own gains nothing from a
+// caveat about advice it never offered.
+func withForceCaveat(hint string) string {
+	if hint == "" || !offersForceAsRemedy(hint) {
+		return hint
+	}
+	sep := ". "
+	if strings.ContainsRune(".!?", rune(hint[len(hint)-1])) {
+		sep = " "
+	}
+	return hint + sep + forceCaveatSentence
 }
 
 // applyHints fills in Hint on every finding from the hint table.

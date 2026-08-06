@@ -9,13 +9,16 @@ tdd: advisory
 acs:
     - id: AC-1
       title: Every surface in the table states the seam that actually refuses
-      status: open
+      status: met
+      tdd_phase: done
     - id: AC-2
       title: Every force finding hint names what the override does not relax
-      status: open
+      status: met
+      tdd_phase: done
     - id: AC-3
       title: The sovereign policy asserts a live code reference or is retired
-      status: open
+      status: met
+      tdd_phase: done
 ---
 
 ## Goal
@@ -115,3 +118,141 @@ decision entity recording the retirement.
 
 - M-0291 — the corrected text names the seam that milestone builds.
 
+## Surfaces touched
+
+- `docs/design/legal-workflows-audit.md` — R-RULE-076, R-RULE-077, R-RULE-078,
+  R-AUDIT-0070, R-AUDIT-0105, R-AUDIT-0113.
+- `docs/design/design-decisions.md` — the human-only bullet.
+- [ADR-0029](../../../docs/adr/ADR-0029-verb-shape-correctness-comes-from-pre-write-projection.md)
+  — Decision and Consequences.
+- `internal/cli/promote/promote.go`, `internal/cli/cancel/cancel.go`,
+  `internal/cli/add/add.go`, `internal/cli/authorize/authorize.go` — the
+  `--force` help.
+- `internal/verb/promote_sovereign_act.go`, `internal/verb/add.go` — the two
+  comments that contradicted each other.
+- `internal/entity/sovereign.go` — the `SovereignActShape` doc comment.
+- `internal/check/hint.go` — the derived force caveat, its predicate, and the
+  composer fold.
+- `internal/policies/aiwf_promote_epic_active_audit_test.go` — the failure
+  message's remedy.
+- `CHANGELOG.md`.
+
+Removed: `internal/policies/sovereign.go` and its tests, and
+`internal/cli/cliutil/sovereign_force.go` and its tests, per D-0061.
+
+`CLAUDE.md` is not touched. Rows 1 and 2 of AC-1's table were made true by
+M-0291 and needed no edit; they are pinned instead, so the claims cannot soften
+back.
+
+## Work log
+
+### AC-1 — Every surface in the table states the seam that actually refuses
+
+Ten of the thirteen rows corrected, plus two the table did not enumerate —
+`R-RULE-077`'s citation and `R-RULE-078`'s "requires `--force` AND a human
+actor", the rule-catalogue twins of rows 6 and 7. Correcting one catalogue and
+leaving the other is the drift this milestone ends · commits `c25483278`,
+`78fd5c769` (ADR-0029, through `aiwf edit-body`), and the review-round commit
+below.
+
+Row 4 was corrected rather than merely pinned: review measured that the kernel
+refuses the `aiwf-force:` *trailer*, not the `--force` *flag*, and the original
+sentence was false in exactly the case `aiwf add --force` produces.
+
+### AC-2 — Every force finding hint names what the override does not relax
+
+The caveat is appended in `HintFor` from one constant, folded together with the
+ratification sentence M-0292 added there · commit `527caf70d` and the review
+round below.
+
+### AC-3 — The sovereign policy asserts a live code reference or is retired
+
+Both, in that order. The predicate was re-aimed from a substring scan to a
+call-expression scan, the guards were written, and measurement then showed the
+layer cannot hold the rule — so the policy and the guards were retired and the
+reasoning recorded as D-0061 · commits `c25483278` and the review round below.
+
+## Decisions made during implementation
+
+- **D-0061 — the sovereign-dispatcher policy is retired; the force rule lives at
+  the apply seam.** The operator chose re-aiming over retirement when the
+  question was open. Building it answered the question G-0534 said had to be
+  settled first: whether `--force` denotes a sovereign act depends on verb and
+  on tree state, and the dispatcher layer has neither, so a flag-keyed check
+  refuses invocations the kernel permits. The decision entity carries the
+  measurements.
+- **The actor constraint was removed from `provenance-force-non-human`'s hint.**
+  The derived caveat supplies it, and stating it twice in adjacent sentences is
+  what an operator read otherwise.
+
+## Validation
+
+- `make check-fast` — clean (unit tests + full `golangci-lint`).
+- `AIWF_COVERAGE_BASE=epic/E-0079-… make coverage-gate` — clean.
+- `aiwf check` — 0 errors, 1 warning
+  (`provenance-untrailered-scope-undefined`; the branch has no upstream).
+- Doc-lint, scoped to the change-set — clean. Every symbol and file path the
+  corrected docs cite resolves, including after the retirement.
+- Behaviour measured against a binary built from `HEAD`, in disposable repos:
+  an in-scope agent with full provenance forcing a real transition is refused
+  with `HEAD` unmoved; a converging forced request by an agent returns exit 0
+  and "nothing to change", per ADR-0036; `--format=json` carries the error
+  envelope; `aiwf add milestone --force` as a non-human actor succeeds and its
+  commit carries no `aiwf-force` trailer.
+- Vacuity probes, per claim: reverting the hint predicate, dropping the caveat
+  from `HintFor`, and making `add`'s force trailer unconditional each reddened
+  the assertion that claims to hold it. Every `mustNotSay` needle was confirmed
+  to match the pre-edit text, independently re-verified by review.
+
+## Deferrals
+
+None. Every blocking finding was fixed in-branch; the checks that pin them
+landed in the same commits. The judgment findings that survived the retirement
+are recorded below rather than deferred.
+
+## Reviewer notes
+
+Two independent reviewers, one code-quality and one design, over the full
+change-set. Four blocking findings, all confirmed by measurement before being
+acted on. Three are worth a later reader's attention:
+
+- **The milestone introduced three false claims while correcting false claims.**
+  The caveat sentence asserted that `--force` relaxes the FSM transition rule and
+  nothing else; measured, it gates six non-FSM preconditions in `promote` and
+  relaxes no FSM rule at all in `cancel`. Row 4 claimed the kernel refuses the
+  flag rather than the trailer. Three surfaces claimed the dispatcher guard was
+  "a second moment, not a second opinion". A green suite, a clean coverage gate,
+  and binary-driven checks all certified the first two — because none of them
+  re-measured the claim the prose made.
+- **The dispatcher guard broke two ratified contracts and nothing caught it.**
+  It refused converging requests that ADR-0036 specifies as exit 0, and dropped
+  the `--format=json` error envelope. The convergence contract is pinned in
+  `internal/verb`, one layer below where the guard sat, so a full-suite pass was
+  compatible with breaking it. A contract pinned only below the layer a change
+  touches is not pinned against that change.
+- **The exemption criterion was applied inconsistently, and that was the tell.**
+  `add` was exempted because its `--force` is conditional on state the
+  dispatcher cannot see. The same is true of `promote` and `cancel` on the
+  converging path. Had the criterion been applied evenly when it was written,
+  the layer's unsuitability would have surfaced before the guards were built
+  rather than at review.
+
+Judgment findings accepted and acted on:
+
+- The hint composers duplicated their ordering at both `HintFor` return sites.
+  Folded into one ordered list, so a third composer is one edit.
+- Two assertion rationales described the defect the same commit fixed, in the
+  present tense.
+
+Judgment findings declined, so a later reviewer meets a decision:
+
+- **Shortening the force caveat to the actor constraint alone** was proposed,
+  on the grounds that "every other check still runs" repeats what
+  `milestone-done-incomplete-acs` already says. Declined: that hint is one of
+  four carrying the caveat, and the clause is the half that stops a reader
+  taking the override for a general escape.
+- **Keeping the re-aimed policy with every dispatcher exempt** was the middle
+  path between re-aiming and retiring. Declined: a policy whose whole population
+  is enumerated asserts nothing today, and reads as coverage. D-0061 records the
+  reasoning instead, where a future contributor asking the same question will
+  meet it.

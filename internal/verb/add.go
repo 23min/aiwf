@@ -220,10 +220,14 @@ func Add(ctx context.Context, t *tree.Tree, kind entity.Kind, title, actor strin
 		// provenance record. Mirrors transitionTrailers' force
 		// handling (promote.go): the trailer is the audit record of
 		// an actual override, not of the flag's mere presence.
-		// Force-non-human is caught by the check-time
-		// provenance-force-non-human audit (internal/check/
-		// provenance.go), the same backstop every other --force path
-		// relies on rather than a verb-time human-actor gate here.
+		// Appending it here is also what subjects this call to the
+		// human-only rule: verb.Apply runs CheckForceTrailerCoherence
+		// over the assembled trailer set and refuses a force trailer
+		// from a non-human actor before any filesystem work, so this
+		// branch needs no actor gate of its own (ADR-0040). The
+		// check-time provenance-force-non-human audit (internal/check/
+		// provenance.go) still walks history, for commits no verb
+		// produced.
 		trailers = append(trailers, gitops.Trailer{Key: gitops.TrailerForce, Value: strings.TrimSpace(opts.Reason)})
 		commitBody = opts.Reason
 	}

@@ -48,7 +48,7 @@ func TestPolicy_NoNonForcedSovereignActPromoteInCIScripts(t *testing.T) {
 
 	findings := auditUnforcedSovereignActPromote(fsys, paths)
 	for _, f := range findings {
-		t.Errorf("AC-1: unforced `aiwf promote` invocation against a sovereign-act-shape transition: %s — append `--force --reason \"...\"` to the same line, or have a human run the verb out-of-band", f)
+		t.Errorf("AC-1: unforced `aiwf promote` invocation against a sovereign-act-shape transition: %s — have a human run the verb out-of-band. Adding `--force --reason \"...\"` here would not help: a scripted invocation acts as a non-human actor, and the apply seam refuses a force trailer from one", f)
 	}
 }
 
