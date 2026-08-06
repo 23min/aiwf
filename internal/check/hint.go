@@ -44,6 +44,11 @@ var hintTable = map[string]string{
 	// fix needed; it resolves on its own once the source branch merges,
 	// or escalates to unresolved if that branch is deleted/abandoned.
 	"refs-resolve/cross-branch-pending": "no action needed — the target exists on another local or remote-tracking branch and will resolve locally once that branch merges; run `git fetch` if the branch is a teammate's not-yet-fetched remote work",
+	// G-0558: the surface that emitted this loaded without the
+	// cross-branch view, so it can say the target is absent here but not
+	// that it is absent everywhere. Full `aiwf check` builds every tier
+	// and settles it either way.
+	"refs-resolve/unresolved-unverified": "run `aiwf check` to settle it — this surface skipped the cross-branch scan, so it cannot tell an id that exists nowhere from one on an unmerged branch; the full check builds every tier",
 	// M-0259/AC-3 (D-0036): the id exists on more than one ref with
 	// DIFFERENT content. Non-blocking, like cross-branch-pending —
 	// divergence is ambiguous between an in-flight edit on one of the
@@ -69,6 +74,9 @@ var hintTable = map[string]string{
 	// M-0259/AC-2: the mirror of refs-resolve/cross-branch-pending for
 	// prose tokens — non-blocking, per ADR-0030.
 	"body-prose-id/cross-branch-pending": "no action needed — the id exists on another local or remote-tracking branch and will resolve locally once that branch merges; run `git fetch` if the branch is a teammate's not-yet-fetched remote work",
+	// G-0558: the mirror of refs-resolve/unresolved-unverified for prose
+	// tokens.
+	"body-prose-id/unresolved-unverified": "run `aiwf check` to settle it — this surface skipped the cross-branch scan, so it cannot tell an id that exists nowhere from one on an unmerged branch; the full check builds every tier",
 	// M-0259/AC-3 (D-0036): the mirror of refs-resolve/cross-branch-collision
 	// for prose tokens.
 	"body-prose-id/cross-branch-collision": "compare content at each ref (e.g. `git show <ref>:<path>`) — if it's an in-flight edit on an unmerged branch, no action needed, it resolves on merge; if the two refs genuinely allocated different entities under the same id, reconcile by hand (rename one side via `aiwf reallocate`, or merge and resolve the conflict)",

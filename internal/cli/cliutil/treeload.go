@@ -121,6 +121,10 @@ func LoadTreeWithTrunk(ctx context.Context, rootDir string) (*tree.Tree, []tree.
 	tr.RemoteRefIDs = trunk.HitIDStrings(scan.RemoteHits)
 	tr.CrossBranchHits = scan.Hits
 	tr.CrossBranchCollisions = scan.Collisions
+	// ScanCrossBranch is best-effort and never errors, so reaching here
+	// means every tier was consulted — which is what licenses the
+	// blocking `unresolved` classification downstream (G-0558).
+	tr.CrossBranchScanned = true
 	return tr, loadErrs, nil
 }
 

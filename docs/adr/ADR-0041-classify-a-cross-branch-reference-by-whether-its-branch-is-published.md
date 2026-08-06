@@ -50,6 +50,12 @@ on the union and never consults which kind of ref answered.
   is not one that can be handed to anyone.
 - Resolvable at **no tier** — `unresolved`, error severity, unchanged.
 
+Every classification above describes a caller that built the view. A surface
+loading without the cross-branch scan cannot tell which of the three a missing
+id belongs to, so it chooses none of them and reports a non-blocking
+`unresolved-unverified` instead (G-0558). Adding a tier here therefore adds a
+verdict that same rule withholds from those surfaces.
+
 This applies symmetrically to `refs-resolve` and `body-prose-id`; both read the
 same view and both carry the same exposure.
 

@@ -6,7 +6,7 @@ priority: medium
 ---
 ## What's missing
 
-Five paths load the planning tree through two different loaders, and the three
+Read paths load the planning tree through two different loaders, and the ones
 that skip the cross-branch view still raise a finding that only the view can
 justify.
 
@@ -15,21 +15,31 @@ justify.
 living on an unmerged sibling branch resolves as pending rather than unresolved.
 Bare `tree.Load` does not.
 
-| path | loader | cross-branch view |
-|---|---|---|
-| every mutating verb | `LoadTreeWithTrunk` (e.g. `internal/cli/add/add.go:192`) | yes |
-| `aiwf check` | `LoadTreeWithTrunk` (`internal/cli/check/check.go:98`) | yes |
-| `aiwf check --fast` | `tree.Load` (`check.go:370`) | no |
-| `aiwf check --shape-only` | `tree.Load` (`check.go:444`) | no |
-| `aiwf status` | `tree.Load` (`internal/cli/status/status.go:336`) | no |
+| path | loader | cross-branch view | raises the finding |
+|---|---|---|---|
+| `aiwf check` | `LoadTreeWithTrunk` (`internal/cli/check/check.go:98`) | yes | yes |
+| `aiwf add` | `LoadTreeWithTrunk` (`internal/cli/add/add.go:192`) | yes | yes |
+| `aiwf check --fast` | `tree.Load` (`check.go:370`) | no | yes |
+| `aiwf status` | `tree.Load` (`internal/cli/status/status.go:336`) | no | yes |
+| `aiwf show` | `tree.Load` (`internal/cli/show/show.go:109`) | no | yes |
+| `aiwf render` | `tree.Load` (`internal/cli/render/render.go:309`) | no | yes |
+| `aiwf check --shape-only` | `tree.Load` (`check.go:449`) | no | no |
+| `promote`, `cancel`, `retitle`, `rename`, `move`, `milestone`, `add ac` | `tree.Load` | no | yes |
 
-The write path is not undecided. `internal/verb/add.go:177` builds
-`check.BodyProseIDIndex` and refuses the add when `ScanBodyProseID` reports an
-error, against a tree loaded with the view — so `aiwf add` already draws the
-line ADR-0030 specifies: a reference resolvable at no tier is refused outright,
-a reference resolvable only cross-branch is allowed with a warning. Both
-behaviours are observable. The question is not which loader should be canonical;
-it is why three read paths contradict a line the verbs already hold.
+`aiwf check --shape-only` is the row that does not belong to this gap: it runs
+`check.TreeDiscipline`, which reports stray files and nothing else, so it never
+reaches a reference rule. The pre-commit hook is therefore untouched by any of
+this, and the cost of converging it is not a cost this decision pays.
+
+The write path is not a settled counterexample either. `internal/verb/add.go:177`
+builds `check.BodyProseIDIndex` and refuses the add when `ScanBodyProseID`
+reports an error, against a tree loaded with the view — but `aiwf add` is the
+exception among mutating verbs rather than the rule. `promote`, `cancel`,
+`retitle`, `rename`, `move`, `milestone`, and the `add ac` path all load bare, and the
+verb layer suppresses a mutation's plan when the projection introduces an
+error-severity finding the tree did not already carry. So a verb whose own write
+creates the reference refuses on a verdict reached without the view, which cuts
+the opposite way from the read paths: not a false alarm, a false refusal.
 
 Measured 2026-08-06 against this repo's own tree, same binary, same working
 copy: `aiwf check` reports 0 errors and 16 warnings; `aiwf check --fast` reports
@@ -91,11 +101,25 @@ read path does not make it anything like as slow as the full check.
 
 ## Resolution shape
 
-**Have a path without the cross-branch view decline to raise `unresolved` at
-error severity.** It costs nothing, it removes the disagreement, and it is what
-the evidence supports rather than merely what is cheap: the finding claims
-something about tiers the caller never built. The three paths keep their current
-loaders and their current speed.
+**Have a read-only path without the cross-branch view decline to raise
+`unresolved` at error severity.** It costs nothing, it removes the disagreement,
+and it is what the evidence supports rather than merely what is cheap: the
+finding claims something about tiers the caller never built. The paths keep
+their current loaders and their current speed.
+
+The downgrade belongs at the reporting surface, not in the resolution rules.
+The rules are shared with the verb layer, where a newly-introduced
+error-severity `unresolved` is what suppresses a mutation's plan — moving the
+gate there would let a verb commit a reference resolving nowhere. A surface that only prints may decline to
+make a claim it cannot support; a surface that acts on the claim has to build
+the evidence instead. `check.MarkUnverifiedResolution` is that pass, applied by
+`--fast`, `status`, `show` and `render` to their own findings, and it is inert on a tree whose
+`CrossBranchScanned` is set — so a caller that later switches loaders stops
+downgrading without a matching edit.
+
+The false refusal on the write path is the other half of the same divergence
+and is tracked separately: it wants the opposite remedy (build the view, do not
+soften the verdict), and it changes how the bare-loading verbs load.
 
 Convergence on `LoadTreeWithTrunk` is the alternative and is measured above. It
 buys the same consistency for about 470 ms per path, doubling the pre-commit
