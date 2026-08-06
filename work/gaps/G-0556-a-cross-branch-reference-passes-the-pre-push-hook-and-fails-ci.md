@@ -171,6 +171,34 @@ records, then ADR-0041's classification, then the fixture that drives its
 lifecycle. G-0536's CI position is what finally makes CI's verdict converge with
 the operator's, and it is the last step rather than a precondition.
 
+## What has landed
+
+ADR-0041's classification and the fixture driving its lifecycle. `refs-resolve`
+and `body-prose-id` now split a cross-branch hit by the most visible ref that
+resolves it: any remote-tracking ref keeps `cross-branch-pending` at warning
+severity, local branch refs alone fire `cross-branch-local-only` at error, and a
+miss at every tier stays `unresolved`. G-0558's fix landed first, as the
+sequencing above asks.
+
+Two boundaries the decision did not settle, resolved while building it. The
+error is enforced at the push and nowhere earlier: the verb layer refuses a
+write for no cross-branch classification, because which refs carry a target is a
+fact about the repository rather than a defect in the bytes being written, and
+an author cannot answer it by editing them. And a repository with no
+remote-tracking ref has no push boundary for the error to guard, so there the
+reference stays pending rather than becoming an error whose named remedy — push
+the branch — has no referent.
+
+What remains is the half this cannot reach. Measured against the reproduction
+that prompted this gap: a tree copied into a ref-less repository resolves a
+published-but-unmerged id at no tier, so it reports `unresolved` exactly as
+before. This decision guarantees only that every tree reaching CI has its
+references resolvable from something published; giving CI the refs to follow
+them is G-0536's, and narrowing the archive-migration test to its own subject is
+option 3 above, still uncontroversial and still unbuilt. Until both land,
+`TestBinary_ArchiveKernelMigration_LeavesCheckClean` fails again the next time
+mainline cites an id on a pushed-but-unmerged branch.
+
 ## Provenance
 
 Found on 2026-08-05 while wrapping G-0547, when reconciling a patch branch with
