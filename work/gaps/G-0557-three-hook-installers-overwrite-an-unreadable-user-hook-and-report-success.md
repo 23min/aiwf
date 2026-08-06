@@ -1,9 +1,11 @@
 ---
 id: G-0557
 title: Three hook installers overwrite an unreadable user hook and report success
-status: open
+status: addressed
 priority: high
 discovered_in: E-0077
+addressed_by_commit:
+    - c13788145c8eed436931ec601413e2f25639e2d8
 ---
 ## What's missing
 
