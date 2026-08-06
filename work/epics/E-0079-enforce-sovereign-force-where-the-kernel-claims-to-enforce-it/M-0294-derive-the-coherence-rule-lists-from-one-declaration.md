@@ -18,7 +18,7 @@ acs:
     - id: AC-3
       title: Declared rules and firing rules are in bijection, failing by name
       status: open
-      tdd_phase: green
+      tdd_phase: done
 ---
 
 ## Goal
