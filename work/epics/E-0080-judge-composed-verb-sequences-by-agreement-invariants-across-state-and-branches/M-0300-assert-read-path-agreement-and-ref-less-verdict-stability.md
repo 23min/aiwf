@@ -15,7 +15,7 @@ acs:
       tdd_phase: done
     - id: AC-3
       title: Each property is demonstrated failing against a constructed violation
-      status: open
+      status: met
       tdd_phase: done
 ---
 ## Goal
