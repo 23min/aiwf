@@ -2,6 +2,7 @@
 id: G-0550
 title: Force with no actor at all is refused by neither rule set
 status: open
+priority: medium
 discovered_in: M-0291
 ---
 ## What's missing
