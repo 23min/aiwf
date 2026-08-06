@@ -2,6 +2,7 @@
 id: G-0545
 title: Fold the coherence-guard seam policy into the commit-construction policy
 status: open
+priority: medium
 discovered_in: M-0291
 ---
 ## What's missing
