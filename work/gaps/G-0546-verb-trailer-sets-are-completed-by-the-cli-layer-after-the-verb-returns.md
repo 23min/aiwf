@@ -2,6 +2,7 @@
 id: G-0546
 title: Verb trailer sets are completed by the CLI layer after the verb returns
 status: open
+priority: low
 discovered_in: M-0291
 ---
 ## What's missing
