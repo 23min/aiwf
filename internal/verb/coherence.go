@@ -112,10 +112,11 @@ var coherenceRuleSpecs = []coherenceRuleSpec{
 	{Rule: CoherenceRuleAuditOnlyNonHuman, Reads: []string{gitops.TrailerAuditOnly}},
 }
 
-// declaredCoherenceRules returns every declared rule name.
-func declaredCoherenceRules() []string {
-	out := make([]string, 0, len(coherenceRuleSpecs))
-	for _, s := range coherenceRuleSpecs {
+// declaredCoherenceRules returns every rule name the given declaration
+// carries.
+func declaredCoherenceRules(specs []coherenceRuleSpec) []string {
+	out := make([]string, 0, len(specs))
+	for _, s := range specs {
 		out = append(out, s.Rule)
 	}
 	return out
@@ -123,9 +124,9 @@ func declaredCoherenceRules() []string {
 
 // declaredForcePredicatedRules returns the rules that cannot fire
 // without a force trailer — the subset verb.Apply enforces.
-func declaredForcePredicatedRules() []string {
+func declaredForcePredicatedRules(specs []coherenceRuleSpec) []string {
 	var out []string
-	for _, s := range coherenceRuleSpecs {
+	for _, s := range specs {
 		if s.RequiresForce {
 			out = append(out, s.Rule)
 		}
@@ -136,10 +137,10 @@ func declaredForcePredicatedRules() []string {
 // declaredCoherenceTrailerAxis returns every presence-bearing trailer
 // any rule reads, deduplicated in first-appearance order. This is the
 // axis the generated domain varies.
-func declaredCoherenceTrailerAxis() []string {
+func declaredCoherenceTrailerAxis(specs []coherenceRuleSpec) []string {
 	seen := map[string]bool{}
 	var out []string
-	for _, s := range coherenceRuleSpecs {
+	for _, s := range specs {
 		for _, key := range s.Reads {
 			if seen[key] {
 				continue

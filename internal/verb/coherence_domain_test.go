@@ -37,14 +37,19 @@ type coherenceFlag struct{ name, key, value string }
 //
 // Values are irrelevant to every rule — each reads presence only — so
 // one representative value covers the axis.
-var coherenceFlags = func() []coherenceFlag {
-	axis := declaredCoherenceTrailerAxis()
+var coherenceFlags = flagsFor(coherenceRuleSpecs)
+
+// flagsFor renders a declaration's trailer axis as the presence axis
+// the domain varies. Parameterized so AC-2's fixtures can build a
+// domain from a deliberately mis-declared set.
+func flagsFor(specs []coherenceRuleSpec) []coherenceFlag {
+	axis := declaredCoherenceTrailerAxis(specs)
 	out := make([]coherenceFlag, 0, len(axis))
 	for _, key := range axis {
 		out = append(out, coherenceFlag{name: coherenceFlagName(key), key: key, value: "set"})
 	}
 	return out
-}()
+}
 
 // coherenceFlagName renders a trailer key as the compact label the
 // domain's case names use: aiwf-on-behalf-of becomes onbehalfof.
@@ -59,6 +64,10 @@ type coherenceCase struct {
 	// present reports whether a given flag name is set in this case.
 	present map[string]bool
 	actor   string
+	// actorName and mask locate this case on the domain's two axes, so
+	// AC-2 can find the case differing from it in exactly one trailer.
+	actorName string
+	mask      int
 }
 
 // coherenceDomain enumerates the complete input domain: every actor role
@@ -66,10 +75,14 @@ type coherenceCase struct {
 // rather than enumerated, so coverage is a property of this function and
 // a rule added against a new trailer is a one-line change here rather
 // than a fresh set of hand-written cases someone must remember to add.
-func coherenceDomain() []coherenceCase {
+func coherenceDomain() []coherenceCase { return coherenceDomainFrom(coherenceFlags) }
+
+// coherenceDomainFrom builds the domain over an explicit presence axis,
+// so a fixture can generate the domain a mis-declared set would produce.
+func coherenceDomainFrom(flags []coherenceFlag) []coherenceCase {
 	var out []coherenceCase
 	for _, actor := range coherenceActors {
-		for mask := 0; mask < 1<<len(coherenceFlags); mask++ {
+		for mask := 0; mask < 1<<len(flags); mask++ {
 			trailers := []gitops.Trailer{
 				{Key: gitops.TrailerVerb, Value: "promote"},
 				{Key: gitops.TrailerEntity, Value: "E-0001"},
@@ -77,9 +90,9 @@ func coherenceDomain() []coherenceCase {
 			if actor.value != "" {
 				trailers = append(trailers, gitops.Trailer{Key: gitops.TrailerActor, Value: actor.value})
 			}
-			present := make(map[string]bool, len(coherenceFlags))
+			present := make(map[string]bool, len(flags))
 			var set []string
-			for i, f := range coherenceFlags {
+			for i, f := range flags {
 				on := mask&(1<<i) != 0
 				present[f.name] = on
 				if on {
@@ -94,10 +107,12 @@ func coherenceDomain() []coherenceCase {
 			sort.Strings(set)
 			parts := append([]string{"actor=" + actor.name}, set...)
 			out = append(out, coherenceCase{
-				name:     strings.Join(parts, "+"),
-				trailers: trailers,
-				present:  present,
-				actor:    actor.value,
+				name:      strings.Join(parts, "+"),
+				trailers:  trailers,
+				present:   present,
+				actor:     actor.value,
+				actorName: actor.name,
+				mask:      mask,
 			})
 		}
 	}
@@ -291,7 +306,7 @@ func TestCheckTrailerCoherence_EveryRuleIsReachable(t *testing.T) {
 	for _, c := range coherenceDomain() {
 		fired[verdict(c.trailers)] = true
 	}
-	for _, rule := range declaredCoherenceRules() {
+	for _, rule := range declaredCoherenceRules(coherenceRuleSpecs) {
 		if !fired[rule] {
 			t.Errorf("rule %q fires at no point in the domain; it is shadowed by an earlier rule or unreachable", rule)
 		}
@@ -306,7 +321,7 @@ func TestCheckTrailerCoherence_EveryRuleIsReachable(t *testing.T) {
 // beside each rule, and M-0294/AC-2 holds it to the rule's behavior.
 var forcePredicatedRules = func() map[string]bool {
 	out := map[string]bool{}
-	for _, rule := range declaredForcePredicatedRules() {
+	for _, rule := range declaredForcePredicatedRules(coherenceRuleSpecs) {
 		out[rule] = true
 	}
 	return out
