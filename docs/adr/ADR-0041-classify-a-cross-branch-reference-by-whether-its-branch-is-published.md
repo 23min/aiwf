@@ -1,7 +1,7 @@
 ---
 id: ADR-0041
 title: Classify a cross-branch reference by whether its branch is published
-status: proposed
+status: accepted
 ---
 ## Context
 
