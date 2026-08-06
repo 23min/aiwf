@@ -1451,6 +1451,12 @@ func ensurePreCommitHook(ctx context.Context, root string, dryRun bool) (StepRes
 	localReport := hookReportPath(root, filepath.Join(hooksDir, "pre-commit.local"))
 
 	existing, readErr := os.ReadFile(hookPath)
+	if readErr != nil && !errors.Is(readErr, fs.ErrNotExist) {
+		// An existing hook whose content is unknown cannot be
+		// classified, so the G45 migration below cannot preserve it and
+		// the write would replace it. Refuse instead (G-0557).
+		return StepResult{}, false, fmt.Errorf("reading pre-commit hook: %w", readErr)
+	}
 	hasOurMarker := readErr == nil && strings.Contains(string(existing), preCommitHookMarker)
 	hasAlienHook := readErr == nil && !hasOurMarker
 	migrated := false
@@ -1526,6 +1532,12 @@ func ensureCommitMsgHook(ctx context.Context, root string, dryRun bool) (StepRes
 	localReport := hookReportPath(root, filepath.Join(hooksDir, "commit-msg.local"))
 
 	existing, readErr := os.ReadFile(hookPath)
+	if readErr != nil && !errors.Is(readErr, fs.ErrNotExist) {
+		// An existing hook whose content is unknown cannot be
+		// classified, so the G45 migration below cannot preserve it and
+		// the write would replace it. Refuse instead (G-0557).
+		return StepResult{}, false, fmt.Errorf("reading commit-msg hook: %w", readErr)
+	}
 	hasOurMarker := readErr == nil && strings.Contains(string(existing), commitMsgHookMarker)
 	hasAlienHook := readErr == nil && !hasOurMarker
 	migrated := false
@@ -1607,6 +1619,13 @@ func ensurePostCommitHook(ctx context.Context, root string, regenStatus, dryRun 
 	localReport := hookReportPath(root, filepath.Join(hooksDir, "post-commit.local"))
 
 	existing, readErr := os.ReadFile(hookPath)
+	if readErr != nil && !errors.Is(readErr, fs.ErrNotExist) {
+		// An existing hook whose content is unknown cannot be
+		// classified: the opt-out arm below could not tell ours from an
+		// alien hook, and the install arm's G45 migration could not
+		// preserve it. Refuse on both routes (G-0557).
+		return StepResult{}, false, fmt.Errorf("reading post-commit hook: %w", readErr)
+	}
 	hasOurMarker := readErr == nil && strings.Contains(string(existing), postCommitHookMarker)
 	hasAlienHook := readErr == nil && !hasOurMarker
 
@@ -1622,8 +1641,6 @@ func ensurePostCommitHook(ctx context.Context, root string, regenStatus, dryRun 
 				Action: ActionSkipped,
 				Detail: "status_md.auto_update: false (post-commit regen disabled; no hook needed)",
 			}, false, nil
-		case readErr != nil:
-			return StepResult{}, false, fmt.Errorf("reading post-commit hook: %w", readErr)
 		case hasOurMarker:
 			if !dryRun {
 				if rmErr := os.Remove(hookPath); rmErr != nil {

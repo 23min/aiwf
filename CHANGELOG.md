@@ -16,6 +16,16 @@ section in this file.
 
 ## [Unreleased]
 
+### Fixed — G-0557: a git hook `aiwf init` cannot read is refused, not overwritten
+
+`aiwf init` and `aiwf update` install four git hooks, and three of them replaced a pre-existing hook they could not read, reporting the result as a successful create. The operator's script was overwritten in place with aiwf's own, no `.local` sibling was written, no conflict was reported, and the step ledger showed `created` at exit 0.
+
+The G45 auto-migration that moves a pre-existing hook aside can only run once the file's content is known. The pre-commit, commit-msg, and post-commit installers each derived two booleans from the read, and both went false on any read fault — so the migration was skipped and control fell through to the write, where `os.Rename` replaces an unreadable file whenever the containing directory is writable. An unreadable hook is ordinary: a restrictive umask, a file owned by another account in a shared checkout, or a permissions change made after the hook was written each produce one.
+
+All four installers now refuse a hook they cannot read, wrapping the underlying error with the hook's name — the contract `pre-push` already had. The refusal covers `--dry-run`, so a preview no longer reports a create it could not perform. It aborts the install at the point of refusal, so hooks earlier in the sequence are installed and later ones are not; fix the file's permissions and re-run, which refreshes what is already there.
+
+`post-commit` reached this refusal on its regeneration-opt-out route and not on its install route. The check now sits ahead of both, and the opt-out route's own read-fault arm is gone with it.
+
 ### Fixed — G-0438: flake-hunt runs one package per runner, so its red means a regression
 
 Internal only; no user-visible change to `aiwf` itself.
