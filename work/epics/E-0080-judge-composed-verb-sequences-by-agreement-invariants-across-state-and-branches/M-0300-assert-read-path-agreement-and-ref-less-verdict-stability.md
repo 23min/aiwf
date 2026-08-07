@@ -12,7 +12,7 @@ acs:
     - id: AC-2
       title: A verdict is stable under refs the tree does not need
       status: open
-      tdd_phase: done
+      tdd_phase: red
     - id: AC-3
       title: Each property is demonstrated failing against a constructed violation
       status: open
