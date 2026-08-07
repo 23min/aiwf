@@ -56,12 +56,20 @@ Then give the rule the absent case. It routes through the helper
 refusal and the check-time finding cannot disagree about what "missing" means — the
 reason that helper was extracted.
 
-Membership is decided last and on evidence. `Approach` is carried by 54 of 285
-milestones and by none of the eight most recent, and four of the six surfaces that
-state the set already omit it. Of the two that name it, one is a skill doc and the
-other is the rule that never fires. Enforcing it would newly indict most of the tree for a
-section nobody has missed, so it leaves the set rather than gaining a grandfather
-clause — the requirement is what is wrong here, not the tree.
+Membership is decided last and on evidence. `Approach` entered the set by
+transcription rather than by decision: M-0066 introduced the rule and enumerated the
+load-bearing sections from its own body, whose first three headings are `Goal`,
+`Approach`, `Acceptance criteria`. G-0058, the gap that motivated the rule, asks only
+that AC prose not ship blank and never names the section at all. The shipped
+milestone template has carried no `## Approach` in any revision of its history — its
+second section is `## Context`.
+
+So the requirement names a section no authoring surface has ever produced, and
+because the rule reports only present-but-empty, it has never caused an `Approach`
+section to exist that would not have existed anyway. Removing it does not relax a
+standard; it withdraws one that was never applied. The section stays permitted, and
+milestones with something to say about method keep saying it. Whether `Context`
+should take the vacated slot is a separate question, tracked as D-0065.
 
 Ordering matters within the milestone: the absent-section finding must not land before
 `Approach` leaves the set, or every existing milestone flags in between.
@@ -90,8 +98,11 @@ A body carrying every required section produces no such finding.
 ### AC-4 — Approach leaves the milestone required set with no grandfather allowlist
 
 The milestone entry in the owned set does not name `Approach`. No allowlist,
-exemption ledger, or grandfather entry is introduced by this milestone, and the
-existing tree produces no absent-section finding once AC-3 is live.
+exemption ledger, or grandfather entry is introduced by this milestone. Every
+non-archived, non-terminal milestone carries every section the set names, both
+before the removal and after, so the change is finding-neutral for the kind. What
+the wider tree does once absence is a finding is AC-3's scoping question, not this
+criterion's.
 
 The `aiwf-show` skill's body-key table is the sixth surface stating the set, and it
 follows in the same change. Its milestone row drops `approach` when the set does.
