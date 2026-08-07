@@ -92,6 +92,13 @@ The milestone entry in the owned set does not name `Approach`. No allowlist,
 exemption ledger, or grandfather entry is introduced by this milestone, and the
 existing tree produces no absent-section finding once AC-3 is live.
 
+The `aiwf-show` skill's body-key table is the sixth surface stating the set, and it
+follows in the same change. Its milestone row drops `approach` when the set does.
+Its gap row names `what_s_missing` — the slug `SectionSlug` derives from
+`What's missing` — rather than `whats_missing`, which no `aiwf show` envelope
+carries. A test pins the table's rows against the owned set, so this surface cannot
+drift silently the way the help text did.
+
 ## Constraints
 
 - No new chokepoint. The absent case flows through `EmptyRequiredSections` rather
