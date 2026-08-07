@@ -132,6 +132,12 @@ None. First milestone of E-0081.
 
 ## Work log
 
+### AC-1 — The per-kind section set has one definition the add scaffold derives from
+
+Table moved to `internal/entity`; `BodyTemplate` renders from it, the check rule
+reads it, and a third copy in `BodyTemplate`'s own test was deleted rather than
+updated · commit 5227fef7f · tests all green, 0 surviving mutants
+
 ## Decisions made during implementation
 
 ## Validation
