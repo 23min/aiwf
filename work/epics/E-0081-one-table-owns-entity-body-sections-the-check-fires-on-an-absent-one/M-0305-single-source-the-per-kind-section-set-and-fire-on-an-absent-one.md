@@ -139,6 +139,13 @@ Table moved to `internal/entity`; `BodyTemplate` renders from it, the check rule
 reads it, and a third copy in `BodyTemplate`'s own test was deleted rather than
 updated · commit 5227fef7f · tests all green, 0 surviving mutants
 
+### AC-2 — The JSON body-map help text is checked against that definition
+
+The root banner's body-map clause is parsed and compared against the owned set,
+slugified and in canonical order; it was naming `goal/acceptance_criteria` for
+milestone while the set carries `Approach` · commit da7d134f9 · tests all green,
+0 surviving mutants
+
 ## Decisions made during implementation
 
 ## Validation
