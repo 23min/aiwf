@@ -57,8 +57,9 @@ refusal and the check-time finding cannot disagree about what "missing" means �
 reason that helper was extracted.
 
 Membership is decided last and on evidence. `Approach` is carried by 54 of 285
-milestones and by none of the eight most recent, and four of the five surfaces that
-state the set already omit it. Enforcing it would newly indict most of the tree for a
+milestones and by none of the eight most recent, and four of the six surfaces that
+state the set already omit it. Of the two that name it, one is a skill doc and the
+other is the rule that never fires. Enforcing it would newly indict most of the tree for a
 section nobody has missed, so it leaves the set rather than gaining a grandfather
 clause — the requirement is what is wrong here, not the tree.
 
@@ -136,7 +137,7 @@ None. First milestone of E-0081.
 ## References
 
 - G-0482 — `Approach` exists on no shipped surface
-- E-0081 — parent epic, carrying the five-surface inventory
+- E-0081 — parent epic, carrying the six-surface inventory
 
 ## Work log
 
