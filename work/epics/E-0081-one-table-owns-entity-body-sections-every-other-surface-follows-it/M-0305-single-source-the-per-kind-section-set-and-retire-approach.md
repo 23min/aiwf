@@ -23,8 +23,8 @@ acs:
 
 ## Goal
 
-Give the per-kind body-section set one definition, and make the rule that names it
-report a section that is absent — not only one that is present and empty.
+Give the per-kind body-section set one definition that every other surface derives
+from or is checked against, and retire the one entry that no surface ever produced.
 
 ## Context
 
@@ -38,8 +38,14 @@ writes `Goal`, `Acceptance criteria`. The root command's help text describing th
 The disagreement is invisible because the rule cannot see it. `EmptyRequiredSections`
 walks the sections a body actually has and reports the ones that are empty; a section
 whose heading is absent is skipped, a stance its own doc comment takes deliberately.
-So the requirement holds only over sections that happen to be present, and membership
-is unenforced.
+So the check polices emptiness, never membership — and membership is what the two
+literals disagreed about, which is why the drift ran for as long as it did.
+
+Membership is not left to nothing, though: `aiwf add` scaffolds every section the set
+names, so an entity created through the verb carries them all and the emptiness rule
+then has something to police. Absence arises only where a body bypasses the scaffold
+— `--body-file` at create time, or hand-authoring. That division is why this milestone
+repairs the definition rather than the rule.
 
 Measured in a scratch consumer repo: `aiwf add milestone` writes a body missing a
 section the kernel declares required, and `aiwf check` reports nothing on that axis.
@@ -51,10 +57,13 @@ The scaffold is the surface that must derive — a literal beside the table is w
 the two drift in the first place. The help text is checked rather than generated,
 since it is prose describing a projection rather than a copy of the set.
 
-Then give the rule the absent case. It routes through the helper
-`internal/verb/add.go` and the `entity-body-empty` rule already share, so the verb-time
-refusal and the check-time finding cannot disagree about what "missing" means — the
-reason that helper was extracted.
+The rule itself is left alone. Firing on an absent heading would raise 118 findings
+against the tree as it stands — 61 gaps and 57
+decisions, both born-complete kinds the rule scores at error severity — against
+entities nobody was worried about, to close a leak that only `--body-file` and
+hand-authoring open. The scaffold already supplies membership on every path that
+goes through the verb. Whether that remaining leak is worth a create-time gate is a
+question on its own evidence, not a rider on this one.
 
 Membership is decided last and on evidence. `Approach` entered the set by
 transcription rather than by decision: M-0066 introduced the rule and enumerated the
@@ -70,9 +79,6 @@ section to exist that would not have existed anyway. Removing it does not relax 
 standard; it withdraws one that was never applied. The section stays permitted, and
 milestones with something to say about method keep saying it. Whether `Context`
 should take the vacated slot is a separate question, tracked as D-0065.
-
-Ordering matters within the milestone: the absent-section finding must not land before
-`Approach` leaves the set, or every existing milestone flags in between.
 
 ## Acceptance criteria
 
@@ -100,9 +106,15 @@ A body carrying every required section produces no such finding.
 The milestone entry in the owned set does not name `Approach`. No allowlist,
 exemption ledger, or grandfather entry is introduced by this milestone. Every
 non-archived, non-terminal milestone carries every section the set names, both
-before the removal and after, so the change is finding-neutral for the kind. What
-the wider tree does once absence is a finding is AC-3's scoping question, not this
-criterion's.
+before the removal and after, so the change is finding-neutral. The bodies that
+already carry `## Approach` keep it and produce no finding: the rule looks up the
+names the set holds and never enumerates the rest, so a retired section is inert
+rather than unexpected.
+
+`RequiredSections` and `EmptyRequiredSections` say in their doc comments which half
+of the guarantee each carries — the scaffold writes the set, the check polices only
+emptiness of what a body has. Nothing verifies membership, and the comments name
+that rather than leaving a reader to infer it from the word "required".
 
 The `aiwf-show` skill's body-key table is the sixth surface stating the set, and it
 follows in the same change. Its milestone row drops `approach` when the set does.
@@ -113,8 +125,8 @@ drift silently the way the help text did.
 
 ## Constraints
 
-- No new chokepoint. The absent case flows through `EmptyRequiredSections` rather
-  than a second helper beside it.
+- No new chokepoint, and no change to what `aiwf check` reports. This milestone moves
+  and prunes a definition; the rule reading it keeps its existing behaviour.
 - Layering direction is already policed; wherever the owned set lands, the existing
   layering rule decides the direction, not convenience.
 - No grandfather allowlist survives this milestone.
@@ -126,17 +138,20 @@ must derive from it and `entity` sits below `check`, so the table likely moves d
 rather than the dependency moving up. Settled against the layering rule during AC-1,
 not guessed here.
 
-Whether the absent case is a new finding code or a subcode of the existing one is an
-implementation choice for AC-3; the acceptance criterion pins the observable finding,
-not its code.
-
 ## Surfaces touched
 
 `internal/check/entity_body.go`, `internal/entity/serialize.go`,
-`internal/verb/add.go`, `internal/cli/root.go`, `internal/policies/`.
+`internal/entity/required_sections.go`, `internal/cli/root.go`,
+`internal/skills/embedded/aiwf-show/SKILL.md`, `internal/policies/`.
 
 ## Out of scope
 
+- Making the check fire on an absent section. `aiwf history M-0305/AC-3` carries the
+  measurement that settled it.
+- A create-time gate refusing an `aiwf add --body-file` body that omits a section the
+  set names. It is the only remaining path to an absent section, but it is a new
+  requirement and belongs on its own evidence.
+- Whether `Context` should take the slot `Approach` vacates (D-0065).
 - The shipped prose templates, which M-0306 reconciles against the owned set.
 - The always-on guidance's scaffold instruction, which M-0307 routes.
 - Whether the milestone template's duplicating sections should exist at all (G-0530).
