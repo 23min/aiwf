@@ -6,8 +6,8 @@ status: active
 ## Goal
 
 Give "which body sections an entity carries" a single owner, so the surfaces that
-state it today cannot disagree — and repair the rule that names the requirement but
-stays silent when a section is missing.
+state it today cannot disagree — and prune from it the entry no surface ever
+produced.
 
 ## Context
 
@@ -55,9 +55,6 @@ Absorbs G-0482, G-0479 and G-0541.
 
 - One owner for the per-kind section set; every other surface derives from it or is
   mechanically checked against it, rather than restating it.
-- The requirement fires when a required section is absent, not only when it is present
-  and empty — reached through the helper the verb gate and check rule already share,
-  so the two cannot drift on what "missing" means.
 - Membership corrections the existing evidence already settles: `Approach` leaves the
   milestone set; the epic prose template's out-of-scope heading moves to top level so
   the existing requirement starts holding.
@@ -76,8 +73,8 @@ Absorbs G-0482, G-0479 and G-0541.
 
 ## Constraints
 
-- No new chokepoint. The absent-section case flows through `EmptyRequiredSections`,
-  the helper `internal/verb/add.go` and the `entity-body-empty` rule already share.
+- No new chokepoint, and no change to what `aiwf check` reports. The epic reconciles
+  the surfaces that state the set; the rule reading it keeps its existing behaviour.
 - The prose templates survive as a superset, not a second source: a test proves each
   contains the derived required set. Collapsing them is not in this epic — four
   rituals read them, and the milestone template's work-log section is where per-AC
@@ -110,8 +107,8 @@ Absorbs G-0482, G-0479 and G-0541.
 
 ## Milestones
 
-- `M-0305` — one owner for the per-kind section set; the rule fires on an absent
-  section and `Approach` leaves the milestone set · depends on: —
+- `M-0305` — one owner for the per-kind section set, with the help text and the show
+  skill's key table checked against it, and `Approach` retired · depends on: —
 - `M-0306` — the shipped prose templates become a checked superset of that set, and
   the epic template's out-of-scope heading moves to top level · depends on: `M-0305`
 - `M-0307` — the always-on guidance's body-scaffold instruction routes through the
