@@ -93,12 +93,6 @@ type verbEnvelopeFinding struct {
 	Hint     string `json:"hint"`
 }
 
-// severityError is the wire spelling of the blocking severity — the one
-// that decides `aiwf check`'s exit code, and so the one an oracle reads
-// to tell "this surface would refuse the push" from "this surface has a
-// remark".
-const severityError = "error"
-
 // runAiwfJSON runs bin with args plus --format=json in dir and
 // decodes the resulting envelope. A non-zero exit is expected
 // traffic (an FSM refusal, a business-rule refusal) and is not
@@ -108,37 +102,16 @@ const severityError = "error"
 // whichever directory it's driving — e.g. one of several sibling
 // worktrees, not just the scenario's own single dir.
 func runAiwfJSON(bin, dir string, args ...string) (verbEnvelope, error) {
-	out, err := runAiwfRaw(bin, dir, args...)
-	if err != nil {
-		return verbEnvelope{}, err
-	}
-	return parseVerbEnvelope(args, out)
-}
-
-// runAiwfRaw runs bin with args plus --format=json in dir and returns
-// stdout undecoded, so the several envelope shapes this package reads
-// share one subprocess seam rather than one copy of it each. A non-zero
-// exit is expected traffic — an FSM refusal, a business-rule refusal, a
-// check reporting findings — and is not itself an error; only a process
-// that fails to even run returns one.
-//
-// args is copied rather than appended to in place, so a caller's slice
-// is never aliased by the flag this adds.
-func runAiwfRaw(bin, dir string, args ...string) ([]byte, error) {
-	full := make([]string, 0, len(args)+1)
-	full = append(full, args...)
-	full = append(full, "--format=json")
-
-	cmd := exec.Command(bin, full...) //nolint:gosec // bin is a path this package's own BuildBinary just produced, not attacker-controlled input
+	cmd := exec.Command(bin, append(args, "--format=json")...) //nolint:gosec // bin is a path this package's own BuildBinary just produced, not attacker-controlled input
 	cmd.Dir = dir
 	out, err := cmd.Output()
 	if err != nil {
 		var exitErr *exec.ExitError
 		if !errors.As(err, &exitErr) {
-			return nil, fmt.Errorf("running aiwf %v: %w", args, err)
+			return verbEnvelope{}, fmt.Errorf("running aiwf %v: %w", args, err)
 		}
 	}
-	return out, nil
+	return parseVerbEnvelope(args, out)
 }
 
 // parseVerbEnvelope decodes one --format=json invocation's stdout.
@@ -169,48 +142,16 @@ type listVerbEnvelope struct {
 // status, matching tree.Load's own unfiltered Entities set.
 func runAiwfListJSON(bin, dir string) (listVerbEnvelope, error) {
 	args := []string{"list", "--archived"}
-	out, err := runAiwfRaw(bin, dir, args...)
+	cmd := exec.Command(bin, append(args, "--format=json")...) //nolint:gosec // bin is a path this package's own BuildBinary just produced, not attacker-controlled input
+	cmd.Dir = dir
+	out, err := cmd.Output()
 	if err != nil {
-		return listVerbEnvelope{}, err
+		var exitErr *exec.ExitError
+		if !errors.As(err, &exitErr) {
+			return listVerbEnvelope{}, fmt.Errorf("running aiwf %v: %w", args, err)
+		}
 	}
 	return parseListVerbEnvelope(args, out)
-}
-
-// statusVerbEnvelope is `aiwf status`'s own envelope shape. Its verdict
-// does not travel the envelope's `findings` array: status projects the
-// same in-memory rule pass into a report that states a blocking count
-// and warning rows carrying neither subcode nor severity. Reading it
-// needs its own type, and comparing it needs the granularity it speaks
-// in (M-0300/AC-1).
-type statusVerbEnvelope struct {
-	Status string `json:"status"`
-	Result struct {
-		Health struct {
-			Errors int `json:"errors"`
-		} `json:"health"`
-	} `json:"result"`
-}
-
-// runAiwfStatusJSON runs `aiwf status --format=json` in dir and decodes
-// the resulting envelope.
-func runAiwfStatusJSON(bin, dir string) (statusVerbEnvelope, error) {
-	args := []string{"status"}
-	out, err := runAiwfRaw(bin, dir, args...)
-	if err != nil {
-		return statusVerbEnvelope{}, err
-	}
-	return parseStatusVerbEnvelope(args, out)
-}
-
-// parseStatusVerbEnvelope decodes one `aiwf status --format=json`
-// invocation's stdout, split out so the malformed-output path is
-// directly unit-testable without a real subprocess.
-func parseStatusVerbEnvelope(args []string, out []byte) (statusVerbEnvelope, error) {
-	var env statusVerbEnvelope
-	if err := json.Unmarshal(out, &env); err != nil {
-		return statusVerbEnvelope{}, fmt.Errorf("parsing aiwf %v JSON output: %w\n%s", args, err, out)
-	}
-	return env, nil
 }
 
 // parseListVerbEnvelope decodes one `aiwf list --format=json`

@@ -26,7 +26,7 @@ import "fmt"
 func classifyAgainstBaseline(findings []verbEnvelopeFinding, baseline map[string]bool) []Violation {
 	var violations []Violation
 	for _, f := range findings {
-		if f.Severity == severityError || !baseline[f.Code] {
+		if f.Severity == "error" || !baseline[f.Code] {
 			violations = append(violations, Violation{Message: fmt.Sprintf(
 				"unexpected aiwf check finding: %s (%s)", f.Code, f.Severity,
 			)})

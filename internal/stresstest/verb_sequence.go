@@ -66,7 +66,6 @@ type VerbSequenceScenario struct {
 	aiwfBin        string
 	rng            *rand.Rand
 	steps          int
-	invariants     []Invariant
 	violations     []Violation
 	renameCounter  int
 	retitleCounter int
@@ -76,14 +75,12 @@ type VerbSequenceScenario struct {
 }
 
 // NewVerbSequenceScenario builds a scenario that walks `steps`
-// promote attempts per kind, seeded for reproducibility. Every state the
-// walk reaches is judged against walkInvariants (M-0300).
+// promote attempts per kind, seeded for reproducibility.
 func NewVerbSequenceScenario(aiwfBin string, seed int64, steps int) *VerbSequenceScenario {
 	return &VerbSequenceScenario{
-		aiwfBin:    aiwfBin,
-		rng:        rand.New(rand.NewPCG(uint64(seed), uint64(seed))), //nolint:gosec // seeded PCG for reproducible replay, not a security context
-		steps:      steps,
-		invariants: walkInvariants(),
+		aiwfBin: aiwfBin,
+		rng:     rand.New(rand.NewPCG(uint64(seed), uint64(seed))), //nolint:gosec // seeded PCG for reproducible replay, not a security context
+		steps:   steps,
 	}
 }
 
@@ -254,11 +251,11 @@ func (s *VerbSequenceScenario) walk(dir string, kind entity.Kind, id, current st
 		s.violations = append(s.violations, classifyCheckFindings(checkEnv.Findings)...)
 
 		label := fmt.Sprintf("%s step %d (%s)", id, i+1, opName)
-		invariantViolations, err := evaluateInvariants(s.invariants, s.aiwfBin, dir, label)
+		listViolations, err := checkListInvariant(s.aiwfBin, dir, label)
 		if err != nil { //coverage:ignore defensive: same launch-failure class pinned at its source by TestVerbSequenceScenario_RealBinary_RunErrorsWhenBinaryMissing
-			return err
+			return fmt.Errorf("running the list-vs-ground-truth invariant after %s: %w", label, err)
 		}
-		s.violations = append(s.violations, invariantViolations...)
+		s.violations = append(s.violations, listViolations...)
 	}
 	return nil
 }
