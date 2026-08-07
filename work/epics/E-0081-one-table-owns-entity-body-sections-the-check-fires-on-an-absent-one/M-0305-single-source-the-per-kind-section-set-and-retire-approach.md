@@ -17,7 +17,7 @@ acs:
       title: An absent required section produces a finding naming it
       status: cancelled
     - id: AC-4
-      title: Approach leaves the milestone required set with no grandfather allowlist
+      title: Approach is retired from the table and the doc surfaces follow
       status: open
 ---
 
@@ -95,7 +95,7 @@ section and the entity. The path runs through the helper the `aiwf add` verb gat
 the `entity-body-empty` rule share, so both answer the same way for the same body.
 A body carrying every required section produces no such finding.
 
-### AC-4 — Approach leaves the milestone required set with no grandfather allowlist
+### AC-4 — Approach is retired from the table and the doc surfaces follow
 
 The milestone entry in the owned set does not name `Approach`. No allowlist,
 exemption ledger, or grandfather entry is introduced by this milestone. Every
