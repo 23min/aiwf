@@ -235,21 +235,18 @@ implying the state space was never examined.
 
 ## Work log
 
-### AC-1 — No two read paths contradict each other on the same bytes
+The first cycle's three implementation commits are below; an independent review
+refuted the properties they delivered, and the second cycle's entries follow as
+it lands. `aiwf history M-0300/AC-<N>` carries the ladder for both, including
+the forced reverts and their reasons.
 
-Invariant seam added and the read-path agreement property registered on it;
-the pre-existing list-vs-ground-truth assertion routed through the same seam
-rather than staying an inline call · commit cbf75aedb · tests 24/24
+### Cycle 1 — refuted at wrap review
 
-### AC-2 — A verdict does not depend on refs a fresh clone would not have
-
-Property registered on the seam, short-circuiting when the repository holds
-no ref it does not need · commit 5dee2e38d · tests 22/22
-
-### AC-3 — Each property is demonstrated failing against a constructed violation
-
-Registry-driven chokepoint: a property registered with no state that makes it
-report fails by name · commit 13030a678 · tests 1/1
+- AC-1 · commit cbf75aedb — invariant seam plus the read-path agreement
+  property, with the pre-existing list-vs-ground-truth assertion routed through
+  the same seam.
+- AC-2 · commit 5dee2e38d — ref-less stability registered on the seam.
+- AC-3 · commit 13030a678 — registry-driven vacuity chokepoint.
 
 ## Decisions made during implementation
 
@@ -260,44 +257,14 @@ report fails by name · commit 13030a678 · tests 1/1
   severity; it is compared on the count alone. Inferring a subcode for it would
   be the harness deciding what a surface meant rather than reading what it said,
   which is the same failure as modelling the tier rules, one layer down.
-- **A subject carries a set of classifications, compared by containment.** A
-  rule fires once per offending reference or prose token, so one subject can
-  hold several. Containment rather than equality is what lets a surface that
-  classified more of the same subject agree with one that classified less —
-  the absence rule at per-classification granularity.
-- **"Refs the tree does not need" is read as "not derived from the tier
-  rules", not as "computed from the verdict's own claims".** Three refs are
-  kept: the branch HEAD is on, its upstream (which defines the provenance audit
-  range), and the configured trunk ref (which the uniqueness check reads). The
-  literal alternative — treat a ref as needed when the verdict cites an id it
-  carries — defeats the property, because the ref carrying a cited id is
-  precisely the one whose removal the G-0556 shape has to survive. The set here
-  is derived from git structure and one config knob, so it does not go stale as
-  ADR-0030 or ADR-0041 evolve, which is what the criterion asks for.
 
 ## Validation
 
-- `go test ./... -count=1` green; `internal/stresstest` carries 242 passing
-  tests, 47 of them added here.
-- `make lint` reports 0 issues.
-- Diff-scoped branch-coverage audit green against `main`
-  (`AIWF_COVERAGE_BASE=main make coverage-gate`).
-- Both agreement properties measured against a real repository that produces
-  the G-0556 shape — a reference to an id carried only by an unpublished local
-  branch, with a remote configured so the published-versus-local split has
-  something to read. The full check reports `body-prose-id` /
-  `cross-branch-local-only` at error severity; the ref-less surface reports
-  `unresolved-unverified` at warning; stripping the branch moves the full
-  check's own verdict to `unresolved`, still at error. Neither property reports
-  anything, which is correct, and an identity-shaped one would report a defect
-  on every run.
-- Per-push cost of the two new properties, measured on this machine over the
-  walker's own tests: 28.3 / 32.1 / 38.9 s with them registered against
-  20.4 / 21.0 / 26.8 s without. Read-path agreement accounts for essentially
-  all of it, at four extra subprocesses per walk step; ref-less stability
-  short-circuits on a single-branch repository and costs one `git
-  for-each-ref`. It starts costing more when a scenario crosses a branch
-  boundary, which is the point at which it has something to judge.
+Pending the second cycle. The first cycle's gates — full suite, lint, and the
+diff-scoped coverage audit — all reported green against properties an
+independent review then refuted, which is the record worth keeping: every
+mechanical gate this repo runs passed over both defects, because none of them
+asks whether a property can detect what it claims to.
 
 ## Deferrals
 
