@@ -67,18 +67,23 @@ question on its own evidence, not a rider on this one.
 
 Membership is decided last and on evidence. `Approach` entered the set by
 transcription rather than by decision: M-0066 introduced the rule and enumerated the
-load-bearing sections from its own body, whose first three headings are `Goal`,
-`Approach`, `Acceptance criteria`. G-0058, the gap that motivated the rule, asks only
-that AC prose not ship blank and never names the section at all. The shipped
-milestone template has carried no `## Approach` in any revision of its history — its
-second section is `## Context`.
+load-bearing sections from its own body, which carried `Goal`, `Approach`,
+`Acceptance criteria`. G-0058, the gap that motivated the rule, asks only that AC
+prose not ship blank and never names the section at all.
 
-So the requirement names a section no authoring surface has ever produced, and
-because the rule reports only present-but-empty, it has never caused an `Approach`
-section to exist that would not have existed anyway. Removing it does not relax a
-standard; it withdraws one that was never applied. The section stays permitted, and
-milestones with something to say about method keep saying it. Whether `Context`
-should take the vacated slot is a separate question, tracked as D-0065.
+The surfaces that state the set disagree about it, so retiring it is a choice between
+them rather than the removal of something uncontested. `internal/skills/embedded/aiwf-add`
+names `Approach` required and describes it as the implementation sketch. Against that:
+`docs/design/design-decisions.md` is the normative statement of what a milestone body
+carries, predates the rule, and omits the section; the prose milestone template that
+the planning ritual actually fills has never carried it in any revision of its
+history; and that template's `Context`, `Design notes` and `Constraints` already hold
+what an implementation sketch would say. The disagreement resolves downward — the
+section leaves the set, and the `aiwf-add` skill follows.
+
+The section stays permitted, and milestones with something to say about method keep
+saying it; the bodies that already carry one are unaffected. Whether `Context` should
+take the vacated slot is a separate question, tracked as D-0065.
 
 ## Acceptance criteria
 
@@ -116,12 +121,25 @@ of the guarantee each carries — the scaffold writes the set, the check polices
 emptiness of what a body has. Nothing verifies membership, and the comments name
 that rather than leaving a reader to infer it from the word "required".
 
-The `aiwf-show` skill's body-key table is the sixth surface stating the set, and it
-follows in the same change. Its milestone row drops `approach` when the set does.
-Its gap row names `what_s_missing` — the slug `SectionSlug` derives from
-`What's missing` — rather than `whats_missing`, which no `aiwf show` envelope
-carries. A test pins the table's rows against the owned set, so this surface cannot
-drift silently the way the help text did.
+Every remaining surface that states the set follows in the same change, and a test
+pins each against the owned definition so none can drift silently the way the help
+text did:
+
+- `internal/skills/embedded/aiwf-add` — a required-body-sections table and a prose
+  paragraph per kind. Both name `Approach`; both are shipped to consumer repos and
+  are what an authoring assistant reads, so leaving either would reproduce the drift
+  this milestone exists to end.
+- `internal/skills/embedded/aiwf-show` — the body-key table. Its milestone row drops
+  `approach`. Its gap row names `what_s_missing`, the slug `SectionSlug` derives from
+  `What's missing`, rather than `whats_missing`, which no `aiwf show` envelope
+  carries.
+- `internal/check/entity_body.go` — the package doc comment restates all six kinds in
+  prose, beside the literal this milestone already removed.
+
+The scaffold's rendered bytes are asserted per kind, not just its heading names.
+Comparing parsed headings against the table they are rendered from can only fail on a
+round trip; comparing the bytes catches a display-form edit and the loss of the blank
+line between headings, neither of which any suite currently sees.
 
 ## Constraints
 
@@ -171,7 +189,13 @@ None. First milestone of E-0081.
 
 Table moved to `internal/entity`; `BodyTemplate` renders from it, the check rule
 reads it, and a third copy in `BodyTemplate`'s own test was deleted rather than
-updated · commit 5227fef7f · tests all green, 0 surviving mutants
+updated · commit 5227fef7f · tests all green
+
+Single-sourcing is guaranteed by construction once the scaffold renders from the
+table, so the AC's test can only fail on a render/parse round trip. The table's
+display form is a separate axis and this left it unpinned: a case-only edit to a
+section name, or the loss of the blank line between headings, passes every suite.
+AC-4 carries the byte-level scaffold assertion that closes it.
 
 ### AC-2 — The JSON body-map help text is checked against that definition
 
