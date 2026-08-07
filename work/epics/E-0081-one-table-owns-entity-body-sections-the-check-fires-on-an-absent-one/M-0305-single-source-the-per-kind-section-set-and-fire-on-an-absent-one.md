@@ -15,7 +15,7 @@ acs:
       tdd_phase: done
     - id: AC-3
       title: An absent required section produces a finding naming it
-      status: open
+      status: cancelled
     - id: AC-4
       title: Approach leaves the milestone required set with no grandfather allowlist
       status: open
