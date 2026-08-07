@@ -18,7 +18,7 @@ acs:
       status: cancelled
     - id: AC-4
       title: Approach is retired from the table and the doc surfaces follow
-      status: open
+      status: met
       tdd_phase: done
 ---
 
