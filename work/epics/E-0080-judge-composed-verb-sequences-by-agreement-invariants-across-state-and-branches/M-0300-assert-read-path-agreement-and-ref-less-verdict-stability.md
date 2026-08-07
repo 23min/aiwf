@@ -10,7 +10,7 @@ acs:
       status: open
       tdd_phase: red
     - id: AC-2
-      title: A verdict is stable under refs the tree does not need
+      title: A verdict does not depend on refs a fresh clone would not have
       status: open
       tdd_phase: red
     - id: AC-3
@@ -104,7 +104,7 @@ update when they change — which is what let it survive G-0556's classification
 change arriving between this milestone's planning and its implementation.
 
 
-### AC-2 — A verdict is stable under refs the tree does not need
+### AC-2 — A verdict does not depend on refs a fresh clone would not have
 
 For a repository produced by a sequence, the harness computes the verdict twice
 — once on the working checkout, once on a copy stripped of every ref a fresh
@@ -241,7 +241,7 @@ Invariant seam added and the read-path agreement property registered on it;
 the pre-existing list-vs-ground-truth assertion routed through the same seam
 rather than staying an inline call · commit cbf75aedb · tests 24/24
 
-### AC-2 — A verdict is stable under refs the tree does not need
+### AC-2 — A verdict does not depend on refs a fresh clone would not have
 
 Property registered on the seam, short-circuiting when the repository holds
 no ref it does not need · commit 5dee2e38d · tests 22/22
