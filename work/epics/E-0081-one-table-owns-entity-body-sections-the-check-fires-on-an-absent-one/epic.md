@@ -11,7 +11,7 @@ stays silent when a section is missing.
 
 ## Context
 
-Five surfaces state the per-kind body section set. Measured 2026-08-06, for milestone:
+Six surfaces state the per-kind body section set. Measured 2026-08-06/07, for milestone:
 
 | surface | says |
 |---|---|
@@ -20,8 +20,13 @@ Five surfaces state the per-kind body section set. Measured 2026-08-06, for mile
 | the prose milestone template under the embedded rituals | Goal, Context, Acceptance criteria, +12 |
 | the `show --format=json` body map | `goal`, `acceptance_criteria` |
 | the root command's help text describing that map | `goal/acceptance_criteria` |
+| the `aiwf-show` skill's body-key table | `goal`, `approach`, `acceptance_criteria`, +5 |
 
-Four of the five omit `Approach`, and the one that requires it never fires.
+Four of the six omit `Approach`; of the two that name it, one is a skill doc and the
+other is the rule that never fires. That skill's table is also wrong about a key it
+does not merely omit — it gives gap's section as `whats_missing`, where the slug
+`SectionSlug` derives is `what_s_missing`, so a reader following it looks up a key no
+envelope carries.
 `EmptyRequiredSections` reports only a section that is present and empty; a heading
 absent outright is skipped, a stance its own doc comment takes deliberately. The map
 named as the requirement therefore enforces non-emptiness of whatever happens to be
