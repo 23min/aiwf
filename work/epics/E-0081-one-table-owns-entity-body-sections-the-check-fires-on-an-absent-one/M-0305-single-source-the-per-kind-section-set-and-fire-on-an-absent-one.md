@@ -12,7 +12,7 @@ acs:
     - id: AC-2
       title: The JSON body-map help text is checked against that definition
       status: open
-      tdd_phase: green
+      tdd_phase: done
     - id: AC-3
       title: An absent required section produces a finding naming it
       status: open
