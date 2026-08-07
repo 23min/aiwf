@@ -14,7 +14,7 @@ acs:
       status: open
       tdd_phase: red
     - id: AC-3
-      title: Each property is demonstrated failing against a constructed violation
+      title: Each property is demonstrated failing, real states before stand-ins
       status: open
       tdd_phase: red
 ---
@@ -139,7 +139,7 @@ directory names an admin directory elsewhere, so a filesystem copy of it aliases
 the original and writes through to it; the property refuses such a repository
 rather than operating on it.
 
-### AC-3 — Each property is demonstrated failing against a constructed violation
+### AC-3 — Each property is demonstrated failing, real states before stand-ins
 
 For each property, a test drives it into reporting a violation, and prefers a
 repository state the real surfaces produce over one a stand-in fabricates. A
