@@ -7,7 +7,7 @@ tdd: required
 acs:
     - id: AC-1
       title: No two read paths contradict each other on the same bytes
-      status: met
+      status: open
       tdd_phase: done
     - id: AC-2
       title: A verdict is stable under refs the tree does not need
