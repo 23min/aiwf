@@ -2,21 +2,23 @@ package check
 
 // This file holds the M-066 entity-body-empty rule.
 //
-// Each entity kind has a hardcoded list of load-bearing body sections
-// that must contain non-empty prose. The rule walks the body, locates
-// each named section by heading, and emits a finding when the section
-// is empty between its heading and the next heading (or EOF).
+// Each entity kind has a list of load-bearing body sections that must
+// contain non-empty prose. The rule walks the body, locates each named
+// section by heading, and emits a finding when the section is empty
+// between its heading and the next heading (or EOF).
 //
-// Per-kind dispatch:
+// The per-kind sets live in entity.RequiredSections, which this rule and
+// the `aiwf add` scaffold both read. They are deliberately not restated
+// here: a prose copy beside the code is what let the scaffold and this
+// rule name different sections for the same kind. Run `aiwf template
+// <kind>` to see a kind's set. Sub-element ACs are handled separately,
+// since their heading level is `###` and their parent is a milestone
+// rather than a standalone file.
 //
-//	epic        — `## Goal`, `## Scope`, `## Out of scope`
-//	milestone   — `## Goal`, `## Approach`, `## Acceptance criteria`
-//	gap         — `## What's missing`, `## Why it matters`
-//	adr         — `## Context`, `## Decision`, `## Consequences`
-//	decision    — `## Question`, `## Decision`, `## Reasoning`
-//	contract    — `## Purpose`, `## Stability`
-//	AC body     — under each `### AC-N — <title>` heading inside its
-//	              parent milestone
+// Membership is not enforced anywhere. The scaffold writes every section
+// the set names, so an entity created through `aiwf add` carries them all
+// and this rule then polices their emptiness; a body that bypasses the
+// scaffold and omits a heading outright is skipped rather than reported.
 //
 // Definition of empty: between the section heading and the next
 // heading (or EOF), no non-whitespace content other than headings

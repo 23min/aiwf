@@ -12,7 +12,7 @@ import "slices"
 // and the rule validating it disagree about the same kind.
 var requiredSectionsByKind = map[Kind][]string{
 	KindEpic:      {"Goal", "Scope", "Out of scope"},
-	KindMilestone: {"Goal", "Approach", "Acceptance criteria"},
+	KindMilestone: {"Goal", "Acceptance criteria"},
 	KindADR:       {"Context", "Decision", "Consequences"},
 	KindGap:       {"What's missing", "Why it matters"},
 	KindDecision:  {"Question", "Decision", "Reasoning"},

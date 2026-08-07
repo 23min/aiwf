@@ -35,6 +35,43 @@ func TestBodyTemplate_RendersExactlyTheRequiredSections(t *testing.T) {
 	}
 }
 
+// TestBodyTemplate_RendersTheExactScaffoldBytes pins the scaffold's output
+// byte-for-byte per kind, which is a different claim from the one above.
+//
+// Comparing parsed headings against the table they were rendered from can
+// only fail on a render/parse round trip: BodyTemplate is built from
+// RequiredSections, so the two agree by construction. That leaves the
+// table's display form unpinned — a case-only edit to a section name keeps
+// the same slug and passes every other suite, and dropping the blank line
+// between headings changes no heading at all.
+//
+// The expectation is a literal rather than a second rendering, so it is not
+// a second source: no production code reads it, and it is the only place a
+// reviewer can see the bytes `aiwf add` actually commits.
+func TestBodyTemplate_RendersTheExactScaffoldBytes(t *testing.T) {
+	t.Parallel()
+	want := map[Kind]string{
+		KindEpic:      "\n## Goal\n\n## Scope\n\n## Out of scope\n",
+		KindMilestone: "\n## Goal\n\n## Acceptance criteria\n",
+		KindADR:       "\n## Context\n\n## Decision\n\n## Consequences\n",
+		KindGap:       "\n## What's missing\n\n## Why it matters\n",
+		KindDecision:  "\n## Question\n\n## Decision\n\n## Reasoning\n",
+		KindContract:  "\n## Purpose\n\n## Stability\n",
+	}
+	for _, k := range AllKinds() {
+		t.Run(string(k), func(t *testing.T) {
+			t.Parallel()
+			expected, ok := want[k]
+			if !ok {
+				t.Fatalf("kind %s has no expected scaffold; add its bytes here when the kind lands", k)
+			}
+			if diff := cmp.Diff(expected, string(BodyTemplate(k))); diff != "" {
+				t.Errorf("BodyTemplate(%s) bytes (-want +got):\n%s", k, diff)
+			}
+		})
+	}
+}
+
 // TestRequiredSections_CoversEveryKind pins that the owned set is total over
 // the closed kind set. A kind added to AllKinds without a section set would
 // otherwise reach the scaffold as a bare body and the check rule as an

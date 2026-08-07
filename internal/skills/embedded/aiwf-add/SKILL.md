@@ -178,7 +178,7 @@ The load-bearing body sections per kind:
 | Kind | Required body sections |
 |---|---|
 | epic | `## Goal`, `## Scope`, `## Out of scope` |
-| milestone | `## Goal`, `## Approach`, `## Acceptance criteria` |
+| milestone | `## Goal`, `## Acceptance criteria` |
 | ac | The `### AC-N — <title>` body (one paragraph covering pass criteria, edge cases, and code references) |
 | gap | `## What's missing`, `## Why it matters` |
 | adr | `## Context`, `## Decision`, `## Consequences` |
@@ -215,7 +215,7 @@ in `cmd/aiwf/add_cmd_test.go`.
 
 **Epics.** `## Goal` describes the problem the epic solves and what success looks like — one paragraph, no longer than four sentences. `## Scope` enumerates what's in (one bullet per major piece of work, often a milestone). `## Out of scope` enumerates what's deliberately not — usually the most-tempting adjacent work, with a one-line "why not yet."
 
-**Milestones.** `## Goal` describes the chunk of value this milestone ships. `## Approach` is the implementation sketch — which packages get touched, which existing patterns get extended, what the verb / rule / file shape will be. `## Acceptance criteria` is the heading container; the actual ACs land as `### AC-N — <title>` sub-elements with their own bodies.
+**Milestones.** `## Goal` describes the chunk of value this milestone ships. `## Acceptance criteria` is the heading container; the actual ACs land as `### AC-N — <title>` sub-elements with their own bodies. The rich template adds sections for method and prior state — an implementation sketch belongs there, not in a section the kernel requires.
 
 **Gaps.** `## What's missing` is the **concrete defect** — what specifically doesn't exist or doesn't work; one paragraph naming the symptom and the affected surface. `## Why it matters` is the consequence — what fails, who notices, what bug class this enables; one paragraph naming the operational impact.
 
