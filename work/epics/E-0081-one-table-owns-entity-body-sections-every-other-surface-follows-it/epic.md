@@ -1,6 +1,6 @@
 ---
 id: E-0081
-title: One table owns entity body sections; the check fires on an absent one
+title: One table owns entity body sections; every other surface follows it
 status: active
 ---
 ## Goal
