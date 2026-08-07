@@ -182,11 +182,69 @@ green run proves nothing on its own.
 
 ## Work log
 
+### AC-1 — No two read paths contradict each other on the same bytes
+
+Invariant seam added and the read-path agreement property registered on it;
+the pre-existing list-vs-ground-truth assertion routed through the same seam
+rather than staying an inline call · commit cbf75aedb · tests 24/24
+
+### AC-2 — A verdict is stable under refs the tree does not need
+
+Property registered on the seam, short-circuiting when the repository holds
+no ref it does not need · commit 5dee2e38d · tests 22/22
+
+### AC-3 — Each property is demonstrated failing against a constructed violation
+
+Registry-driven chokepoint: a property registered with no state that makes it
+report fails by name · commit 13030a678 · tests 1/1
+
 ## Decisions made during implementation
 
-- (none)
+- **Each surface is compared at the granularity it speaks in.** `aiwf check`,
+  `--fast`, and `--shape-only` emit the findings envelope, so they are compared
+  claim for claim. `aiwf status` renders the same in-memory rule pass into a
+  report carrying a blocking count and warning rows with neither subcode nor
+  severity; it is compared on the count alone. Inferring a subcode for it would
+  be the harness deciding what a surface meant rather than reading what it said,
+  which is the same failure as modelling the tier rules, one layer down.
+- **A subject carries a set of classifications, compared by containment.** A
+  rule fires once per offending reference or prose token, so one subject can
+  hold several. Containment rather than equality is what lets a surface that
+  classified more of the same subject agree with one that classified less —
+  the absence rule at per-classification granularity.
+- **"Refs the tree does not need" is read as "not derived from the tier
+  rules", not as "computed from the verdict's own claims".** Three refs are
+  kept: the branch HEAD is on, its upstream (which defines the provenance audit
+  range), and the configured trunk ref (which the uniqueness check reads). The
+  literal alternative — treat a ref as needed when the verdict cites an id it
+  carries — defeats the property, because the ref carrying a cited id is
+  precisely the one whose removal the G-0556 shape has to survive. The set here
+  is derived from git structure and one config knob, so it does not go stale as
+  ADR-0030 or ADR-0041 evolve, which is what the criterion asks for.
 
 ## Validation
+
+- `go test ./... -count=1` green; `internal/stresstest` carries 242 passing
+  tests, 47 of them added here.
+- `make lint` reports 0 issues.
+- Diff-scoped branch-coverage audit green against `main`
+  (`AIWF_COVERAGE_BASE=main make coverage-gate`).
+- Both agreement properties measured against a real repository that produces
+  the G-0556 shape — a reference to an id carried only by an unpublished local
+  branch, with a remote configured so the published-versus-local split has
+  something to read. The full check reports `body-prose-id` /
+  `cross-branch-local-only` at error severity; the ref-less surface reports
+  `unresolved-unverified` at warning; stripping the branch moves the full
+  check's own verdict to `unresolved`, still at error. Neither property reports
+  anything, which is correct, and an identity-shaped one would report a defect
+  on every run.
+- Per-push cost of the two new properties, measured on this machine over the
+  walker's own tests: 28.3 / 32.1 / 38.9 s with them registered against
+  20.4 / 21.0 / 26.8 s without. Read-path agreement accounts for essentially
+  all of it, at four extra subprocesses per walk step; ref-less stability
+  short-circuits on a single-branch repository and costs one `git
+  for-each-ref`. It starts costing more when a scenario crosses a branch
+  boundary, which is the point at which it has something to judge.
 
 ## Deferrals
 
