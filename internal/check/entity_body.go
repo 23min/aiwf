@@ -46,20 +46,6 @@ import (
 // Typed per G-0129.
 const CodeEntityBodyEmpty = "entity-body-empty"
 
-// requiredSectionsByKind lists the load-bearing top-level body
-// sections for each entity kind. Order is the canonical render order
-// in the kind's spec template. Sub-element kinds (AC) handled
-// separately because their heading level is `###` and their parent
-// is a milestone, not a standalone file.
-var requiredSectionsByKind = map[entity.Kind][]string{
-	entity.KindEpic:      {"Goal", "Scope", "Out of scope"},
-	entity.KindMilestone: {"Goal", "Approach", "Acceptance criteria"},
-	entity.KindGap:       {"What's missing", "Why it matters"},
-	entity.KindADR:       {"Context", "Decision", "Consequences"},
-	entity.KindDecision:  {"Question", "Decision", "Reasoning"},
-	entity.KindContract:  {"Purpose", "Stability"},
-}
-
 // htmlCommentPattern matches a single HTML comment block,
 // possibly multi-line. Used to strip operator-deferred placeholders
 // before the emptiness check (M-066/AC-4).
@@ -106,21 +92,20 @@ func ApplyTDDStrict(findings []Finding, strict bool) {
 }
 
 // EmptyRequiredSections returns the names of kind's load-bearing
-// top-level body sections (per requiredSectionsByKind) that ARE
+// top-level body sections (per entity.RequiredSections) that ARE
 // PRESENT in body but empty per isAllWhitespaceOrHeadings. A section
 // whose heading is missing outright is not "empty" in this rule's
-// sense — the same stance entityBodyEmpty has always taken (a body
-// using an unrecognized heading shape is a different problem, not
-// this one). Returns nil when kind has no required-sections entry, or
-// when every present required section carries content.
+// sense — a body using an unrecognized heading shape is a different
+// problem, not this one. Returns nil when kind has no required-sections
+// entry, or when every present required section carries content.
 //
 // Shared by the `aiwf add` verb-time gate for born-complete kinds
 // (internal/verb/add.go, G-0326) so the verb-time refusal and this
 // file's entityBodyEmpty check rule can never drift out of agreement
 // on what "empty" means — both read the same body-parsing helpers.
 func EmptyRequiredSections(k entity.Kind, body []byte) []string {
-	sections, has := requiredSectionsByKind[k]
-	if !has {
+	sections := entity.RequiredSections(k)
+	if len(sections) == 0 {
 		return nil
 	}
 	stripped := stripHTMLComments(body)
@@ -182,11 +167,11 @@ func entityBodyEmpty(t *tree.Tree) []Finding {
 		}
 
 		// Top-level body sections.
-		// coverage:ignore-on-miss — `requiredSectionsByKind` covers
-		// every top-level entity kind; the `has=false` arm only fires
+		// coverage:ignore-on-miss — `entity.RequiredSections` covers
+		// every top-level entity kind; the empty arm only fires
 		// for synthetic/unknown Kind values that the tree loader does
 		// not produce. Documented unreachable in production.
-		if _, has := requiredSectionsByKind[e.Kind]; has {
+		if len(entity.RequiredSections(e.Kind)) > 0 {
 			// G-0326: born-complete kinds (gap/decision/adr/contract)
 			// have no draft phase — the entity is live and referenceable
 			// from the create commit, so an empty load-bearing section

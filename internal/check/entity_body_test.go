@@ -1541,7 +1541,7 @@ acs:
 // missing entirely (NOT treated as empty — matches entityBodyEmpty's
 // long-standing stance, so a body using a non-standard heading shape
 // isn't double-penalized here), an HTML-comment-only placeholder
-// (empty), and the has=false branch for a kind carrying no
+// (empty), and the empty-set branch for a kind carrying no
 // required-sections entry (only reachable directly against the
 // exported function — every real entity.Kind has an entry).
 func TestEmptyRequiredSections(t *testing.T) {
@@ -1607,7 +1607,7 @@ func TestEmptyRequiredSections(t *testing.T) {
 			want: nil,
 		},
 		{
-			name: "kind with no required-sections entry returns nil (has=false branch)",
+			name: "kind with no required-sections entry returns nil (empty-set branch)",
 			kind: entity.Kind("bogus-unknown-kind"),
 			body: []byte("## Anything\n\n"),
 			want: nil,
