@@ -205,6 +205,19 @@ slugified and in canonical order; it was naming `goal/acceptance_criteria` for
 milestone while the set carries `Approach` · commit da7d134f9 · tests all green,
 0 surviving mutants
 
+### AC-4 — Approach is retired from the table and the doc surfaces follow
+
+`Approach` left the owned set; the `aiwf-add` skill's required-sections table and
+its milestone prose, the `aiwf-show` body-key table, the root help banner, and the
+`entity-body-empty` rule's doc comment all followed — the last by dropping its
+prose copy rather than updating it. Tests pin both skill tables against the owned
+set, and the scaffold's rendered bytes are asserted per kind, which is the axis a
+case-only or whitespace-only edit had been passing through · commit 4cdbdaff6 ·
+tests all green; five probes, all caught, including those two
+
+The check's own fixtures used `## Approach` as their exemplar empty milestone
+section and now use `## Goal`. The property each pins is unchanged.
+
 ## Decisions made during implementation
 
 ## Validation
