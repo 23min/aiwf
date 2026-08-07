@@ -11,7 +11,7 @@ produced.
 
 ## Context
 
-Six surfaces state the per-kind body section set. Measured 2026-08-06/07, for milestone:
+Eight surfaces state the per-kind body section set. Measured 2026-08-06/07, for milestone:
 
 | surface | says |
 |---|---|
@@ -21,12 +21,18 @@ Six surfaces state the per-kind body section set. Measured 2026-08-06/07, for mi
 | the `show --format=json` body map | `goal`, `acceptance_criteria` |
 | the root command's help text describing that map | `goal/acceptance_criteria` |
 | the `aiwf-show` skill's body-key table | `goal`, `approach`, `acceptance_criteria`, +5 |
+| the `aiwf-add` skill's required-body-sections table, and its per-kind prose | Goal, Approach, Acceptance criteria |
+| the `entity-body-empty` rule's package doc comment | Goal, Approach, Acceptance criteria |
 
-Four of the six omit `Approach`; of the two that name it, one is a skill doc and the
-other is the rule that never fires. That skill's table is also wrong about a key it
-does not merely omit — it gives gap's section as `whats_missing`, where the slug
-`SectionSlug` derives is `what_s_missing`, so a reader following it looks up a key no
-envelope carries.
+Four of the eight omit `Approach`. Of the four that name it, two are shipped skill
+docs, one is a doc comment, and one is the rule that never fires on its absence — so
+the section a consumer's assistant is told to write is the one the normative design
+doc and the prose template both leave out.
+
+The `aiwf-show` skill is wrong about a key it does not merely omit: it gives gap's
+section as `whats_missing`, where the slug `SectionSlug` derives is `what_s_missing`,
+so a reader following it looks up a key no envelope carries.
+
 `EmptyRequiredSections` reports only a section that is present and empty; a heading
 absent outright is skipped, a stance its own doc comment takes deliberately. The map
 named as the requirement therefore enforces non-emptiness of whatever happens to be
@@ -91,7 +97,8 @@ Absorbs G-0482, G-0479 and G-0541.
       checked against it.
 - [ ] A milestone body created by `aiwf add` and left unedited produces no
       `entity-body-empty` finding attributable to a section the template never wrote.
-- [ ] An entity body missing a required section produces a finding naming that section.
+- [ ] The scaffold's rendered bytes are asserted per kind, so a display-form edit to a
+      section name cannot pass every suite.
 - [ ] An epic drafted from the prose template carries `out_of_scope` in
       `aiwf show --format=json`.
 - [ ] Every kind resolves through the body-scaffold route the always-on guidance names.
