@@ -18,16 +18,26 @@ from a stated one. The same row shape is produced either way.
 
 ## Why it matters
 
-Two consequences, one for people and one for machines.
+`StatusFinding` cannot carry a severity that means anything. Status routes
+error-severity findings into its health counts and appends only warnings to the
+rows, so every row is a warning by construction; a `severity` field would be a
+stored constant restating what the row's own container already determines. It
+should be declined rather than added.
 
-For an operator, a warning row that says a reference "resolves to no entity in
-this working tree" reads identically whether the surface established that or
-merely could not check. The subcode is what carries the difference, and status
-drops it.
+The subcode is the real omission, and it is smaller than this gap first claimed.
+The operator-facing argument does not hold: a ref-less surface rewrites the
+finding's *message* along with its subcode, so status renders "resolves to no
+entity in this working tree; the cross-branch view was not built, so it may
+exist on an unmerged branch" where the full check states the stronger verdict.
+The declined judgment is legible in prose today, and the ambiguous row this gap
+describes does not arise.
 
-For any tool comparing surfaces, status is structurally incomparable: its rows
-cannot be matched against the findings envelope the check surfaces emit. M-0300's
-read-path agreement property has to fall back to comparing status on its blocking
-count alone, which is sound in one direction only and rests on a conjunction the
-harness does not own. Carrying subcode and severity on `StatusFinding` would let
-status be compared claim-for-claim like every other verdict surface.
+What survives is machine legibility: a row carrying `code`, `entity_id`, `path`
+and `message` cannot be matched against the findings envelope every other
+surface emits, so status is the one verdict surface that cannot be compared
+claim-for-claim. The named consumer for that was a read-path agreement property
+in an epic since cancelled, so nothing needs it today.
+
+Disposition: carry `Subcode` when someone next touches this struct — roughly ten
+lines and a test — and decline `Severity`. If no comparator materialises, close
+this rather than build for it.
