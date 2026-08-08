@@ -1,7 +1,7 @@
 ---
 id: M-0304
 title: Classify every catalog scenario against the named-scenario rule
-status: draft
+status: cancelled
 parent: E-0080
 tdd: required
 acs:
