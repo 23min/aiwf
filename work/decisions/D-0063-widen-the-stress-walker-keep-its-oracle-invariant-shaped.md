@@ -44,10 +44,19 @@ all. For references it would mean reimplementing ADR-0030's tier rules inside
 the harness: a second implementation of the kernel, drifting against the first,
 and wrong in a way no test catches because it *is* the test.
 
-**An invariant oracle needs no model.** It asserts properties that must hold in
-every state without knowing what the state should be, so it costs nothing per
-new axis of mutation. That asymmetry is the whole decision: widening pays off
-precisely to the extent the oracle is invariant-shaped.
+**An invariant oracle needs no model of the verdict.** It asserts properties
+that must hold in every state without knowing what the state should be, so no
+new axis of mutation obliges it to learn the right answer for that axis. That
+asymmetry is why widening pays off to the extent the oracle is invariant-shaped.
+
+What the shape does not buy is a free comparison. An agreement property still
+needs a model of what the two sides are compared *on* — which subjects each
+surface claims, which refs a tree can be stripped of — and that model is both
+where the cost sits and where such a property fails. It fails silently: a
+comparison narrowed to where the two sides already agree passes on every tree,
+including the ones carrying the defect it was written for. So each agreement
+property is costed as its own piece of work and demonstrated failing against a
+real violating state, never assumed cheap because the shape is invariant.
 
 The invariants that reach this defect are agreement invariants, and none of them
 needs to know the correct verdict:
