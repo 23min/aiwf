@@ -2,7 +2,7 @@
 id: G-0569
 title: The AC tdd_phase FSM has no vocabulary for a second cycle after rework
 status: open
-priority: low
+priority: medium
 discovered_in: M-0300
 ---
 ## What's missing
