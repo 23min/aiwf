@@ -1,7 +1,7 @@
 ---
 id: G-0570
 title: A policies test writes an executable with a bare os.WriteFile (ETXTBSY)
-status: open
+status: wontfix
 priority: low
 discovered_in: M-0300
 ---
