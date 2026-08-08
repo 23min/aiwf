@@ -16,6 +16,9 @@ acs:
     - id: AC-3
       title: Templates and the add scaffold agree on whether a body carries a title H1
       status: open
+    - id: AC-4
+      title: The normative body-sections table states what the add scaffold writes
+      status: open
 ---
 
 ## Goal
@@ -82,6 +85,8 @@ the shipped template bytes, not over a hand-written fixture that happens to be f
 The shipped prose templates and `entity.BodyTemplate` give the same answer on whether
 an entity body opens with a title H1. A test pins the agreed answer and fails if
 either surface changes alone. The criterion is the agreement, not which answer wins.
+
+### AC-4 — The normative body-sections table states what the add scaffold writes
 
 ## Constraints
 
