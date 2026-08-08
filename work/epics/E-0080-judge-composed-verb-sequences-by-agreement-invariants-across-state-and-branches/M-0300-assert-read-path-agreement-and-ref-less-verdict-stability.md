@@ -28,16 +28,17 @@ does not need.
 ## Context
 
 The `verb-sequence` walker in `cmd/stresstest` composes real multi-step verb
-chains and re-checks after every step, which is the right shape. Its oracle
-asserts only that `aiwf check` never regresses, and monotonicity cannot catch a
-finding carrying the wrong severity for its state.
+chains and re-checks after every step, which is the right shape. Its oracle runs
+`aiwf check` alone and judges the findings against a curated baseline, so a
+disagreement between two read paths on the same bytes never has both verdicts in
+one run to compare.
 
 D-0063 settles the direction: judge with properties that hold in every reachable
 state rather than with an expected end state the harness computes. This
 milestone builds that oracle seam and the two properties that need no branch
-machinery. It deliberately does not widen what a sequence may mutate — D-0063 is
-explicit that a wider state space under a monotonic oracle buys reachability
-without judgment, so the oracle comes first.
+machinery. It deliberately does not widen what a sequence may mutate — widening
+is orthogonal to the single-surface limit and does not reach this class on its
+own, so the oracle comes first.
 
 Two fixes landed after D-0063 was accepted and both shape what agreement means
 here. G-0558 gave a ref-less surface a way to say it did not build the
