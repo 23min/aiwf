@@ -16,6 +16,29 @@ section in this file.
 
 ## [Unreleased]
 
+### Changed — G-0482: one table owns the per-kind body sections, and `Approach` leaves the milestone set
+
+The sections each entity kind carries were stated by two independent Go literals
+plus prose in the root help banner and two shipped skills. They disagreed: for
+milestone the check named `Goal`, `Approach`, `Acceptance criteria` while the
+scaffold wrote `Goal`, `Acceptance criteria`. Nothing reported the disagreement,
+because `entity-body-empty` fires only on a section that is present and empty and
+skips one that is absent.
+
+`entity.RequiredSections` is now the single definition. `aiwf add`'s scaffold
+renders from it, the `entity-body-empty` rule reads it, and tests check the help
+banner and the `aiwf-add` / `aiwf-show` skill tables against it.
+
+`Approach` is retired from the milestone set. `aiwf add milestone` and
+`aiwf template milestone` now scaffold `## Goal` and `## Acceptance criteria`. An
+existing body that carries `## Approach` is unaffected and produces no finding —
+the rule looks up the names the set holds and never enumerates the rest. The
+`aiwf-show` skill's gap row is also corrected to `what_s_missing`, the slug the
+kernel actually derives; `whats_missing` matched no envelope key.
+
+Membership remains unenforced on every path — a body that omits a required section
+is reported by nothing. That is unchanged by this work and tracked as G-0571.
+
 ### Changed — G-0556: a cross-branch reference is classified by whether its branch is published
 
 A reference to an id that lives on another branch was non-blocking whichever

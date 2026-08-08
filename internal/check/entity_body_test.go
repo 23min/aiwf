@@ -144,10 +144,6 @@ func TestEntityBodyEmpty_CancelledACSkipped(t *testing.T) {
 
 Goal prose.
 
-## Approach
-
-Approach prose.
-
 ## Acceptance criteria
 
 Each AC pins one observable behavior.
@@ -215,10 +211,6 @@ func TestEntityBodyEmpty_ACWithoutBodyHeadingSkipped(t *testing.T) {
 	body := `## Goal
 
 Goal prose.
-
-## Approach
-
-Approach prose.
 
 ## Acceptance criteria
 
@@ -331,10 +323,6 @@ func TestEntityBodyEmpty_ScanACBodies_H2Resets(t *testing.T) {
 
 Goal prose.
 
-## Approach
-
-Approach prose.
-
 ## Acceptance criteria
 
 Each AC pins one observable behavior.
@@ -413,10 +401,6 @@ func TestEntityBodyEmpty_ScanACBodies_H3NonACResets(t *testing.T) {
 	body := `## Goal
 
 Goal prose.
-
-## Approach
-
-Approach prose.
 
 ## Acceptance criteria
 
@@ -939,10 +923,6 @@ func TestEntityBodyEmpty_DraftMilestoneACsSkipped(t *testing.T) {
 
 Goal prose.
 
-## Approach
-
-Approach prose.
-
 ## Acceptance criteria
 
 Each AC pins one observable behavior.
@@ -1179,17 +1159,13 @@ func writeMilestoneFixtureWithStatus(emptySection string, status entity.Status) 
 
 // writeACFixture builds a milestone whose AC-1 body is empty
 // (heading present, no prose under it) and AC-2 body has prose.
-// All three top-level milestone sections have prose.
+// Both top-level milestone sections have prose.
 func writeACFixture() func(root string) ([]*entity.Entity, error) {
 	return func(root string) ([]*entity.Entity, error) {
 		path := "work/epics/E-01-foo/M-001-bar.md"
 		body := `## Goal
 
 Goal prose.
-
-## Approach
-
-Approach prose.
 
 ## Acceptance criteria
 
@@ -1322,7 +1298,7 @@ func writeFullyPopulatedFixture(root string) ([]*entity.Entity, error) {
 		{
 			path: "work/epics/E-01-foo/M-001-bar.md",
 			fm:   "---\nid: M-001\ntitle: Bar\nstatus: in_progress\nparent: E-01\ntdd: none\n---\n\n",
-			body: "## Goal\n\nGoal.\n\n## Approach\n\nApproach.\n\n## Acceptance criteria\n\nEach AC pins one observable behavior.\n",
+			body: "## Goal\n\nGoal.\n\n## Acceptance criteria\n\nEach AC pins one observable behavior.\n",
 			ent:  &entity.Entity{ID: "M-0001", Kind: entity.KindMilestone, Title: "Bar", Status: "in_progress", Parent: "E-0001", TDD: "none", Path: "work/epics/E-01-foo/M-001-bar.md"},
 		},
 		{
@@ -1419,7 +1395,6 @@ func writeMilestoneWithACBody(acBody string) func(root string) ([]*entity.Entity
 	return func(root string) ([]*entity.Entity, error) {
 		path := "work/epics/E-01-foo/M-001-bar.md"
 		body := "## Goal\n\nGoal prose.\n\n" +
-			"## Approach\n\nApproach prose.\n\n" +
 			"## Acceptance criteria\n\nEach AC pins one observable behavior.\n\n" +
 			"### AC-1 — Filled AC\n\n" + acBody + "\n"
 		fm := `---
@@ -1454,7 +1429,6 @@ func writeMetDoneACWithEmptyBody() func(root string) ([]*entity.Entity, error) {
 	return func(root string) ([]*entity.Entity, error) {
 		path := "work/epics/E-01-foo/M-001-bar.md"
 		body := "## Goal\n\nGoal prose.\n\n" +
-			"## Approach\n\nApproach prose.\n\n" +
 			"## Acceptance criteria\n\nEach AC pins one observable behavior.\n\n" +
 			"### AC-1 — Historical AC\n\n"
 		fm := `---
@@ -1495,7 +1469,6 @@ func writeMetRedACWithEmptyBody() func(root string) ([]*entity.Entity, error) {
 	return func(root string) ([]*entity.Entity, error) {
 		path := "work/epics/E-01-foo/M-001-bar.md"
 		body := "## Goal\n\nGoal prose.\n\n" +
-			"## Approach\n\nApproach prose.\n\n" +
 			"## Acceptance criteria\n\nEach AC pins one observable behavior.\n\n" +
 			"### AC-1 — Audit-tripping AC\n\n"
 		fm := `---
@@ -1597,7 +1570,7 @@ func TestEmptyRequiredSections(t *testing.T) {
 		{
 			name: "milestone acceptance-criteria section satisfied by AC sub-heading, not top-level prose",
 			kind: entity.KindMilestone,
-			body: []byte("## Goal\n\nX.\n\n## Approach\n\nX.\n\n## Acceptance criteria\n\n### AC-1 — X\n"),
+			body: []byte("## Goal\n\nX.\n\n## Acceptance criteria\n\n### AC-1 — X\n"),
 			want: nil,
 		},
 		{

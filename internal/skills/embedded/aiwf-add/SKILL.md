@@ -215,7 +215,7 @@ in `cmd/aiwf/add_cmd_test.go`.
 
 **Epics.** `## Goal` describes the problem the epic solves and what success looks like — one paragraph, no longer than four sentences. `## Scope` enumerates what's in (one bullet per major piece of work, often a milestone). `## Out of scope` enumerates what's deliberately not — usually the most-tempting adjacent work, with a one-line "why not yet."
 
-**Milestones.** `## Goal` describes the chunk of value this milestone ships. `## Acceptance criteria` is the heading container; the actual ACs land as `### AC-N — <title>` sub-elements with their own bodies. The rich template adds sections for method and prior state — an implementation sketch belongs there, not in a section the kernel requires.
+**Milestones.** `## Goal` describes the chunk of value this milestone ships. `## Acceptance criteria` is the heading container; the actual ACs land as `### AC-N — <title>` sub-elements with their own bodies. The rich template adds `## Context` for what exists before the work and `## Design notes` for decisions already locked — reach for those when the milestone needs them.
 
 **Gaps.** `## What's missing` is the **concrete defect** — what specifically doesn't exist or doesn't work; one paragraph naming the symptom and the affected surface. `## Why it matters` is the consequence — what fails, who notices, what bug class this enables; one paragraph naming the operational impact.
 

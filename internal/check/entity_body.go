@@ -8,17 +8,15 @@ package check
 // between its heading and the next heading (or EOF).
 //
 // The per-kind sets live in entity.RequiredSections, which this rule and
-// the `aiwf add` scaffold both read. They are deliberately not restated
-// here: a prose copy beside the code is what let the scaffold and this
-// rule name different sections for the same kind. Run `aiwf template
-// <kind>` to see a kind's set. Sub-element ACs are handled separately,
-// since their heading level is `###` and their parent is a milestone
-// rather than a standalone file.
+// the `aiwf add` scaffold both read; a prose copy beside the code is what
+// lets the two name different sections for the same kind, so there isn't
+// one. Run `aiwf template <kind>` to see a kind's set. Sub-element ACs are
+// handled separately, since their heading level is `###` and their parent
+// is a milestone rather than a standalone file.
 //
-// Membership is not enforced anywhere. The scaffold writes every section
-// the set names, so an entity created through `aiwf add` carries them all
-// and this rule then polices their emptiness; a body that bypasses the
-// scaffold and omits a heading outright is skipped rather than reported.
+// This rule polices emptiness only. A body that omits a required heading
+// outright is skipped, and no other surface reports it either — nothing
+// enforces membership (G-0571).
 //
 // Definition of empty: between the section heading and the next
 // heading (or EOF), no non-whitespace content other than headings
@@ -168,40 +166,35 @@ func entityBodyEmpty(t *tree.Tree) []Finding {
 			continue
 		}
 
-		// Top-level body sections.
-		// coverage:ignore-on-miss — `entity.RequiredSections` covers
-		// every top-level entity kind; the empty arm only fires
-		// for synthetic/unknown Kind values that the tree loader does
-		// not produce. Documented unreachable in production.
-		if len(entity.RequiredSections(e.Kind)) > 0 {
-			// G-0326: born-complete kinds (gap/decision/adr/contract)
-			// have no draft phase — the entity is live and referenceable
-			// from the create commit, so an empty load-bearing section
-			// is an error unconditionally, not gated behind aiwf.yaml:
-			// tdd.strict (ApplyTDDStrict still re-applies SeverityError
-			// for these when strict is set, a harmless no-op). Epic and
-			// milestone keep the warning default that ApplyTDDStrict
-			// escalates.
-			severity := SeverityWarning
-			if entity.IsBornComplete(e.Kind) {
-				severity = SeverityError
-			}
-			// EmptyRequiredSections is the single definition of "empty"
-			// this rule and the `aiwf add` verb-time gate both consult;
-			// it re-derives `stripped` internally (idempotent, cheap on
-			// entity-sized bodies) so both callers pass raw body bytes.
-			for _, name := range EmptyRequiredSections(e.Kind, body) {
-				findings = append(findings, Finding{
-					Code:     CodeEntityBodyEmpty,
-					Severity: severity,
-					Subcode:  string(e.Kind),
-					Message: fmt.Sprintf("%s body section `## %s` is empty",
-						e.ID, name),
-					Path:     e.Path,
-					EntityID: e.ID,
-					Field:    "body",
-				})
-			}
+		// Top-level body sections. A kind carrying no set yields no
+		// names here, so it needs no guard of its own.
+		//
+		// G-0326: born-complete kinds (gap/decision/adr/contract) have no
+		// draft phase — the entity is live and referenceable from the
+		// create commit, so an empty load-bearing section is an error
+		// unconditionally, not gated behind aiwf.yaml: tdd.strict
+		// (ApplyTDDStrict still re-applies SeverityError for these when
+		// strict is set, a harmless no-op). Epic and milestone keep the
+		// warning default that ApplyTDDStrict escalates.
+		severity := SeverityWarning
+		if entity.IsBornComplete(e.Kind) {
+			severity = SeverityError
+		}
+		// EmptyRequiredSections is the single definition of "empty" this
+		// rule and the `aiwf add` verb-time gate both consult; it
+		// re-derives `stripped` internally (idempotent, cheap on
+		// entity-sized bodies) so both callers pass raw body bytes.
+		for _, name := range EmptyRequiredSections(e.Kind, body) {
+			findings = append(findings, Finding{
+				Code:     CodeEntityBodyEmpty,
+				Severity: severity,
+				Subcode:  string(e.Kind),
+				Message: fmt.Sprintf("%s body section `## %s` is empty",
+					e.ID, name),
+				Path:     e.Path,
+				EntityID: e.ID,
+				Field:    "body",
+			})
 		}
 
 		// AC sub-element bodies (under a milestone parent).

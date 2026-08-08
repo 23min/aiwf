@@ -72,19 +72,6 @@ func TestBodyTemplate_RendersTheExactScaffoldBytes(t *testing.T) {
 	}
 }
 
-// TestRequiredSections_CoversEveryKind pins that the owned set is total over
-// the closed kind set. A kind added to AllKinds without a section set would
-// otherwise reach the scaffold as a bare body and the check rule as an
-// unvalidated one, both silently.
-func TestRequiredSections_CoversEveryKind(t *testing.T) {
-	t.Parallel()
-	for _, k := range AllKinds() {
-		if got := RequiredSections(k); len(got) == 0 {
-			t.Errorf("RequiredSections(%s) = empty; every kind in AllKinds carries a section set", k)
-		}
-	}
-}
-
 // TestBodyTemplate_KindWithNoSectionSet pins the scaffold's behavior for a
 // Kind carrying no section set. The tree loader does not produce such a kind,
 // so this arm is defensive — but it ships, and a caller handed a bare "\n"

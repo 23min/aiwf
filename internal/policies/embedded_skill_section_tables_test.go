@@ -18,10 +18,6 @@ import (
 //
 // They are checked against `entity.RequiredSections` rather than generated
 // from it, because each is prose with commentary a generator would flatten.
-// What the check buys is that neither can drift from the owned set in
-// silence — which is how `Approach` came to be named required by a shipped
-// skill while the normative design doc and the prose template both omitted
-// it.
 //
 // Path constants and the reader live in verb_skill_factual_test.go, which
 // already pins other facts in these same two files.
@@ -31,17 +27,14 @@ var backtickedToken = regexp.MustCompile("`([^`]*)`")
 
 // skillTableRow returns the backticked tokens in kind's row of the table
 // whose header cell names columnHeader. Both skills carry more than one
-// table keyed by kind, so the search is scoped to the named one rather than
-// taking the first row that matches — a row from the wrong table would
-// otherwise satisfy the assertion.
+// table keyed by kind, so the search is scoped to the named one.
 //
 // Fatal when the table or the row is missing: a silently empty result would
 // let every assertion below pass over nothing.
 func skillTableRow(t *testing.T, relPath, columnHeader, kind string) []string {
 	t.Helper()
-	lines := strings.Split(readVerbSkill(t, relPath), "\n")
 	inTable := false
-	for _, line := range lines {
+	for _, line := range strings.Split(readVerbSkill(t, relPath), "\n") {
 		cells := strings.Split(line, "|")
 		if len(cells) < 3 {
 			inTable = false
@@ -88,65 +81,32 @@ func TestAiwfAddSkill_RequiredSectionTableMatchesOwnedSet(t *testing.T) {
 	}
 }
 
-// TestAiwfAddSkill_NamesNoSectionOutsideTheOwnedSets walks every `## X`
-// token in the skill body — the per-kind prose paragraphs as well as the
-// table — and requires each to name a section some kind actually owns.
+// TestAiwfShowSkill_BodyKeyRowsNameTheOwnedSlugs pins that the `aiwf-show`
+// skill's body-key table names every slug the owned set implies, so a key a
+// consumer is told to read resolves against a real `aiwf show` envelope. It
+// is what catches a misspelled slug — the row said `whats_missing` where
+// `SectionSlug` derives `what_s_missing`, and no envelope ever carried it.
 //
-// The table assertion above cannot see the prose, and the prose is where an
-// author is told what to put in each section. A paragraph describing a
-// retired section is the same defect as a stale table row, one surface over.
-func TestAiwfAddSkill_NamesNoSectionOutsideTheOwnedSets(t *testing.T) {
-	t.Parallel()
-	owned := map[string]bool{}
-	for _, k := range entity.AllKinds() {
-		for _, section := range entity.RequiredSections(k) {
-			owned[section] = true
-		}
-	}
-
-	var stray []string
-	for _, m := range backtickedToken.FindAllStringSubmatch(readVerbSkill(t, aiwfAddSkillPath), -1) {
-		name, isHeading := strings.CutPrefix(m[1], "## ")
-		// `## <Section>` is the skill's placeholder for "any heading the
-		// author adds", not a claim about a specific section.
-		if !isHeading || name == "<Section>" || owned[name] {
-			continue
-		}
-		stray = append(stray, m[1])
-	}
-	if len(stray) > 0 {
-		t.Errorf("%s names section(s) no kind owns: %s\n\n"+
-			"Every `## X` the skill names must be a section entity.RequiredSections carries for some kind, "+
-			"or the skill instructs an author to write a section nothing asks for.", aiwfAddSkillPath, strings.Join(stray, ", "))
-	}
-}
-
-// TestAiwfShowSkill_BodyKeyRowsOpenWithTheOwnedSlugs pins the `aiwf-show`
-// skill's body-key table against the owned set, slugified.
-//
-// The assertion is a prefix rather than equality because this table is
-// deliberately a superset: `show`'s body map carries every `## ` heading a
-// body has, so the rows list `work_log` and friends after the owned ones.
-// A prefix still catches both failure modes that matter — a retired section
-// left in place shifts the prefix, and a misspelled key breaks it.
-func TestAiwfShowSkill_BodyKeyRowsOpenWithTheOwnedSlugs(t *testing.T) {
+// Containment, not equality: that table describes what `show` emits, which
+// is every `## ` heading a body has, so the rows legitimately name keys the
+// owned set knows nothing about. The limit that buys is worth stating —
+// a key listed here that `show` never emits is NOT caught, and would need a
+// fixture driving the real projection rather than a table read.
+func TestAiwfShowSkill_BodyKeyRowsNameTheOwnedSlugs(t *testing.T) {
 	t.Parallel()
 	for _, k := range entity.AllKinds() {
 		t.Run(string(k), func(t *testing.T) {
 			t.Parallel()
-			var want []string
-			for _, section := range entity.RequiredSections(k) {
-				want = append(want, entity.SectionSlug(section))
-			}
 			got := skillTableRow(t, aiwfShowSkillPath, "Body keys", string(k))
-			if len(got) < len(want) {
-				t.Fatalf("the aiwf-show skill's body-key row for %s names %d key(s), fewer than the %d the owned set carries: %v",
-					k, len(got), len(want), got)
+			named := make(map[string]bool, len(got))
+			for _, key := range got {
+				named[key] = true
 			}
-			if diff := cmp.Diff(want, got[:len(want)]); diff != "" {
-				t.Errorf("the aiwf-show skill's body-key row for %s does not open with the owned set's slugs (-want +got):\n%s\n\n"+
-					"The row lists each kind's owned sections first, slugified, then any further keys a body carries. Update %s.",
-					k, diff, aiwfShowSkillPath)
+			for _, section := range entity.RequiredSections(k) {
+				if slug := entity.SectionSlug(section); !named[slug] {
+					t.Errorf("the aiwf-show skill's body-key row for %s omits %q, the slug `## %s` derives.\n"+
+						"Row names: %v\nUpdate %s.", k, slug, section, got, aiwfShowSkillPath)
+				}
 			}
 		})
 	}

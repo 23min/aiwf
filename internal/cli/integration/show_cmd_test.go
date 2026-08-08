@@ -360,7 +360,7 @@ func TestRun_ShowMilestoneAggregatesACsHistoryFindings(t *testing.T) {
 		t.Fatal(err)
 	}
 	mBody := filepath.Join(bodyDir, "ms-body.md")
-	if err := os.WriteFile(mBody, []byte("## Goal\n\nWarn loudly.\n\n## Approach\n\nIterate on each AC.\n\n## Acceptance criteria\n\nEach AC pins one observable behavior.\n"), 0o644); err != nil {
+	if err := os.WriteFile(mBody, []byte("## Goal\n\nWarn loudly.\n\n## Acceptance criteria\n\nEach AC pins one observable behavior.\n"), 0o644); err != nil {
 		t.Fatal(err)
 	}
 	acBody1 := filepath.Join(bodyDir, "ac1-body.md")

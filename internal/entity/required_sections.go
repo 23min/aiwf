@@ -22,6 +22,11 @@ var requiredSectionsByKind = map[Kind][]string{
 // RequiredSections returns k's load-bearing top-level body sections in
 // canonical render order, or nil for a kind carrying no set.
 //
+// "Required" names what the scaffold writes, not a guarantee anything
+// verifies. BodyTemplate renders these into a new entity; the
+// entity-body-empty rule then reports one that is present and empty. No
+// surface reports a body that omits a heading outright (G-0571).
+//
 // The result is a copy. The table is package-level state read by the add
 // scaffold and by every check run, so handing out the backing array would
 // let one caller rewrite what all the others see.
