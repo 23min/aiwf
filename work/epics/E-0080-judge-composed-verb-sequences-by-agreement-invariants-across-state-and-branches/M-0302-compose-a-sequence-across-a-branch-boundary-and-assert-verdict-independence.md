@@ -12,7 +12,7 @@ acs:
       status: cancelled
     - id: AC-2
       title: A sequence's verdict does not depend on which branch ran which step
-      status: open
+      status: cancelled
     - id: AC-3
       title: The scenario runs untagged and its per-push cost is recorded
       status: open
