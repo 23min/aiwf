@@ -1,7 +1,7 @@
 ---
 id: M-0302
 title: Compose a sequence across a branch boundary and assert verdict independence
-status: draft
+status: cancelled
 parent: E-0080
 depends_on:
     - M-0300
