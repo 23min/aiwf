@@ -1,7 +1,7 @@
 ---
 id: M-0305
 title: Single-source the per-kind section set and retire Approach
-status: in_progress
+status: done
 parent: E-0081
 tdd: required
 acs:
