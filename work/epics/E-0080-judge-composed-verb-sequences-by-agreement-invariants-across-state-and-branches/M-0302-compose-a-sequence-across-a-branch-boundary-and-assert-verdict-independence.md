@@ -15,7 +15,7 @@ acs:
       status: cancelled
     - id: AC-3
       title: The scenario runs untagged and its per-push cost is recorded
-      status: open
+      status: cancelled
 ---
 ## Goal
 
