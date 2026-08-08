@@ -32,9 +32,13 @@ in three specific ways. It moves **one axis of state** — `status`, the six FSM
 `depends_on` edges, or bodies. It stays on **one branch**, so no reference is
 ever evaluated in a context different from the one that authored it; every
 two-branch scenario in the catalog is about contention, not about a reference
-authored on one branch and judged on another. And its oracle is **monotonic** —
-it asserts `aiwf check` never regresses, which by construction cannot catch a
-finding carrying the wrong severity for its state.
+authored on one branch and judged on another. And its oracle reads **one
+surface** — it runs `aiwf check` alone and judges the findings against a curated
+baseline, flagging any error-severity finding and any warning outside it. That
+is an absolute allowlist applied to each state on its own terms, so it does
+judge what a wider walk reaches; what it cannot do is compare two read paths, so
+a disagreement between `aiwf check` and `aiwf check --fast` on the same bytes is
+invisible to it by construction.
 
 G-0558 is the first measured instance of what that misses: `aiwf check` and
 `aiwf check --fast` render opposite verdicts on the same bytes in the same
