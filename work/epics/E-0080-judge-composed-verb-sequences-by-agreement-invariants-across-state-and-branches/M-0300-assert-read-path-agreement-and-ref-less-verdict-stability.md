@@ -7,7 +7,7 @@ tdd: required
 acs:
     - id: AC-1
       title: No two read paths contradict each other on the same bytes
-      status: open
+      status: cancelled
       tdd_phase: red
     - id: AC-2
       title: A verdict does not depend on refs a fresh clone would not have
