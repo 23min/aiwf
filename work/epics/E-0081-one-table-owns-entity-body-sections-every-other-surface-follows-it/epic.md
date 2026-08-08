@@ -6,8 +6,7 @@ status: active
 ## Goal
 
 Give "which body sections an entity carries" a single owner, so the surfaces that
-state it today cannot disagree — and prune from it the entry no surface ever
-produced.
+state it today cannot disagree.
 
 ## Context
 
@@ -24,23 +23,16 @@ Eight surfaces state the per-kind body section set. Measured 2026-08-06/07, for 
 | the `aiwf-add` skill's required-body-sections table, and its per-kind prose | Goal, Approach, Acceptance criteria |
 | the `entity-body-empty` rule's package doc comment | Goal, Approach, Acceptance criteria |
 
-Four of the eight omit `Approach`. Of the four that name it, two are shipped skill
-docs, one is a doc comment, and one is the rule that never fires on its absence — so
-the section a consumer's assistant is told to write is the one the normative design
-doc and the prose template both leave out.
+They disagree in both directions: four omit `Approach` and four name it, and one is
+wrong about a key it does name — the `aiwf-show` skill gives gap's section as
+`whats_missing`, where the slug `SectionSlug` derives is `what_s_missing`, so a
+reader following it looks up a key no envelope carries.
 
-The `aiwf-show` skill is wrong about a key it does not merely omit: it gives gap's
-section as `whats_missing`, where the slug `SectionSlug` derives is `what_s_missing`,
-so a reader following it looks up a key no envelope carries.
-
-`EmptyRequiredSections` reports only a section that is present and empty; a heading
-absent outright is skipped, a stance its own doc comment takes deliberately. The map
-named as the requirement therefore enforces non-emptiness of whatever happens to be
-present, and nothing enforces membership at all.
-
-Verified end to end in a scratch consumer repo: `aiwf add milestone` writes a body
-missing a section the kernel declares required, and `aiwf check` reports nothing on
-that axis.
+The disagreements survive because nothing can see them. `EmptyRequiredSections`
+reports only a section that is present and empty; a heading absent outright is
+skipped, a stance its own doc comment takes deliberately. So the map named as the
+requirement enforces non-emptiness of whatever happens to be present, and nothing
+enforces membership at all — the hole G-0571 now carries.
 
 A second instance sits in a different kind. The prose epic template places
 out-of-scope one heading level below the flat `## Out of scope` that the check, the
@@ -69,6 +61,11 @@ Absorbs G-0482, G-0479 and G-0541.
 
 ## Out of scope
 
+- Enforcing membership. This epic makes the surfaces agree on what the set *is*; it
+  does not make any of them refuse a body that omits a section. Tracked as G-0571,
+  which carries the measurement of what closing it tree-wide would cost, and the
+  narrower create-time option worth weighing on its own evidence rather than as a
+  rider here.
 - Whether the four milestone-spec sections that duplicate structured data should exist
   at all (G-0530). That asks whether a section is worth carrying, where this epic asks
   only that the surfaces agree; one of the four is load-bearing for the wrap ritual's
@@ -123,7 +120,9 @@ Absorbs G-0482, G-0479 and G-0541.
 
 ## References
 
-- G-0482 — `Approach` exists on no shipped surface; argues for a detector over point fixes
+- G-0482 — the milestone template and the required set disagreed about `Approach`;
+  argues for a detector over point fixes
+- G-0571 — nothing enforces that a body carries its kind's required sections
 - G-0479 — epic template nests out-of-scope below the level three surfaces require
 - G-0541 — the guidance's template path resolves for two of six kinds
 - G-0530 — the adjacent, out-of-scope question of section membership
