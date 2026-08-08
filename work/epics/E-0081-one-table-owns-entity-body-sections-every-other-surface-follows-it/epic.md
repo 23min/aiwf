@@ -28,17 +28,17 @@ does not reach milestone at all:
 | `selfCheck*Body` (`internal/cli/doctor/selfcheck.go`) | born-complete kinds only — full bodies for adr, gap, decision, contract |
 | `bornCompleteFixtureBody` (`internal/cellcoverage/fixture.go`) | born-complete kinds only — the same four, again |
 
-They disagree in both directions: four omit `Approach` and four name it, and one is
-wrong about a key it does name — the `aiwf-show` skill gives gap's section as
-`whats_missing`, where the slug `SectionSlug` derives is `what_s_missing`, so a
-reader following it looks up a key no envelope carries.
+They disagree in both directions: the surfaces that reach milestone split over whether
+it carries `Approach`, with the rule that requires it outnumbered by those that never
+write it. One is wrong about a key it does name — the `aiwf-show` skill gives gap's
+section as `whats_missing`, where the slug `SectionSlug` derives is `what_s_missing`,
+so a reader following it looks up a key no envelope carries.
 
-The last three were found by review rather than by the original sweep, which is itself
+Some of these were found by review rather than by the original sweep, which is itself
 evidence for the epic: a surface nobody thought to look at is exactly the one that
-drifts. Two of them are Go literals rather than prose, and they fail in the worst
-direction — if a kind's set gains a section, they build entities missing it, and
-because nothing reports an absent heading the `aiwf doctor --self-check` that runs
-them passes anyway.
+drifts. The two Go literals fail in the worst direction — if a kind's set gains a
+section, they build entities missing it, and because nothing reports an absent heading
+the `aiwf doctor --self-check` that runs them passes anyway.
 
 The disagreements survive because nothing can see them. `EmptyRequiredSections`
 reports only a section that is present and empty; a heading absent outright is
@@ -56,8 +56,9 @@ scaffold does not write and that no epic in this tree carries.
 
 Separately, the always-on guidance instructs an assistant to fill a body from a
 per-kind template path that resolves for two of six kinds. Gap and contract have no
-such file and are born-complete, so `aiwf add` hard-refuses an empty body for exactly
-the two kinds with no scaffold to work from.
+such file at all. All four born-complete kinds refuse a bare scaffold at creation —
+its sections are empty, which is what the gate reads — so for gap and contract the
+instruction names a file that does not exist while the only other route is refused.
 
 Absorbs G-0482, G-0479 and G-0541.
 
