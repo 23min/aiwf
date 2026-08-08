@@ -25,7 +25,7 @@ acs:
 ## Goal
 
 Give the per-kind body-section set one definition that every other surface derives
-from or is checked against, and retire the one entry that no surface ever produced.
+from or is checked against.
 
 ## Context
 
@@ -42,14 +42,9 @@ whose heading is absent is skipped, a stance its own doc comment takes deliberat
 So the check polices emptiness, never membership — and membership is what the two
 literals disagreed about, which is why the drift ran for as long as it did.
 
-Membership is not left to nothing, though: `aiwf add` scaffolds every section the set
-names, so an entity created through the verb carries them all and the emptiness rule
-then has something to police. Absence arises only where a body bypasses the scaffold
-— `--body-file` at create time, or hand-authoring. That division is why this milestone
-repairs the definition rather than the rule.
-
-Measured in a scratch consumer repo: `aiwf add milestone` writes a body missing a
-section the kernel declares required, and `aiwf check` reports nothing on that axis.
+Nothing else enforces membership either — not the scaffold, which the born-complete
+kinds cannot use, and not `aiwf edit-body`, which consults nothing. That is a real
+hole and a separate one; it is tracked as G-0571 rather than closed here.
 
 ## Approach
 
@@ -58,33 +53,16 @@ The scaffold is the surface that must derive — a literal beside the table is w
 the two drift in the first place. The help text is checked rather than generated,
 since it is prose describing a projection rather than a copy of the set.
 
-The rule itself is left alone. Firing on an absent heading would raise 118 findings
-against the tree as it stands — 61 gaps and 57
-decisions, both born-complete kinds the rule scores at error severity — against
-entities nobody was worried about, to close a leak that only `--body-file` and
-hand-authoring open. The scaffold already supplies membership on every path that
-goes through the verb. Whether that remaining leak is worth a create-time gate is a
-question on its own evidence, not a rider on this one.
+The rule itself is left alone. Firing on an absent heading would indict live entities
+across the tree at a cost this milestone is not the place to impose; G-0571 carries
+the question and the measurement.
 
-Membership is decided last and on evidence. `Approach` entered the set by
-transcription rather than by decision: M-0066 introduced the rule and enumerated the
-load-bearing sections from its own body, which carried `Goal`, `Approach`,
-`Acceptance criteria`. G-0058, the gap that motivated the rule, asks only that AC
-prose not ship blank and never names the section at all.
-
-The surfaces that state the set disagree about it, so retiring it is a choice between
-them rather than the removal of something uncontested. `internal/skills/embedded/aiwf-add`
-names `Approach` required and describes it as the implementation sketch. Against that:
-`docs/design/design-decisions.md` is the normative statement of what a milestone body
-carries, predates the rule, and omits the section; the prose milestone template that
-the planning ritual actually fills has never carried it in any revision of its
-history; and that template's `Context`, `Design notes` and `Constraints` already hold
-what an implementation sketch would say. The disagreement resolves downward — the
-section leaves the set, and the `aiwf-add` skill follows.
-
-The section stays permitted, and milestones with something to say about method keep
-saying it; the bodies that already carry one are unaffected. Whether `Context` should
-take the vacated slot is a separate question, tracked as D-0065.
+The milestone set loses `Approach`. It reached the table from the body of the
+milestone that introduced the rule, never appeared in the prose template the planning
+ritual fills, and is absent from the normative statement of what a milestone body
+carries. Retiring it costs nothing measurable: the rule reads the names the set holds
+and never enumerates the rest, so the bodies already carrying the section keep it and
+produce no finding.
 
 ## Acceptance criteria
 
@@ -122,20 +100,20 @@ of the guarantee each carries — the scaffold writes the set, the check polices
 emptiness of what a body has. Nothing verifies membership, and the comments name
 that rather than leaving a reader to infer it from the word "required".
 
-Every remaining surface that states the set follows in the same change, and a test
-pins each against the owned definition so none can drift silently the way the help
-text did:
+Every remaining surface that states the set follows in the same change:
 
 - `internal/skills/embedded/aiwf-add` — a required-body-sections table and a prose
-  paragraph per kind. Both name `Approach`; both are shipped to consumer repos and
-  are what an authoring assistant reads, so leaving either would reproduce the drift
-  this milestone exists to end.
+  paragraph per kind. Both are shipped to consumer repos and are what an authoring
+  assistant reads, so leaving either would reproduce the drift this milestone exists
+  to end. The table is pinned against the owned set; the prose is not, and a section
+  named there is caught at review rather than mechanically.
 - `internal/skills/embedded/aiwf-show` — the body-key table. Its milestone row drops
   `approach`. Its gap row names `what_s_missing`, the slug `SectionSlug` derives from
   `What's missing`, rather than `whats_missing`, which no `aiwf show` envelope
-  carries.
-- `internal/check/entity_body.go` — the package doc comment restates all six kinds in
-  prose, beside the literal this milestone already removed.
+  carries. A test asserts the row names every slug the owned set implies; it does not
+  constrain the keys beyond them, which that table legitimately carries.
+- `internal/check/entity_body.go` — the package doc comment restated all six kinds in
+  prose beside the literal this milestone removed, and now names neither.
 
 The scaffold's rendered bytes are asserted per kind, not just its heading names.
 Comparing parsed headings against the table they are rendered from can only fail on a
@@ -159,18 +137,16 @@ not guessed here.
 
 ## Surfaces touched
 
-`internal/check/entity_body.go`, `internal/entity/serialize.go`,
-`internal/entity/required_sections.go`, `internal/cli/root.go`,
-`internal/skills/embedded/aiwf-show/SKILL.md`, `internal/policies/`.
+`internal/entity/required_sections.go`, `internal/entity/serialize.go`,
+`internal/check/entity_body.go`, `internal/verb/ac.go`, `internal/cli/root.go`,
+`internal/cli/integration/`, `internal/policies/`,
+`internal/skills/embedded/aiwf-add/SKILL.md`,
+`internal/skills/embedded/aiwf-show/SKILL.md`, `docs/design/growth.md`.
 
 ## Out of scope
 
-- Making the check fire on an absent section. `aiwf history M-0305/AC-3` carries the
-  measurement that settled it.
-- A create-time gate refusing an `aiwf add --body-file` body that omits a section the
-  set names. It is the only remaining path to an absent section, but it is a new
-  requirement and belongs on its own evidence.
-- Whether `Context` should take the slot `Approach` vacates (D-0065).
+- Enforcing membership on any path — the tree-wide check, and a create-time refusal
+  alike. Both are G-0571's subject, and it holds the measurement.
 - The shipped prose templates, which M-0306 reconciles against the owned set.
 - The always-on guidance's scaffold instruction, which M-0307 routes.
 - Whether the milestone template's duplicating sections should exist at all (G-0530).
@@ -181,8 +157,9 @@ None. First milestone of E-0081.
 
 ## References
 
-- G-0482 — `Approach` exists on no shipped surface
-- E-0081 — parent epic, carrying the six-surface inventory
+- G-0482 — the milestone template and the required set disagreed about `Approach`
+- G-0571 — nothing enforces that a body carries its kind's required sections
+- E-0081 — parent epic, carrying the surface inventory
 
 ## Work log
 
@@ -210,10 +187,13 @@ milestone while the set carries `Approach` · commit da7d134f9 · tests all gree
 `Approach` left the owned set; the `aiwf-add` skill's required-sections table and
 its milestone prose, the `aiwf-show` body-key table, the root help banner, and the
 `entity-body-empty` rule's doc comment all followed — the last by dropping its
-prose copy rather than updating it. Tests pin both skill tables against the owned
-set, and the scaffold's rendered bytes are asserted per kind, which is the axis a
-case-only or whitespace-only edit had been passing through · commit 4cdbdaff6 ·
-tests all green; five probes, all caught, including those two
+prose copy rather than updating it · commit 4cdbdaff6 · tests all green
+
+What is pinned mechanically: the owned table itself, the `aiwf-add` required-sections
+table, the `aiwf-show` row naming every owned slug, and the scaffold's rendered bytes
+per kind — the last catching the display-form and blank-line edits that had been
+passing every suite. What is not: the `aiwf-add` per-kind prose, and any key the
+`aiwf-show` row carries beyond the owned set. Both are held at review.
 
 The check's own fixtures used `## Approach` as their exemplar empty milestone
 section and now use `## Goal`. The property each pins is unchanged.
