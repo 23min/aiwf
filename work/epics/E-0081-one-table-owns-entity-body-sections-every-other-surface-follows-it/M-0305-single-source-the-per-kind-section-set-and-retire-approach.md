@@ -178,9 +178,13 @@ AC-4 carries the byte-level scaffold assertion that closes it.
 ### AC-2 — The JSON body-map help text is checked against that definition
 
 The root banner's body-map clause is parsed and compared against the owned set,
-slugified and in canonical order; it was naming `goal/acceptance_criteria` for
-milestone while the set carries `Approach` · commit da7d134f9 · tests all green,
-0 surviving mutants
+slugified and in canonical order. The banner named `goal/acceptance_criteria` for
+milestone against a three-section set, and the mismatch was the AC's red · commit
+da7d134f9 · tests all green
+
+The clause is parsed out of the real dispatcher's output rather than grepped, and
+the parser fails loudly on a reworded anchor rather than passing over an empty
+haystack.
 
 ### AC-4 — Approach is retired from the table and the doc surfaces follow
 
@@ -200,8 +204,73 @@ section and now use `## Goal`. The property each pins is unchanged.
 
 ## Decisions made during implementation
 
+- **`Approach` is retired rather than kept and propagated upward.** The surfaces
+  stating it disagreed, so this was a choice between them: the normative body-section
+  statement and the prose template both omit it, and the template's `Context` and
+  `Design notes` already hold what an implementation sketch would say. D-0065 records
+  the follow-on question — whether `Context` takes the slot — as refused, since
+  nothing replaced the section.
+- **The check is not taught to fire on an absent heading.** Tracked as G-0571 with the
+  measurement. A create-time refusal is the narrower option and belongs on its own
+  evidence.
+- **Three surfaces are left unpinned deliberately.** The `aiwf-add` per-kind prose,
+  any `aiwf-show` key beyond the owned set, and the `## Approach` sections in existing
+  bodies. The first two were guarded briefly and the guards were withdrawn: one banned
+  the skill from naming legitimate template sections, the other constrained a table
+  that legitimately carries extras. A mandate on prose costs every future edit; these
+  are held at review instead.
+- **The inert `len(RequiredSections) > 0` guard is deleted rather than annotated.**
+  `EmptyRequiredSections` already returns nil for a kind with no set, so the guard
+  gated nothing and allocated a discarded copy per entity per check run.
+
 ## Validation
+
+`make ci` exit 0 — race suite, diff-scoped coverage gate, firing-fixture meta-gate,
+profile-driven policy gates, and `aiwf doctor --self-check` at 29/29 steps including
+`add milestone` and `check` against a temp repo.
+
+`make lint` 0 issues. `go build ./...` clean. `aiwf check` 0 errors.
+
+Behaviour confirmed against a binary built from this source, in a throwaway repo:
+`aiwf add milestone` and `aiwf template milestone` scaffold `## Goal` and
+`## Acceptance criteria`; a body carrying `## Approach` produces no finding, empty or
+filled; `aiwf show --format=json` surfaces it as an ordinary author-added key.
+
+Mutation-probed: a case-only edit to a section name, the loss of the blank line
+between scaffolded headings, a reordered banner segment, a deleted banner segment, a
+disabled `SectionSlug`, and a re-added `Approach` in either the owned table or the
+`aiwf-add` table are each caught. The first two passed every suite before this
+milestone.
 
 ## Deferrals
 
+- **G-0571** — nothing enforces that a body carries its kind's required sections.
+  Found while cancelling AC-3, and the reason the cancellation's original rationale
+  did not hold. It carries the measurement and the two options.
+
 ## Reviewer notes
+
+Reviewed by six independent fresh-context passes: four lenses over the change-set
+(correctness, design, shipped consumer surfaces, blast radius) and two audits of the
+retirement itself (residue sweep, coherence). Every pass returned request-changes;
+every blocking finding is fixed or recorded below.
+
+Two claims of the author's were measured false by review and corrected in place. The
+retirement was first argued from "no authoring surface produces it", which the
+`aiwf-add` skill falsified. AC-1's evidence claimed no surviving mutants from a probe
+that only varied section names in ways that changed their slug; a case-only edit
+survived everything, and AC-4's byte assertion is what closes it.
+
+Declined, so a later reviewer meets a decision rather than a blank:
+
+- **No guard over the `aiwf-add` per-kind prose or the `aiwf-show` extra keys.** See
+  the decision above. Re-adding a retired section to either is caught at review only.
+- **`docs/design/design-decisions.md` is a further surface stating the set** and is
+  neither inventoried nor checked. It is Normative tier and its milestone row is
+  correct; its "Bodies are not validated" line is stale independently of this work.
+  Out of scope here.
+- **The eight active milestone specs keep their `## Approach` sections.** Inert by
+  design. No shipped surface asks for one now, so the population is closed.
+- **`internal/skills/embedded/aiwf-add`'s "asserts presence, not structure" line** is
+  the same overclaim G-0571 records, on a shipped surface. Pre-existing; folding it in
+  would widen this milestone past its subject.

@@ -1142,17 +1142,16 @@ Addresses G-0121. Its two non-mechanizable remainders move to G-0564.
 | M-0303 | Assert the acceptance-criterion composition invariant | draft |
 | M-0304 | Classify every catalog scenario against the named-scenario rule | draft |
 
-## E-0081 — One table owns entity body sections; the check fires on an absent one (proposed)
+## E-0081 — One table owns entity body sections; every other surface follows it (active)
 
 ### Goal
 
 Give "which body sections an entity carries" a single owner, so the surfaces that
-state it today cannot disagree — and repair the rule that names the requirement but
-stays silent when a section is missing.
+state it today cannot disagree.
 
 | Milestone | Title | Status |
 |---|---|---|
-| M-0305 | Single-source the per-kind section set and fire on an absent one | draft |
+| M-0305 | Single-source the per-kind section set and retire Approach | in_progress |
 | M-0306 | Check the prose templates contain the required set and fix the epic nesting | draft |
 | M-0307 | Route the body-scaffold instruction through the verb covering every kind | draft |
 
