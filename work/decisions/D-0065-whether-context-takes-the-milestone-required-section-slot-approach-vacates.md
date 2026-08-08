@@ -1,7 +1,7 @@
 ---
 id: D-0065
 title: Whether Context takes the milestone required-section slot Approach vacates
-status: proposed
+status: rejected
 relates_to:
     - M-0305
 ---
