@@ -1151,7 +1151,7 @@ state it today cannot disagree.
 
 | Milestone | Title | Status |
 |---|---|---|
-| M-0305 | Single-source the per-kind section set and retire Approach | in_progress |
+| M-0305 | Single-source the per-kind section set and retire Approach | done |
 | M-0306 | Check the prose templates contain the required set and fix the epic nesting | draft |
 | M-0307 | Route the body-scaffold instruction through the verb covering every kind | draft |
 
