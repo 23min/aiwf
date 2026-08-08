@@ -12,7 +12,7 @@ acs:
       status: cancelled
     - id: AC-2
       title: The walker reaches a state where the invariant could fail
-      status: open
+      status: cancelled
 ---
 ## Goal
 
