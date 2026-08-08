@@ -9,7 +9,7 @@ tdd: required
 acs:
     - id: AC-1
       title: A deterministic scenario runs a sequence's steps on both sides of a branch
-      status: open
+      status: cancelled
     - id: AC-2
       title: A sequence's verdict does not depend on which branch ran which step
       status: open
