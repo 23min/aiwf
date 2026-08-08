@@ -32,3 +32,34 @@ the evidence bar was too low.
 
 Discovered while reverting M-0300's three ACs after review refuted them; the
 phases were forced back to `red` one `--force` at a time to re-arm the audit.
+
+**Two routes, measured 2026-08-08.**
+
+*Reset the phase on arrival at `open`.* The demote stays sovereign; only the
+carried-over phase changes. It needs no FSM edit, no policy change and no
+amendment to a normative rule, and it makes the repair path that already exists
+honest rather than adding a new one. Keying the reset on arrival rather than on
+the `met → open` edge also covers the `deferred → open` door, where a forced
+demote carries `done` across in exactly the same way. It interacts with the
+verb's same-state guard, which compares status alone: under a target-keyed reset
+the guard's claim spans two fields and must compare both, or it converges while
+a stale phase survives.
+
+*Add `met → open` as an ordinary edge.* Measured cost is larger than it looks.
+It fails the FSM-invariants policy as a cycle, which reaches an accepted ADR
+stating the FSM is one-directional, plus the numbered legal-workflows rule that
+enumerates `met`'s legal targets, plus a spec cell the drift tests structurally
+cannot demand — they assert every *from-state* has a rule, so `met` already
+having rules means a new target is invisible. The edge is also actively unsafe
+without the phase reset landing first: because `done` is terminal in the phase
+FSM, a reopened AC cannot re-enter its cycle, so the second `met` rides on the
+first cycle's evidence with no force and no trailer anywhere.
+
+A decision taking this route has to answer three things together: the phase
+semantics on reopen, whether reopening completed work should be untrailered at
+all, and the still-open question of `deferred → open` — the easier half of the
+same question, which the first-principles rules leave explicitly unresolved.
+
+Related: the test-metrics rule is satisfied for an AC's whole life by any single
+cycle's trailer, so the phase reset restores one guard while that one stays soft.
+
