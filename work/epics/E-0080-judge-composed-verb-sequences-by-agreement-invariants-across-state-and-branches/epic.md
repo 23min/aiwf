@@ -1,7 +1,7 @@
 ---
 id: E-0080
 title: Judge composed verb sequences by agreement invariants across state and branches
-status: active
+status: cancelled
 ---
 ## Goal
 
