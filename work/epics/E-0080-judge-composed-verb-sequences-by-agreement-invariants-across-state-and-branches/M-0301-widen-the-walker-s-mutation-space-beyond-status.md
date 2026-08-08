@@ -15,7 +15,7 @@ acs:
       status: cancelled
     - id: AC-3
       title: An axis the kernel cannot express is recorded against its owning gap
-      status: open
+      status: cancelled
 ---
 ## Goal
 
