@@ -10,7 +10,9 @@ state it today cannot disagree.
 
 ## Context
 
-Eight surfaces state the per-kind body section set. Measured 2026-08-06/07, for milestone:
+Every surface below states the per-kind body section set. Measured 2026-08-06/08; the
+`says` column reads the milestone entry, or names the kinds a surface covers when it
+does not reach milestone at all:
 
 | surface | says |
 |---|---|
@@ -22,11 +24,21 @@ Eight surfaces state the per-kind body section set. Measured 2026-08-06/07, for 
 | the `aiwf-show` skill's body-key table | `goal`, `approach`, `acceptance_criteria`, +5 |
 | the `aiwf-add` skill's required-body-sections table, and its per-kind prose | Goal, Approach, Acceptance criteria |
 | the `entity-body-empty` rule's package doc comment | Goal, Approach, Acceptance criteria |
+| `docs/design/design-decisions.md`'s body-sections table (Normative tier) | Goal, Acceptance criteria, +5 from the prose template |
+| `selfCheck*Body` (`internal/cli/doctor/selfcheck.go`) | born-complete kinds only — full bodies for adr, gap, decision, contract |
+| `bornCompleteFixtureBody` (`internal/cellcoverage/fixture.go`) | born-complete kinds only — the same four, again |
 
 They disagree in both directions: four omit `Approach` and four name it, and one is
 wrong about a key it does name — the `aiwf-show` skill gives gap's section as
 `whats_missing`, where the slug `SectionSlug` derives is `what_s_missing`, so a
 reader following it looks up a key no envelope carries.
+
+The last three were found by review rather than by the original sweep, which is itself
+evidence for the epic: a surface nobody thought to look at is exactly the one that
+drifts. Two of them are Go literals rather than prose, and they fail in the worst
+direction — if a kind's set gains a section, they build entities missing it, and
+because nothing reports an absent heading the `aiwf doctor --self-check` that runs
+them passes anyway.
 
 The disagreements survive because nothing can see them. `EmptyRequiredSections`
 reports only a section that is present and empty; a heading absent outright is
