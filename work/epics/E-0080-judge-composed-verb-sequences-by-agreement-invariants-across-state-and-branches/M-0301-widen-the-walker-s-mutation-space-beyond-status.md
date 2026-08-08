@@ -9,7 +9,7 @@ tdd: required
 acs:
     - id: AC-1
       title: A sequence seeds acceptance criteria and mutates them through real verbs
-      status: open
+      status: cancelled
     - id: AC-2
       title: A sequence sets areas and priorities and rewrites bodies
       status: open
