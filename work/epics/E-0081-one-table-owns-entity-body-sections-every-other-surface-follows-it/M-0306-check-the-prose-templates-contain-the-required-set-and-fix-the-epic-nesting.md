@@ -88,10 +88,28 @@ either surface changes alone. The criterion is the agreement, not which answer w
 
 ### AC-4 — The normative body-sections table states what the add scaffold writes
 
+`docs/design/design-decisions.md`'s body-sections table names, for each kind, exactly
+the sections `aiwf add` scaffolds — which is what its own caption claims it lists. A
+test compares the table against the owned set and fails if either moves alone.
+
+Equality here, where AC-1 asserts containment, because the two surfaces answer
+different questions. A prose template is a superset by design: it carries commentary
+and optional sections a scaffold has no business writing. This table is captioned as
+the scaffold's output, so a section it names that `aiwf add` does not write is not
+extra detail — it is the caption being false. The milestone row is where that shows:
+it lists five sections the rich template contributes, none of which the verb writes.
+
+The doc's claim that bodies are not validated is corrected in the same change.
+`entity-body-empty` reports an empty required section, and the born-complete kinds
+refuse one at creation, so the sentence describes a kernel that has not existed since
+those landed. That correction is prose and no test pins it; it is caught at review.
+
 ## Constraints
 
-- Containment, not equality — the templates stay a superset and keep their commentary
-  and optional sections.
+- Containment, not equality, **for the prose templates** — they stay a superset and
+  keep their commentary and optional sections. The normative table is the exception
+  and AC-4 says why: it is captioned as the scaffold's output, so a section it names
+  that the scaffold does not write makes the caption false rather than adding detail.
 - The required set is read from M-0305's owned definition; this milestone introduces
   no second copy of it.
 - The templates keep materializing where D-0015 puts them; this milestone changes
@@ -112,7 +130,7 @@ only the required set is checked unless a second case appears.
 ## Surfaces touched
 
 `internal/skills/embedded-rituals/plugins/aiwf-extensions/templates/`,
-`internal/policies/`.
+`docs/design/design-decisions.md`, `internal/policies/`.
 
 ## Out of scope
 
