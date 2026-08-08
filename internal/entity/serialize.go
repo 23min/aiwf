@@ -225,23 +225,23 @@ func ValidateSlug(slug string, maxLength int) error {
 	)
 }
 
-// BodyTemplate returns the per-kind starter body that `aiwf add`
-// writes after the frontmatter. Sections are scaffolds; bodies are
-// not validated by `aiwf check`.
+// BodyTemplate returns the per-kind starter body that `aiwf add` writes
+// after the frontmatter: one empty `## ` heading per section the kind
+// requires, in canonical render order.
+//
+// The headings are rendered from RequiredSections rather than spelled out
+// here, so the scaffold cannot name a different set than the rule that
+// validates what it produced. A kind with no section set scaffolds a bare
+// body.
 func BodyTemplate(k Kind) []byte {
-	switch k {
-	case KindEpic:
-		return []byte("\n## Goal\n\n## Scope\n\n## Out of scope\n")
-	case KindMilestone:
-		return []byte("\n## Goal\n\n## Acceptance criteria\n")
-	case KindADR:
-		return []byte("\n## Context\n\n## Decision\n\n## Consequences\n")
-	case KindGap:
-		return []byte("\n## What's missing\n\n## Why it matters\n")
-	case KindDecision:
-		return []byte("\n## Question\n\n## Decision\n\n## Reasoning\n")
-	case KindContract:
-		return []byte("\n## Purpose\n\n## Stability\n")
+	var b strings.Builder
+	for _, section := range RequiredSections(k) {
+		b.WriteString("\n## ")
+		b.WriteString(section)
+		b.WriteString("\n")
 	}
-	return []byte("\n")
+	if b.Len() == 0 {
+		return []byte("\n")
+	}
+	return []byte(b.String())
 }

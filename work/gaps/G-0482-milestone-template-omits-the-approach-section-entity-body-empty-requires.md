@@ -1,9 +1,11 @@
 ---
 id: G-0482
 title: Milestone template omits the Approach section entity-body-empty requires
-status: open
+status: addressed
 priority: low
 discovered_in: E-0075
+addressed_by_commit:
+    - 4cdbdaff6
 ---
 ## What's missing
 

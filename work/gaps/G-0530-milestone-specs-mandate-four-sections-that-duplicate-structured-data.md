@@ -21,11 +21,6 @@ counts of 0, 14, 21 and 24 respectively. `## Work log` is the sharpest case —
 the wrap ritual mandates one entry per acceptance criterion with its outcome and
 commit SHA, and the section is empty in half the milestones that carry it.
 
-Separately, `requiredSectionsByKind` in `internal/check/entity_body.go` lists a
-`## Approach` section for milestones that the shipped template does not produce.
-The entry is dead and nothing reports it, because the rule fires only on a
-section that is present and empty.
-
 ## Why it matters
 
 Section count is what makes a spec read as sprawl, and it is the axis nobody has
@@ -37,16 +32,10 @@ Each of the four is also the duplication D-0054 bans: a fact with an owner,
 copied into prose that nothing re-derives. They predate that decision, which is
 why they are still shipped.
 
-The `## Approach` drift matters for a different reason. A required-sections
-table that names a section the template never emits is a rule with no subject,
-and the present-and-empty semantics guarantee it stays silent — so the table
-cannot be trusted to describe what the kernel actually requires.
-
 ## Resolution shape
 
-Cut the four from `milestone-spec.md` and from the wrap ritual's step 4, and
-either restore `## Approach` to the template or drop it from the required list.
-Both are template and ritual edits; no kernel semantics change and no ADR.
+Cut the four from `milestone-spec.md` and from the wrap ritual's step 4. Both are
+template and ritual edits; no kernel semantics change and no ADR.
 
 `## Reviewer notes` is the largest section by word count and is deliberately not
 on the list: it carries the declined-finding record that keeps a fresh reviewer

@@ -49,10 +49,6 @@ A gate that reports green while proving nothing is worse than an absent one:
 every commit landing before the fix gets a false pass, and a reader auditing
 coverage finds a guard and stops looking.
 
-- **G-0556** — the pre-push hook resolves ids against refs only the author's machine
-  holds, so a reference to an unpushed branch passes green here and is an error in
-  every clone. `aiwf status` already reports it as an error while `aiwf check`
-  reports none, and points the operator at `check` for detail
 - **G-0518** — a body citing a real entity at a legacy width passes `body-prose-id`
 - **G-0543** — the golangci firing harness asserts its isolation against the
   command constructor, not against the harness that must use it; reverting the
@@ -78,9 +74,6 @@ neither reads what it says.
   in from the deleted Fix column
 - **G-0549** — a documented row for a code nothing emits, and a conditional code
   with no row inheriting the wrong table. Two ends of one broken mapping
-- **G-0559** — `aiwf schema` prints pre-ADR-0008 narrow id formats from literals
-  in `internal/entity/entity.go`. The docs copy it, so this gates G-0517 and the
-  id half of G-0560
 - **G-0560** — the Normative doc tree states behaviour the kernel reverses or
   refuses: epic roll-up, the `CLAUDE.md` carve-out, `render roadmap --write`
   committing, and worked examples the verbs now refuse. Dated inventory in
@@ -133,7 +126,6 @@ Small, no design content between them.
 - **G-0510** — the `enums:ignore` escape accepts three spellings that aren't the directive
 - **G-0513** — the archive sweep reports "converged" when a candidate won't parse
 - **G-0479** — epic template nests out-of-scope below the level three surfaces require
-- **G-0482** — milestone template omits the Approach section `entity-body-empty` requires
 
 ### 5. Write scope — what a verb may commit *(epic; spec first)*
 
@@ -171,9 +163,7 @@ silently goes stale, or it cannot be enforced at all.
   fail unobserved
 - **G-0536** *(high)* — the same shape for the check itself. Hooks are not
   committable, so both positions are opt-in per clone and a fresh clone carries no
-  `aiwf check` at all. Every other locally-firing gate has a second position on push.
-  Blocked on G-0556: the step reports errors on day one, and `fetch-depth` cannot
-  reach a ref absent from the remote
+  `aiwf check` at all. Every other locally-firing gate has a second position on push
 - **G-0504** *(high)* — `doctor` byte-checks verb skills only; ritual and guidance drift read as healthy
 - **G-0370** *(high)* — ADR-0028 decided the always-on fragment should name
   dispatch triggers for all four role agents. The decision landed; the content

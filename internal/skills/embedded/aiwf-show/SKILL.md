@@ -48,9 +48,9 @@ JSON envelope (`--format=json --pretty`) carries the same blocks plus a `body` m
 | Kind | Body keys |
 |---|---|
 | epic | `goal`, `scope`, `out_of_scope`, plus any extra `## <Section>` headings the author added |
-| milestone | `goal`, `approach`, `acceptance_criteria`, `work_log`, `decisions_made_during_implementation`, `validation`, `deferrals`, `reviewer_notes` |
+| milestone | `goal`, `acceptance_criteria`, `work_log`, `decisions_made_during_implementation`, `validation`, `deferrals`, `reviewer_notes`, plus any extra `## <Section>` headings the author added |
 | ac | the body under `### AC-N — <title>` (single string under the AC's id key) |
-| gap | `whats_missing`, `why_it_matters`, plus author-added sections |
+| gap | `what_s_missing`, `why_it_matters`, plus author-added sections |
 | adr | `context`, `decision`, `consequences` |
 | decision | `question`, `decision`, `reasoning` |
 | contract | `purpose`, `stability` |
