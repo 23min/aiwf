@@ -57,11 +57,20 @@ needs to know the correct verdict:
   clone and full checkout, same answer
 - a sequence's verdict does not depend on which branch ran which step
 
-**Rejected: widen the state space and keep the current oracle.** `verb-sequence`
-asserts that `aiwf check` never regresses. Monotonicity cannot catch a finding
-carrying the wrong severity for its state, which is the entirety of G-0558 — the
-finding is present in both verdicts and differs only in whether it blocks. A
-wider state space under a monotonic oracle buys reachability without judgment.
+**Rejected as a substitute: widen the state space and keep the current oracle.**
+`verb-sequence` judges the findings of `aiwf check` against a curated baseline —
+any error-severity finding is a violation, as is any warning whose code sits
+outside the baseline. That is an absolute allowlist applied to each state on its
+own terms, not a comparison against the prior step, so widening the state space
+under it does buy judgment: a new error-severity finding the wider walk reaches
+is caught. Widening is therefore worth doing on its own merits.
+
+What it cannot reach is G-0558's class, for a narrower reason than the oracle's
+strength — the walker runs one surface. A disagreement between `aiwf check` and
+`aiwf check --fast` on the same bytes needs both verdicts in a single run to be
+compared, and the walk produces only one. The finding is present in both and
+differs only in whether it blocks. That single-surface limit is what the
+agreement invariants answer, and widening the state space is orthogonal to it.
 
 **Rejected: more named scenarios as the primary route.** They do not compose:
 each carries its own fixture, its own repo setup, its own oracle scaffolding,
@@ -75,7 +84,8 @@ The precedent for holding an oracle to a shape rather than a subject is G-0468:
 an oracle asserting how many actors get through, or how fast, measures the
 runner rather than aiwf, and is refused at review. This decision applies the
 same discipline on a different axis — an oracle asserting only that findings did
-not increase measures monotonicity rather than correctness.
+not increase would measure monotonicity rather than correctness, and is refused
+for the same reason.
 
 ## Consequences
 
