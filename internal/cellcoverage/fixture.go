@@ -582,9 +582,15 @@ func trailerValue(plan *verb.Plan, key string) string {
 // walkACToPhase advances the AC's tdd_phase to target via the TDD
 // FSM (“ → red → green → {refactor, done}; refactor → done).
 // Skips no-op transitions; tolerates the AC already being at target.
+// The hop bound lives here rather than resting on nextTDDPhaseTowards
+// being an acyclic switch: each iteration writes a real commit, so a
+// successor function derived from the phase FSM instead would turn a
+// cycle there into an unbounded run of them. One hop per phase suffices
+// for any linear walk.
 func (f *CellFixture) walkACToPhase(t *testing.T, compositeID, target string) {
 	t.Helper()
-	for {
+	maxHops := len(entity.AllowedTDDPhases()) + 1
+	for i := 0; i < maxHops; i++ {
 		tr := f.Tree()
 		_, ac, err := LookupComposite(tr, compositeID)
 		if err != nil {
@@ -599,6 +605,7 @@ func (f *CellFixture) walkACToPhase(t *testing.T, compositeID, target string) {
 		}
 		f.Must(verb.PromoteACPhase(f.ctx, f.Tree(), compositeID, next, testActor, "", false, nil))
 	}
+	t.Fatalf("walkACToPhase: %s did not reach %q within %d transitions", compositeID, target, maxHops)
 }
 
 // nextTDDPhaseTowards returns the next phase to advance to given a
