@@ -32,11 +32,13 @@ the instruction reads as "your tree is stale" where the truth is "this file was 
 going to exist" — and the reader most likely to follow it is an assistant with no prior
 about what the directory holds.
 
-Gap and contract are born-complete kinds, so `aiwf add` hard-refuses an empty body for
-exactly the two kinds with no scaffold to work from. The failure is silent at every
-step: no check fires, `aiwf doctor` reports the rituals materialized, and the consumer
-sees a healthy tree. The assistant either invents a structure or skips the body, and
-nothing catches either.
+All four born-complete kinds refuse a bare scaffold at creation — its sections are
+empty, which is what the gate reads. For adr and decision the named template exists,
+so the instruction still leads somewhere. For gap and contract it names a file that
+was never going to exist, and the only other route is refused. The failure is silent
+at every step: no check fires, `aiwf doctor` reports the rituals materialized, and the
+consumer sees a healthy tree. The assistant either invents a structure or skips the
+body, and nothing catches either.
 
 `aiwf template <kind>` already prints the per-kind scaffold for all six kinds.
 
