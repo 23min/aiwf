@@ -10,7 +10,7 @@ acs:
       status: cancelled
     - id: AC-2
       title: A scenario registered without a classification fails a policy test
-      status: open
+      status: cancelled
 ---
 ## Goal
 
