@@ -28,12 +28,19 @@ a missing section would be caught.
 
 The consequence is already in the tree: 35 non-terminal gaps and 24 non-terminal
 decisions are missing at least one section their kind requires, and the checks are
-silent on every one. Those are the kinds whose only creation path bypasses the
-scaffold, which is why they concentrate there.
+silent on every one. They concentrate in the born-complete kinds because those have
+no reachable scaffold at all, but the hole is not theirs alone — an active epic in
+this tree is missing `## Out of scope`, and epic is a kind whose scaffold does write
+every required section. `aiwf edit-body` is how a body loses one afterwards.
 
-Closing it tree-wide would raise 118 findings against live entities at error
-severity, which is why E-0081 declined to. The narrower option is a create-time
-refusal on `aiwf add --body-file` and `aiwf edit-body --body-file`, which fires
-only on new content and would raise none. That also makes the `aiwf add` gate's
-own error message true — it currently promises `aiwf check` will block until the
-section is filled, which holds for an empty section and not for an absent one.
+Closing it tree-wide would raise 119 findings over 60 live entities — 118 of them
+at error severity, plus one warning on an active epic missing `## Out of scope` —
+which is why E-0081 declined to. The narrower option is a create-time refusal on
+`aiwf add --body-file` and `aiwf edit-body --body-file`, which fires only on new
+content and would raise none.
+
+The gate at `internal/verb/add.go` sharpens the point. Handed a body whose required
+section is present and empty, it refuses and tells the operator `aiwf check` will
+block until the section is filled — which is true. An operator can satisfy that
+refusal by deleting the heading rather than filling it, and then neither the gate
+nor the check says anything. The stricter body is the one that is harder to land.
