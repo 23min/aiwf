@@ -11,7 +11,7 @@ acs:
       tdd_phase: red
     - id: AC-2
       title: A verdict does not depend on refs a fresh clone would not have
-      status: open
+      status: cancelled
       tdd_phase: red
     - id: AC-3
       title: Each property is demonstrated failing, real states before stand-ins
