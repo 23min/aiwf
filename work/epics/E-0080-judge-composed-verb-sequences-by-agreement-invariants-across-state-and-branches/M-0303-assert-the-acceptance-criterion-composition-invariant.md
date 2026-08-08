@@ -1,7 +1,7 @@
 ---
 id: M-0303
 title: Assert the acceptance-criterion composition invariant
-status: draft
+status: cancelled
 parent: E-0080
 depends_on:
     - M-0301
