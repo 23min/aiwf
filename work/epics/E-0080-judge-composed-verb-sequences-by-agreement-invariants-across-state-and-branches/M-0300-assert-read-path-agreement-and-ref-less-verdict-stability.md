@@ -8,12 +8,15 @@ acs:
     - id: AC-1
       title: No two read paths contradict each other on the same bytes
       status: open
+      tdd_phase: red
     - id: AC-2
-      title: A verdict is stable under refs the tree does not need
+      title: A verdict does not depend on refs a fresh clone would not have
       status: open
+      tdd_phase: red
     - id: AC-3
-      title: Each property is demonstrated failing against a constructed violation
+      title: Each property is demonstrated failing, real states before stand-ins
       status: open
+      tdd_phase: red
 ---
 ## Goal
 
@@ -81,41 +84,80 @@ the full check and `unresolved-unverified` at warning severity from a ref-less
 one. That is correct behavior, and an identity-shaped property would report it
 as a defect on every run.
 
+Silence carries information in one direction only. A cheaper surface may be
+silent because it never ran the rule, so the gate blocking where a cheaper
+surface says nothing is not a contradiction. The reverse is: a cheaper surface
+that blocks where the authoritative gate does not is claiming a push should fail
+that the gate would let through, which is the shape G-0558 recorded, and it must
+never be excused as a rule-set difference. The asymmetry is a fact about which
+surface is authoritative, not a model of what any rule does.
+
+A subject is finer than one rule on one entity. A rule fires once per offending
+reference or prose token, and two surfaces can agree about one token while
+disagreeing about another under the same code. The comparison carries whatever
+the envelope offers to locate a finding inside an entity, so that "saw one more
+token" stays distinguishable from "classified a token we both saw differently".
+
 The comparison stays between observations. The harness never states which
 surface is right, so the property holds no model of the tier rules and needs no
 update when they change — which is what let it survive G-0556's classification
 change arriving between this milestone's planning and its implementation.
 
 
-### AC-2 — A verdict is stable under refs the tree does not need
+### AC-2 — A verdict does not depend on refs a fresh clone would not have
 
 For a repository produced by a sequence, the harness computes the verdict twice
-— once on the working checkout, once on a copy from which the refs the tree does
-not need have been removed — and requires the two to agree.
+— once on the working checkout, once on a copy stripped of every ref a fresh
+clone would not receive — and requires the two runs to agree on whether each
+subject blocks.
 
-A verdict that changes when an unrelated ref disappears is reporting on the
-repository's ref graph rather than on the tree, which is the shape G-0556
-records: a reference resolving against refs only the author's machine holds
-passes locally and fails in every clone.
+The defect this catches is the one G-0556 records: a reference resolving only
+against refs the author's machine holds passes locally and fails in every clone.
+What makes a ref removable is therefore clone visibility, not whether some tier
+consults it. A published branch survives the strip through its remote-tracking
+ref, so the verdict is unchanged; an unpublished one does not, and a verdict
+that turns on it is reporting on one machine's ref graph.
 
-Which refs a tree does not need is decided by what the verdict claims, not by a
-fixed list, so the property does not go stale as the tier rules evolve.
+Clone visibility is a git-structural fact, which is what keeps this property free
+of the tier rules it must hold no model of. A rule naming the refs some tier
+consults would *be* that model, and would go stale exactly as those rules evolve.
 
-### AC-3 — Each property is demonstrated failing against a constructed violation
+Agreement is disposition, not identity. Stripping an unpublished branch that
+carries a cited id legitimately moves the classification from
+`cross-branch-local-only` to `unresolved`, and both block. The violation is a
+subject that blocks in one run and not the other — **in either direction**,
+including the one where the working checkout is silent and the stripped copy
+blocks, which is precisely "passes locally, fails in every clone" and is the
+case the property exists for.
 
-For each property, a test constructs a repository state that violates it and
-asserts the property reports the violation, naming the observations that
-diverged.
+The property has no meaning in a repository with no remote, because "what a
+clone would receive" is undefined there. It declines to judge rather than
+treating every local branch as removable.
 
-A property observed only passing is not evidence that it can fail. E-0080's
-success criteria require the failing direction explicitly, and this is where it
-is discharged — at plan time, rather than as a review finding once the
-implementation is already written.
+The stripped copy is a copy. A repository whose `.git` is a file rather than a
+directory names an admin directory elsewhere, so a filesystem copy of it aliases
+the original and writes through to it; the property refuses such a repository
+rather than operating on it.
 
-The constructed violation is the only non-vacuity evidence available. The
-defects that motivated these properties are fixed on main — G-0558 and G-0556
-both landed — so neither property fails against the tree as it stands, and a
-green run proves nothing on its own.
+### AC-3 — Each property is demonstrated failing, real states before stand-ins
+
+For each property, a test drives it into reporting a violation, and prefers a
+repository state the real surfaces produce over one a stand-in fabricates. A
+stand-in is admissible only where no real state reaches the property, and the
+test names which case it is.
+
+A property observed only passing cannot be told apart from one that cannot fail.
+But a fabricated failure is weaker evidence than it looks: it proves the
+comparison core's failing branch is reachable, not that the property has purchase
+on the kernel. A fixture calibrated on one variant of a disagreement passes while
+the property stays blind to another, and the blindness is invisible precisely
+because building the fake replaced the search for a real state.
+
+So the search comes first. Where a real repository makes a real surface violate
+the property, that state is the evidence and a stand-in is not admissible in its
+place. Where the kernel is correct on every reachable state, a stand-in is what
+is left — and the test records that as a finding about the kernel rather than
+implying the state space was never examined.
 
 ## Constraints
 
@@ -130,8 +172,11 @@ green run proves nothing on its own.
   sets across surfaces would fire on correct trees, because a ref-less surface
   legitimately declines to judge where a full one classifies. Identity is the
   shape to refuse at review, on the same footing as an exact-verdict oracle.
-- **A green run is not evidence.** Both properties pass against main as it
-  stands, so AC-3's constructed violation is what proves either can fail.
+- **A green run is not evidence, and a fabricated failure is weaker evidence
+  than it looks.** A property that has only ever passed cannot be told apart
+  from one that cannot fail; a property that has only ever failed against a
+  stand-in has been shown to have a reachable failing branch, which is not the
+  same as having purchase on the kernel. AC-3 carries the standard.
 
 ## Design notes
 
@@ -140,7 +185,18 @@ green run proves nothing on its own.
   exact-verdict oracle needs a model of the right answer.
 - The surfaces read-path agreement compares are the ones G-0558 measured as
   disagreeing: `aiwf check`, `aiwf check --fast`, `aiwf check --shape-only`, and
-  `aiwf status`.
+  `aiwf status`. `aiwf show`, `aiwf render`, and `aiwf doctor` also render a
+  verdict off the same rule pass and are **not** observed here. Each renders
+  through a report shape of its own, so each costs a decoder; the milestone buys
+  the three that share one envelope plus the one whose blocking count is
+  comparable, and the exclusion is named rather than left to read as coverage.
+- `aiwf status` states a blocking count and warning rows carrying neither
+  subcode nor severity, so it is compared on the count. That comparison is sound
+  in one direction only, and its soundness rests on a conjunction the harness
+  does not own: status runs `check.Run` alone, every gate-side config pass
+  escalates rather than downgrades, and every tier-dependent classification is
+  enumerated in the kernel's own downgrade switch. A gate-side suppression knob
+  would break it.
 - The subcodes that make a declined judgment legible are
   `refs-resolve/unresolved-unverified` and `body-prose-id/unresolved-unverified`
   (G-0558), both at warning severity. The property treats them as
@@ -179,11 +235,36 @@ green run proves nothing on its own.
 
 ## Work log
 
+The first cycle's three implementation commits are below; an independent review
+refuted the properties they delivered, and the second cycle's entries follow as
+it lands. `aiwf history M-0300/AC-<N>` carries the ladder for both, including
+the forced reverts and their reasons.
+
+### Cycle 1 — refuted at wrap review
+
+- AC-1 · commit cbf75aedb — invariant seam plus the read-path agreement
+  property, with the pre-existing list-vs-ground-truth assertion routed through
+  the same seam.
+- AC-2 · commit 5dee2e38d — ref-less stability registered on the seam.
+- AC-3 · commit 13030a678 — registry-driven vacuity chokepoint.
+
 ## Decisions made during implementation
 
-- (none)
+- **Each surface is compared at the granularity it speaks in.** `aiwf check`,
+  `--fast`, and `--shape-only` emit the findings envelope, so they are compared
+  claim for claim. `aiwf status` renders the same in-memory rule pass into a
+  report carrying a blocking count and warning rows with neither subcode nor
+  severity; it is compared on the count alone. Inferring a subcode for it would
+  be the harness deciding what a surface meant rather than reading what it said,
+  which is the same failure as modelling the tier rules, one layer down.
 
 ## Validation
+
+Pending the second cycle. The first cycle's gates — full suite, lint, and the
+diff-scoped coverage audit — all reported green against properties an
+independent review then refuted, which is the record worth keeping: every
+mechanical gate this repo runs passed over both defects, because none of them
+asks whether a property can detect what it claims to.
 
 ## Deferrals
 
