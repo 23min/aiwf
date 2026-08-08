@@ -15,7 +15,7 @@ acs:
       tdd_phase: red
     - id: AC-3
       title: Each property is demonstrated failing, real states before stand-ins
-      status: open
+      status: cancelled
       tdd_phase: red
 ---
 ## Goal
