@@ -45,3 +45,46 @@ Sub-gap 3's named tree invariant — *no AC `met` under a `tdd: required` milest
 Its oracle is the part to get right, and the obvious formulation is wrong. "No error-severity finding after merging legal branches" is false as a property: a merge can legitimately produce a state that is genuinely bad, and the check flagging it is the check working. What both traps actually violate is *repairability* — that any error a merge of legal branches produces has a route out that is not sovereign. In G-0572 every unforced repair is refused; in G-0575 every act on the criterion is refused including the forced ones, and the only exit forces a terminal milestone backwards. The cheapest concrete form of the property is that a finding's own suggested command succeeds from the state that produced it, which fails in both cases — one refused by an FSM, one converging to a NoOp that reports success and changes nothing.
 
 Sub-gap 4 (branch/worktree choreography) got real mechanization for the current single-host model via E-0030 (`--branch` flag, sequencing, isolation-escape finding, `aiwf-branch` trailer), but `docs/initiatives/agent-agnostic-execution-topology.md` (2026-06-30) still names this gap's choreography concern as open in the broader multi-host context. This gap stays open for that remainder and for the never-built declarative workflow enumeration.
+
+## How this gap is judged satisfied
+
+Not by artifacts built, and not by a count of invariants asserted. Both are
+discharged by writing more assertions, which is how the prior attempt reported
+coverage it did not have: it shipped an oracle seam, two properties, full line
+coverage and a purpose-built anti-vacuity check, and was blind to the defect
+class it existed for. Meanwhile both traps on record were constructed by hand,
+in minutes, by someone composing two branches.
+
+The measure is therefore a falsification test. Once the recorded traps are
+repaired, construct a *third* merge-reachable bad state of a different shape — a
+different rule, a different pair of verbs — without touching the harness, and
+run the harness unmodified. If it stays green, it is pinned to the instances it
+was built from and this gap is not satisfied, however much machinery exists. If
+it goes red and names the state, the composition axis is genuinely covered.
+
+Two properties make this worth stating rather than assuming. It can fail, which
+"every invariant listed is asserted" cannot. And it is cheap relative to what it
+judges: each recorded trap took minutes to construct by hand, so the test costs
+far less than the harness it is measuring.
+
+One condition on running it: whoever seeds the defect must not have built the
+harness, and must not read its scenario list first. Otherwise the seeded state
+is drawn from the same distribution the harness was written against, and the
+result measures recall of a known list rather than reach beyond it.
+
+**Baseline, measured 2026-08-08.** Five catalog scenarios run `git merge`, and
+three seed acceptance criteria, so the raw ingredients are present. None of them
+composes the shape the traps take. Every merge in the catalog is engineered to
+be textually conflict-free — one merges a trailer-only commit that touches no
+file, three merge adds at deliberately disjoint paths, and the fifth drives two
+writes at one body field specifically to produce a textual conflict. Their own
+comments state the intent. No scenario runs *different* verbs writing *different
+frontmatter fields of the same entity*, which is what both recorded traps do and
+what makes them merge cleanly while leaving the tree wrong. Reach on this class
+is therefore zero by construction rather than by omission.
+
+The machinery is closer than that suggests: `reachability-isolation` already
+merges, re-runs `aiwf check`, and judges the result against the baseline
+allowlist. What is absent is a scenario whose two sides diverge semantically
+rather than by path.
+
