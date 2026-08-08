@@ -1,7 +1,7 @@
 ---
 id: M-0301
 title: Widen the walker's mutation space beyond status
-status: draft
+status: cancelled
 parent: E-0080
 depends_on:
     - M-0300
