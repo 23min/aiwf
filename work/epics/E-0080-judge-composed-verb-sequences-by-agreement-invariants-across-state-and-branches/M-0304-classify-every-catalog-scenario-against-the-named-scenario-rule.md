@@ -7,7 +7,7 @@ tdd: required
 acs:
     - id: AC-1
       title: Every catalog entry carries a recorded classification
-      status: open
+      status: cancelled
     - id: AC-2
       title: A scenario registered without a classification fails a policy test
       status: open
