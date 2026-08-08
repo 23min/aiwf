@@ -12,7 +12,7 @@ acs:
       status: cancelled
     - id: AC-2
       title: A sequence sets areas and priorities and rewrites bodies
-      status: open
+      status: cancelled
     - id: AC-3
       title: An axis the kernel cannot express is recorded against its owning gap
       status: open
