@@ -9,7 +9,7 @@ tdd: required
 acs:
     - id: AC-1
       title: No AC is met under a tdd-required milestone whose phase is not done
-      status: open
+      status: cancelled
     - id: AC-2
       title: The walker reaches a state where the invariant could fail
       status: open
