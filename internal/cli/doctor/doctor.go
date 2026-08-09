@@ -27,6 +27,7 @@ import (
 	"github.com/23min/aiwf/internal/config"
 	"github.com/23min/aiwf/internal/gitops"
 	"github.com/23min/aiwf/internal/initrepo"
+	"github.com/23min/aiwf/internal/severity"
 	"github.com/23min/aiwf/internal/skills"
 	"github.com/23min/aiwf/internal/tree"
 	"github.com/23min/aiwf/internal/version"
@@ -294,6 +295,11 @@ func DoctorReport(rootDir string, opts DoctorOptions) (lines []string, problems 
 		problems = append(problems, Problem{Severity: SeverityError, Message: err.Error()})
 	} else {
 		findings := check.Run(tr, loadErrs)
+		// Inert as this loop stands: it reads only ids-unique, whose
+		// severity no aiwf.yaml knob moves. It is here because the seam
+		// is uniform — the day doctor reports another code, it already
+		// agrees with `aiwf check` about how severe that code is.
+		severity.Apply(findings, severity.Load(rootDir), tr)
 		collisions := 0
 		for i := range findings {
 			f := &findings[i]

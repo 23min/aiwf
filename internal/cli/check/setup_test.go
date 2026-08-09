@@ -9,6 +9,10 @@ import (
 	"github.com/23min/aiwf/internal/testsupport"
 )
 
+// Serial tests (no t.Parallel), one rationale line each:
+//   - TestCheckAndFastAgreeOnAreaUnknownSeverity — testutil.CaptureStdout,
+//     which swaps the process-global os.Stdout.
+//   - TestDocsStrictIsARuleOmissionNotASeverityDivergence — same.
 func TestMain(m *testing.M) {
 	os.Setenv("GIT_AUTHOR_NAME", "aiwf-test")
 	os.Setenv("GIT_AUTHOR_EMAIL", "test@example.com")

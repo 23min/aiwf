@@ -22,6 +22,7 @@ import (
 	"github.com/23min/aiwf/internal/entity"
 	"github.com/23min/aiwf/internal/entityview"
 	"github.com/23min/aiwf/internal/render"
+	"github.com/23min/aiwf/internal/severity"
 	"github.com/23min/aiwf/internal/tree"
 )
 
@@ -549,29 +550,37 @@ func BuildStatus(tr *tree.Tree, loadErrs []tree.LoadError, now time.Time) Status
 	// §"Display surfaces", the sweep-pending one-liner belongs in the
 	// tree-health section, not in the general warnings stream. The
 	// per-file `terminal-entity-not-archived` warnings stay in
-	// r.Warnings alongside other finding codes.
+	// r.Warnings alongside other finding codes. The lift happens at any
+	// severity: `archive.sweep_threshold` decides whether the aggregate
+	// blocks the push, not whether the reader is told the sweep is due.
 	// status loads without the cross-branch scan, so it downgrades
 	// `unresolved` to the non-blocking unresolved-unverified subcode
 	// (G-0558). The Health line ends by pointing at `aiwf check`, and
 	// counting an error here that the full check does not raise sends
 	// the reader to the one surface that will tell them nothing is
-	// wrong.
+	// wrong — which is equally why the aiwf.yaml severity policy is
+	// applied before the counts are taken.
 	findings := check.MarkUnverifiedResolution(check.Run(tr, loadErrs), tr)
+	severity.Apply(findings, severity.Load(tr.Root), tr)
 	for i := range findings {
-		switch findings[i].Severity {
+		f := &findings[i]
+		isSweepAggregate := f.Code == check.CodeArchiveSweepPending
+		if isSweepAggregate {
+			r.SweepPending = ParseSweepPending(f.Message)
+		}
+		switch f.Severity {
 		case check.SeverityError:
 			r.Health.Errors++
 		case check.SeverityWarning:
 			r.Health.Warnings++
-			if findings[i].Code == check.CodeArchiveSweepPending {
-				r.SweepPending = ParseSweepPending(findings[i].Message)
+			if isSweepAggregate {
 				continue
 			}
 			r.Warnings = append(r.Warnings, StatusFinding{
-				Code:     findings[i].Code,
-				EntityID: entity.Canonicalize(findings[i].EntityID),
-				Path:     findings[i].Path,
-				Message:  findings[i].Message,
+				Code:     f.Code,
+				EntityID: entity.Canonicalize(f.EntityID),
+				Path:     f.Path,
+				Message:  f.Message,
 			})
 		}
 	}
