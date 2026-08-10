@@ -80,7 +80,7 @@ Every entity is a markdown file (or, for epics and contracts, a directory contai
 
 Timestamps (`created`, `updated`) are deliberately absent from frontmatter; `git log` carries them. Putting them in YAML would be redundant state and a future drift target.
 
-**Body templates** are short section stubs written by `aiwf add`. They are starting points, not enforced structure:
+**Body templates** are short section stubs written by `aiwf add`. They are starting points; what the kernel validates about a filled-in body is narrow, and stated below the table:
 
 | Kind | Body sections |
 |---|---|

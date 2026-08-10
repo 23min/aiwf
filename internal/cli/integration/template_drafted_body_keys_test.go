@@ -135,16 +135,27 @@ func templateBodiesByName(t *testing.T) map[string][]byte {
 	return out
 }
 
-// sectionNameSlugs returns the sorted slugs of a template body's `## ` section
-// names — each heading with any parenthetical qualifier removed, since a
-// qualifier is guidance to the author rather than part of the section's name.
+// sectionNameSlugs returns the sorted, deduplicated slugs of a template body's
+// `## ` section names — each heading with any parenthetical qualifier removed,
+// since a qualifier is guidance to the author rather than part of the section's
+// name.
+//
+// Deduplicated because the body map it is compared against is keyed by slug and
+// collapses duplicates. Two headings that slug alike would otherwise differ in
+// length alone and fail with a message about naming the wrong sections.
 func sectionNameSlugs(body []byte) []string {
+	seen := map[string]bool{}
 	var slugs []string
 	for line := range strings.SplitSeq(string(body), "\n") {
 		if !strings.HasPrefix(line, "## ") {
 			continue
 		}
-		slugs = append(slugs, entity.SectionSlug(stripParenthetical(strings.TrimPrefix(line, "## "))))
+		slug := entity.SectionSlug(stripParenthetical(strings.TrimPrefix(line, "## ")))
+		if seen[slug] {
+			continue
+		}
+		seen[slug] = true
+		slugs = append(slugs, slug)
 	}
 	sort.Strings(slugs)
 	return slugs

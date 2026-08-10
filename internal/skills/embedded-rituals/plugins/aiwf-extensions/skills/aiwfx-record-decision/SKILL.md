@@ -60,7 +60,7 @@ For an ADR: read `.claude/templates/adr.md`. Fill in:
 - **Context** — what forces shape the choice; what alternatives were considered.
 - **Decision** — what's decided, in plain imperative voice.
 - **Consequences** — positive and negative; follow-up work; migration cost.
-- **Validation (optional)** — how we'll know it still holds.
+- **Validation** — how we'll know it still holds; omit the section if it doesn't need active validation.
 
 **ADR authoring discipline** (CLAUDE.md §"Authoring an ADR"). *Decision is decision.* Record *what* was chosen and *why*, never *when* to act on it. Keep gate/schedule language out of the ADR body — no "ratify after X", no "status stays proposed through Y", no "accept once the epic closes." Whether the decision is in force is the `status:` field (`proposed` → `accepted`); *when to act on it* is a planning concern that lives in the planning surface, not the ADR prose.
 
@@ -70,7 +70,7 @@ For a D-NNNN: read `.claude/templates/decision.md`. Fill in:
 - **Question** — what was being decided; what made the answer non-obvious.
 - **Decision** — what's decided.
 - **Reasoning** — alternatives considered and rejected; honest reasoning.
-- **Consequences (optional)** — downstream rules or follow-up work.
+- **Consequences** — downstream rules or follow-up work; omit the section if the decision is self-contained.
 
 ### 4. Body header — date and decided_by
 

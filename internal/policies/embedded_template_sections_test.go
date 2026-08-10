@@ -128,6 +128,8 @@ func TestTitleHeadingPreamble(t *testing.T) {
 		{"no heading", "## Goal\nprose", "", false},
 		{"heading with no section", "# T\nnote", "note", true},
 		{"section text below the bound is outside the region", "# T\n\n## Goal\noptional", "", true},
+		// A `# ` line below the first section is not a title heading.
+		{"hash line below the first section", "## Goal\nprose\n\n# TODO scratch", "", false},
 	}
 	for _, c := range cases {
 		t.Run(c.name, func(t *testing.T) {
@@ -142,15 +144,19 @@ func TestTitleHeadingPreamble(t *testing.T) {
 
 // titleHeadingPreamble returns the text between a body's `# ` title heading and
 // its first `## ` section, and whether such a heading is present at all.
+//
+// The search for the heading stops at the first `## `. A title heading occupies
+// the region above the first section and nowhere else, so a `# ` line below it —
+// a nested markdown example, a shell comment in a fenced block — is not one, and
+// treating it as one would report a template as unmarked while naming a heading
+// that is not the title.
 func titleHeadingPreamble(body []byte) (string, bool) {
 	var preamble []string
 	seen := false
 	for line := range strings.SplitSeq(string(body), "\n") {
 		switch {
 		case strings.HasPrefix(line, "## "):
-			if seen {
-				return strings.Join(preamble, "\n"), true
-			}
+			return strings.Join(preamble, "\n"), seen
 		case strings.HasPrefix(line, "# "):
 			seen = true
 		default:

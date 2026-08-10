@@ -17,7 +17,7 @@ If the epic doesn't exist yet, use `aiwfx-plan-epic` first.
 
 1. **Read the epic spec.** Open `work/epics/E-NNNN-<slug>/epic.md`. Understand:
    - The goal — what the epic is delivering.
-   - The scope (in / out).
+   - The scope — what is in it, and what its Out of scope section excludes.
    - The constraints — what each milestone must respect.
    - The success criteria — what "done" looks like at epic close.
 
