@@ -279,6 +279,28 @@ heading and kept every word of it. Scope stopped at live entities: an author's o
 `## Risks (to weigh at the ADR)` is a heading rather than a marker, several gaps carry
 such headings legitimately, and archived entities are forget-by-default.
 
+### AC-3 — No shipped template presents the title heading as mandatory
+
+The epic and milestone templates dropped the title heading; the ADR and decision
+templates kept it and now say it is optional; one test admits either shape and
+refuses an unmarked heading · commit 7815c361e · tests all green
+
+The measurement decided which template lands on which side, and it was one-sided. No
+epic and no milestone in the tree carries the heading, against two templates that
+opened with one — an instruction overridden every time it was given. Among ADRs and
+decisions roughly a quarter carry one and all 26 are canonical, with no unfilled
+placeholder anywhere in 253 live entities. So one surface stops prescribing what
+nobody wants and the other keeps what its readers use.
+
+The rule is scoped to the region between the heading and the first `## `. Measured, a
+marking moved below that bound leaves the test red, which is the difference between
+this assertion and a file-wide search for the word.
+
+What the test cannot do is read. For the two templates that keep the heading it
+bottoms out in the presence of a word in a region — prose checking prose, satisfiable
+by a rewrite that says something else. Judged acceptable against building a parser for
+template commentary; the deletion half carries the weight, since absence is exact.
+
 ## Decisions made during implementation
 
 - **AC-2 asserts the optionality-marker leak rather than the `out_of_scope` key alone.**
