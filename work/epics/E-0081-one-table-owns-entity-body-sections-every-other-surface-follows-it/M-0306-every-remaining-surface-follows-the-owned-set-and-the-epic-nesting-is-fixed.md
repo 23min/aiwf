@@ -22,6 +22,7 @@ acs:
     - id: AC-4
       title: The normative body-sections table states what the add scaffold writes
       status: open
+      tdd_phase: red
     - id: AC-5
       title: The self-check and coverage fixtures derive their bodies from the owned set
       status: open
