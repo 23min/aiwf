@@ -58,7 +58,7 @@ The cost accepted: a second CLI surface to build and maintain, separate
 from `cmd/aiwf`. This is judged worth it given the abort-safety and
 signal-control requirements above.
 
-## Consequences (optional)
+## Consequences
 
 - `cmd/stresstest` lives entirely under its own tree, never installed
   alongside `cmd/aiwf`, per E-0062's scope constraints.
