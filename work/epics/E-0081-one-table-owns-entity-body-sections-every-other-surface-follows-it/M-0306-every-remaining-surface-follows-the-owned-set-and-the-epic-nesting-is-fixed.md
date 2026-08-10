@@ -1,7 +1,7 @@
 ---
 id: M-0306
 title: Every remaining surface follows the owned set, and the epic nesting is fixed
-status: draft
+status: in_progress
 parent: E-0081
 depends_on:
     - M-0305
