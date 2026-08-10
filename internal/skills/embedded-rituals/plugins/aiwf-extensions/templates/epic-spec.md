@@ -17,11 +17,9 @@ depends_on: []           # optional: prior epic ids; e.g. [E-NNNN]
 
 ## Scope
 
-### In scope
-
 - <Feature or capability>
 
-### Out of scope
+## Out of scope
 
 - <Explicitly excluded item>
 
