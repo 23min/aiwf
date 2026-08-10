@@ -70,6 +70,98 @@ func TestEmbeddedTemplateCarriesRequiredSectionsAtTopLevel(t *testing.T) {
 	}
 }
 
+// TestEmbeddedTemplateDoesNotRequireTitleHeading pins that no shipped template
+// presents the opening `# <id> — <title>` heading as mandatory. A template
+// satisfies the rule either way: by omitting the heading, or by carrying it with
+// an optionality marking above the first section.
+//
+// The kernel already treats the heading as optional and `aiwf retitle` implements
+// that — it syncs a canonical heading when present, no-ops when absent, and leaves
+// an operator-shaped one alone. A template that opens with the heading and says
+// nothing tells its reader the opposite.
+//
+// One rule rather than a per-kind list, so which side a template satisfies stays
+// an editorial choice this test does not encode. The choices made here follow the
+// tree: no epic or milestone carries the heading, so those templates omit it; a
+// quarter of ADRs and decisions carry a canonical one, so those keep it and mark it.
+//
+// The search is scoped to the region between the heading and the first `## `,
+// which is where a marking about the heading belongs. A file-wide search for the
+// word would pass on any template mentioning optionality anywhere.
+func TestEmbeddedTemplateDoesNotRequireTitleHeading(t *testing.T) {
+	t.Parallel()
+	templates, err := skills.ListRitualTemplates()
+	if err != nil {
+		t.Fatalf("ListRitualTemplates: %v", err)
+	}
+	if len(templates) == 0 {
+		t.Fatal("no embedded templates found; expected the shipped entity templates")
+	}
+	for _, tmpl := range templates {
+		t.Run(tmpl.Name, func(t *testing.T) {
+			t.Parallel()
+			_, body, ok := entity.Split(tmpl.Content)
+			if !ok {
+				t.Fatalf("template %s carries no frontmatter delimiter", tmpl.Name)
+			}
+			preamble, hasHeading := titleHeadingPreamble(body)
+			if !hasHeading {
+				return // omitting the heading satisfies the rule outright
+			}
+			if !strings.Contains(strings.ToLower(preamble), "optional") {
+				t.Errorf("template %s opens with a title heading and never says it is optional; a reader filling it in cannot tell the heading is theirs to skip, though the kernel and aiwf retitle both treat it as optional", tmpl.Name)
+			}
+		})
+	}
+}
+
+// TestTitleHeadingPreamble pins the region the marking assertion searches. The
+// bound at the first `## ` is what makes the assertion structural: an optionality
+// note anywhere below it describes a section, not the title heading.
+func TestTitleHeadingPreamble(t *testing.T) {
+	t.Parallel()
+	cases := []struct {
+		name, body, want string
+		wantHeading      bool
+	}{
+		{"heading then section", "# T\nnote\n\n## Goal\nprose", "note\n", true},
+		{"no heading", "## Goal\nprose", "", false},
+		{"heading with no section", "# T\nnote", "note", true},
+		{"section text below the bound is outside the region", "# T\n\n## Goal\noptional", "", true},
+	}
+	for _, c := range cases {
+		t.Run(c.name, func(t *testing.T) {
+			t.Parallel()
+			got, hasHeading := titleHeadingPreamble([]byte(c.body))
+			if got != c.want || hasHeading != c.wantHeading {
+				t.Errorf("titleHeadingPreamble(%q) = (%q, %v), want (%q, %v)", c.body, got, hasHeading, c.want, c.wantHeading)
+			}
+		})
+	}
+}
+
+// titleHeadingPreamble returns the text between a body's `# ` title heading and
+// its first `## ` section, and whether such a heading is present at all.
+func titleHeadingPreamble(body []byte) (string, bool) {
+	var preamble []string
+	seen := false
+	for line := range strings.SplitSeq(string(body), "\n") {
+		switch {
+		case strings.HasPrefix(line, "## "):
+			if seen {
+				return strings.Join(preamble, "\n"), true
+			}
+		case strings.HasPrefix(line, "# "):
+			seen = true
+		default:
+			if seen {
+				preamble = append(preamble, line)
+			}
+		}
+	}
+	return strings.Join(preamble, "\n"), seen
+}
+
 // kindForTemplatePlaceholderID resolves a shipped template's placeholder id
 // (`E-NNNN`, `ADR-NNNN`, …) to its kind through the kernel's id-prefix table.
 //

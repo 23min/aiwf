@@ -8,8 +8,6 @@ tdd: none                 # optional: required | advisory | none (default none)
 acs: []                   # optional: filled by `aiwf add ac <milestone-id> --title "..."`
 ---
 
-# <id> — <Milestone Title>
-
 ## Goal
 
 <1–2 sentences: what this milestone achieves.>

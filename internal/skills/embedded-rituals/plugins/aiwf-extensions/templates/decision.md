@@ -9,6 +9,11 @@ superseded_by:           # optional: D-NNNN that replaces this
 
 # <id> — <Decision Title>
 
+<!-- The heading above is optional. aiwf never requires it; `aiwf retitle` keeps a
+     canonical `# <id> — <title>` in sync when one is present and leaves the body
+     alone when it is not. Keep it if this file will be read as a document outside
+     aiwf, where the id and title are what identify it; delete it otherwise. -->
+
 > **Date:** YYYY-MM-DD · **Decided by:** <role or name>
 
 aiwf decisions (`D-NNNN`) capture project-scoped choices — typically tied to an epic or a milestone — that don't rise to the architectural weight of an ADR. Use this template for: scope cuts, sequencing decisions, mid-implementation pivots, deliberate trade-offs that the team should be able to find later.

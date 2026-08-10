@@ -8,6 +8,11 @@ superseded_by:           # optional: ADR id that replaces this one
 
 # <id> — <imperative title>
 
+<!-- The heading above is optional. aiwf never requires it; `aiwf retitle` keeps a
+     canonical `# <id> — <title>` in sync when one is present and leaves the body
+     alone when it is not. Keep it if this file will be read as a document outside
+     aiwf, where the id and title are what identify it; delete it otherwise. -->
+
 > **Date:** YYYY-MM-DD · **Decided by:** <role or name>
 
 > This template follows the [Nygard ADR pattern](https://cognitect.com/blog/2011/11/15/documenting-architecture-decisions) — Context → Decision → Consequences; aiwf tightens the status vocabulary. Delete this blockquote after copying.
