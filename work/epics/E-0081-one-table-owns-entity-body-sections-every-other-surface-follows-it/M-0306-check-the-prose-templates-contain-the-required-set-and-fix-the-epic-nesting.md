@@ -40,9 +40,17 @@ map all name. Measured: every epic in this tree drafted from the prose template 
 no `out_of_scope` key in `aiwf show --format=json`; epics carrying the flat form do.
 Because `entity-body-empty` skips an absent heading, neither side reports it.
 
-A second disagreement sits on the same artifacts. The prose templates open with a
-title H1 that the verb scaffold does not write and that no epic in this tree carries.
-Two shipped surfaces, two answers, and nothing that decides.
+A second issue sits on the same artifacts, and it is not a disagreement. The prose
+templates open with a title H1; the verb scaffold writes none. Both are correct: the
+kernel treats the H1 as optional, and `aiwf retitle` implements that — it keeps a
+canonical `# <id> — <title>` in sync when one is present and is a no-op when it is
+not, leaving an operator-shaped heading alone rather than clobbering it. The tree
+shows the same, unevenly: a minority of ADRs and decisions carry one, almost no gaps,
+and no epic or milestone at all.
+
+What is missing is the word "optional". A template that opens with the heading and
+says nothing reads as mandatory to whoever fills it in, while the repo's own entities
+mostly omit it.
 
 Two axes of the template are already pinned against the real production oracle:
 frontmatter decodes through `entity.Parse`, and prose is scanned by the real
@@ -60,9 +68,10 @@ equality would forbid the optional sections that are the reason they exist. Head
 level is part of containment: a required section nested a level down does not count,
 which is what makes the epic template fail on day one.
 
-The H1 question is settled by evidence rather than preference. The tree's own answer
-is visible — no epic carries one — and whichever way it goes, the deliverable is the
-two surfaces agreeing and a test that keeps them agreeing.
+The H1 needs no decision — the kernel already made it, and both surfaces already
+comply. The deliverable is that a reader can tell: the templates say the heading is
+optional, in the form they already use for their other optional sections, and a test
+keeps the shipped surfaces from later contradicting the kernel's stance.
 
 ## Acceptance criteria
 
@@ -82,9 +91,16 @@ the shipped template bytes, not over a hand-written fixture that happens to be f
 
 ### AC-3 — Templates and the add scaffold agree on whether a body carries a title H1
 
-The shipped prose templates and `entity.BodyTemplate` give the same answer on whether
-an entity body opens with a title H1. A test pins the agreed answer and fails if
-either surface changes alone. The criterion is the agreement, not which answer wins.
+Each shipped prose template marks its opening `# <id> — <title>` heading as optional,
+in the same form it already uses for its other optional sections. A test asserts the
+marking is present on every template that carries the heading, so a later edit cannot
+quietly present it as required.
+
+The kernel's stance is not changed and no surface is made to match another. `aiwf
+retitle` already treats the heading as optional — syncing a canonical one, no-oping
+when absent, leaving a non-canonical one alone — and the scaffold writing none is that
+stance, not a contradiction of it. What the templates lack is the word, and a reader
+filling one in has no way to know the heading is theirs to skip.
 
 ### AC-4 — The normative body-sections table states what the add scaffold writes
 
