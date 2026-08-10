@@ -19,6 +19,9 @@ acs:
     - id: AC-4
       title: The normative body-sections table states what the add scaffold writes
       status: open
+    - id: AC-5
+      title: The self-check and coverage fixtures derive their bodies from the owned set
+      status: open
 ---
 
 ## Goal
@@ -119,6 +122,8 @@ The doc's claim that bodies are not validated is corrected in the same change.
 `entity-body-empty` reports an empty required section, and the born-complete kinds
 refuse one at creation, so the sentence describes a kernel that has not existed since
 those landed. That correction is prose and no test pins it; it is caught at review.
+
+### AC-5 — The self-check and coverage fixtures derive their bodies from the owned set
 
 ## Constraints
 
