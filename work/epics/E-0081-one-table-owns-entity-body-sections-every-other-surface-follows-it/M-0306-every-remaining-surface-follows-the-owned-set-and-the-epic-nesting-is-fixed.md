@@ -188,8 +188,11 @@ the one place a consumer runs to ask whether their install is healthy.
   no second copy of it.
 - The templates keep materializing where D-0015 puts them; this milestone changes
   their content, not their destination.
-- Every `SKILL.md` or template edit under the embedded rituals lands with its
-  referencing structural test, per the repo's backstop policy.
+- Every `SKILL.md` edit under the embedded rituals lands with its referencing
+  structural test, per the repo's backstop policy. That policy matches `SKILL.md`
+  paths only, so a template edit carries no mechanical backstop; the template edits
+  here are covered by AC-1's and AC-2's assertions instead, which read the shipped
+  bytes through `skills.ListRitualTemplates`.
 
 ## Design notes
 
@@ -315,10 +318,14 @@ is now attributed to the prose template in a sentence beneath the table, which i
 where it is true.
 
 The doc's claim that bodies are not validated was false in both directions and is
-corrected in the same change. `entity-body-empty` reports a required section present
-and empty, and the born-complete kinds refuse an empty body at creation; membership is
-enforced nowhere, which the doc now states and attributes to G-0571 rather than
-leaving a reader to infer a stricter kernel than exists. No test pins that prose.
+corrected. `entity-body-empty` reports a required section present and empty — warning
+for epic and milestone, error for the born-complete kinds — and those kinds refuse an
+empty body at creation; membership is enforced nowhere, which the doc now states and
+attributes to G-0571 rather than leaving a reader to infer a stricter kernel than
+exists. No test pins that prose, and the first pass corrected one copy of four: the
+sentence below the table, leaving the "not enforced structure" lead-in three lines
+above it and the same claim in `legal-workflows-first-principles.md` and twice in
+`legal-workflows-audit.md`. Review caught it; all four now agree.
 
 The parse is anchored on the table's header row and bounded by the table. Measured, a
 reworded header fails with that diagnosis rather than passing over an empty haystack —
@@ -328,6 +335,55 @@ This is the milestone's one ongoing obligation: a future change to the owned set
 carry this doc with it or CI fails. Deleting the table would have retired the copy
 instead, and was rejected — `docs/design/` is Normative tier, and replacing a six-row
 table with a pointer to a command costs a reader more than the mandate costs a writer.
+
+### AC-5 — The self-check and coverage fixtures derive their bodies from the owned set
+
+Three fixture builders stopped transcribing section headings and render from the owned
+set; an AST walk refuses a heading literal in any of them · commit 80095df91 ·
+tests all green
+
+The criterion's own comparison would not have failed. Both fixtures named the right
+sections already, so checking their output against the owned set passes before the
+change and is a tautology after it, both sides calling one function. What can fail is
+the spelling, since a transcription is the thing that goes stale — so the test forbids
+transcribing rather than checking the transcript.
+
+The sweep found three copies where the epic's inventory named two: `internal/verb`
+carried a byte-identical twin of the cellcoverage builder. Both now derive their kinds
+from `entity.IsBornComplete` as well as their sections, retiring a second enumeration
+nobody had asked about. Output verified byte-identical to all four retired constants
+and all four retired switch arms before the swap, and `aiwf doctor --self-check` passes
+29 steps either side of it.
+
+Measured payoff rather than argued: adding a section to gap's owned set makes both
+fixtures carry it with no edit. Before the change they would have built a gap without
+it, and `aiwf doctor --self-check` would have kept passing — the failure this
+forecloses, in the one command a consumer runs to ask whether their install is healthy.
+
+### Review corrections — commit 2815c74e8
+
+Four fresh-context reviewers over the full change-set returned request-changes. Two
+defects reached shipped surfaces that no criterion's test could see, because every
+assertion here reads template bytes and these are the templates' *readers*:
+`aiwfx-record-decision` named `Validation (optional)` and `Consequences (optional)`
+after those markers left the templates — aiwf's own ritual instructing an author to
+produce the key AC-2 exists to foreclose — and three epic rituals prescribed the
+`in / out` substructure AC-1 flattened, which is G-0479 recreated in a consumer's
+repo. `TestRitualsNameTheOwnedSectionsWithoutMarkers` now pins both, scoped to the
+instruction passage and reading the expected names from the owned set.
+
+That scoping is the finding against the fix. The first version searched the whole
+file, and probing showed it did not catch the epic defect — the phrase appears
+elsewhere in that skill, so the check passed while the instruction stayed wrong. The
+same looseness the review had just reported, in the test written to answer it.
+
+Also corrected: the branch-coverage gate was red on `bornCompleteFixtureBody`'s
+nil arm, which the refactor pulled into diff scope uncovered — `make check-fast` does
+not run that gate, so "tests all green" was true of what had been run and misleading
+about what it implied. `make ci` is green now and is what the remaining ACs are held
+to. `titleHeadingPreamble` treated any `# ` line as the title heading; the search now
+stops at the first section. `sectionNameSlugs` did not deduplicate while the key map
+it is compared against does. Four package-level `var`s went back to call-site calls.
 
 ## Decisions made during implementation
 
