@@ -21,6 +21,7 @@ import (
 	"github.com/23min/aiwf/internal/pathutil"
 	baserender "github.com/23min/aiwf/internal/render"
 	"github.com/23min/aiwf/internal/roadmap"
+	"github.com/23min/aiwf/internal/severity"
 	"github.com/23min/aiwf/internal/tree"
 )
 
@@ -318,6 +319,10 @@ func RunSite(root, format, out, scope string, noHistory, pretty bool) int {
 	// asserting an id exists nowhere is the same overclaim as a terminal
 	// one, and outlives the run that made it.
 	findings := check.MarkUnverifiedResolution(check.Run(tr, loadErrs), tr)
+	// The consumer's aiwf.yaml severity policy. A published page outlives
+	// the run that made it, so reporting a finding below the severity the
+	// gate applies to it is an overclaim with a long half-life.
+	severity.Apply(findings, severity.From(cfg), tr)
 
 	// One shared HEAD-history walk feeds every per-entity history row and
 	// scope view (E-0054 / M-0221), replacing render's ~N-per-milestone
