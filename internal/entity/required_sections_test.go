@@ -35,6 +35,44 @@ func TestBodyTemplate_RendersExactlyTheRequiredSections(t *testing.T) {
 	}
 }
 
+// TestBodyWithSectionText_FillsEverySectionTheKindNames pins BodyTemplate's
+// filled counterpart: the callers that cannot use an empty scaffold, because
+// the born-complete kinds refuse an empty load-bearing body at creation.
+//
+// Same claim as above and the same reason for it — the headings are the owned
+// set, in order — plus the prose landing under each, which is what makes the
+// result survive the create-time gate.
+func TestBodyWithSectionText_FillsEverySectionTheKindNames(t *testing.T) {
+	t.Parallel()
+	const filler = "Fixture prose."
+	for _, k := range AllKinds() {
+		t.Run(string(k), func(t *testing.T) {
+			t.Parallel()
+			var headings []string
+			for _, s := range ParseBodySectionsOrdered(BodyWithSectionText(k, filler)) {
+				headings = append(headings, s.Heading)
+				if s.Content != filler {
+					t.Errorf("section %q content = %q, want %q", s.Heading, s.Content, filler)
+				}
+			}
+			if diff := cmp.Diff(RequiredSections(k), headings); diff != "" {
+				t.Errorf("BodyWithSectionText(%s) headings (-want +got):\n%s", k, diff)
+			}
+		})
+	}
+}
+
+// TestBodyWithSectionText_KindWithNoSectionSet covers the branch no kind
+// reaches today: an unknown kind names no sections, and the result matches
+// BodyTemplate's bare body rather than an empty slice or a stray heading.
+func TestBodyWithSectionText_KindWithNoSectionSet(t *testing.T) {
+	t.Parallel()
+	got := string(BodyWithSectionText(Kind("widget"), "text"))
+	if want := "\n"; got != want {
+		t.Errorf("BodyWithSectionText(widget) = %q, want %q", got, want)
+	}
+}
+
 // TestBodyTemplate_RendersTheExactScaffoldBytes pins the scaffold's output
 // byte-for-byte per kind, which is a different claim from the one above.
 //
