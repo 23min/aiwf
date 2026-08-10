@@ -12,7 +12,7 @@ acs:
       status: met
       tdd_phase: done
     - id: AC-2
-      title: An epic drafted from the prose template carries out_of_scope in show JSON
+      title: A template-drafted entity's body keys name sections, not optionality markers
       status: open
     - id: AC-3
       title: The templates mark the title heading optional, as the kernel treats it
@@ -87,7 +87,7 @@ restated here, so adding a section to the set fails this test until the template
 follow. Optional and extra sections are permitted — the assertion is containment, not
 equality. A required section present at a deeper heading level fails.
 
-### AC-2 — An epic drafted from the prose template carries out_of_scope in show JSON
+### AC-2 — A template-drafted entity's body keys name sections, not optionality markers
 
 An epic body filled from the shipped epic template yields an `out_of_scope` key in
 `aiwf show --format=json`. The test drives the real projection over a body built from
