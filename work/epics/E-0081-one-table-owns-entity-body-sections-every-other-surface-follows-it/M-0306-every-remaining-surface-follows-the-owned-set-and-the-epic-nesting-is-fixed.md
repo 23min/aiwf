@@ -302,6 +302,32 @@ bottoms out in the presence of a word in a region — prose checking prose, sati
 by a rewrite that says something else. Judged acceptable against building a parser for
 template commentary; the deletion half carries the weight, since absence is exact.
 
+### AC-4 — The normative body-sections table states what the add scaffold writes
+
+The milestone row lost the five sections the prose template contributes and the verb
+does not write; a test compares every row against the owned set · commit fb47c361f ·
+tests all green
+
+Only that row was wrong — the other five already named what `aiwf add` scaffolds. The
+row had documented a different artifact than its caption claims, so the richer shape
+is now attributed to the prose template in a sentence beneath the table, which is
+where it is true.
+
+The doc's claim that bodies are not validated was false in both directions and is
+corrected in the same change. `entity-body-empty` reports a required section present
+and empty, and the born-complete kinds refuse an empty body at creation; membership is
+enforced nowhere, which the doc now states and attributes to G-0571 rather than
+leaving a reader to infer a stricter kernel than exists. No test pins that prose.
+
+The parse is anchored on the table's header row and bounded by the table. Measured, a
+reworded header fails with that diagnosis rather than passing over an empty haystack —
+the failure mode that matters for a test reading a document it does not own.
+
+This is the milestone's one ongoing obligation: a future change to the owned set must
+carry this doc with it or CI fails. Deleting the table would have retired the copy
+instead, and was rejected — `docs/design/` is Normative tier, and replacing a six-row
+table with a pointer to a command costs a reader more than the mandate costs a writer.
+
 ## Decisions made during implementation
 
 - **AC-2 asserts the optionality-marker leak rather than the `out_of_scope` key alone.**
