@@ -126,8 +126,10 @@ Absorbs G-0482, G-0479 and G-0541.
 
 - `M-0305` — one owner for the per-kind section set, with the help text and the show
   skill's key table checked against it, and `Approach` retired · depends on: —
-- `M-0306` — the shipped prose templates become a checked superset of that set, and
-  the epic template's out-of-scope heading moves to top level · depends on: `M-0305`
+- `M-0306` — every surface still stating the set follows it: the prose templates become
+  a checked superset, the epic template's out-of-scope heading moves to top level, the
+  normative table narrows to what the scaffold writes, and the two Go fixtures derive
+  from the set instead of spelling it out · depends on: `M-0305`
 - `M-0307` — the always-on guidance's body-scaffold instruction routes through the
   verb that covers every kind · depends on: —
 
