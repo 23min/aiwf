@@ -26,7 +26,7 @@ acs:
     - id: AC-5
       title: The self-check and coverage fixtures derive their bodies from the owned set
       status: open
-      tdd_phase: green
+      tdd_phase: done
 ---
 
 ## Goal
