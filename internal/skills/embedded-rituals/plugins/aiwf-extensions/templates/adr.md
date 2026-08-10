@@ -14,16 +14,17 @@ superseded_by:           # optional: ADR id that replaces this one
 >
 > **Put `date` and `decided_by` on the body header line above, not in frontmatter** — the strict frontmatter parser accepts only the fields it validates.
 
-## Status vocabulary (aiwf)
+<!-- Status vocabulary. aiwf's ADR statuses are `proposed | accepted | superseded | rejected`:
 
-aiwf's ADR statuses are: `proposed | accepted | superseded | rejected`.
+       proposed   — written up, open for discussion or ratification.
+       accepted   — in force. Steady state.
+       superseded — replaced by a later ADR. Set `superseded_by` on this one and
+                    `supersedes` on the new ADR. Never delete the file.
+       rejected   — proposed and explicitly turned down. Keep the file for the
+                    reasoning trail; do not re-use the number.
 
-- `proposed` — written up, open for discussion or ratification.
-- `accepted` — in force. Steady state.
-- `superseded` — replaced by a later ADR. Set `superseded_by` on this one and `supersedes` on the new ADR. Never delete the file.
-- `rejected` — proposed and explicitly turned down. Keep the file for the reasoning trail; do not re-use the number.
-
-If you find yourself wanting `draft`, `pending`, or `partial` — those aren't aiwf ADR states. For incubating ideas, hold them in scratch until the proposal is real.
+     If you find yourself wanting `draft`, `pending`, or `partial` — those aren't aiwf
+     ADR states. For incubating ideas, hold them in scratch until the proposal is real. -->
 
 ## Context
 
@@ -37,11 +38,13 @@ State the decision in plain terms. One or two paragraphs. Imperative voice ("we 
 
 What follows from this decision? Positive and negative. Be specific about follow-up work, migration cost, things the team must do differently now. Cross-reference related ADRs, epics, or gaps where relevant.
 
-## Validation (optional)
+## Validation
 
 How will we know this decision still holds? A measurable signal, a periodic review cadence, or a trigger condition that should force a revisit. Leave the section out entirely if the decision doesn't need active validation.
 
-## References (optional)
+## References
+
+<!-- Optional — omit the section when there is nothing to point at. -->
 
 - Related ADRs: `ADR-NNNN`
 - aiwf decisions: `D-NNNN`

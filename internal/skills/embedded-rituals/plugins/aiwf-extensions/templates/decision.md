@@ -29,6 +29,6 @@ What was decided. Imperative voice. One short paragraph.
 
 Why this answer over the alternatives. Name the alternatives, briefly say why they lost. Honest reasoning beats clever reasoning — future-you (or future-Claude) will thank you for the bullet that just says "we picked X because Y was unacceptably complicated to test."
 
-## Consequences (optional)
+## Consequences
 
 If the decision implies follow-up work, migration cost, or downstream rules that future contributors should know — note them here. Skip if the decision is self-contained.

@@ -46,7 +46,9 @@ depends_on: []           # optional: prior epic ids; e.g. [E-NNNN]
 |---|---|---|
 | <question> | <yes/no> | <where/when it gets resolved> |
 
-## Risks (optional)
+## Risks
+
+<!-- Optional — omit the section when there is no real risk to name. -->
 
 | Risk | Impact | Mitigation |
 |---|---|---|
@@ -61,9 +63,10 @@ depends_on: []           # optional: prior epic ids; e.g. [E-NNNN]
 - `M-NNNN` — <one-line description> · depends on: —
 - `M-NNNN` — <one-line description> · depends on: `M-NNNN`
 
-## ADRs produced (optional)
+## ADRs produced
 
-<!-- ADRs ratified or written during this epic. Reference by id. -->
+<!-- Optional — ADRs ratified or written during this epic. Reference by id. Omit the
+     section when the epic produced none. -->
 
 - `ADR-NNNN` — <title>
 
