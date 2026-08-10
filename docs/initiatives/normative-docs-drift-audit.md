@@ -22,7 +22,7 @@ it as an observation from that day, not as current truth about the tree.
 
 Tracked by [G-0560](../../work/gaps/G-0560-the-normative-doc-tree-has-drifted-from-the-kernel-it-documents.md).
 The code-side root cause under §F is tracked separately by
-[G-0559](../../work/gaps/G-0559-schema-idformat-literals-still-carry-pre-adr-0008-narrow-widths.md).
+[G-0559](../../work/gaps/archive/G-0559-schema-idformat-literals-still-carry-pre-adr-0008-narrow-widths.md).
 
 ---
 
@@ -263,7 +263,7 @@ The docs faithfully copy `aiwf schema`. Correcting §C's tables without
 correcting the emitter leaves the published surface contradicting ADR-0008 and
 regrows the same drift on the next doc pass. Sequencing matters here: code
 first, docs follow from a correct source. Tracked as
-[G-0559](../../work/gaps/G-0559-schema-idformat-literals-still-carry-pre-adr-0008-narrow-widths.md),
+[G-0559](../../work/gaps/archive/G-0559-schema-idformat-literals-still-carry-pre-adr-0008-narrow-widths.md),
 which therefore gates §C.
 
 **ADR-0003 is `accepted` and unimplemented.** "Add finding (F-NNN) as a seventh

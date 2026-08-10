@@ -157,7 +157,7 @@ both stress packages pass five repeats out of five; run co-tenant with the
 full `./...` on those same four cores, `internal/stresstest` takes 66.7s,
 matching what CI observes. Placement is therefore load-bearing, and any
 destination sharing a runner with a broad sweep reproduces the flake.
-[G-0438](../../work/gaps/G-0438-flake-hunt-yml-s-count-10-sweep-is-undersized-for-its-github-runner.md)
+[G-0438](../../work/gaps/archive/G-0438-flake-hunt-yml-s-count-10-sweep-is-undersized-for-its-github-runner.md)
 records the same finding from `flake-hunt.yml`, naming these same packages;
 that workflow now fans out one package per runner, so it no longer runs a
 broad sweep for anything to be co-tenant with.
