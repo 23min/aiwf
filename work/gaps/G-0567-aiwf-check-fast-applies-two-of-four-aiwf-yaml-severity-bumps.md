@@ -1,9 +1,11 @@
 ---
 id: G-0567
 title: aiwf check --fast applies two of four aiwf.yaml severity bumps
-status: open
+status: addressed
 priority: high
 discovered_in: M-0300
+addressed_by_commit:
+    - 29eb2a94cdb1551e88d92f1dfa20e00ca658f100
 ---
 ## What's missing
 
