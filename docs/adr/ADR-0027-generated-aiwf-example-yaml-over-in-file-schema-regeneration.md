@@ -7,15 +7,6 @@ status: accepted
 
 > **Date:** 2026-07-05 · **Decided by:** human/peter
 
-## Status vocabulary (aiwf)
-
-aiwf's ADR statuses are: `proposed | accepted | superseded | rejected`.
-
-- `proposed` — written up, open for discussion or ratification.
-- `accepted` — in force. Steady state.
-- `superseded` — replaced by a later ADR. Set `superseded_by` on this one and `supersedes` on the new ADR. Never delete the file.
-- `rejected` — proposed and explicitly turned down. Keep the file for the reasoning trail; do not re-use the number.
-
 ## Context
 
 E-0057 needed to give every aiwf consumer a discoverable, always-fresh reference for the whole `aiwf.yaml` schema, generated from the same structs that decode the file. Two designs were on the table:
