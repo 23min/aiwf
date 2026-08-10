@@ -1,6 +1,6 @@
 ---
 id: M-0306
-title: Check the prose templates contain the required set and fix the epic nesting
+title: Every remaining surface follows the owned set, and the epic nesting is fixed
 status: draft
 parent: E-0081
 depends_on:
