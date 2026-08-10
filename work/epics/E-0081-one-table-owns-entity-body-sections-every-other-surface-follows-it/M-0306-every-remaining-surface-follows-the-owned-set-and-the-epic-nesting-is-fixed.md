@@ -17,7 +17,7 @@ acs:
       tdd_phase: done
     - id: AC-3
       title: No shipped template presents the title heading as mandatory
-      status: open
+      status: met
       tdd_phase: done
     - id: AC-4
       title: The normative body-sections table states what the add scaffold writes
