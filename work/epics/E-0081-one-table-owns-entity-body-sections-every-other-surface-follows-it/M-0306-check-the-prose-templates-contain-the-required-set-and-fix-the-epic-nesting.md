@@ -14,7 +14,7 @@ acs:
       title: An epic drafted from the prose template carries out_of_scope in show JSON
       status: open
     - id: AC-3
-      title: Templates and the add scaffold agree on whether a body carries a title H1
+      title: The templates mark the title heading optional, as the kernel treats it
       status: open
     - id: AC-4
       title: The normative body-sections table states what the add scaffold writes
@@ -89,7 +89,7 @@ An epic body filled from the shipped epic template yields an `out_of_scope` key 
 `aiwf show --format=json`. The test drives the real projection over a body built from
 the shipped template bytes, not over a hand-written fixture that happens to be flat.
 
-### AC-3 — Templates and the add scaffold agree on whether a body carries a title H1
+### AC-3 — The templates mark the title heading optional, as the kernel treats it
 
 Each shipped prose template marks its opening `# <id> — <title>` heading as optional,
 in the same form it already uses for its other optional sections. A test asserts the
