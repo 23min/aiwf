@@ -16,7 +16,7 @@ acs:
       status: met
       tdd_phase: done
     - id: AC-3
-      title: The templates mark the title heading optional, as the kernel treats it
+      title: No shipped template presents the title heading as mandatory
       status: open
     - id: AC-4
       title: The normative body-sections table states what the add scaffold writes
@@ -113,7 +113,7 @@ read path.
 The `out_of_scope` key AC-1's fix produces is asserted here too, on the end-to-end
 path. That half is green once AC-1 lands; the optionality half is what fails first.
 
-### AC-3 — The templates mark the title heading optional, as the kernel treats it
+### AC-3 — No shipped template presents the title heading as mandatory
 
 Each shipped prose template marks its opening `# <id> — <title>` heading as optional,
 in the same form it already uses for its other optional sections. A test asserts the
