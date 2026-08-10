@@ -115,16 +115,28 @@ path. That half is green once AC-1 lands; the optionality half is what fails fir
 
 ### AC-3 — No shipped template presents the title heading as mandatory
 
-Each shipped prose template marks its opening `# <id> — <title>` heading as optional,
-in the same form it already uses for its other optional sections. A test asserts the
-marking is present on every template that carries the heading, so a later edit cannot
-quietly present it as required.
+A shipped template either omits the opening `# <id> — <title>` heading or marks it
+optional. One rule, no per-kind list: a template carrying the heading unmarked fails,
+whichever kind it serves.
 
 The kernel's stance is not changed and no surface is made to match another. `aiwf
 retitle` already treats the heading as optional — syncing a canonical one, no-oping
 when absent, leaving a non-canonical one alone — and the scaffold writing none is that
 stance, not a contradiction of it. What the templates lack is the word, and a reader
 filling one in has no way to know the heading is theirs to skip.
+
+Which side of the rule each template satisfies follows the measurement rather than a
+preference for uniformity. No epic and no milestone in this tree carries the heading,
+against templates that open with one — an instruction every author has silently
+overridden — so those two templates drop it. Roughly a quarter of ADRs and decisions
+carry one and every one of them is canonical, which is the heading earning its place:
+those files are read as documents outside aiwf, where the id and title are all that
+identify them. Those two templates keep the heading and mark it.
+
+The heading reaches no read path either way. It sits above the first `## `, so the
+body map drops it and no key depends on this criterion — which is why the rule is
+about what a template presents to its reader, and why the assertion is scoped to the
+region between the heading and the first section rather than to the file.
 
 ### AC-4 — The normative body-sections table states what the add scaffold writes
 
@@ -277,6 +289,17 @@ such headings legitimately, and archived entities are forget-by-default.
   criterion has a genuine failing test rather than one green on arrival. The
   alternative considered and rejected was cancelling AC-2 as subsumed, which would
   have left the read path unpinned and the leak unfound.
+- **AC-3 became one rule about what a template presents, not a marking mandate.** As
+  specified it required every template to mark the title heading optional, and its test
+  could only assert a sentence was present — prose pinned against prose, failing solely
+  if someone deleted the sentence it looked for. Measured, there was no defect behind
+  it: the kernel treats the heading as optional, `retitle` implements that, and all 26
+  live entities carrying one carry a canonical one, with no unfilled placeholder among
+  253. What the measurement did show is that the epic and milestone templates prescribe
+  a heading no epic or milestone has ever kept. Restating the criterion as "omit it or
+  mark it" gives one rule with a real failure mode, lets those two templates drop the
+  line rather than annotate it, and leaves the ADR and decision templates — where a
+  quarter of authors keep the heading, all correctly — to carry it and say so.
 - **An optionality marker belongs in a section's prose, not its heading.** A heading is
   the section's name and `SectionSlug` turns the whole of it into a key. Guidance about
   whether to keep a section reaches the author from the prose beneath it just as well,
