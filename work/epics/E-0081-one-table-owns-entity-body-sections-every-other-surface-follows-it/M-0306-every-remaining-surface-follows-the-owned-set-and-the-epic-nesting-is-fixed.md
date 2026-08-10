@@ -13,7 +13,7 @@ acs:
       tdd_phase: done
     - id: AC-2
       title: A template-drafted entity's body keys name sections, not optionality markers
-      status: open
+      status: met
       tdd_phase: done
     - id: AC-3
       title: The templates mark the title heading optional, as the kernel treats it
