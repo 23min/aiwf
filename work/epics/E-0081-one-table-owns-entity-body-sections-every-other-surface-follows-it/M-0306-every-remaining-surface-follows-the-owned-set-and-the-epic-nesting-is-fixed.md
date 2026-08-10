@@ -229,6 +229,43 @@ matches the full id pattern, which requires digits, so it resolves nothing for
 placeholder binding to the wrong kind would compare a template against another
 kind's set and pass vacuously.
 
+### AC-2 — A template-drafted entity's body keys name sections, not optionality markers
+
+Every optionality marker left the four templates' headings, and the ADR template's
+status-vocabulary section became a comment; an integration test drafts one entity per
+templated kind through `aiwf add` and asserts the show envelope's key set names the
+template's sections · commit 9d1b529bb · tests all green
+
+The criterion was rewritten before it was built. As specified it asserted that an epic
+drafted from the template carries `out_of_scope`, which is AC-1's conclusion reached
+through a second function — the same fix produces both, and AC-1 covers every template
+rather than the epic alone. It had no failing test available to it, and under
+`tdd: required` the phase FSM admits no entry but `red`. Reframing kept the end-to-end
+coverage the criterion existed for — a real file through `aiwf add`, the loader, and
+the envelope, none of which AC-1 touches — and attached it to a defect still live, so
+the red was genuine. The `out_of_scope` assertion survives as the criterion's first
+half.
+
+Eight headings carried a parenthetical that `SectionSlug` folded into the key, across
+all four templates: seven `(optional)` markers plus the ADR template's
+`## Status vocabulary (aiwf)`. The latter is authoring guidance rather than a section
+of any ADR's content, so it became an HTML comment above the first heading, where the
+body map drops it, rather than a section renamed.
+
+The expected key set derives from each template heading with a trailing parenthetical
+removed. That stripping is inert against the repaired templates and is the whole
+guard: measured, neutering it while a marker is re-added makes expected and actual
+agree on the leaked key and the assertion passes silently. It has its own test for
+that reason.
+
+Six live entities had already drawn from the templates and were repaired in the same
+pass, distinguished by measurement rather than swept by pattern · commits 8ad54942f
+through dba3ea840. Four ADRs carried the status-vocabulary block verbatim, no authored
+word among them, and lost it. `D-0033` and two ADRs carried real prose under a marked
+heading and kept every word of it. Scope stopped at live entities: an author's own
+`## Risks (to weigh at the ADR)` is a heading rather than a marker, several gaps carry
+such headings legitimately, and archived entities are forget-by-default.
+
 ## Decisions made during implementation
 
 - **AC-2 asserts the optionality-marker leak rather than the `out_of_scope` key alone.**
