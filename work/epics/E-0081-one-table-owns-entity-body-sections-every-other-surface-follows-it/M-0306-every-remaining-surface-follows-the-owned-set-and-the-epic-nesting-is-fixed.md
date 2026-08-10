@@ -14,6 +14,7 @@ acs:
     - id: AC-2
       title: A template-drafted entity's body keys name sections, not optionality markers
       status: open
+      tdd_phase: red
     - id: AC-3
       title: The templates mark the title heading optional, as the kernel treats it
       status: open
