@@ -10,7 +10,7 @@ acs:
     - id: AC-1
       title: Each shipped prose template contains its kind's required sections at top level
       status: open
-      tdd_phase: green
+      tdd_phase: done
     - id: AC-2
       title: An epic drafted from the prose template carries out_of_scope in show JSON
       status: open
