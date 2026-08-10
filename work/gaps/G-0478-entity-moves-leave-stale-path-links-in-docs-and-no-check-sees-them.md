@@ -2,7 +2,7 @@
 id: G-0478
 title: Entity moves leave stale path links in docs/ and no check sees them
 status: open
-priority: medium
+priority: high
 ---
 ## What's missing
 
