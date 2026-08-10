@@ -1,7 +1,7 @@
 ---
 id: ADR-0042
 title: Retire tdd.strict; require a complete body at the readiness promote
-status: proposed
+status: accepted
 ---
 # ADR-0042 — Retire tdd.strict; require a complete body at the readiness promote
 
