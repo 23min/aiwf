@@ -56,6 +56,12 @@ What is missing is the word "optional". A template that opens with the heading a
 says nothing reads as mandatory to whoever fills it in, while the repo's own entities
 mostly omit it.
 
+A third issue reaches the read path rather than the author. Every template marks its
+optional sections by suffixing the heading — `## Risks (optional)` — and `SectionSlug`
+folds that suffix into the key, so the section surfaces as `risks_optional` in
+`aiwf show --format=json`. The marker is guidance about whether to keep the section;
+it is not part of the section's name, and a key that carries it names the guidance.
+
 Two axes of the template are already pinned against the real production oracle:
 frontmatter decodes through `entity.Parse`, and prose is scanned by the real
 `body-prose-id`. The section axis is the one with no such test.
@@ -89,9 +95,22 @@ equality. A required section present at a deeper heading level fails.
 
 ### AC-2 — A template-drafted entity's body keys name sections, not optionality markers
 
-An epic body filled from the shipped epic template yields an `out_of_scope` key in
-`aiwf show --format=json`. The test drives the real projection over a body built from
-the shipped template bytes, not over a hand-written fixture that happens to be flat.
+An entity drafted from a shipped prose template yields, in `aiwf show --format=json`,
+a body key for every section its kind's owned set names, and no key carrying an
+optionality marker. The test drives the real projection over real entity files built
+from the shipped template bytes — through `aiwf add`, the loader, and the envelope —
+rather than reading the template in memory, which is AC-1's subject.
+
+`SectionSlug` folds a heading's whole text into its key, so `## Risks (optional)`
+yields `risks_optional`. The marker is authoring guidance about whether to keep the
+section at all; folding it into a data key makes the key name that guidance instead of
+the section, and two entities of one kind then disagree on their key set according to
+whether each author happened to delete the parenthetical. The templates state
+optionality in the prose beneath the heading, where it reaches the author and not the
+read path.
+
+The `out_of_scope` key AC-1's fix produces is asserted here too, on the end-to-end
+path. That half is green once AC-1 lands; the optionality half is what fails first.
 
 ### AC-3 — The templates mark the title heading optional, as the kernel treats it
 
@@ -210,6 +229,20 @@ placeholder binding to the wrong kind would compare a template against another
 kind's set and pass vacuously.
 
 ## Decisions made during implementation
+
+- **AC-2 asserts the optionality-marker leak rather than the `out_of_scope` key alone.**
+  As originally written it restated AC-1's conclusion through a second function: the
+  same fix produces both, and AC-1 is the stronger assertion because it covers every
+  template rather than the epic's. Reframing it kept the end-to-end read-path
+  coverage the criterion was for — a real file, a real load, a real envelope, none of
+  which AC-1 touches — and attached it to a defect that was still live, so the
+  criterion has a genuine failing test rather than one green on arrival. The
+  alternative considered and rejected was cancelling AC-2 as subsumed, which would
+  have left the read path unpinned and the leak unfound.
+- **An optionality marker belongs in a section's prose, not its heading.** A heading is
+  the section's name and `SectionSlug` turns the whole of it into a key. Guidance about
+  whether to keep a section reaches the author from the prose beneath it just as well,
+  and from there it cannot reach a consumer's data.
 
 ## Validation
 
