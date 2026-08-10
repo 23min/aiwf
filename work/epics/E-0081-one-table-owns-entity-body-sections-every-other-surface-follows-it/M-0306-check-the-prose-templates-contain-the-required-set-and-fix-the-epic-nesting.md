@@ -125,6 +125,23 @@ those landed. That correction is prose and no test pins it; it is caught at revi
 
 ### AC-5 — The self-check and coverage fixtures derive their bodies from the owned set
 
+`selfCheck*Body` in `internal/cli/doctor/selfcheck.go` and `bornCompleteFixtureBody`
+in `internal/cellcoverage/fixture.go` stop spelling out section headings and render
+them from `entity.RequiredSections` instead. Both build bodies for the four
+born-complete kinds, which refuse a bare scaffold at creation and so need real prose
+supplied.
+
+This is the one criterion in the milestone that retires a surface rather than checking
+one. Every other route here leaves a copy in place and adds a test to watch it; these
+two can stop being copies, and then there is nothing to watch. That is the cheaper
+outcome and the one the epic prefers wherever it is available.
+
+The failure it forecloses is the worst-shaped in the inventory. Both fixtures are
+correct today. If a kind's set later gains a section, each would build an entity
+missing it — and because nothing reports an absent heading, `aiwf doctor --self-check`
+would go on passing while creating exactly the defect the epic exists to prevent, in
+the one place a consumer runs to ask whether their install is healthy.
+
 ## Constraints
 
 - Containment, not equality, **for the prose templates** — they stay a superset and
@@ -151,7 +168,8 @@ only the required set is checked unless a second case appears.
 ## Surfaces touched
 
 `internal/skills/embedded-rituals/plugins/aiwf-extensions/templates/`,
-`docs/design/design-decisions.md`, `internal/policies/`.
+`docs/design/design-decisions.md`, `internal/cli/doctor/selfcheck.go`,
+`internal/cellcoverage/fixture.go`, `internal/policies/`.
 
 ## Out of scope
 
