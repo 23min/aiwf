@@ -190,6 +190,25 @@ M-0305 — the owned section set this milestone checks the templates against.
 
 ## Work log
 
+### AC-1 — Each shipped prose template contains its kind's required sections at top level
+
+The epic template's out-of-scope heading moved to top level, and `### In scope` was
+dropped with its bullets rising under `## Scope`; a containment test over every
+shipped template reads the required set from the owned definition · commit 01b1cf758 ·
+tests all green
+
+Heading level is the load-bearing half of the assertion, not a stylistic preference.
+`ParseBodySections` — the production parser behind the JSON body map and the
+`entity-body-empty` rule — matches `## ` alone, so the nested form yielded no
+`out_of_scope` key on any read path.
+
+Neither side of the comparison is restated here. The kind is resolved from each
+template's own placeholder id through the kernel's id-prefix table: `KindFromID`
+matches the full id pattern, which requires digits, so it resolves nothing for
+`E-NNNN` and cannot serve. That resolver is pinned by its own test, since a
+placeholder binding to the wrong kind would compare a template against another
+kind's set and pass vacuously.
+
 ## Decisions made during implementation
 
 ## Validation
