@@ -143,46 +143,44 @@ region between the heading and the first section rather than to the file.
 
 ### AC-4 — The normative body-sections table states what the add scaffold writes
 
-`docs/design/design-decisions.md`'s body-sections table names, for each kind, exactly
-the sections `aiwf add` scaffolds — which is what its own caption claims it lists. A
-test compares the table against the owned set and fails if either moves alone.
+**Cancelled — the correction landed, the standing check did not.**
 
-Equality here, where AC-1 asserts containment, because the two surfaces answer
-different questions. A prose template is a superset by design: it carries commentary
-and optional sections a scaffold has no business writing. This table is captioned as
-the scaffold's output, so a section it names that `aiwf add` does not write is not
-extra detail — it is the caption being false. The milestone row is where that shows:
-it lists five sections the rich template contributes, none of which the verb writes.
+`docs/design/design-decisions.md`'s body-sections table listed five sections for
+milestone that the rich prose template contributes and `aiwf add` does not write,
+against a caption claiming it lists the scaffold's output. That is corrected, along
+with the doc's claim that bodies are not validated, and the same claim in
+`legal-workflows-first-principles.md` and twice in `legal-workflows-audit.md`.
 
-The doc's claim that bodies are not validated is corrected in the same change.
-`entity-body-empty` reports an empty required section, and the born-complete kinds
-refuse one at creation, so the sentence describes a kernel that has not existed since
-those landed. That correction is prose and no test pins it; it is caught at review.
+What is not kept is the test. `docs/` ships to no consumer, so a gate here buys a
+correct sentence in this repo's own design notes at the price of a permanent
+obligation: every future change to the owned set would have to hand-edit a design doc
+or fail CI. The table had been wrong for months and the cost was one false sentence,
+caught by reading. That is proportionate to review, not to a chokepoint.
 
 ### AC-5 — The self-check and coverage fixtures derive their bodies from the owned set
 
+**Cancelled — the derivation landed, the standing check did not.**
+
 `selfCheck*Body` in `internal/cli/doctor/selfcheck.go` and `bornCompleteFixtureBody`
-in `internal/cellcoverage/fixture.go` stop spelling out section headings and render
-them from `entity.RequiredSections` instead. Both build bodies for the four
-born-complete kinds, which refuse a bare scaffold at creation and so need real prose
-supplied.
+in both `internal/cellcoverage/fixture.go` and `internal/verb/verb_test.go` stopped
+spelling out section headings and render from `entity.RequiredSections`. Each also
+stopped enumerating which kinds are born-complete, reading `entity.IsBornComplete`
+instead. Three transcriptions retired, a twenty-line switch down to four, and the
+kinds and sections both sourced from the kernel.
 
-This is the one criterion in the milestone that retires a surface rather than checking
-one. Every other route here leaves a copy in place and adds a test to watch it; these
-two can stop being copies, and then there is nothing to watch. That is the cheaper
-outcome and the one the epic prefers wherever it is available.
-
-The failure it forecloses is the worst-shaped in the inventory. Both fixtures are
-correct today. If a kind's set later gains a section, each would build an entity
-missing it — and because nothing reports an absent heading, `aiwf doctor --self-check`
-would go on passing while creating exactly the defect the epic exists to prevent, in
-the one place a consumer runs to ask whether their install is healthy.
+That is the whole value and it is self-evident in the code. What is not kept is the
+policy test that banned a `## ` heading literal in the three files: it policed
+spelling rather than behaviour, its population was a hand-maintained list of three
+against roughly forty-three files carrying the same literal, and its own comment
+conceded a fourth builder would be caught at review anyway. A rule that incomplete,
+guarding a set that changes about once a year across six hardcoded kinds, is not
+worth the permanent per-change cost.
 
 ## Constraints
 
 - Containment, not equality, **for the prose templates** — they stay a superset and
-  keep their commentary and optional sections. The normative table is the exception
-  and AC-4 says why: it is captioned as the scaffold's output, so a section it names
+  keep their commentary and optional sections. The normative table was to have been
+  the exception, for the reason AC-4 gives: it is captioned as the scaffold's output, so a section it names
   that the scaffold does not write makes the caption false rather than adding detail.
 - The required set is read from M-0305's owned definition; this milestone introduces
   no second copy of it.
@@ -309,8 +307,8 @@ template commentary; the deletion half carries the weight, since absence is exac
 ### AC-4 — The normative body-sections table states what the add scaffold writes
 
 The milestone row lost the five sections the prose template contributes and the verb
-does not write; a test compares every row against the owned set · commit fb47c361f ·
-tests all green
+does not write · commit fb47c361f · criterion later cancelled and its test removed,
+so the correction stands with no standing check over it
 
 Only that row was wrong — the other five already named what `aiwf add` scaffolds. The
 row had documented a different artifact than its caption claims, so the richer shape
@@ -327,26 +325,26 @@ sentence below the table, leaving the "not enforced structure" lead-in three lin
 above it and the same claim in `legal-workflows-first-principles.md` and twice in
 `legal-workflows-audit.md`. Review caught it; all four now agree.
 
-The parse is anchored on the table's header row and bounded by the table. Measured, a
-reworded header fails with that diagnosis rather than passing over an empty haystack —
-the failure mode that matters for a test reading a document it does not own.
-
-This is the milestone's one ongoing obligation: a future change to the owned set must
-carry this doc with it or CI fails. Deleting the table would have retired the copy
-instead, and was rejected — `docs/design/` is Normative tier, and replacing a six-row
-table with a pointer to a command costs a reader more than the mandate costs a writer.
+The test that pinned it was removed when the criterion was cancelled. It parsed the
+table out of a Normative-tier doc and held it to the owned set, which would have made
+every future change to that set carry a hand-edit to a design doc or fail CI. `docs/`
+reaches no consumer, so the obligation ran forever to protect a sentence in this
+repo's own notes — and the sentence had been wrong for months at a cost of exactly one
+wrong sentence, found by reading it. Review is the proportionate check here.
 
 ### AC-5 — The self-check and coverage fixtures derive their bodies from the owned set
 
 Three fixture builders stopped transcribing section headings and render from the owned
-set; an AST walk refuses a heading literal in any of them · commit 80095df91 ·
-tests all green
+set · commit 80095df91 · criterion later cancelled and its policy test removed, so the
+simpler code stands with no standing check over it
 
-The criterion's own comparison would not have failed. Both fixtures named the right
-sections already, so checking their output against the owned set passes before the
-change and is a tautology after it, both sides calling one function. What can fail is
-the spelling, since a transcription is the thing that goes stale — so the test forbids
-transcribing rather than checking the transcript.
+The criterion had no assertion worth keeping. Both fixtures named the right sections
+already, so comparing their output against the owned set passes before the change and
+is a tautology after it, with both sides calling one function. The test that shipped
+instead banned a `## ` heading literal in three named files — spelling rather than
+behaviour, over a hand-maintained population of three against roughly forty-three
+files carrying the same literal. The refactor is its own argument; a policeman over it
+was not earning the permanent cost.
 
 The sweep found three copies where the epic's inventory named two: `internal/verb`
 carried a byte-identical twin of the cellcoverage builder. Both now derive their kinds
@@ -359,6 +357,10 @@ Measured payoff rather than argued: adding a section to gap's owned set makes bo
 fixtures carry it with no edit. Before the change they would have built a gap without
 it, and `aiwf doctor --self-check` would have kept passing — the failure this
 forecloses, in the one command a consumer runs to ask whether their install is healthy.
+
+`TestBornCompleteFixtureBody` survives the cancellation. It is an ordinary unit test
+of what the builder returns for each kind, not a watcher over how it is spelled, and
+the diff-scoped coverage gate needs the non-born-complete arm reached.
 
 ### Review corrections — commit 2815c74e8
 
@@ -386,6 +388,24 @@ stops at the first section. `sectionNameSlugs` did not deduplicate while the key
 it is compared against does. Four package-level `var`s went back to call-site calls.
 
 ## Decisions made during implementation
+
+- **AC-4 and AC-5 were cancelled after their content landed, to stop the milestone
+  minting mandates that serve nobody outside this repo.** Both corrections stay; both
+  standing checks go. The test over `docs/design/design-decisions.md` would have made
+  every future change to the owned section set carry a hand-edit to a design doc no
+  consumer reads, on pain of failing CI. The policy banning `## ` heading literals in
+  three named files policed spelling over a population it could not enumerate —
+  roughly forty-three files carry the same literal — while the refactor beneath it is
+  self-evidently simpler than what it replaced. What the milestone actually delivers
+  to a consumer is the template and ritual content: an epic that yields `out_of_scope`,
+  bodies whose keys name sections, and instructions that match the templates they
+  point at. Those are pinned. Repo-internal tidiness is held at review, where a wrong
+  sentence costs a reading rather than a permanent obligation.
+
+  The general force, worth stating because it will recur: an addition is paid once and
+  carried forever, so a check earns its place by the consumer-visible failure it
+  prevents, not by the tidiness it enforces. Three of this milestone's five criteria
+  cleared that bar; two did not.
 
 - **AC-2 asserts the optionality-marker leak rather than the `out_of_scope` key alone.**
   As originally written it restated AC-1's conclusion through a second function: the
