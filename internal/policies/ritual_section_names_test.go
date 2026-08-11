@@ -40,10 +40,13 @@ var ritualSectionInstructions = []sectionInstruction{
 	{aiwfxStartEpicSkillPath, "Confirm the", entity.KindEpic},
 }
 
-// optionalityMarkedSection matches a section name carrying a parenthetical
-// optionality marker, in the bolded form these rituals use for a fill-in item
-// or as a markdown heading.
-var optionalityMarkedSection = regexp.MustCompile(`(?i)(\*\*[^*\n]+|^#{1,4} [^\n]+)\(optional\)`)
+// optionalityMarkedSection matches an optionality marker anywhere in an
+// instruction passage. The passage is a short bulleted list of section names, so
+// there is nothing else the word can be marking; a form-specific pattern only
+// invites a spelling it does not cover, which is what an earlier bolded-or-heading
+// alternation did — its heading arm could not match a bulleted `- ## Name
+// (optional)` and was dead.
+var optionalityMarkedSection = regexp.MustCompile(`(?i)\(optional\)`)
 
 // TestRitualsNameTheOwnedSectionsWithoutMarkers pins that a ritual passage
 // instructing an author to fill in a body names every section its kind
@@ -78,9 +81,9 @@ func TestRitualsNameTheOwnedSectionsWithoutMarkers(t *testing.T) {
 			if !found {
 				t.Fatalf("%s: no passage anchored on %q; the instruction moved or was reworded", instr.path, instr.anchor)
 			}
-			if m := optionalityMarkedSection.FindString(region); m != "" {
-				t.Errorf("%s names a section by its marker-suffixed form (%q); no template carries such a heading, so an author following this writes a section whose slug folds the marker into the key",
-					instr.path, strings.TrimSpace(m))
+			if optionalityMarkedSection.MatchString(region) {
+				t.Errorf("%s: the passage at %q marks a section optional in its name; no template carries such a heading, so an author following this writes a section whose slug folds the marker into the key. State optionality in the description after the section name instead",
+					instr.path, instr.anchor)
 			}
 			for _, section := range entity.RequiredSections(instr.kind) {
 				if !strings.Contains(strings.ToLower(region), strings.ToLower(section)) {

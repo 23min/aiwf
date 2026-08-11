@@ -362,7 +362,7 @@ forecloses, in the one command a consumer runs to ask whether their install is h
 of what the builder returns for each kind, not a watcher over how it is spelled, and
 the diff-scoped coverage gate needs the non-born-complete arm reached.
 
-### Review corrections — commit 2815c74e8
+### Review corrections — commits 2815c74e8, c6060797b, ad9facd20, 73c74374d
 
 Four fresh-context reviewers over the full change-set returned request-changes. Two
 defects reached shipped surfaces that no criterion's test could see, because every
@@ -371,8 +371,13 @@ assertion here reads template bytes and these are the templates' *readers*:
 after those markers left the templates — aiwf's own ritual instructing an author to
 produce the key AC-2 exists to foreclose — and three epic rituals prescribed the
 `in / out` substructure AC-1 flattened, which is G-0479 recreated in a consumer's
-repo. `TestRitualsNameTheOwnedSectionsWithoutMarkers` now pins both, scoped to the
-instruction passage and reading the expected names from the owned set.
+repo. `TestRitualsNameTheOwnedSectionsWithoutMarkers` pins the marker rule and the
+two *authoring* instructions, scoped to the instruction passage and reading the
+expected names from the owned set. The third correction, `aiwfx-plan-milestones`'
+line about reading an epic's scope, is unpinned on purpose: it tells an assistant
+what to understand, not what to write, so a regression there misinforms a reader
+rather than producing a malformed body, and it is not worth a sixth entry in a
+hand-maintained anchor list.
 
 That scoping is the finding against the fix. The first version searched the whole
 file, and probing showed it did not catch the epic defect — the phrase appears
@@ -434,6 +439,105 @@ it is compared against does. Four package-level `var`s went back to call-site ca
 
 ## Validation
 
+`make ci` exit 0 — race suite across every package, the diff-scoped coverage audit,
+the firing-fixture meta-gate, the profile-driven policy gates, and
+`aiwf doctor --self-check` at 29/29 steps including the four born-complete `add`
+steps that consume the refactored fixture bodies.
+
+`make lint` 0 issues. `go build ./...` clean. `aiwf check` 0 errors, 4 warnings — the
+two terminal entities awaiting an archive sweep, the sweep-pending advisory, and the
+no-upstream provenance skip, all pre-existing and none attributable here.
+
+Behaviour confirmed against a binary built from this source, in throwaway repos: an
+entity drafted from each shipped template through `aiwf add` yields body keys naming
+only sections — `out_of_scope` present on the epic, no `_optional` suffix and no
+`status_vocabulary_aiwf` on any kind. `aiwf retitle` no-ops on a body carrying no H1
+and leaves an unfilled placeholder heading alone, matching what the templates now
+tell an author.
+
+Mutation-probed, each restoring byte-identical: a required section nested one level
+down, a section added to a kind's owned set without the templates following, a
+template heading renamed, a re-added optionality marker, a neutered
+`stripParenthetical` beside a re-added marker (which passes — the probe that shows the
+helper is the guard), an unmarked H1 re-added, a marking moved below the first
+section, a ritual naming a marker-suffixed section, a ritual dropping a required
+section from its instruction passage, and a reworded anchor on each parser (each
+failing loudly rather than passing over an empty haystack).
+
 ## Deferrals
 
+- **G-0578** — `internal/policies/worktree_rituals_check_hook_test.go` writes an
+  executable with a bare `os.WriteFile` rather than `testsupport.WriteExecutable`, so
+  a concurrently-inherited writable descriptor can fail its `execve` with `ETXTBSY`.
+  Surfaced during this wrap: one `make ci` run failed there and the test passed three
+  times on re-run. Not this milestone's file and not covered by any test written here,
+  so it takes a gap rather than an inline fix.
+
+The three further items this milestone declined are each a recorded decision rather
+than pending work:
+
+- **The `docs/design` body-sections table has no standing check**, by decision above.
+  It drifts silently or it does not; review is the check, and the measured cost of the
+  last drift was one false sentence.
+- **The fixture-body prose appears in roughly forty-three further files.** Retiring the
+  three transcriptions that named section *headings* was the point; the remaining files
+  carry a filler string, not a section set, and the policy that would have policed them
+  was cut as bloat rather than widened.
+- **`internal/check/testdata/clean/` carries entities missing required sections** — a
+  gap fixture with no `## Why it matters`, a decision with no `## Reasoning` — and is
+  asserted finding-free. That is not this milestone's defect but a live demonstration
+  of G-0571, and it is G-0571's to resolve; whoever lands membership enforcement meets
+  it there.
+
 ## Reviewer notes
+
+Six independent fresh-context passes: four lenses over the change-set (correctness and
+AC coverage, shipped consumer surfaces, design and blast radius, completeness), one
+audit scoped to ritual-versus-template coherence, and a deciding pass at wrap. Every
+one returned request-changes. Every blocking finding is fixed or recorded below.
+
+The reviews earned their place by catching a class the milestone's own tests could not
+see. Each AC asserts over template bytes; the templates' *readers* — the rituals and
+verb skills that tell an author what to write — are a different surface, and two of
+them were left instructing consumers to produce exactly the sections and keys this
+milestone had just retired. `TestRitualsNameTheOwnedSectionsWithoutMarkers` exists
+because of that finding.
+
+Three corrections were to work this milestone had already made, which is worth
+recording plainly:
+
+- The first version of the ritual test searched whole files. Probed, it did not catch
+  the epic defect it was written for — the phrase appears elsewhere in that skill. It
+  is now scoped to the instruction passage.
+- The `aiwf-show` row fix over-corrected. Adding `validation` and `references` to the
+  ADR row made it promise keys a legal ADR does not carry, since the template tells
+  authors to delete those sections; a consumer reading it would find the key absent
+  and could "repair" the entity into an error-severity finding. Rows now name the
+  owned set unconditionally and the template's additions after an em dash, one shape
+  across all six, and the pre-existing containment test became an equality test over
+  the unconditional part — closing the hole its own doc comment had named.
+- The marker regex carried a heading alternative that could not match the bulleted
+  form the rituals use. Replaced with a plain marker search over the passage.
+
+Declined, so a later reviewer meets a decision rather than a blank:
+
+- **The `docs/design` body-sections table and the fixture spelling have no standing
+  check.** AC-4 and AC-5 were cancelled for this reason; see *Decisions*. Drift is
+  caught at review, and the measured cost of the last drift was one false sentence.
+- **`aiwfx-plan-milestones`' epic-reading line is unpinned.** Reasoning in the review
+  corrections entry above.
+- **`ritualSectionInstructions` is a hand-maintained list of five anchors** — the same
+  shape as the population-of-three this milestone cut as bloat. Kept, because unlike
+  that one it guards a consumer-visible failure and has already caught two live
+  defects. The asymmetry is deliberate, not an oversight: the standard is the failure
+  prevented, not the shape of the rule.
+- **Adding one section to one kind now requires updating roughly ten enforced
+  surfaces.** Named here because cost-per-change was the cancellation's own argument,
+  and cancelling AC-4 and AC-5 removed one of those surfaces while this milestone
+  added three. Each addition guards a consumer-visible failure, so each was judged to
+  earn it; whether the aggregate stays worth it is a question for the epic, not this
+  milestone.
+- **`internal/verb/verb_test.go` and `internal/cellcoverage/fixture.go` still hold
+  byte-identical builders.** Six lines each, both delegating to
+  `entity.BodyWithSectionText`, so the drift they could carry is already retired.
+  Extracting a shared helper would move code between packages for no remaining risk.
