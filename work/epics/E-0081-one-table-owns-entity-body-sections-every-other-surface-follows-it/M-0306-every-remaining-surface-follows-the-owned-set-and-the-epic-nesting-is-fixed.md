@@ -21,7 +21,7 @@ acs:
       tdd_phase: done
     - id: AC-4
       title: The normative body-sections table states what the add scaffold writes
-      status: met
+      status: cancelled
       tdd_phase: done
     - id: AC-5
       title: The self-check and coverage fixtures derive their bodies from the owned set
