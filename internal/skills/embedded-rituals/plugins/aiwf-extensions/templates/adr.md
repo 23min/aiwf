@@ -11,7 +11,8 @@ superseded_by:           # optional: ADR id that replaces this one
 <!-- The heading above is optional. aiwf never requires it; `aiwf retitle` keeps a
      canonical `# <id> — <title>` in sync when one is present and leaves the body
      alone when it is not. Keep it if this file will be read as a document outside
-     aiwf, where the id and title are what identify it; delete it otherwise. -->
+     aiwf, where the id and title are what identify it; delete it otherwise. Delete this
+     comment either way. -->
 
 > **Date:** YYYY-MM-DD · **Decided by:** <role or name>
 
@@ -29,7 +30,9 @@ superseded_by:           # optional: ADR id that replaces this one
                     reasoning trail; do not re-use the number.
 
      If you find yourself wanting `draft`, `pending`, or `partial` — those aren't aiwf
-     ADR states. For incubating ideas, hold them in scratch until the proposal is real. -->
+     ADR states. For incubating ideas, hold them in scratch until the proposal is real.
+
+     Delete this comment after copying. -->
 
 ## Context
 

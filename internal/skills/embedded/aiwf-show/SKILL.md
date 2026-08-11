@@ -51,9 +51,9 @@ JSON envelope (`--format=json --pretty`) carries the same blocks plus a `body` m
 | milestone | `goal`, `acceptance_criteria`, `work_log`, `decisions_made_during_implementation`, `validation`, `deferrals`, `reviewer_notes`, plus any extra `## <Section>` headings the author added |
 | ac | the body under `### AC-N — <title>` (single string under the AC's id key) |
 | gap | `what_s_missing`, `why_it_matters`, plus author-added sections |
-| adr | `context`, `decision`, `consequences` |
-| decision | `question`, `decision`, `reasoning` |
-| contract | `purpose`, `stability` |
+| adr | `context`, `decision`, `consequences`, `validation`, `references`, plus any extra `## <Section>` headings the author added |
+| decision | `question`, `decision`, `reasoning`, `consequences`, plus any extra `## <Section>` headings the author added |
+| contract | `purpose`, `stability`, plus any extra `## <Section>` headings the author added |
 
 The JSON envelope also expands per-AC payloads: each `acs[N]` entry carries the AC's body description, status, tdd_phase, and the most-recent test metrics (`{pass, fail, skip, total}`) extracted from any `aiwf-tests:` commit trailer in its history.
 

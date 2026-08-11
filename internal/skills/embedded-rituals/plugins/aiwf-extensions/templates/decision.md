@@ -12,7 +12,8 @@ superseded_by:           # optional: D-NNNN that replaces this
 <!-- The heading above is optional. aiwf never requires it; `aiwf retitle` keeps a
      canonical `# <id> — <title>` in sync when one is present and leaves the body
      alone when it is not. Keep it if this file will be read as a document outside
-     aiwf, where the id and title are what identify it; delete it otherwise. -->
+     aiwf, where the id and title are what identify it; delete it otherwise. Delete this
+     comment either way. -->
 
 > **Date:** YYYY-MM-DD · **Decided by:** <role or name>
 
