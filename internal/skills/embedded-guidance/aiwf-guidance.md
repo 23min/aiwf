@@ -26,7 +26,7 @@ lives in the `wf-codebase-health` skill.
   the working copy (an LLM/script pipeline), where there is no on-disk diff to
   review first.
 - **Entity files are verb- and template-managed — never author one by copying a
-  neighbor** (which drifts from the canonical shape and can drop its H1 / header).
+  neighbor** (which drifts from the canonical shape and can drop its header).
   Create with `aiwf add`, filling the body from `.claude/templates/<kind>.md`
   (`aiwf update` if absent); edit body prose with `aiwf edit-body`; change
   title, status, slug, or id with the matching structured verb (`aiwf retitle` /

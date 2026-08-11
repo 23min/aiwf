@@ -1152,6 +1152,6 @@ state it today cannot disagree.
 | Milestone | Title | Status |
 |---|---|---|
 | M-0305 | Single-source the per-kind section set and retire Approach | done |
-| M-0306 | Every remaining surface follows the owned set, and the epic nesting is fixed | draft |
+| M-0306 | Every remaining surface follows the owned set, and the epic nesting is fixed | in_progress |
 | M-0307 | Route the body-scaffold instruction through the verb covering every kind | draft |
 

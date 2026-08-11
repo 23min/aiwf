@@ -48,12 +48,12 @@ JSON envelope (`--format=json --pretty`) carries the same blocks plus a `body` m
 | Kind | Body keys |
 |---|---|
 | epic | `goal`, `scope`, `out_of_scope`, plus any extra `## <Section>` headings the author added |
-| milestone | `goal`, `acceptance_criteria`, `work_log`, `decisions_made_during_implementation`, `validation`, `deferrals`, `reviewer_notes`, plus any extra `## <Section>` headings the author added |
+| milestone | `goal`, `acceptance_criteria`, plus any extra `## <Section>` headings the author added — the shipped `milestone-spec.md` template adds `context`, `constraints`, `design_notes`, `surfaces_touched`, `out_of_scope`, `dependencies`, `coverage_notes`, `references`, `work_log`, `decisions_made_during_implementation`, `validation`, `deferrals`, and `reviewer_notes` when kept |
 | ac | the body under `### AC-N — <title>` (single string under the AC's id key) |
 | gap | `what_s_missing`, `why_it_matters`, plus author-added sections |
-| adr | `context`, `decision`, `consequences` |
-| decision | `question`, `decision`, `reasoning` |
-| contract | `purpose`, `stability` |
+| adr | `context`, `decision`, `consequences`, plus any extra `## <Section>` headings the author added — the shipped `adr.md` template adds `validation` and `references` when kept |
+| decision | `question`, `decision`, `reasoning`, plus any extra `## <Section>` headings the author added — the shipped `decision.md` template adds `consequences` when kept |
+| contract | `purpose`, `stability`, plus any extra `## <Section>` headings the author added |
 
 The JSON envelope also expands per-AC payloads: each `acs[N]` entry carries the AC's body description, status, tdd_phase, and the most-recent test metrics (`{pass, fail, skip, total}`) extracted from any `aiwf-tests:` commit trailer in its history.
 
