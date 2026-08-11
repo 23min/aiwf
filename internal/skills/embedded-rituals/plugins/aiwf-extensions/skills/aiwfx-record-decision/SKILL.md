@@ -52,7 +52,9 @@ aiwf creates the file with the minimal body skeleton, sets frontmatter, produces
 
 ### 3. Replace the body with the rich template
 
-The rich template — **not** the minimal skeleton `aiwf add` just wrote — is the source for the full body, including the `# ADR-NNNN — <title>` H1 and the `> **Date:** … · **Decided by:** …` header from step 4. It ships materialized at `.claude/templates/adr.md` (ADR) and `.claude/templates/decision.md` (D-NNNN); `aiwf update` re-materializes both. If the file is absent, run `aiwf update` — **don't** reconstruct the format by copying an existing ADR or decision, which drifts from the canonical template and silently drops the H1 and header.
+The rich template — **not** the minimal skeleton `aiwf add` just wrote — is the source for the full body, including the `> **Date:** … · **Decided by:** …` header from step 4. It ships materialized at `.claude/templates/adr.md` (ADR) and `.claude/templates/decision.md` (D-NNNN); `aiwf update` re-materializes both. If the file is absent, run `aiwf update` — **don't** reconstruct the format by copying an existing ADR or decision, which drifts from the canonical template and silently drops the header.
+
+The template's opening `# <id> — <title>` H1 is optional and the template says so: keep it when the file will be read as a document outside aiwf, delete it otherwise. `aiwf retitle` keeps a canonical one in sync when present and no-ops when absent, so either choice stays correct.
 
 For an ADR: read `.claude/templates/adr.md`. Fill in:
 
@@ -74,7 +76,7 @@ For a D-NNNN: read `.claude/templates/decision.md`. Fill in:
 
 ### 4. Body header — date and decided_by
 
-In the body, just under the `# ADR-NNNN — <title>` (or `# D-NNNN — <title>`) heading, add a one-line block-quote header capturing date and the person making the call:
+At the top of the body — just under the `# <id> — <title>` H1 if you kept one, otherwise as the body's first line — add a one-line block-quote header capturing date and the person making the call:
 
 ```markdown
 > **Date:** YYYY-MM-DD · **Decided by:** <role/name>
