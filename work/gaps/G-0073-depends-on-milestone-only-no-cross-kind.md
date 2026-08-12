@@ -109,3 +109,60 @@ The prose-only fallback has now bitten in the wild, in script form — silently,
 The dangling-on-cancel piece of incident 1 above needed no cross-kind schema work — it was fully expressible within the already-shipped milestone-to-milestone `depends_on` scope. It has been extracted to G-0437: `aiwf check` now emits an error-severity `depends-on-cancelled` finding when a non-terminal milestone's `depends_on` names a cancelled milestone.
 
 Incident 2's cross-kind ask (an `aiwf epic depends-on` verb, epic-level `depends_on`) and the rest of this gap's fix shape — schema relaxation across every kind, per-kind `AllowedKinds` tuning, global cycle detection, `SatisfiesDependency(kind, status)`, and FSM gating on `aiwf promote` — remain unimplemented. The two incidents on record support the milestone→milestone slice (now shipped) and reveal a want for epic→epic (incident 2), but neither touches ADR↔ADR, contract→ADR, or an arbitrary cross-kind referent, and no incident has yet shown `aiwf promote` proceeding past an unsatisfied dependency. Building the full N-kind matrix and FSM gating ahead of that evidence would be speculative generalization past what's actually bitten. This gap stays open, deferred, as the design lens for whichever slice friction justifies next — most likely the narrow epic→epic extension if cross-epic sequencing keeps biting, not the full cross-kind rewrite.
+
+## Cross-epic coordination has no home, and it is not an ordering edge (2026-08-12)
+
+One week of planning produced two more instances. The second is the useful one,
+because it does not fit the fix shape above.
+
+**A shipped artifact invites the field the schema drops.** E-0083 was planned to
+depend on E-0081. The epic-spec template `aiwf update` materializes carries a
+`depends_on` entry in its frontmatter block, annotated as optional prior epic
+ids, so an author following the template writes it on an epic — as one did.
+Measured on a scratch consumer repo, with an epic hand-carrying an entry naming
+another epic:
+
+| surface | result |
+|---|---|
+| `aiwf check` | 0 errors, no finding on that axis |
+| `aiwf show --format=json` | the `depends_on` key is absent from the result |
+| the epic schema | does not declare the field |
+| `aiwf epic depends-on` | `unknown command "epic"` |
+
+The write is accepted, stored, and read by nothing. Incident 2 above had a script
+guess at a verb that did not exist; here a shipped artifact instructs an author to
+write a field no surface honours, which reaches every consumer rather than one
+triage script. The field was removed from E-0083's frontmatter rather than left as
+decoration no check validates.
+
+**Two epics share one open question, and their specs already disagree about it.**
+E-0083 and E-0084 implement two adjacent accepted decisions — emptiness at the
+readiness transition, membership at the write seams — and ADR-0043 leaves open
+whether one finding code serves both body-rule properties or each needs its own.
+E-0084's spec resolves that question "with E-0083 before either epic's first
+milestone lands". E-0083's spec resolves it "in the rule's own milestone". Both
+statements are prose, neither is wrong on its own terms, and nothing reconciles
+them: whichever epic starts first settles the question alone, which is the outcome
+E-0084 wrote its constraint to prevent.
+
+What this adds is not more evidence for the same repair. The fix shape above is
+ordering-shaped — `SatisfiesDependency(kind, status)` and a promote refused while
+a referent is unsatisfied. That expresses "A cannot start until B is done".
+Neither epic here blocks the other. Both are blocked on a joint decision that
+belongs to neither, and no `depends_on` edge encodes "neither of us lands before
+we settle this together", at any degree of cross-kind generality. The epic→epic
+extension this gap's closing line predicts as the likely next slice would not have
+caught this instance.
+
+So the want has two shapes, and only one of them is scoped here. Ordering is what
+the fix shape covers. Co-ordination — a decision two entities share, which gates
+both and is owned by neither — has no representation at all, and the honest
+options are a third entity kind that holds it, an open-question surface the
+planning verbs read, or a decision that prose is the right home and the specs
+should at least be checked for agreeing with each other. Worth settling before
+scoping the epic→epic slice, since building the ordering half would leave this
+case exactly where it is while looking like the area had been addressed.
+
+The template contradiction in the first instance stays a smaller, independent
+repair: the epic template advertises the field and the schema drops it, and either
+one moving settles that much.
