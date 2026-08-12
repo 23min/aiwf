@@ -1160,3 +1160,14 @@ stays silent when a section is missing.
 
 _No milestones yet._
 
+## E-0083 — Retire tdd.strict; gate body completeness at the readiness promote (proposed)
+
+### Goal
+
+Ask for a complete entity body at the moment its status claims it is ready to be
+worked on, instead of at the push boundary behind a configuration knob that has
+never been switched on. An epic may be born empty; one promoted to `active` may
+not.
+
+_No milestones yet._
+
