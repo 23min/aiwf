@@ -1,7 +1,7 @@
 ---
 id: ADR-0043
 title: Enforce body-section membership at the write seams, never tree-wide
-status: proposed
+status: accepted
 ---
 > **Date:** 2026-08-11 · **Decided by:** human/peter
 
