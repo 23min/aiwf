@@ -31,6 +31,14 @@ of them at error severity, which is why E-0081 declined to and recorded the hole
 G-0571 instead. That cost is what makes the placement question real: the property is
 worth enforcing, and the obvious place to enforce it is the one that cannot be afforded.
 
+A second decision governs the adjacent property. ADR-0042 retires `tdd.strict` and
+replaces its body-completeness half with a status-gated rule firing at the readiness
+transition — epic to `active`, milestone to `in_progress` — on the principle that a draft
+may be empty and an entity whose status claims readiness may not. It reaches the same
+constraint about the projection diff that this decision does: `entity-body-empty` reads
+body bytes from disk, so the pre-state and post-state copies are identical and the diff
+never attributes the finding to the verb.
+
 ## Decision
 
 Body-section membership is enforced at the seams where body bytes are written, and
@@ -41,6 +49,15 @@ nowhere else.
 how every reader sees it — `ParseBodySections` matches `## ` only, so a nested heading
 produces no key in `aiwf show --format=json`. Sections beyond the required set are legal
 and never flagged. Order is not enforced.
+
+**Emptiness is a different property, with a different seam.** Whether a section that is
+present carries content is ADR-0042's subject, enforced at the readiness transition and
+not here. The two compose without overlap: this decision requires the heading, that one
+requires content once an entity's status claims it is ready to be worked on. A draft
+carrying every required heading with nothing under them satisfies this decision and is
+precisely what ADR-0042 permits. Neither rule derives the other — a body can carry every
+heading and no content, or full content under invented headings, and only one rule sees
+each case.
 
 **Seam one — the verb.** A scan over the bytes a verb is about to write, called by every
 body-supplying verb, refusing the write at error severity for every kind. This mirrors
@@ -116,6 +133,10 @@ binary built from it:
 ## References
 
 - G-0571 — the hole this closes, and the source of the 119-finding measurement
+- ADR-0042 — the adjacent decision: emptiness at the readiness transition, where this one
+  covers membership at the write seams. Its replacement rule is unimplemented, and it
+  requires its two halves to ship together, so the milestone implementing either should
+  weigh whether one finding code serves both properties or each needs its own
 - ADR-0029 — verb shape correctness comes from pre-write projection; this decision states
   why a body rule cannot ride that path and takes the byte-scan route instead
 - ADR-0034 — the per-kind applicability pattern this follows: one predicate as the single
