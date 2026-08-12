@@ -32,7 +32,7 @@ You are the **planner**. You scope and sequence work that other agents will impl
 
 ## Outputs you produce
 
-- Epic specs at `work/epics/E-NNNN-<slug>/epic.md` (scaffold by `aiwf add epic`, body filled from the plugin template).
+- Epic specs at `work/epics/E-NNNN-<slug>/epic.md` (scaffold by `aiwf add epic`, body filled from `.claude/templates/epic-spec.md`).
 - Milestone specs at `work/epics/E-NNNN-<slug>/M-NNNN-<slug>.md`.
 - ADRs at `docs/adr/ADR-NNNN-<slug>.md` for architectural decisions.
 - D-NNNN entries at `work/decisions/D-NNNN-<slug>.md` for project-scoped decisions.

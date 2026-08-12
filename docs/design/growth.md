@@ -151,16 +151,13 @@ Two findings the internal classification could not have surfaced:
 
 - **A template and a ban compose into a mandate neither one is.**
   `entity-body-empty` is classified above as a ban, and that is what it is: it
-  fires only on a section that is *present and empty*, so omitting a heading
-  satisfies it. Measured, 232 of 290 milestones carry no `## Approach` — the
-  section the rule names as required — and the check reports nothing. What
-  produces the obligation is the pair: the spec template seeds the headings, and
-  the ban then forces every seeded heading to be filled. The per-unit price of
-  an entity is set there, and the lever is the template rather than the check.
-  Classifying rules one at a time cannot see this, which is a limit of the
-  four-shape split rather than of any entry in it. Tracked as G-0530, which also
-  records that a required section the template never emits is a rule with no
-  subject.
+  fires only on a section that is *present and empty*, so a body omitting the
+  heading altogether satisfies it and the check reports nothing. What produces
+  the obligation is the pair: the spec template seeds the headings, and the ban
+  then forces every seeded heading to be filled. The per-unit price of an entity
+  is set there, and the lever is the template rather than the check. Classifying
+  rules one at a time cannot see this, which is a limit of the four-shape split
+  rather than of any entry in it. Tracked as G-0530.
 - **The ritual corpus is where the mandates concentrate.** Every review finding
   produces an artifact on every disposition — pinned defect, unpinned defect,
   uncovered requirement, accepted judgment, declined judgment — and the review's

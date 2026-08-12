@@ -145,29 +145,6 @@ func TestValidateSlug(t *testing.T) {
 	}
 }
 
-func TestBodyTemplate_Sections(t *testing.T) {
-	t.Parallel()
-	expectedSections := map[Kind][]string{
-		KindEpic:      {"## Goal", "## Scope", "## Out of scope"},
-		KindMilestone: {"## Goal", "## Acceptance criteria"},
-		KindADR:       {"## Context", "## Decision", "## Consequences"},
-		KindGap:       {"## What's missing", "## Why it matters"},
-		KindDecision:  {"## Question", "## Decision", "## Reasoning"},
-		KindContract:  {"## Purpose", "## Stability"},
-	}
-	for k, sections := range expectedSections {
-		t.Run(string(k), func(t *testing.T) {
-			t.Parallel()
-			body := string(BodyTemplate(k))
-			for _, s := range sections {
-				if !strings.Contains(body, s) {
-					t.Errorf("BodyTemplate(%s) missing section %q\nbody: %q", k, s, body)
-				}
-			}
-		})
-	}
-}
-
 func TestSplit_RoundTrip(t *testing.T) {
 	t.Parallel()
 	original := []byte(`---

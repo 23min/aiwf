@@ -137,10 +137,6 @@ Small, no design content between them.
 - **G-0510** — the `enums:ignore` escape accepts three spellings that aren't the directive
 - **G-0513** — the archive sweep reports "converged" when a candidate won't parse
 - **G-0562** — a worktree-hook test writes its executable without `WriteExecutable`
-- **G-0479** — epic template nests out-of-scope below the level three surfaces require
-- **G-0482** — milestone template omits the Approach section `entity-body-empty`
-  requires. Confirmed live while planning E-0080: every milestone body had to add
-  the section by hand because the template omits it
 
 ### 5. Write scope — what a verb may commit *(epic; spec first)*
 
@@ -185,8 +181,6 @@ silently goes stale, or it cannot be enforced at all.
 - **G-0370** *(high)* — ADR-0028 decided the always-on fragment should name
   dispatch triggers for all four role agents. The decision landed; the content
   never did, so the one surface in context every turn stays silent on it
-- **G-0541** — the guidance tells an assistant to fill a body from a template
-  path that resolves for two of six kinds; gap and contract have none
 - **G-0526** — source-discipline rules ship as prose with no seam to enforce them
 - **G-0529** — CHANGELOG completeness rests on recall at epic wrap; nothing checks it
 - **G-0514** — `skill-body-id` tells CLI metavariables and non-id acronyms to become placeholders

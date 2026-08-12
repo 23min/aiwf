@@ -150,7 +150,7 @@ after its justification vanishes is not a passing implementation of this decisio
   to the operator — a result sourced from another branch must be labeled as such,
   not presented indistinguishably from a locally-resolved entity.
 
-## Validation (optional)
+## Validation
 
 The decision holds as long as: (1) a fixture-driven test proves the escalation
 path fires (pending → unresolved) whenever the source branch disappears from the

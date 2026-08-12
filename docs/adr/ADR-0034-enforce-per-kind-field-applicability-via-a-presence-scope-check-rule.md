@@ -7,10 +7,6 @@ status: accepted
 
 > **Date:** 2026-07-17 · **Decided by:** human/peter
 
-## Status vocabulary (aiwf)
-
-aiwf's ADR statuses are: `proposed | accepted | superseded | rejected`.
-
 ## Context
 
 The `area` feature (ADR-0009 era design; see `internal/check/area_unknown.go` / `area_required.go`) established the pattern for an optional, per-kind, closed-set frontmatter field carried on the shared `Entity` struct rather than a per-kind struct. But `area`'s check rules only ever gate the *value* — is a declared area value legal, is a required area present — never whether the field's mere *presence* is legal for the entity's kind. Nothing in the kernel rejected `area:` (or any optional field) showing up on a kind that was never meant to carry it; the type system doesn't model per-kind field legality (the shared `Entity` struct exposes every optional field to every kind), so nothing did.

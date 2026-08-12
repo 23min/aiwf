@@ -826,10 +826,6 @@ acs:
 
 Goal prose.
 
-## Approach
-
-Approach prose.
-
 ## Acceptance criteria
 
 Each AC pins one observable behavior.

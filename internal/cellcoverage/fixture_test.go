@@ -12,6 +12,47 @@ import (
 	"github.com/23min/aiwf/internal/workflows/spec"
 )
 
+// TestBornCompleteFixtureBody pins both arms of the body builder: a
+// born-complete kind gets every section its kind names, filled, since the
+// G-0326 gate refuses an empty one at creation; a kind outside the gate gets
+// nil, which is a no-op BodyOverride falling back to the per-kind template.
+//
+// No cell in this package creates an epic or milestone through the builder, so
+// the nil arm has no caller here and is covered only by this test.
+func TestBornCompleteFixtureBody(t *testing.T) {
+	t.Parallel()
+	for _, k := range entity.AllKinds() {
+		t.Run(string(k), func(t *testing.T) {
+			t.Parallel()
+			body := bornCompleteFixtureBody(k)
+			if !entity.IsBornComplete(k) {
+				if body != nil {
+					t.Errorf("bornCompleteFixtureBody(%s) = %q, want nil for a kind outside the empty-body gate", k, body)
+				}
+				return
+			}
+			var headings []string
+			for _, s := range entity.ParseBodySectionsOrdered(body) {
+				headings = append(headings, s.Heading)
+				if s.Content == "" {
+					t.Errorf("section %q is empty; the G-0326 gate refuses a body whose load-bearing section carries no prose", s.Heading)
+				}
+			}
+			want := entity.RequiredSections(k)
+			if len(headings) != len(want) {
+				t.Errorf("bornCompleteFixtureBody(%s) headings = %v, want %v", k, headings, want)
+				return
+			}
+			for i := range want {
+				if headings[i] != want[i] {
+					t.Errorf("bornCompleteFixtureBody(%s) headings = %v, want %v", k, headings, want)
+					return
+				}
+			}
+		})
+	}
+}
+
 // TestNewCellFixture_Bootstraps pins that NewCellFixture produces a
 // usable fresh repo: workdir exists, aiwf.yaml present, tree loads
 // clean with zero entities. The shape every per-cell test starts

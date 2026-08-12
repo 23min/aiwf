@@ -21,9 +21,12 @@ import (
 )
 
 // acceptanceCriteriaHeading is the exact `## ` heading text milestone
-// bodies use for their Acceptance-criteria section — the same literal
-// requiredSectionsByKind (internal/check/entity_body.go) dispatches on
-// for the KindMilestone entry.
+// bodies use for their Acceptance-criteria section, and the anchor AC
+// insertion locates. It is spelled here rather than indexed out of
+// entity.RequiredSections(KindMilestone), because this code needs one
+// named heading — a positional read would silently retarget if the set's
+// order changed. The two agreeing is pinned by TestAddAC_* going red if
+// the set renames it.
 const acceptanceCriteriaHeading = "Acceptance criteria"
 
 // AddAC creates a new acceptance criterion under the named milestone.

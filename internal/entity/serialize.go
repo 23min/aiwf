@@ -225,23 +225,52 @@ func ValidateSlug(slug string, maxLength int) error {
 	)
 }
 
-// BodyTemplate returns the per-kind starter body that `aiwf add`
-// writes after the frontmatter. Sections are scaffolds; bodies are
-// not validated by `aiwf check`.
+// BodyTemplate returns the per-kind starter body that `aiwf add` writes
+// after the frontmatter: one empty `## ` heading per section the kind
+// requires, in canonical render order.
+//
+// The headings are rendered from RequiredSections rather than spelled out
+// here, so the scaffold cannot name a different set than the rule that
+// validates what it produced. A kind with no section set scaffolds a bare
+// body.
 func BodyTemplate(k Kind) []byte {
-	switch k {
-	case KindEpic:
-		return []byte("\n## Goal\n\n## Scope\n\n## Out of scope\n")
-	case KindMilestone:
-		return []byte("\n## Goal\n\n## Acceptance criteria\n")
-	case KindADR:
-		return []byte("\n## Context\n\n## Decision\n\n## Consequences\n")
-	case KindGap:
-		return []byte("\n## What's missing\n\n## Why it matters\n")
-	case KindDecision:
-		return []byte("\n## Question\n\n## Decision\n\n## Reasoning\n")
-	case KindContract:
-		return []byte("\n## Purpose\n\n## Stability\n")
+	var b strings.Builder
+	for _, section := range RequiredSections(k) {
+		b.WriteString("\n## ")
+		b.WriteString(section)
+		b.WriteString("\n")
 	}
-	return []byte("\n")
+	if b.Len() == 0 {
+		return []byte("\n")
+	}
+	return []byte(b.String())
+}
+
+// BodyWithSectionText returns a body carrying every section the kind names,
+// each holding text as its prose, in canonical render order.
+//
+// This is BodyTemplate's filled counterpart, for the callers that cannot use an
+// empty scaffold: the born-complete kinds refuse an empty load-bearing body at
+// creation, having no draft phase in which to fill one in, so a caller creating
+// one must supply prose per section. Both render from RequiredSections, so
+// neither can name a set the rule validating the result would disagree with.
+//
+// Returns a bare body for a kind carrying no section set, matching BodyTemplate.
+func BodyWithSectionText(k Kind, text string) []byte {
+	sections := RequiredSections(k)
+	if len(sections) == 0 {
+		return []byte("\n")
+	}
+	var b strings.Builder
+	for i, section := range sections {
+		if i > 0 {
+			b.WriteString("\n")
+		}
+		b.WriteString("## ")
+		b.WriteString(section)
+		b.WriteString("\n\n")
+		b.WriteString(text)
+		b.WriteString("\n")
+	}
+	return []byte(b.String())
 }

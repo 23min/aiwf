@@ -39,25 +39,16 @@ const testActor = "human/test"
 // content. Returns nil for kinds the gate doesn't apply to (epic,
 // milestone), which is a no-op BodyOverride (falls back to the
 // per-kind template as before).
+//
+// Both the kinds and their sections come from the kernel rather than
+// being enumerated here, so a kind that later gains a section cannot
+// leave this fixture building an entity without it — a body no surface
+// would report as incomplete.
 func bornCompleteFixtureBody(k entity.Kind) []byte {
-	switch k {
-	case entity.KindGap:
-		return []byte("## What's missing\n\nFixture prose for test setup; not the subject under test.\n\n" +
-			"## Why it matters\n\nFixture prose for test setup; not the subject under test.\n")
-	case entity.KindDecision:
-		return []byte("## Question\n\nFixture prose for test setup; not the subject under test.\n\n" +
-			"## Decision\n\nFixture prose for test setup; not the subject under test.\n\n" +
-			"## Reasoning\n\nFixture prose for test setup; not the subject under test.\n")
-	case entity.KindADR:
-		return []byte("## Context\n\nFixture prose for test setup; not the subject under test.\n\n" +
-			"## Decision\n\nFixture prose for test setup; not the subject under test.\n\n" +
-			"## Consequences\n\nFixture prose for test setup; not the subject under test.\n")
-	case entity.KindContract:
-		return []byte("## Purpose\n\nFixture prose for test setup; not the subject under test.\n\n" +
-			"## Stability\n\nFixture prose for test setup; not the subject under test.\n")
-	default:
+	if !entity.IsBornComplete(k) {
 		return nil
 	}
+	return entity.BodyWithSectionText(k, "Fixture prose for test setup; not the subject under test.")
 }
 
 // CellFixture is a fresh isolated repo with aiwf init applied.

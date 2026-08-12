@@ -1,0 +1,143 @@
+package entity
+
+import (
+	"testing"
+
+	"github.com/google/go-cmp/cmp"
+)
+
+// TestBodyTemplate_RendersExactlyTheRequiredSections pins that the scaffold
+// `aiwf add` commits is rendered from the owned per-kind section set rather
+// than a literal standing beside it. Both sides read RequiredSections, so a
+// kind carried by one and not the other fails here — where two independent
+// copies would pass for as long as they happened to agree.
+//
+// Order is part of the claim: the set is the canonical render order, and a
+// scaffold that emits the right headings in the wrong sequence is a body no
+// reader recognizes.
+func TestBodyTemplate_RendersExactlyTheRequiredSections(t *testing.T) {
+	t.Parallel()
+	for _, k := range AllKinds() {
+		t.Run(string(k), func(t *testing.T) {
+			t.Parallel()
+			want := RequiredSections(k)
+			if len(want) == 0 {
+				t.Fatalf("RequiredSections(%s) is empty; every kind carries a section set", k)
+			}
+			var got []string
+			for _, s := range ParseBodySectionsOrdered(BodyTemplate(k)) {
+				got = append(got, s.Heading)
+			}
+			if diff := cmp.Diff(want, got); diff != "" {
+				t.Errorf("BodyTemplate(%s) headings (-want +got):\n%s", k, diff)
+			}
+		})
+	}
+}
+
+// TestBodyWithSectionText_FillsEverySectionTheKindNames pins BodyTemplate's
+// filled counterpart: the callers that cannot use an empty scaffold, because
+// the born-complete kinds refuse an empty load-bearing body at creation.
+//
+// Same claim as above and the same reason for it — the headings are the owned
+// set, in order — plus the prose landing under each, which is what makes the
+// result survive the create-time gate.
+func TestBodyWithSectionText_FillsEverySectionTheKindNames(t *testing.T) {
+	t.Parallel()
+	const filler = "Fixture prose."
+	for _, k := range AllKinds() {
+		t.Run(string(k), func(t *testing.T) {
+			t.Parallel()
+			var headings []string
+			for _, s := range ParseBodySectionsOrdered(BodyWithSectionText(k, filler)) {
+				headings = append(headings, s.Heading)
+				if s.Content != filler {
+					t.Errorf("section %q content = %q, want %q", s.Heading, s.Content, filler)
+				}
+			}
+			if diff := cmp.Diff(RequiredSections(k), headings); diff != "" {
+				t.Errorf("BodyWithSectionText(%s) headings (-want +got):\n%s", k, diff)
+			}
+		})
+	}
+}
+
+// TestBodyWithSectionText_KindWithNoSectionSet covers the branch no kind
+// reaches today: an unknown kind names no sections, and the result matches
+// BodyTemplate's bare body rather than an empty slice or a stray heading.
+func TestBodyWithSectionText_KindWithNoSectionSet(t *testing.T) {
+	t.Parallel()
+	got := string(BodyWithSectionText(Kind("widget"), "text"))
+	if want := "\n"; got != want {
+		t.Errorf("BodyWithSectionText(widget) = %q, want %q", got, want)
+	}
+}
+
+// TestBodyTemplate_RendersTheExactScaffoldBytes pins the scaffold's output
+// byte-for-byte per kind, which is a different claim from the one above.
+//
+// Comparing parsed headings against the table they were rendered from can
+// only fail on a render/parse round trip: BodyTemplate is built from
+// RequiredSections, so the two agree by construction. That leaves the
+// table's display form unpinned — a case-only edit to a section name keeps
+// the same slug and passes every other suite, and dropping the blank line
+// between headings changes no heading at all.
+//
+// The expectation is a literal rather than a second rendering, so it is not
+// a second source: no production code reads it, and it is the only place a
+// reviewer can see the bytes `aiwf add` actually commits.
+func TestBodyTemplate_RendersTheExactScaffoldBytes(t *testing.T) {
+	t.Parallel()
+	want := map[Kind]string{
+		KindEpic:      "\n## Goal\n\n## Scope\n\n## Out of scope\n",
+		KindMilestone: "\n## Goal\n\n## Acceptance criteria\n",
+		KindADR:       "\n## Context\n\n## Decision\n\n## Consequences\n",
+		KindGap:       "\n## What's missing\n\n## Why it matters\n",
+		KindDecision:  "\n## Question\n\n## Decision\n\n## Reasoning\n",
+		KindContract:  "\n## Purpose\n\n## Stability\n",
+	}
+	for _, k := range AllKinds() {
+		t.Run(string(k), func(t *testing.T) {
+			t.Parallel()
+			expected, ok := want[k]
+			if !ok {
+				t.Fatalf("kind %s has no expected scaffold; add its bytes here when the kind lands", k)
+			}
+			if diff := cmp.Diff(expected, string(BodyTemplate(k))); diff != "" {
+				t.Errorf("BodyTemplate(%s) bytes (-want +got):\n%s", k, diff)
+			}
+		})
+	}
+}
+
+// TestBodyTemplate_KindWithNoSectionSet pins the scaffold's behavior for a
+// Kind carrying no section set. The tree loader does not produce such a kind,
+// so this arm is defensive — but it ships, and a caller handed a bare "\n"
+// gets a parseable body rather than an empty file.
+func TestBodyTemplate_KindWithNoSectionSet(t *testing.T) {
+	t.Parallel()
+	for _, k := range []Kind{Kind("widget"), Kind("")} {
+		t.Run(string(k), func(t *testing.T) {
+			t.Parallel()
+			if got, want := string(BodyTemplate(k)), "\n"; got != want {
+				t.Errorf("BodyTemplate(%q) = %q, want %q", k, got, want)
+			}
+		})
+	}
+}
+
+// TestRequiredSections_ReturnsACopy pins that a caller cannot reach through
+// the returned slice and mutate the owned set. The set is process-wide state
+// read by the scaffold and by every check run, so an aliased return would let
+// one caller silently rewrite what every other caller sees.
+func TestRequiredSections_ReturnsACopy(t *testing.T) {
+	t.Parallel()
+	first := RequiredSections(KindEpic)
+	if len(first) == 0 {
+		t.Fatal("RequiredSections(epic) is empty")
+	}
+	first[0] = "Mutated"
+	if second := RequiredSections(KindEpic); second[0] == "Mutated" {
+		t.Errorf("RequiredSections returned an aliased slice; mutation leaked to the owned set")
+	}
+}

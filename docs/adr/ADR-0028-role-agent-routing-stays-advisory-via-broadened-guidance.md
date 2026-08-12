@@ -8,10 +8,6 @@ status: accepted
 
 > **Date:** 2026-07-05 · **Decided by:** human/peter
 
-## Status vocabulary (aiwf)
-
-aiwf's ADR statuses are: `proposed | accepted | superseded | rejected`.
-
 ## Context
 
 G-0353 (archived) found the `deployer` role agent dispatched ~0 times across
@@ -79,7 +75,7 @@ here.
   guidance broadens, that recurrence is the signal to revisit option (c) with
   real multi-agent evidence rather than a single case.
 
-## Validation (optional)
+## Validation
 
 Revisit if a second role agent shows a comparable near-zero dispatch rate
 after the guidance fragment broadens.

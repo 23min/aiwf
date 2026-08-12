@@ -8,8 +8,6 @@ tdd: none                 # optional: required | advisory | none (default none)
 acs: []                   # optional: filled by `aiwf add ac <milestone-id> --title "..."`
 ---
 
-# <id> — <Milestone Title>
-
 ## Goal
 
 <1–2 sentences: what this milestone achieves.>
@@ -52,10 +50,10 @@ acs: []                   # optional: filled by `aiwf add ac <milestone-id> --ti
 
 - <Locked decisions approved before implementation. Reference ADRs by id (`ADR-NNNN`) or aiwf decisions (`D-NNNN`)>
 
-## Surfaces touched (optional)
+## Surfaces touched
 
-<!-- 1–5 items, not an exhaustive file dump. A pointer so an implementer knows where to
-     start reading. Omit for small or obvious milestones. -->
+<!-- Optional — 1–5 items, not an exhaustive file dump. A pointer so an implementer knows
+     where to start reading. Omit for small or obvious milestones. -->
 
 - <path or module>
 
@@ -67,9 +65,9 @@ acs: []                   # optional: filled by `aiwf add ac <milestone-id> --ti
 
 - <Prior milestone, external dep, decision record — what must exist before starting>
 
-## Coverage notes (optional)
+## Coverage notes
 
-<!-- Reachable branches the implementation deliberately leaves untested, with the reason.
+<!-- Optional — reachable branches the implementation deliberately leaves untested, with the reason.
      The wf-tdd-cycle branch-coverage hard rule expects every reachable branch to have a
      test. Genuinely unreachable branches (defensive null checks the type system already
      guarantees, etc.) are documented here. -->

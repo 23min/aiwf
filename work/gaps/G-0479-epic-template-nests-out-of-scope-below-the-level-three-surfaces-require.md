@@ -1,8 +1,10 @@
 ---
 id: G-0479
 title: Epic template nests out-of-scope below the level three surfaces require
-status: open
+status: addressed
 priority: low
+addressed_by_commit:
+    - 01b1cf758
 ---
 ## What's missing
 

@@ -1,16 +1,16 @@
 ---
 id: M-0307
 title: Route the body-scaffold instruction through the verb covering every kind
-status: draft
+status: cancelled
 parent: E-0081
 tdd: required
 acs:
     - id: AC-1
       title: The always-on guidance names a scaffold route resolving for all six kinds
-      status: open
+      status: cancelled
     - id: AC-2
       title: No shipped surface cites a per-kind template path that does not exist
-      status: open
+      status: cancelled
 ---
 
 ## Goal
@@ -32,11 +32,13 @@ the instruction reads as "your tree is stale" where the truth is "this file was 
 going to exist" — and the reader most likely to follow it is an assistant with no prior
 about what the directory holds.
 
-Gap and contract are born-complete kinds, so `aiwf add` hard-refuses an empty body for
-exactly the two kinds with no scaffold to work from. The failure is silent at every
-step: no check fires, `aiwf doctor` reports the rituals materialized, and the consumer
-sees a healthy tree. The assistant either invents a structure or skips the body, and
-nothing catches either.
+All four born-complete kinds refuse a bare scaffold at creation — its sections are
+empty, which is what the gate reads. For adr and decision the named template exists,
+so the instruction still leads somewhere. For gap and contract it names a file that
+was never going to exist, and the only other route is refused. The failure is silent
+at every step: no check fires, `aiwf doctor` reports the rituals materialized, and the
+consumer sees a healthy tree. The assistant either invents a structure or skips the
+body, and nothing catches either.
 
 `aiwf template <kind>` already prints the per-kind scaffold for all six kinds.
 
@@ -112,6 +114,25 @@ None. Parallel with M-0305 and M-0306 throughout.
 - E-0081 — parent epic
 
 ## Work log
+
+Cancelled before implementation; the scope landed directly on the epic branch as a
+single commit, `fix(skills): stop citing a per-kind template path that resolves for no
+kind`.
+
+A preflight measured the spec before any code was written and found the premise
+sound but the shape wrong in three ways. The cited path resolved for no kind rather
+than two — the two templates whose names came closest open with their own frontmatter,
+which `aiwf add --body-file` refuses — so the defect was worse than stated and the fix
+no larger. Three shipped surfaces carried the citation, not the one this spec named,
+which made AC-2 unsatisfiable as scoped. And AC-1 could not be written non-vacuously:
+a test cannot read prose and determine which route it names without being told the
+route, at which point it asserts only that the guidance says what the test says it
+says. The route the spec proposed also degraded ADR and decision, whose citation
+resolves today, by pointing them away from the rich template at empty headings.
+
+What survived is a ban rather than an assertion — no shipped surface may cite a
+templates path materialization does not write, with both sides derived. That is one
+commit, not a milestone.
 
 ## Decisions made during implementation
 

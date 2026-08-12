@@ -1,17 +1,18 @@
 ---
 id: E-0081
-title: One table owns entity body sections; the check fires on an absent one
+title: One table owns entity body sections; every other surface follows it
 status: active
 ---
 ## Goal
 
 Give "which body sections an entity carries" a single owner, so the surfaces that
-state it today cannot disagree — and repair the rule that names the requirement but
-stays silent when a section is missing.
+state it today cannot disagree.
 
 ## Context
 
-Five surfaces state the per-kind body section set. Measured 2026-08-06, for milestone:
+Every surface below states the per-kind body section set. Measured 2026-08-06/08; the
+`says` column reads the milestone entry, or names the kinds a surface covers when it
+does not reach milestone at all:
 
 | surface | says |
 |---|---|
@@ -20,16 +21,30 @@ Five surfaces state the per-kind body section set. Measured 2026-08-06, for mile
 | the prose milestone template under the embedded rituals | Goal, Context, Acceptance criteria, +12 |
 | the `show --format=json` body map | `goal`, `acceptance_criteria` |
 | the root command's help text describing that map | `goal/acceptance_criteria` |
+| the `aiwf-show` skill's body-key table | `goal`, `approach`, `acceptance_criteria`, +5 |
+| the `aiwf-add` skill's required-body-sections table, and its per-kind prose | Goal, Approach, Acceptance criteria |
+| the `entity-body-empty` rule's package doc comment | Goal, Approach, Acceptance criteria |
+| `docs/design/design-decisions.md`'s body-sections table (Normative tier) | Goal, Acceptance criteria, +5 from the prose template |
+| `selfCheck*Body` (`internal/cli/doctor/selfcheck.go`) | born-complete kinds only — full bodies for adr, gap, decision, contract |
+| `bornCompleteFixtureBody` (`internal/cellcoverage/fixture.go`) | born-complete kinds only — the same four, again |
 
-Four of the five omit `Approach`, and the one that requires it never fires.
-`EmptyRequiredSections` reports only a section that is present and empty; a heading
-absent outright is skipped, a stance its own doc comment takes deliberately. The map
-named as the requirement therefore enforces non-emptiness of whatever happens to be
-present, and nothing enforces membership at all.
+They disagree in both directions: the surfaces that reach milestone split over whether
+it carries `Approach`, with the rule that requires it outnumbered by those that never
+write it. One is wrong about a key it does name — the `aiwf-show` skill gives gap's
+section as `whats_missing`, where the slug `SectionSlug` derives is `what_s_missing`,
+so a reader following it looks up a key no envelope carries.
 
-Verified end to end in a scratch consumer repo: `aiwf add milestone` writes a body
-missing a section the kernel declares required, and `aiwf check` reports nothing on
-that axis.
+Some of these were found by review rather than by the original sweep, which is itself
+evidence for the epic: a surface nobody thought to look at is exactly the one that
+drifts. The two Go literals fail in the worst direction — if a kind's set gains a
+section, they build entities missing it, and because nothing reports an absent heading
+the `aiwf doctor --self-check` that runs them passes anyway.
+
+The disagreements survive because nothing can see them. `EmptyRequiredSections`
+reports only a section that is present and empty; a heading absent outright is
+skipped, a stance its own doc comment takes deliberately. So the map named as the
+requirement enforces non-emptiness of whatever happens to be present, and nothing
+enforces membership at all — the hole G-0571 now carries.
 
 A second instance sits in a different kind. The prose epic template places
 out-of-scope one heading level below the flat `## Out of scope` that the check, the
@@ -41,8 +56,9 @@ scaffold does not write and that no epic in this tree carries.
 
 Separately, the always-on guidance instructs an assistant to fill a body from a
 per-kind template path that resolves for two of six kinds. Gap and contract have no
-such file and are born-complete, so `aiwf add` hard-refuses an empty body for exactly
-the two kinds with no scaffold to work from.
+such file at all. All four born-complete kinds refuse a bare scaffold at creation —
+its sections are empty, which is what the gate reads — so for gap and contract the
+instruction names a file that does not exist while the only other route is refused.
 
 Absorbs G-0482, G-0479 and G-0541.
 
@@ -50,9 +66,6 @@ Absorbs G-0482, G-0479 and G-0541.
 
 - One owner for the per-kind section set; every other surface derives from it or is
   mechanically checked against it, rather than restating it.
-- The requirement fires when a required section is absent, not only when it is present
-  and empty — reached through the helper the verb gate and check rule already share,
-  so the two cannot drift on what "missing" means.
 - Membership corrections the existing evidence already settles: `Approach` leaves the
   milestone set; the epic prose template's out-of-scope heading moves to top level so
   the existing requirement starts holding.
@@ -61,6 +74,11 @@ Absorbs G-0482, G-0479 and G-0541.
 
 ## Out of scope
 
+- Enforcing membership. This epic makes the surfaces agree on what the set *is*; it
+  does not make any of them refuse a body that omits a section. Tracked as G-0571,
+  which carries the measurement of what closing it tree-wide would cost, and the
+  narrower create-time option worth weighing on its own evidence rather than as a
+  rider here.
 - Whether the four milestone-spec sections that duplicate structured data should exist
   at all (G-0530). That asks whether a section is worth carrying, where this epic asks
   only that the surfaces agree; one of the four is load-bearing for the wrap ritual's
@@ -71,8 +89,8 @@ Absorbs G-0482, G-0479 and G-0541.
 
 ## Constraints
 
-- No new chokepoint. The absent-section case flows through `EmptyRequiredSections`,
-  the helper `internal/verb/add.go` and the `entity-body-empty` rule already share.
+- No new chokepoint, and no change to what `aiwf check` reports. The epic reconciles
+  the surfaces that state the set; the rule reading it keeps its existing behaviour.
 - The prose templates survive as a superset, not a second source: a test proves each
   contains the derived required set. Collapsing them is not in this epic — four
   rituals read them, and the milestone template's work-log section is where per-AC
@@ -89,7 +107,8 @@ Absorbs G-0482, G-0479 and G-0541.
       checked against it.
 - [ ] A milestone body created by `aiwf add` and left unedited produces no
       `entity-body-empty` finding attributable to a section the template never wrote.
-- [ ] An entity body missing a required section produces a finding naming that section.
+- [ ] The scaffold's rendered bytes are asserted per kind, so a display-form edit to a
+      section name cannot pass every suite.
 - [ ] An epic drafted from the prose template carries `out_of_scope` in
       `aiwf show --format=json`.
 - [ ] Every kind resolves through the body-scaffold route the always-on guidance names.
@@ -105,16 +124,20 @@ Absorbs G-0482, G-0479 and G-0541.
 
 ## Milestones
 
-- `M-0305` — one owner for the per-kind section set; the rule fires on an absent
-  section and `Approach` leaves the milestone set · depends on: —
-- `M-0306` — the shipped prose templates become a checked superset of that set, and
-  the epic template's out-of-scope heading moves to top level · depends on: `M-0305`
+- `M-0305` — one owner for the per-kind section set, with the help text and the show
+  skill's key table checked against it, and `Approach` retired · depends on: —
+- `M-0306` — every surface still stating the set follows it: the prose templates become
+  a checked superset, the epic template's out-of-scope heading moves to top level, the
+  normative table narrows to what the scaffold writes, and the two Go fixtures derive
+  from the set instead of spelling it out · depends on: `M-0305`
 - `M-0307` — the always-on guidance's body-scaffold instruction routes through the
   verb that covers every kind · depends on: —
 
 ## References
 
-- G-0482 — `Approach` exists on no shipped surface; argues for a detector over point fixes
+- G-0482 — the milestone template and the required set disagreed about `Approach`;
+  argues for a detector over point fixes
+- G-0571 — nothing enforces that a body carries its kind's required sections
 - G-0479 — epic template nests out-of-scope below the level three surfaces require
 - G-0541 — the guidance's template path resolves for two of six kinds
 - G-0530 — the adjacent, out-of-scope question of section membership

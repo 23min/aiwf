@@ -80,18 +80,20 @@ Every entity is a markdown file (or, for epics and contracts, a directory contai
 
 Timestamps (`created`, `updated`) are deliberately absent from frontmatter; `git log` carries them. Putting them in YAML would be redundant state and a future drift target.
 
-**Body templates** are short section stubs written by `aiwf add`. They are starting points, not enforced structure:
+**Body templates** are short section stubs written by `aiwf add`. They are starting points; what the kernel validates about a filled-in body is narrow, and stated below the table:
 
 | Kind | Body sections |
 |---|---|
 | Epic | `## Goal` / `## Scope` / `## Out of scope` |
-| Milestone | `## Goal` / `## Acceptance criteria` (per-AC `### AC-N — <title>`) / `## Work Log` / `## Decisions made during implementation` / `## Validation` / `## Deferrals` / `## Reviewer notes` (expanded in I2) |
+| Milestone | `## Goal` / `## Acceptance criteria` (per-AC `### AC-N — <title>`) |
 | ADR | `## Context` / `## Decision` / `## Consequences` |
 | Gap | `## What's missing` / `## Why it matters` |
 | Decision | `## Question` / `## Decision` / `## Reasoning` |
 | Contract | `## Purpose` / `## Stability` |
 
-Bodies are not validated. The framework guarantees structural and referential stability of frontmatter; prose is the human's responsibility.
+The richer milestone shape a planning ritual fills in — work log, decisions, validation, deferrals, reviewer notes — comes from the prose template under `.claude/templates/`, not from `aiwf add`. The templates are supersets of this table by design; the table lists what the verb writes.
+
+Bodies are validated narrowly. `entity-body-empty` reports a required section that is present and empty, and the born-complete kinds (ADR, gap, decision, contract) refuse an empty body at creation, having no draft phase to fill one in later. Nothing enforces that a body carries a required section at all: an absent heading is skipped rather than reported, by this rule and every other surface (G-0571). Past that line, prose is the human's responsibility; the framework guarantees structural and referential stability of frontmatter.
 
 ### Stable ids and rename ergonomics
 

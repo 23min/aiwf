@@ -27,7 +27,7 @@ If any precondition fails, stop and report. Do not improvise around a half-plann
 
 ### 1. Preflight: read the epic spec
 
-Open `work/epics/E-NNNN-<slug>/epic.md`. Confirm the Goal, Scope (in / out), and Constraints sections are concrete prose, not template placeholders. The kernel's `entity-body-empty` finding catches the worst case (all-template body); this step catches the in-between case (body present but vague).
+Open `work/epics/E-NNNN-<slug>/epic.md`. Confirm the Goal, Scope, Out of scope, and Constraints sections are concrete prose, not template placeholders. The kernel's `entity-body-empty` finding catches the worst case (all-template body); this step catches the in-between case (body present but vague).
 
 If any section is template-shaped, stop and return the operator to `aiwfx-plan-epic` to flesh it out.
 

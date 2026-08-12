@@ -178,7 +178,7 @@ The load-bearing body sections per kind:
 | Kind | Required body sections |
 |---|---|
 | epic | `## Goal`, `## Scope`, `## Out of scope` |
-| milestone | `## Goal`, `## Approach`, `## Acceptance criteria` |
+| milestone | `## Goal`, `## Acceptance criteria` |
 | ac | The `### AC-N — <title>` body (one paragraph covering pass criteria, edge cases, and code references) |
 | gap | `## What's missing`, `## Why it matters` |
 | adr | `## Context`, `## Decision`, `## Consequences` |
@@ -192,7 +192,7 @@ Two ways to land the body content:
 
 ### Locating the rich body template
 
-`aiwf add` writes a *minimal valid* skeleton — enough headings to clear `aiwf check`, not the house-style shape. The richer per-kind template is materialized at `.claude/templates/<kind>.md` by `aiwf update`: `adr.md` and `decision.md` (the Nygard-structured ADR / decision bodies, carrying the `# <id> — <title>` H1 and date / decided-by header the skeleton omits) and `epic-spec.md` / `milestone-spec.md` (the planning-spec scaffolds). For ADR and decision the `aiwfx-record-decision` ritual reads the template and fills it in; for epic and milestone the planning rituals do. **`gap` and `contract` have no rich template — the skeleton is their whole shape.** If `.claude/templates/` is absent, the templates aren't materialized: run `aiwf update` — don't reconstruct a body by copying an existing entity, which drifts from the canonical template and drops the H1 / header.
+`aiwf add` writes a *minimal valid* skeleton — enough headings to clear `aiwf check`, not the house-style shape. Four richer templates are materialized into `.claude/templates/` by `aiwf update`, and their filenames do not follow a per-kind pattern — read the directory rather than guessing a name: `adr.md` and `decision.md` (the Nygard-structured ADR / decision bodies, carrying the date / decided-by header the skeleton omits, and an optional `# <id> — <title>` H1 the template marks as yours to keep or delete) and `epic-spec.md` / `milestone-spec.md` (the planning-spec scaffolds). For ADR and decision the `aiwfx-record-decision` ritual reads the template and fills it in; for epic and milestone the planning rituals do. **`gap` and `contract` have no rich template — the skeleton is their whole shape.** If `.claude/templates/` is absent, the templates aren't materialized: run `aiwf update` — don't reconstruct a body by copying an existing entity, which drifts from the canonical template and drops the header.
 
 ### What to write per kind
 
@@ -215,7 +215,7 @@ in `cmd/aiwf/add_cmd_test.go`.
 
 **Epics.** `## Goal` describes the problem the epic solves and what success looks like — one paragraph, no longer than four sentences. `## Scope` enumerates what's in (one bullet per major piece of work, often a milestone). `## Out of scope` enumerates what's deliberately not — usually the most-tempting adjacent work, with a one-line "why not yet."
 
-**Milestones.** `## Goal` describes the chunk of value this milestone ships. `## Approach` is the implementation sketch — which packages get touched, which existing patterns get extended, what the verb / rule / file shape will be. `## Acceptance criteria` is the heading container; the actual ACs land as `### AC-N — <title>` sub-elements with their own bodies.
+**Milestones.** `## Goal` describes the chunk of value this milestone ships. `## Acceptance criteria` is the heading container; the actual ACs land as `### AC-N — <title>` sub-elements with their own bodies. The rich template adds `## Context` for what exists before the work and `## Design notes` for decisions already locked — reach for those when the milestone needs them.
 
 **Gaps.** `## What's missing` is the **concrete defect** — what specifically doesn't exist or doesn't work; one paragraph naming the symptom and the affected surface. `## Why it matters` is the consequence — what fails, who notices, what bug class this enables; one paragraph naming the operational impact.
 

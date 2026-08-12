@@ -20,12 +20,15 @@ import (
 // add`. These kinds refuse an empty load-bearing body at creation, so
 // the self-check must supply real (if minimal) prose per kind rather
 // than relying on the bare per-kind template.
-const (
-	selfCheckADRBody      = "## Context\n\nSelf-check fixture entity; not a real decision.\n\n## Decision\n\nSelf-check fixture entity; not a real decision.\n\n## Consequences\n\nSelf-check fixture entity; not a real decision.\n"
-	selfCheckGapBody      = "## What's missing\n\nSelf-check fixture entity; not a real gap.\n\n## Why it matters\n\nSelf-check fixture entity; not a real gap.\n"
-	selfCheckDecisionBody = "## Question\n\nSelf-check fixture entity; not a real decision.\n\n## Decision\n\nSelf-check fixture entity; not a real decision.\n\n## Reasoning\n\nSelf-check fixture entity; not a real decision.\n"
-	selfCheckContractBody = "## Purpose\n\nSelf-check fixture entity; not a real contract.\n\n## Stability\n\nSelf-check fixture entity; not a real contract.\n"
-)
+//
+// The sections come from the kind's own set rather than being spelled
+// out here. A kind that later gains one would otherwise leave the
+// self-check creating an entity without it — and since no surface
+// reports an absent heading, the walk would keep passing while
+// producing exactly the defect a consumer runs it to rule out.
+func selfCheckBody(k entity.Kind, subject string) string {
+	return string(entity.BodyWithSectionText(k, "Self-check fixture entity; not a real "+subject+"."))
+}
 
 // runSelfCheck drives every aiwf verb end-to-end against a throwaway
 // repo. It exists to answer "is my install actually working?" without
@@ -150,10 +153,10 @@ func runSelfCheck() int {
 		// (no draft phase); `aiwf add` refuses an empty load-bearing
 		// body at creation, so the self-check's fixture entities carry
 		// minimal real prose via --body rather than the bare template.
-		{label: "add adr", args: []string{"add", "adr", "--title", "Use Postgres", "--actor", actor, "--root", tmp, "--body", selfCheckADRBody}},
-		{label: "add gap", args: []string{"add", "gap", "--title", "Auth gap", "--discovered-in", "M-001", "--actor", actor, "--root", tmp, "--body", selfCheckGapBody}},
-		{label: "add decision", args: []string{"add", "decision", "--title", "Sunset v1", "--actor", actor, "--root", tmp, "--body", selfCheckDecisionBody}},
-		{label: "add contract", args: []string{"add", "contract", "--title", "Public API", "--actor", actor, "--root", tmp, "--body", selfCheckContractBody}},
+		{label: "add adr", args: []string{"add", "adr", "--title", "Use Postgres", "--actor", actor, "--root", tmp, "--body", selfCheckBody(entity.KindADR, "decision")}},
+		{label: "add gap", args: []string{"add", "gap", "--title", "Auth gap", "--discovered-in", "M-001", "--actor", actor, "--root", tmp, "--body", selfCheckBody(entity.KindGap, "gap")}},
+		{label: "add decision", args: []string{"add", "decision", "--title", "Sunset v1", "--actor", actor, "--root", tmp, "--body", selfCheckBody(entity.KindDecision, "decision")}},
+		{label: "add contract", args: []string{"add", "contract", "--title", "Public API", "--actor", actor, "--root", tmp, "--body", selfCheckBody(entity.KindContract, "contract")}},
 		{label: "promote", args: []string{"promote", "--actor", actor, "--root", tmp, "E-01", "active"}},
 		{label: "cancel", args: []string{"cancel", "--actor", actor, "--root", tmp, "G-001"}},
 		{label: "rename", args: []string{"rename", "--actor", actor, "--root", tmp, "E-01", "self-check-renamed"}},
@@ -222,7 +225,7 @@ func runSelfCheck() int {
 		{label: "check", args: []string{"check", "--root", tmp}},
 		{
 			label: "add gap (audit-only fixture)",
-			args:  []string{"add", "gap", "--title", "audit-only fixture", "--actor", actor, "--root", tmp, "--body", selfCheckGapBody},
+			args:  []string{"add", "gap", "--title", "audit-only fixture", "--actor", actor, "--root", tmp, "--body", selfCheckBody(entity.KindGap, "gap")},
 		},
 		{
 			label: "audit-only fixture: synthetic untrailered flip + check fires",

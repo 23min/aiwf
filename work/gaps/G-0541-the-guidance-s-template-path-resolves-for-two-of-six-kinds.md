@@ -1,8 +1,10 @@
 ---
 id: G-0541
 title: The guidance's template path resolves for two of six kinds
-status: open
+status: addressed
 priority: medium
+addressed_by_commit:
+    - 4d94db6c2
 ---
 ## What's missing
 

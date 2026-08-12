@@ -7,10 +7,6 @@ status: accepted
 
 > **Date:** 2026-07-06 · **Decided by:** human/peter
 
-## Status vocabulary (aiwf)
-
-aiwf's ADR statuses are: `proposed | accepted | superseded | rejected`.
-
 ## Context
 
 ADR-0015 narrowed aiwf's original "never edits settings.json" stance to a

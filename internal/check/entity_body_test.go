@@ -45,11 +45,11 @@ func TestEntityBodyEmpty_FiresPerKind_OneSectionEmpty(t *testing.T) {
 			wantSeverity: SeverityWarning,
 		},
 		{
-			name:         "milestone with empty Approach",
-			writeFixture: writeMilestoneFixture("Approach"),
+			name:         "milestone with empty Goal",
+			writeFixture: writeMilestoneFixture("Goal"),
 			wantEntityID: "M-0001",
 			wantSubcode:  "milestone",
-			wantSection:  "Approach",
+			wantSection:  "Goal",
 			wantSeverity: SeverityWarning,
 		},
 		{
@@ -144,10 +144,6 @@ func TestEntityBodyEmpty_CancelledACSkipped(t *testing.T) {
 
 Goal prose.
 
-## Approach
-
-Approach prose.
-
 ## Acceptance criteria
 
 Each AC pins one observable behavior.
@@ -215,10 +211,6 @@ func TestEntityBodyEmpty_ACWithoutBodyHeadingSkipped(t *testing.T) {
 	body := `## Goal
 
 Goal prose.
-
-## Approach
-
-Approach prose.
 
 ## Acceptance criteria
 
@@ -331,10 +323,6 @@ func TestEntityBodyEmpty_ScanACBodies_H2Resets(t *testing.T) {
 
 Goal prose.
 
-## Approach
-
-Approach prose.
-
 ## Acceptance criteria
 
 Each AC pins one observable behavior.
@@ -413,10 +401,6 @@ func TestEntityBodyEmpty_ScanACBodies_H3NonACResets(t *testing.T) {
 	body := `## Goal
 
 Goal prose.
-
-## Approach
-
-Approach prose.
 
 ## Acceptance criteria
 
@@ -611,7 +595,7 @@ func TestEntityBodyEmpty_AcceptsVariedProseShapes(t *testing.T) {
 	}{
 		{
 			name: "single sentence",
-			body: "Approach.",
+			body: "Goal.",
 		},
 		{
 			name: "multi-paragraph",
@@ -633,22 +617,22 @@ func TestEntityBodyEmpty_AcceptsVariedProseShapes(t *testing.T) {
 		},
 		{
 			name: "paragraph plus bullet plus code",
-			body: "Approach paragraph.\n\n" +
+			body: "Goal paragraph.\n\n" +
 				"- bullet point one\n- bullet point two\n\n" +
 				"```bash\naiwf check\n```",
 		},
 	}
 
 	for _, tc := range cases {
-		t.Run("milestone Approach: "+tc.name, func(t *testing.T) {
+		t.Run("milestone Goal: "+tc.name, func(t *testing.T) {
 			root := t.TempDir()
-			ents, err := writeMilestoneWithApproachBody(tc.body)(root)
+			ents, err := writeMilestoneWithGoalBody(tc.body)(root)
 			if err != nil {
 				t.Fatalf("write fixture: %v", err)
 			}
 			tr := &tree.Tree{Root: root, Entities: ents}
 			if got := entityBodyEmpty(tr); len(got) != 0 {
-				t.Errorf("milestone Approach body %q should produce no findings; got %+v",
+				t.Errorf("milestone Goal body %q should produce no findings; got %+v",
 					tc.body, got)
 			}
 		})
@@ -679,7 +663,7 @@ func TestEntityBodyEmpty_AcceptsVariedProseShapes(t *testing.T) {
 // comment shapes all behave identically — the regex strips them all
 // before the per-line walker sees the content.
 //
-// Each shape runs at both the top-level (`## Approach`) and the
+// Each shape runs at both the top-level (`## Goal`) and the
 // AC-leaf (`### AC-1`) level so both consumers of stripHTMLComments
 // are pinned.
 func TestEntityBodyEmpty_HTMLCommentsAreEmpty(t *testing.T) {
@@ -722,9 +706,9 @@ func TestEntityBodyEmpty_HTMLCommentsAreEmpty(t *testing.T) {
 	}
 
 	for _, tc := range cases {
-		t.Run("milestone Approach: "+tc.name, func(t *testing.T) {
+		t.Run("milestone Goal: "+tc.name, func(t *testing.T) {
 			root := t.TempDir()
-			ents, err := writeMilestoneWithApproachBody(tc.body)(root)
+			ents, err := writeMilestoneWithGoalBody(tc.body)(root)
 			if err != nil {
 				t.Fatalf("write fixture: %v", err)
 			}
@@ -733,12 +717,12 @@ func TestEntityBodyEmpty_HTMLCommentsAreEmpty(t *testing.T) {
 			fired := false
 			for _, f := range got {
 				if f.Subcode == "milestone" &&
-					contains(f.Message, "Approach") {
+					contains(f.Message, "Goal") {
 					fired = true
 				}
 			}
 			if fired != tc.wantFires {
-				t.Errorf("milestone Approach body %q: fired=%v, want %v; findings=%+v",
+				t.Errorf("milestone Goal body %q: fired=%v, want %v; findings=%+v",
 					tc.body, fired, tc.wantFires, got)
 			}
 		})
@@ -898,8 +882,8 @@ func TestEntityBodyEmpty_TerminalStatusSkipped(t *testing.T) {
 			writeFixture: writeContractFixtureWithStatus("Purpose", entity.StatusRejected),
 		},
 		{
-			name:         "milestone done with empty Approach",
-			writeFixture: writeMilestoneFixtureWithStatus("Approach", entity.StatusDone),
+			name:         "milestone done with empty Goal",
+			writeFixture: writeMilestoneFixtureWithStatus("Goal", entity.StatusDone),
 		},
 		{
 			name:         "milestone cancelled with empty Goal",
@@ -928,7 +912,7 @@ func TestEntityBodyEmpty_TerminalStatusSkipped(t *testing.T) {
 // draft milestones (the routine output of `aiwfx-plan-milestones`)
 // don't deserve N warnings before any TDD work begins.
 //
-// The top-level milestone sections (`## Goal`, `## Approach`, `##
+// The top-level milestone sections (`## Goal`, `##
 // Acceptance criteria`) still fire if empty — this gate is narrow to
 // the AC-body arm, not the whole entity.
 func TestEntityBodyEmpty_DraftMilestoneACsSkipped(t *testing.T) {
@@ -938,10 +922,6 @@ func TestEntityBodyEmpty_DraftMilestoneACsSkipped(t *testing.T) {
 	body := `## Goal
 
 Goal prose.
-
-## Approach
-
-Approach prose.
 
 ## Acceptance criteria
 
@@ -999,19 +979,15 @@ acs:
 // TestEntityBodyEmpty_DraftMilestoneTopSectionsStillFire is the narrow-
 // gate guard for AC-3. The draft-milestone exemption applies only to
 // the AC-body arm; the top-level required-section walk still fires if
-// `## Goal`, `## Approach`, or `## Acceptance criteria` is empty under
+// `## Goal` or `## Acceptance criteria` is empty under
 // a draft milestone. Drafts ship with shape; the spec body is still
 // load-bearing prose.
 func TestEntityBodyEmpty_DraftMilestoneTopSectionsStillFire(t *testing.T) {
 	t.Parallel()
 	root := t.TempDir()
 	path := "work/epics/E-01-foo/M-001-bar.md"
-	// `## Approach` is empty; everything else has prose.
+	// `## Goal` is empty; everything else has prose.
 	body := `## Goal
-
-Goal prose.
-
-## Approach
 
 ## Acceptance criteria
 
@@ -1028,13 +1004,13 @@ Each AC pins one observable behavior.
 	tr := &tree.Tree{Root: root, Entities: ents}
 	got := entityBodyEmpty(tr)
 	if len(got) != 1 {
-		t.Fatalf("draft milestone with empty Approach should produce 1 finding; got %d: %+v", len(got), got)
+		t.Fatalf("draft milestone with empty Goal should produce 1 finding; got %d: %+v", len(got), got)
 	}
 	if got[0].Subcode != "milestone" {
 		t.Errorf("Subcode = %q, want milestone", got[0].Subcode)
 	}
-	if !contains(got[0].Message, "Approach") {
-		t.Errorf("Message %q should mention Approach", got[0].Message)
+	if !contains(got[0].Message, "Goal") {
+		t.Errorf("Message %q should mention Goal", got[0].Message)
 	}
 }
 
@@ -1068,7 +1044,7 @@ func TestEntityBodyEmpty_ActiveStateStillFires(t *testing.T) {
 		},
 		{
 			name:         "in_progress milestone still fires",
-			writeFixture: writeMilestoneFixtureWithStatus("Approach", entity.StatusInProgress),
+			writeFixture: writeMilestoneFixtureWithStatus("Goal", entity.StatusInProgress),
 			wantSubcode:  "milestone",
 		},
 		{
@@ -1171,9 +1147,8 @@ func writeMilestoneFixtureWithStatus(emptySection string, status entity.Status) 
 		path := "work/epics/E-01-foo/M-001-bar.md"
 		body := buildBody(map[string]string{
 			"Goal":                "Goal prose.",
-			"Approach":            "Approach prose.",
 			"Acceptance criteria": "Each AC pins one observable behavior.",
-		}, []string{"Goal", "Approach", "Acceptance criteria"}, emptySection)
+		}, []string{"Goal", "Acceptance criteria"}, emptySection)
 		fm := "---\nid: M-001\ntitle: Bar\nstatus: " + string(status) + "\nparent: E-01\ntdd: none\n---\n\n"
 		return write1(root, path, fm+body, &entity.Entity{
 			ID: "M-0001", Kind: entity.KindMilestone, Title: "Bar",
@@ -1184,17 +1159,13 @@ func writeMilestoneFixtureWithStatus(emptySection string, status entity.Status) 
 
 // writeACFixture builds a milestone whose AC-1 body is empty
 // (heading present, no prose under it) and AC-2 body has prose.
-// All three top-level milestone sections have prose.
+// Both top-level milestone sections have prose.
 func writeACFixture() func(root string) ([]*entity.Entity, error) {
 	return func(root string) ([]*entity.Entity, error) {
 		path := "work/epics/E-01-foo/M-001-bar.md"
 		body := `## Goal
 
 Goal prose.
-
-## Approach
-
-Approach prose.
 
 ## Acceptance criteria
 
@@ -1327,7 +1298,7 @@ func writeFullyPopulatedFixture(root string) ([]*entity.Entity, error) {
 		{
 			path: "work/epics/E-01-foo/M-001-bar.md",
 			fm:   "---\nid: M-001\ntitle: Bar\nstatus: in_progress\nparent: E-01\ntdd: none\n---\n\n",
-			body: "## Goal\n\nGoal.\n\n## Approach\n\nApproach.\n\n## Acceptance criteria\n\nEach AC pins one observable behavior.\n",
+			body: "## Goal\n\nGoal.\n\n## Acceptance criteria\n\nEach AC pins one observable behavior.\n",
 			ent:  &entity.Entity{ID: "M-0001", Kind: entity.KindMilestone, Title: "Bar", Status: "in_progress", Parent: "E-0001", TDD: "none", Path: "work/epics/E-01-foo/M-001-bar.md"},
 		},
 		{
@@ -1400,14 +1371,13 @@ func write1(root, rel, content string, e *entity.Entity) ([]*entity.Entity, erro
 	return []*entity.Entity{e}, nil
 }
 
-// writeMilestoneWithApproachBody returns a milestone fixture builder
-// where every required section is non-empty and `## Approach` carries
+// writeMilestoneWithGoalBody returns a milestone fixture builder
+// where every required section is non-empty and `## Goal` carries
 // the supplied body. Used by AC-3's varied-prose contract test.
-func writeMilestoneWithApproachBody(approach string) func(root string) ([]*entity.Entity, error) {
+func writeMilestoneWithGoalBody(goal string) func(root string) ([]*entity.Entity, error) {
 	return func(root string) ([]*entity.Entity, error) {
 		path := "work/epics/E-01-foo/M-001-bar.md"
-		body := "## Goal\n\nGoal prose.\n\n" +
-			"## Approach\n\n" + approach + "\n\n" +
+		body := "## Goal\n\n" + goal + "\n\n" +
 			"## Acceptance criteria\n\nEach AC pins one observable behavior.\n"
 		fm := "---\nid: M-001\ntitle: Bar\nstatus: in_progress\nparent: E-01\ntdd: none\n---\n\n"
 		return write1(root, path, fm+body, &entity.Entity{
@@ -1425,7 +1395,6 @@ func writeMilestoneWithACBody(acBody string) func(root string) ([]*entity.Entity
 	return func(root string) ([]*entity.Entity, error) {
 		path := "work/epics/E-01-foo/M-001-bar.md"
 		body := "## Goal\n\nGoal prose.\n\n" +
-			"## Approach\n\nApproach prose.\n\n" +
 			"## Acceptance criteria\n\nEach AC pins one observable behavior.\n\n" +
 			"### AC-1 — Filled AC\n\n" + acBody + "\n"
 		fm := `---
@@ -1460,7 +1429,6 @@ func writeMetDoneACWithEmptyBody() func(root string) ([]*entity.Entity, error) {
 	return func(root string) ([]*entity.Entity, error) {
 		path := "work/epics/E-01-foo/M-001-bar.md"
 		body := "## Goal\n\nGoal prose.\n\n" +
-			"## Approach\n\nApproach prose.\n\n" +
 			"## Acceptance criteria\n\nEach AC pins one observable behavior.\n\n" +
 			"### AC-1 — Historical AC\n\n"
 		fm := `---
@@ -1501,7 +1469,6 @@ func writeMetRedACWithEmptyBody() func(root string) ([]*entity.Entity, error) {
 	return func(root string) ([]*entity.Entity, error) {
 		path := "work/epics/E-01-foo/M-001-bar.md"
 		body := "## Goal\n\nGoal prose.\n\n" +
-			"## Approach\n\nApproach prose.\n\n" +
 			"## Acceptance criteria\n\nEach AC pins one observable behavior.\n\n" +
 			"### AC-1 — Audit-tripping AC\n\n"
 		fm := `---
@@ -1541,7 +1508,7 @@ acs:
 // missing entirely (NOT treated as empty — matches entityBodyEmpty's
 // long-standing stance, so a body using a non-standard heading shape
 // isn't double-penalized here), an HTML-comment-only placeholder
-// (empty), and the has=false branch for a kind carrying no
+// (empty), and the empty-set branch for a kind carrying no
 // required-sections entry (only reachable directly against the
 // exported function — every real entity.Kind has an entry).
 func TestEmptyRequiredSections(t *testing.T) {
@@ -1603,11 +1570,11 @@ func TestEmptyRequiredSections(t *testing.T) {
 		{
 			name: "milestone acceptance-criteria section satisfied by AC sub-heading, not top-level prose",
 			kind: entity.KindMilestone,
-			body: []byte("## Goal\n\nX.\n\n## Approach\n\nX.\n\n## Acceptance criteria\n\n### AC-1 — X\n"),
+			body: []byte("## Goal\n\nX.\n\n## Acceptance criteria\n\n### AC-1 — X\n"),
 			want: nil,
 		},
 		{
-			name: "kind with no required-sections entry returns nil (has=false branch)",
+			name: "kind with no required-sections entry returns nil (empty-set branch)",
 			kind: entity.Kind("bogus-unknown-kind"),
 			body: []byte("## Anything\n\n"),
 			want: nil,
