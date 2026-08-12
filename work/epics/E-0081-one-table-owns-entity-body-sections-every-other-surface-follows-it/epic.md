@@ -1,7 +1,7 @@
 ---
 id: E-0081
 title: One table owns entity body sections; every other surface follows it
-status: active
+status: done
 ---
 ## Goal
 
