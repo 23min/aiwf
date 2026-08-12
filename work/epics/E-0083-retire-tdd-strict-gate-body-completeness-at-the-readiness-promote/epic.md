@@ -111,7 +111,7 @@ repairing is proportionate.
 | Question | Blocking? | Resolution path |
 |---|---|---|
 | Does a lingering `tdd.strict` produce a deprecation finding, or a hard config-load rejection naming the replacement? | yes, for the removal milestone | Settled against the repo's own precedent for retired config surfaces; the never-used measurement argues the cheaper answer suffices. |
-| Does the readiness rule get its own finding code, or extend `entity-body-empty` with a subcode? | no | Settled in the rule's own milestone; the finding-code discoverability policy constrains either shape equally. |
+| Does the readiness rule get its own finding code, or extend `entity-body-empty` with a subcode? | no | Shared with E-0084, which adds the membership rule ADR-0043 decides. Settled jointly before either epic's first milestone lands, not inside whichever starts first — ADR-0043 names the question and neither epic owns it alone. |
 | Does the rule fire on the FSM transition alone, or on any tree whose entity sits in a readiness status with an incomplete body? | no | The guard needs the transition; a standing check rule is the wider option, decided once the transition case is measured. |
 | Does `aiwf promote --force` bypass the readiness rule? | no | Follows whatever the projection guard already does for its other refusals, which is documented as unconditional. |
 
