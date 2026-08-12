@@ -16,6 +16,31 @@ section in this file.
 
 ## [Unreleased]
 
+### Changed — G-0479, G-0541: the shipped templates and the surfaces naming them agree with the scaffold
+
+The prose templates `aiwf update` materializes into `.claude/templates/` drifted from
+the sections the kernel actually scaffolds and validates. The epic template nested its
+out-of-scope heading one level below the flat `## Out of scope` that the check, the
+`aiwf add` scaffold, and the JSON body map all name, so an epic drafted by following
+the ritual carried no `out_of_scope` key in `aiwf show --format=json`. The epic and
+milestone templates mandated a title H1 that the scaffold never writes. Seven headings
+carried an `(optional)` marker that became part of the section name, so a kept section
+produced a JSON key with the marker folded into it. The templates now match the
+scaffold, and the H1 is marked optional where it is genuinely a choice.
+
+Four surfaces — the always-on guidance fragment, the builder and planner role-agent
+cards, and the `aiwf add` skill — told a reader to fill an entity body from
+`.claude/templates/<kind>.md`. Substituted, that path resolved for no kind: the
+templates are named for what they are rather than for their kind, and the two whose
+names came closest open with their own frontmatter, which `aiwf add --body-file`
+refuses. The suggested remedy compounded it, since no version of `aiwf update` was
+going to produce the missing files. Each surface now names the kind's template where
+one ships and `aiwf template <kind>`, which covers every kind, where none does.
+
+A policy test derives both sides of that claim — cited paths by walking the shipped
+roots, resolvable names from what materialization writes — so a surface naming a
+template that never arrives fails, without a list for anyone to maintain.
+
 ### Changed — G-0482: one table owns the per-kind body sections, and `Approach` leaves the milestone set
 
 The sections each entity kind carries were stated by two independent Go literals
