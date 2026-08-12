@@ -7,7 +7,7 @@ tdd: required
 acs:
     - id: AC-1
       title: The always-on guidance names a scaffold route resolving for all six kinds
-      status: open
+      status: cancelled
     - id: AC-2
       title: No shipped surface cites a per-kind template path that does not exist
       status: open
