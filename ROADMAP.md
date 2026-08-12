@@ -1142,7 +1142,7 @@ Addresses G-0121. Its two non-mechanizable remainders move to G-0564.
 | M-0303 | Assert the acceptance-criterion composition invariant | cancelled |
 | M-0304 | Classify every catalog scenario against the named-scenario rule | cancelled |
 
-## E-0081 — One table owns entity body sections; every other surface follows it (active)
+## E-0081 — One table owns entity body sections; every other surface follows it (done)
 
 ### Goal
 
