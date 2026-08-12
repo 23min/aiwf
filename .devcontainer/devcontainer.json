@@ -55,7 +55,8 @@
         "mhutchie.git-graph",
         "editorconfig.editorconfig",
         "github.vscode-github-actions",
-        "shd101wyy.markdown-preview-enhanced"
+        "shd101wyy.markdown-preview-enhanced",
+        "openai.chatgpt"
       ]
     }
   }
