@@ -27,8 +27,8 @@ lives in the `wf-codebase-health` skill.
   review first.
 - **Entity files are verb- and template-managed — never author one by copying a
   neighbor** (which drifts from the canonical shape and can drop its header).
-  Create with `aiwf add`, filling the body from `.claude/templates/<kind>.md`
-  (`aiwf update` if absent); edit body prose with `aiwf edit-body`; change
+  Create with `aiwf add`, filling the body from the kind's `.claude/templates/`
+  file, or `aiwf template <kind>` if none ships; edit prose with `aiwf edit-body`; change
   title, status, slug, or id with the matching structured verb (`aiwf retitle` /
   `promote` / `rename` / `reallocate`). Never hand-write a file under `work/` or
   hand-edit frontmatter — a plain `git commit` against an entity trips
