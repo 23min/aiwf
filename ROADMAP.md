@@ -1170,3 +1170,13 @@ not.
 
 _No milestones yet._
 
+## E-0084 — Enforce body-section membership at the write seams (proposed)
+
+### Goal
+
+Make a body that omits a section its kind requires impossible to write, so "required"
+stops being a name and starts being a refusal — and delete the prose that exists only
+because nothing enforced it.
+
+_No milestones yet._
+
