@@ -115,6 +115,25 @@ None. Parallel with M-0305 and M-0306 throughout.
 
 ## Work log
 
+Cancelled before implementation; the scope landed directly on the epic branch as a
+single commit, `fix(skills): stop citing a per-kind template path that resolves for no
+kind`.
+
+A preflight measured the spec before any code was written and found the premise
+sound but the shape wrong in three ways. The cited path resolved for no kind rather
+than two — the two templates whose names came closest open with their own frontmatter,
+which `aiwf add --body-file` refuses — so the defect was worse than stated and the fix
+no larger. Three shipped surfaces carried the citation, not the one this spec named,
+which made AC-2 unsatisfiable as scoped. And AC-1 could not be written non-vacuously:
+a test cannot read prose and determine which route it names without being told the
+route, at which point it asserts only that the guidance says what the test says it
+says. The route the spec proposed also degraded ADR and decision, whose citation
+resolves today, by pointing them away from the rich template at empty headings.
+
+What survived is a ban rather than an assertion — no shipped surface may cite a
+templates path materialization does not write, with both sides derived. That is one
+commit, not a milestone.
+
 ## Decisions made during implementation
 
 ## Validation
