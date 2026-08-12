@@ -39,6 +39,47 @@ kernel actually derives; `whats_missing` matched no envelope key.
 Membership remains unenforced on every path — a body that omits a required section
 is reported by nothing. That is unchanged by this work and tracked as G-0571.
 
+### Fixed — G-0567, G-0573: every surface applies the same aiwf.yaml severity policy
+
+The four `aiwf.yaml` knobs that raise a finding to error severity — `tdd.strict`,
+`areas.required`, `docs.strict`, `archive.sweep_threshold` — were composed
+independently at each of the seven places findings are produced. `aiwf check`
+applied all four, `aiwf check --fast` two, and `aiwf status`, `aiwf show`,
+`aiwf render`, `aiwf doctor` and the verb-time projection guard none. Nothing
+held them in any relation to each other.
+
+Consumers saw surfaces contradict the gate they exist to predict. With
+`areas.required: true` and an entity carrying an undeclared area, `aiwf check`
+reported an error and exited 1 while `aiwf check --fast` reported a warning and
+exited 0. With `tdd.strict: true`, `aiwf show` reported at warning severity the
+same findings `aiwf check` reported as errors, and `aiwf status` reported a
+clean tree the pre-push hook blocks. On the write side, `aiwf import` accepted a
+milestone declaring no `tdd:` policy and committed it, and only the next
+`aiwf check` refused the push.
+
+All seven now apply one shared policy, so a knob reaches every surface that runs
+the rule it escalates. That qualifier is the honest one: `docs.strict` and
+`areas.required` cover rules only the full `aiwf check` runs (plus `area-unknown`
+on `--fast`), so on the read surfaces those passes are inert rather than
+omitted — which is what lets the lighter surfaces share one seam without
+becoming stricter, or more permissive, than the gate.
+
+Three behaviours worth naming. Verbs now refuse to commit a state an escalated
+knob makes an error, instead of reporting success and leaving the push blocked.
+The `archive-sweep-pending` aggregate is deliberately excluded from the
+verb-time projection guard: its message names the pending count, so any verb
+that changes that count re-keys the finding, and on a tree already past its
+ceiling each subsequent terminal promote would be blamed for the breach. That
+ceiling remains `aiwf check`'s to enforce, which sees the condition whichever
+verb preceded it.
+
+And `aiwf status` now shows its tree-health sweep line at any severity: the
+threshold decides whether the sweep blocks the push, not whether the reader is
+told it is due. Escalation otherwise moves a finding out of the warnings stream
+by definition, and `aiwf status` has always summarised errors behind a count and
+a pointer to `aiwf check` — so on the status surfaces a raised finding now shows
+in the error count rather than in the warning detail list.
+
 ### Changed — G-0556: a cross-branch reference is classified by whether its branch is published
 
 A reference to an id that lives on another branch was non-blocking whichever

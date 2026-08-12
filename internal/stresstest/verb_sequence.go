@@ -14,8 +14,12 @@ import (
 // git repo. It extends internal/entity/transition_property_test.go's
 // pattern (which only exercises entity.ValidateTransition in-process)
 // out to the real binary: after every step it confirms the FSM's
-// legality verdict is honored and that `aiwf check` never regresses,
-// per M-0241/AC-1.
+// legality verdict is honored and that `aiwf check` reports no
+// error-severity finding and no warning outside the curated baseline
+// below (classifyAgainstBaseline), per M-0241/AC-1. That baseline is
+// an absolute allowlist, not a comparison against the prior step, so
+// the oracle judges each state on its own terms rather than only
+// asking whether findings grew.
 
 // verbSequenceExpectedWarnings is the baseline of finding codes any
 // check in this scenario's disposable repo is expected to carry,

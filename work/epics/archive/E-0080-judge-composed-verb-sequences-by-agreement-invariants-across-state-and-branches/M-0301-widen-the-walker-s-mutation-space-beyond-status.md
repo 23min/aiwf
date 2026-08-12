@@ -1,7 +1,7 @@
 ---
 id: M-0301
 title: Widen the walker's mutation space beyond status
-status: draft
+status: cancelled
 parent: E-0080
 depends_on:
     - M-0300
@@ -9,13 +9,13 @@ tdd: required
 acs:
     - id: AC-1
       title: A sequence seeds acceptance criteria and mutates them through real verbs
-      status: open
+      status: cancelled
     - id: AC-2
       title: A sequence sets areas and priorities and rewrites bodies
-      status: open
+      status: cancelled
     - id: AC-3
       title: An axis the kernel cannot express is recorded against its owning gap
-      status: open
+      status: cancelled
 ---
 ## Goal
 
@@ -25,14 +25,16 @@ than the six FSMs alone.
 
 ## Context
 
-M-0300 gave the walker an oracle that costs nothing per new axis of mutation.
-This milestone spends that: the walker moves `status` and nothing else today, so
-the reachable space is statuses, not references, areas, priorities, edges or
-bodies — and a defect in any of those is unreachable by construction.
+The walker moves `status` and nothing else today, so the reachable space is
+statuses, not references, areas, priorities, edges or bodies — and a defect in
+any of those is unreachable by construction.
 
-D-0063 ordered these two deliberately. A wider state space under the old
-monotonic oracle would have bought reachability without judgment, which is why
-the oracle landed first and the widening lands here.
+D-0063 orders the oracle before the widening, but the two are independent.
+Widening pays off under the existing baseline oracle on its own, since that
+oracle judges each state on its own terms and so flags an error-severity finding
+a wider walk newly reaches. The agreement invariants answer a separate limit —
+that the walk reads one surface. Ordering the oracle first gives the wider walk
+a second judge, not its first one.
 
 ## Approach
 

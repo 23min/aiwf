@@ -21,6 +21,7 @@ import (
 	"github.com/23min/aiwf/internal/entityview"
 	"github.com/23min/aiwf/internal/gitops"
 	"github.com/23min/aiwf/internal/render"
+	"github.com/23min/aiwf/internal/severity"
 	"github.com/23min/aiwf/internal/tree"
 	"github.com/23min/aiwf/internal/trunk"
 )
@@ -351,6 +352,10 @@ func finishShowView(ctx context.Context, root string, t *tree.Tree, loadErrs []t
 	// subcode instead (G-0558) — otherwise an entity page contradicts
 	// `aiwf check` about its own references.
 	allFindings := check.MarkUnverifiedResolution(check.Run(t, loadErrs), t)
+	// The consumer's aiwf.yaml severity policy, so an entity page and
+	// `aiwf check` never disagree about how severe the same finding on
+	// the same entity is.
+	severity.Apply(allFindings, severity.Load(t.Root), t)
 	view.Findings = filterFindingsByID(allFindings, id, scopeBy)
 
 	return view, true, nil

@@ -9,6 +9,7 @@ import (
 	"github.com/23min/aiwf/internal/check"
 	"github.com/23min/aiwf/internal/entity"
 	"github.com/23min/aiwf/internal/gitops"
+	"github.com/23min/aiwf/internal/severity"
 	"github.com/23min/aiwf/internal/tree"
 )
 
@@ -121,9 +122,30 @@ func withPlanned(existing map[string]struct{}, additions []string) map[string]st
 // adding an entity that triggers a new ids-unique conflict, even when
 // the tree already had unrelated ids-unique conflicts, is still the
 // verb's responsibility).
+//
+// Both sides carry the consumer's aiwf.yaml severity policy before the
+// diff, so the guard decides against the same severities `aiwf check`
+// will apply at the push boundary. Without it the guard reads every
+// finding at its config-agnostic default, and a knob that escalates one
+// to error is invisible to every verb — the verb reports success and
+// commits a state the pre-push hook then refuses.
+//
+// Only the `post` side is load-bearing for the refusal, since severity
+// is what HasErrors reads and findingKey does not carry it. The `pre`
+// side matters for the *diff*: a pass that rewrites a finding's message
+// changes its key, so escalating one side alone would make an unchanged
+// finding read as introduced. Every such pass today covers a code
+// skipDuringProjection excludes, which is what makes symmetry
+// unobservable rather than unnecessary — lift that exclusion, or add a
+// message-rewriting pass over a code the diff sees, and this line is
+// the difference between a correct guard and one refusing verbs for
+// findings they did not introduce.
 func projectionFindings(original, projected *tree.Tree) []check.Finding {
 	pre := check.Run(original, nil)
 	post := check.Run(projected, nil)
+	policy := severity.Load(original.Root)
+	severity.Apply(pre, policy, original)
+	severity.Apply(post, policy, projected)
 	seen := make(map[string]bool, len(pre))
 	for i := range pre {
 		seen[findingKey(&pre[i])] = true
@@ -131,17 +153,8 @@ func projectionFindings(original, projected *tree.Tree) []check.Finding {
 	var introduced []check.Finding
 	for i := range post {
 		if skipDuringProjection(post[i].Code) {
-			// G-0184: body-prose-id reads body content from disk;
-			// projection models update in-memory entity frontmatter
-			// but don't reflect verb-side body content changes
-			// (e.g. add --body-file's not-yet-written file,
-			// edit-body's new content, reallocate's prose rewrites).
-			// Each body-supplying verb runs its own verb-time
-			// ScanBodyProseID against the planned-write bytes
-			// directly (see add.go / editbody.go / import.go /
-			// reallocate.go), which IS the gate; the
-			// projection-time skip here just avoids false-positive
-			// findings against the stale-or-absent on-disk content.
+			// Codes the diff cannot attribute to this verb; see
+			// skipDuringProjection for each one's reason and its gate.
 			continue
 		}
 		if check.IsCrossBranchClassification(post[i]) {
@@ -225,16 +238,34 @@ func planEntityWrite(t *tree.Tree, modified *entity.Entity, path string, fileBod
 }
 
 // skipDuringProjection reports whether a finding code should be
-// filtered out of the projectionFindings diff. Codes here are check
-// rules that read body bytes from disk; verb-time scans of the
-// planned-write content (run inside each body-supplying verb before
-// the Plan is returned — see G-0184's verb-time scan in add.go /
-// editbody.go / import.go / reallocate.go) are the
-// authoritative gate for these rules. The projection-time diff stays
-// silent here to avoid noisy false-positive findings on stale on-disk
-// bytes that the verb's planned-write content fixes.
+// filtered out of the projectionFindings diff. Each code here is one
+// the diff cannot attribute to the verb under it, for a reason of its
+// own:
+//
+//   - body-prose-id reads body content from disk; projection models
+//     update in-memory entity frontmatter but don't reflect verb-side
+//     body content changes (e.g. add --body-file's not-yet-written
+//     file, edit-body's new content, reallocate's prose rewrites).
+//     Each body-supplying verb runs its own verb-time ScanBodyProseID
+//     against the planned-write bytes directly (see add.go /
+//     editbody.go / import.go / reallocate.go), which IS the gate.
+//   - archive-sweep-pending is the per-tree aggregate, and its message
+//     names the pending count. Since the diff keys findings by message,
+//     every verb that moves an entity to or from a terminal status
+//     re-keys the aggregate, and on a tree already past its declared
+//     `archive.sweep_threshold` each subsequent terminal promote reads
+//     as the mutation that introduced the breach. That is an instance
+//     of the message-keyed identity defect G-0574 states in general;
+//     excluding this one code is a point mitigation, not the decided
+//     identity G-0574 asks for. It is safe here on its own terms: the
+//     sweep ceiling is a tree-level drift control whose remedy is
+//     `aiwf archive --apply`, a different verb over a different entity
+//     set, and enforcement stays with `aiwf check`, which sees the
+//     condition whichever verb preceded it. Same unattributability
+//     ADR-0041 settles for the cross-branch classifications the diff
+//     excludes just below.
 func skipDuringProjection(code string) bool {
-	return code == check.CodeBodyProseID
+	return code == check.CodeBodyProseID || code == check.CodeArchiveSweepPending
 }
 
 func findingKey(f *check.Finding) string {

@@ -1,7 +1,7 @@
 ---
 id: M-0303
 title: Assert the acceptance-criterion composition invariant
-status: draft
+status: cancelled
 parent: E-0080
 depends_on:
     - M-0301
@@ -9,10 +9,10 @@ tdd: required
 acs:
     - id: AC-1
       title: No AC is met under a tdd-required milestone whose phase is not done
-      status: open
+      status: cancelled
     - id: AC-2
       title: The walker reaches a state where the invariant could fail
-      status: open
+      status: cancelled
 ---
 ## Goal
 

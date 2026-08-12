@@ -11,6 +11,7 @@ import (
 	"github.com/23min/aiwf/internal/cli/contract"
 	"github.com/23min/aiwf/internal/config"
 	baserender "github.com/23min/aiwf/internal/render"
+	"github.com/23min/aiwf/internal/severity"
 	"github.com/23min/aiwf/internal/tree"
 )
 
@@ -178,25 +179,23 @@ func Run(root, format string, pretty bool, since string, shapeOnly, fast, verbos
 	requireMetrics := false
 	var treeAllow []string
 	treeStrict := false
-	tddStrict := false
-	archiveThreshold := 0
-	archiveThresholdSet := false
 	var areaMembers []string
 	var areaPaths []check.AreaPaths
 	var coverageRoots []string
-	areaRequired := false
 	docPaths := []string{config.DefaultDocsPath}
-	docStrict := false
+	// sevPolicy carries every aiwf.yaml knob that escalates a finding's
+	// severity; it is applied once, below, after all findings are
+	// assembled. AreasRequired doubles as the area-required rule's own
+	// present-at-all switch, which is why it is read from here rather
+	// than kept as a second copy.
+	var sevPolicy severity.Policy
 	if cfg, cfgErr := config.Load(resolved); cfgErr == nil && cfg != nil {
 		requireMetrics = cfg.TDD.RequireTestMetrics
 		docPaths = cfg.DocsPaths()
-		docStrict = cfg.DocsStrict()
 		treeAllow = cfg.Tree.AllowPaths
 		treeStrict = cfg.Tree.Strict
-		tddStrict = cfg.TDD.Strict
-		archiveThreshold, archiveThresholdSet = cfg.ArchiveSweepThreshold()
 		areaMembers = cfg.Areas.MemberNames()
-		areaRequired = cfg.Areas.Required
+		sevPolicy = severity.From(cfg)
 		coverageRoots = cfg.Areas.CoverageRoots
 		// Project the declared members to the check package's
 		// config-agnostic AreaPaths so the path-axis rules (dead-glob)
@@ -230,7 +229,7 @@ func Run(root, format string, pretty bool, since string, shapeOnly, fast, verbos
 	// pure check.Run) with the declared set and the `areas.required` bool
 	// from aiwf.yaml. Inert (emits nothing) when required is false or no
 	// areas block is declared.
-	findings = append(findings, check.AreaRequired(tr, areaMembers, areaRequired)...)
+	findings = append(findings, check.AreaRequired(tr, areaMembers, sevPolicy.AreasRequired)...)
 
 	// M-0180: area-dead-glob is the path-claim half of the area matrix —
 	// a config-dependent tree rule composed here (not in the pure
@@ -276,18 +275,6 @@ func Run(root, format string, pretty bool, since string, shapeOnly, fast, verbos
 		findings = append(findings, check.AreaMistag(tr, areaPaths, touchedByEntity, ackedMistags)...)
 	}
 
-	// M-066/AC-2: aiwf.yaml: tdd.strict bumps entity-body-empty
-	// (and any future TDD-strict-covered finding) from warning to
-	// error so the pre-push hook blocks the push.
-	check.ApplyTDDStrict(findings, tddStrict)
-
-	// M-0178/AC-7: aiwf.yaml: areas.required bumps area-unknown from
-	// warning to error so the pre-push hook blocks a present-but-
-	// undeclared area too. Composed here (not in the pure check.Run)
-	// where areaRequired is in scope — the same seam ApplyTDDStrict
-	// uses. With required off, area-unknown stays a warning.
-	check.ApplyAreaRequiredStrict(findings, areaRequired)
-
 	// M-0289: the doc id-width rule reads its corpus from aiwf.yaml, so it
 	// composes here rather than inside check.Run, the same seam AreaMistag
 	// uses for its config-derived paths. Deliberately absent from --fast,
@@ -295,17 +282,13 @@ func Run(root, format string, pretty bool, since string, shapeOnly, fast, verbos
 	// files off disk that the tree never carries.
 	findings = append(findings, check.DocIDWidthReference(tr, docPaths)...)
 	findings = append(findings, check.DocIDSlugReference(tr, docPaths)...)
-	// Advisory by default; `docs.strict` is how a repo that has
-	// swept its own docs asks the pre-push hook to block the next one.
-	check.ApplyDocsStrict(findings, docStrict)
 
-	// M-0088/AC-2: aiwf.yaml: archive.sweep_threshold bumps the
-	// aggregate `archive-sweep-pending` finding from warning to
-	// error when the pending-sweep count exceeds the consumer's
-	// declared ceiling. The count is the same value the rule's
-	// Message already names — computed once via CountPendingSweep
-	// so the bumper does not re-iterate the tree.
-	check.ApplyArchiveSweepThreshold(findings, archiveThreshold, archiveThresholdSet, check.CountPendingSweep(tr))
+	// Every aiwf.yaml severity pass, applied once now that the
+	// CLI-composed rules have contributed their findings too. This
+	// surface is the authoritative one — the pre-push gate — so the
+	// severities it computes are what every other surface routing
+	// through the same seam is agreeing with.
+	severity.Apply(findings, sevPolicy, tr)
 
 	contract.ApplyHintsLikeRun(findings)
 	check.SortFindings(findings)
@@ -382,14 +365,11 @@ func runFast(ctx context.Context, root, format string, pretty bool) int {
 	var allow []string
 	var areaMembers []string
 	strict := false
-	tddStrict := false
-	archiveThreshold := 0
-	archiveThresholdSet := false
+	var sevPolicy severity.Policy
 	if cfg, cfgErr := config.Load(root); cfgErr == nil && cfg != nil {
 		allow = cfg.Tree.AllowPaths
 		strict = cfg.Tree.Strict
-		tddStrict = cfg.TDD.Strict
-		archiveThreshold, archiveThresholdSet = cfg.ArchiveSweepThreshold()
+		sevPolicy = severity.From(cfg)
 		// E-0044 (M-0179) evolved Areas.Members from []string to []Member;
 		// MemberNames() is the derived label set AreaUnknown consumes. (The
 		// path-axis area checks — dead-glob/overlap/coverage — are deliberately
@@ -401,8 +381,12 @@ func runFast(ctx context.Context, root, format string, pretty bool) int {
 	// passes, so they stay render-safe.
 	findings = append(findings, check.TreeDiscipline(tr, allow, strict)...)
 	findings = append(findings, check.AreaUnknown(tr, areaMembers)...)
-	check.ApplyTDDStrict(findings, tddStrict)
-	check.ApplyArchiveSweepThreshold(findings, archiveThreshold, archiveThresholdSet, check.CountPendingSweep(tr))
+	// The same severity policy the full check applies. A pass whose rule
+	// this surface does not run has nothing here to escalate and is
+	// simply inert — which is what lets one uniform seam serve a surface
+	// that runs a subset of the rules without making it stricter than
+	// the gate, or more permissive than it.
+	severity.Apply(findings, sevPolicy, tr)
 
 	contract.ApplyHintsLikeRun(findings)
 	check.SortFindings(findings)

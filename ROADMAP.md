@@ -1123,7 +1123,7 @@ enforces it for one verb of four, and no verb clears the resulting error.
 | M-0293 | Correct the surfaces that claim force enforcement | done |
 | M-0294 | Derive the coherence rule lists from one declaration | done |
 
-## E-0080 — Judge composed verb sequences by agreement invariants across state and branches (active)
+## E-0080 — Judge composed verb sequences by agreement invariants across state and branches (cancelled)
 
 ### Goal
 
@@ -1136,11 +1136,11 @@ Addresses G-0121. Its two non-mechanizable remainders move to G-0564.
 
 | Milestone | Title | Status |
 |---|---|---|
-| M-0300 | Assert read-path agreement and ref-less verdict stability | draft |
-| M-0301 | Widen the walker's mutation space beyond status | draft |
-| M-0302 | Compose a sequence across a branch boundary and assert verdict independence | draft |
-| M-0303 | Assert the acceptance-criterion composition invariant | draft |
-| M-0304 | Classify every catalog scenario against the named-scenario rule | draft |
+| M-0300 | Assert read-path agreement and ref-less verdict stability | cancelled |
+| M-0301 | Widen the walker's mutation space beyond status | cancelled |
+| M-0302 | Compose a sequence across a branch boundary and assert verdict independence | cancelled |
+| M-0303 | Assert the acceptance-criterion composition invariant | cancelled |
+| M-0304 | Classify every catalog scenario against the named-scenario rule | cancelled |
 
 ## E-0081 — One table owns entity body sections; every other surface follows it (active)
 
@@ -1154,4 +1154,8 @@ state it today cannot disagree.
 | M-0305 | Single-source the per-kind section set and retire Approach | done |
 | M-0306 | Every remaining surface follows the owned set, and the epic nesting is fixed | done |
 | M-0307 | Route the body-scaffold instruction through the verb covering every kind | draft |
+
+## E-0082 — e (cancelled)
+
+_No milestones yet._
 

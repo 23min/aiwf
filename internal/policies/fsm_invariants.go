@@ -23,8 +23,9 @@ import (
 //     iterates `entity.AllKinds()` — the canonical Kind enum — and
 //     asserts wiring exists for each. New Kind ⇒ new violation.
 //
-//  2. The kernel commitment "FSM is one-directional — no demote"
-//     (kernel commitment 1, design-decisions.md) lives in prose only.
+//  2. The commitment "FSM is one-directional — no demote" lives in
+//     prose only: transition.go's own doc comment, and R-AUDIT-0028 /
+//     R-RULE-019 in docs/design/legal-workflows-audit.md.
 //     A future contributor adding a transition that closes a cycle
 //     (e.g., `cancelled → active` to resurrect a cancelled epic) would
 //     not trip any G44 item 2 test: the state set is unchanged, the
