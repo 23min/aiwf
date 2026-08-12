@@ -27,21 +27,21 @@ line saying what it is.
 - E-0019 and ADR-0001 both still `proposed` — deferred, no forcing function yet
 - G-0375 has a live sighting: a probe wrote user.email into the repo's own
   .git/config and broke TestResolveActor_*; the failures read as environmental
-- E-0079 is active and owns M-0291..M-0294, all four with empty bodies and no
-  ACs. The ordering below predates it and does not account for it
-- Tests leave tens of GB of temp dirs in /tmp (aiwf-int-build-*,
-  aiwf-self-check-*, stresstest-shared-bin-*) — filled the disk mid-session
-  and blocked a commit. Nothing tracks it
 - `readStatusAt` and the walker's path-resolving fallback arm are dead in
   production — reachable only through conditions no BulkRevwalk flag produces.
   Annotated rather than deleted, deliberately; nothing tracks the choice
 
-## Next, in order (2026-08-05)
+## Next, in order (2026-08-06)
 
 Clusters 1–9 cover the *defect* surface. Cluster 10 covers absences in what the
 kernel can express, which are not defects and each need a decision before any
 milestone. Low-priority feature and enhancement gaps fit none and are not
 listed. Each gap sits in exactly one cluster.
+
+In flight: **E-0080** owns M-0300..M-0304 — the mechanized half of G-0121, per
+D-0063. M-0300 is the entry point; M-0301 and M-0302 are parallel behind it and
+M-0304 is parallel throughout. G-0121 closes at that epic's wrap, so it is not
+listed below; its remainder is G-0564 in cluster 3.
 
 ### 1. Lying gates
 
@@ -49,7 +49,14 @@ A gate that reports green while proving nothing is worse than an absent one:
 every commit landing before the fix gets a false pass, and a reader auditing
 coverage finds a guard and stops looking.
 
-- **G-0518** — a body citing a real entity at a legacy width passes `body-prose-id`
+- **G-0518** — a body citing a real entity at a legacy width passes
+  `body-prose-id`, which canonicalizes before resolving. Measured worklist is two
+  citations. G-0559 removed the generator by deriving `IDFormat` from
+  `CanonicalPad`, so what remains is chat-convention leakage; the case is now
+  symmetry — entity ids, docs, skills and Go literals are all enforced, entity
+  body citations are the one axis of five that is not
+- **G-0563** *(low)* — bare-loading verbs refuse a reference that resolves only on
+  another branch. The remaining surface of the gate G-0558 fixed for read paths
 - **G-0543** — the golangci firing harness asserts its isolation against the
   command constructor, not against the harness that must use it; reverting the
   call site leaves every test green. The instance form of this cluster's thesis:
@@ -95,9 +102,13 @@ in is any good. Vocabulary in `docs/design/oracles.md`; initiative context in
 - **G-0282** *(high)* — "what verb undoes this?" has no chokepoint; code review is
   the whole enforcement, and it never audits verbs that already shipped. The
   filed form of the agent-performed audit two entries below
-- **G-0121** *(high)* — re-read before ranking. Its own Notes record sub-gaps 1–3
-  as substantively covered by E-0033 / M-0130 / E-0062; the residue is an
-  AC-composition invariant fuzz and a multi-host remainder. The level predates that
+- **G-0564** — what E-0080 deliberately leaves behind: no declarative enumeration
+  of blessed workflows, and choreography pinned to a single host. Neither has a
+  settled design question, which is why the epic excludes both — E-0033 examined
+  the enumeration surface and chose advisory, so reversing that is a decision
+- **G-0565** — an archive-migration test's verdict turns on refs its fixture never
+  stages. G-0468's family: an oracle answering about something other than its
+  subject
 - **G-0533** — `dupl` is off across the test corpus, the larger and
   faster-growing half. Cheap, and it has a known fix: diff-scope it.
   Unblocked — G-0462 repaired the instrument this was waiting on
@@ -125,7 +136,7 @@ Small, no design content between them.
 - **G-0502** — a submodule under a moved directory is stranded, unseen by the guard
 - **G-0510** — the `enums:ignore` escape accepts three spellings that aren't the directive
 - **G-0513** — the archive sweep reports "converged" when a candidate won't parse
-- **G-0479** — epic template nests out-of-scope below the level three surfaces require
+- **G-0562** — a worktree-hook test writes its executable without `WriteExecutable`
 
 ### 5. Write scope — what a verb may commit *(epic; spec first)*
 
@@ -163,13 +174,13 @@ silently goes stale, or it cannot be enforced at all.
   fail unobserved
 - **G-0536** *(high)* — the same shape for the check itself. Hooks are not
   committable, so both positions are opt-in per clone and a fresh clone carries no
-  `aiwf check` at all. Every other locally-firing gate has a second position on push
+  `aiwf check` at all. Every other locally-firing gate has a second position on push.
+  **Unblocked** — G-0556 landed, so the step no longer reports errors on day one;
+  the `fetch-depth` question is what remains
 - **G-0504** *(high)* — `doctor` byte-checks verb skills only; ritual and guidance drift read as healthy
 - **G-0370** *(high)* — ADR-0028 decided the always-on fragment should name
   dispatch triggers for all four role agents. The decision landed; the content
   never did, so the one surface in context every turn stays silent on it
-- **G-0541** — the guidance tells an assistant to fill a body from a template
-  path that resolves for two of six kinds; gap and contract have none
 - **G-0526** — source-discipline rules ship as prose with no seam to enforce them
 - **G-0529** — CHANGELOG completeness rests on recall at epic wrap; nothing checks it
 - **G-0514** — `skill-body-id` tells CLI metavariables and non-id acronyms to become placeholders
@@ -182,6 +193,8 @@ with no decision outstanding first.
 
 - **G-0483** — uncoded verb errors exit 2, the usage bucket *(absorbed G-0494's
   prose-flattened refusal and split exit code)*
+- **G-0561** — the install verbs report an operator's permission fault as an
+  internal error, so the exit code sends the reader after a bug in aiwf
 - **G-0456** — prelude resolution errors ignore `--format=json`
 - **G-0234** — typed `Coded` coverage, allowed sets inline, remediation sentences
 - **G-0169** — four verbs have no JSON envelope
@@ -235,7 +248,9 @@ staleness.
 - **G-0436** — `CLAUDE.md` and the id-allocation doc cite relocated paths
 - **G-0439** — relocation and archive sweeps skip references outside their own scope
 - **G-0444** — the id-allocation doc cites renamed functions
-- **G-0517** — narrow id citations remain in the design docs, overview and architecture
+- **G-0517** — narrow id citations remain in the design docs, overview and
+  architecture. Unblocked — G-0559 landed, so the surface they were copied from
+  now prints canonical width. Pairs naturally with G-0518: one sweep, two surfaces
 - **G-0519** — documentation is not reference-checked; a cited id need not resolve
 - **G-0548** — shipped surfaces cite this repo's own paths; the id half of that
   rule is enforced at error severity, the path half has no check
@@ -250,9 +265,10 @@ green run on a nearly-full disk is not evidence either way.
 
 - **G-0552** — nothing bounds the Go build cache; it reached 84 GB and filled
   the overlay. Carries the preflight idea: a gate that cannot tell a full disk
-  from a broken test will mislead every time *(lives on the M-0291 branch, not
-  yet on main)*
+  from a broken test will mislead every time
 - **G-0555** — two test helpers build into a temp dir and never remove it. Over
   a gigabyte in a day here, and every directory younger than any age cutoff a
   concurrent session makes safe — so no sweep can reclaim it and the fix has to
   be in the code
+- **G-0554** — the statusline CI cache mints a file per commit and deletes none.
+  Same thesis as G-0555: unbounded growth with no reclaim path

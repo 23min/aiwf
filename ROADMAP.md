@@ -1153,9 +1153,20 @@ state it today cannot disagree.
 |---|---|---|
 | M-0305 | Single-source the per-kind section set and retire Approach | done |
 | M-0306 | Every remaining surface follows the owned set, and the epic nesting is fixed | done |
-| M-0307 | Route the body-scaffold instruction through the verb covering every kind | draft |
+| M-0307 | Route the body-scaffold instruction through the verb covering every kind | cancelled |
 
 ## E-0082 — e (cancelled)
+
+_No milestones yet._
+
+## E-0083 — Retire tdd.strict; gate body completeness at the readiness promote (proposed)
+
+### Goal
+
+Ask for a complete entity body at the moment its status claims it is ready to be
+worked on, instead of at the push boundary behind a configuration knob that has
+never been switched on. An epic may be born empty; one promoted to `active` may
+not.
 
 _No milestones yet._
 
