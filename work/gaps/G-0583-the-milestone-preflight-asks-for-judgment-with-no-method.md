@@ -29,16 +29,24 @@ one returned request-changes on the implementation; none questioned the spec, be
 a reviewer checks work against a specification rather than a specification against
 reality.
 
-The method that did catch it has three parts, and each earned its place on that
-milestone: measuring every factual claim in the spec by running commands rather than
-reasoning; sweeping the docs, entities, shipped surfaces and code comments that the
-milestone's subject touches, for prose that contradicts it or that it would falsify;
-and challenging each criterion for the consumer-visible failure it prevents and for
-whether a builder could satisfy its letter while leaving a consumer no better off.
-
-Three lessons from running it, which any shipped form has to encode. The sweep must
-read current trunk — run against a stale branch it missed the single most
-consequential finding of the day and produced one confident false one. Its output has
-to be spec edits rather than a report, or it joins the documents nothing acts on. And
-subagent findings are hypotheses: the sweep's headline claim was wrong, and one
+The method that did catch it has three parts, and they are not equal. Measuring every
+factual claim in the spec by running commands rather than reasoning is cheap, and
+caught all three of M-0307's defects on its own. Challenging each criterion — for the
+consumer-visible failure it prevents, and for whether a builder could satisfy its
+letter while leaving a consumer no better off — is equally cheap, and is what found
+the one criterion that could not be written non-vacuously. Sweeping the docs,
+entities, shipped surfaces and code comments the milestone's subject touches, for
+prose that contradicts the spec or that the milestone would falsify, is the expensive
+part and the part that went wrong: run against a stale branch it missed the single
+most consequential finding of the day and produced one confident false one. So the
+cheap two run first and always; the sweep reads current trunk, and its findings are
+hypotheses until a command settles one — the sweep's headline claim was wrong, and one
 measurement settled it.
+
+What the sweep produces is edits, not a report, or it joins the documents nothing acts
+on. Where it finds one fact stated across several surfaces and some of them wrong, the
+edit is an owner and its derivations rather than a correction per copy — E-0081
+answered eleven such surfaces with a single `entity.RequiredSections`, and M-0307's own
+surviving commit was a ban with both sides derived rather than an assertion. Prose
+found contradicting reality this way is a defect in its own right, not only a hazard to
+the milestone reading it.
