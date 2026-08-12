@@ -1,7 +1,7 @@
 ---
 id: M-0307
 title: Route the body-scaffold instruction through the verb covering every kind
-status: draft
+status: cancelled
 parent: E-0081
 tdd: required
 acs:
