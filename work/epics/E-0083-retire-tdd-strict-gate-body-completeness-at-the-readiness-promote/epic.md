@@ -33,8 +33,13 @@ not.
 - `acs-tdd-audit`, which enforces the AC TDD ladder and computes its own severity
   from the milestone's `tdd:` policy. `tdd.strict` never touched it, so retiring
   the knob cannot change it.
-- What the per-kind required section set contains, and whether an absent heading
-  counts as missing. That is E-0081's subject; this epic consumes its answer.
+- What the per-kind required section set contains. E-0081 settled that:
+  `entity.RequiredSections` is the single definition, and this epic reads it.
+- Whether a required heading is present at all. ADR-0043 decides that property
+  and places it at the write seams; E-0084 implements it. This epic asks only
+  whether a heading that is present carries content. The two compose without
+  overlap — a draft carrying every required heading and no content satisfies
+  ADR-0043 and is exactly what this epic permits until readiness is claimed.
 - The verb-time projection guard's own wiring. The severity policy reaches it
   already; this epic changes which passes exist, not how they are composed.
 
@@ -77,9 +82,9 @@ repairing is proportionate.
   is a capability removal, not a redesign: `entity-body-empty` on epic and
   milestone would become a warning with no path to blocking at all. No milestone
   in this epic lands the removal before the rule that replaces it.
-- **The rule consumes E-0081's owner; it does not restate the section set.**
-  E-0081 gives "which sections a kind carries" a single owner and makes absence
-  count. This epic asks that owner and adds no second opinion about membership.
+- **The rule reads `entity.RequiredSections`; it does not restate the section
+  set.** E-0081 made that the single definition every surface derives from. This
+  epic asks it and adds no second opinion about which sections a kind carries.
 - **No new definition of "complete".** The readiness rule and the existing
   `entity-body-empty` rule agree by construction, through the same helper, for
   the same reason the verb gate and the check rule already share one.
@@ -94,8 +99,9 @@ repairing is proportionate.
 - [ ] `tdd.strict` is absent from the config struct, the schema, and the
       generated example file, and no shipped surface documents it.
 - [ ] Promoting an epic to `active`, or a milestone to `in_progress`, with a
-      required body section missing or empty is refused by the verb, naming the
-      section.
+      required body section present and carrying no content is refused by the
+      verb, naming the section. A section missing outright is E-0084's refusal,
+      not this one's.
 - [ ] The same entity in its pre-readiness status produces no such refusal —
       creating and holding a draft with an empty body stays a supported workflow.
 - [ ] `aiwf add epic` followed immediately by `aiwf check` reports no error on
@@ -119,7 +125,7 @@ repairing is proportionate.
 
 | Risk | Impact | Mitigation |
 |---|---|---|
-| E-0081 changes what "complete" means while this epic is in flight | med | The epic stays `proposed` until E-0081 is `done`, and its rule reads E-0081's owner rather than a copy. The ordering is operator-held: `depends_on` is validated for milestones only, so nothing mechanical enforces it between epics. |
+| The finding-code question is settled unilaterally by whichever of this epic and E-0084 starts first | med | Both specs now name it as jointly owned and settled before either epic's first milestone lands. Nothing mechanical holds them to it — the constraint is prose on both sides, which G-0073 records as the case no `depends_on` edge expresses. |
 | The readiness rule blocks a promote an operator considers legitimate, with no escape | med | The force question above is settled before the rule lands; `--body`/`edit-body` is the ordinary remedy and needs no escape. |
 | Removing a documented config field surprises a consumer mid-upgrade | low | Never-enabled is measured, not assumed; the migration answer is a success criterion rather than a footnote. |
 
@@ -128,7 +134,7 @@ repairing is proportionate.
 Candidates, to be refined by `aiwfx-plan-milestones`:
 
 - the readiness rule: a status-gated body-completeness check firing at epic
-  `active` and milestone `in_progress`, reading E-0081's section owner
+  `active` and milestone `in_progress`, reading `entity.RequiredSections`
 - the retirement: `tdd.strict` leaves the config, schema, example file, severity
   passes and shipped skill tables, and a consumer still carrying it is answered
 - closing out: G-0573 promoted with the evidence, and the severity-seam policy
