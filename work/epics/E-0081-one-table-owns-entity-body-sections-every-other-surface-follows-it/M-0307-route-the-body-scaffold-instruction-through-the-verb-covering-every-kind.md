@@ -10,7 +10,7 @@ acs:
       status: cancelled
     - id: AC-2
       title: No shipped surface cites a per-kind template path that does not exist
-      status: open
+      status: cancelled
 ---
 
 ## Goal
