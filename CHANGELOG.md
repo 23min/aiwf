@@ -16,6 +16,17 @@ section in this file.
 
 ## [Unreleased]
 
+### Changed — the specification-quality thread names its one real neighbor
+
+Nothing user-facing changed. `docs/initiatives/quality-signal-and-cadence.md`'s
+Q6 finding claimed its question overlapped `tdd-cycle-subagent-boundaries.md` and
+E-0019, and told a reader to reconcile three captures before promoting any of
+them. Measured against those two artifacts, neither judges what an acceptance
+criterion says: the first targets the discipline around a criterion, which the
+same finding already sets aside, and the second is execution topology that reads
+AC prose only to schedule it. The finding now states the reconciled result and
+names G-0583 as the capture that carries the question forward.
+
 ### Changed — G-0479, G-0541: the shipped templates and the surfaces naming them agree with the scaffold
 
 The prose templates `aiwf update` materializes into `.claude/templates/` drifted from
