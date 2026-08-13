@@ -11,6 +11,9 @@ acs:
     - id: AC-2
       title: The sweep step carries a runnable command that produces a current-trunk checkout
       status: open
+    - id: AC-3
+      title: Measurement runs first; the sweep runs only on countable claims
+      status: open
 ---
 
 ## Goal
@@ -20,4 +23,6 @@ acs:
 ### AC-1 — A completed pass leaves a record naming the entity whose claims it measured
 
 ### AC-2 — The sweep step carries a runnable command that produces a current-trunk checkout
+
+### AC-3 — Measurement runs first; the sweep runs only on countable claims
 
