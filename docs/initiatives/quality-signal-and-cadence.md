@@ -369,10 +369,24 @@ Two directions, neither costed:
   underspecified — and that is learnable at authoring time for the cost of one
   agent call.
 
-This thread overlaps [`tdd-cycle-subagent-boundaries.md`](tdd-cycle-subagent-boundaries.md)
-and E-0019, both of which circle the same acceptance-criterion question from
-different sides. Three captures on one question is a signal to reconcile them
-before any of the three is promoted, not to open a fourth.
+Two adjacent captures name acceptance criteria but ask a different question.
+[`tdd-cycle-subagent-boundaries.md`](tdd-cycle-subagent-boundaries.md) targets
+the discipline *around* a criterion — red-first ordering, promote-time
+evidence, phase shape, AC presence — the cadence this finding already sets
+aside above as sound machinery with unjudged input. E-0019 is execution
+topology, deferred behind an unstabilized substrate; it reads AC prose only
+to infer whether filesets are independent enough to parallelize. Neither
+judges what a criterion says.
+
+So this question has one other capture rather than two, and it is the one
+carrying the cost these two directions lack:
+[G-0583](../../work/gaps/G-0583-the-milestone-preflight-asks-for-judgment-with-no-method.md).
+Run against M-0307, measuring the spec's factual claims caught three defects
+before any code was written, and challenging each criterion found one that
+could not be written without asserting that the guidance says what the test
+says it says. The structural direction stays untaken, and stays the cheaper
+answer wherever a criterion can be made to state its own falsification
+condition.
 
 ## Scoped targets
 
