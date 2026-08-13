@@ -115,12 +115,11 @@ took the same shape — a ban with both sides derived rather than an assertion.
 
 ## Milestones
 
-Candidates, to be refined by `aiwfx-plan-milestones`:
-
-- the ritual: measure, challenge and sweep, with the recorded-outcome contract
-  settled first
-- the wiring: `aiwfx-start-milestone` and `wf-patch` invoke it, and
-  `aiwfx-plan-milestones` drops the claim it cannot deliver
+- `M-0308` — the ritual ships: measure, challenge and sweep, with the record it
+  terminates in settled first · depends on: —
+- `M-0309` — the seams invoke it: `aiwfx-start-milestone` and `wf-patch` route
+  to it, and `aiwfx-plan-milestones` drops the claim it cannot deliver ·
+  depends on: `M-0308`
 
 ## References
 
