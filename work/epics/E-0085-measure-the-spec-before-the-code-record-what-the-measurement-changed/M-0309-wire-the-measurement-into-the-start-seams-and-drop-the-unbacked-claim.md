@@ -13,6 +13,9 @@ acs:
     - id: AC-2
       title: A gap-closing patch measures the gap's claims before the change
       status: open
+    - id: AC-3
+      title: No surface promises testable criteria without naming the method
+      status: open
 ---
 
 ## Goal
@@ -22,4 +25,6 @@ acs:
 ### AC-1 — The milestone preflight names the ritual, not a bare judgment call
 
 ### AC-2 — A gap-closing patch measures the gap's claims before the change
+
+### AC-3 — No surface promises testable criteria without naming the method
 
