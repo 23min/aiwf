@@ -1180,3 +1180,13 @@ because nothing enforced it.
 
 _No milestones yet._
 
+## E-0085 — Measure the spec before the code; record what the measurement changed (proposed)
+
+### Goal
+
+Give the step before implementation a method and an artifact: an entity's
+factual claims are measured by running commands before any code is written, and
+what the measurement changed is left on the record.
+
+_No milestones yet._
+
