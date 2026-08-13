@@ -8,6 +8,9 @@ acs:
     - id: AC-1
       title: A completed pass leaves a record naming the entity whose claims it measured
       status: open
+    - id: AC-2
+      title: The sweep step carries a runnable command that produces a current-trunk checkout
+      status: open
 ---
 
 ## Goal
@@ -15,4 +18,6 @@ acs:
 ## Acceptance criteria
 
 ### AC-1 — A completed pass leaves a record naming the entity whose claims it measured
+
+### AC-2 — The sweep step carries a runnable command that produces a current-trunk checkout
 
