@@ -68,6 +68,18 @@ keeps one `rituals:` line covering both presence and content, or splits them, so
 an operator can tell "never materialized" from "materialized and since drifted" —
 the two have different causes and the same remedy.
 
+Detection is half of it. The two planning rituals fill an entity's body from
+`.claude/templates/<kind>-spec.md` and name `aiwf update` as the remedy only
+when that file is absent — the one state a reader notices unaided. Against a
+present-but-stale template the instruction gives no signal at all: measured
+2026-08-13, this repo's own materialized `epic-spec.md` carries the pre-M-0306
+nesting of `### Out of scope` under `## Scope`, so an epic drafted by following
+it carries no `out_of_scope` key, with `aiwf check` green. That file is
+gitignored, so neither review nor history sees it either. The instruction and
+the report belong in one change — the refresh needs no detection to be correct,
+and a report that names drift is worth more beside a ritual that refreshes
+before it reads.
+
 Worth pinning the property itself, not only the fix: a test that materializes an
 artifact, mutates a byte, and asserts the report names it. Without that, the next
 family added to the embed rejoins the unchecked set silently, which is how the
@@ -80,6 +92,9 @@ two current families got here.
 - `internal/cli/doctor/guidance.go` — import-wiring-only guidance report.
 - `internal/skills/skills.go` — the ritual and agent/template list functions the
   comparison can reuse as-is.
+- `internal/skills/embedded-rituals/plugins/aiwf-extensions/skills/aiwfx-plan-epic/SKILL.md`
+  and its `aiwfx-plan-milestones` sibling — the step-5 instruction whose
+  `aiwf update` remedy reaches only an absent template.
 
 ## Related
 
