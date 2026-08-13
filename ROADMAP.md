@@ -1188,5 +1188,8 @@ Give the step before implementation a method and an artifact: an entity's
 factual claims are measured by running commands before any code is written, and
 what the measurement changed is left on the record.
 
-_No milestones yet._
+| Milestone | Title | Status |
+|---|---|---|
+| M-0308 | Ship the spec-measurement ritual and settle what its record is | draft |
+| M-0309 | Wire the measurement into the start seams and drop the unbacked claim | draft |
 
