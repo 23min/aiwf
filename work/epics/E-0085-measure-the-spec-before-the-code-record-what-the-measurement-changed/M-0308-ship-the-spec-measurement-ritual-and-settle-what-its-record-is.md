@@ -80,12 +80,12 @@ It does not ask whether a section mentions ordering — a claim like that passes
 because someone wrote the word, which is the failure mode AC-2's derivation
 avoids and which this criterion avoids by testing position instead of presence.
 
-The scope here is deliberately narrower than "the steps run in yield order with
-the sweep gated on countable claims." The gate is a real obligation on the
-ritual's content and it appears under `## Constraints`, because no assertion
-over prose distinguishes a sweep that carries a genuine precondition from one
-whose section merely contains the word. Per CLAUDE.md §"AC promotion requires
-mechanical evidence", a criterion with no mechanical form is not a criterion.
+The scope here is deliberately narrower than "the steps run in yield order and
+the sweep is bounded." The bound is a real obligation on the ritual's content
+and it appears under `## Constraints`, because no assertion over prose
+distinguishes a sweep carrying a genuine bound from one whose section describes
+one. Per CLAUDE.md §"AC promotion requires mechanical evidence", a criterion
+with no mechanical form is not a criterion.
 
 ## Constraints
 
@@ -136,13 +136,15 @@ mechanical evidence", a criterion with no mechanical form is not a criterion.
   hardcoded literals chosen by reading the prose, so it passes because someone
   typed those words and survives the lens being gutted. Scoping is structural
   there; the matching is not.
-- AC-1 and AC-2 derive the expected side from the cobra command tree, walked
-  from the root command: the ritual names a command, and the assertion resolves
-  it. No verb-name enumeration exists to use instead — `worktree` is a CLI
-  command under `internal/cli/worktree/`, not an entry in `internal/verb/`. If
-  the walk proves unreachable, the affected criterion demotes to a constraint
-  rather than shipping an assertion that only proves the prose contains a
-  string.
+- AC-1 derives its expected side from the cobra command tree, walked from the
+  root command: the ritual names a verb, and the assertion resolves it. No
+  verb-name enumeration exists to use instead — `worktree` is a CLI command
+  under `internal/cli/worktree/`, not an entry in `internal/verb/`.
+- AC-2 deliberately does not use that walk. Its command is plain git, which no
+  surface in this repo defines, and the one derivable part — the trunk ref, from
+  the allocate config — is a value the shipped ritual should not carry, since it
+  goes to projects whose trunk is not this one's. Its assertion is positional
+  instead: the step holds a command block rather than prose describing one.
 
 - The sweep's shape was settled against five recorded drift cases rather than
   by argument, replaying each one at the commit that caused it and searching
