@@ -11,7 +11,7 @@ acs:
       tdd_phase: done
     - id: AC-2
       title: The sweep step names a command that reads current trunk
-      status: open
+      status: met
       tdd_phase: done
     - id: AC-3
       title: The ritual's measurement step precedes its sweep step
