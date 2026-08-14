@@ -98,9 +98,10 @@ mechanical evidence", a criterion with no mechanical form is not a criterion.
   location. The materialized copy in a given clone can be stale (G-0504), so
   read the embedded tree when comparing.
 - **The ritual ships with its referencing structural test**, per the repo's
-  backstop policy — `wf_structural_sweep_test.go` is the precedent shape. This
-  is a constraint rather than an acceptance criterion: "X is tested" is not
-  observable behavior.
+  backstop policy. `wf_structural_sweep_test.go` supplies the file layout and
+  the section-scoping helpers; its matching is not the model, per the Design
+  note below. This is a constraint rather than an acceptance criterion: "X is
+  tested" is not observable behavior.
 - **`wf-rituals` stays kernel-agnostic.** The plugin speaks the language of the
   work without coupling to aiwf's planning kernel; an aiwf-specific step belongs
   in `aiwf-extensions`, which is M-0309's side.
