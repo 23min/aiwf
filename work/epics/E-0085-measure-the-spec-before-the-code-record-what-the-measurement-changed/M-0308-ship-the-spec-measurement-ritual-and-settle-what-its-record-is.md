@@ -51,17 +51,21 @@ reader re-litigates.
 
 ### AC-2 — The sweep step names a command that reads current trunk
 
-The sweep reads current trunk, and the ritual gets the operator there by naming
-a command rather than by asking them to remember. Run against a stale branch the
-sweep missed the most consequential finding of its motivating episode and
-produced one confident false one, so this is the step's load-bearing
-precondition rather than a nicety.
+The sweep reads trunk as it is now, and the ritual gets the operator there by
+naming a command rather than by asking them to remember. Downloading first is
+the load-bearing half: a local trunk ref moves only when it is fetched, so a
+search that reads it without fetching returns whatever was current the last
+time anyone pulled. Run against a stale branch, the sweep missed the most
+consequential finding of its motivating episode.
 
-The assertion derives both sides: the command the sweep names resolves against
-the surface that defines it, so a rename breaks the test rather than leaving the
-prose pointing at nothing. An assertion that the section merely *contains* a
-string proves only that the string is present and is the shape CLAUDE.md
-§"Substring assertions are not structural assertions" rules out.
+No checkout is required. A ref can be searched and read in place, so the
+command is a fetch and a search, not a second working copy.
+
+The assertion is positional: the sweep section carries a command block rather
+than prose describing what to run. It deliberately does not check the command's
+wording against any surface in this repo. The ritual ships into projects whose
+trunk ref is not this one's, so pinning it against this repo's configured ref
+would fix a value the document should not be carrying in the first place.
 
 ### AC-3 — The ritual's measurement step precedes its sweep step
 
@@ -85,11 +89,12 @@ mechanical evidence", a criterion with no mechanical form is not a criterion.
 
 - **The kernel does not change.** No check rule, finding code, config field or
   schema entry ships with this milestone.
-- **The sweep is gated on the spec asserting a count or an enumeration.** The
-  cheap two steps run every time; the expensive one runs when there is something
-  countable to falsify, which is what both specs in the motivating episode had.
-  This is a constraint rather than a criterion because no assertion over prose
-  separates a genuine precondition from a section containing the word.
+- **The sweep searches from the code outward, and is bounded.** It starts from
+  the names the work touches, searches those once without widening to the
+  concept they belong to, and follows a borrowed claim one hop. Searching from
+  the spec's own wording instead finds the surfaces that agree with a spec
+  nobody has checked. This is a constraint rather than a criterion because no
+  assertion over prose separates a real bound from a section describing one.
 - **A sweep finding is a hypothesis until a command settles it**, and the ritual
   says so where a reader acts on a finding rather than only in a preamble. Same
   reason it is a constraint: the obligation is real and its mechanical form is
@@ -136,6 +141,17 @@ mechanical evidence", a criterion with no mechanical form is not a criterion.
   the walk proves unreachable, the affected criterion demotes to a constraint
   rather than shipping an assertion that only proves the prose contains a
   string.
+
+- The sweep's shape was settled against five recorded drift cases rather than
+  by argument, replaying each one at the commit that caused it and searching
+  with terms taken from that commit's diff. It reached the three where the
+  prose named something the change touched, at 11 to 69 files to read. It
+  missed both others: prose that had drifted in an earlier refactor names
+  symbols the current change does not, and a template whose defect is a heading
+  level names no symbol at all. Widening the search to the concept reaches the
+  first of those, at 171 and 320 files — which is why the ritual searches names
+  once rather than iterating to closure. Both misses are check-shaped, and the
+  ritual says so where a reader meets one.
 
 ## Surfaces touched
 
