@@ -23,11 +23,17 @@ It needs a specification to measure. Run it on an entity that carries claims, no
 
 ## The three parts
 
-**Measure every factual claim by running a command.** Read the spec and list what it asserts about the world as it is now — how many call sites, which kinds resolve, what a file contains, where a behavior lives. Each of those is a claim, and each has a command that settles it. Run the command. Record what it returned next to what the spec said. Do not reason about whether a claim is plausible; a plausible claim is exactly the kind that survives review while being wrong.
+### 1 — Measure every factual claim by running a command
 
-**Challenge each acceptance criterion.** For every criterion, ask two questions. *What failure does this prevent?* — a criterion that names no failure is a preference, not a criterion. *Can its letter be satisfied while its intent is not?* — `wf-vacuity`'s probes apply to a criterion as they do to an assertion: one satisfied by a tautology, by an over-narrowed case, or by prose containing a word rather than a property holding, cannot be written non-vacuously and should be cut or rewritten before it becomes a test nothing can fail.
+Read the spec and list what it asserts about the world as it is now — how many call sites, which kinds resolve, what a file contains, where a behavior lives. Each of those is a claim, and each has a command that settles it. Run the command. Record what it returned next to what the spec said. Do not reason about whether a claim is plausible; a plausible claim is exactly the kind that survives review while being wrong.
 
-**Sweep everything written about the code the work will touch.** This part runs when the work touches code that already exists, and it is the expensive one. Start from what the work touches — the files, and the names in them: functions, types, config keys, commands, error strings. Search the project for each. Read what comes back: reference docs, other specs, instructions that ship to users, comments in the code around it.
+### 2 — Challenge each acceptance criterion
+
+For every criterion, ask two questions. *What failure does this prevent?* — a criterion that names no failure is a preference, not a criterion. *Can its letter be satisfied while its intent is not?* — `wf-vacuity`'s probes apply to a criterion as they do to an assertion: one satisfied by a tautology, by an over-narrowed case, or by prose containing a word rather than a property holding, cannot be written non-vacuously and should be cut or rewritten before it becomes a test nothing can fail.
+
+### 3 — Sweep everything written about the code the work will touch
+
+This part runs when the work touches code that already exists, and it is the expensive one. Start from what the work touches — the files, and the names in them: functions, types, config keys, commands, error strings. Search the project for each. Read what comes back: reference docs, other specs, instructions that ship to users, comments in the code around it.
 
 Search once, on the names. Do not widen to the concept those names belong to: the concept is a word like "history" or "archive", it appears in a large fraction of everything written, and the round it produces is too big to read and so does not get read.
 

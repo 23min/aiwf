@@ -83,6 +83,39 @@ func TestWfMeasureSpec_RecordSectionStatesTheDecidedHeading(t *testing.T) {
 	}
 }
 
+// TestWfMeasureSpec_MeasureStepPrecedesSweepStep pins the parts' order. The
+// cheap step that catches the most runs before the expensive one that catches
+// least, so a reader who stops early stops after the valuable part.
+//
+// The comparison is positional — where the headings sit relative to each other,
+// not what they say. The step names are only how each heading is located, and a
+// rename fails loudly here rather than silently passing, which is the outcome
+// worth having: renaming a step is a change that should be looked at.
+func TestWfMeasureSpec_MeasureStepPrecedesSweepStep(t *testing.T) {
+	t.Parallel()
+	body := readVerbSkill(t, wfMeasureSpecFixturePath)
+
+	parts := extractMarkdownSection(body, 2, "The three parts")
+	if parts == "" {
+		t.Fatal("wf-measure-spec must have a `## The three parts` section")
+	}
+	if got := countSubHeadings(parts, 3); got != 3 {
+		t.Errorf("`## The three parts` has %d `###` steps; want exactly 3, one per part", got)
+	}
+
+	measure := headingIndexContaining(body, "Measure")
+	sweep := headingIndexContaining(body, "Sweep")
+	if measure < 0 {
+		t.Fatal("no heading names the measure step; the parts must be headings for their order to be a property of the document")
+	}
+	if sweep < 0 {
+		t.Fatal("no heading names the sweep step; the parts must be headings for their order to be a property of the document")
+	}
+	if measure > sweep {
+		t.Errorf("the sweep step (line %d) precedes the measure step (line %d); the cheap step that caught every defect on record runs first", sweep, measure)
+	}
+}
+
 // TestWfMeasureSpec_RecordSectionNamesBothOutcomes pins that a pass which
 // measured nothing and a pass that never ran stay distinguishable, which takes
 // two named outcomes rather than one.
