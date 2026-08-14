@@ -64,19 +64,35 @@ string proves only that the string is present and is the shape CLAUDE.md
 
 ### AC-3 — The ritual's measurement step precedes its sweep step
 
-The ritual's steps carry their order and the sweep carries its gate. Measuring
-factual claims by running commands, and challenging each criterion for the
-failure it prevents, are cheap and run every time; the sweep is the expensive
-part and runs when the spec asserts a count or an enumeration — which is what
-both specs in the motivating episode did.
+The steps appear in yield order, and the order is a property of the document
+rather than of any word in it: measuring factual claims by running commands
+comes before sweeping related prose. Reordering the ritual fails this criterion.
 
-A finding the sweep produces is a hypothesis until a command settles it. The
-ritual says so where a reader acts on a finding, not only in a preamble.
+The assertion reads the step headings in document order and compares positions.
+It does not ask whether a section mentions ordering — a claim like that passes
+because someone wrote the word, which is the failure mode AC-2's derivation
+avoids and which this criterion avoids by testing position instead of presence.
+
+The scope here is deliberately narrower than "the steps run in yield order with
+the sweep gated on countable claims." The gate is a real obligation on the
+ritual's content and it appears under `## Constraints`, because no assertion
+over prose distinguishes a sweep that carries a genuine precondition from one
+whose section merely contains the word. Per CLAUDE.md §"AC promotion requires
+mechanical evidence", a criterion with no mechanical form is not a criterion.
 
 ## Constraints
 
 - **The kernel does not change.** No check rule, finding code, config field or
   schema entry ships with this milestone.
+- **The sweep is gated on the spec asserting a count or an enumeration.** The
+  cheap two steps run every time; the expensive one runs when there is something
+  countable to falsify, which is what both specs in the motivating episode had.
+  This is a constraint rather than a criterion because no assertion over prose
+  separates a genuine precondition from a section containing the word.
+- **A sweep finding is a hypothesis until a command settles it**, and the ritual
+  says so where a reader acts on a finding rather than only in a preamble. Same
+  reason it is a constraint: the obligation is real and its mechanical form is
+  not.
 - **Authoring lands under `internal/skills/embedded-rituals/plugins/wf-rituals/`.**
   `.claude/skills/` is materialized by `aiwf update` and is not an authoring
   location. The materialized copy in a given clone can be stale (G-0504), so
@@ -99,6 +115,22 @@ ritual says so where a reader acts on a finding, not only in a preamble.
   second one.
 - Disposal follows E-0081 and D-0054: a fact the sweep finds stated across
   several surfaces gets an owner and derivations, not a correction per copy.
+- CLAUDE.md §"AC promotion requires mechanical evidence" governs every criterion
+  here, and names the doc-shaped form: a structural assertion scoped to a named
+  markdown section. `extractMarkdownSection` and `countSubHeadings` under
+  `internal/policies/` are the house helpers.
+- **The existing ritual tests are not the shape to copy.**
+  `wf_structural_sweep_test.go` scopes to a section correctly and then matches
+  hardcoded literals chosen by reading the prose, so it passes because someone
+  typed those words and survives the lens being gutted. Scoping is structural
+  there; the matching is not.
+- AC-1 and AC-2 derive the expected side from the cobra command tree, walked
+  from the root command: the ritual names a command, and the assertion resolves
+  it. No verb-name enumeration exists to use instead — `worktree` is a CLI
+  command under `internal/cli/worktree/`, not an entry in `internal/verb/`. If
+  the walk proves unreachable, the affected criterion demotes to a constraint
+  rather than shipping an assertion that only proves the prose contains a
+  string.
 
 ## Surfaces touched
 
