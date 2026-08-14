@@ -12,7 +12,7 @@ acs:
       title: The sweep step carries a runnable command that produces a current-trunk checkout
       status: open
     - id: AC-3
-      title: Measurement runs first; the sweep runs only on countable claims
+      title: The ritual's measurement step precedes its sweep step
       status: open
 ---
 
@@ -62,7 +62,7 @@ prose pointing at nothing. An assertion that the section merely *contains* a
 string proves only that the string is present and is the shape CLAUDE.md
 §"Substring assertions are not structural assertions" rules out.
 
-### AC-3 — Measurement runs first; the sweep runs only on countable claims
+### AC-3 — The ritual's measurement step precedes its sweep step
 
 The ritual's steps carry their order and the sweep carries its gate. Measuring
 factual claims by running commands, and challenging each criterion for the
