@@ -1,7 +1,7 @@
 ---
 id: D-0066
 title: Record a spec measurement as a body section, not a trailer
-status: proposed
+status: accepted
 relates_to:
     - E-0085
     - M-0308
