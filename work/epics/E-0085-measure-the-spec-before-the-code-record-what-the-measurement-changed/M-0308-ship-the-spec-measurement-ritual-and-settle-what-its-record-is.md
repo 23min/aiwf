@@ -167,4 +167,9 @@ mechanical evidence", a criterion with no mechanical form is not a criterion.
 
 ## Deferrals
 
+- G-0584 — the existing ritual policy tests match section-scoped literals that
+  cannot fail. Surfaced while sizing this milestone's own assertions. Out of
+  scope here: this milestone writes one new test and touches none of those six
+  files, so the cheap-fix test does not carry it.
+
 ## Reviewer notes
