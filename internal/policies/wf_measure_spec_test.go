@@ -116,6 +116,39 @@ func TestWfMeasureSpec_MeasureStepPrecedesSweepStep(t *testing.T) {
 	}
 }
 
+// TestWfMeasureSpec_SweepStepCarriesACommand pins that the sweep hands the
+// reader something to run rather than telling them to remember to read trunk.
+// A stale read is the failure the step exists to avoid, and an instruction to
+// remember is not a guarantee.
+//
+// The assertion is positional — a command block inside the sweep step — and
+// deliberately says nothing about the command's wording. The ritual ships into
+// projects whose trunk ref is not this one's, so pinning the text against this
+// repo's configured ref would fix a value the document should not carry.
+func TestWfMeasureSpec_SweepStepCarriesACommand(t *testing.T) {
+	t.Parallel()
+	body := readVerbSkill(t, wfMeasureSpecFixturePath)
+
+	sweep := extractMarkdownSection(body, 3, "3 — Sweep")
+	if sweep == "" {
+		t.Fatal("wf-measure-spec must have a `### 3 — Sweep …` step")
+	}
+
+	inFence, hasCommand := false, false
+	for _, ln := range strings.Split(sweep, "\n") {
+		if strings.HasPrefix(strings.TrimSpace(ln), "```") {
+			inFence = !inFence
+			continue
+		}
+		if inFence && strings.TrimSpace(ln) != "" {
+			hasCommand = true
+		}
+	}
+	if !hasCommand {
+		t.Error("the sweep step carries no command block; a step that tells the reader to read current trunk without showing them how is a reminder, and a reminder is not a guarantee")
+	}
+}
+
 // TestWfMeasureSpec_RecordSectionNamesBothOutcomes pins that a pass which
 // measured nothing and a pass that never ran stay distinguishable, which takes
 // two named outcomes rather than one.

@@ -29,8 +29,10 @@ const (
 // heading lines (not any line) is what makes a positional order assertion
 // structural rather than a substring coincidence.
 func headingIndexContaining(body, sub string) int {
-	for i, ln := range strings.Split(body, "\n") {
-		if headingLevel(ln) > 0 && strings.Contains(ln, sub) {
+	lines := strings.Split(body, "\n")
+	levels := headingLevels(body)
+	for i, ln := range lines {
+		if levels[i] > 0 && strings.Contains(ln, sub) {
 			return i
 		}
 	}

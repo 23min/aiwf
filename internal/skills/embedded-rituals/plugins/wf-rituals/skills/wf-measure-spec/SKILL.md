@@ -35,6 +35,13 @@ For every criterion, ask two questions. *What failure does this prevent?* — a 
 
 This part runs when the work touches code that already exists, and it is the expensive one. Start from what the work touches — the files, and the names in them: functions, types, config keys, commands, error strings. Search the project for each. Read what comes back: reference docs, other specs, instructions that ship to users, comments in the code around it.
 
+Search trunk as it is now, and download it first. A local copy of a remote branch moves only when it is fetched, so searching it without fetching returns whatever was current the last time anyone pulled — which is the stale read this step exists to avoid. No checkout is needed; a ref is searchable in place:
+
+```bash
+git fetch --quiet <remote>
+git grep -n "<name>" <remote>/<trunk-branch>
+```
+
 Search once, on the names. Do not widen to the concept those names belong to: the concept is a word like "history" or "archive", it appears in a large fraction of everything written, and the round it produces is too big to read and so does not get read.
 
 **Follow a reference only where the text leans on it, and only one hop.** What you read will cite other records — a decision, a design doc, a tracked item. Most of those citations are history ("added for X", "regression pin for X") or example data, and neither goes stale. The ones worth following say *this is correct because that record says so*. Check those, then stop: you settle whether a borrowed claim still holds by measuring it, not by reading what that record cites in turn. Measurement is what ends the walk. Where the cited record carries a status, a terminal one settles it without reading the record at all.
