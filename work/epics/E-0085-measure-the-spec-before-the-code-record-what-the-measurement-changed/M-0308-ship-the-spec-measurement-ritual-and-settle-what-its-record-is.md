@@ -194,17 +194,38 @@ An independent review found the heading the record is written under was itself
 unpinned — deleting `## Spec measurement` from the ritual left every assertion
 green, which is the one drift D-0066 exists to prevent. It is pinned now.
 
-`countSubHeadings` counted heading-shaped lines inside fenced code blocks,
-disagreeing with `extractMarkdownSection` over the same bytes. Both now read
-one fence-aware scanner, which five existing assertions share. The sweep step
-introduces a fenced block here, so the mismatch had a trigger inside this
-milestone rather than being latent.
+`countSubHeadings` and `headingIndexContaining` counted heading-shaped lines
+inside fenced code blocks, disagreeing with `extractMarkdownSection` over the
+same bytes. All three now read one fence-aware scanner. The shape is present
+rather than hypothetical: `aiwfx-release` carries `### Added` and its siblings
+inside a fenced block, and `aiwfx-wrap-epic` carries `# Epic wrap` and
+`## Summary` the same way. No current assertion scopes to those sections, so no
+count was wrong; an assertion added over either would have been.
 
 Guards against an inverted instruction and a gutted outcome were written and
 then removed. Each defended an edit nobody makes, and each cost a single-user
 helper carried permanently. What remains catches a renamed section, a renamed
 record heading, a renamed verb, and a deleted outcome, and adds no helper of
 its own · commit e58d9b8bb
+
+### AC-3 — the parts became headings so their order is a document property
+
+The three parts were bold paragraph leads, which no positional assertion can
+read. They are now numbered `###` headings and the test compares where the
+measure and sweep headings sit. Reordering them and demoting one back to prose
+each fail it on their own arm · commit 2bf6e8e62
+
+AC-3 ran before AC-2 despite the numbering. AC-2 scopes its assertion to the
+sweep step, which needs the parts to be addressable first; taking them in spec
+order would have made AC-2's implementation do AC-3's work and left AC-3's test
+passing on arrival.
+
+### AC-2 — the sweep names a command instead of asking the reader to remember
+
+The sweep step carries a fetch and a ref-scoped search, run and confirmed
+against this repo before landing. The fetch is the load-bearing half: a local
+trunk ref moves only when fetched. Removing the block, or demoting it to prose
+describing the same thing, each fail the assertion · commit e94dae1d6
 
 ## Decisions made during implementation
 
