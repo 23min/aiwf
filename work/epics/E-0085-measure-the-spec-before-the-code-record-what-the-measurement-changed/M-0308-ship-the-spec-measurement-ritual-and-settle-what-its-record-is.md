@@ -14,7 +14,7 @@ acs:
       status: open
     - id: AC-3
       title: The ritual's measurement step precedes its sweep step
-      status: open
+      status: met
       tdd_phase: done
 ---
 
