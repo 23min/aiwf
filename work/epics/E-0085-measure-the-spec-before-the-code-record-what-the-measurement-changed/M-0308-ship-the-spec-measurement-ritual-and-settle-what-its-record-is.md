@@ -1,7 +1,7 @@
 ---
 id: M-0308
 title: Ship the spec-measurement ritual and settle what its record is
-status: draft
+status: in_progress
 parent: E-0085
 tdd: required
 acs:
