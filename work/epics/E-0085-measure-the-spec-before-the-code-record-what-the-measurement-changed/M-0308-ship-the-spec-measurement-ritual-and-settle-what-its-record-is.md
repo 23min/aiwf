@@ -102,9 +102,12 @@ mechanical evidence", a criterion with no mechanical form is not a criterion.
   the section-scoping helpers; its matching is not the model, per the Design
   note below. This is a constraint rather than an acceptance criterion: "X is
   tested" is not observable behavior.
-- **`wf-rituals` stays kernel-agnostic.** The plugin speaks the language of the
-  work without coupling to aiwf's planning kernel; an aiwf-specific step belongs
-  in `aiwf-extensions`, which is M-0309's side.
+- **An aiwf-specific step in `wf-rituals` is conditional, not absent.** The
+  plugin's skills speak the language of the work and guard a kernel step behind
+  its precondition — `wf-tdd-cycle`'s *"If the project uses aiwf and the
+  milestone is `tdd: required`"* is the house form, and `wf-patch` and
+  `wf-doc-lint` name aiwf verbs the same way. What belongs in `aiwf-extensions`
+  is a step with no meaning outside aiwf, which is M-0309's side.
 
 ## Design notes
 
@@ -162,6 +165,12 @@ mechanical evidence", a criterion with no mechanical form is not a criterion.
 ## Work log
 
 ## Decisions made during implementation
+
+- D-0066 — the record is a `## Spec measurement` section in the measured
+  entity's body, landed with `aiwf edit-body`. The other two candidates AC-1
+  named were eliminated by measurement rather than preference: `edit-body` emits
+  no trailer a record could ride, and an empty `edit-body` produces no commit in
+  either mode.
 
 ## Validation
 
