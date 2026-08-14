@@ -24,11 +24,11 @@ It needs a specification to measure. Run it on an entity that carries claims, no
 
 **Measure every factual claim by running a command.** Read the spec and list what it asserts about the world as it is now — how many call sites, which kinds resolve, what a file contains, where a behavior lives. Each of those is a claim, and each has a command that settles it. Run the command. Record what it returned next to what the spec said. Do not reason about whether a claim is plausible; a plausible claim is exactly the kind that survives review while being wrong.
 
-**Challenge each acceptance criterion.** For every criterion, ask two questions. *What failure does this prevent?* — a criterion that names no failure is a preference, not a criterion. *Can its letter be satisfied while its intent is not?* — the vacuity probes apply here as they do to assertions: a criterion satisfied by a tautology, by an over-narrowed case, or by prose containing a word rather than a property holding, cannot be written non-vacuously and should be cut or rewritten before it becomes a test nothing can fail.
+**Challenge each acceptance criterion.** For every criterion, ask two questions. *What failure does this prevent?* — a criterion that names no failure is a preference, not a criterion. *Can its letter be satisfied while its intent is not?* — `wf-vacuity`'s probes apply to a criterion as they do to an assertion: one satisfied by a tautology, by an over-narrowed case, or by prose containing a word rather than a property holding, cannot be written non-vacuously and should be cut or rewritten before it becomes a test nothing can fail.
 
 **Sweep the prose around the spec, when the spec asserts a count or an enumeration.** That precondition is the gate: a spec with nothing countable has nothing for the sweep to falsify, and the sweep costs more than the other two together. When it does apply, read the surfaces the spec's claims are also stated on — the docs, the sibling entities, the shipped instructions, the comments on the code in question — and compare each against what the measurement returned.
 
-**A sweep finding is a hypothesis until a command settles it.** Do not act on one, do not write it into the spec, and do not report it, before running the command that confirms it. The sweep reads prose, and prose is exactly the evidence that turned out to be wrong.
+**A sweep finding is a hypothesis until a command settles it.** Do not act on one, do not write it into the spec, and do not report it, before running the command that confirms it. The sweep reads prose, and prose is the evidence most likely to be wrong — it is what the measurement step exists to check.
 
 **Where the sweep finds one fact stated across several surfaces, some of them wrong, the fix is an owner and its derivations — not a correction per copy.** Corrections drift apart again; each copy is a fact nothing re-derives. Give the fact one definition and make every other surface read from it, so the next drift is a failure instead of a difference.
 
@@ -36,7 +36,11 @@ It needs a specification to measure. Run it on an entity that carries claims, no
 
 A completed pass writes a `## Spec measurement` section into the body of the entity whose claims it measured. The section's presence is the record. Its contents are for a human; its presence is what a later reader — a person or a rule — can find without interpreting prose.
 
-Land it the way the project lands entity body edits. Where the project uses aiwf, that is `aiwf edit-body <id>` against the measured entity, which carries the provenance trailers a plain commit does not.
+Land it the way the project lands entity body edits — through the verb that carries provenance, not a plain commit. Where the project uses aiwf, run:
+
+```bash
+aiwf edit-body <id>
+```
 
 Write the section in both cases below. A pass that recorded nothing is indistinguishable from a pass that never ran, and the whole point of the record is to tell those apart.
 
