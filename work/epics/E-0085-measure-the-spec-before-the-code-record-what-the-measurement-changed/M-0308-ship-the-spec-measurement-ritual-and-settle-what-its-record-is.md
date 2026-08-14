@@ -8,7 +8,7 @@ acs:
     - id: AC-1
       title: A completed pass leaves a record naming the entity whose claims it measured
       status: open
-      tdd_phase: red
+      tdd_phase: green
     - id: AC-2
       title: The sweep step carries a runnable command that produces a current-trunk checkout
       status: open
