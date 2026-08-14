@@ -15,7 +15,7 @@ acs:
     - id: AC-3
       title: The ritual's measurement step precedes its sweep step
       status: open
-      tdd_phase: green
+      tdd_phase: done
 ---
 
 ## Goal
