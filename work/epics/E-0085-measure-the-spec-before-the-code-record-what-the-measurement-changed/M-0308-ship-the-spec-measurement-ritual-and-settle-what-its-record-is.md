@@ -165,6 +165,13 @@ mechanical evidence", a criterion with no mechanical form is not a criterion.
 
 ## Work log
 
+### AC-1 — the record shape, settled then pinned
+
+`wf-measure-spec` ships with a `## The record` section naming `aiwf edit-body`
+and two outcomes; its test derives the verb from the cobra tree via
+`findAllVerbs` and the outcome count from heading shape, so a rename on either
+side goes red · commit 6728317a5 · four mutants probed, none survived
+
 ## Decisions made during implementation
 
 - D-0066 — the record is a `## Spec measurement` section in the measured
