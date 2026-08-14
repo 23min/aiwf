@@ -170,7 +170,23 @@ mechanical evidence", a criterion with no mechanical form is not a criterion.
 `wf-measure-spec` ships with a `## The record` section naming `aiwf edit-body`
 and two outcomes; its test derives the verb from the cobra tree via
 `findAllVerbs` and the outcome count from heading shape, so a rename on either
-side goes red · commit 6728317a5 · four mutants probed, none survived
+side goes red · commit 6728317a5
+
+An independent review found the heading the record is written under was itself
+unpinned — deleting `## Spec measurement` from the ritual left every assertion
+green, which is the one drift D-0066 exists to prevent. It is pinned now.
+
+`countSubHeadings` counted heading-shaped lines inside fenced code blocks,
+disagreeing with `extractMarkdownSection` over the same bytes. Both now read
+one fence-aware scanner, which five existing assertions share. The sweep step
+introduces a fenced block here, so the mismatch had a trigger inside this
+milestone rather than being latent.
+
+Guards against an inverted instruction and a gutted outcome were written and
+then removed. Each defended an edit nobody makes, and each cost a single-user
+helper carried permanently. What remains catches a renamed section, a renamed
+record heading, a renamed verb, and a deleted outcome, and adds no helper of
+its own · commit e58d9b8bb
 
 ## Decisions made during implementation
 
