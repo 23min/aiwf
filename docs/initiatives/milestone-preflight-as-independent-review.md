@@ -84,25 +84,31 @@ The specification names three tiers, and the selector differs by tier:
 - **Every ADR and decision**, unrestricted. These are where commitments live, and
   a specification that contradicts one is contradicting something the project
   agreed to.
-- **`docs/`**, which holds 144 markdown files, 53 of them normative (`docs/adr`
-  and `docs/design`, about 100,000 words).
+- **The normative documents**, not `docs/` flat. A project that tiers its
+  documentation by authority has already written the selector: a contradiction
+  only means something if the document carrying it is current truth. An
+  exploratory synthesis disagreeing with a specification is not a finding, and an
+  archival snapshot disagreeing is the snapshot doing its job — sweeping either
+  produces findings at a rate set by document genre rather than by specification
+  defects. A project with no such tiering has to establish one before this tier
+  is usable, which is a real precondition rather than a detail.
 - **The entities related to the work** — gaps, epics and milestones, closed ones
   included. Those the work references are in scope by definition; the rest are
   reached by scanning titles.
 
-No tier requires reading the corpus. Measured on this repo at the date above:
+No tier requires reading the corpus. The document and commitment tiers are
+measured under *Corpus and cost*; the entity tier is measured here, by taking
+every entity file's `title:` field:
 
 | index | entries | words |
 |---|---|---|
-| ADRs and decisions | 100 | 1,050 |
-| every entity, archived included | 1,041 | 11,270 |
-| active entities only | 231 | 2,620 |
+| every entity, archived included | 1,045 | 10,274 |
+| active entities only | 235 | 2,434 |
 
-Scanning every entity title in the project costs about 11,000 words, against
-78,000 to read the commitments alone. So the entity tier needs no filter beyond
-the scan itself — a reader takes the whole index, selects on subject, and reads
-the selection. Archived entities stay in scope: four fifths of the corpus is
-archived, and the specification names closed epics and milestones explicitly.
+So the entity tier needs no filter beyond the scan itself — a reader takes the
+whole index, selects on subject, and reads the selection. Archived entities stay
+in scope: four fifths of the corpus is archived, and the specification names
+closed epics and milestones explicitly.
 
 The failure mode to watch is selecting too *few*, not too many. Reading twenty
 candidates drawn from a thousand titles is cheap; missing the one that
@@ -122,11 +128,34 @@ the spec's claims caught every defect on its own.
 
 ### T6 — experiments that can disqualify
 
-The most distinctive ask, and the one with no capture at all. Validating a
-specification's claims and testing whether the milestone is worth building are
-different activities. A pass that only checks claims will confirm a
-well-specified bad idea; the highest-value outcome available here is a milestone
-cancelled before implementation, and nothing built so far can produce it.
+The most distinctive ask. Validating a specification's claims and testing whether
+the milestone is worth building are different activities. A pass that only checks
+claims will confirm a well-specified bad idea; the highest-value outcome
+available here is a milestone cancelled before implementation, and nothing built
+so far can produce it.
+
+An experiment is not a fourth mechanism. It is the third settler for a row type
+the ledger already has. A **feasibility claim** — this approach works, this is
+simpler, this is cheaper — is a claim the lab cannot reach, because its subject
+does not exist yet. The routing table's third row is exactly that case, and the
+experiment is what fills its measured column.
+
+- **Trigger — a load-bearing feasibility claim.** The specification asserts the
+  proposed approach works, and the milestone is not worth building if that
+  assertion is false. Both halves are required. Nearly every specification claims
+  its approach works; what earns an experiment is that the claim carries the
+  milestone. The reviewer identifies it from the specification's own sentences,
+  the same way the ledger enumerates every other claim — a content test, not an
+  estimate of work nobody has done.
+- **Shape — the smallest thing that would show the approach works, discarded
+  afterwards.** It is built in a disposable tree per the prohibitions, never in
+  the tree under review, and it is not a seed for the implementation. What
+  survives is the ledger row: what was built, what it did, and the command that
+  produced it.
+- **Outcome — works, does not, or inconclusive.** *Does not* is a recommendation
+  to cancel the milestone or re-specify it. The pass never acts on it. Cancelling
+  is a mutation behind a human gate, and *inconclusive* is a real third answer —
+  a probe that failed to settle the question is not evidence the approach works.
 
 ### T7 — withdrawn
 
@@ -167,13 +196,18 @@ and return different verdicts.
 
 | content | check | verdict |
 |---|---|---|
-| a claim about the present | the lab — run a command | true or false |
-| fit with what is already committed | the sweep — read the commitments | consistent, or not |
-| whether the proposal works | an experiment — build the smallest version | works, or does not |
+| a claim about the present | the lab — run a command | true, false, or unable to measure safely |
+| fit with what is already committed | the sweep — read the commitments | a finding, or nothing found |
+| whether the proposal works | an experiment — build the smallest version | works, does not, or inconclusive |
 
 Routing a question to the wrong one produces a confident wrong answer, which is
 worse than no answer. Asking the sweep to settle a fact is the specific mistake
 the blind trial below records.
+
+Only the lab and the experiment have a positive arm, and each earns it by running
+something. The sweep does not: its verdict is a finding or the absence of one,
+never a pass. That asymmetry is the subject of the next section, and it is what
+keeps *nothing found* from being read as *consistent*.
 
 ### Reading raises a doubt; it never clears one
 
@@ -185,6 +219,20 @@ This is structural rather than a matter of discipline. When a prose reader is
 free to report that a claim looks sound, it will, and the reader downstream stops
 looking — ending up more confident than before the review, and pointed at the
 wrong thing. Removing the state removes the failure.
+
+The rule constrains the sweep's output, not what reading can establish. Reading
+settles plenty: that a decision record imposes an obligation, that two documents
+disagree, that a sentence carries a second reading. Each of those lands as a
+finding — *complicated*, *contradicted*, *ambiguous* — and findings are the
+sweep's whole product. What reading may not produce is the *absence* of a
+finding turned into a verdict on the claim. So there is no reclassification
+escape either: a reviewer cannot decide a question is normative rather than
+factual and clear it on that basis. That reclassification is precisely what the
+blind trial recorded, and the four states leave nowhere for it to land.
+
+A claim a command settles true is a real outcome and it does have a home, but not
+here. It is written by the lab, into a column of its own, and never by the reader
+— see *The report*.
 
 The four are distinct, and the distinction is what makes each actionable:
 
@@ -231,24 +279,40 @@ already been decided in this area* — while the lab stays at milestone prefligh
 ### Three seams
 
 - **Epic drafting** — sweep the commitments. Theory building: what is already settled here.
-- **Milestone preflight** — sweep, then lab. Experiments belong at this seam too, but what triggers one is unresolved and the open question below owns it. Runs in subagents.
+- **Milestone preflight** — sweep, then lab, then an experiment wherever the specification carries a load-bearing feasibility claim. Runs in subagents.
 - **Patch start** — the same, scaled to the change. A patch closing a tracked item has inherited premises by construction.
 
 ### Corpus and cost
 
-The commitments corpus is the accepted ADRs and decisions. Reading it whole does
-not scale; reading its **titles** does. Measured on this repo:
+Reading the corpus whole does not scale; reading its **index** does. Scan the
+index, select on subject, read only the selection. Measured on this repo, each
+row naming the command that produced it:
 
-| | entries | words |
-|---|---|---|
-| title index | 100 | 1,050 |
-| the same documents in full | 100 | 77,879 |
+| tier | index | in full | index built by |
+|---|---|---|---|
+| commitments — every ADR and decision | 1,024 | 89,119 | `grep -h '^title:'` over `docs/adr/`, `work/decisions/`, and both archives |
+| normative documents, minus the ADRs already counted above | 1,573 | 61,166 | each path plus its `^#{1,3} ` headings, over the normative tier's 16 remaining files |
+| hand-authored root documents | 491 | 17,267 | the same, over the tracked root markdown that is neither derived nor append-only |
+| **total** | **3,088** | **167,552** | |
 
-Scan every title, select on subject, read only the selected. What grows with the
-corpus is the index, at roughly ten words an entry, so a project with ten times
-the decisions still has a scannable index. The method depends on titles being
-informative; a project whose decisions are titled "Decision 12" gets nothing from
-the index and must read everything.
+Fifty-four times cheaper, and the whole index fits in a single read.
+
+The two tiers select at different granularities, and the difference is worth
+keeping. A commitment carries one title stating a conclusion, so the index
+selects a **document**. A design document carries roughly twenty headings stating
+subjects, so its index selects a **section** — the reader opens one section of a
+sixty-thousand-word tier rather than the tier. That is the better half of the
+method, and it is available wherever documents carry structured headings.
+
+Two exclusions are load-bearing rather than economies. **Derived documents** — a
+generated roadmap, a status page — are excluded because a contradiction inside
+one is a stale render rather than a finding about the specification. **Archival
+and exploratory documents** are excluded on the authority argument in T3.
+
+What grows with the corpus is the index, at roughly ten words an entry, so a
+project with ten times the decisions still has a scannable index. The method
+depends on titles and headings being informative; a project whose decisions are
+titled "Decision 12" gets nothing from the index and must read everything.
 
 One full sweep, measured: 99 titles scanned, 19 selected, 16 read, 11 findings —
 122,000 tokens and about six minutes in one subagent.
@@ -322,28 +386,54 @@ it is open, and is the one structural question left in the artifact set.
 
 ### The report
 
-A ledger, one row per factual claim the specification makes:
+A ledger, one row per factual claim the specification makes. It has two halves,
+written by different parts of the pass and never by the same one:
 
-| claim | state | evidence |
-|---|---|---|
-| what the spec asserts | contradicted / ambiguous / complicated / unknown | the command that settled it, or blank |
+| claim | reading | measured | evidence |
+|---|---|---|---|
+| what the spec asserts | contradicted / ambiguous / complicated / unknown | true / false / unable to measure safely, or blank | the command and its output, or blank |
 
-There is no *verified* state. A blank in the evidence column is the point of the
-format: it is the only way an unchecked claim stays visible.
+The **reading** column is the sweep's, and carries the four states above. It has
+no *verified* value, so a claim nothing settled stays visible as *unknown*.
+
+The **measured** column is the lab's, and is the only place a claim is ever
+settled true. It cannot be filled without the command *and its output* in the
+evidence cell beside it — that pairing is what makes the guarantee mechanical
+rather than a matter of the reader's discipline. No command, no pass.
+
+A blank in either column is the point of the format. It is the only way an
+unchecked claim stays visible, and a row blank in both is a claim nobody reached.
 
 Findings that are not claims — a commitment the spec fails to discharge, an
-example that no longer works — carry the same four states, and a *complicated*
-row names the specific obligation.
+example that no longer works — carry a reading state and leave the measured
+column blank unless a command reaches them. A *complicated* row names the
+specific obligation.
 
 ### The prohibitions
 
-- **The pass may not clear a question.** Reading raises doubts; only a command
-  settles one. No output may assert that a claim is sound.
+- **Reading may not clear a question.** The sweep's output is a finding or the
+  absence of one; no reading may assert that a claim is sound. A claim is settled
+  true only in the measured column, only by a command, and only with that
+  command's output recorded beside it.
 - **The sweep may not measure while it reads.** A reader that starts running
   commands mid-audit conflates the two verdicts and produces a confident wrong
-  answer. It records what it would run instead.
-- **The pass may not edit code.** It changes the specification, or it returns a
-  disqualifying result.
+  answer. It records what it would run instead. This is a phase rule, not a
+  position on measurement: the lab that follows the sweep exists precisely to run
+  what the sweep wrote down, and it is what settles anything.
+- **The pass writes nothing outside a disposable tree.** In the repository under
+  review it runs only commands that leave no trace. Anything that writes — a
+  mutating verb, a scaffold, an experiment's build — runs against a throwaway
+  repository or a worktree of its own, and is discarded. Outward actions are
+  never available to it: no push, no remote delete, no deploy, no network beyond
+  a fetch. A claim that cannot be settled inside those bounds is recorded *unable
+  to measure safely*, which is a blank rather than a pass. A pass measuring the
+  tool's own behavior builds the binary from the tree under review rather than
+  trusting the one on the path, or it measures older code and reports it as
+  current.
+- **The pass may not edit code, and may not act on its own verdict.** It changes
+  the specification, or it returns a disqualifying result for a human to act on.
+  Cancelling a milestone is a mutation and stays where every mutation is — behind
+  a human gate.
 - **It terminates.** The sweep searches names rather than concepts and follows a
   borrowed claim one hop. Both bounds exist so a pass finishes.
 
@@ -353,9 +443,16 @@ The blind trial's brief produced eleven findings and pushed every measurable
 question to an open-questions list rather than guessing at it. Its load-bearing
 parts, which any implementation keeps:
 
-- **Pin the corpus.** Every document is read at a stated ref, and the working
-  tree is off limits. Without this the reviewer reads material that postdates the
-  work and calls it context.
+- **Pin two snapshots, and name them separately.** The **corpus** is read at a
+  stated ref with the working tree off limits — without that the reviewer reads
+  material postdating the work and calls it context. The **subject** — the
+  specification under review, and the epic it sits in — is named on its own,
+  because it is routinely uncommitted: the shipped guidance has an author edit an
+  entity in the working tree so a human can read the diff before it commits, so
+  the recommended authoring flow produces exactly the subject a corpus pin cannot
+  address. One pin for both makes the reviewer either read a stale subject or
+  treat the working tree as fair game for the corpus too. Name the subject, name
+  the ref, and say the subject is the only thing read outside it.
 - **Select from titles before reading, and record the selection with its reason.**
   Making the choice auditable is what separates a sweep from a search for
   confirmation.
@@ -401,9 +498,8 @@ What survives the cancellation is this document, plus:
 
 | Question | Blocking a promotion? | Resolution path |
 |---|---|---|
-| What shape does an experiment take, what triggers one, and what does a disqualifying result do to the milestone? | T6 | **Unanswered, and it needs the author of this specification, not a measurement.** The thread with the most value and the least precedent. The disqualifying outcome implies cancelling a milestone at preflight, a path the kernel already supports. Everything else in *What ships* can be built without it; this cannot be inferred from the trials. |
 | Does the reviewer perform the lab directly, or invoke a separate ritual for it? | T1 | The one structural question left in the artifact set. Bears on whether the seams name one artifact or two. |
-| Does the entity half of T3 survive at all? | T3 | The commitments corpus — ADRs and decisions — is settled and scannable. Whether gaps and closed milestones also need reading is unanswered: roughly 1,100 entities have no filter that reaches the ones that matter, and reverse references walk entities only, not docs or templates. The honest fallback is to state the reduction rather than carry an ambition with no mechanism. |
+| Does the entity half of T3 survive at all? | T3 | The commitments corpus and the normative documents are settled and scannable — see *Corpus and cost*. Whether gaps and closed milestones also need **reading** is unanswered: their title index is affordable, but no filter reaches the ones that matter, and reverse references walk entities only, not docs or templates. The honest fallback is to state the reduction rather than carry an ambition with no mechanism. |
 | Do the title index and the no-clearance rule hold in a project that is not this one? | all | Both were measured here only. The index depends on titles being informative, which is a property of this repo's conventions rather than of the method. |
 
 ## Appendix — where the existing skills fight this specification
