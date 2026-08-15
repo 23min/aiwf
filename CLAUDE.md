@@ -153,6 +153,23 @@ Before `aiwf promote M-NNNN/AC-<N> met`, there must be a mechanical assertion th
 
 ---
 
+## While the preflight-review initiative is being implemented
+
+Scoped rules, in force for epics and milestones implementing
+[`docs/initiatives/milestone-preflight-as-independent-review.md`](docs/initiatives/milestone-preflight-as-independent-review.md).
+**Delete this section when that initiative moves to `docs/initiatives/archive/` with `status: realized`.**
+
+The initiative specifies a pre-implementation review pass. Until it ships, the work building it follows its rules by hand — both because the rules are right and because each run is evidence about the method.
+
+- **The initiative is the specification.** An epic or milestone implementing it does not restate it. A claim in a spec that the initiative does not carry is a defect in one of them; find out which before building. The failure this prevents is the one that produced it: an epic planned from a partial capture nobody compared against the source.
+- **Every milestone runs the pass before it starts** — dispatched to a fresh reviewer with the brief the initiative specifies, returning a ledger. The pass does not need to be built to be run; run it by hand.
+- **Nothing is settled by reading — in specs, and in conversation.** A claim reported sound with no command behind it is unchecked and says so. A prose reader that clears a question produces false confidence, which is worse than no review of that claim.
+- **Every count names the command that produced it**, or is dropped rather than defended.
+
+Advisory, like the rest of this file — nothing enforces it, which is exactly the property the initiative says a guarantee cannot have. The mechanical version is what the work eventually ships; this is the scaffolding until then.
+
+---
+
 ## Default to a worktree for any branch work in this repo
 
 When a ritual (`wf-patch`, milestone, epic) or an ad-hoc fix creates a branch, default to an in-repo worktree (`.claude/worktrees/<branch>/`, per ADR-0023) rather than switching the main checkout in place — create it with `aiwf worktree add <branch> --base <base>`, which materializes rituals (skills, agents, templates, guidance) into the new worktree atomically, in one step. This applies to the session's own direct work, not just subagent dispatch. Skip only when explicitly told to work in the main checkout for that invocation.
