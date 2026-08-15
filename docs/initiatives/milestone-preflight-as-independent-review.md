@@ -642,7 +642,7 @@ mix both under one word.
 | `wf-review-code:127` | "something you checked and found sound; not a defect, since you **verified** it" | an output-template line whose literal text is a clearance |
 | `wf-codebase-health:775` | "Strong / Weak / Missing… **A Strong that survives a real refutation attempt is actually strong**" | the refutation is itself a read |
 | — | — | *(Withdrawn. The rule at `wf-codebase-health:409`, and its mirror in the always-on guidance, terminate on **disposition** — "finds no defect **that is not already pinned, recorded, or tracked**… Not 'no findings ever'". That is not a clearance, and it is the stop rule this specification adopts under* The prohibitions*.)* |
-| `wf-vacuity:76` | "## Clean — assertions **confirmed** to constrain behaviour" | probe 1 is a command and legitimate; probe 2 is reading and lands in the same section |
+| `wf-vacuity:68–70` | "`## Clean`" / "assertions / properties **confirmed** to constrain behaviour — a real bug makes them fail" | probe 1 is a command and legitimate; probe 2 is reading and lands in the same section |
 | `wf-tdd-cycle:79` → `aiwfx-start-milestone:152` | "this audit is **agent-performed** — not a tool invocation" → declared as "branch-coverage audit **clean**" | a reading walk produces a clearance a downstream reader consumes as settled |
 | `wf-doc-lint:164` | "**No findings** — `<N>` docs checked" | checks 5–6 are commands; checks 2–3 are self-described heuristics; one summary line cannot distinguish them |
 | `aiwfx-wrap-milestone:65` | "If the report is **clean**, note 'doc-lint: clean'" | inherits the ambiguity above into the wrap record |
