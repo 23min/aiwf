@@ -52,7 +52,7 @@ than being renumbered, so references stay valid.
 | T4 | **Code comments** are in scope | — |
 | T5 | A **lab that measures and proves what is currently true — or false** | — |
 | T6 | **Small experiments** that complement, validate, or **disqualify** a milestone | — |
-| T7 | ~~Applied selectively, to difficult milestones~~ — **withdrawn**; it runs on every milestone and patch | n/a |
+| T7 | ~~Applied selectively, to difficult milestones~~ — **revised**; it runs by default, escapable by a stated reason at a gate | — |
 | T8 | Delivered as a **skill** | — |
 | T9 | **Examples are audited, not only prose** | — |
 
@@ -174,13 +174,15 @@ simpler, this is cheaper — is a claim the lab cannot reach, because its subjec
 does not exist yet. The routing table's third row is exactly that case, and the
 experiment is what fills its measured column.
 
-- **Trigger — a load-bearing feasibility claim.** The specification asserts the
-  proposed approach works, and the milestone is not worth building if that
-  assertion is false. Both halves are required. Nearly every specification claims
-  its approach works; what earns an experiment is that the claim carries the
-  milestone. The reviewer identifies it from the specification's own sentences,
-  the same way the ledger enumerates every other claim — a content test, not an
-  estimate of work nobody has done.
+- **Trigger — unresolved.** The intended test was a *load-bearing feasibility
+  claim*: the specification asserts the approach works, and the milestone is not
+  worth building if that is false. Applied to this project's four live epic
+  specifications it decided one and could not decide three, because the second
+  half is a counterfactual about value that no specification contains a sentence
+  stating. It is the estimate this document refuses elsewhere, wearing a content
+  test's clothes. No replacement is proposed here. Until one exists an experiment
+  is run when a human asks for one, and the trigger stays an open question rather
+  than a rule nobody can apply.
 - **Shape — the smallest thing that would show the approach works, discarded
   afterwards.** It is built in a disposable tree per the prohibitions, never in
   the tree under review, and it is not a seed for the implementation. What
@@ -191,15 +193,37 @@ experiment is what fills its measured column.
   is a mutation behind a human gate, and *inconclusive* is a real third answer —
   a probe that failed to settle the question is not evidence the approach works.
 
-### T7 — withdrawn
+### T7 — a stated escape, not a judgment
 
-The specification originally reserved the pass for difficult milestones. It now
-asks for it on every milestone and patch, so there is no trigger to define and
-nothing to build here.
+The specification originally reserved the pass for difficult milestones, then
+asked for it on every milestone and patch. Neither is right, and the measurements
+say why.
 
-The measured cost supports the revision: one full sweep is about six minutes and
-122,000 tokens in a single subagent. Gating was worth designing while the sweep
-meant reading a corpus; it is not worth designing to save an index scan.
+The argument for running it everywhere was that gating costs more than it saves —
+*"not worth designing to save an index scan"*. That priced the wrong artifact.
+The 122,000-token observation swept the active commitments tier alone, whose
+index at that ref was about 1,600 tokens; the index this specification now
+requires is roughly eighteen times larger. And the index is not the cost: the
+pass that follows it is, at 122,000 tokens against a subject whose median is
+around 2,200.
+
+Against that, the base rate. Of 37 cancelled milestones, 36 never reached
+`in_progress` and 30 fall in same-day batches under one epic — these are
+epic-level re-plans, not per-milestone specification defects. One epic in the
+project's life had implemented code withdrawn. The dominant rework is the
+gap-and-fix loop, which already closes at a median of one day.
+
+So the pass runs by default and is **escapable by a stated reason at a gate** —
+the form `wf-patch` already uses for its own review step: *"no independent
+review: &lt;reason&gt;"*, stated where a human can veto it rather than skipped
+silently. Two escapes are mechanical rather than judgments, and both are cases
+this specification currently has no answer for: **a subject with no
+specification** (an untracked patch, roughly one in five here), and **a change
+with no claim about the present** to put to the lab.
+
+This is not the original T7. That asked the operator to judge a milestone
+difficult in advance, which is the estimate the specification elsewhere refuses.
+This asks only whether the pass has a subject and something to check.
 
 ### T9 — examples, not only prose
 
@@ -325,9 +349,9 @@ already been decided in this area* — while the lab stays at milestone prefligh
 
 ### Three seams
 
-- **Epic drafting** — the sweep alone. Theory building: what is already settled here. The lab is not dispatched, which is why the two are separate artifacts.
-- **Milestone preflight** — the challenge, then the sweep, then the lab, then an experiment wherever the specification carries a load-bearing feasibility claim. Two dispatches, the ledger between them; the challenge needs neither, since its only input is the criteria.
-- **Patch start** — the challenge, then the same, scaled to the change. A patch closing a tracked item has inherited premises by construction.
+- **Epic drafting** — the sweep alone. Theory building: what is already settled here. The lab is not dispatched, which is why the two are separate artifacts. This is where the sweep has its measured catches: cancellations cluster as epic-level re-plans rather than per-milestone defects.
+- **Milestone preflight** — the challenge, then the sweep, then the lab. Two dispatches, the ledger between them; the challenge needs neither, since its only input is the criteria. An experiment runs where a human asks for one, pending T6.
+- **Patch start** — the challenge and the lab. The sweep runs when the patch has a tracked subject whose premises it inherited; a patch with no entity has no specification to check, which is the escape T7 names rather than a judgment about size.
 
 ### Corpus and cost
 
@@ -569,6 +593,7 @@ What survives the cancellation is this document, plus:
 
 | Question | Blocking a promotion? | Resolution path |
 |---|---|---|
+| What triggers an experiment? | T6 | The intended test — a load-bearing feasibility claim — decided one of this project's four live epic specifications and could not decide three. Its second half is a counterfactual about value that no specification states. Needs the author, not a measurement; everything else in *What ships* is buildable without it. |
 | Do the title index and the no-clearance rule hold in a project that is not this one? | all | Both were measured here only. The index depends on titles being informative, which is a property of this repo's conventions rather than of the method. The document tier additionally depends on the project ranking its documentation by authority, which most do not. |
 | Does reverse-reference walking reach beyond entities? | T3 | It walks entities only, not documents or templates, so a document contradicting a specification is reached by the index scan or not at all. Stated as a limit of the method rather than a question awaiting an answer. |
 
