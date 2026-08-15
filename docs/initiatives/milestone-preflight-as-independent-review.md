@@ -387,6 +387,86 @@ T6 and T7 are unpromoted.
 | Does the entity half of T3 survive at all? | T3 | The commitments corpus — ADRs and decisions — is settled and scannable. Whether gaps and closed milestones also need reading is unanswered: roughly 1,100 entities have no filter that reaches the ones that matter, and reverse references walk entities only, not docs or templates. The honest fallback is to state the reduction rather than carry an ambition with no mechanism. |
 | Do the title index and the no-clearance rule hold in a project that is not this one? | all | Both were measured here only. The index depends on titles being informative, which is a property of this repo's conventions rather than of the method. |
 
+## Appendix — where the existing skills fight this specification
+
+An independent audit read 24 of 48 shipped skills, agent cards and templates
+against the rules above, selected from titles and frontmatter descriptions.
+Findings are grouped by class, because the class decides the disposition: one
+fix pattern across many sites is one piece of work, not many.
+
+### Class A — a clearance earned by reading
+
+The largest class and the one the specification exists to remove. Legitimate
+where a command earns the verdict; forbidden where reading does. Several skills
+mix both under one word.
+
+| site | quoted | note |
+|---|---|---|
+| `wf-review-code:127` | "something you checked and found sound; not a defect, since you **verified** it" | an output-template line whose literal text is a clearance |
+| `wf-codebase-health:775` | "Strong / Weak / Missing… **A Strong that survives a real refutation attempt is actually strong**" | the refutation is itself a read |
+| `wf-codebase-health:409`, mirrored in the always-on guidance | "a review loop is converged when **a fresh reviewer, over the whole surface, finds no defect**" | binds every turn; ends a loop on a reading pass |
+| `wf-vacuity:76` | "## Clean — assertions **confirmed** to constrain behaviour" | probe 1 is a command and legitimate; probe 2 is reading and lands in the same section |
+| `wf-tdd-cycle:79` → `aiwfx-start-milestone:152` | "this audit is **agent-performed** — not a tool invocation" → declared as "branch-coverage audit **clean**" | a reading walk produces a clearance a downstream reader consumes as settled |
+| `wf-doc-lint:164` | "**No findings** — `<N>` docs checked" | checks 5–6 are commands; checks 2–3 are self-described heuristics; one summary line cannot distinguish them |
+| `aiwfx-wrap-milestone:65` | "If the report is **clean**, note 'doc-lint: clean'" | inherits the ambiguity above into the wrap record |
+| `wf-structural-sweep:51` | "a **scorecard** (Strong / Weak / Missing per principle)" | lens 3 is "the reasoner's lens"; the scorecard cannot express *unknown* |
+| `wf-rethink:123` | "**A rethink that confirms the current design is a successful audit**" | a fit-checker returning a verdict on whether the proposal works |
+
+The composing precedents already in the corpus are worth copying rather than
+re-deriving: `wf-property-test:88` — *"Say 'checked over generated inputs,' not
+'verified.'"* — and `wf-vacuity:92`, *"A clean report is 'no weakness found,'
+not 'tests verified correct.'"*
+
+### Class B — the handoff drops the unsettled half
+
+`aiwfx-handoff` produces the block pasted into a context compaction. Its rule at
+`:31` forwards *"a finding not to re-open"*, instructing the next session to
+treat a question as closed. There is no counterpart line for a question still
+open, and the ten-line cap makes the omission structural rather than incidental.
+The pointer it substitutes for detail surfaces no ledger, because no entity
+template carries one.
+
+### Class C — the seams do not run the pass
+
+Each of these is the seat this specification claims, currently occupied by a
+reading pass the implementer runs on their own work.
+
+| site | quoted |
+|---|---|
+| `aiwfx-start-milestone:20` | "**Confirm every AC is concrete and testable.** If any AC is vague, stop" |
+| `aiwfx-start-epic:30` | "**Confirm** the Goal, Scope, Out of scope and Constraints… are concrete prose" |
+| `aiwfx-plan-epic:25` | reads `ROADMAP.md`, `work/epics/`, `work/gaps/` — never the ADRs and decisions |
+| `wf-patch:36` | "state the user-observable goal **in your own words**" — no sweep, lab or ledger before step 6 |
+
+### Class D — nothing can hold a ledger
+
+`templates/milestone-spec.md` carries no section for one, and
+`templates/epic-spec.md`'s Open questions table — the nearest existing structure
+— has no evidence column and admits only questions, never claims. A claim nobody
+measured has nowhere to be visible.
+
+`agents/reviewer.md:18` compounds it: the one role card named *reviewer* emits
+"**approve**, request-changes, or questions" and carries no ledger, no four
+states, no ref-pinning and no forbid-measurement clause.
+
+### Class E — a shipped skill cannot name the corpus it must read
+
+`aiwfx-record-decision:148–154` bans a shipped ritual from embedding a path
+under `docs/`: *"It does not embed a markdown link to a decision record or
+design doc under `docs/`… do not point at a repo file the reader does not
+have."* The reviewer
+brief must open `docs/adr/` and `docs/design/`. Both rules are current, both are
+right in their own terms, and they collide. The brief has to express its corpus
+as a shape rather than a path, or it is not shippable.
+
+### Class F — read and no conflict found
+
+`aiwfx-wrap-epic`, `aiwfx-whiteboard`, and `aiwfx-plan-milestones` steps 6–10
+were read without a conflict being found. That is a statement about the reading,
+not a property of those files. Twenty-four further files — the verb skills,
+`aiwfx-release`, `deployer.md`, `wf-property-test` and two templates — were
+covered by vocabulary greps only and not read.
+
 ## Provenance
 
 Stated in conversation before [G-0583](../../work/gaps/G-0583-the-milestone-preflight-asks-for-judgment-with-no-method.md)
