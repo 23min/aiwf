@@ -231,7 +231,7 @@ already been decided in this area* — while the lab stays at milestone prefligh
 ### Three seams
 
 - **Epic drafting** — sweep the commitments. Theory building: what is already settled here.
-- **Milestone preflight** — sweep, then lab, then experiments where a doubt survives. Runs in subagents.
+- **Milestone preflight** — sweep, then lab. Experiments belong at this seam too, but what triggers one is unresolved and the open question below owns it. Runs in subagents.
 - **Patch start** — the same, scaled to the change. A patch closing a tracked item has inherited premises by construction.
 
 ### Corpus and cost
