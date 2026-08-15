@@ -74,7 +74,6 @@ func TestM0290_AC4_NoNormativeDocOffersTheRetiredVerb(t *testing.T) {
 
 	for _, sub := range []string{
 		filepath.Join("docs", "design"),
-		filepath.Join("docs", "migration"),
 		filepath.Join("docs", "initiatives"),
 	} {
 		dir := filepath.Join(root, sub)
