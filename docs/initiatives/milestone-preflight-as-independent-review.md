@@ -448,9 +448,11 @@ is one where every decision falls to whoever writes it that day.
 ### The artifacts
 
 The sweep and the lab are **two artifacts, dispatched separately**, and the
-ledger is the handoff between them. The sweep returns rows whose unknown state
-already carries the command it would have run; the lab receives those rows, runs
-them, and fills the measured column. That makes the phase boundary structural
+ledger is the handoff between them. The lab receives every row a command could
+settle — the *unknown* rows, which already carry the command the sweep would have
+run, **and the *contradicted* rows**, whose own definition is that one side is
+wrong and a command decides which. A contradicted row that never reaches the lab
+is a doubt nothing discharges, which is the treadmill this pass exists to avoid. That makes the phase boundary structural
 rather than a matter of the reader's discipline: the sweeper cannot fill the
 measured column, because it is not the agent that runs anything.
 
@@ -473,7 +475,7 @@ failure the pin exists to prevent.
   command and no dispatch of its own, so it can ride with whichever artifact the
   seam already invokes — which is why it is the cheapest part and the one to run
   first.
-- **A lab**, dispatched with the sweep's unknown rows. It owns the execution
+- **A lab**, dispatched with the sweep's unknown and contradicted rows. It owns the execution
   safety boundary and the experiment, which is lab-class work — it builds, runs,
   and returns works, does not, or inconclusive — rather than a third artifact.
 - **Seam instructions** at the three entry points, each naming the artifacts it
@@ -492,9 +494,14 @@ The **reading** column is the sweep's, and carries the four states above. It has
 no *verified* value, so a claim nothing settled stays visible as *unknown*.
 
 The **measured** column is the lab's, and is the only place a claim is ever
-settled true. It cannot be filled without the command *and its output* in the
-evidence cell beside it — that pairing is what makes the guarantee mechanical
-rather than a matter of the reader's discipline. No command, no pass.
+settled true. Filling it takes four things in the evidence cell, not one: the
+**command**, the **expected result** that would make the claim true, the
+**observed output**, and the **environment** it ran in — which binary, built from
+which tree. A command with no stated expectation settles nothing, because any
+output can be read as confirming; and an unstated environment is how a pass
+measures older code and reports it as current. That quartet is what makes the
+guarantee mechanical rather than a matter of the reader's discipline. **No
+command and no oracle, no pass.**
 
 A blank in either column is the point of the format. It is the only way an
 unchecked claim stays visible, and a row blank in both is a claim nobody reached.
@@ -531,6 +538,26 @@ specific obligation.
   a human gate.
 - **It terminates.** The sweep searches names rather than concepts and follows a
   borrowed claim one hop. Both bounds exist so a pass finishes.
+- **A contradicted row leaves something behind.** The row names a `file:line` in
+  the corpus, and its disposition is a repair made or an entity filed. Without
+  this the same stale sentence is rediscovered by every future pass, paid for
+  each time, and the corpus never improves — a detector with no ratchet. The pass
+  itself performs neither: it returns the row, and the session that dispatched it
+  acts.
+
+### The stop rule
+
+A pass ends when every row is **measured, dispositioned, or tracked** — not when
+it runs out of findings, and never on a reading that found nothing.
+
+This is deliberately the rule the project already applies to code review, which
+converges when a fresh reviewer *"finds no defect that is not already pinned,
+recorded, or tracked"*, explicitly **not** on "no findings ever". Terminating on
+disposition rather than on absence is what lets a pass finish without anyone
+declaring a claim sound: a blank with a named owner is a finish state, and a
+blank with no owner is not. It supplies the one thing the no-clearance rule
+otherwise removes — a condition under which work may begin — without
+reintroducing a verdict that reading could earn.
 
 ### The reviewer brief
 
