@@ -94,7 +94,19 @@ The specification names three tiers, and the selector differs by tier:
   is usable, which is a real precondition rather than a detail.
 - **The entities related to the work** — gaps, epics and milestones, closed ones
   included. Those the work references are in scope by definition; the rest are
-  reached by scanning titles.
+  reached by scanning titles. **The index carries each entity's status**, because
+  status is to an entity what the authority tier is to a document: it says what
+  kind of thing the reader is holding.
+
+  This matters most where it is least obvious. A cancelled entity's body is the
+  proposal frozen at the moment it died — still reading as a live plan, with one
+  word of frontmatter the only sign otherwise — so it is never citable as a
+  commitment. Its cancellation *reason*, which lives in the verb's commit rather
+  than the body, is a finding about reality attributed to a named human, and is
+  often the better material of the two. Both are in scope; they are not the same
+  kind of claim. A terminal status is not a reliability verdict either: a
+  milestone can be `done` with criteria asserting properties of a file that no
+  longer exists.
 
 No tier requires reading the corpus. The document and commitment tiers are
 measured under *Corpus and cost*; the entity tier is measured here, by taking
@@ -109,6 +121,18 @@ So the entity tier needs no filter beyond the scan itself — a reader takes the
 whole index, selects on subject, and reads the selection. Archived entities stay
 in scope: four fifths of the corpus is archived, and the specification names
 closed epics and milestones explicitly.
+
+One run supports this rather than an argument. Sweeping a draft epic, a reviewer
+selected five entities from the title scan alone, beyond those the draft
+referenced; four carried findings that changed the draft, and the sharpest was
+archived — it recorded a prior agent making the identical mistake the draft was
+making. That is the answer to "no filter reaches the ones that matter": the scan
+is the filter, as it is for the commitments.
+
+The limit is worth stating with the result. It is one observation, on a subject
+unusually dense in entities because its subject was the tooling itself. A
+milestone with a narrower subject should expect a lower yield from this tier, and
+that would not falsify the method.
 
 The failure mode to watch is selecting too *few*, not too many. Reading twenty
 candidates drawn from a thousand titles is cheap; missing the one that
@@ -278,8 +302,8 @@ already been decided in this area* — while the lab stays at milestone prefligh
 
 ### Three seams
 
-- **Epic drafting** — sweep the commitments. Theory building: what is already settled here.
-- **Milestone preflight** — sweep, then lab, then an experiment wherever the specification carries a load-bearing feasibility claim. Runs in subagents.
+- **Epic drafting** — the sweep alone. Theory building: what is already settled here. The lab is not dispatched, which is why the two are separate artifacts.
+- **Milestone preflight** — sweep, then lab, then an experiment wherever the specification carries a load-bearing feasibility claim. Two dispatches, the ledger between them.
 - **Patch start** — the same, scaled to the change. A patch closing a tracked item has inherited premises by construction.
 
 ### Corpus and cost
@@ -372,17 +396,33 @@ is one where every decision falls to whoever writes it that day.
 
 ### The artifacts
 
-- **A reviewer brief.** The instructions a dispatched reviewer receives. This is
-  the load-bearing artifact, not a wrapper around one: independence is what makes
-  the audit's breadth affordable, and the brief is where independence is
-  established or lost. Drafted below.
-- **A ritual the reviewer follows**, holding the method: what to sweep, how to
-  select from a title index, when to measure, what may be concluded.
-- **Seam instructions** at the three entry points, each naming the pass rather
-  than restating it.
+The sweep and the lab are **two artifacts, dispatched separately**, and the
+ledger is the handoff between them. The sweep returns rows whose unknown state
+already carries the command it would have run; the lab receives those rows, runs
+them, and fills the measured column. That makes the phase boundary structural
+rather than a matter of the reader's discipline: the sweeper cannot fill the
+measured column, because it is not the agent that runs anything.
 
-Whether the reviewer performs the lab directly or invokes a separate ritual for
-it is open, and is the one structural question left in the artifact set.
+Two forces decide it, and neither is a preference. The seams need it: the
+commitments sweep runs at epic drafting where the lab does not, so a single
+artifact would have to be invoked partially — the shape that reliably goes wrong.
+And the two phases need different views of the repository: the sweep reads at a
+pinned ref with the working tree off limits, while the lab must measure current
+state, because a fact measured early is stale by the time work starts. One agent
+holding both would eventually cite the current tree as corpus, which is the
+failure the pin exists to prevent.
+
+- **A reviewer brief.** The instructions the dispatched sweep reviewer receives.
+  This is the load-bearing artifact, not a wrapper around one: independence is
+  what makes the audit's breadth affordable, and the brief is where independence
+  is established or lost. Drafted below.
+- **A ritual the sweep reviewer follows**, holding the reading method: what to
+  sweep, how to select from an index, what may be concluded.
+- **A lab**, dispatched with the sweep's unknown rows. It owns the execution
+  safety boundary and the experiment, which is lab-class work — it builds, runs,
+  and returns works, does not, or inconclusive — rather than a third artifact.
+- **Seam instructions** at the three entry points, each naming the artifacts it
+  needs rather than restating them.
 
 ### The report
 
@@ -498,9 +538,8 @@ What survives the cancellation is this document, plus:
 
 | Question | Blocking a promotion? | Resolution path |
 |---|---|---|
-| Does the reviewer perform the lab directly, or invoke a separate ritual for it? | T1 | The one structural question left in the artifact set. Bears on whether the seams name one artifact or two. |
-| Does the entity half of T3 survive at all? | T3 | The commitments corpus and the normative documents are settled and scannable — see *Corpus and cost*. Whether gaps and closed milestones also need **reading** is unanswered: their title index is affordable, but no filter reaches the ones that matter, and reverse references walk entities only, not docs or templates. The honest fallback is to state the reduction rather than carry an ambition with no mechanism. |
-| Do the title index and the no-clearance rule hold in a project that is not this one? | all | Both were measured here only. The index depends on titles being informative, which is a property of this repo's conventions rather than of the method. |
+| Do the title index and the no-clearance rule hold in a project that is not this one? | all | Both were measured here only. The index depends on titles being informative, which is a property of this repo's conventions rather than of the method. The document tier additionally depends on the project ranking its documentation by authority, which most do not. |
+| Does reverse-reference walking reach beyond entities? | T3 | It walks entities only, not documents or templates, so a document contradicting a specification is reached by the index scan or not at all. Stated as a limit of the method rather than a question awaiting an answer. |
 
 ## Appendix — where the existing skills fight this specification
 
