@@ -7,8 +7,8 @@ priority: medium
 ## What's missing
 
 The Normative-tier docs — `docs/architecture.md`, `docs/overview.md`,
-`docs/workflows.md`, `docs/skill-author-guide.md`, `docs/design/`,
-`docs/migration/` — carry claims the kernel no longer honors. A 2026-08-06 audit
+`docs/workflows.md`, `docs/skill-author-guide.md`, `docs/design/` — carry claims
+the kernel no longer honors. A 2026-08-06 audit
 against a binary built from the working tree found five classes, inventoried
 with `file:line` citations and measured counter-evidence in
 [`docs/initiatives/normative-docs-drift-audit.md`](../../docs/initiatives/normative-docs-drift-audit.md):
