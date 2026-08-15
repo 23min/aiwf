@@ -15,7 +15,7 @@ acs:
       status: cancelled
     - id: AC-3
       title: No surface promises testable criteria without naming the method
-      status: open
+      status: cancelled
 ---
 
 ## Goal
