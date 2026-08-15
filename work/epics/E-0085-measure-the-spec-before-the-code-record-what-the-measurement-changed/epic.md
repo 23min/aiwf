@@ -1,7 +1,7 @@
 ---
 id: E-0085
 title: Measure the spec before the code; record what the measurement changed
-status: active
+status: cancelled
 ---
 
 ## Goal
@@ -102,7 +102,7 @@ took the same shape — a ban with both sides derived rather than an assertion.
 | Question | Blocking? | Resolution path |
 |---|---|---|
 | What shape does a "no-change" record take — a commit trailer, a body line, or an empty `edit-body`? | yes | Settled in the first milestone, before the ritual ships; the answer decides whether a later check rule has anything to read. |
-| Does the sweep's fresh-trunk checkout reuse `aiwf worktree add` or something lighter and read-only? | no | Decided when the sweep step is written. Both exist today; the choice is cost, not capability. |
+| Does the sweep's fresh-trunk checkout reuse `aiwf worktree add` or something lighter and read-only? | resolved | Neither. No checkout is needed at all — a ref can be fetched and searched in place. `aiwf worktree add` additionally requires a branch name and materializes rituals, both wrong for a read-only search. |
 | Does the ritual belong at epic start too? | no | Left unanswered deliberately — no evidence at epic scale yet. Revisit once the milestone and patch seams have run enough times to say. |
 
 ## Risks
@@ -111,7 +111,8 @@ took the same shape — a ban with both sides derived rather than an assertion.
 |---|---|---|
 | The pass is prose, and nothing makes an assistant run it | med | The recorded outcome makes omission visible in git history. This epic stops short of a check rule on purpose: the rule that would close the hole needs to know what the record contains, and that is learned from use. |
 | A recorded no-change is cheap to produce without doing the work | med | Accepted and stated. The record catches omission, not laziness. Closing that gap is a kernel question this epic explicitly defers rather than half-answers. |
-| The pass costs more per milestone than the defects it prevents | med | The parts run in yield order: measuring and challenging are cheap and caught every defect in the motivating episode; the expensive sweep is gated on the spec making countable claims, which is what both failed specs did. |
+| The pass costs more per milestone than the defects it prevents | med | The parts run in yield order: measuring and challenging are cheap and caught every defect in the motivating episode. The sweep is the expensive one and is bounded — names rather than concepts, one hop on a borrowed claim — which a replay over five recorded drift cases put at 11 to 69 files to read, against 171 to 320 for the unbounded forms. |
+| The sweep reaches a narrower class than the epic assumed | med | Stated rather than mitigated. The same replay missed two of five: prose that drifted in an earlier refactor names symbols the current change does not touch, and a defect of shape rather than wording names no symbol at all. Both are check-shaped, and the ritual says so where a reader meets one instead of implying a clean sweep is an all-clear. |
 
 ## Milestones
 

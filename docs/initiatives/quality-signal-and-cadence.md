@@ -380,13 +380,21 @@ judges what a criterion says.
 
 So this question has one other capture rather than two, and it is the one
 carrying the cost these two directions lack:
-[G-0583](../../work/gaps/G-0583-the-milestone-preflight-asks-for-judgment-with-no-method.md).
-Run against M-0307, measuring the spec's factual claims caught three defects
-before any code was written, and challenging each criterion found one that
-could not be written without asserting that the guidance says what the test
-says it says. The structural direction stays untaken, and stays the cheaper
-answer wherever a criterion can be made to state its own falsification
-condition.
+[`milestone-preflight-as-independent-review.md`](milestone-preflight-as-independent-review.md),
+which records the specification in full. Its lab thread — proving what is
+currently true by running commands — caught three defects in M-0307 before any
+code was written, and challenging each criterion found one that could not be
+written without asserting that the guidance says what the test says it says.
+
+[G-0583](../../work/gaps/G-0583-the-milestone-preflight-asks-for-judgment-with-no-method.md)
+is a partial capture of that specification and the one E-0085 was planned from.
+It carries the lab and the prose scan; the independent reviewer, the epic
+context, and the experiments that can disqualify a milestone are threads no
+entity holds. Read the initiative first — the gap reads as the whole ask
+otherwise.
+
+The structural direction stays untaken, and stays the cheaper answer wherever a
+criterion can be made to state its own falsification condition.
 
 ## Scoped targets
 

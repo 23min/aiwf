@@ -3,6 +3,8 @@ package policies
 import (
 	"strings"
 	"testing"
+
+	"github.com/google/go-cmp/cmp"
 )
 
 // wf-ritual honesty / reframe tests (M-0199 / G-0309, G-0297, G-0294). Each
@@ -27,20 +29,94 @@ const (
 // heading lines (not any line) is what makes a positional order assertion
 // structural rather than a substring coincidence.
 func headingIndexContaining(body, sub string) int {
-	for i, ln := range strings.Split(body, "\n") {
-		if headingLevel(ln) > 0 && strings.Contains(ln, sub) {
+	lines := strings.Split(body, "\n")
+	levels := headingLevels(body)
+	for i, ln := range lines {
+		if levels[i] > 0 && strings.Contains(ln, sub) {
 			return i
 		}
 	}
 	return -1
 }
 
+// headingLevels returns one entry per line of section: that line's markdown
+// heading level, or 0 when the line is not a heading. Lines inside a fenced
+// code block are 0 whatever their leading hashes — skill bodies carry fenced
+// command examples throughout, and a shell comment in one is content rather
+// than a heading. Matches how extractMarkdownSection finds a section's bounds,
+// so a count taken here and a section extracted there agree about the same
+// bytes.
+func headingLevels(section string) []int {
+	lines := strings.Split(section, "\n")
+	out := make([]int, len(lines))
+	inFence := false
+	for i, ln := range lines {
+		if strings.HasPrefix(strings.TrimSpace(ln), "```") {
+			inFence = !inFence
+			continue
+		}
+		if inFence {
+			continue
+		}
+		out[i] = headingLevel(ln)
+	}
+	return out
+}
+
+// TestHeadingLevels covers the scanner every sub-heading assertion in this
+// package reads through: plain headings, non-headings, and the fenced-block
+// case that separates a shell comment from a heading.
+func TestHeadingLevels(t *testing.T) {
+	t.Parallel()
+
+	tests := []struct {
+		name    string
+		section string
+		want    []int
+	}{
+		{
+			name:    "headings report their level",
+			section: "## Two\n### Three\n#### Four",
+			want:    []int{2, 3, 4},
+		},
+		{
+			name:    "prose and blanks are not headings",
+			section: "prose\n\n  indented",
+			want:    []int{0, 0, 0},
+		},
+		{
+			name:    "hashes inside a fence are content",
+			section: "## Real\n```bash\n### not a heading\n```\n### Real",
+			want:    []int{2, 0, 0, 0, 3},
+		},
+		{
+			name:    "an unclosed fence swallows the rest",
+			section: "## Real\n```\n### swallowed",
+			want:    []int{2, 0, 0},
+		},
+		{
+			name:    "an indented fence marker still toggles",
+			section: "  ```\n### inside\n  ```\n### outside",
+			want:    []int{0, 0, 0, 3},
+		},
+	}
+
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			t.Parallel()
+			if diff := cmp.Diff(tc.want, headingLevels(tc.section)); diff != "" {
+				t.Errorf("headingLevels() mismatch (-want +got):\n%s", diff)
+			}
+		})
+	}
+}
+
 // countSubHeadings returns how many lines in section are markdown headings
 // at exactly the given level.
 func countSubHeadings(section string, level int) int {
 	n := 0
-	for _, ln := range strings.Split(section, "\n") {
-		if headingLevel(ln) == level {
+	for _, lvl := range headingLevels(section) {
+		if lvl == level {
 			n++
 		}
 	}

@@ -1,0 +1,167 @@
+package policies
+
+import (
+	"strings"
+	"testing"
+)
+
+// wf-measure-spec structural tests (M-0308). The skill lives under
+// internal/skills/embedded-rituals/**, so referencing its path here also
+// discharges the skill-edit-structural-test-backstop: the ritual's
+// SKILL.md is referenced by the tests below.
+const wfMeasureSpecFixturePath = "internal/skills/embedded-rituals/plugins/wf-rituals/skills/wf-measure-spec/SKILL.md"
+
+// recordSectionHeading is the `## …` section that defines what a completed
+// pass leaves behind.
+const recordSectionHeading = "The record"
+
+// recordedHeading is the heading the record is written under. It is a decided
+// constant rather than a literal read back out of the ritual's prose: a later
+// rule locates a completed pass by this heading, so the ritual has to state
+// exactly this text and drifting it silently orphans that rule.
+const recordedHeading = "## Spec measurement"
+
+// TestWfMeasureSpec_RecordSectionNamesTheVerbThatLandsIt pins that the record
+// is landed by a command that exists. The verb names are read from the live
+// Cobra tree, so renaming the command turns this red instead of leaving the
+// ritual pointing at nothing.
+func TestWfMeasureSpec_RecordSectionNamesTheVerbThatLandsIt(t *testing.T) {
+	t.Parallel()
+	body := readVerbSkill(t, wfMeasureSpecFixturePath)
+
+	record := extractMarkdownSection(body, 2, recordSectionHeading)
+	if record == "" {
+		t.Fatalf("wf-measure-spec must have a `## %s` section defining what a completed pass leaves behind", recordSectionHeading)
+	}
+
+	verbs, err := findAllVerbs(repoRoot(t))
+	if err != nil {
+		t.Fatalf("walk the cobra command tree: %v", err)
+	}
+
+	// Looking the verb up in the tree before requiring it in the section is
+	// what makes the name below a derivation rather than a literal: rename
+	// the command and this fails here, naming the ritual to update with it.
+	const bodyWriteVerb = "edit-body"
+	if _, ok := verbs[bodyWriteVerb]; !ok {
+		t.Fatalf("no %q command in the cobra tree — the verb that lands the record was renamed; update wf-measure-spec's `## %s` section and this constant together", bodyWriteVerb, recordSectionHeading)
+	}
+
+	mentions := backtickedAiwfMentions(record, verbs)
+	if len(mentions) == 0 {
+		t.Fatalf("`## %s` names no aiwf command; a record nobody is told how to write is not a record", recordSectionHeading)
+	}
+
+	named := false
+	for _, m := range mentions {
+		if !m.resolved {
+			t.Errorf("`## %s` names `aiwf %s`, which resolves to no command in the cobra tree", recordSectionHeading, m.path)
+		}
+		if m.path == bodyWriteVerb {
+			named = true
+		}
+	}
+	if !named {
+		t.Errorf("`## %s` must name `aiwf %s` as the verb that lands the record", recordSectionHeading, bodyWriteVerb)
+	}
+}
+
+// TestWfMeasureSpec_RecordSectionStatesTheDecidedHeading pins the record's
+// shape. Its value is that a later reader finds a completed pass by one known
+// heading, so naming a different heading — or describing the record without
+// naming one — breaks what the record is for while leaving the rest green.
+func TestWfMeasureSpec_RecordSectionStatesTheDecidedHeading(t *testing.T) {
+	t.Parallel()
+	body := readVerbSkill(t, wfMeasureSpecFixturePath)
+
+	record := extractMarkdownSection(body, 2, recordSectionHeading)
+	if record == "" {
+		t.Fatalf("wf-measure-spec must have a `## %s` section defining what a completed pass leaves behind", recordSectionHeading)
+	}
+	if !strings.Contains(record, recordedHeading) {
+		t.Errorf("`## %s` never names %q as the heading the record is written under; a later rule locates the pass by that heading and has nothing to find without it", recordSectionHeading, recordedHeading)
+	}
+}
+
+// TestWfMeasureSpec_MeasureStepPrecedesSweepStep pins the parts' order. The
+// cheap step that catches the most runs before the expensive one that catches
+// least, so a reader who stops early stops after the valuable part.
+//
+// The comparison is positional — where the headings sit relative to each other,
+// not what they say. The step names are only how each heading is located, and a
+// rename fails loudly here rather than silently passing, which is the outcome
+// worth having: renaming a step is a change that should be looked at.
+func TestWfMeasureSpec_MeasureStepPrecedesSweepStep(t *testing.T) {
+	t.Parallel()
+	body := readVerbSkill(t, wfMeasureSpecFixturePath)
+
+	parts := extractMarkdownSection(body, 2, "The three parts")
+	if parts == "" {
+		t.Fatal("wf-measure-spec must have a `## The three parts` section")
+	}
+	if got := countSubHeadings(parts, 3); got != 3 {
+		t.Errorf("`## The three parts` has %d `###` steps; want exactly 3, one per part", got)
+	}
+
+	measure := headingIndexContaining(body, "Measure")
+	sweep := headingIndexContaining(body, "Sweep")
+	if measure < 0 {
+		t.Fatal("no heading names the measure step; the parts must be headings for their order to be a property of the document")
+	}
+	if sweep < 0 {
+		t.Fatal("no heading names the sweep step; the parts must be headings for their order to be a property of the document")
+	}
+	if measure > sweep {
+		t.Errorf("the sweep step (line %d) precedes the measure step (line %d); the cheap step that caught every defect on record runs first", sweep, measure)
+	}
+}
+
+// TestWfMeasureSpec_SweepStepCarriesACommand pins that the sweep hands the
+// reader something to run rather than telling them to remember to read trunk.
+// A stale read is the failure the step exists to avoid, and an instruction to
+// remember is not a guarantee.
+//
+// The assertion is positional — a command block inside the sweep step — and
+// deliberately says nothing about the command's wording. The ritual ships into
+// projects whose trunk ref is not this one's, so pinning the text against this
+// repo's configured ref would fix a value the document should not carry.
+func TestWfMeasureSpec_SweepStepCarriesACommand(t *testing.T) {
+	t.Parallel()
+	body := readVerbSkill(t, wfMeasureSpecFixturePath)
+
+	sweep := extractMarkdownSection(body, 3, "3 — Sweep")
+	if sweep == "" {
+		t.Fatal("wf-measure-spec must have a `### 3 — Sweep …` step")
+	}
+
+	inFence, hasCommand := false, false
+	for _, ln := range strings.Split(sweep, "\n") {
+		if strings.HasPrefix(strings.TrimSpace(ln), "```") {
+			inFence = !inFence
+			continue
+		}
+		if inFence && strings.TrimSpace(ln) != "" {
+			hasCommand = true
+		}
+	}
+	if !hasCommand {
+		t.Error("the sweep step carries no command block; a step that tells the reader to read current trunk without showing them how is a reminder, and a reminder is not a guarantee")
+	}
+}
+
+// TestWfMeasureSpec_RecordSectionNamesBothOutcomes pins that a pass which
+// measured nothing and a pass that never ran stay distinguishable, which takes
+// two named outcomes rather than one.
+func TestWfMeasureSpec_RecordSectionNamesBothOutcomes(t *testing.T) {
+	t.Parallel()
+	body := readVerbSkill(t, wfMeasureSpecFixturePath)
+
+	record := extractMarkdownSection(body, 2, recordSectionHeading)
+	if record == "" {
+		t.Fatalf("wf-measure-spec must have a `## %s` section defining what a completed pass leaves behind", recordSectionHeading)
+	}
+
+	if got := countSubHeadings(record, 3); got != 2 {
+		t.Errorf("`## %s` has %d `###` outcomes; want exactly 2 — the pass that changed the entity and the pass that changed nothing", recordSectionHeading, got)
+	}
+}

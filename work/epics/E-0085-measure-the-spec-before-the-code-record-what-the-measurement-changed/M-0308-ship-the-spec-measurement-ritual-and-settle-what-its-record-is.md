@@ -1,19 +1,22 @@
 ---
 id: M-0308
 title: Ship the spec-measurement ritual and settle what its record is
-status: draft
+status: done
 parent: E-0085
 tdd: required
 acs:
     - id: AC-1
       title: A completed pass leaves a record naming the entity whose claims it measured
-      status: open
+      status: met
+      tdd_phase: done
     - id: AC-2
-      title: The sweep step carries a runnable command that produces a current-trunk checkout
-      status: open
+      title: The sweep step names a command that reads current trunk
+      status: met
+      tdd_phase: done
     - id: AC-3
-      title: Measurement runs first; the sweep runs only on countable claims
-      status: open
+      title: The ritual's measurement step precedes its sweep step
+      status: met
+      tdd_phase: done
 ---
 
 ## Goal
@@ -48,46 +51,71 @@ whatever a later rule could read without parsing prose. Capture the choice via
 `aiwfx-record-decision`; a shape with no recorded reasoning is a shape the next
 reader re-litigates.
 
-### AC-2 — The sweep step carries a runnable command that produces a current-trunk checkout
+### AC-2 — The sweep step names a command that reads current trunk
 
-The sweep reads current trunk, and the ritual gets the operator there by naming
-a command rather than by asking them to remember. Run against a stale branch the
-sweep missed the most consequential finding of its motivating episode and
-produced one confident false one, so this is the step's load-bearing
-precondition rather than a nicety.
+The sweep reads trunk as it is now, and the ritual gets the operator there by
+naming a command rather than by asking them to remember. Downloading first is
+the load-bearing half: a local trunk ref moves only when it is fetched, so a
+search that reads it without fetching returns whatever was current the last
+time anyone pulled. Run against a stale branch, the sweep missed the most
+consequential finding of its motivating episode.
 
-The assertion derives both sides: the command the sweep names resolves against
-the surface that defines it, so a rename breaks the test rather than leaving the
-prose pointing at nothing. An assertion that the section merely *contains* a
-string proves only that the string is present and is the shape CLAUDE.md
-§"Substring assertions are not structural assertions" rules out.
+No checkout is required. A ref can be searched and read in place, so the
+command is a fetch and a search, not a second working copy.
 
-### AC-3 — Measurement runs first; the sweep runs only on countable claims
+The assertion is positional: the sweep section carries a command block rather
+than prose describing what to run. It deliberately does not check the command's
+wording against any surface in this repo. The ritual ships into projects whose
+trunk ref is not this one's, so pinning it against this repo's configured ref
+would fix a value the document should not be carrying in the first place.
 
-The ritual's steps carry their order and the sweep carries its gate. Measuring
-factual claims by running commands, and challenging each criterion for the
-failure it prevents, are cheap and run every time; the sweep is the expensive
-part and runs when the spec asserts a count or an enumeration — which is what
-both specs in the motivating episode did.
+### AC-3 — The ritual's measurement step precedes its sweep step
 
-A finding the sweep produces is a hypothesis until a command settles it. The
-ritual says so where a reader acts on a finding, not only in a preamble.
+The steps appear in yield order, and the order is a property of the document
+rather than of any word in it: measuring factual claims by running commands
+comes before sweeping related prose. Reordering the ritual fails this criterion.
+
+The assertion reads the step headings in document order and compares positions.
+It does not ask whether a section mentions ordering — a claim like that passes
+because someone wrote the word, which is the failure mode AC-2's derivation
+avoids and which this criterion avoids by testing position instead of presence.
+
+The scope here is deliberately narrower than "the steps run in yield order and
+the sweep is bounded." The bound is a real obligation on the ritual's content
+and it appears under `## Constraints`, because no assertion over prose
+distinguishes a sweep carrying a genuine bound from one whose section describes
+one. Per CLAUDE.md §"AC promotion requires mechanical evidence", a criterion
+with no mechanical form is not a criterion.
 
 ## Constraints
 
 - **The kernel does not change.** No check rule, finding code, config field or
   schema entry ships with this milestone.
+- **The sweep searches from the code outward, and is bounded.** It starts from
+  the names the work touches, searches those once without widening to the
+  concept they belong to, and follows a borrowed claim one hop. Searching from
+  the spec's own wording instead finds the surfaces that agree with a spec
+  nobody has checked. This is a constraint rather than a criterion because no
+  assertion over prose separates a real bound from a section describing one.
+- **A sweep finding is a hypothesis until a command settles it**, and the ritual
+  says so where a reader acts on a finding rather than only in a preamble. Same
+  reason it is a constraint: the obligation is real and its mechanical form is
+  not.
 - **Authoring lands under `internal/skills/embedded-rituals/plugins/wf-rituals/`.**
   `.claude/skills/` is materialized by `aiwf update` and is not an authoring
   location. The materialized copy in a given clone can be stale (G-0504), so
   read the embedded tree when comparing.
 - **The ritual ships with its referencing structural test**, per the repo's
-  backstop policy — `wf_structural_sweep_test.go` is the precedent shape. This
-  is a constraint rather than an acceptance criterion: "X is tested" is not
-  observable behavior.
-- **`wf-rituals` stays kernel-agnostic.** The plugin speaks the language of the
-  work without coupling to aiwf's planning kernel; an aiwf-specific step belongs
-  in `aiwf-extensions`, which is M-0309's side.
+  backstop policy. `wf_structural_sweep_test.go` supplies the file layout and
+  the section-scoping helpers; its matching is not the model, per the Design
+  note below. This is a constraint rather than an acceptance criterion: "X is
+  tested" is not observable behavior.
+- **An aiwf-specific step in `wf-rituals` is conditional, not absent.** The
+  plugin's skills speak the language of the work and guard a kernel step behind
+  its precondition — `wf-tdd-cycle`'s *"If the project uses aiwf and the
+  milestone is `tdd: required`"* is the house form, and `wf-patch` and
+  `wf-doc-lint` name aiwf verbs the same way. What belongs in `aiwf-extensions`
+  is a step with no meaning outside aiwf, which is M-0309's side.
 
 ## Design notes
 
@@ -99,6 +127,35 @@ ritual says so where a reader acts on a finding, not only in a preamble.
   second one.
 - Disposal follows E-0081 and D-0054: a fact the sweep finds stated across
   several surfaces gets an owner and derivations, not a correction per copy.
+- CLAUDE.md §"AC promotion requires mechanical evidence" governs every criterion
+  here, and names the doc-shaped form: a structural assertion scoped to a named
+  markdown section. `extractMarkdownSection` and `countSubHeadings` under
+  `internal/policies/` are the house helpers.
+- **The existing ritual tests are not the shape to copy.**
+  `wf_structural_sweep_test.go` scopes to a section correctly and then matches
+  hardcoded literals chosen by reading the prose, so it passes because someone
+  typed those words and survives the lens being gutted. Scoping is structural
+  there; the matching is not.
+- AC-1 derives its expected side from the cobra command tree, walked from the
+  root command: the ritual names a verb, and the assertion resolves it. No
+  verb-name enumeration exists to use instead — `worktree` is a CLI command
+  under `internal/cli/worktree/`, not an entry in `internal/verb/`.
+- AC-2 deliberately does not use that walk. Its command is plain git, which no
+  surface in this repo defines, and the one derivable part — the trunk ref, from
+  the allocate config — is a value the shipped ritual should not carry, since it
+  goes to projects whose trunk is not this one's. Its assertion is positional
+  instead: the step holds a command block rather than prose describing one.
+
+- The sweep's shape was settled against five recorded drift cases rather than
+  by argument, replaying each one at the commit that caused it and searching
+  with terms taken from that commit's diff. It reached the three where the
+  prose named something the change touched, at 11 to 69 files to read. It
+  missed both others: prose that had drifted in an earlier refactor names
+  symbols the current change does not, and a template whose defect is a heading
+  level names no symbol at all. Widening the search to the concept reaches the
+  first of those, at 171 and 320 files — which is why the ritual searches names
+  once rather than iterating to closure. Both misses are check-shaped, and the
+  ritual says so where a reader meets one.
 
 ## Surfaces touched
 
@@ -128,10 +185,65 @@ ritual says so where a reader acts on a finding, not only in a preamble.
 
 ## Work log
 
+### AC-1 — the record shape, settled then pinned
+
+`wf-measure-spec` ships with a `## The record` section naming `aiwf edit-body`
+and two outcomes; its test derives the verb from the cobra tree via
+`findAllVerbs` and the outcome count from heading shape, so a rename on either
+side goes red · commit 6728317a5
+
+An independent review found the heading the record is written under was itself
+unpinned — deleting `## Spec measurement` from the ritual left every assertion
+green, which is the one drift D-0066 exists to prevent. It is pinned now.
+
+`countSubHeadings` and `headingIndexContaining` counted heading-shaped lines
+inside fenced code blocks, disagreeing with `extractMarkdownSection` over the
+same bytes. All three now read one fence-aware scanner. The shape is present
+rather than hypothetical: `aiwfx-release` carries `### Added` and its siblings
+inside a fenced block, and `aiwfx-wrap-epic` carries `# Epic wrap` and
+`## Summary` the same way. No current assertion scopes to those sections, so no
+count was wrong; an assertion added over either would have been.
+
+Guards against an inverted instruction and a gutted outcome were written and
+then removed. Each defended an edit nobody makes, and each cost a single-user
+helper carried permanently. What remains catches a renamed section, a renamed
+record heading, a renamed verb, and a deleted outcome, and adds no helper of
+its own · commit e58d9b8bb
+
+### AC-3 — the parts became headings so their order is a document property
+
+The three parts were bold paragraph leads, which no positional assertion can
+read. They are now numbered `###` headings and the test compares where the
+measure and sweep headings sit. Reordering them and demoting one back to prose
+each fail it on their own arm · commit 2bf6e8e62
+
+AC-3 ran before AC-2 despite the numbering. AC-2 scopes its assertion to the
+sweep step, which needs the parts to be addressable first; taking them in spec
+order would have made AC-2's implementation do AC-3's work and left AC-3's test
+passing on arrival.
+
+### AC-2 — the sweep names a command instead of asking the reader to remember
+
+The sweep step carries a fetch and a ref-scoped search, run and confirmed
+against this repo before landing. The fetch is the load-bearing half: a local
+trunk ref moves only when fetched. Removing the block, or demoting it to prose
+describing the same thing, each fail the assertion · commit e94dae1d6
+
 ## Decisions made during implementation
+
+- D-0066 — the record is a `## Spec measurement` section in the measured
+  entity's body, landed with `aiwf edit-body`. The other two candidates AC-1
+  named were eliminated by measurement rather than preference: `edit-body` emits
+  no trailer a record could ride, and an empty `edit-body` produces no commit in
+  either mode.
 
 ## Validation
 
 ## Deferrals
+
+- G-0584 — the existing ritual policy tests match section-scoped literals that
+  cannot fail. Surfaced while sizing this milestone's own assertions. Out of
+  scope here: this milestone writes one new test and touches none of those six
+  files, so the cheap-fix test does not carry it.
 
 ## Reviewer notes

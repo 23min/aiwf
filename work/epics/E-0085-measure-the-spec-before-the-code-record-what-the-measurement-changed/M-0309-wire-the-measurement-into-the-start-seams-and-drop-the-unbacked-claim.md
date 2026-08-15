@@ -1,7 +1,7 @@
 ---
 id: M-0309
 title: Wire the measurement into the start seams and drop the unbacked claim
-status: draft
+status: cancelled
 parent: E-0085
 depends_on:
     - M-0308
@@ -9,13 +9,13 @@ tdd: required
 acs:
     - id: AC-1
       title: The milestone preflight names the ritual, not a bare judgment call
-      status: open
+      status: cancelled
     - id: AC-2
       title: A gap-closing patch measures the gap's claims before the change
-      status: open
+      status: cancelled
     - id: AC-3
       title: No surface promises testable criteria without naming the method
-      status: open
+      status: cancelled
 ---
 
 ## Goal
