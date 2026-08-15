@@ -26,7 +26,7 @@ var documentationHierarchyClosedTiers = map[string]bool{
 }
 
 // documentationHierarchySubtrees is the fixed, post-M-0127 set of
-// active docs/ subtrees the section must account for. Per the
+// docs/ subtrees the section must account for. Per the
 // epic's own out-of-scope note, this is a snapshot assertion against
 // the layout as it exists today, not a live drift check against
 // docs/'s actual contents — that's G-0092's deferred kernel-rule
@@ -37,8 +37,8 @@ var documentationHierarchySubtrees = []string{
 	"docs/explorations/",
 	"docs/research/",
 	"docs/initiatives/",
-	"docs/migration/",
 	"docs/archive/",
+	"docs/archive/migration/",
 }
 
 // documentationHierarchyNarrativeFiles is the fixed set of top-level

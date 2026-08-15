@@ -79,7 +79,7 @@ func TestFiringFixtures_MultiSite(t *testing.T) {
 			name:   "m0128-doc-hierarchy/incomplete-and-bad-tier",
 			policy: PolicyM0128DocumentationHierarchy,
 			files: map[string]string{"CLAUDE.md": "# X\n\n## Documentation hierarchy\n\n" +
-				"- **Normative** — docs/adr/, docs/design/, docs/explorations/, docs/research/, docs/initiatives/, docs/migration/, architecture.md\n" +
+				"- **Normative** — docs/adr/, docs/design/, docs/explorations/, docs/research/, docs/initiatives/, architecture.md\n" +
 				"- **Whimsical** — some things\n"},
 		},
 

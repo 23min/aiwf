@@ -16,6 +16,16 @@ section in this file.
 
 ## [Unreleased]
 
+### Changed — the import manifest specification moves to the archival tier
+
+`docs/migration/` moves to `docs/archive/migration/`, and CLAUDE.md's
+documentation hierarchy lists it as Archival rather than Normative. The
+`aiwf import` verb still ships and its documented manifest example still
+validates, but no project remains to import, so the specification is no longer
+kept in lockstep with the code — which is the only property the Normative tier
+asserts. A reader can now tell that from the path alone. Whether the verb itself
+retires is tracked separately as G-0588.
+
 ### Changed — the specification-quality thread names its one real neighbor
 
 Nothing user-facing changed. `docs/initiatives/quality-signal-and-cadence.md`'s
