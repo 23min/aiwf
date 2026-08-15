@@ -221,17 +221,19 @@ already reads.
 
 ## What the trials established
 
-### A specification holds three kinds of content, and each needs a different check
+### A specification holds four kinds of content, and each needs a different check
 
 A specification is mostly proposal — intent, design, fit with what exists. Only a
-slice of it is claims about the world as it currently stands. The three parts of
-the pass are not three ways of checking one thing; they check different content
-and return different verdicts.
+slice of it is claims about the world as it currently stands, and one slice is
+not about the world at all but about whether the specification's own criteria can
+be satisfied honestly. The parts of the pass are not several ways of checking one
+thing; they check different content and return different verdicts.
 
 | content | check | verdict |
 |---|---|---|
 | a claim about the present | the lab — run a command | true, false, or unable to measure safely |
 | fit with what is already committed | the sweep — read the commitments | a finding, or nothing found |
+| whether a criterion can be met vacuously | the challenge — read the criterion against itself | a finding, or nothing found |
 | whether the proposal works | an experiment — build the smallest version | works, does not, or inconclusive |
 
 Routing a question to the wrong one produces a confident wrong answer, which is
@@ -239,9 +241,20 @@ worse than no answer. Asking the sweep to settle a fact is the specific mistake
 the blind trial below records.
 
 Only the lab and the experiment have a positive arm, and each earns it by running
-something. The sweep does not: its verdict is a finding or the absence of one,
-never a pass. That asymmetry is the subject of the next section, and it is what
-keeps *nothing found* from being read as *consistent*.
+something. Neither reading check does: their verdict is a finding or the absence
+of one, never a pass. That asymmetry is the subject of the next section, and it
+is what keeps *nothing found* from being read as *consistent*.
+
+**The challenge is the cheapest of the four and the last to be written down.** It
+takes each acceptance criterion and asks two questions of it: what
+consumer-visible failure does this prevent, and could a builder satisfy its
+letter while leaving a consumer no better off? It needs no corpus, no command,
+and no index — only the specification itself — so it costs a fraction of the
+sweep and can run wherever the criteria are. It has recorded yield: it is what
+found the one M-0307 criterion that could not be written without asserting that
+the guidance says what the test says it says. It is `wf-vacuity`'s move applied
+to a specification rather than a test suite, and it borrows that skill's probe
+vocabulary rather than minting a second one.
 
 ### Reading raises a doubt; it never clears one
 
@@ -313,8 +326,8 @@ already been decided in this area* — while the lab stays at milestone prefligh
 ### Three seams
 
 - **Epic drafting** — the sweep alone. Theory building: what is already settled here. The lab is not dispatched, which is why the two are separate artifacts.
-- **Milestone preflight** — sweep, then lab, then an experiment wherever the specification carries a load-bearing feasibility claim. Two dispatches, the ledger between them.
-- **Patch start** — the same, scaled to the change. A patch closing a tracked item has inherited premises by construction.
+- **Milestone preflight** — the challenge, then the sweep, then the lab, then an experiment wherever the specification carries a load-bearing feasibility claim. Two dispatches, the ledger between them; the challenge needs neither, since its only input is the criteria.
+- **Patch start** — the challenge, then the same, scaled to the change. A patch closing a tracked item has inherited premises by construction.
 
 ### Corpus and cost
 
@@ -432,6 +445,10 @@ failure the pin exists to prevent.
   is established or lost. Drafted below.
 - **A ritual the sweep reviewer follows**, holding the reading method: what to
   sweep, how to select from an index, what may be concluded.
+- **The challenge**, run against the criteria alone. It needs no corpus, no
+  command and no dispatch of its own, so it can ride with whichever artifact the
+  seam already invokes — which is why it is the cheapest part and the one to run
+  first.
 - **A lab**, dispatched with the sweep's unknown rows. It owns the execution
   safety boundary and the experiment, which is lab-class work — it builds, runs,
   and returns works, does not, or inconclusive — rather than a third artifact.
