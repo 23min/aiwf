@@ -81,9 +81,14 @@ preflight.
 
 The specification names three tiers, and the selector differs by tier:
 
-- **Every ADR and decision**, unrestricted. These are where commitments live, and
-  a specification that contradicts one is contradicting something the project
-  agreed to.
+- **Every ADR and decision**, unrestricted — and *unrestricted* is load-bearing.
+  The accepted ones are the project's commitments, and contradicting one
+  contradicts something the project agreed to. The rest are not commitments and
+  are in scope for a different reason: a rejected record is an agreement *not*
+  to do something, so a specification proposing it is re-opening a settled
+  question; a superseded one says what changed; a proposed one is a live
+  collision. Measured here, the non-accepted records are 15 of 110 — a corpus a
+  commitment-eligibility filter would remove for 132 words of scanning.
 - **The normative documents**, not `docs/` flat. A project that tiers its
   documentation by authority has already written the selector: a contradiction
   only means something if the document carrying it is current truth. An
@@ -114,8 +119,13 @@ every entity file's `title:` field:
 
 | index | entries | words |
 |---|---|---|
-| every entity, archived included | 1,045 | 10,274 |
-| active entities only | 235 | 2,434 |
+| every entity, archived included, titles only | 1,045 | 10,285 |
+| the same index carrying status, via `aiwf list --archived` | 1,045 | 13,943 |
+| active entities only, titles only | 235 | 2,445 |
+
+The status-carrying form is the one this tier requires and the one *Corpus and
+cost* prices; a title-only grep is 26% cheaper and cannot tell a reader what
+kind of document they are holding.
 
 So the entity tier needs no filter beyond the scan itself — a reader takes the
 whole index, selects on subject, and reads the selection. Archived entities stay
@@ -315,11 +325,15 @@ row naming the command that produced it:
 | tier | index | in full | index built by |
 |---|---|---|---|
 | commitments — every ADR and decision | 1,024 | 89,119 | `grep -h '^title:'` over `docs/adr/`, `work/decisions/`, and both archives |
-| normative documents, minus the ADRs already counted above | 1,573 | 61,166 | each path plus its `^#{1,3} ` headings, over the normative tier's 16 remaining files |
+| normative documents, minus the ADRs already counted above | 1,420 | 58,359 | each path plus its `^#{1,3} ` headings, over the normative tier's 14 remaining files |
 | hand-authored root documents | 491 | 17,267 | the same, over the tracked root markdown that is neither derived nor append-only |
-| **total** | **3,088** | **167,552** | |
+| entities, archived included | 13,943 | 881,985 | `aiwf list --archived`, which carries the status the entity tier requires |
+| **total** | **16,878** | **1,046,720** | |
 
-Fifty-four times cheaper, and the whole index fits in a single read.
+Sixty times cheaper. The three document tiers total 2,935 words and fit in a
+single read; the entity tier is four times their combined size and dominates
+what the index costs, so a project weighing this method should price that tier
+first.
 
 The two tiers select at different granularities, and the difference is worth
 keeping. A commitment carries one title stating a conclusion, so the index
@@ -558,7 +572,7 @@ mix both under one word.
 |---|---|---|
 | `wf-review-code:127` | "something you checked and found sound; not a defect, since you **verified** it" | an output-template line whose literal text is a clearance |
 | `wf-codebase-health:775` | "Strong / Weak / Missing… **A Strong that survives a real refutation attempt is actually strong**" | the refutation is itself a read |
-| `wf-codebase-health:409`, mirrored in the always-on guidance | "a review loop is converged when **a fresh reviewer, over the whole surface, finds no defect**" | binds every turn; ends a loop on a reading pass |
+| — | — | *(Withdrawn. The rule at `wf-codebase-health:409`, and its mirror in the always-on guidance, terminate on **disposition** — "finds no defect **that is not already pinned, recorded, or tracked**… Not 'no findings ever'". That is not a clearance, and it is the stop rule this specification adopts under* The prohibitions*.)* |
 | `wf-vacuity:76` | "## Clean — assertions **confirmed** to constrain behaviour" | probe 1 is a command and legitimate; probe 2 is reading and lands in the same section |
 | `wf-tdd-cycle:79` → `aiwfx-start-milestone:152` | "this audit is **agent-performed** — not a tool invocation" → declared as "branch-coverage audit **clean**" | a reading walk produces a clearance a downstream reader consumes as settled |
 | `wf-doc-lint:164` | "**No findings** — `<N>` docs checked" | checks 5–6 are commands; checks 2–3 are self-described heuristics; one summary line cannot distinguish them |
