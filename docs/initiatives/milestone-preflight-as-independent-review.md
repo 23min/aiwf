@@ -48,12 +48,12 @@ than being renumbered, so references stay valid.
 |---|---|---|
 | T1 | An **independent reviewer** performs the pass, not the milestone's author | — |
 | T2 | The pass reads the milestone **in the context of its epic** | — |
-| T3 | The audit spans **`docs/`, every ADR and decision, and the entities related to the work** | E-0085, partially |
-| T4 | **Code comments** are in scope | E-0085 |
-| T5 | A **lab that measures and proves what is currently true — or false** | E-0085 |
+| T3 | The audit spans **`docs/`, every ADR and decision, and the entities related to the work** | — |
+| T4 | **Code comments** are in scope | — |
+| T5 | A **lab that measures and proves what is currently true — or false** | — |
 | T6 | **Small experiments** that complement, validate, or **disqualify** a milestone | — |
 | T7 | ~~Applied selectively, to difficult milestones~~ — **withdrawn**; it runs on every milestone and patch | n/a |
-| T8 | Delivered as a **skill** | E-0085 |
+| T8 | Delivered as a **skill** | — |
 | T9 | **Examples are audited, not only prose** | — |
 
 One requirement does not come from the specification. It emerged from the trials
@@ -371,12 +371,31 @@ parts, which any implementation keeps:
 
 ### Promotion status
 
-T4, T5 and T8 are partially delivered by
-[E-0085](../../work/epics/E-0085-measure-the-spec-before-the-code-record-what-the-measurement-changed/epic.md),
-which was planned from
+Nothing is promoted. Every thread above carries `—` except the withdrawn one.
+
+[E-0085](../../work/epics/E-0085-measure-the-spec-before-the-code-record-what-the-measurement-changed/epic.md)
+was the one implementation attempt, and it is cancelled. It was planned from
 [G-0583](../../work/gaps/G-0583-the-milestone-preflight-asks-for-judgment-with-no-method.md)
-— a partial capture of this specification, filed before it was recorded. T1, T2,
-T6 and T7 are unpromoted.
+— a partial capture of this specification, filed before the specification was
+recorded — and the ritual it shipped was withdrawn for contradicting the
+document it was built from: it let a reader clear a claim, and it left the
+author in the reviewer's seat. Its second milestone was cancelled before
+starting. Its first is `done`, with criteria asserting properties of a file that
+no longer exists.
+
+What survives the cancellation is this document, plus:
+
+- [D-0066](../../work/decisions/D-0066-record-a-spec-measurement-as-a-body-section-not-a-trailer.md)
+  — a completed pass records itself as a body section written with `aiwf edit-body`,
+  because a trailer has no slot and an empty body write produces no commit.
+- [G-0584](../../work/gaps/G-0584-ritual-skill-tests-assert-section-scoped-literals-that-cannot-fail.md)
+  — the ritual policy tests match literals transcribed from the prose they guard.
+- [G-0585](../../work/gaps/G-0585-rituals-clear-a-question-by-reading-it.md)
+  — nine sites across eight shipped skills grant a verdict on the basis of reading.
+- [G-0586](../../work/gaps/G-0586-the-handoff-block-carries-settled-findings-and-drops-open-ones.md)
+  — the compaction handoff forwards settled conclusions and has no slot for an open question.
+- [G-0587](../../work/gaps/G-0587-a-shipped-skill-cannot-name-the-docs-corpus-a-review-must-read.md)
+  — a shipped ritual is barred from naming the corpus this pass must read.
 
 ## Open questions
 
