@@ -9,7 +9,7 @@ tdd: required
 acs:
     - id: AC-1
       title: The milestone preflight names the ritual, not a bare judgment call
-      status: open
+      status: cancelled
     - id: AC-2
       title: A gap-closing patch measures the gap's claims before the change
       status: open
