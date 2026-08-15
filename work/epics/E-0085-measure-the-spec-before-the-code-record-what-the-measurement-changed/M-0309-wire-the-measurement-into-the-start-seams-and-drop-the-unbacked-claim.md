@@ -1,7 +1,7 @@
 ---
 id: M-0309
 title: Wire the measurement into the start seams and drop the unbacked claim
-status: draft
+status: cancelled
 parent: E-0085
 depends_on:
     - M-0308
