@@ -87,8 +87,11 @@ The specification names three tiers, and the selector differs by tier:
   are in scope for a different reason: a rejected record is an agreement *not*
   to do something, so a specification proposing it is re-opening a settled
   question; a superseded one says what changed; a proposed one is a live
-  collision. Measured here, the non-accepted records are 15 of 110 — a corpus a
-  commitment-eligibility filter would remove for 132 words of scanning.
+  collision. Measured here, the non-accepted records are 15 of 110, and their
+  titles are 134 words of the index's 1,037 — a corpus a commitment-eligibility
+  filter would remove for 134 words of scanning. (Per-file `status:` and
+  `title:` from the first frontmatter block, over `docs/adr/`,
+  `work/decisions/` and both archives.)
 - **The normative documents**, not `docs/` flat. A project that tiers its
   documentation by authority has already written the selector: a contradiction
   only means something if the document carrying it is current truth. An
@@ -113,23 +116,34 @@ The specification names three tiers, and the selector differs by tier:
   milestone can be `done` with criteria asserting properties of a file that no
   longer exists.
 
-No tier requires reading the corpus. The document and commitment tiers are
-measured under *Corpus and cost*; the entity tier is measured here, by taking
-every entity file's `title:` field:
+  The rule generalises past cancellation, and it is the existing archive
+  commitment rather than a new one. Nothing non-current — a superseded decision,
+  a rejected ADR, an archived epic — establishes a current obligation by being
+  useful, because reversal is absent: re-adoption means a new entity referencing
+  the archived one, per
+  [ADR-0004](../adr/ADR-0004-uniform-archive-convention-for-terminal-status-entities.md).
+  Such a record can raise a finding or answer a question. It cannot bind the
+  work.
 
-| index | entries | words |
-|---|---|---|
-| every entity, archived included, titles only | 1,045 | 10,285 |
-| the same index carrying status, via `aiwf list --archived` | 1,045 | 13,943 |
-| active entities only, titles only | 235 | 2,445 |
+No tier requires reading the corpus. The document and commitment tiers are
+measured under *Corpus and cost*; the entity tier is measured here, at the
+snapshot named there:
+
+| index | entries | words | built by |
+|---|---|---|---|
+| every entity, archived included, carrying status | 1,092 | 13,985 | `aiwf list --archived` |
+| the same population, titles only | 1,092 | 10,709 | `title:` from the first frontmatter block of every entity file |
+| active entities only, carrying status | 266 | 3,507 | `aiwf list --kind <k>` over the six kinds |
 
 The status-carrying form is the one this tier requires and the one *Corpus and
-cost* prices; a title-only grep is 26% cheaper and cannot tell a reader what
-kind of document they are holding.
+cost* prices; a title-only grep is 23% cheaper and cannot tell a reader what
+kind of document they are holding. Restrict the grep to the first frontmatter
+block or it counts the illustrative frontmatter inside a fenced example as an
+entity.
 
 So the entity tier needs no filter beyond the scan itself — a reader takes the
 whole index, selects on subject, and reads the selection. Archived entities stay
-in scope: four fifths of the corpus is archived, and the specification names
+in scope: three quarters of the corpus is archived, and the specification names
 closed epics and milestones explicitly.
 
 One run supports this rather than an argument. Sweeping a draft epic, a reviewer
@@ -186,8 +200,9 @@ experiment is what fills its measured column.
 - **Shape — the smallest thing that would show the approach works, discarded
   afterwards.** It is built in a disposable tree per the prohibitions, never in
   the tree under review, and it is not a seed for the implementation. What
-  survives is the ledger row: what was built, what it did, and the command that
-  produced it.
+  survives is the ledger row: what was built, what it did, the command that
+  produced it, and the **kill criterion** stated before building — without which
+  the probe cannot fail, and a probe that cannot fail settles nothing.
 - **Outcome — works, does not, or inconclusive.** *Does not* is a recommendation
   to cancel the milestone or re-specify it. The pass never acts on it. Cancelling
   is a mutation behind a human gate, and *inconclusive* is a real third answer —
@@ -208,10 +223,16 @@ pass that follows it is, at 122,000 tokens against a subject whose median is
 around 2,200.
 
 Against that, the base rate. Of 37 cancelled milestones, 36 never reached
-`in_progress` and 30 fall in same-day batches under one epic — these are
-epic-level re-plans, not per-milestone specification defects. One epic in the
-project's life had implemented code withdrawn. The dominant rework is the
+`in_progress` and **27 were cancelled in a same-day batch confined to a single
+parent epic** — six such batches, plus two more spanning two epics each. These
+are epic-level re-plans, not per-milestone specification defects. One epic in
+the project's life had implemented code withdrawn. The dominant rework is the
 gap-and-fix loop, which already closes at a median of one day.
+
+> Deduplicate `git log --all --grep='aiwf-verb: cancel'` by its `aiwf-entity:`
+> trailer to 37 milestones, group by commit date, and resolve each milestone to
+> its parent epic directory. Grouping by epic alone, ignoring date, gives 30 —
+> a different claim, and not the one this paragraph makes.
 
 So the pass runs by default and is **escapable by a stated reason at a gate** —
 the form `wf-patch` already uses for its own review step: *"no independent
@@ -356,21 +377,27 @@ already been decided in this area* — while the lab stays at milestone prefligh
 ### Corpus and cost
 
 Reading the corpus whole does not scale; reading its **index** does. Scan the
-index, select on subject, read only the selection. Measured on this repo, each
-row naming the command that produced it:
+index, select on subject, read only the selection. Measured on this repo at
+`d5dd687ea`, each row naming the command that produced it:
 
 | tier | index | in full | index built by |
 |---|---|---|---|
-| commitments — every ADR and decision | 1,024 | 89,119 | `grep -h '^title:'` over `docs/adr/`, `work/decisions/`, and both archives |
+| commitments — every ADR and decision | 1,037 | 90,328 | `title:` from the first frontmatter block, over `docs/adr/`, `work/decisions/`, and both archives |
 | normative documents, minus the ADRs already counted above | 1,420 | 58,359 | each path plus its `^#{1,3} ` headings, over the normative tier's 14 remaining files |
-| hand-authored root documents | 491 | 17,267 | the same, over the tracked root markdown that is neither derived nor append-only |
-| entities, archived included | 13,943 | 881,985 | `aiwf list --archived`, which carries the status the entity tier requires |
-| **total** | **16,878** | **1,046,720** | |
+| hand-authored root documents | 491 | 17,290 | the same, over the 4 tracked root markdown files that are neither derived nor append-only |
+| entities, archived included | 13,985 | 932,830 | `aiwf list --archived`, which carries the status the entity tier requires |
+| **total** | **16,933** | **1,098,807** | |
 
-Sixty times cheaper. The three document tiers total 2,935 words and fit in a
-single read; the entity tier is four times their combined size and dominates
-what the index costs, so a project weighing this method should price that tier
-first.
+Sixty-five times cheaper. The three document tiers total 2,948 words and fit in
+a single read; the entity tier is nearly five times their combined size and
+dominates what the index costs, so a project weighing this method should price
+that tier first.
+
+**These figures are a dated observation and go stale**, which is why the
+snapshot is named beside them rather than left to be inferred: a measurement
+without the tree it was taken against is a number nobody can re-derive. Anyone
+quoting them re-runs the commands. No priced tier includes `docs/initiatives/`,
+so they are independent of this document's own state.
 
 The two tiers select at different granularities, and the difference is worth
 keeping. A commitment carries one title stating a conclusion, so the index
@@ -617,6 +644,16 @@ parts, which any implementation keeps:
   questions, not one request for "problems".
 - **Withhold the outcome.** A reviewer told what went wrong finds what it was
   told. This is what the blind trial establishes and what a sighted run cannot.
+- **Withhold the subject's `## References` until the reviewer's own selection is
+  fixed**, then read the union. What the comparison surfaces is two-sided: a
+  source the reviewer selected and the author did not cite is a candidate
+  omission, and one the author cited but the reviewer did not select is worth
+  inspecting rather than automatically wrong. This is the same anchoring the
+  outcome-withholding rule above addresses, applied to the author's source list.
+  It is not blinding and must not be described as such — references also appear
+  in acceptance criteria, dependencies and design notes, so record what was
+  visible rather than manufacturing a redacted subject to claim an independence
+  the pass did not have.
 - **Instruct it to say so plainly when it finds nothing**, rather than
   manufacturing findings — and, per the prohibitions, without converting that
   into a clearance.
@@ -655,7 +692,7 @@ What survives the cancellation is this document, plus:
 |---|---|---|
 | What triggers an experiment? | T6 | The intended test — a load-bearing feasibility claim — decided one of this project's four live epic specifications and could not decide three. Its second half is a counterfactual about value that no specification states. Needs the author, not a measurement; everything else in *What ships* is buildable without it. |
 | Does the sweep precede the lab, or the lab the sweep? | yes | This document argues sweep-then-lab — the sweep generates questions and the lab answers them — and rejects yield-ordering by name under *The sweep runs before the lab*. Three live surfaces say the opposite. `M-0308/AC-3` is `met` on a `done` milestone and titled "The ritual's measurement step precedes its sweep step"; `M-0308/AC-2`, also `met`, has the sweep reading current trunk rather than a pinned ref; and G-0583, still open, states "the cheap two run first and always; the sweep is the expensive part". Both ACs were met against `wf-measure-spec`, absent from the tree since its withdrawal, so their mechanical evidence is gone — which does not make them wrong. Against the ordering here: classifying the eleven cancelled epics' `--reason` bodies (`git log --all --grep='aiwf-verb: cancel' --format='%H%n%B'`, filtered to epic ids) puts five within the lab's reach and two within the sweep's, and the lab cannot produce the false clearance the blind trial recorded. The criterion challenge is free and precedes both either way. This decides the shape of every seam instruction. |
-| Which surface carries the ledger, and what carries it at the epic seam? | yes | Three candidates are already named in this corpus: D-0066's `## Spec measurement`, which has no instance in the tree; `## Reviewer notes`, which G-0530 records as already carrying the declined-finding record; and `## Deferrals`, which ADR-0003's rejection names as the disposition this model borrows. All three are milestone-spec sections. The first seam is epic drafting, where no milestone spec exists and the epic template carries no section with an evidence or disposition column. So it is two questions, and the second has no candidate yet. |
+| Which surface carries the ledger? | no | **Not** *whether a surface can exist* — that is already settled on every kind. [ADR-0043](../adr/ADR-0043-enforce-body-section-membership-at-the-write-seams-never-tree-wide.md) (accepted): "Sections beyond the required set are legal and never flagged." So a `## Spec measurement` section written with `aiwf edit-body` is legal on an epic exactly as on a milestone, with no template or kernel change — which is what [D-0066](../../work/decisions/D-0066-record-a-spec-measurement-as-a-body-section-not-a-trailer.md) already commits to, and why it chose a heading. What remains is a choice between candidates, not a blocker: D-0066's `## Spec measurement`, or `## Reviewer notes`, which G-0530 records as already carrying the declined-finding record. |
 | Do the title index and the no-clearance rule hold in a project that is not this one? | all | Both were measured here only. The index depends on titles being informative, which is a property of this repo's conventions rather than of the method. The document tier additionally depends on the project ranking its documentation by authority, which most do not. |
 | Does reverse-reference walking reach beyond entities? | T3 | It walks entities only, not documents or templates, so a document contradicting a specification is reached by the index scan or not at all. Stated as a limit of the method rather than a question awaiting an answer. |
 
@@ -710,12 +747,14 @@ reading pass the implementer runs on their own work.
 | `aiwfx-plan-epic:25` | reads `ROADMAP.md`, `work/epics/`, `work/gaps/` — never the ADRs and decisions |
 | `wf-patch:36` | "state the user-observable goal **in your own words**" — no sweep, lab or ledger before step 6 |
 
-### Class D — nothing can hold a ledger
+### Class D — no template scaffolds a ledger
 
 `templates/milestone-spec.md` carries no section for one, and
 `templates/epic-spec.md`'s Open questions table — the nearest existing structure
-— has no evidence column and admits only questions, never claims. A claim nobody
-measured has nowhere to be visible.
+— has no evidence column and admits only questions, never claims. Adding the
+section is legal on every kind (ADR-0043), so the defect is that nothing prompts
+an author to: a claim nobody measured is invisible by default rather than
+impossible to record.
 
 `agents/reviewer.md:18` compounds it: the one role card named *reviewer* emits
 "**approve**, request-changes, or questions" and carries no ledger, no four
