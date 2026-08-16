@@ -644,16 +644,15 @@ parts, which any implementation keeps:
   questions, not one request for "problems".
 - **Withhold the outcome.** A reviewer told what went wrong finds what it was
   told. This is what the blind trial establishes and what a sighted run cannot.
-- **Withhold the subject's `## References` until the reviewer's own selection is
-  fixed**, then read the union. What the comparison surfaces is two-sided: a
-  source the reviewer selected and the author did not cite is a candidate
-  omission, and one the author cited but the reviewer did not select is worth
-  inspecting rather than automatically wrong. This is the same anchoring the
-  outcome-withholding rule above addresses, applied to the author's source list.
-  It is not blinding and must not be described as such — references also appear
-  in acceptance criteria, dependencies and design notes, so record what was
-  visible rather than manufacturing a redacted subject to claim an independence
-  the pass did not have.
+- **Report the sources the reviewer selected that the subject cites nowhere.**
+  These are the candidate omissions, and they are what the selection record is
+  for. Withholding the subject's own reference list to make the comparison
+  two-sided does not work and should not be attempted: a specification that
+  argues from its sources names them throughout its prose, so the reverse
+  direction — what the author cited that the reviewer would have skipped — is
+  empty by construction. Measured on one full run, every reference row was
+  already in the reviewer's independent selection, and the sixteen sources the
+  reviewer selected that the subject never mentioned were the entire yield.
 - **Instruct it to say so plainly when it finds nothing**, rather than
   manufacturing findings — and, per the prohibitions, without converting that
   into a clearance.
