@@ -1,7 +1,7 @@
 ---
 id: ADR-0003
 title: Add finding (F-NNN) as a seventh entity kind
-status: accepted
+status: rejected
 ---
 > **Rejected.** aiwf carries six entity kinds and will not add `finding`. The
 > design below is coherent and the reasoning that ratified it was sound for the
