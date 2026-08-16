@@ -6,10 +6,15 @@ status: accepted
 ## Question
 
 A preflight finding is recorded in the body of the entity whose lifetime it
-shares, and extracted at wrap into a gap, decision or ADR — or repaired, or
-declined. That model is only worth its words if the extraction happens. Measured
+shares, and dispositioned at wrap: **pinned** by a check, **recorded** as a
+decision or a declined line, **tracked** as a gap, or superseded by another
+finding. Repairing the text is a fact a row records alongside its disposition,
+not a disposition itself — a defect merely fixed is the silent correction the
+project's code-health force forbids.
+
+That model is only worth its words if the disposition actually happens. Measured
 on this tree, body sections nobody enforces are filled between 14% and 51% of the
-time. So what makes wrap-time extraction happen?
+time. So what makes wrap-time disposition happen?
 
 ## Decision
 
