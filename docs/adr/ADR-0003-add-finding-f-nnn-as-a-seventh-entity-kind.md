@@ -3,6 +3,42 @@ id: ADR-0003
 title: Add finding (F-NNN) as a seventh entity kind
 status: accepted
 ---
+> **Rejected.** aiwf carries six entity kinds and will not add `finding`. The
+> design below is coherent and the reasoning that ratified it was sound for the
+> tree it was written against. Two things decide against it now: the corpus it
+> would land in, and a property of the kind model it did not weigh.
+>
+> **Volume.** This ADR reasons from "the branch's existing 66 gaps (52
+> addressed)" and projects that findings will be "at least as high-volume as
+> gaps". Measured 2026-08-16, the tree carries **588 gaps and 1,048 entities**
+> — the premise has grown roughly ninefold. The same projection now means at
+> least 588 further entities, close to doubling the corpus. That corpus is the
+> measured cost of everything that reads it: the status-carrying entity index
+> runs 13,943 words and dominates any review that scans it, `aiwf check` spends
+> about 45% of its 6.6 seconds reading entity blobs at ~2.5 ms each, and 458 of
+> the 552 relative links inside archived entities — 83% — no longer resolve. A
+> kind whose volume matches gaps pays all three of those permanently.
+>
+> **Lifetime.** All six kinds are permanent-with-terminal-status, and none has a
+> lifetime bounded by another entity's. A finding's usefulness ends when the work
+> that produced it closes: it is a handover artifact, not a record the project
+> keeps. Modelling it as a kind grants permanence it does not want, which buys
+> the volume cost above with no matching benefit.
+>
+> **What carries the need instead.** A finding is recorded in the body of the
+> entity whose lifetime it shares, triaged while that work is live, and at wrap
+> either repaired, extracted into a gap, decision or ADR, or declined explicitly
+> — the disposition `## Deferrals` already prescribes for a milestone's punted
+> work.
+>
+> **What the rejection costs.** [E-0019](../../work/epics/E-0019-parallel-tdd-subagents-with-finding-gated-ac-closure/epic.md)
+> loses the storage model its finding-gated AC closure depends on and needs
+> another mechanism before it can proceed. The escalation-from-`aiwf check` case
+> in §Context stays unanswered, and such findings stay transient. The
+> cross-AC, stable-reference and long-form-triage cases §Context raises against
+> frontmatter arrays are real and are not solved here; they are accepted as
+> costs rather than argued away.
+
 ## Context
 
 Kernel principle #1 enumerates **six entity kinds** — epic, milestone, ADR, gap, decision, contract — closed-set and hardcoded. The framework_entity_vocabulary memory and CLAUDE.md both call out the deliberate omission of `story` and `task` (execution units belong in plain GH issues, not in the framework's vocabulary).
