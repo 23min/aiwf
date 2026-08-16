@@ -1,7 +1,7 @@
 ---
 id: D-0067
 title: Wrap-gate enumeration for preflight findings; a check rule must earn its way
-status: proposed
+status: accepted
 ---
 ## Question
 
