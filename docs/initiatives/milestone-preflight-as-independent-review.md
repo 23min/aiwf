@@ -486,9 +486,9 @@ failure the pin exists to prevent.
 A ledger, one row per factual claim the specification makes. It has two halves,
 written by different parts of the pass and never by the same one:
 
-| claim | reading | measured | evidence |
-|---|---|---|---|
-| what the spec asserts | contradicted / ambiguous / complicated / unknown | true / false / unable to measure safely, or blank | the command and its output, or blank |
+| claim | reading | measured | evidence | disposition |
+|---|---|---|---|---|
+| what the spec asserts | contradicted / ambiguous / complicated / unknown | true / false / unable to measure safely, or blank | the command, its expected result, its output and its environment — or blank | pinned / recorded / tracked / superseded, and the repair if one was made — or blank |
 
 The **reading** column is the sweep's, and carries the four states above. It has
 no *verified* value, so a claim nothing settled stays visible as *unknown*.
@@ -503,8 +503,13 @@ measures older code and reports it as current. That quartet is what makes the
 guarantee mechanical rather than a matter of the reader's discipline. **No
 command and no oracle, no pass.**
 
-A blank in either column is the point of the format. It is the only way an
-unchecked claim stays visible, and a row blank in both is a claim nobody reached.
+The **disposition** column is the session's, filled during triage at wrap rather
+than by the pass, and it is what the wrap gate enumerates.
+
+A blank is the point of the format. A blank reading or measured cell is the only
+way an unchecked claim stays visible; a row blank in both is a claim nobody
+reached; and a blank disposition at wrap is a finding nobody decided about, which
+is exactly what the gate exists to put in front of a human.
 
 Findings that are not claims — a commitment the spec fails to discharge, an
 example that no longer works — carry a reading state and leave the measured
@@ -538,17 +543,45 @@ specific obligation.
   a human gate.
 - **It terminates.** The sweep searches names rather than concepts and follows a
   borrowed claim one hop. Both bounds exist so a pass finishes.
-- **A contradicted row leaves something behind.** The row names a `file:line` in
-  the corpus, and its disposition is a repair made or an entity filed. Without
-  this the same stale sentence is rediscovered by every future pass, paid for
-  each time, and the corpus never improves — a detector with no ratchet. The pass
-  itself performs neither: it returns the row, and the session that dispatched it
-  acts.
+- **Every row reaches a disposition, and a repair is not one.** A contradicted
+  row names a `file:line` in the corpus, and ends **pinned** (a check that fails
+  without the fix), **recorded** (a decision entity, or a declined line in the
+  ledger itself), **tracked** (a gap), or **superseded** by another row in the
+  same pass. These are the three dispositions the project's code-health force
+  already names, plus the one a multi-row pass needs. Repairing the sentence is a
+  fact the row records alongside its disposition, never instead of one — a defect
+  merely fixed is the silent correction that force forbids, and it is how this
+  corpus reached the state the pass keeps finding.
+
+  Three consequences, each load-bearing:
+
+  **Pinning is usually unavailable, and that is expected.** A structural test
+  over prose asserts shape, not that a paragraph still says a particular thing.
+  So most prose findings end *recorded* or *tracked*, and only findings that are
+  code- or shape-shaped can be pinned.
+
+  **The disposition may be an existing entity.** A recurring class is tracked
+  once and individual repairs cite it; a fresh entity per instance is what the
+  project's own rule on what earns a gap declines. This is what makes the force
+  affordable for prose findings rather than a gap mill.
+
+  **Declining is the cheap form of recorded**, costing a line in the ledger
+  rather than a decision record — again the force's own wording, not an
+  exception to it.
+
+  The pass performs none of this. It returns rows; the session that dispatched it
+  triages them at wrap, where the findings have had the life of the work to be
+  repaired or made moot; and the human gates the result. What makes the triage
+  happen is that gate enumerating every undispositioned row — see D-0067, which
+  records why it is a gate rather than a rule, what mechanizing it would have
+  cost, and the measurement that would reverse it.
 
 ### The stop rule
 
-A pass ends when every row is **measured, dispositioned, or tracked** — not when
-it runs out of findings, and never on a reading that found nothing.
+A pass ends when every row is **measured, pinned, recorded, or tracked** — not
+when it runs out of findings, and never on a reading that found nothing. A row a
+command settled needs nothing further; every other row carries one of the three
+dispositions, and a row merely repaired carries none of them.
 
 This is deliberately the rule the project already applies to code review, which
 converges when a fresh reviewer *"finds no defect that is not already pinned,
