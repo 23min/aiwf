@@ -87,11 +87,11 @@ The specification names three tiers, and the selector differs by tier:
   are in scope for a different reason: a rejected record is an agreement *not*
   to do something, so a specification proposing it is re-opening a settled
   question; a superseded one says what changed; a proposed one is a live
-  collision. Measured here, the non-accepted records are 15 of 110, and their
-  titles are 134 words of the index's 1,037 — a corpus a commitment-eligibility
-  filter would remove for 134 words of scanning. (Per-file `status:` and
-  `title:` from the first frontmatter block, over `docs/adr/`,
-  `work/decisions/` and both archives.)
+  collision. Measured at `4f8995df0`, the non-accepted records are 16 of 111,
+  and their titles are 126 words of the index's 927 — a corpus a
+  commitment-eligibility filter would remove for 126 words of scanning.
+  (Per-file `status:` and `title:` from the first frontmatter block, over
+  `docs/adr/`, `work/decisions/` and both archives.)
 - **The normative documents**, not `docs/` flat. A project that tiers its
   documentation by authority has already written the selector: a contradiction
   only means something if the document carrying it is current truth. An
@@ -681,6 +681,13 @@ parts, which any implementation keeps:
   to measure is recorded as a question with the command it would run.
 - **Ask for contradiction, complication, and silent assumption** — three distinct
   questions, not one request for "problems".
+- **Check each attribution against its source.** Where the subject says a record
+  settles, requires or names something, open that record and confirm the exact
+  sentence carries the exact claim, and report each as supported — with the
+  sentence — or unsupported. A claim citing a record for more than it carries
+  reads as plausible, and survives every reading that does not open the record.
+  The code-review lens carries the same step for a diff; a specification is
+  where the claims concentrate, and nothing else reaches them.
 - **Withhold the outcome.** A reviewer told what went wrong finds what it was
   told. This is what the blind trial establishes and what a sighted run cannot.
 - **Report the sources the reviewer selected that the subject cites nowhere.**
@@ -718,7 +725,9 @@ What survives the cancellation is this document, plus:
 - [G-0584](../../work/gaps/G-0584-ritual-skill-tests-assert-section-scoped-literals-that-cannot-fail.md)
   — the ritual policy tests match literals transcribed from the prose they guard.
 - [G-0585](../../work/gaps/G-0585-rituals-clear-a-question-by-reading-it.md)
-  — nine sites across eight shipped skills grant a verdict on the basis of reading.
+  — every site the table below lists grants a verdict on the basis of reading.
+  G-0585 records that enumeration as a floor rather than a census, since the same
+  clearance phrase recurs across surfaces.
 - [G-0586](../../work/gaps/G-0586-the-handoff-block-carries-settled-findings-and-drops-open-ones.md)
   — the compaction handoff forwards settled conclusions and has no slot for an open question.
 - [G-0587](../../work/gaps/G-0587-a-shipped-skill-cannot-name-the-docs-corpus-a-review-must-read.md)
