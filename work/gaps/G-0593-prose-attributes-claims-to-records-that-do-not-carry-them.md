@@ -1,7 +1,9 @@
 ---
 id: G-0593
 title: Prose attributes claims to records that do not carry them
-status: open
+status: addressed
+addressed_by_commit:
+    - d68c29412
 ---
 ## What's missing
 
