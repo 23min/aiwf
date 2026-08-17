@@ -1,7 +1,9 @@
 ---
 id: G-0592
 title: Entity templates carry no genre instruction, so specs accrue rationale
-status: open
+status: addressed
+addressed_by_commit:
+    - 5100b4f33
 ---
 ## What's missing
 
