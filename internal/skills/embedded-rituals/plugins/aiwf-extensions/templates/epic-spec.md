@@ -8,8 +8,9 @@ depends_on: []           # optional: prior epic ids; e.g. [E-NNNN]
 <!-- A spec states what will be built and what is excluded. The reasoning behind a
      choice — a rejected alternative, why an approach fails, a trade-off argued out —
      belongs in an ADR or a decision record; reference that record by id from
-     `## References` rather than reproducing the argument. Delete this comment after
-     copying. -->
+     `## References` rather than reproducing the argument. Name the record and what
+     it settles for this work; do not restate what it argues. Delete this comment
+     after copying. -->
 
 ## Goal
 

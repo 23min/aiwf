@@ -75,10 +75,10 @@ func TestMaterializeGuidance_DeclaresBinaryVersion(t *testing.T) {
 // fragment must stay terse enough to re-anchor every turn (M-0163/AC-4).
 // The budget is a sprawl ceiling, not a quality ceiling — a rule that earns
 // its place is written for clarity, and the ceiling rises to fit it rather
-// than the rule being compressed to fit the ceiling (G-0356).
+// than the rule being compressed to fit the ceiling.
 func TestGuidance_WithinLineBudget(t *testing.T) {
 	t.Parallel()
-	const budget = 109
+	const budget = 112
 	lines := bytes.Count(GuidanceBytes(), []byte("\n"))
 	if lines > budget {
 		t.Errorf("AC-4: guidance fragment is %d lines, over the %d-line per-turn budget", lines, budget)

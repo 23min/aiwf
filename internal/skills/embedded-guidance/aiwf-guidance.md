@@ -87,8 +87,11 @@ lives in the `wf-codebase-health` skill.
   of the document for what the claim now contradicts. An edit that *cuts* asks
   what depended on the text removed: the harder search, since what you want no
   longer names itself, and what it leaves behind is a conclusion still stated
-  with its support gone. No check reaches any of this; it is discipline at the
-  moment of writing, and the cost of skipping it is paid by whoever reads next.
+  with its support gone. Re-opening is not enough for an **attribution**: writing
+  that a record settles something means locating the exact sentence that carries it,
+  since re-reading confirms a claim's direction and not its scope. With none, the
+  claim is wrong, not unsupported. No check reaches any of this; it is discipline at
+  the moment of writing, and the cost of skipping it is paid by whoever reads next.
 - **Never write a fake id-shaped token in committed prose** — in an **entity
   file**, cite the real id; a placeholder, letter suffix, or number for a
   nonexistent entity fails `body-prose-id`, and backticks mean "discussing the

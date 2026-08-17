@@ -16,6 +16,26 @@ section in this file.
 
 ## [Unreleased]
 
+### Changed — G-0593: an attribution is written by extraction, not by assertion
+
+The always-on guidance's revision rule gains the case re-opening does not cover.
+Writing that a record settles something now means locating the exact sentence
+that carries it; where no such sentence exists the claim is wrong rather than
+merely unsupported. Re-opening a source confirms a claim's direction and leaves
+its scope unchecked, which is how a record gets cited for more than it says.
+
+Both spec templates carry the matching authoring-moment rule — name the record
+and what it settles for this work, do not restate what it argues.
+
+`wf-review-code` §7 gains the review-moment check: every attribution in a diff
+is opened against its source and reported as supported, with the sentence, or
+unsupported. That is the step that catches this class; the writing-moment rules
+alone did not.
+
+The per-turn guidance line budget rises to fit the rule rather than the rule
+being compressed to fit it. Run `aiwf update` to pick the guidance, templates
+and skills up.
+
 ### Changed — G-0592: the spec templates say what a spec is for
 
 `epic-spec.md` and `milestone-spec.md` now open with a genre instruction of the

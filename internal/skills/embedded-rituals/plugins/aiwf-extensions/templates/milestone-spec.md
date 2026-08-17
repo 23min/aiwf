@@ -11,8 +11,9 @@ acs: []                   # optional: filled by `aiwf add ac <milestone-id> --ti
 <!-- A spec states what will be built and what is excluded. The reasoning behind a
      choice — a rejected alternative, why an approach fails, a trade-off argued out —
      belongs in an ADR or a decision record; reference that record by id from
-     `## Design notes` rather than reproducing the argument. Delete this comment
-     after copying. -->
+     `## Design notes` rather than reproducing the argument. Name the record and
+     what it settles for this work; do not restate what it argues. Delete this
+     comment after copying. -->
 
 ## Goal
 
