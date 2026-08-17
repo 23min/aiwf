@@ -43,9 +43,13 @@ Measured in one session, each refuted by a command against the cited file:
   at, on failure.
 - `G-0584` cited as leaving a non-vacuous acceptance-criterion form to a future
   milestone. It names `M-0308`'s derivation as the first instance of one.
+- `G-0356` cited in a test comment as the ground for the guidance line-budget
+  position. It is about bless-mode gate symmetry and carries nothing on budgets
+  or ceilings; the commit that addressed it never touched that file.
 
 Two of these were written while repairing the others, in edits where the cited
-source had been re-opened in the same action.
+source had been re-opened in the same action. The last was found by applying the
+rule below to the file that implements it.
 
 ## Resolution shape
 
@@ -55,13 +59,14 @@ pasted the claim is wrong rather than merely unsupported. That converts a
 judgment about what a record means into a lookup, which is the operation that
 succeeds.
 
-Two surfaces carry it. The always-on guidance holds the writing-moment rule,
+Three surfaces carry it. The always-on guidance holds the writing-moment rule,
 inside the existing revise-and-re-derive bullet rather than as a new one, since
 that bullet is the rule this defect defeats. The spec templates hold the
 authoring-moment ban: name the record and what it settles for this work, do not
-restate what it argues.
+restate what it argues. `wf-review-code` holds the review-moment check, which
+moves the detector below out of a per-dispatch brief and into a standing step.
 
-Neither is mechanically checkable. A check cannot separate an accurate
+None of the three is mechanically checkable. A check cannot separate an accurate
 attribution from an over-reaching one, so the class stays held at review, and
 what ships is a rule that makes the over-reach visible to the reviewer rather
 than one that blocks it. The reviewer that caught every instance above was
