@@ -16,6 +16,20 @@ section in this file.
 
 ## [Unreleased]
 
+### Added — a revision discipline in the shipped guidance
+
+The always-on guidance carries three checks for revising text. An edit that adds
+or restates a claim re-opens the sources that claim cites, then re-reads the rest
+of the document for what the claim now contradicts. An edit that cuts asks what
+depended on the removed text. All three failures are silent: a claim rewritten
+from memory drifts while still reading fluently, a new claim can satisfy one rule
+and break another elsewhere in the same file, and a cut leaves a conclusion
+standing with its support gone.
+
+Nothing enforces it. It is advice, on the surface loaded every turn, and the rule
+says so in its own text. G-0526 tracks the general class of source-discipline
+rules that ship as prose with no seam behind them.
+
 ### Changed — the import manifest specification moves to the archival tier
 
 `docs/migration/` moves to `docs/archive/migration/`, and CLAUDE.md's

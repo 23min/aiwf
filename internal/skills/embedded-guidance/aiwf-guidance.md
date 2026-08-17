@@ -81,6 +81,14 @@ lives in the `wf-codebase-health` skill.
   reasoning and drop the arithmetic. A measurement that *is* the point is a
   dated observation. What no check can carry — a judgment, a rejected
   alternative, why the obvious approach fails — is worth its words.
+- **On revising, re-derive before you rewrite.** An edit that *adds or restates*
+  a claim re-opens every source that claim cites, in the same action — rewritten
+  from memory it drifts, and the drift reads as fluent — then re-reads the rest
+  of the document for what the claim now contradicts. An edit that *cuts* asks
+  what depended on the text removed: the harder search, since what you want no
+  longer names itself, and what it leaves behind is a conclusion still stated
+  with its support gone. No check reaches any of this; it is discipline at the
+  moment of writing, and the cost of skipping it is paid by whoever reads next.
 - **Never write a fake id-shaped token in committed prose** — in an **entity
   file**, cite the real id; a placeholder, letter suffix, or number for a
   nonexistent entity fails `body-prose-id`, and backticks mean "discussing the
