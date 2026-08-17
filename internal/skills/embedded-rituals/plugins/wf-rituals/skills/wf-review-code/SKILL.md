@@ -78,6 +78,7 @@ This skill is the **per-diff gate**. For whole-codebase structural and operation
 - Comments explain *why* where non-obvious — hidden constraint, subtle invariant, workaround for a specific bug. Comments that re-describe *what* the code does are noise; flag them.
 - Comments state what holds now, not how the code got here. Flag past-tense clauses narrating a defect a reader can no longer encounter ("used to", "the bug this replaced", "there was a third arm here") — version control and the decision record own that history. Keep only a past state still reachable in real input: a legacy on-disk format, a supported older release, an external contract — and it reads in the present tense.
 - If the project keeps a work log or change log alongside the diff, the entry is present and accurate.
+- Every attribution is checked against its source. Where the diff says a record, decision or document settles, requires or names something, open that source and confirm the exact sentence carries the exact claim — a claim citing a source that says something narrower reads as plausible and is why it survives self-review. Report each as supported, with the sentence, or unsupported.
 
 ### 8. Verdict
 
