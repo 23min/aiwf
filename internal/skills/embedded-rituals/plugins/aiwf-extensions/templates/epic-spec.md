@@ -5,13 +5,20 @@ status: proposed         # aiwf epic statuses: proposed | active | done | cancel
 depends_on: []           # optional: prior epic ids; e.g. [E-NNNN]
 ---
 
+<!-- A spec states what will be built and what is excluded. The reasoning behind a
+     choice — a rejected alternative, why an approach fails, a trade-off argued out —
+     belongs in an ADR or a decision record; reference that record by id from
+     `## References` rather than reproducing the argument. Delete this comment after
+     copying. -->
+
 ## Goal
 
 <1–2 sentences: what problem does this solve? What value does it deliver?>
 
 ## Context
 
-<What exists today? Why is this work needed now? What prior epics does it build on?>
+<What exists today? What prior epics does it build on? What changed to make this
+possible now?>
 
 ## Scope
 
