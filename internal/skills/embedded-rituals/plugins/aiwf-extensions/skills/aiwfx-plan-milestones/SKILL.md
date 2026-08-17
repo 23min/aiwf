@@ -39,7 +39,7 @@ If the epic doesn't exist yet, use `aiwfx-plan-epic` first.
 
 5. **Replace each milestone's body with the rich template** at `.claude/templates/milestone-spec.md` (materialized by `aiwf update`; if it's missing, run `aiwf update` rather than copying an existing milestone spec). Fill in:
    - **Goal** — 1–2 sentences.
-   - **Context** — what exists before; what must be in place; why now.
+   - **Context** — what exists before; what must be in place; what changed to make it possible now.
    - **Acceptance criteria** — created as AC entities via `aiwf add ac`, not freehand template prose (see the AC-creation block below the template list).
    - **Constraints** — non-negotiable invariants for *this* milestone.
    - **Design notes** — locked decisions; reference ADRs by id.

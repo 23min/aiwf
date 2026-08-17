@@ -1,7 +1,9 @@
 ---
 id: G-0592
 title: Entity templates carry no genre instruction, so specs accrue rationale
-status: open
+status: addressed
+addressed_by_commit:
+    - 5100b4f33
 ---
 ## What's missing
 
@@ -48,3 +50,11 @@ Templates are the authoring-moment surface and materialize to consumers, so the
 instruction reaches the point where the choice is made. It does not reach an
 `aiwf edit-body` on an existing entity; whether that gap needs closing is a
 separate question this does not answer.
+
+Of the two, only the first is mechanically pinnable. That both templates open
+with a single commented preamble is structural and is pinned by
+`TestSpecTemplates_OpenWithACommentedPreamble`. That the `## Context` prompts —
+and the matching bullets in `aiwfx-plan-epic` and `aiwfx-plan-milestones`, which
+carry the same prompt — stay free of a request for justification is content
+correctness, held at review under D-0050 rather than pinned: an assertion over
+the phrasing pins a reading rather than a rule.
