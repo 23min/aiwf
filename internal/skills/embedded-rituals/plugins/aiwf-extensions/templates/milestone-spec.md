@@ -8,17 +8,25 @@ tdd: none                 # optional: required | advisory | none (default none)
 acs: []                   # optional: filled by `aiwf add ac <milestone-id> --title "..."`
 ---
 
+<!-- A spec states what will be built and what is excluded. The reasoning behind a
+     choice — a rejected alternative, why an approach fails, a trade-off argued out —
+     belongs in an ADR or a decision record; reference that record by id from
+     `## Design notes` rather than reproducing the argument. Delete this comment
+     after copying. -->
+
 ## Goal
 
 <1–2 sentences: what this milestone achieves.>
 
 ## Context
 
-<!-- 2–3 sentences: what exists before this milestone, what must be in place, why now.
-     Prior milestones, blocking dependencies resolved, decisions landed.
-     Not a re-telling of the epic. -->
+<!-- 2–3 sentences: what exists before this milestone, what must be in place, what
+     changed to make it possible now. Prior milestones, blocking dependencies
+     resolved, decisions landed. Not a re-telling of the epic, and not an argument
+     for the work. -->
 
-<What exists before this milestone? What prior milestones does it build on? Why now?>
+<What exists before this milestone? What prior milestones does it build on? What
+changed to make it possible now?>
 
 ## Acceptance criteria
 

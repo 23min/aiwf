@@ -39,7 +39,7 @@ If the work fits in one milestone, skip this skill and use `aiwfx-plan-milestone
 
 5. **Replace the body with the rich template** at `.claude/templates/epic-spec.md` (materialized by `aiwf update`; if it's missing, run `aiwf update` rather than copying an existing epic spec). Fill in:
    - **Goal** — 1–2 sentences, value-shaped.
-   - **Context** — what exists; why now; prior epics this builds on.
+   - **Context** — what exists; what changed to make this possible now; prior epics this builds on.
    - **Scope** and **Out of scope** — sibling top-level sections, both populated.
    - **Constraints** — invariants, banned shortcuts, shim policies.
    - **Success criteria** — observable outcomes at epic close, *not* tests.

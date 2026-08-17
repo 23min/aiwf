@@ -16,6 +16,24 @@ section in this file.
 
 ## [Unreleased]
 
+### Changed — G-0592: the spec templates say what a spec is for
+
+`epic-spec.md` and `milestone-spec.md` now open with a genre instruction of the
+kind `adr.md` already carried: a spec states what will be built and what is
+excluded, and the reasoning behind a choice — a rejected alternative, why an
+approach fails — lives in an ADR or a decision record, referenced from the spec
+by id rather than reproduced.
+
+Both `## Context` prompts drop their request for justification (*"Why is this
+work needed now?"*, *"Why now?"*) and ask instead what changed to make the work
+possible now. The matching `**Context**` bullets in the `aiwfx-plan-epic` and
+`aiwfx-plan-milestones` skills — the step that walks an author through filling
+the template — are reworded to match, so the two surfaces do not disagree at the
+moment the spec is written.
+
+Run `aiwf update` to pick the templates and skills up. Entities already written
+are unaffected — templates are read at authoring time only.
+
 ### Added — a revision discipline in the shipped guidance
 
 The always-on guidance carries three checks for revising text. An edit that adds
