@@ -87,9 +87,9 @@ instrumenting the parts separately makes judgeable.
   Every milestone shipping a part of the pass also ships the measurement that
   would show that part not earning its cost.
 - **Consecutive subjects at each seam**, not chosen ones.
-- **The brief ships as an artifact; a session does not author its own.** What a
-  brief asks for decides what the pass finds, so the subject's author does not
-  choose it (G-0263).
+- **The brief ships as an artifact with a mandated shape**, so what it asks for
+  does not vary with who dispatches it. G-0263 names the author-written brief as
+  the exposure and mandating the shape as the lever.
 - **Every `SKILL.md` edit lands with its referencing structural test**, and
   those tests assert shape, not wording (D-0050).
 - **No new vocabulary without a defect it fixes.** The terms are the
@@ -167,7 +167,7 @@ To be proposed after the preflight pass runs on this draft.
 - ADR-0019 — the advisory `wf-*` genus
 - ADR-0007, ADR-0006 — skill placement and coverage
 - ADR-0028 — role-agent dispatch routing
-- ADR-0044, D-0052, G-0587, G-0589 — the corpus described by shape
+- ADR-0044, G-0587, G-0589 — the corpus described by shape
 - ADR-0024 — the rejected reference-skill shape
 - ADR-0004, ADR-0003 — archive reversal; the seventh kind
 - D-0067, D-0054, D-0053, D-0056, D-0050, D-0038 — disposition, cost tiers,
@@ -181,21 +181,24 @@ To be proposed after the preflight pass runs on this draft.
 ## Spec measurement
 
 Four sweeps, same brief, fresh reviewer each, against successive revisions of
-this draft. Reading states are the sweeps'; the measured column is filled only
-where a command ran; dispositions are this session's.
+this draft. Reading states are the sweeps'; dispositions are this session's. The
+measured column is blank throughout — the lab is not dispatched at this seam, so
+a row here ends recorded or tracked. A command in an evidence cell grounds a
+disposition; it does not settle a claim, which needs the command, its expected
+result, its output and its environment together.
 
 | claim | reading | measured | evidence | disposition |
 |---|---|---|---|---|
-| G-0591 names a deferral with no destination as worse than one to declined work | contradicted | false | `grep -n` over G-0591 — it distinguishes delivered from declined | repaired; recorded |
-| D-0052 settles shape-descriptions for repository paths | contradicted | false | D-0052's Decision is the `skill-body-id` keep-list and id shapes | repaired; recorded |
-| The lab receives only factually-contradicted rows | contradicted | false | the initiative sends every contradicted row | repaired; recorded |
-| ADR-0007 carries a "no meaning outside aiwf" placement test | contradicted | false | `grep -n discriminator` — ADR-0007 asks whether a skill surfaces a kernel capability | repaired; recorded |
-| G-0580 records that the backstop misses templates | contradicted | false | G-0580 names role-agent cards and verb skills under `internal/skills/embedded/` | repaired; recorded |
-| D-0056 grounds declining the patch-seam deferral | contradicted | false | D-0056 excludes defects from its declines | repaired; recorded |
-| `oracles.md`'s inventory requires a declared failure asymmetry | contradicted | false | `oracles.md:176` — the columns are oracle, class, judges, fires at, on failure | repaired; recorded |
-| A non-vacuous form for a prose AC does not yet exist | contradicted | false | G-0584 names M-0308's derivation as the first instance; `findAllVerbs` survives in `internal/policies/` | repaired; recorded |
-| `--by-commit 052a398` is the commit that rejected ADR-0003 | unknown | true | `git show 052a398` → `aiwf promote ADR-0003 accepted -> rejected`, one file | recorded |
-| `--by-commit` and `--by` are drifting spellings of one flag | unknown | false | `aiwf promote --help` — two distinct flags | recorded |
+| G-0591 names a deferral with no destination as worse than one to declined work | contradicted |  | `grep -n` over G-0591 — it distinguishes delivered from declined | repaired; recorded |
+| D-0052 settles shape-descriptions for repository paths | contradicted |  | D-0052's Decision is the `skill-body-id` keep-list and id shapes | repaired; recorded |
+| The lab receives only factually-contradicted rows | contradicted |  | the initiative sends every contradicted row | repaired; recorded |
+| ADR-0007 carries a "no meaning outside aiwf" placement test | contradicted |  | `grep -n discriminator` — ADR-0007 asks whether a skill surfaces a kernel capability | repaired; recorded |
+| G-0580 records that the backstop misses templates | contradicted |  | G-0580 names role-agent cards and verb skills under `internal/skills/embedded/` | repaired; recorded |
+| D-0056 grounds declining the patch-seam deferral | contradicted |  | D-0056 excludes defects from its declines | repaired; recorded |
+| `oracles.md`'s inventory requires a declared failure asymmetry | contradicted |  | `oracles.md:176` — the columns are oracle, class, judges, fires at, on failure | repaired; recorded |
+| A non-vacuous form for a prose AC does not yet exist | contradicted |  | G-0584 names M-0308's derivation as the first instance; `findAllVerbs` survives in `internal/policies/` | repaired; recorded |
+| `--by-commit 052a398` is the commit that rejected ADR-0003 | unknown |  | `git show 052a398` → `aiwf promote ADR-0003 accepted -> rejected`, one file | recorded |
+| `--by-commit` and `--by` are drifting spellings of one flag | unknown |  | `aiwf promote --help` — two distinct flags | recorded |
 | The ledger's home is `## Spec measurement` | unknown | | D-0066 | recorded |
 | A template section would scaffold the ledger | contradicted | | D-0066 places it as evidence, not scaffolding | repaired in the initiative; recorded |
 | Epic-drafting rows reach a wrap gate | complicated | | the initiative gives epic drafting no wrap | repaired in the initiative; recorded |
@@ -216,12 +219,10 @@ where a command ran; dispositions are this session's.
 | The specification sets no bar for ending | contradicted | | the initiative's stop rule ends a *pass*; the epic's bar is for the *method* | repaired — the two subjects are now distinguished; recorded |
 | Asserting the sweep-before-lab ordering as decided conflicts with G-0583 being open | contradicted | | the epic disposes G-0583's contrary claim in Scope | repaired — the link is now stated; recorded |
 
-Rows left blank in the measured column are unsettled, not sound. The lab is not
-dispatched at this seam, so they carry no command output and stay open until
-milestone preflight.
+Every row is unsettled as to truth. They stay open until milestone preflight,
+where a lab is dispatched.
 
-**What this pass missed, recorded against itself.** The first three sweeps did
-not reach `docs/skill-author-guide.md`, `E-0084`, `G-0263`, `G-0489`, `G-0515`,
-`G-0370` or `G-0060`; the fourth did. Two repair rounds each introduced a fresh
-contradicted row, and the reviewer that found them was reading a brief this
-draft's own author wrote — the exposure G-0263 names.
+**What this pass missed, recorded against itself.** Later sweeps reached sources
+the earlier ones did not, and each repair round introduced a fresh contradicted
+row. The reviewer that found them was reading a brief this draft's own author
+wrote — the exposure G-0263 names.
