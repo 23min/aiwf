@@ -387,7 +387,7 @@ already been decided in this area* — while the lab stays at milestone prefligh
 
 ### Three seams
 
-- **Epic drafting** — the sweep alone. Theory building: what is already settled here. The lab is not dispatched, which is why the two are separate artifacts. This is where the sweep has its measured catches: cancellations cluster as epic-level re-plans rather than per-milestone defects.
+- **Epic drafting** — the sweep alone. Theory building: what is already settled here. The lab is not dispatched, which is why the two are separate artifacts. This is where the sweep has its measured catches: cancellations cluster as epic-level re-plans rather than per-milestone defects. Its rows are dispositioned in the drafting session, before the epic is committed — there is no implementation yet for a finding to be repaired by or made moot by, and no wrap in reach. An *unknown* row here ends **recorded** or **tracked** rather than measured, since the lab is not dispatched at this seam.
 - **Milestone preflight** — the challenge, then the sweep, then the lab. Two dispatches, the ledger between them; the challenge needs neither, since its only input is the criteria. An experiment runs where a human asks for one, pending T6.
 - **Patch start** — the challenge and the lab. The sweep runs when the patch has a tracked subject whose premises it inherited; a patch with no entity has no specification to check, which is the escape T7 names rather than a judgment about size.
 
@@ -524,6 +524,12 @@ failure the pin exists to prevent.
   and returns works, does not, or inconclusive — rather than a third artifact.
 - **Seam instructions** at the three entry points, each naming the artifacts it
   needs rather than restating them.
+- **The two existing surfaces that contradict the pass**, both Class D in the
+  appendix. No entity template scaffolds a ledger, so nothing prompts an author
+  to record a claim nobody measured; and the one role card named *reviewer*
+  emits an approval verdict, which is the state the no-clearance rule removes.
+  An implementer who builds only the five artifacts above ships a pass whose
+  output has no prompt and whose dispatched agent is briefed to approve.
 
 ### The report
 
@@ -614,9 +620,10 @@ specific obligation.
   exception to it.
 
   The pass performs none of this. It returns rows; the session that dispatched it
-  triages them at wrap, where the findings have had the life of the work to be
-  repaired or made moot; and the human gates the result. What makes the triage
-  happen is that gate enumerating every undispositioned row — see D-0067, which
+  triages them — at wrap for the seams that reach one, where the findings have had
+  the life of the work to be repaired or made moot, and at epic drafting before the
+  epic is committed, where they have not; and the human gates the result. What makes
+  the triage happen is that gate enumerating every undispositioned row — see D-0067, which
   records why it is a gate rather than a rule, what mechanizing it would have
   cost, and the measurement that would reverse it.
 
