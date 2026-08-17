@@ -436,6 +436,17 @@ titled "Decision 12" gets nothing from the index and must read everything.
 One full sweep, measured: 99 titles scanned, 19 selected, 16 read, 11 findings —
 122,000 tokens and about six minutes in one subagent.
 
+**One sweep is not an exhaustive pass.** Four sweeps run against successive
+revisions of one epic draft — same brief, a fresh reviewer each time — each
+selected sources the others did not, and cutting the subject by a third did not
+thin the result. The fourth reached `docs/skill-author-guide.md`, whose rule
+that a skill run `aiwf check` before returning success collides with this pass's
+own no-measure prohibition; the first three never opened it. So a seam is
+planned around a pass that samples the corpus rather than one that exhausts it,
+and a second dispatch on the same subject is productive rather than
+confirmatory. What terminates the work is the stop rule — every row
+dispositioned — not a reader who stops finding things.
+
 ### The blind trial
 
 The commitments sweep was run against M-0307, a milestone cancelled at preflight,
@@ -524,12 +535,16 @@ failure the pin exists to prevent.
   and returns works, does not, or inconclusive — rather than a third artifact.
 - **Seam instructions** at the three entry points, each naming the artifacts it
   needs rather than restating them.
-- **The two existing surfaces that contradict the pass**, both Class D in the
-  appendix. No entity template scaffolds a ledger, so nothing prompts an author
-  to record a claim nobody measured; and the one role card named *reviewer*
-  emits an approval verdict, which is the state the no-clearance rule removes.
-  An implementer who builds only the five artifacts above ships a pass whose
-  output has no prompt and whose dispatched agent is briefed to approve.
+- **The prompt that puts the ledger in the entity, and the `reviewer` role
+  card** — both Class D in the appendix. D-0066 places the ledger in a
+  `## Spec measurement` body section written once a pass has run, which is
+  evidence rather than scaffolding; a template section every entity carries
+  empty is the shape that decision excludes. So the missing artifact is a seam
+  instruction that writes the ledger there, not a template. The one role card
+  named *reviewer* emits an approval verdict, the state the no-clearance rule
+  removes. An implementer who builds only the five artifacts above ships a pass
+  whose output reaches no entity and whose dispatched agent is briefed to
+  approve.
 
 ### The report
 
@@ -768,14 +783,15 @@ reading pass the implementer runs on their own work.
 | `aiwfx-plan-epic:25` | reads `ROADMAP.md`, `work/epics/`, `work/gaps/` — never the ADRs and decisions |
 | `wf-patch:36` | "state the user-observable goal **in your own words**" — no sweep, lab or ledger before step 6 |
 
-### Class D — no template scaffolds a ledger
+### Class D — nothing prompts an author to record a ledger
 
 `templates/milestone-spec.md` carries no section for one, and
 `templates/epic-spec.md`'s Open questions table — the nearest existing structure
-— has no evidence column and admits only questions, never claims. Adding the
-section is legal on every kind (ADR-0043), so the defect is that nothing prompts
-an author to: a claim nobody measured is invisible by default rather than
-impossible to record.
+— has no evidence column and admits only questions, never claims. The section is
+legal on every kind (ADR-0043), but D-0066 places it as evidence written once a
+pass has run rather than as scaffolding every entity carries, so the prompt
+belongs in the seam instruction and not in a template: a claim nobody measured is
+invisible by default rather than impossible to record.
 
 `agents/reviewer.md:18` compounds it: the one role card named *reviewer* emits
 "**approve**, request-changes, or questions" and carries no ledger, no four
