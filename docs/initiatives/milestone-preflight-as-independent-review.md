@@ -357,6 +357,23 @@ plus a handful of documents the answer is yes on every pass. Once the sweep is
 running regardless, the only ordering that matters is the one that puts questions
 before the thing that answers them.
 
+**Settled**, and the ordering above is what stands. Three surfaces in the tree
+say otherwise, and their status decides how each is handled. `M-0308/AC-2` and
+`AC-3` are `met` on a **`done`** milestone, so they are historical evidence and
+establish no current obligation; their mechanical evidence is gone besides, since
+both were met against `wf-measure-spec`, absent from the tree. G-0583 is
+**`open`**, so its claim that "the cheap two run first and always" is live and
+needs a disposition rather than an argument.
+
+The strongest case for the other order was measured before it was rejected.
+Classifying the eleven cancelled epics' `--reason` bodies —
+`git log --all --grep='aiwf-verb: cancel' --format='%H%n%B'`, filtered to epic
+ids — puts five within the lab's reach against two within the sweep's, which
+argues for running the lab first on yield. It loses to what the blind trial
+recorded: the lab cannot produce a false clearance, and the sweep can, so the
+sweep's position ahead of it is what stops a reader treating an unmeasured claim
+as settled.
+
 ### Timing: preflight, with the commitments sweep available earlier
 
 Measurement runs just in time. An epic planned and then deferred leaves any
@@ -690,7 +707,6 @@ What survives the cancellation is this document, plus:
 | Question | Blocking a promotion? | Resolution path |
 |---|---|---|
 | What triggers an experiment? | T6 | The intended test — a load-bearing feasibility claim — decided one of this project's four live epic specifications and could not decide three. Its second half is a counterfactual about value that no specification states. Needs the author, not a measurement; everything else in *What ships* is buildable without it. |
-| Does the sweep precede the lab, or the lab the sweep? | yes | This document argues sweep-then-lab — the sweep generates questions and the lab answers them — and rejects yield-ordering by name under *The sweep runs before the lab*. Three live surfaces say the opposite. `M-0308/AC-3` is `met` on a `done` milestone and titled "The ritual's measurement step precedes its sweep step"; `M-0308/AC-2`, also `met`, has the sweep reading current trunk rather than a pinned ref; and G-0583, still open, states "the cheap two run first and always; the sweep is the expensive part". Both ACs were met against `wf-measure-spec`, absent from the tree since its withdrawal, so their mechanical evidence is gone — which does not make them wrong. Against the ordering here: classifying the eleven cancelled epics' `--reason` bodies (`git log --all --grep='aiwf-verb: cancel' --format='%H%n%B'`, filtered to epic ids) puts five within the lab's reach and two within the sweep's, and the lab cannot produce the false clearance the blind trial recorded. The criterion challenge is free and precedes both either way. This decides the shape of every seam instruction. |
 | Which surface carries the ledger? | no | **Not** *whether a surface can exist* — that is already settled on every kind. [ADR-0043](../adr/ADR-0043-enforce-body-section-membership-at-the-write-seams-never-tree-wide.md) (accepted): "Sections beyond the required set are legal and never flagged." So a `## Spec measurement` section written with `aiwf edit-body` is legal on an epic exactly as on a milestone, with no template or kernel change — which is what [D-0066](../../work/decisions/D-0066-record-a-spec-measurement-as-a-body-section-not-a-trailer.md) already commits to, and why it chose a heading. What remains is a choice between candidates, not a blocker: D-0066's `## Spec measurement`, or `## Reviewer notes`, which G-0530 records as already carrying the declined-finding record. |
 | Do the title index and the no-clearance rule hold in a project that is not this one? | all | Both were measured here only. The index depends on titles being informative, which is a property of this repo's conventions rather than of the method. The document tier additionally depends on the project ranking its documentation by authority, which most do not. |
 | Does reverse-reference walking reach beyond entities? | T3 | It walks entities only, not documents or templates, so a document contradicting a specification is reached by the index scan or not at all. Stated as a limit of the method rather than a question awaiting an answer. |
