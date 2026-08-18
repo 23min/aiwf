@@ -4,6 +4,13 @@ title: Settle what a pass run records about itself
 status: draft
 parent: E-0086
 tdd: none
+acs:
+    - id: AC-1
+      title: Every recorded miss names the line that would have shown it
+      status: open
+    - id: AC-2
+      title: Every recorded addition names the tier it lives in
+      status: open
 ---
 ## Goal
 
@@ -32,6 +39,24 @@ stay comparable.
 
 Both criteria pin a shape an accepted record already makes necessary, per the
 epic's constraint on tests over prose.
+
+### AC-1 — Every recorded miss names the line that would have shown it
+
+D-0068 admits a miss only with the corpus line that contradicted the
+specification. A test asserts every entry in the miss slot carries a
+`file:line`, so an entry recording a claim nobody can check fails.
+
+The shape is testable because D-0068 requires it, not because a phrase was
+chosen to be matched.
+
+### AC-2 — Every recorded addition names the tier it lives in
+
+D-0054 names three tiers a record can live in. A test derives the tier names
+from D-0054 and asserts every recorded addition names one of them, so an
+addition carrying no tier, or an invented one, fails.
+
+Deriving from D-0054 rather than from this milestone's own prose is what keeps
+the expected side independent of the side under test.
 
 ## Constraints
 
