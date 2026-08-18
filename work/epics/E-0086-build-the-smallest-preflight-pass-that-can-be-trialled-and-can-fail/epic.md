@@ -142,6 +142,7 @@ Observable at epic close. Milestone ACs carry the mechanical bar.
 | What counts as something the pass missed, and who records it? | yes | The trial's only measure of what the pass did not catch. Needs its own term or none. |
 | Can a prose deliverable carry an acceptance criterion that can fail? | yes | G-0584 names M-0308's derivation as the first instance of a form that can, and `findAllVerbs` survives in `internal/policies/`. The first milestone reuses that form or states why it does not reach this deliverable. |
 | Does `oracles.md` admit a pass that offers no verdict? | yes | That document requires a verdict rather than a vibe; this pass offers none by constraint. Decides whether the inventory row is legal. |
+| Does a prospective per-run record survive the rules against it? | yes | `growth.md` reconstructs apparatus metrics from git history at any commit and states nothing has to be measured in advance to stay comparable; D-0054 records obligations rather than events, and a finished run is a completed act; the not-in-scope list excludes an append-only event log. Decides whether the instrumentation Scope bullet is buildable as written. |
 | Does the initiative owe T3 a code tier? | no | A defect in the initiative, unresolved between the two documents. |
 | Does the patch-start seam get an entity, or stay a deferral with no destination? | no | Needs a destination or an explicit decline. |
 
