@@ -47,7 +47,10 @@ instrumenting the parts separately makes judgeable.
   `## Clean` verdict.
 - **The ledger**, with a disposition column, and the seam instruction that
   writes it into `## Spec measurement`.
-- **A row in `docs/design/oracles.md`'s inventory.**
+- **A row in `docs/design/oracles.md`'s inventory**, taking the class the
+  dispatched-reviewer row already uses: model-judged, advising, the human gate
+  deciding. That class is not the mechanical oracle that document records as
+  missing for specification quality, and the row does not claim to be one.
 - **The wrap-gate enumeration**, in `aiwfx-wrap-milestone` and
   `aiwfx-wrap-epic`: every undispositioned row listed, with rows total and
   settled stated alongside.
@@ -146,7 +149,6 @@ Observable at epic close. Milestone ACs carry the mechanical bar.
 
 | Question | Blocking? | Owner |
 |---|---|---|
-| Does `oracles.md` admit a pass that offers no verdict? | yes | That document requires a verdict rather than a vibe; this pass offers none by constraint. Decides whether the inventory row is legal. |
 | Does the initiative owe T3 a code tier? | no | A defect in the initiative, unresolved between the two documents. |
 | Does the patch-start seam get an entity, or stay a deferral with no destination? | no | Needs a destination or an explicit decline. |
 
