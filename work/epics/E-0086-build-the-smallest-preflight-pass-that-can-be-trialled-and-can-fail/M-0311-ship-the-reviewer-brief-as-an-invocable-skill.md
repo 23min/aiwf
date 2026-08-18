@@ -4,6 +4,13 @@ title: Ship the reviewer brief as an invocable skill
 status: draft
 parent: E-0086
 tdd: required
+acs:
+    - id: AC-1
+      title: The brief ships as a skill carrying a section per part
+      status: open
+    - id: AC-2
+      title: The brief names no location absent from a consumer tree
+      status: open
 ---
 ## Goal
 
