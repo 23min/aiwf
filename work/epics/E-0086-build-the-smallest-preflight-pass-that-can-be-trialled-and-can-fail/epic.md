@@ -7,7 +7,9 @@ status: proposed
 
 Build the smallest version of the preflight pass that can be trialled and can
 fail: the parts run, the findings land somewhere a human triages, and
-consecutive runs produce a number that says whether to keep it.
+consecutive runs produce a number that says whether the method works: what it
+missed, and what it added. What a pass costs to run is an audit question, not
+this epic's.
 
 ## Context
 
@@ -53,10 +55,12 @@ instrumenting the parts separately makes judgeable.
   what it dispatches and carrying the stated escape.
 - **The `reviewer` role card**, which emits an approval verdict the
   no-clearance rule removes.
-- **Instrumentation, per seam and never pooled** — per-phase cost, what each
-  phase found, what each finding changed, rows undispositioned at wrap, what
-  the pass missed and surfaced later, and the records each pass creates, priced
-  by the tier each lives in (D-0054).
+- **Instrumentation, per seam and never pooled** — what the pass missed and
+  surfaced later, and the records each pass creates, priced by the tier each
+  lives in (D-0054). What each phase found, what each finding changed, and rows
+  undispositioned at wrap are derived from the committed ledger rather than
+  recorded: D-0054 holds that a fact another owner already carries is not worth
+  prose.
 - **Each corpus tier named by its own shape**, never by a repository path:
   commitments by kind and status, entities by the status-carrying index
   including archived ones, documents by property.
@@ -117,7 +121,8 @@ Observable at epic close. Milestone ACs carry the mechanical bar.
       and every contradicted row.
 - [ ] Both seams name what they dispatch, and skipping the pass requires a
       stated reason at a gate.
-- [ ] Consecutive trial runs record per-phase cost and yield per seam.
+- [ ] Consecutive trial runs record, per seam, what the pass missed and what
+      it added to the corpus.
 - [ ] No shipped surface this epic touches names a non-consumer repository path
       as its corpus. G-0548 owns the tree-wide half.
 
@@ -142,7 +147,6 @@ Observable at epic close. Milestone ACs carry the mechanical bar.
 | What counts as something the pass missed, and who records it? | yes | The trial's only measure of what the pass did not catch. Needs its own term or none. |
 | Can a prose deliverable carry an acceptance criterion that can fail? | yes | G-0584 names M-0308's derivation, which was two: `findAllVerbs` walking the cobra command tree, and an outcome count from heading shape. The second is structural over prose and has no code side, so it is the one a prose deliverable reaches for. The first milestone reuses it or states why it does not reach this deliverable. |
 | Does `oracles.md` admit a pass that offers no verdict? | yes | That document requires a verdict rather than a vibe; this pass offers none by constraint. Decides whether the inventory row is legal. |
-| Does a prospective per-run record survive the rules against it? | yes | `growth.md` reconstructs apparatus metrics from git history at any commit and states nothing has to be measured in advance to stay comparable; D-0054 records obligations rather than events, and a finished run is a completed act; the not-in-scope list excludes an append-only event log. Decides whether the instrumentation Scope bullet is buildable as written. |
 | Does the initiative owe T3 a code tier? | no | A defect in the initiative, unresolved between the two documents. |
 | Does the patch-start seam get an entity, or stay a deferral with no destination? | no | Needs a destination or an explicit decline. |
 
