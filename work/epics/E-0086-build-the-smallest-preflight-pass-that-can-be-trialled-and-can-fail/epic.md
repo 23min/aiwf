@@ -55,8 +55,8 @@ instrumenting the parts separately makes judgeable.
   no-clearance rule removes.
 - **Instrumentation, per seam and never pooled** — per-phase cost, what each
   phase found, what each finding changed, rows undispositioned at wrap, what
-  the pass missed and surfaced later, and the artifacts each pass creates by
-  cost tier (D-0054).
+  the pass missed and surfaced later, and the records each pass creates, priced
+  by the tier each lives in (D-0054).
 - **Each corpus tier named by its own shape**, never by a repository path:
   commitments by kind and status, entities by the status-carrying index
   including archived ones, documents by property.
@@ -170,8 +170,9 @@ To be proposed after the preflight pass runs on this draft.
 - ADR-0044, G-0587, G-0589 — the corpus described by shape
 - ADR-0024 — the rejected reference-skill shape
 - ADR-0004, ADR-0003 — archive reversal; the seventh kind
-- D-0067, D-0054, D-0053, D-0056, D-0050, D-0038 — disposition, cost tiers,
-  what retires a mandate, what earns a gap, test shape, AC evidence
+- D-0067, D-0054, D-0053, D-0056, D-0050, D-0038 — disposition, what is worth
+  recording and where, what retires a mandate, what earns a gap, test shape,
+  AC evidence
 - `docs/design/oracles.md`, `docs/design/growth.md`
 - `CLAUDE.md` §"AC promotion requires mechanical evidence", §"Skills policy"
 - G-0271, G-0317, G-0530, G-0548, G-0560, G-0571, G-0580, G-0582, G-0583,
