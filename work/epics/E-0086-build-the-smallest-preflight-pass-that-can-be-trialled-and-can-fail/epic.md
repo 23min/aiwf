@@ -56,8 +56,6 @@ instrumenting the parts separately makes judgeable.
   settled stated alongside.
 - **Seam instructions at epic drafting and milestone preflight**, each naming
   what it dispatches and carrying the stated escape.
-- **The `reviewer` role card**, which emits an approval verdict the
-  no-clearance rule removes.
 - **Instrumentation, per seam and never pooled** — what the pass missed and
   surfaced later, and the records each pass creates, priced by the tier each
   lives in (D-0054). What each phase found, what each finding changed, and rows
@@ -79,7 +77,11 @@ instrumenting the parts separately makes judgeable.
 - **The patch-start seam.**
 - **A trigger for when an experiment fires.**
 - **A check rule over the ledger** — D-0067.
-- **The clearance sites in shipped skills** — G-0585, wholly.
+- **The clearance sites in shipped skills** — G-0585, wholly, and with them the
+  `reviewer` role card. The specification names that card among the artifacts an
+  implementer must build; excluding it is a deliberate divergence, recorded here
+  rather than left silent. G-0585 owns it and asks for its own branch and its own
+  review.
 - **The compaction handoff** — G-0586.
 - **`aiwf show` rendering a terminal reason** — G-0590.
 - **The forward-tense reference check** — G-0591.
@@ -156,7 +158,7 @@ Observable at epic close. Milestone ACs carry the mechanical bar.
 
 | Risk | Impact | Mitigation |
 |---|---|---|
-| Prose deliverables resist the AC-evidence bar | high | Named as a blocking question. |
+| Prose deliverables resist the AC-evidence bar | high | Each milestone's preflight pass challenges its criteria before the work starts; where no rule forces a shape, the criterion says so rather than faking one. |
 | Nothing makes an assistant run a prose pass | med | ADR-0019's advisory precedent; D-0067 names the measurement that would earn a check rule. |
 | The trial measures operator patience rather than the method | high | Consecutive subjects, per-seam instrumentation, and a defined measure of what the pass missed. |
 | The pass acquires vocabulary faster than evidence | med | The no-new-vocabulary constraint. |
@@ -168,8 +170,7 @@ Observable at epic close. Milestone ACs carry the mechanical bar.
 Sequenced so the first thing built is the artifact the seams dispatch, and the
 instrumentation lands once there are runs to instrument.
 
-1. The reviewer brief, the corpus named by shape rather than by path, and the
-   `reviewer` role card.
+1. The reviewer brief, and the corpus named by shape rather than by path.
 2. The criterion challenge, taking the seat where a reading currently earns a
    clearance.
 3. The sweep, and the epic-drafting seam it completes.
@@ -188,7 +189,7 @@ has to be recorded in advance for consecutive runs to stay comparable.
 - `docs/initiatives/milestone-preflight-as-independent-review.md` — the specification
 - ADR-0043, D-0066 — the ledger's surface
 - D-0068 — what counts as a defect the pass missed, and who records it
-- ADR-0019 — the advisory `wf-*` genus
+- ADR-0019 — the precedent for shipping a ritual skill that advises rather than gates
 - ADR-0007, ADR-0006 — skill placement and coverage
 - ADR-0028 — role-agent dispatch routing
 - ADR-0044, G-0587, G-0589 — the corpus described by shape
@@ -235,10 +236,10 @@ result, its output and its environment together.
 | The ledger's write path passes a body-section membership scan | complicated | | E-0084 | tracked — E-0084 |
 | Root and derived documents are unclassified for a corpus tier | complicated | | G-0589 | tracked — G-0589 |
 | The path clause of the shipped-surface rule has no check | complicated | | G-0548 | tracked — G-0548 |
-| A bare `docs/` path in a shipped skill trips no check | unknown | | G-0587 names the experiment as unrun | tracked — G-0587 |
+| A bare `docs/` path in a shipped skill trips no check | unknown | true | `aiwf check`, from a binary built from this worktree, over a tree where `agents/planner.md` carries bare `docs/adr/` and `work/decisions/`: expected 0 errors if unenforced, observed 0 errors. G-0548 carries the same conclusion in prose | measured — G-0587's unrun experiment is run; what counts as a path citation stays with G-0548 |
 | An epic wrap must close or correct the epic spec's own gap claims | complicated | | G-0515 | recorded — a milestone obligation |
 | `skill-author-guide.md` rule 5 requires a skill to run `aiwf check` before returning success | complicated | | the sweep is forbidden to measure | recorded — unresolved between the two documents |
-| `oracles.md` requires a verdict; this pass offers none | ambiguous | | `oracles.md:33` | recorded — blocking open question above |
+| `oracles.md` requires a verdict; this pass offers none | ambiguous | | `oracles.md:33` | recorded — Scope takes the inventory's model-judged, advising class |
 | Independence is only as strong as the brief, and the author writes it | complicated | | G-0263 | recorded — see below |
 | One dispatch exhausts the corpus | contradicted | | four sweeps each selected sources the others did not | repaired in the initiative; recorded |
 | The specification sets no bar for ending | contradicted | | the initiative's stop rule ends a *pass*; the epic's bar is for the *method* | repaired — the two subjects are now distinguished; recorded |
