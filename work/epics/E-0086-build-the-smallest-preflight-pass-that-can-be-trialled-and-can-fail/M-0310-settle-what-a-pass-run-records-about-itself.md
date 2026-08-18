@@ -7,53 +7,37 @@ tdd: none
 ---
 ## Goal
 
-Settle what a run of the preflight pass records about itself — its cost, its
-yield, and what it later turned out to have missed — so runs at successive
-milestones can be compared.
+Settle what a run of the preflight pass records about itself — what it missed,
+and what it added to the corpus — so runs at successive milestones can be
+compared.
 
 ## Context
 
-This milestone is `draft` and does not start until the epic's blocking question
-about a prospective per-run record resolves. Three surfaces push against the
-deliverable: `growth.md` reconstructs apparatus metrics from git history at any
-commit and holds that nothing must be measured in advance to stay comparable;
-D-0054 records obligations rather than events, and a finished run is a completed
-act; the not-in-scope list excludes an append-only event log.
+E-0086 records two things per run and derives the rest. D-0068 defines the
+first: a specification defect, found between the pass and the milestone's wrap,
+that a source in the pass's own corpus contradicted, named by the line that
+would have shown it. The second is the records a pass creates, priced by the
+tier each lives in.
 
-A fourth problem is internal to the deliverable rather than to the corpus. The
-fields that carry cost — tokens and wall time — are reported by the agent
-runtime, and no command in the tree emits either. A record requiring every count
-to name its producing command cannot carry them, and a record without them
-cannot answer whether a seam earns its cost.
+Everything else a run produces — rows returned, rows by disposition, what each
+finding changed, rows undispositioned at wrap — is recoverable from the
+committed ledger and git history, so D-0054 puts it outside prose. What a pass
+costs to run is an audit question and is not recorded here.
 
-D-0066 settles where a completed pass writes itself. Whether a run's own cost
-and yield belong in a second record is what the epic's question decides.
+This milestone sits sixth in the epic's sequence. Both fields are recoverable
+after the fact, so nothing has to be recorded in advance for consecutive runs to
+stay comparable.
 
 ## Acceptance criteria
 
-None allocated. The criteria depend on whether the deliverable survives the
-epic's blocking question, and criteria written against a deliverable that may not
-exist are the churn this epic was opened to measure.
-
-When they are allocated they cover: the fields a run records; that cost and
-yield are recorded per seam and never pooled; and one record filled from a real
-run. Each is prose-shaped, so each needs the derivation M-0308 used for its
-outcome count — expected value from heading shape rather than from a literal —
-and each must state what it does not establish. `docs/design/oracles.md` holds
-that an expectation written by the same author from the same misreading is a
-mirror rather than an oracle, and both sides of a prose-to-prose test are
-authored by the same work.
+Both criteria pin a shape an accepted record already makes necessary, per the
+epic's constraint on tests over prose.
 
 ## Constraints
 
-- **The fields reconcile what already exists** rather than originating a
-  vocabulary. The initiative carries a dated observation of one run; E-0086's
-  Scope names what instrumentation must carry; D-0067 makes the
-  undispositioned-at-wrap rate required rather than optional.
-- **Tests resolve entity files through the loader**, never a path literal, per
-  `CLAUDE.md` §"Test design rules" and its `PolicyNoHardcodedEntityPaths`
-  chokepoint. Every record these tests would read is an entity file that
-  archives.
+- **Two recorded fields; everything else is derived.**
+- **Tests resolve entity files through the loader**, never a path literal —
+  `PolicyNoHardcodedEntityPaths`. Every record these tests read archives.
 - **The mandate names its owner and what retires it.** G-0515 and D-0053 carry
   the shipped two-part form.
 - **Every count names the command that produced it**, or is dropped.
@@ -62,24 +46,26 @@ authored by the same work.
 
 ## Design notes
 
+- D-0068 settles what counts as a miss and who records it.
+- D-0054 names the three tiers a record can live in, and holds that a fact
+  another owner already carries is not worth prose.
 - D-0066 settles that a completed pass writes a `## Spec measurement` section
   into the body of the entity whose claims it measured.
-- D-0067 makes the undispositioned-at-wrap rate part of what instrumentation
-  must carry rather than an optional extra.
-- D-0054 settles that records are tiered by retrieval cost, and that a fact a
-  check or a field could hold is not worth writing as prose.
-- D-0038 records, of a rejected evidence flag, that check-time resolution proves
-  a symbol exists rather than that it exercises the claim.
-- G-0584 records what an expected value transcribed from the prose it guards
-  costs: the assertion passes because someone typed the word.
-- ADR-0043 settles that a section beyond an entity's required set is legal.
-- ADR-0042 gates body completeness at the readiness promote, which this
-  milestone reaches only if its question resolves.
-- G-0530 proposes cutting three of the sections a milestone spec carries; this
-  body omits them.
-- G-0490 records a metrics mandate that shipped and proved unadoptable because
-  its cost scaled with subjects rather than with discipline. It is the nearest
-  precedent for what this record would cost.
+- D-0067 makes the undispositioned-at-wrap count part of what the trial carries;
+  the ledger committed at the wrap commit is that count.
+
+## Dependencies
+
+- D-0068, D-0066, D-0067, D-0054 — accepted.
+- The milestones ahead of this one, which produce the runs it records.
+
+## References
+
+- `docs/initiatives/milestone-preflight-as-independent-review.md` — the specification
+- D-0068, D-0066, D-0067, D-0054, D-0050 — the miss, where a pass records
+  itself, the required count, what is worth recording and where, test shape
+- G-0490 — a metrics mandate that shipped and proved unadoptable
+- G-0530 — milestone sections that duplicate structured data
 
 ## Spec measurement
 
@@ -92,8 +78,9 @@ the disposition.
 | 1 | first draft | 3 | 495,821 | 9.8 min | ~65 |
 | 2 | rewrite | 3 | 513,234 | 10.1 min | ~70 |
 
-Token and wall-time figures are the agent runtime's, not a command's — the
-contradiction this milestone's own subject names. Row counts are of returned
+Token and wall-time figures are the agent runtime's, not a command's. They are
+a dated observation of these two runs, not a field the record carries: what a
+pass costs to run is an audit question and is out of scope here. Row counts are of returned
 table rows and are approximate; no command produced them.
 
 The challenge ran twice, author-run, at no corpus cost, and found three findings
