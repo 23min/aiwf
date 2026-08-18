@@ -1,7 +1,7 @@
 ---
 id: E-0086
 title: Build the smallest preflight pass that can be trialled and can fail
-status: proposed
+status: active
 ---
 ## Goal
 
