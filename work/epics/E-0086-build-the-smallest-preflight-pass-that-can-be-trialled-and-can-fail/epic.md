@@ -94,8 +94,10 @@ instrumenting the parts separately makes judgeable.
 - **The brief ships as an artifact with a mandated shape**, so what it asks for
   does not vary with who dispatches it. G-0263 names the author-written brief as
   the exposure and mandating the shape as the lever.
-- **Every `SKILL.md` edit lands with its referencing structural test**, and
-  those tests assert shape, not wording (D-0050).
+- **Every `SKILL.md` edit lands with its referencing structural test.** A test
+  over prose — ritual or entity — pins a property some rule makes necessary,
+  never words an author chose (D-0050). Where no rule forces a shape, the
+  criterion says so rather than faking one.
 - **No new vocabulary without a defect it fixes.** The terms are the
   initiative's: the reading states *contradicted*, *ambiguous*, *complicated*,
   *unknown*; the measured values *true*, *false*, *unable to measure safely*;
@@ -144,7 +146,6 @@ Observable at epic close. Milestone ACs carry the mechanical bar.
 
 | Question | Blocking? | Owner |
 |---|---|---|
-| Can a prose deliverable carry an acceptance criterion that can fail? | yes | G-0584 names M-0308's derivation, which was two: `findAllVerbs` walking the cobra command tree, and an outcome count from heading shape. The second is structural over prose and has no code side, so it is the one a prose deliverable reaches for. The first milestone reuses it or states why it does not reach this deliverable. |
 | Does `oracles.md` admit a pass that offers no verdict? | yes | That document requires a verdict rather than a vibe; this pass offers none by constraint. Decides whether the inventory row is legal. |
 | Does the initiative owe T3 a code tier? | no | A defect in the initiative, unresolved between the two documents. |
 | Does the patch-start seam get an entity, or stay a deferral with no destination? | no | Needs a destination or an explicit decline. |
@@ -162,7 +163,23 @@ Observable at epic close. Milestone ACs carry the mechanical bar.
 
 ## Milestones
 
-To be proposed after the preflight pass runs on this draft.
+Sequenced so the first thing built is the artifact the seams dispatch, and the
+instrumentation lands once there are runs to instrument.
+
+1. The reviewer brief, the corpus named by shape rather than by path, and the
+   `reviewer` role card.
+2. The criterion challenge, taking the seat where a reading currently earns a
+   clearance.
+3. The sweep, and the epic-drafting seam it completes.
+4. The lab, and the handoff of unknown and contradicted rows into it.
+5. The milestone-preflight seam, and the wrap-gate enumeration.
+6. M-0310 — what a run records about itself.
+7. The trial's verdict: the `oracles.md` row, the Threads table, and the
+   remaining stale premises.
+
+M-0310 sits sixth rather than first because both fields it records are
+recoverable after the fact from committed ledgers and git history, so nothing
+has to be recorded in advance for consecutive runs to stay comparable.
 
 ## References
 
