@@ -1,7 +1,7 @@
 ---
 id: D-0068
 title: What counts as a defect the preflight pass missed
-status: proposed
+status: accepted
 ---
 ## Question
 
