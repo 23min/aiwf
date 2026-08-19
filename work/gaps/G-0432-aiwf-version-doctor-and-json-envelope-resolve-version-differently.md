@@ -1,9 +1,11 @@
 ---
 id: G-0432
 title: aiwf version/doctor and JSON envelope resolve version differently
-status: open
+status: addressed
 priority: low
 discovered_in: M-0126
+addressed_by_commit:
+    - f55923fe3
 ---
 ## Problem
 
