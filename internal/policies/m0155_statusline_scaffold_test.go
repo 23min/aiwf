@@ -8,6 +8,7 @@ import (
 	"testing"
 
 	"github.com/23min/aiwf/internal/skills"
+	"github.com/23min/aiwf/internal/testsupport"
 	"github.com/23min/aiwf/internal/version"
 )
 
@@ -94,7 +95,7 @@ func TestM0155_AC3_ScaffoldStatuslineRefreshesInPlace(t *testing.T) {
 		if err := os.MkdirAll(filepath.Dir(dest), 0o755); err != nil {
 			t.Fatalf("mkdir: %v", err)
 		}
-		if err := os.WriteFile(dest, wantRendered, 0o755); err != nil {
+		if err := testsupport.WriteExecutable(dest, wantRendered); err != nil {
 			t.Fatalf("write current: %v", err)
 		}
 		res, err := skills.ScaffoldStatuslineWithHome(root, home, skills.StatuslineScopeProject)
