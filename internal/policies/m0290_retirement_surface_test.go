@@ -28,6 +28,23 @@ import (
 // longer identifier that merely contains it does not register.
 var retiredVerbToken = regexp.MustCompile(`\brewidth\b`)
 
+// m0290DocumentaryMentionAllowlist carries the doc-tier paths whose
+// subject IS the retired verb's lingering citations, keyed to the
+// reason. The ban targets a document that offers the verb to an
+// operator; a dated inventory reporting where others still offer it
+// has the opposite effect, and cannot state its finding without
+// naming the token — its evidence is verbatim quotation of entity
+// bodies and of one real commit subject. m0127's allowlist draws the
+// same line for the relocated-path ban, down to an entry reading
+// "quotes an actual git commit message verbatim".
+//
+// Keep this list short. An entry is warranted only when the file
+// documents the retirement; a file that merely instructs a reader to
+// run the verb is the defect this test exists to catch.
+var m0290DocumentaryMentionAllowlist = map[string]string{
+	"docs/initiatives/entity-truth-audit.md": "dated drift inventory whose finding is that live records still cite the retired verb",
+}
+
 // TestM0290_AC4_NoShippedSurfaceOffersTheRetiredVerb walks every file
 // that `aiwf init` / `aiwf update` materializes into a consumer repo.
 func TestM0290_AC4_NoShippedSurfaceOffersTheRetiredVerb(t *testing.T) {
@@ -117,12 +134,15 @@ func walkAndAssertAbsent(t *testing.T, dir, root string) {
 		if ext := strings.ToLower(filepath.Ext(path)); ext != ".md" && ext != ".sh" {
 			return nil
 		}
+		rel, _ := filepath.Rel(root, path)
+		if _, ok := m0290DocumentaryMentionAllowlist[filepath.ToSlash(rel)]; ok {
+			return nil
+		}
 		raw, readErr := os.ReadFile(path)
 		if readErr != nil {
 			return readErr
 		}
 		if loc := retiredVerbToken.FindIndex(raw); loc != nil {
-			rel, _ := filepath.Rel(root, path)
 			t.Errorf("AC-4: %s still names the retired width-migration verb at byte %d;\n"+
 				"  line: %s", rel, loc[0], lineAround(raw, loc[0]))
 		}
