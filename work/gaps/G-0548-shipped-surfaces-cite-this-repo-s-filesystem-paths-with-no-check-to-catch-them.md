@@ -50,6 +50,19 @@ at error like its sibling or lands advisory first is worth deciding against
 the size of the existing violation set: fourteen is small enough to clean up
 in the same change, which argues for error and no grandfathering.
 
+A fourth option sidesteps the line instead of drawing it. Where a surface can
+be authored to need no path at all, its check is a ban on the `/` character in
+that file — exact, with nothing to tune, and no judgment about what counts as a
+citation. The cost is a constraint on the prose: a slash-joined pair has to be
+written out as two words, and a command example has to move to the verb's own
+`--help`. This is a per-file trade, not a corpus-wide one; several shipped
+skills name `aiwf.yaml`, and the guidance fragment names its own materialized
+location, all legitimately. It is worth asking of each surface whether it needs
+to name a location at all before assuming it needs the heuristic, because the
+answer is sometimes no in places that look like they must: a document whose
+whole subject is which records to read can describe them by property and carry
+no slash in any line, frontmatter included.
+
 The history-and-rationale clause stays a review-time judgment. It has no
 stable machine shape, and the point of doing the path clause is that it does.
 
@@ -58,3 +71,10 @@ stable machine shape, and the point of doing the path clause is that it does.
 Counted 2026-08-05 while closing G-0542, which edited one of these surfaces
 and relocated rows carrying two of the citations. That patch added none and
 removed none; the condition predates it.
+
+The per-file alternative in Direction rests on one observation, made 2026-08-19
+against a 141-line shipped skill whose subject is how to review a specification:
+`grep -c '/'` over that file returns `0`, frontmatter included. The document
+needed no path to do its job, so the exact check was available to it and the
+heuristic was never required. That skill has since been retired, which is why
+the observation is recorded here rather than in its own test.
