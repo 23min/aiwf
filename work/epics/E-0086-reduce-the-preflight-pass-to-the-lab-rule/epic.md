@@ -1,6 +1,6 @@
 ---
 id: E-0086
-title: Build the smallest preflight pass that can be trialled and can fail
+title: Reduce the preflight pass to the lab rule
 status: done
 ---
 ## Goal
