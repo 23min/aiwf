@@ -81,6 +81,14 @@ lives in the `wf-codebase-health` skill.
   reasoning and drop the arithmetic. A measurement that *is* the point is a
   dated observation. What no check can carry — a judgment, a rejected
   alternative, why the obvious approach fails — is worth its words.
+- **Nothing is settled except by measurement.** A claim is settled true only
+  where four things sit together: the command, the result you expected, the
+  output you observed, and the environment it ran in. Reading does not settle a
+  claim — neither does a citation to a record that says so, nor your own
+  confidence. Leave an unsettled claim visibly unsettled: name the command you
+  would have run and leave the answer blank. A later reader can close a blank;
+  a guess phrased like a measurement is worse than one, because nothing marks
+  it for checking.
 - **On revising, re-derive before you rewrite.** An edit that *adds or restates*
   a claim re-opens every source that claim cites, in the same action — rewritten
   from memory it drifts, and the drift reads as fluent — then re-reads the rest
