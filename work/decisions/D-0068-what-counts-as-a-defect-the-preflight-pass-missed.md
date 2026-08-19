@@ -3,6 +3,9 @@ id: D-0068
 title: What counts as a defect the preflight pass missed
 status: accepted
 ---
+> **The measurement this defines is not taken** — see D-0069 and E-0086. The
+> definition stands; it has no subject. Details in Consequences.
+
 ## Question
 
 The preflight trial records what the pass missed. Without a definition, a later
@@ -58,3 +61,13 @@ The falsifiable-instance requirement also means a session that cannot name the
 line records nothing. Some real misses will go unrecorded because their
 contradiction was diffuse rather than locatable. That loss is preferred to a
 number inflated by claims no one can check.
+
+The measurement this defines is not taken. D-0069 rejects the dispatched reading
+pass and E-0086 closes re-scoped to the lab rule alone, so no pass runs and no
+session records what one missed. The definition above holds — narrow,
+falsifiable and bounded on purpose — and has no subject.
+
+What outlives the drop is its shape rather than its subject: a count worth
+recording carries a bound that makes it terminate, and admits an entry only with
+something a later reader can check. Both clauses were chosen against wider
+readings that would have produced a number nobody could trust.
