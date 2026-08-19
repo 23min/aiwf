@@ -1,7 +1,7 @@
 ---
 id: M-0310
 title: Settle what a pass run records about itself
-status: draft
+status: cancelled
 parent: E-0086
 tdd: none
 acs:
