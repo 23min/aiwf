@@ -1,7 +1,9 @@
 ---
 id: G-0582
 title: ADR-0003 accepts a seventh entity kind the kernel does not carry
-status: open
+status: addressed
+addressed_by_commit:
+    - 1259c8440
 ---
 ## What's missing
 
