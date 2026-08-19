@@ -190,3 +190,40 @@ func TestStatuslineExportAndFirstGitIdx_BranchCoverage(t *testing.T) {
 		})
 	}
 }
+
+// statuslineWholeLineComment matches a bash comment occupying its whole
+// line, which is the form every prose mention in this script takes. The
+// scan below strips these before looking for an invocation, so a comment
+// may name a verb — pointing a reader at `aiwf status` for the backlog,
+// or naming the producer that writes the health file — while calling one
+// still fails.
+var statuslineWholeLineComment = regexp.MustCompile(`(?m)^[ \t]*#.*$`)
+
+// TestStatusline_RenderInvokesNoKernelVerb pins the property G-0305 asked
+// for and M-0224 shipped: the installation-health glyph reads the
+// `.claude/health.*.json` files a producer wrote out of band, instead of
+// running a check at render time. Nothing else asserted it, which is how
+// the header comment came to advertise a per-render `aiwf check --fast`
+// the script does not make.
+//
+// The bound is every verb, not just `check`: what makes the render cheap
+// is spawning no kernel binary, and a different verb costs the same
+// process. To add one deliberately, replace this test with what bounds
+// the per-render latency it introduces.
+func TestStatusline_RenderInvokesNoKernelVerb(t *testing.T) {
+	t.Parallel()
+	body := loadStatusline(t)
+	code := statuslineWholeLineComment.ReplaceAllStringFunc(body, func(m string) string {
+		return strings.Repeat(" ", len(m)) // keep byte offsets so line numbers stay true
+	})
+	// `aiwf` followed by whitespace and a verb word. The bare token also
+	// appears inside the CI cache filename (`aiwf-statusline-ci-<key>`),
+	// which names nothing executable.
+	loc := regexp.MustCompile(`\baiwf[ \t]+[a-z]`).FindStringIndex(code)
+	if loc == nil {
+		return
+	}
+	n := strings.Count(code[:loc[0]], "\n") + 1
+	t.Errorf("statusline.sh:%d invokes the kernel binary; the render reads producer health files and spawns no verb\n  line: %s",
+		n, strings.TrimSpace(strings.SplitN(body[loc[0]:], "\n", 2)[0]))
+}

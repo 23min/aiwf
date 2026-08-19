@@ -6,8 +6,10 @@
 # Layout: <ball> <model> <effort?> ▸ <tokens> · <epic HUD> · <repo> · <branch…>[<dirty>][<sync>] · <ci-glyph> ci
 #
 # All segments fail soft: anything that errors collapses to "?" or is dropped.
-# Network + check-probe calls are cached in /tmp with a TTL so the hot
-# (cache-hit) path stays fast; a cache miss pays one gh + one aiwf check --fast.
+# The render spawns no kernel verb. The CI probe is the only subprocess that
+# can cost anything: it is cached in /tmp with a TTL, so the hot (cache-hit)
+# path stays fast and a miss pays one `gh run list`. The health glyph reads
+# the producer files under `.claude/` and spawns nothing at all.
 
 set -u
 
