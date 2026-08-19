@@ -7,7 +7,7 @@ tdd: none
 acs:
     - id: AC-1
       title: Every recorded miss names the line that would have shown it
-      status: open
+      status: cancelled
     - id: AC-2
       title: Every recorded addition names the tier it lives in
       status: open
