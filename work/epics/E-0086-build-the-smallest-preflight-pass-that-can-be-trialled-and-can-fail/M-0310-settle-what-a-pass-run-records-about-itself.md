@@ -10,7 +10,7 @@ acs:
       status: cancelled
     - id: AC-2
       title: Every recorded addition names the tier it lives in
-      status: open
+      status: cancelled
 ---
 ## Goal
 
