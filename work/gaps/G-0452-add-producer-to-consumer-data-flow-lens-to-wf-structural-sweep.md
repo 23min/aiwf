@@ -1,8 +1,10 @@
 ---
 id: G-0452
 title: Add producer to consumer data-flow lens to wf-structural-sweep
-status: open
+status: addressed
 priority: low
+addressed_by_commit:
+    - aef85f87c
 ---
 ## What's missing
 
