@@ -10,7 +10,7 @@ acs:
       status: cancelled
     - id: AC-2
       title: The brief names no location absent from a consumer tree
-      status: open
+      status: cancelled
 ---
 ## Goal
 
