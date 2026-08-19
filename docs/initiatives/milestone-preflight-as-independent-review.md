@@ -752,7 +752,7 @@ What survives the cancellation is this document, plus:
 - [G-0587](../../work/gaps/G-0587-a-shipped-skill-cannot-name-the-docs-corpus-a-review-must-read.md)
   — a shipped ritual is barred from naming the corpus this pass must read.
 
-[E-0086](../../work/epics/E-0086-build-the-smallest-preflight-pass-that-can-be-trialled-and-can-fail/epic.md)
+[E-0086](../../work/epics/E-0086-reduce-the-preflight-pass-to-the-lab-rule/epic.md)
 was the second. It planned seven milestones and built one — the reviewer brief,
 on a branch that was not merged. It ran this document's method four times
 against its own epic draft and recorded the result in its `## Spec measurement`
