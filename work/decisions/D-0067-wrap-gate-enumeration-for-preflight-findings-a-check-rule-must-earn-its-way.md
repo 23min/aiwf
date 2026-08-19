@@ -3,6 +3,9 @@ id: D-0067
 title: Wrap-gate enumeration for preflight findings; a check rule must earn its way
 status: accepted
 ---
+> **The pass this governs was dropped** — see D-0069 and E-0086. The reasoning
+> stands; it has no subject. Details in Consequences.
+
 ## Question
 
 A preflight finding is recorded in the body of the entity whose lifetime it
@@ -94,3 +97,17 @@ The trial acquires one more required measurement. A trial that does not record
 the undispositioned rate cannot promote this decision or retire it, which makes
 that metric part of what the instrumentation must carry rather than an optional
 extra.
+
+The pass this governs was dropped. D-0069 rejects the dispatched reading pass
+and E-0086 closes re-scoped to the lab rule alone, so no ledger is produced and
+no wrap gate enumerates one. The reasoning above holds on its own terms — a gate
+in front of a human beats an unenforced check rule where no verb carries the
+value — and has nothing left to govern. The undispositioned-at-wrap rate is not
+recorded, so the retirement trigger named above is unreachable and this decision
+cannot be promoted or retired by the route it specifies.
+
+The adoption table is about this repository rather than about the pass, so it
+outlives the drop: it is evidence for how often an unenforced body section gets
+filled here, and bears on any proposal to add another one. Its figures name no
+command, so they record a measurement rather than settle a claim — re-derive
+before relying on them.
