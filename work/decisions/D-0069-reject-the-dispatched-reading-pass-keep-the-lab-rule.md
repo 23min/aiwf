@@ -1,7 +1,7 @@
 ---
 id: D-0069
 title: Reject the dispatched reading pass; keep the lab rule
-status: proposed
+status: accepted
 relates_to:
     - E-0086
     - M-0310
