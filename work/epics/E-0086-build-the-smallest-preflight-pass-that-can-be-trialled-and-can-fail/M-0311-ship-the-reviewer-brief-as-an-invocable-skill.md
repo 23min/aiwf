@@ -7,7 +7,7 @@ tdd: required
 acs:
     - id: AC-1
       title: The brief ships as a skill carrying a section per part
-      status: open
+      status: cancelled
     - id: AC-2
       title: The brief names no location absent from a consumer tree
       status: open
