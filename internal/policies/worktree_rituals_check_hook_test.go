@@ -13,6 +13,7 @@ import (
 	"github.com/23min/aiwf/internal/cli/cliutil/testutil"
 	"github.com/23min/aiwf/internal/initrepo"
 	"github.com/23min/aiwf/internal/skills"
+	"github.com/23min/aiwf/internal/testsupport"
 )
 
 // M-0236/AC-3: a subprocess-level policy test mirroring
@@ -27,7 +28,7 @@ import (
 func writeWorktreeHookScript(t *testing.T, dir string) string {
 	t.Helper()
 	path := filepath.Join(dir, "worktree-rituals-check.sh")
-	if err := os.WriteFile(path, skills.WorktreeRitualsCheckScript, 0o755); err != nil {
+	if err := testsupport.WriteExecutable(path, skills.WorktreeRitualsCheckScript); err != nil {
 		t.Fatalf("writing hook script: %v", err)
 	}
 	return path

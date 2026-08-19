@@ -11,6 +11,7 @@ import (
 	"testing"
 
 	"github.com/23min/aiwf/internal/skills"
+	"github.com/23min/aiwf/internal/testsupport"
 )
 
 // --- M-0191 / G-0187: behavioral harness for .claude/statusline.sh ----------
@@ -46,7 +47,7 @@ func statuslineScript(t *testing.T) string {
 		t.Fatal("skills.StatuslineBytes() returned empty — the go:embed directive is not wired or the source file is empty")
 	}
 	dest := filepath.Join(t.TempDir(), "statusline.sh")
-	if err := os.WriteFile(dest, body, 0o755); err != nil {
+	if err := testsupport.WriteExecutable(dest, body); err != nil {
 		t.Fatalf("materializing statusline.sh: %v", err)
 	}
 	return dest

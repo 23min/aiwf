@@ -14,12 +14,22 @@ carry content something else already holds:
 | `## Work log` | `aiwf history` and the commit trailers it reads |
 | `## Dependencies` | the `depends_on:` frontmatter field |
 | `## Surfaces touched` | the milestone's own diff |
-| `## References` | `relates_to` and inline links |
+| `## References` | inline links |
 
 Measured over the entity tree on 2026-08-03, all four are thin: median word
 counts of 0, 14, 21 and 24 respectively. `## Work log` is the sharpest case —
 the wrap ritual mandates one entry per acceptance criterion with its outcome and
 commit SHA, and the section is empty in half the milestones that carry it.
+
+`## References` has the weakest claim of the four, and it is worth stating so the
+row is not read as equivalent to its neighbours. The other three each name an
+owner outside the body — a git log, a frontmatter field, a diff. This one names
+prose elsewhere in the same file. `relates_to` would be a structured owner, but
+it is not available here: `internal/entity/entity.go` declares it under
+`KindDecision` alone, and of the 47 files in the tree carrying the field, every
+one is a decision and none is a milestone. Whether prose-elsewhere is enough to
+retire the section is the open part of this row; the other three do not depend on
+the answer.
 
 ## Why it matters
 

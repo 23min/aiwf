@@ -1,8 +1,14 @@
 ---
 id: ADR-0003
 title: Add finding (F-NNN) as a seventh entity kind
-status: accepted
+status: rejected
 ---
+> **Rejected.** aiwf carries six entity kinds and will not add `finding`. The
+> design below is coherent and was sound for the tree it was written against;
+> what decided against it is the corpus it would land in and a property of the
+> kind model it did not weigh. The measured argument, and what the rejection
+> costs, are in [ADR-0045](ADR-0045-keep-six-entity-kinds-findings-live-in-entity-bodies.md).
+
 ## Context
 
 Kernel principle #1 enumerates **six entity kinds** — epic, milestone, ADR, gap, decision, contract — closed-set and hardcoded. The framework_entity_vocabulary memory and CLAUDE.md both call out the deliberate omission of `story` and `task` (execution units belong in plain GH issues, not in the framework's vocabulary).

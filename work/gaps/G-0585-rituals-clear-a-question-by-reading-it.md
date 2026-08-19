@@ -5,17 +5,22 @@ status: open
 ---
 ## What's missing
 
-Nine sites across eight shipped skills grant a verdict on the basis of reading.
-An independent audit against
-`docs/initiatives/milestone-preflight-as-independent-review.md` found them; the
-appendix there lists each with its quoted line.
+Shipped skills grant a verdict on the basis of reading, at every site the
+appendix of `docs/initiatives/milestone-preflight-as-independent-review.md`
+lists with its quoted line. That list is a reading, not a census: the same
+clearance phrase recurs across surfaces, so the enumeration is a floor. Work on
+this gap re-derives the sites rather than trusting the count.
 
 The sharpest are `wf-review-code`'s output template, which ships the line
-"something you checked and found sound; not a defect, since you verified it";
-`wf-codebase-health`'s Strong / Weak / Missing scorecard, whose adversarial
-second pass is itself a read; and its convergence rule — "a review loop is
-converged when a fresh reviewer, over the whole surface, finds no defect" —
-which is mirrored into the always-on guidance and so binds every turn.
+"something you checked and found sound; not a defect, since you verified it",
+and `wf-codebase-health`'s Strong / Weak / Missing scorecard, whose adversarial
+second pass is itself a read.
+
+The always-on guidance is not among them, and neither is `wf-codebase-health`'s
+convergence rule. Both terminate on *disposition* — "no defect that is not
+already pinned, recorded, or tracked", explicitly "not 'no findings ever'" —
+which is a stop rule rather than a clearance, and is the form the listed sites
+should be repaired toward.
 
 Several skills mix legitimate and illegitimate clearances under one word.
 `wf-vacuity`'s mutation probe runs a command and earns its verdict; its
@@ -39,11 +44,12 @@ false, and nothing written anywhere could have settled it — only running the
 verb could. The reviewer did not merely miss the defect, it marked the claim as
 checked.
 
-The fix is not a warning. `wf-measure-spec` already carries one — "do not read a
-clean sweep as an all-clear" — which concedes the state it warns about. Removing
-the state is what removes the failure: a verdict vocabulary with no clear-by-
-reading value in it, and a separate word for what a command settled.
+The fix is not a warning. A warning that says "do not read a clean sweep as an
+all-clear" concedes the state it warns about, and the reader who needed the
+warning is the one who will not heed it. Removing the state is what removes the
+failure: a verdict vocabulary with no clear-by-reading value in it, and a
+separate word for what a command settled.
 
-Not a chore. Deciding which of the nine are legitimate takes judgment per site,
-and the always-on guidance is one of the surfaces, so the change wants its own
-branch and its own review rather than riding along with other work.
+Not a chore. Deciding which sites are legitimate takes judgment at each one, so
+the change wants its own branch and its own review rather than riding along with
+other work.

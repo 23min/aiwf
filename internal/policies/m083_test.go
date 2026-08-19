@@ -7,19 +7,21 @@ import (
 	"testing"
 )
 
-// adr0003Path is the canonical relative path to ADR-0003.
-const adr0003Path = "docs/adr/ADR-0003-add-finding-f-nnn-as-a-seventh-entity-kind.md"
-
-// loadADR0003 reads ADR-0003 from disk relative to the repo root.
-// Per CLAUDE.md "substring assertions are not structural assertions"
-// rule, every section-content claim asserted by AC-2 lives under a
-// named heading, and the test extracts the section first.
+// loadADR0003 reads ADR-0003 through the loader, which resolves ids
+// across the active tree and archive/ alike. Per CLAUDE.md "substring
+// assertions are not structural assertions" rule, every section-content
+// claim asserted by AC-2 lives under a named heading, and the test
+// extracts the section first.
 func loadADR0003(t *testing.T) string {
 	t.Helper()
-	root := repoRoot(t)
-	data, err := os.ReadFile(filepath.Join(root, adr0003Path))
+	root, tr := sharedRepoTree(t)
+	e := tr.ByID("ADR-0003")
+	if e == nil {
+		t.Fatal("ADR-0003 not found in tree (active or archive)")
+	}
+	data, err := os.ReadFile(filepath.Join(root, e.Path))
 	if err != nil {
-		t.Fatalf("loading %s: %v", adr0003Path, err)
+		t.Fatalf("reading ADR-0003 at %s: %v", e.Path, err)
 	}
 	return string(data)
 }

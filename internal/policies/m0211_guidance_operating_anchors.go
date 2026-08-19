@@ -105,4 +105,5 @@ var m0211OperatingAnchors = []m0211Anchor{
 	{"attribution-by-extraction", []string{"locating the exact sentence that carries", "direction and not its scope"}},
 	{"cheap-fix-test-before-filing", []string{"cheap-fix test", "already touches"}},
 	{"reference-phrase-counts", []string{"reference-phrase counts", "drop the arithmetic", "derive the facts"}},
+	{"nothing-settled-except-by-measurement", []string{"settled", "environment"}},
 }
