@@ -9,7 +9,7 @@ This epic is **deferred** pending completion of the upstream substrate. Specific
 
 1. The **agent-orchestration design substrate** in [`docs/archive/pocv3/agent-orchestration.md`](../../../docs/archive/pocv3/agent-orchestration.md) (landed 2026-05-08) needs to be considered fully finished — the substrate broadened the scope beyond this epic's original TDD-only framing into a general agent-orchestration model (agent registry, role-based concurrency, sub-scope provenance, per-epic pipelines, forensic bundles). When E-0019 unfreezes, its scope likely needs **rewriting** against the agent-orchestration model rather than the original four-fork framing captured in *Context* below.
 2. The substrate's design must then be **implemented** — likely via one or more dedicated epics decomposed from the agent-orchestration doc once it stabilizes.
-3. The dependencies listed under *Dependencies* below (ADR-0003, ADR-0004, plus their implementation epics; optional ADR-0001) all remain blockers in addition to (1) and (2).
+3. The blockers under *Dependencies* below. ADR-0003 is no longer among them — it was reversed by [ADR-0045](../../../docs/adr/ADR-0045-keep-six-entity-kinds-findings-live-in-entity-bodies.md), so the F-NNNN storage model and the two implementation epics that would have built it are withdrawn rather than pending. What remains open is a carrier for the gating property.
 
 Treat the body below as the **original framing** preserved for historical reference. The actual work shape will be reassessed when the substrate is ready. Until then, this epic is a placeholder on the roadmap, not a queued execution target.
 
@@ -50,19 +50,13 @@ Together with the AC closure chokepoint (`aiwf promote AC met` refuses on open l
 
 ## Dependencies
 
-This epic **cannot start** until the following are accepted and implemented:
-
-1. **ADR: F-NNN as 7th entity kind** ([ADR-0003](../../../docs/adr/ADR-0003-add-finding-f-nnn-as-a-seventh-entity-kind.md)) — kernel-level decision; amends principle #1.
-2. **ADR: Uniform archive convention** ([ADR-0004](../../../docs/adr/ADR-0004-uniform-archive-convention-for-terminal-status-entities.md)) — keeps `work/findings/` and other directories navigable as kinds scale.
-3. **Implementation epic for archive convention** (filed separately once ADR-0004 is accepted) — kernel-wide change; lower-risk if landed before F-NNN since findings ride the existing pattern.
-4. **Implementation epic for F-NNN entity kind** (filed separately once ADR-0003 is accepted) — adds the kind enum, FSM, status set; `aiwf add finding` subverb; `aiwf show F-NNN` rendering; `aiwf history F-NNN` works for free via generic dispatch.
-5. **Implementation epic for findings-gated AC closure** (filed separately) — adds the `aiwf promote AC met` chokepoint; new check finding code `ac-has-open-findings`.
-
-This epic is **the consumer** of items 3-5 — the user-visible payoff that motivates the dependency stack.
+1. **Uniform archive convention** ([ADR-0004](../../../docs/adr/ADR-0004-uniform-archive-convention-for-terminal-status-entities.md)) — accepted, and the convention has shipped. Met.
+2. **The F-NNNN storage model** ([ADR-0003](../../../docs/adr/ADR-0003-add-finding-f-nnn-as-a-seventh-entity-kind.md)) — **withdrawn.** aiwf carries six entity kinds and `finding` is not one; see [ADR-0045](../../../docs/adr/ADR-0045-keep-six-entity-kinds-findings-live-in-entity-bodies.md). The two implementation epics this list anticipated — one for the kind, one for findings-gated AC closure — go with it, and neither was filed.
+3. **A carrier for the gating property** — open, and the only real blocker this list still holds. The property is worth keeping: a subagent must be refused by the kernel, not by skill text, when it tries to close an AC over an open concern. ADR-0045 says where such a concern lives instead — the body of the entity whose lifetime it shares — but nothing yet gates an AC promote on one.
 
 Optional but compatible:
 
-- **[ADR-0001](../../../docs/adr/ADR-0001-mint-entity-ids-at-trunk-integration-via-per-kind-inbox-state.md)** — proposed inbox/mint id allocation. If accepted, parallel subagent worktrees filing findings under the inbox model become structurally collision-free, retiring the routine `aiwf reallocate` cycle that would otherwise occur at every multi-finding cycle. F-NNN inherits whichever allocation model the framework adopts.
+- **[ADR-0001](../../../docs/adr/ADR-0001-mint-entity-ids-at-trunk-integration-via-per-kind-inbox-state.md)** — proposed inbox/mint id allocation.
 
 ## Out of scope
 
