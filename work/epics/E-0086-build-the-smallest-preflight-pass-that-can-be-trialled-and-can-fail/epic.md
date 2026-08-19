@@ -5,204 +5,132 @@ status: active
 ---
 ## Goal
 
-Build the smallest version of the preflight pass that can be trialled and can
-fail: the parts run, the findings land somewhere a human triages, and
-consecutive runs produce a number that says whether the method works: what it
-missed, and what it added. What a pass costs to run is an audit question, not
-this epic's.
+Keep the one rule the preflight work produced evidence for, and record why the
+rest was dropped.
+
+The epic originally set out to build the smallest version of the milestone
+preflight pass that could be trialled and could fail. D-0069 records the
+rejection of that method, with the measurements and the commands that reproduce
+them. What survives is the lab rule.
 
 ## Context
 
 `docs/initiatives/milestone-preflight-as-independent-review.md` is the
 specification. Its threads, seams, corpus, prohibitions, stop rule and base
-rates live there and are not restated here; a claim here the initiative does
-not carry is a defect in one of the two.
+rates live there and are not restated here.
 
-Already decided, and not re-opened by this epic: findings are not a seventh
-entity kind (ADR-0003, `rejected`); the ledger is a `## Spec measurement` body
-section (D-0066); disposition happens at a gate rather than a check rule
-(D-0067); the sweep precedes the lab, and G-0583's contrary claim is disposed in
-Scope. `M-0308/AC-2` and `AC-3` are `met` on a `done` milestone.
+D-0069 rejects the dispatched generative reading pass. Its argument, in one
+line: a generative review over prose has an unbounded output space, so the
+finding count measures reviewer effort rather than artifact quality, successive
+rounds are not comparable, and zero is unreachable by construction. The epic was
+built to produce a number saying whether the method works, and that number
+cannot mean what it was meant to mean.
 
-What this epic adds is a bar the specification does not set. The initiative's
-stop rule says when a *pass* ends — every row is measured, pinned, recorded, or
-tracked. Nothing says when the *method* should be abandoned, and that is what
-instrumenting the parts separately makes judgeable.
+The `## Spec measurement` section below is this epic's own run of the method on
+itself, kept unchanged as the evidence behind that rejection.
+
+Already decided, and not re-opened here: findings are not a seventh entity kind
+(ADR-0003, `rejected`); the ledger is a `## Spec measurement` body section
+(D-0066). `M-0308/AC-2` and `AC-3` are `met` on a `done` milestone.
 
 ## Scope
 
-- **The reviewer brief**, as a `SKILL.md`. It carries every load-bearing part
-  the initiative lists.
-- **`wf-preflight-sweep`** — the reading method: what to sweep, how to select
-  from an index, what may be concluded.
-- **`wf-preflight-lab`** — runs commands, owns the execution safety boundary,
-  and is the only place a claim is settled true. Ships the experiment's shape —
-  a disposable tree, a kill criterion stated before building, and works /
-  does-not / inconclusive — without a trigger for when one fires.
-- **The sweep-to-lab handoff**, at the seams where the lab is dispatched: every
-  unknown row, carrying the command the sweep would have run, and every
-  contradicted row.
-- **The criterion challenge**, riding whichever artifact the seam already
-  invokes. It borrows `wf-vacuity`'s probe vocabulary, not that skill's
-  `## Clean` verdict.
-- **The ledger**, with a disposition column, and the seam instruction that
-  writes it into `## Spec measurement`.
-- **A row in `docs/design/oracles.md`'s inventory**, taking the class the
-  dispatched-reviewer row already uses: model-judged, advising, the human gate
-  deciding. That class is not the mechanical oracle that document records as
-  missing for specification quality, and the row does not claim to be one.
-- **The wrap-gate enumeration**, in `aiwfx-wrap-milestone` and
-  `aiwfx-wrap-epic`: every undispositioned row listed, with rows total and
-  settled stated alongside.
-- **Seam instructions at epic drafting and milestone preflight**, each naming
-  what it dispatches and carrying the stated escape.
-- **Instrumentation, per seam and never pooled** — what the pass missed and
-  surfaced later, and the records each pass creates, priced by the tier each
-  lives in (D-0054). What each phase found, what each finding changed, and rows
-  undispositioned at wrap are derived from the committed ledger rather than
-  recorded: D-0054 holds that a fact another owner already carries is not worth
-  prose.
-- **Each corpus tier named by its own shape**, never by a repository path:
-  commitments by kind and status, entities by the status-carrying index
-  including archived ones, documents by property.
-- **The initiative's Threads table and promotion status**, updated for every
-  thread this epic promotes.
-- **Disposing the stale premises carried by the gaps listed here** — G-0582
-  (promotes to `addressed` by commit), G-0560 (a body edit to its ADR-0003
-  bullet), G-0583 (promotes to `addressed` once the claims the initiative
-  contradicts are answered).
+One thing.
+
+- **The lab rule, recorded as a ban.** A claim is settled true only where a
+  command, its expected result, its observed output and its environment sit
+  together. Nothing else settles a claim: not a reading, not a reviewer's
+  confidence, not a citation to a record that says so.
+
+  It is a ban, not a mandate. It costs once — at the moment someone writes a
+  claim down — and it names no procedure anyone must run, no artifact anyone
+  must produce, and no seam anyone must wire. That is why it survives a re-scope
+  that dropped everything with a per-subject cost.
 
 ## Out of scope
 
-- **The patch-start seam.**
-- **A trigger for when an experiment fires.**
-- **A check rule over the ledger** — D-0067.
-- **The clearance sites in shipped skills** — G-0585, wholly, and with them the
-  `reviewer` role card. The specification names that card among the artifacts an
-  implementer must build; excluding it is a deliberate divergence, recorded here
-  rather than left silent. G-0585 owns it and asks for its own branch and its own
-  review.
-- **The compaction handoff** — G-0586.
-- **`aiwf show` rendering a terminal reason** — G-0590.
-- **The forward-tense reference check** — G-0591.
+Everything else the epic planned. D-0069 carries the reasoning and the
+measurements; this is the list.
+
+- **The dispatched generative reading pass**, and the reviewer brief that
+  carries it.
+- **The sweep**, and the sweep-to-lab handoff.
+- **The criterion challenge.**
+- **The ledger's disposition column as a mandated artifact.**
+- **The wrap-gate enumeration**, and the seam instructions in
+  `aiwfx-wrap-milestone` and `aiwfx-wrap-epic`.
+- **The per-seam instrumentation** — what a pass missed and what it added.
+- **The `docs/design/oracles.md` row** claiming a model-judged advisory class.
 - **Any kernel change.** No finding code, no config field, no schema entry.
+
+Of these, only the reviewer brief reached an artifact; the rest were planned and
+never built. D-0069 names the command that shows it.
 
 ## Constraints
 
-- **The initiative is the specification**, and every milestone under this epic
-  runs the pass on itself before it starts, dispatched to a reviewer that is
-  not its author.
-- **The trial must be able to fail, and every mandate names what retires it.**
-  Every milestone shipping a part of the pass also ships the measurement that
-  would show that part not earning its cost.
-- **Consecutive subjects at each seam**, not chosen ones.
-- **The brief ships as an artifact with a mandated shape**, so what it asks for
-  does not vary with who dispatches it. G-0263 names the author-written brief as
-  the exposure and mandating the shape as the lever.
-- **Every `SKILL.md` edit lands with its referencing structural test.** A test
-  over prose — ritual or entity — pins a property some rule makes necessary,
-  never words an author chose (D-0050). Where no rule forces a shape, the
-  criterion says so rather than faking one.
-- **No new vocabulary without a defect it fixes.** The terms are the
-  initiative's: the reading states *contradicted*, *ambiguous*, *complicated*,
-  *unknown*; the measured values *true*, *false*, *unable to measure safely*;
-  the dispositions *pinned*, *recorded*, *tracked*, *superseded*.
-- **No surface this epic ships offers a verdict reading could earn.**
-- **Shipped surfaces carry no rationale or development history.**
-- **Every count this epic or its milestones writes down names the command that
-  produced it, or is dropped.**
+- **Every count this epic's body writes down names the command that produced it,
+  or is dropped.**
+- **A test over prose pins a property some rule makes necessary, never words an
+  author chose** (D-0050).
+- **No new vocabulary.**
 
 ## Success criteria
 
-Observable at epic close. Milestone ACs carry the mechanical bar.
+Observable at epic close.
 
-- [ ] A milestone can be started by dispatching a reviewer that is not its
-      author, and the ledger it returns is readable afterwards by someone who
-      was not in that session.
-- [ ] A wrap gate lists every undispositioned row.
-- [ ] A claim is settled true only where a command, its expected result, its
-      observed output and its environment sit together.
-- [ ] The reviewer's source selection is recorded with a reason per source, and
-      the ones the subject cites nowhere are named as candidate omissions.
-- [ ] At every seam where the lab is dispatched, it receives every unknown row
-      and every contradicted row.
-- [ ] Both seams name what they dispatch, and skipping the pass requires a
-      stated reason at a gate.
-- [ ] Consecutive trial runs record, per seam, what the pass missed and what
-      it added to the corpus.
-- [ ] No shipped surface this epic touches names a non-consumer repository path
-      as its corpus. G-0548 owns the tree-wide half.
+- [ ] The lab rule is recorded where a later reader can cite it, stated as a ban
+      on what may be written down rather than a procedure anyone must run.
+- [ ] Each dropped part is named, and the reason for dropping it is recorded
+      with the commands that reproduce every measurement it rests on — so the
+      drop can be re-examined rather than only re-argued.
+- [ ] Every count in this epic's body names the command that produced it.
+- [ ] Every milestone of this epic is terminal, and no artifact carrying the
+      dropped reading method is left in the tree.
 
 ## Threads this epic promotes
 
 | thread | this epic |
 |---|---|
-| T1 independent reviewer | promoted |
-| T2 epic context | promoted |
-| T3 audit scope | promoted — commitments, documents, entities |
+| T1 independent reviewer | dropped |
+| T2 epic context | dropped |
+| T3 audit scope | dropped |
 | T4 code comments | not promoted — the initiative carries no code tier |
-| T5 the lab | promoted |
-| T6 experiments | partial — the shape ships; the trigger does not |
-| T7 stated escape | partial — both seams carry it |
-| T8 delivered as a skill | promoted — the brief, `wf-preflight-sweep`, `wf-preflight-lab` |
-| T9 examples | promoted, split across sweep and lab |
+| T5 the lab | promoted, as the lab rule only — the ban, not the dispatched procedure |
+| T6 experiments | dropped |
+| T7 stated escape | dropped — nothing left to escape |
+| T8 delivered as a skill | dropped — a ban does not need a skill |
+| T9 examples | dropped |
+
+## Milestones
+
+None. The one thing kept is a ban, which is delivered by recording it (D-0069)
+rather than by building anything.
+
+- M-0310 — cancelled. Its subject is what a pass run records about itself:
+  instrumentation for a pass that no longer runs.
+- M-0311 — the reviewer brief. Disposition recorded in Open questions.
 
 ## Open questions
 
 | Question | Blocking? | Owner |
 |---|---|---|
+| Does `wf-preflight-brief` retire, or get rewritten around the lab rule? | epic close | The brief is the reading half. It ships only on an unmerged branch, so retiring it costs no deletion. |
 | Does the initiative owe T3 a code tier? | no | A defect in the initiative, unresolved between the two documents. |
 | Does the patch-start seam get an entity, or stay a deferral with no destination? | no | Needs a destination or an explicit decline. |
 
-## Risks
-
-| Risk | Impact | Mitigation |
-|---|---|---|
-| Prose deliverables resist the AC-evidence bar | high | Each milestone's preflight pass challenges its criteria before the work starts; where no rule forces a shape, the criterion says so rather than faking one. |
-| Nothing makes an assistant run a prose pass | med | ADR-0019's advisory precedent; D-0067 names the measurement that would earn a check rule. |
-| The trial measures operator patience rather than the method | high | Consecutive subjects, per-seam instrumentation, and a defined measure of what the pass missed. |
-| The pass acquires vocabulary faster than evidence | med | The no-new-vocabulary constraint. |
-| The corpus the sweep reads is itself drifted | med | G-0560 for the normative tier. |
-| The wrap gate depends on an assistant enumerating honestly | med | The trial records the undispositioned rate. |
-
-## Milestones
-
-Sequenced so the first thing built is the artifact the seams dispatch, and the
-instrumentation lands once there are runs to instrument.
-
-1. The reviewer brief, and the corpus named by shape rather than by path.
-2. The criterion challenge, taking the seat where a reading currently earns a
-   clearance.
-3. The sweep, and the epic-drafting seam it completes.
-4. The lab, and the handoff of unknown and contradicted rows into it.
-5. The milestone-preflight seam, and the wrap-gate enumeration.
-6. M-0310 — what a run records about itself.
-7. The trial's verdict: the `oracles.md` row, the Threads table, and the
-   remaining stale premises.
-
-M-0310 sits sixth rather than first because both fields it records are
-recoverable after the fact from committed ledgers and git history, so nothing
-has to be recorded in advance for consecutive runs to stay comparable.
-
 ## References
 
-- `docs/initiatives/milestone-preflight-as-independent-review.md` — the specification
-- ADR-0043, D-0066 — the ledger's surface
-- D-0068 — what counts as a defect the pass missed, and who records it
-- ADR-0019 — the precedent for shipping a ritual skill that advises rather than gates
-- ADR-0007, ADR-0006 — skill placement and coverage
-- ADR-0028 — role-agent dispatch routing
-- ADR-0044, G-0587, G-0589 — the corpus described by shape
-- ADR-0024 — the rejected reference-skill shape
-- ADR-0004, ADR-0003 — archive reversal; the seventh kind
-- D-0067, D-0054, D-0053, D-0056, D-0050, D-0038 — disposition, what is worth
-  recording and where, what retires a mandate, what earns a gap, test shape,
-  AC evidence
-- `docs/design/oracles.md`, `docs/design/growth.md`
-- `CLAUDE.md` §"AC promotion requires mechanical evidence", §"Skills policy"
-- G-0271, G-0317, G-0530, G-0548, G-0560, G-0571, G-0580, G-0582, G-0583,
-  G-0584, G-0585, G-0586, G-0590, G-0591, G-0592
-- M-0308, M-0309, E-0085 — historical evidence; none binds
+- `docs/initiatives/milestone-preflight-as-independent-review.md` — the
+  specification, unchanged by this epic except for its Threads inventory
+- D-0069 — the method's rejection, with the measurements and the commands that
+  reproduce them
+- D-0066 — the ledger's surface, kept: this epic's own `## Spec measurement`
+  section below is written in the form it settles
+- D-0067, D-0068 — decided for the dropped pass; each remains correct about what
+  it decided and neither now has a pass to govern
+- D-0050 — test shape over prose
+- ADR-0003 — the seventh kind, rejected
+- E-0085 — the one prior implementation attempt, cancelled
 
 ## Spec measurement
 
@@ -245,8 +173,11 @@ result, its output and its environment together.
 | The specification sets no bar for ending | contradicted | | the initiative's stop rule ends a *pass*; the epic's bar is for the *method* | repaired — the two subjects are now distinguished; recorded |
 | Asserting the sweep-before-lab ordering as decided conflicts with G-0583 being open | contradicted | | the epic disposes G-0583's contrary claim in Scope | repaired — the link is now stated; recorded |
 
-Every row is unsettled as to truth. They stay open until milestone preflight,
-where a lab is dispatched.
+Every row is unsettled as to truth. No preflight pass will settle them: D-0069
+rejects the method. The rows stay as they are — a dated record of what four
+sweeps returned, not a live queue. Dispositions naming a repair to this epic's
+Scope are void where the re-scope removed the text they cite; the reading and
+evidence cells are the sweeps' own and are unchanged.
 
 **What this pass missed, recorded against itself.** Later sweeps reached sources
 the earlier ones did not, and each repair round introduced a fresh contradicted
