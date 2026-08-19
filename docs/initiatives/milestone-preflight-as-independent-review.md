@@ -510,7 +510,7 @@ parts, which any implementation keeps:
 
 Nothing is promoted. Every thread above carries `—` except the withdrawn one.
 
-[E-0085](../../work/epics/E-0085-measure-the-spec-before-the-code-record-what-the-measurement-changed/epic.md)
+[E-0085](../../work/epics/archive/E-0085-measure-the-spec-before-the-code-record-what-the-measurement-changed/epic.md)
 was the one implementation attempt, and it is cancelled. It was planned from
 [G-0583](../../work/gaps/G-0583-the-milestone-preflight-asks-for-judgment-with-no-method.md)
 — a partial capture of this specification, filed before the specification was

@@ -277,9 +277,10 @@ verb-layer audit fed [E-0069](../../work/epics/archive/E-0069-close-the-verb-lay
 and [E-0072](../../work/epics/archive/E-0072-cli-verb-scaffold-convergence/epic.md),
 and produced a shipped clone-detection linter
 ([G-0423](../../work/gaps/archive/G-0423-no-clone-detection-linter-to-catch-duplicated-verb-layer-logic.md)).
-[G-0452](../../work/gaps/G-0452-add-producer-to-consumer-data-flow-lens-to-wf-structural-sweep.md)
-proposes a fourth lens for the sweep on the strength of a defect the existing
-three provably could not have found.
+[G-0452](../../work/gaps/archive/G-0452-add-producer-to-consumer-data-flow-lens-to-wf-structural-sweep.md)
+added a fourth lens to the sweep on the strength of a defect the existing three
+provably could not have found; it shipped alongside a policy test pinning the
+four-lens set.
 
 What is ad hoc is absorption. Each finding lands as an individual gap and
 then competes for attention inside an 82-item backlog against unrelated
@@ -470,14 +471,10 @@ item 4 down is independently actionable.
    — the current sweep output. G-0455 explicitly may close as won't-do; that
    is a legitimate outcome and the determination is the work, not the
    refactor.
-11. [G-0452](../../work/gaps/G-0452-add-producer-to-consumer-data-flow-lens-to-wf-structural-sweep.md)
-   — the sweep's fourth lens. Worth weighing *after* the current sweep's
-   output is absorbed, not before: a wider net over an unabsorbed catch adds
-   findings without adding closures.
 
 **Blocked behind Q1:**
 
-12. [G-0400](../../work/gaps/G-0400-stress-scenario-catalog-exercises-only-10-of-38-aiwf-verbs.md)
+11. [G-0400](../../work/gaps/G-0400-stress-scenario-catalog-exercises-only-10-of-38-aiwf-verbs.md)
     — the stress catalog covers 10 of 38 verbs and should be wider. Widening
     it while it sits on the critical path of every push would multiply Q1b
     rather than help. The blocker is item 2, not item 1: widening a catalog
