@@ -726,7 +726,7 @@ are dropped, one was never promoted.
 
 Two implementation attempts, both terminal.
 
-[E-0085](../../work/epics/E-0085-measure-the-spec-before-the-code-record-what-the-measurement-changed/epic.md)
+[E-0085](../../work/epics/archive/E-0085-measure-the-spec-before-the-code-record-what-the-measurement-changed/epic.md)
 was the first, and it is cancelled. It was planned from
 [G-0583](../../work/gaps/G-0583-the-milestone-preflight-asks-for-judgment-with-no-method.md)
 — a partial capture of this specification, filed before the specification was
@@ -752,7 +752,7 @@ What survives the cancellation is this document, plus:
 - [G-0587](../../work/gaps/G-0587-a-shipped-skill-cannot-name-the-docs-corpus-a-review-must-read.md)
   — a shipped ritual is barred from naming the corpus this pass must read.
 
-[E-0086](../../work/epics/E-0086-reduce-the-preflight-pass-to-the-lab-rule/epic.md)
+[E-0086](../../work/epics/archive/E-0086-reduce-the-preflight-pass-to-the-lab-rule/epic.md)
 was the second. It planned seven milestones and built one — the reviewer brief,
 on a branch that was not merged. It ran this document's method four times
 against its own epic draft and recorded the result in its `## Spec measurement`

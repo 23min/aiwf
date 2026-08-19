@@ -1,8 +1,10 @@
 ---
 id: G-0305
 title: aiwf writes health.aiwf.json; statusline globs+unions per-producer health files
-status: open
+status: addressed
 priority: medium
+addressed_by:
+    - M-0224
 ---
 ## Problem
 

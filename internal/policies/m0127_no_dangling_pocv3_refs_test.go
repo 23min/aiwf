@@ -81,6 +81,13 @@ var m0127Pocv3AllowlistPaths = map[string]string{
 	// ("Triage docs/pocv3/...") as part of its root-cause narrative.
 	"work/gaps/G-0434-resolveviapriorids-prefers-a-stale-prior-ids-match-over-a-reused-live-id.md": "quotes an actual git commit message verbatim",
 
+	// A dated drift inventory whose evidence is quotation: it names
+	// M-0127's own title ("Relocate docs/pocv3/ contents and sweep
+	// cross-references") to establish that a document citing M-0127
+	// cites an unrelated milestone. The path is the subject of the
+	// quotation, not a pointer the audit expects a reader to follow.
+	"docs/initiatives/entity-truth-audit.md": "quotes M-0127's title verbatim as evidence in a drift inventory",
+
 	// This test file itself necessarily names the literal substring
 	// in its own allowlist keys, docstrings, and error message.
 	"internal/policies/m0127_no_dangling_pocv3_refs_test.go": "the check itself; the string appears in its allowlist keys and docs",
