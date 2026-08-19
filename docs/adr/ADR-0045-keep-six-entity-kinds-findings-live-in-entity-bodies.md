@@ -1,7 +1,7 @@
 ---
 id: ADR-0045
 title: Keep six entity kinds; findings live in entity bodies
-status: proposed
+status: accepted
 ---
 > **Date:** 2026-08-19 · **Decided by:** human/peter
 
