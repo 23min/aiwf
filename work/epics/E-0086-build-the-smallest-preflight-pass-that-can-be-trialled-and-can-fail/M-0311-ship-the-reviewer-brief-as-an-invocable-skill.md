@@ -1,7 +1,7 @@
 ---
 id: M-0311
 title: Ship the reviewer brief as an invocable skill
-status: draft
+status: cancelled
 parent: E-0086
 tdd: required
 acs:
