@@ -6,7 +6,7 @@ status: accepted
 > **Date:** 2026-08-19 · **Decided by:** human/peter
 
 > **See also.** This ADR carries the reasoning for ADR-0003's reversal.
-> [ADR-0003](ADR-0003-add-finding-f-nnn-as-a-seventh-entity-kind.md) is
+> [ADR-0003](archive/ADR-0003-add-finding-f-nnn-as-a-seventh-entity-kind.md) is
 > `rejected` and stays readable as the design it turned down.
 
 ## Context

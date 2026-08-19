@@ -120,7 +120,7 @@ The chokepoint is `internal/check/`, not the allocator alone — defense in dept
 
 - G-0093 — companion gap that surfaced this work.
 - **CLAUDE.md** "What aiwf commits to" §2 — current id-width statement, updated by the implementing epic.
-- [ADR-0003](ADR-0003-add-finding-f-nnn-as-a-seventh-entity-kind.md) — F-NNN as 7th entity kind; **amended by this ADR's implementing epic** (the docs-and-drift milestone updates the ADR's id-pattern paragraph from F-NNN to F-NNNN).
+- [ADR-0003](archive/ADR-0003-add-finding-f-nnn-as-a-seventh-entity-kind.md) — F-NNN as 7th entity kind; **amended by this ADR's implementing epic** (the docs-and-drift milestone updates the ADR's id-pattern paragraph from F-NNN to F-NNNN).
 - [ADR-0004](ADR-0004-uniform-archive-convention-for-terminal-status-entities.md) — Uniform archive convention; archive entities keep their birth-width per forget-by-default.
 - `internal/verb/import.go::canonicalPadFor` — current pad-policy site; relocated and broadened by the implementing epic's first milestone.
 - `docs/explorations/07-tdd-architecture-proposal.md` — exploratory doc whose review surfaced this; F-NNN ↔ F-NNNN drift resolved by this ADR.

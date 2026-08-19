@@ -51,7 +51,7 @@ Together with the AC closure chokepoint (`aiwf promote AC met` refuses on open l
 ## Dependencies
 
 1. **Uniform archive convention** ([ADR-0004](../../../docs/adr/ADR-0004-uniform-archive-convention-for-terminal-status-entities.md)) — accepted, and the convention has shipped. Met.
-2. **The F-NNNN storage model** ([ADR-0003](../../../docs/adr/ADR-0003-add-finding-f-nnn-as-a-seventh-entity-kind.md)) — **withdrawn.** aiwf carries six entity kinds and `finding` is not one; see [ADR-0045](../../../docs/adr/ADR-0045-keep-six-entity-kinds-findings-live-in-entity-bodies.md). The two implementation epics this list anticipated — one for the kind, one for findings-gated AC closure — go with it, and neither was filed.
+2. **The F-NNNN storage model** ([ADR-0003](../../../docs/adr/archive/ADR-0003-add-finding-f-nnn-as-a-seventh-entity-kind.md)) — **withdrawn.** aiwf carries six entity kinds and `finding` is not one; see [ADR-0045](../../../docs/adr/ADR-0045-keep-six-entity-kinds-findings-live-in-entity-bodies.md). The two implementation epics this list anticipated — one for the kind, one for findings-gated AC closure — go with it, and neither was filed.
 3. **A carrier for the gating property** — open, and the only real blocker this list still holds. The property is worth keeping: a subagent must be refused by the kernel, not by skill text, when it tries to close an AC over an open concern. ADR-0045 says where such a concern lives instead — the body of the entity whose lifetime it shares — but nothing yet gates an AC promote on one.
 
 Optional but compatible:
