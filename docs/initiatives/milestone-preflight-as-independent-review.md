@@ -46,15 +46,15 @@ than being renumbered, so references stay valid.
 
 | # | Thread | Promoted to |
 |---|---|---|
-| T1 | An **independent reviewer** performs the pass, not the milestone's author | — |
-| T2 | The pass reads the milestone **in the context of its epic** | — |
-| T3 | The audit spans **`docs/`, every ADR and decision, and the entities related to the work** | — |
-| T4 | **Code comments** are in scope | — |
-| T5 | A **lab that measures and proves what is currently true — or false** | — |
-| T6 | **Small experiments** that complement, validate, or **disqualify** a milestone | — |
-| T7 | ~~Applied selectively, to difficult milestones~~ — **revised**; it runs by default, escapable by a stated reason at a gate | — |
-| T8 | Delivered as a **skill** | — |
-| T9 | **Examples are audited, not only prose** | — |
+| T1 | An **independent reviewer** performs the pass, not the milestone's author | dropped — E-0086, D-0069 |
+| T2 | The pass reads the milestone **in the context of its epic** | dropped — E-0086, D-0069 |
+| T3 | The audit spans **`docs/`, every ADR and decision, and the entities related to the work** | dropped — E-0086, D-0069 |
+| T4 | **Code comments** are in scope | never promoted — no attempt carried a code tier |
+| T5 | A **lab that measures and proves what is currently true — or false** | promoted, reduced — the lab *rule* only; E-0086 |
+| T6 | **Small experiments** that complement, validate, or **disqualify** a milestone | dropped — E-0086, D-0069 |
+| T7 | ~~Applied selectively, to difficult milestones~~ — **revised**; it runs by default, escapable by a stated reason at a gate | dropped — E-0086, D-0069 |
+| T8 | Delivered as a **skill** | dropped — E-0086, D-0069 |
+| T9 | **Examples are audited, not only prose** | dropped — E-0086, D-0069 |
 
 One requirement does not come from the specification. It emerged from the trials
 and governs the rest: **reading may never clear a question.** It is recorded
@@ -705,10 +705,29 @@ parts, which any implementation keeps:
 
 ### Promotion status
 
-Nothing is promoted. Every thread above carries `—` except the withdrawn one.
+**Inventory as of 2026-08-19.** One thread is promoted in reduced form, seven
+are dropped, one was never promoted.
+
+- **Promoted, reduced** — T5, as the lab *rule* and nothing else: a claim is
+  settled true only where a command, its expected result, its observed output
+  and its environment sit together. It is a ban on what may be written down,
+  not the dispatched lab this document specifies. E-0086 carries it as its whole
+  scope.
+- **Dropped** — T1, T2, T3, T6, T7, T8, T9, and with them the sweep, the
+  criterion challenge, the mandated ledger, the wrap-gate enumeration, the
+  per-seam instrumentation and the seam instructions. The reason is one
+  property of the method: a generative review over prose has an unbounded output
+  space, so its finding count measures reviewer effort rather than artifact
+  quality, successive rounds are not comparable, and zero is unreachable by
+  construction. D-0069 records it with the measurements and the commands that
+  reproduce them.
+- **Never promoted** — T4. Neither attempt carried a code tier, so nothing ever
+  described what a code-comment audit would read.
+
+Two implementation attempts, both terminal.
 
 [E-0085](../../work/epics/E-0085-measure-the-spec-before-the-code-record-what-the-measurement-changed/epic.md)
-was the one implementation attempt, and it is cancelled. It was planned from
+was the first, and it is cancelled. It was planned from
 [G-0583](../../work/gaps/G-0583-the-milestone-preflight-asks-for-judgment-with-no-method.md)
 — a partial capture of this specification, filed before the specification was
 recorded — and the ritual it shipped was withdrawn for contradicting the
@@ -732,6 +751,17 @@ What survives the cancellation is this document, plus:
   — the compaction handoff forwards settled conclusions and has no slot for an open question.
 - [G-0587](../../work/gaps/G-0587-a-shipped-skill-cannot-name-the-docs-corpus-a-review-must-read.md)
   — a shipped ritual is barred from naming the corpus this pass must read.
+
+[E-0086](../../work/epics/E-0086-build-the-smallest-preflight-pass-that-can-be-trialled-and-can-fail/epic.md)
+was the second. It planned seven milestones and built one — the reviewer brief,
+on a branch that was not merged. It ran this document's method four times
+against its own epic draft and recorded the result in its `## Spec measurement`
+section; that record is what closed it. The epic is closed re-scoped to the lab
+rule, and D-0069 carries the rejection, the counts, and the commands that
+reproduce them.
+
+What survives it is D-0069, and that `## Spec measurement` section as the
+record of the four sweeps.
 
 ## Open questions
 
