@@ -7,7 +7,7 @@ status: rejected
 > design below is coherent and was sound for the tree it was written against;
 > what decided against it is the corpus it would land in and a property of the
 > kind model it did not weigh. The measured argument, and what the rejection
-> costs, are in [ADR-0045](ADR-0045-keep-six-entity-kinds-findings-live-in-entity-bodies.md).
+> costs, are in [ADR-0045](../ADR-0045-keep-six-entity-kinds-findings-live-in-entity-bodies.md).
 
 ## Context
 
@@ -30,8 +30,8 @@ Add **`finding`** as a seventh entity kind.
 
 ### Id and storage
 
-- Id pattern: **F-NNNN** (zero-padded to 4 digits; same family as `G-NNNN`, `D-NNNN`). Per [ADR-0008](ADR-0008-canonicalize-kernel-ids-to-4-digits.md), every kernel id kind canonicalizes to a uniform 4-digit width on emission and display; parsers accept narrower legacy widths on input. Finding inherits this policy by default — F is born at canonical width when this ADR's implementing epic lands, with no separate width decision needed.
-- Allocated via the kernel's standard allocator. If [ADR-0001](ADR-0001-mint-entity-ids-at-trunk-integration-via-per-kind-inbox-state.md) is accepted, F-NNNN inherits the inbox/mint model uniformly with the other monotonic-id kinds — no special case.
+- Id pattern: **F-NNNN** (zero-padded to 4 digits; same family as `G-NNNN`, `D-NNNN`). Per [ADR-0008](../ADR-0008-canonicalize-kernel-ids-to-4-digits.md), every kernel id kind canonicalizes to a uniform 4-digit width on emission and display; parsers accept narrower legacy widths on input. Finding inherits this policy by default — F is born at canonical width when this ADR's implementing epic lands, with no separate width decision needed.
+- Allocated via the kernel's standard allocator. If [ADR-0001](../ADR-0001-mint-entity-ids-at-trunk-integration-via-per-kind-inbox-state.md) is accepted, F-NNNN inherits the inbox/mint model uniformly with the other monotonic-id kinds — no special case.
 - Stored at `work/findings/F-NNNN-<slug>.md`. Terminal-status entries move to `work/findings/archive/` per the companion archive ADR.
 
 ### Status FSM
@@ -99,7 +99,7 @@ The closure-by-vocabulary remains intact; the set grows by one with explicit `AD
 - Cross-AC and cross-milestone findings become first-class via `linked_acs` / `linked_entities`. The reframe path (finding triages into a follow-up gap, decision, or ADR) works through standard cross-references, no new mechanism.
 - Generic `aiwf promote` handles all status transitions; `aiwf history F-NNN` works for free; `aiwf check` ID-uniqueness, slug-rules, and shape rules apply to findings without per-kind special-casing.
 - Sovereignty is preserved by reusing the existing `--force` rule. Subagents structurally cannot waive their own findings.
-- Compatible with [ADR-0001](ADR-0001-mint-entity-ids-at-trunk-integration-via-per-kind-inbox-state.md): F-NNN inherits whatever id-allocation model the framework adopts. Parallel subagent worktrees filing findings under the inbox model become structurally collision-free.
+- Compatible with [ADR-0001](../ADR-0001-mint-entity-ids-at-trunk-integration-via-per-kind-inbox-state.md): F-NNN inherits whatever id-allocation model the framework adopts. Parallel subagent worktrees filing findings under the inbox model become structurally collision-free.
 
 **Negative:**
 
@@ -119,7 +119,7 @@ The closure-by-vocabulary remains intact; the set grows by one with explicit `AD
 ## References
 
 - Companion ADR: uniform archive convention for terminal-status entities (filed alongside this one).
-- [ADR-0001](ADR-0001-mint-entity-ids-at-trunk-integration-via-per-kind-inbox-state.md) — proposed inbox/mint model for id allocation; F-NNN inherits.
+- [ADR-0001](../ADR-0001-mint-entity-ids-at-trunk-integration-via-per-kind-inbox-state.md) — proposed inbox/mint model for id allocation; F-NNN inherits.
 - Design synthesis: `docs/archive/pocv3/parallel-tdd-subagents.md` (companion design doc; full four-fork resolution and end-to-end flow).
 - CLAUDE.md "What the PoC commits to" §1 (six entity kinds — amended by this ADR).
 - Framework_entity_vocabulary memory: deliberate omission of `story`/`task`; finding is governance, not execution.
