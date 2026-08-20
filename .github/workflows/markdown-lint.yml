@@ -29,3 +29,7 @@ jobs:
             !work/**
             !internal/check/testdata/**
             !internal/skills/embedded/**
+            # A dated inventory, regenerated rather than maintained: its
+            # per-finding headings repeat by construction under one flat
+            # parent, which siblings_only cannot relax.
+            !docs/initiatives/entity-truth-audit.md
