@@ -73,7 +73,7 @@ The substrate's three decisions create chokepoints with no agent-side bypass:
 
 - Decision 1's verb gate refuses subagent invocations of `cancel`, `reallocate`, `authorize`, `--force` regardless of prompt — sovereign acts trace to a named human, per the existing provenance model.
 - Decision 2's trailers are kernel-pinned; missing or malformed trailers fire `cycle-trailer-incomplete`.
-- Decision 3's reconciliation is mechanical; an isolation escape is a finding, gated by the F-NNN AC-closure rule (per [ADR-0003](../ADR-0003-add-finding-f-nnn-as-a-seventh-entity-kind.md)).
+- Decision 3's reconciliation is mechanical; an isolation escape is a finding, gated by the F-NNN AC-closure rule (per [ADR-0003](ADR-0003-add-finding-f-nnn-as-a-seventh-entity-kind.md)).
 
 Human operators retain the sovereign override surface that already exists — `aiwf promote F-NNNN waived --force --reason "..."` for findings that need waiving — but the override is human-only and carries the same provenance trail as any other sovereign act.
 
@@ -105,7 +105,7 @@ Human operators retain the sovereign override surface that already exists — `a
 - [`docs/archive/pocv3/agent-orchestration.md`](../../archive/pocv3/agent-orchestration.md) — long-form orchestration design; sections §6.1, §6.2, §6.3, §7, §8, §9 are the source material for this ADR's three decisions.
 - [`docs/archive/pocv3/parallel-tdd-subagents.md`](../../archive/pocv3/parallel-tdd-subagents.md) — TDD-specific application of the substrate; consumer of these decisions.
 - [ADR-0001](../ADR-0001-mint-entity-ids-at-trunk-integration-via-per-kind-inbox-state.md) — eliminates the post-merge `ids-unique` collision class for parallel cycles; complementary to Decision 1's parallel-cycle safety story.
-- [ADR-0003](../ADR-0003-add-finding-f-nnn-as-a-seventh-entity-kind.md) — F-NNN findings are the AC-closure gate this ADR's reconciliation rules feed into.
+- [ADR-0003](ADR-0003-add-finding-f-nnn-as-a-seventh-entity-kind.md) — F-NNN findings are the AC-closure gate this ADR's reconciliation rules feed into.
 - G-0099 — orchestration design's worktree isolation is LLM-honor-system; Decision 3 is its resolution shape.
 - E-0019 — implementing epic.
 - [CLAUDE.md](../../../CLAUDE.md) *Engineering principles* §"Framework's correctness must not depend on the LLM's behavior" — informs every decision in this ADR, especially Decision 3.
