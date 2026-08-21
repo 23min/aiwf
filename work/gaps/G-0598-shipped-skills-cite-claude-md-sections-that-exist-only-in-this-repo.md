@@ -69,7 +69,7 @@ pointer for a quietly fragile one, since the fragment's delivery rides an import
 is opt-out-able and that G-0523 already records as able to fail unobserved.
 
 Deletion alone does not stop the pattern regrowing, since what produced it is a rule
-whose relevant half nothing enforces. The companion gap filed alongside this one
-covers that chokepoint. Sequencing matters between them: the chokepoint fires at error
-severity pre-push over exactly these surfaces, so landing it first blocks every push
-until this cleanup is done. This lands first, or both land together.
+whose relevant half nothing enforces. G-0599 covers that chokepoint. Sequencing
+matters between them: the chokepoint fires at error severity pre-push over exactly
+these surfaces, so landing it first blocks every push until this cleanup is done.
+This lands first, or both land together.
