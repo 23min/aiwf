@@ -11,7 +11,7 @@ acs:
       tdd_phase: done
     - id: AC-2
       title: A trailered, entity-owned edit passes with no policy test naming its path
-      status: open
+      status: met
       tdd_phase: done
     - id: AC-3
       title: A trailered edit naming an unresolvable entity is refused
