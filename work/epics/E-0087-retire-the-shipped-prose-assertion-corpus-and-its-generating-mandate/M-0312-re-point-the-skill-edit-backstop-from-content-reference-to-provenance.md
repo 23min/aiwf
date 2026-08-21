@@ -8,7 +8,7 @@ acs:
     - id: AC-1
       title: An untrailered edit to a watched shipped surface is refused
       status: open
-      tdd_phase: red
+      tdd_phase: green
     - id: AC-2
       title: A trailered, entity-owned edit passes with no policy test naming its path
       status: open
