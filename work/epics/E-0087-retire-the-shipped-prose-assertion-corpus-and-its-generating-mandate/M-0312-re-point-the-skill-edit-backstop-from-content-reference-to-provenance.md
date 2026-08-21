@@ -16,7 +16,7 @@ acs:
     - id: AC-3
       title: A trailered edit naming an unresolvable entity is refused
       status: open
-      tdd_phase: green
+      tdd_phase: done
     - id: AC-4
       title: CLAUDE.md no longer states that a SKILL.md edit requires a structural test
       status: open
