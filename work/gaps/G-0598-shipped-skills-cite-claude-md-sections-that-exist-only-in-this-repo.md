@@ -1,8 +1,10 @@
 ---
 id: G-0598
 title: Shipped skills cite CLAUDE.md sections that exist only in this repo
-status: open
+status: addressed
 priority: high
+addressed_by_commit:
+    - 370ad65d0
 ---
 ## What's missing
 

@@ -39,7 +39,6 @@ func TestG0413_StartMilestoneCutStepChainsEnterWorktree(t *testing.T) {
 	assertMarkers(t, "start-milestone cut subsection", section, []marker{
 		{"the --print-path flag", "--print-path", false},
 		{"the harness EnterWorktree tool call", "EnterWorktree(path:", false},
-		{"the direct-work vs subagent-dispatch scoping", "Subagent worktree isolation", false},
 	})
 }
 
@@ -59,7 +58,6 @@ func TestG0413_StartEpicWorktreeStepChainsEnterWorktree(t *testing.T) {
 	assertMarkers(t, "start-epic worktree subsection", section, []marker{
 		{"the --print-path flag", "--print-path", false},
 		{"the harness EnterWorktree tool call", "EnterWorktree(path:", false},
-		{"the direct-work vs subagent-dispatch scoping", "Subagent worktree isolation", false},
 	})
 }
 
