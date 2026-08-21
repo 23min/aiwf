@@ -52,4 +52,45 @@ preamble bans it, by an author who had read the preamble that session.
 
 What no count carries: whether the rules would hold for an author who did not
 write them, and whether an independent pass is the only thing that finds this
-class. Both were true of the one observation here.
+class.
+
+## The class recurred in the next two documents
+
+A later epic under the same initiative wrote two more documents — a milestone
+spec and the test file shipped with it — and the class recurred in both. This
+is the same author again, so it still says nothing about an author who did not
+write the rules; what it does carry is that the rules did not hold on repetition
+by an author who had just been shown the failure.
+
+Five more attributions claimed more than their record carries.
+
+ADR-0019 was cited as the advisory `wf-*` genus. It says "The code-health rubric
+is the same genus as the existing `wf-*` engineering skills" — placing a skill
+in a genus that predates it rather than defining one.
+
+ADR-0007 was cited for a `wf-*` skill's placement. Its Decision covers the
+boundary between kernel-embedded verb wrappers and the rituals plugin's
+`aiwfx-*`, and states no rule for the `wf-*` genus at all.
+
+G-0548 was cited as naming package directories the clearest violations. It says
+a package reference "reads as a name rather than a location", and reserves "is
+the clearest violation" for a source-file reference — the opposite ranking.
+
+A path check over one file was described as the only mechanical form its
+collision admits, where G-0548 describes a second: "the check is a near-mirror
+of `skill-body-id`, over the same corpus".
+
+A shipped skill defined the reading state *ambiguous* as the subject neither
+asserting nor denying a premise. The specification's only gloss is "that a
+sentence carries a second reading" — a claim with two readings, not one with
+none.
+
+More than one observation now bears on the open half of the question. An
+independent pass found all but one of these; the author found the first, before
+dispatch, while checking that same document for exactly this class.
+
+The third occurrence is the sharpest available instance of the mechanism. It
+sits in the comment of the test guarding a skill whose own section instructs its
+reader to open the cited record and find the sentence, and states the rule the
+comment breaks: the test is scope, not presence. Proximity to the rule, in the
+artifact that carries the rule, did not prevent it.
