@@ -43,18 +43,26 @@ rather than whole files.
 ### AC-1 — An untrailered edit to a watched shipped surface is refused
 
 A commit that adds or modifies a `SKILL.md` under the watched set, carrying no
-`aiwf-verb` / `aiwf-entity` / `aiwf-actor` trailers, produces a finding that names the
-path and states which trailers are absent. This is the arm G-0220 recorded as silent:
-the edit it describes was an ordinary `git commit` against a shipped surface, and
-nothing fired.
+`aiwf-entity` trailer, produces a finding that names the path and says the edit has no
+owning entity. This is the arm G-0220 recorded as silent: the edit it describes was an
+ordinary `git commit` against a shipped surface, and nothing fired.
+
+The required set is `aiwf-entity` alone. `aiwf-verb` is excluded because a ritual
+`SKILL.md` is source, not an entity file, and no aiwf verb commits it: the closed set
+`trailer-verb-unknown` enforces — the Cobra verb tree plus the ritual stamps — carries no
+value meaning "I edited a shipped surface", so requiring one would mandate the fabricated
+trailer G-0150 closed. `aiwf-actor` is excluded because "who ran the verb" is undefined
+where no verb ran, git's author field already carries the answer, and an `ai/` actor with
+no scope trailers raises `provenance-no-active-scope` at error severity — friction whose
+cheapest escape is a false `human/` actor, which is worse provenance than none.
 
 Fixture: a synthetic commit touching a watched surface with a bare Conventional Commits
 subject and no trailers. The policy fires.
 
 ### AC-2 — A trailered, entity-owned edit passes with no policy test naming its path
 
-The same edit, riding a commit whose trailers are present and whose `aiwf-entity`
-resolves to a real entity, produces no finding — with **zero** policy tests referencing
+The same edit, riding a commit whose `aiwf-entity` trailer is present and resolves to a
+real entity, produces no finding — with **zero** policy tests referencing
 the edited path anywhere in `internal/policies`.
 
 This is the inversion that retires the content mandate, and it fails today: the current
@@ -64,16 +72,15 @@ where some unrelated test names the path would pass for the wrong reason.
 
 ### AC-3 — A trailered edit naming an unresolvable entity is refused
 
-Trailers present, but `aiwf-entity` names an id that resolves to nothing — a typo, a
-fabricated id, an entity never created. The policy refuses.
+The trailer is present, but `aiwf-entity` names an id that resolves to nothing — a typo,
+a fabricated id, an entity never created. The policy refuses.
 
 Provenance that points nowhere is not provenance, and converging here would let any
 edit satisfy the gate by inventing an id. This mirrors the kernel's own rule that a verb
 resolves its arguments before asking whether the request is already satisfied.
 
-Whether the resolved entity must additionally be non-terminal is E-0087's first open
-question. It is settled on this milestone and recorded in its Design notes; this AC pins
-resolution only.
+Resolution is the whole of the requirement; the entity's status is not consulted. The
+Design notes carry why.
 
 ### AC-4 — CLAUDE.md no longer states that a SKILL.md edit requires a structural test
 
@@ -98,8 +105,8 @@ to remove.
   prove, not which edits are watched.
 - The predicate must be decidable without judgment — trailers and entity resolution are
   mechanical; "is this edit well-documented" is not.
-- The replacement ships with firing fixtures on both arms: an untrailered or unowned edit
-  is refused, and a trailered, entity-owned edit passes with no accompanying test.
+- The replacement ships with firing fixtures on both arms: an unowned edit is refused, and
+  an entity-owned edit passes with no accompanying test.
 - Every surface describing the current mandate is updated in this milestone, not left to
   the sibling. A gate whose documentation still states the old rule is half-landed.
 
@@ -111,10 +118,29 @@ to remove.
 - `provenance-untrailered-entity-commit` already enforces the analogous property over
   entity files. Reuse that shape rather than inventing a second notion of provenance.
 - The policy remains an aiwf-repo invariant and stays inert in a consumer tree.
+- **The predicate is commit-scoped, not working-tree-scoped.** Provenance is a property a
+  commit carries, so an uncommitted edit has none and firing on one would state a fault
+  the operator cannot clear. This retires the working-tree arm the content predicate
+  needed, where an operator could satisfy the gate before committing by writing a test.
+- **The entity's status is not consulted** — E-0087's first open question, settled here.
+  Two of the gate's three invocations resolve their base to `git merge-base origin/main
+  HEAD` (local `make ci`/`make coverage-gate`, and CI on a pull request), so every skill
+  edit on a branch is re-audited on every run for the branch's whole life; only CI's
+  push event is incremental. A non-terminal requirement would therefore turn a week-old
+  green commit red the moment its owning milestone promoted to `done`, with nothing about
+  the commit having changed — the rot class this epic exists to remove — and it would
+  refuse the legitimate post-promote wrap edit G-0119 describes. It also fails to prevent
+  what it targets: a rubber stamp names a currently-active entity just as easily as a
+  closed one. Whether an attribution is *apt* is held at review, per D-0070 and D-0071.
+- The policy is renamed with its predicate — `skill-edit-provenance-backstop`. The old id
+  names the retired content question, and its violation Detail told operators to add a
+  structural test, which is no longer the fix.
 
 ## Surfaces touched
 
-- `internal/policies/skill_edit_structural_test_backstop.go`
+- `internal/policies/skill_edit_structural_test_backstop.go` → `skill_edit_provenance_backstop.go`
+- `.github/workflows/go.yml` and `Makefile` — the coverage-gate run-pattern names the
+  policy test by name
 - CLAUDE.md — the ritual-authoring and enforcement sections
 - Any shipped guidance that restates the content mandate
 
