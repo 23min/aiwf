@@ -53,6 +53,17 @@ lives in the `wf-codebase-health` skill.
   not its category; say what breaks, not the class of failure; keep a
   specialist term only where it is the subject of the decision. A card's
   question stays one short line, with the detail in its options.
+  Every option you offer is a claim that the path is real, and carries the
+  same burden as any fact you assert. Check each against the tree or the
+  code before offering it: the numbered list holds only paths you have
+  verified, and your lean falls only among them. A candidate you have not
+  checked goes outside the list, named with the command that would settle
+  it and roughly what that costs, so the human can decide whether the check
+  is worth paying for. One you checked and ruled out stays visible as ruled
+  out, with the evidence — dropped silently, it cannot be told apart from
+  one you never considered. Never lift an option from an entity's own body
+  or from a summary without checking it; that prose may be the stale claim
+  under review.
 - **Fix closely-related issues in place — the cheap-fix test.** Small, in a file
   this work already touches, covered by a test you're already writing? Make it now.
   File a gap only when it needs its own branch, its own review, or a real decision.
