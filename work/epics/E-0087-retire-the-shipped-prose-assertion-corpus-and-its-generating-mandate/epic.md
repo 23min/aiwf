@@ -1,7 +1,7 @@
 ---
 id: E-0087
 title: Retire the shipped-prose assertion corpus and its generating mandate
-status: proposed
+status: active
 ---
 ## Goal
 
