@@ -35,10 +35,6 @@ import (
 // prescribes for what cannot be pinned. Adding a phrase-content assertion to
 // this file re-opens that trade; if you are about to, the bar is that breaking
 // it would be a structural break, not a rewording.
-//
-// The skill-edit-structural-test-backstop is discharged by the path literals
-// these tests reference (shared consts declared by sibling policy tests), which
-// is the granularity that policy asks for.
 
 // TestWfCodebaseHealth_SectionDCarriesFiveForcesIncludingD5 pins that the
 // rubric still carries D5 alongside the original four. Deleting or renumbering

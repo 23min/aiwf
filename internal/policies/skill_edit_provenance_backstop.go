@@ -34,8 +34,11 @@ import (
 // and no aiwf verb commits it — the closed set trailer-verb-unknown
 // enforces carries no value meaning "I edited a shipped surface", so
 // requiring one would mandate a fabricated trailer. `aiwf-actor` is not
-// asked for because "who ran the verb" is undefined where no verb ran,
-// and git's own author field already carries it.
+// asked for because "who ran the verb" is undefined where no verb ran:
+// an edit directed in conversation has the human as principal and the
+// assistant as a tool, so there is no separate actor to record. Git's
+// author field carries the principal, not the agent, so it is not an
+// answer to that question either — the question simply does not arise.
 //
 // The entity's status is not consulted, only its existence. Two of the
 // three invocations below resolve their base to the merge-base with
@@ -69,10 +72,6 @@ func PolicySkillEditProvenanceBackstop(root string) ([]Violation, error) {
 // edits this policy backstops. The verb-skill tree (embedded/) is out of
 // scope — G-0220 is about rituals.
 const skillRitualsDir = "internal/skills/embedded-rituals"
-
-// skillEditPolicyID is the violation's policy id, named for the question
-// the predicate asks.
-const skillEditPolicyID = "skill-edit-provenance-backstop"
 
 // skillEdit is one (commit, watched path) pair: a commit in the audited
 // range that added or modified a watched shipped surface, together with
@@ -124,7 +123,11 @@ func skillEditProvenanceViolations(root, baseRef string) ([]Violation, error) {
 // a question about the rule, decidable without loading a tree.
 //
 // The two arms carry different Details because they name different
-// repairs: one is a missing trailer, the other a wrong value.
+// repairs: one is a missing trailer, the other a wrong value. Each arm
+// states its own condition in full rather than leaning on the order of
+// the cases, so the arms stay independent: an empty id is the first
+// arm's subject alone and never reaches the second, where `resolves("")`
+// would otherwise report the right path under the wrong diagnosis.
 func detectUnownedSkillEdits(edits []skillEdit, resolves func(string) bool) []Violation {
 	var out []Violation
 	for _, e := range edits {
@@ -133,13 +136,13 @@ func detectUnownedSkillEdits(edits []skillEdit, resolves func(string) bool) []Vi
 		switch {
 		case id == "":
 			out = append(out, Violation{
-				Policy: skillEditPolicyID,
+				Policy: "skill-edit-provenance-backstop",
 				File:   e.Path,
 				Detail: fmt.Sprintf("commit %s edits this shipped ritual SKILL.md but carries no aiwf-entity: trailer, so nothing records which entity the edit belongs to; re-commit naming the epic, milestone, gap or decision that owns it (`--trailer \"aiwf-entity: <id>\"`) (G-0220).", shortSkillSHA(e.SHA)),
 			})
 		case id != "" && !resolves(owner):
 			out = append(out, Violation{
-				Policy: skillEditPolicyID,
+				Policy: "skill-edit-provenance-backstop",
 				File:   e.Path,
 				Detail: fmt.Sprintf("commit %s edits this shipped ritual SKILL.md under aiwf-entity: %s, which resolves to no entity in the tree; provenance that points nowhere is not provenance, so name an entity that exists or create one first.", shortSkillSHA(e.SHA), id),
 			})
@@ -163,7 +166,22 @@ func entityResolver(root string) (func(string) bool, error) {
 		return nil, fmt.Errorf("loading entity tree at %s: %w", root, err)
 	}
 	return func(id string) bool {
-		return t.ByID(id) != nil || t.ByPriorID(id) != nil
+		if t.ResolveByCurrentOrPriorID(id) != nil {
+			return true
+		}
+		// A file the loader could not parse still proves the entity
+		// exists: tree.Load records it as a path-derived stub rather
+		// than an entity, and its malformed YAML is a finding for
+		// `aiwf check` to report. Counting it as unresolved would let a
+		// landed commit turn red on an edit to a *different* file, and
+		// would tell the operator to name an entity that exists when it
+		// already does.
+		for _, s := range t.Stubs {
+			if entity.Canonicalize(s.ID) == entity.Canonicalize(id) {
+				return true
+			}
+		}
+		return false
 	}, nil
 }
 
@@ -179,14 +197,26 @@ const (
 // pair added or modified between baseRef and HEAD, sorted by path for
 // deterministic output.
 //
-// Merge commits contribute nothing: `git log` emits no diff for one
-// without an explicit --diff-merges, and the commits that actually
-// carry the edit are in the range on their own.
+// The filter admits additions, modifications, and renames. Renames must
+// be in it: git reports a sufficiently similar rename as a single R
+// entry rather than a delete plus an add, so a filter of AM alone lets a
+// commit that moves a skill and rewrites part of it through with no
+// owner named at all. Under R, `--name-only` reports the destination
+// path, which is the file that ships. Deletions stay out — a removed
+// skill has no content left to own.
+//
+// `core.quotePath=false` keeps a non-ASCII path readable rather than
+// C-quoted, so the /SKILL.md suffix test below still matches it.
+//
+// Merge commits contribute nothing, because `git log` emits no diff for
+// one without an explicit --diff-merges. Content introduced *by* a merge
+// resolution is therefore unowned by construction — see the gap noted in
+// M-0312's Deferrals.
 func skillEditsInRange(root, baseRef string) ([]skillEdit, error) {
 	format := skillEditRecSep + "%H" + skillEditFldSep +
 		"%(trailers:key=" + gitops.TrailerEntity + ",valueonly,separator=" + skillEditFldSep + ")"
-	cmd := exec.Command("git", "log",
-		"--format="+format, "--name-only", "--diff-filter=AM",
+	cmd := exec.Command("git", "-c", "core.quotePath=false", "log",
+		"--format="+format, "--name-only", "--diff-filter=AMR",
 		baseRef+"..HEAD", "--", skillRitualsDir)
 	cmd.Dir = root
 	out, err := cmd.CombinedOutput()

@@ -72,6 +72,12 @@ func TestDetectUnownedSkillEdits(t *testing.T) {
 			wantFiles: nil,
 		},
 		{
+			name:      "a narrow legacy id names the same entity",
+			edits:     []skillEdit{{SHA: "9999999", Path: provSkillA, Entity: "M-312"}},
+			known:     []string{"M-0312"},
+			wantFiles: nil,
+		},
+		{
 			name:      "no changed skills is silent",
 			edits:     nil,
 			known:     []string{"M-0312"},
@@ -538,5 +544,133 @@ func TestPolicySkillEditProvenanceBackstop_Env(t *testing.T) {
 	}
 	if len(vs) != 1 || vs[0].File != provSkillRel {
 		t.Fatalf("set base: want one violation for %s, got %+v", provSkillRel, vs)
+	}
+}
+
+// TestSkillEditProvenance_RenameIsWatched pins that a rename does not
+// escape the gate. Git reports a sufficiently similar rename as one R
+// entry rather than a delete plus an add, so a filter admitting only A
+// and M would let a commit that moves a skill and rewrites part of it
+// through with no owner named. The fixture is deliberately over the
+// similarity threshold — a low-similarity move degrades to delete+add
+// and would pass even under the narrower filter, proving nothing.
+func TestSkillEditProvenance_RenameIsWatched(t *testing.T) {
+	t.Parallel()
+	const from = skillRitualsDir + "/plugins/aiwf-extensions/skills/aiwfx-fictional-foxtrot/SKILL.md"
+	const to = skillRitualsDir + "/plugins/aiwf-extensions/skills/aiwfx-fictional-golf/SKILL.md"
+
+	body := strings.Repeat("prescriptive line\n", 60)
+	root, runGit, writeFile, _ := skillFixtureBase(t)
+	writeFile(provFixtureEntityAt, provFixtureEntity)
+	writeFile(from, body)
+	runGit("add", "-A")
+	runGit("commit", "-m", "seed the skill")
+	baseSHA := trimLine(runGit("rev-parse", "HEAD"))
+
+	// Written at the new path and removed from the old. Git detects the
+	// rename at diff time, not at commit time, so this is the same R
+	// entry `git mv` would produce.
+	writeFile(to, body+"BRAND NEW PRESCRIPTIVE CONTENT\n")
+	runGit("rm", "-q", from)
+	runGit("add", "-A")
+	runGit("commit", "-m", "rename and rewrite, no owner named")
+
+	// Guard the fixture's own premise: if git did not detect a rename,
+	// this test would pass under the narrower filter too and prove
+	// nothing about R.
+	status := runGit("log", "--format=", "--name-status", "-1")
+	if !strings.Contains(status, "R") {
+		t.Fatalf("fixture premise broken: git did not report a rename:\n%s", status)
+	}
+
+	vs, err := skillEditProvenanceViolations(root, baseSHA)
+	if err != nil {
+		t.Fatalf("skillEditProvenanceViolations: %v", err)
+	}
+	want := []string{to}
+	if got := violationFiles(vs); !equalStrings(got, want) {
+		t.Errorf("violation files = %v, want %v (a rename must not escape the gate)", got, want)
+	}
+}
+
+// TestSkillEditProvenance_ResolvesThroughPriorIDs pins the arm that
+// keeps an older commit trailer resolving after `aiwf reallocate`
+// renumbers its owning entity. The verb rewrites references in the tree;
+// it cannot rewrite a commit message, so without this the renumber would
+// turn every landed skill-edit commit naming the old id red.
+func TestSkillEditProvenance_ResolvesThroughPriorIDs(t *testing.T) {
+	t.Parallel()
+	const renumbered = "---\nid: E-0002\ntitle: Renumbered fixture epic\nstatus: proposed\nprior_ids:\n    - E-0001\n---\n## Goal\n\nFixture.\n"
+
+	root, runGit, writeFile, _ := skillFixtureBase(t)
+	writeFile("work/epics/E-0002-renumbered-fixture-epic/epic.md", renumbered)
+	runGit("add", "-A")
+	runGit("commit", "-m", "seed the renumbered entity")
+	baseSHA := trimLine(runGit("rev-parse", "HEAD"))
+
+	// The commit names the id the entity used to carry.
+	writeFile(provSkillRel, "# fictional echo skill\n")
+	runGit("add", "-A")
+	runGit("commit", "-m", "feat(skill): edit", "--trailer", "aiwf-entity: E-0001")
+
+	vs, err := skillEditProvenanceViolations(root, baseSHA)
+	if err != nil {
+		t.Fatalf("skillEditProvenanceViolations: %v", err)
+	}
+	if len(vs) != 0 {
+		t.Errorf("an id carried in prior_ids must resolve; got %+v", vs)
+	}
+}
+
+// TestSkillEditProvenance_UnparseableOwnerStillResolves pins that a
+// malformed owning entity does not read as a missing one. The loader
+// records an unparseable file as a path-derived stub, which still proves
+// the entity exists; its broken YAML is a finding for `aiwf check`. If
+// this arm regressed, an edit to an unrelated file could turn a landed
+// commit red and advise naming an entity that already exists.
+func TestSkillEditProvenance_UnparseableOwnerStillResolves(t *testing.T) {
+	t.Parallel()
+	root, runGit, writeFile, _ := skillFixtureBase(t)
+	writeFile(provFixtureEntityAt, provFixtureEntity)
+	runGit("add", "-A")
+	runGit("commit", "-m", "seed the fixture tree")
+	baseSHA := trimLine(runGit("rev-parse", "HEAD"))
+
+	writeFile(provSkillRel, "# fictional echo skill\n")
+	runGit("add", "-A")
+	runGit("commit", "-m", "feat(skill): edit", "--trailer", "aiwf-entity: "+provFixtureEntityID)
+
+	// Break the owning entity's frontmatter and nothing else.
+	writeFile(provFixtureEntityAt, "---\nid: [unclosed\ntitle: broken\n---\n## Goal\n\nx\n")
+
+	vs, err := skillEditProvenanceViolations(root, baseSHA)
+	if err != nil {
+		t.Fatalf("skillEditProvenanceViolations: %v", err)
+	}
+	if len(vs) != 0 {
+		t.Errorf("an unparseable owning entity still exists; got %+v", vs)
+	}
+}
+
+// TestSkillEditProvenance_NonASCIIPathIsWatched pins that a skill whose
+// path carries a non-ASCII character is still judged. Git C-quotes such
+// a path by default, which would defeat the /SKILL.md suffix test and
+// let the edit through unowned.
+func TestSkillEditProvenance_NonASCIIPathIsWatched(t *testing.T) {
+	t.Parallel()
+	const weird = skillRitualsDir + "/plugins/aiwf-extensions/skills/aiwfx-fictional-wéird/SKILL.md"
+
+	root, runGit, writeFile, baseSHA := skillFixtureBase(t)
+	writeFile(weird, "# fictional skill with a non-ascii path\n")
+	runGit("add", "-A")
+	runGit("commit", "-m", "feat(skill): edit with no owner named")
+
+	vs, err := skillEditProvenanceViolations(root, baseSHA)
+	if err != nil {
+		t.Fatalf("skillEditProvenanceViolations: %v", err)
+	}
+	want := []string{weird}
+	if got := violationFiles(vs); !equalStrings(got, want) {
+		t.Errorf("violation files = %v, want %v (a non-ASCII path must not escape)", got, want)
 	}
 }

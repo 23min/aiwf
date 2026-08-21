@@ -11,14 +11,6 @@ import (
 // the `aiwfx-record-decision` skill body — the embedded ritual snapshot
 // the aiwf binary ships (the source of truth per ADR-0016). AC content
 // assertions read the embedded bytes directly per G-0182.
-//
-// Naming this path here is also what clears the M-0196 skill-edit →
-// structural-test backstop for `aiwfx-record-decision` (G-0331): before
-// M-0201 no test under internal/policies/ referenced this skill, so any
-// edit to it (M-0201 routes its body fill through `aiwf edit-body` and
-// adds the ADR-authoring note) would be flagged by
-// PolicySkillEditStructuralTestBackstop. This file supplies the missing
-// reference.
 const aiwfxRecordDecisionFixturePath = "internal/skills/embedded-rituals/plugins/aiwf-extensions/skills/aiwfx-record-decision/SKILL.md"
 
 // loadAiwfxRecordDecisionFixture reads the skill body relative to repo root.
