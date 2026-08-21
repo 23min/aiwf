@@ -12,10 +12,10 @@ mechanized: the `skill-body-id` check walks every shipped Markdown surface and f
 at error severity on a real id or a non-canonical placeholder. The rest — the
 filesystem path, and repo-development context generally — is held at review.
 
-The unenforced half does not hold. The companion gap filed alongside this one records
-roughly twenty citations across eleven shipped skills pointing at named sections of
-this repo's `CLAUDE.md`: a filesystem path and repo-development context both, accrued
-under a rule that forbids them.
+The unenforced half does not hold. G-0598 records roughly twenty citations across
+eleven shipped skills pointing at named sections of this repo's `CLAUDE.md`: a
+filesystem path and repo-development context both, accrued under a rule that forbids
+them.
 
 ## Why it matters
 
@@ -57,5 +57,5 @@ lands first, or both land together.
 Worth settling in the same pass: whether the rule covers `CLAUDE.md` alone or any
 repo-local document path in a shipped surface. The narrow form addresses what was
 measured; the broad form also catches a citation into `docs/` that a consumer cannot
-resolve, which the two mis-targeted provenance citations in the companion gap show is
-a live shape.
+resolve, which the two mis-targeted provenance citations G-0598 records show is a
+live shape.
