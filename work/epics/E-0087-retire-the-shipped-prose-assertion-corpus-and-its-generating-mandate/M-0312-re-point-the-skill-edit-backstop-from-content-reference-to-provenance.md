@@ -20,7 +20,7 @@ acs:
     - id: AC-4
       title: CLAUDE.md no longer states that a SKILL.md edit requires a structural test
       status: open
-      tdd_phase: red
+      tdd_phase: green
 ---
 ## Goal
 
