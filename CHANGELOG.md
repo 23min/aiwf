@@ -16,6 +16,28 @@ section in this file.
 
 ## [Unreleased]
 
+### Added — nothing is settled except by measurement
+
+The always-on guidance carries a rule for what makes a claim true. A claim is
+settled true only where four things sit together: the command, the result you
+expected, the output you observed, and the environment it ran in. Reading a
+record does not settle a claim, and neither does citing one that says so, nor
+your own confidence. An unsettled claim is written as unsettled — the command
+you would have run, and a blank where the answer goes.
+
+The blank is the point. A later reader can close it; a guess phrased like a
+measurement is worse than one, because nothing marks it for checking.
+
+This generalises to every claim the bar that `aiwf promote <id>/AC-<n> met`
+already sets for one acceptance criterion. The per-turn guidance line budget
+rises from 112 to 120 to fit the rule, per the budget guard's own rule that the
+ceiling moves rather than the rule being compressed to fit it.
+
+Nothing enforces it — it is advice on the surface loaded every turn, and it says
+so in its own text. D-0069 records where it came from: a dispatched prose-review
+method was dropped after four runs of it against one document returned 29
+readings and settled 1, and this rule is the part that survived.
+
 ### Changed — G-0593: an attribution is written by extraction, not by assertion
 
 The always-on guidance's revision rule gains the case re-opening does not cover.
