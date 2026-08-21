@@ -6,6 +6,16 @@ parent: E-0087
 depends_on:
     - M-0312
 tdd: advisory
+acs:
+    - id: AC-1
+      title: A phrase assertion over shipped prose fails the policy suite
+      status: open
+    - id: AC-2
+      title: The cross-document citation walk still fails on a dangling reference
+      status: open
+    - id: AC-3
+      title: The dispatch trigger-phrase checks still fail when a phrase is removed
+      status: open
 ---
 ## Goal
 
@@ -27,6 +37,12 @@ deletion is unconstrained — whole files can go, including the package-level pa
 constants that only exist to satisfy the old predicate.
 
 ## Acceptance criteria
+
+### AC-1 — A phrase assertion over shipped prose fails the policy suite
+
+### AC-2 — The cross-document citation walk still fails on a dangling reference
+
+### AC-3 — The dispatch trigger-phrase checks still fail when a phrase is removed
 
 ## Constraints
 
