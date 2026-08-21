@@ -1,7 +1,7 @@
 ---
 id: D-0071
 title: Enforce provenance, not content, at the skill-edit backstop
-status: proposed
+status: accepted
 relates_to:
     - G-0220
     - M-0196
