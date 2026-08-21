@@ -1,0 +1,79 @@
+---
+id: M-0313
+title: Retire the prose-assertion corpus over shipped surfaces
+status: draft
+parent: E-0087
+depends_on:
+    - M-0312
+tdd: advisory
+---
+## Goal
+
+Delete the prose- and heading-presence assertions over shipped surfaces across the
+policy suite, preserving the two exception classes D-0070 names and demonstrating that
+each surviving exception still fails when its property breaks.
+
+## Context
+
+Measured while scoping G-0596: the policy suite carries a body of test functions that
+assert shipped prose still says particular things, spanning several thousand lines, with
+no catch recorded across roughly fourteen months and several filed gaps recording drift
+it failed to prevent. D-0050 fixed the rule for new tests but declined to retrofit;
+D-0070 mandates the retrofit and settles that the disposition is deletion rather than
+conversion.
+
+M-0312 removes the mandate that regrows this corpus and must land first. Once it has,
+deletion is unconstrained — whole files can go, including the package-level path
+constants that only exist to satisfy the old predicate.
+
+## Acceptance criteria
+
+## Constraints
+
+- The two exception classes survive intact: cross-document relationship checks, and the
+  trigger phrases in a skill's `## When to use` section and `description:` frontmatter.
+  A pass that removes either has overshot.
+- Disposition is per assertion against D-0070, not per file. Several files hold a
+  genuine structural assertion within a few lines of a prose one.
+- No test function is deleted merely to make a file pass.
+- Every surviving exception is probed: break the property in the source document, confirm
+  the test goes red, revert. An unproven survivor is a finding, not a completion.
+- Coverage must not regress; the diff-scoped gate names any regression by file and line.
+
+## Design notes
+
+- D-0070 carries the disposition rules, the measurement, and the rejected alternatives
+  (convert to shape assertions; limit the retrofit to headings; keep everything and hold
+  content at review).
+- Heading-presence assertions are in scope for deletion. A heading check exists to scope
+  a body assertion; once the body assertion is gone it degrades to asserting the heading
+  exists.
+- The trigger-phrase exception rests on behavioural evidence rather than a mechanical
+  consumer — D-0070 records that limit explicitly.
+
+## Surfaces touched
+
+- `internal/policies/` — the test files asserting over embedded skill, ritual, template,
+  agent-card, and guidance prose
+- `internal/policies/d5_structure_test.go` — the citation walk, preserved
+
+## Out of scope
+
+- Retiring the exposition-tier design documents that some of these tests lock. Removing
+  the lock is in scope; what becomes of the documents is separate work with its own
+  decision.
+- Any change to the `skill-body-id` check or the shipped-surface id rule.
+- Re-pointing the backstop, which is M-0312's deliverable.
+
+## Dependencies
+
+- D-0070, accepted.
+- M-0312, done — the backstop must be re-pointed before deletion, per E-0087's
+  constraints.
+
+## Coverage notes
+
+Deletion removes test code rather than production code, so the diff-scoped gate should
+report no newly-uncovered statements. Where deleting a test does drop the last cover for
+a production line, that line is a candidate for deletion in its own right rather than a
+reason to keep a vacuous assertion.
