@@ -16,6 +16,70 @@ section in this file.
 
 ## [Unreleased]
 
+### Added — G-0599: a shipped surface that cites a CLAUDE.md section fails the check
+
+`aiwf check` gains `skill-body-claude-md-section`, at error severity, over the
+same shipped surfaces `skill-body-id` already walks. A skill may name the
+consumer's own `CLAUDE.md`; it may not cite a named section of one, because the
+repo whose `CLAUDE.md` carries those sections never ships.
+
+Two shapes fire: the "Per CLAUDE.md" idiom, and the filename followed by a
+section marker. A bare mention passes, so naming the consumer's own file as the
+place their rules live keeps working. Unlike its sibling the scan applies no
+mask — that rule exempts link carriers so an id may ride in a doc-link
+destination, but a link here is exactly as unresolvable as prose.
+
+Scope stops at `CLAUDE.md` by measurement. A rule over any repo-local path
+would fire on roughly thirty legitimate references — `ROADMAP.md`, which
+consumers hold as render output, consumer tree paths under `work/`, and the
+deliberately fictional docs examples in `wf-doc-lint` — needing an allowlist
+larger than the defect set. The rule is inert in a consumer repo, where the
+authoring tree it scans does not exist.
+
+### Changed — G-0598: shipped skills no longer delegate rules to CLAUDE.md sections
+
+Eleven skills cited named sections of this repo's `CLAUDE.md` — the
+working-with-the-user and gate-discipline sections, commit conventions,
+subagent worktree isolation, ADR authoring, the provenance model, id-collision
+resolution. That file is repo-development guidance and never ships: `aiwf init`
+and `aiwf update` materialize the rituals into a consumer's `.claude/` and
+maintain one import line, writing nothing else. So the citations resolved in the
+authoring repo and dangled everywhere the skills actually run — or worse,
+resolved against a section a consumer happened to name the same way,
+substituting their prose for the rule the ritual meant. Gate discipline, which
+protects every irreversible act the rituals walk an operator through, was among
+the delegated rules.
+
+Every site restated its rule inline immediately after the citation, so the
+clauses are deleted and no instruction is lost. Two references survive, both
+generic and both correct. Two rituals citing a *Provenance model* section were
+mis-targeted even here, since that content lives in a design document.
+
+Run `aiwf update` to pick the skills up.
+
+### Added — G-0597: an option offered in a decision is a claim
+
+The always-on guidance held that a decision is presented as context, options
+with pros and cons, an argued lean and a numbered pick-list, written in plain
+language — and said nothing about whether the options are real. The measurement
+rule carried the verification burden but bound claims written into prose, so
+nothing made an option one. Options could be assembled from a summary or from an
+entity's own unverified body prose, arrive in exactly the prescribed shape, and
+be dead on arrival — discovered only after the human had chosen one.
+
+The numbered list now holds only paths whose load-bearing premise has been
+checked, and the lean falls among them. An unchecked candidate sits outside the
+list, named with the command that would settle it and roughly what that command
+costs, so the human decides whether the check is worth paying for rather than
+meeting the cost after the choice. A candidate ruled out stays visible with its
+disqualifying evidence, since a silent drop cannot be told from a path never
+considered. No option is lifted from an entity's own body or a summary without
+being checked — that prose may be the stale claim under review.
+
+The per-turn guidance line budget rises from 120 to 131 to fit the rule, per the
+budget guard's own rule that the ceiling moves rather than the rule being
+compressed to fit it. Run `aiwf update` to pick the guidance up.
+
 ### Added — nothing is settled except by measurement
 
 The always-on guidance carries a rule for what makes a claim true. A claim is

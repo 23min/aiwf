@@ -51,7 +51,6 @@ func TestM0234_AC2_WfPatchBranchStepInvokesWorktreeAdd(t *testing.T) {
 	}
 	assertMarkers(t, "AC-2: wf-patch branch-creation subsection", section, []marker{
 		{"the aiwf worktree add verb", "aiwf worktree add", false},
-		{"the default-to-a-worktree cross-reference", "Default to a worktree", false},
 	})
 }
 

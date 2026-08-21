@@ -136,7 +136,7 @@ After rendering blocks (a)–(d), the skill emits exactly one gate prompt and wa
 
 The operator picks one of three paths:
 
-1. **Walk through (Q&A).** The skill walks each pending decision one at a time per CLAUDE.md *Working with the user* §Q&A format — context, options with pros/cons, lean, numbered choice, wait. Move to the next decision only after the operator answers the current one. Never batch.
+1. **Walk through (Q&A).** The skill walks each pending decision one at a time — context, options with pros/cons, lean, numbered choice, wait. Move to the next decision only after the operator answers the current one. Never batch.
 2. **Recommendation is enough.** The skill exits cleanly with a one-line summary (`"Recommendation captured. Next: <first-decision lean>."`) and stops. No follow-up questions.
 3. **Operator names a different follow-up.** The skill does not silently extend; if the follow-up is out of scope (refactor advice, design review, cross-team blocking), respond with *"That sounds like its own skill — should we file one?"* and stop.
 

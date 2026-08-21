@@ -75,7 +75,7 @@ If the work fits in one milestone, skip this skill and use `aiwfx-plan-milestone
      --trailer "aiwf-actor: human/<id>"
    ```
 
-   The trailer keys are quoted from CLAUDE.md §"Commit conventions" verbatim — variant casings (e.g. `Aiwf-Verb`) fail the kernel's trailer-keys policy. Skip the `git add`/`git commit` if the render reported the file already up to date. This regenerates the markdown table of epics + milestones from the current tree. Don't hand-edit the roadmap.
+   The trailer keys are exact — variant casings (e.g. `Aiwf-Verb`) fail the kernel's trailer-keys policy. Skip the `git add`/`git commit` if the render reported the file already up to date. This regenerates the markdown table of epics + milestones from the current tree. Don't hand-edit the roadmap.
 
 8. **Optional tracker linkage.** If the project mirrors planning into an external issue tracker, create or link the epic record according to the project's convention.
 
@@ -90,7 +90,7 @@ If the work fits in one milestone, skip this skill and use `aiwfx-plan-milestone
 - *Planning the epic and immediately starting work.* Don't skip review. The epic spec is the place where scope changes are cheap; once milestones are running, scope changes are expensive.
 - *Hand-writing scalar counts.* "5 milestones" rots; "every milestone listed below" doesn't.
 - *Treating "Open questions" as scratch.* If a question is blocking, state how it gets resolved.
-- *Inventing id-shaped labels for not-yet-allocated milestones.* Per CLAUDE.md: don't write an id-shaped label no verb allocated — a letter suffix, a spelled-out word suffix, an all-caps letter placeholder, or a pseudo-formal sequence label ("Phase 1", "alpha/beta") — anywhere, committed prose **or** conversation. The mechanical chokepoint `body-prose-id` catches malformed shapes that leak into committed bodies; the discipline above keeps the conversation clean. **In conversation**, when sequencing several not-yet-allocated milestones, a milestone prefix with a single digit is acceptable shorthand — distinguishable from a canonical id by its narrow width. Once `aiwf add milestone` runs, the verb assigns the canonical id and the deliverable name becomes the slug; replace the casual labels with the real ids in any prose that lands in entity bodies.
+- *Inventing id-shaped labels for not-yet-allocated milestones.* Don't write an id-shaped label no verb allocated — a letter suffix, a spelled-out word suffix, an all-caps letter placeholder, or a pseudo-formal sequence label ("Phase 1", "alpha/beta") — anywhere, committed prose **or** conversation. The mechanical chokepoint `body-prose-id` catches malformed shapes that leak into committed bodies; the discipline above keeps the conversation clean. **In conversation**, when sequencing several not-yet-allocated milestones, a milestone prefix with a single digit is acceptable shorthand — distinguishable from a canonical id by its narrow width. Once `aiwf add milestone` runs, the verb assigns the canonical id and the deliverable name becomes the slug; replace the casual labels with the real ids in any prose that lands in entity bodies.
 
 ## Closing the planning session
 

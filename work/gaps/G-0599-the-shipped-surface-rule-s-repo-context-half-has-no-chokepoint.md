@@ -1,7 +1,9 @@
 ---
 id: G-0599
 title: The shipped-surface rule's repo-context half has no chokepoint
-status: open
+status: addressed
+addressed_by_commit:
+    - 038244ded
 ---
 ## What's missing
 
