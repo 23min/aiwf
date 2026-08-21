@@ -67,6 +67,13 @@ const (
 	// image of body-prose-id; inert in a consumer repo (no skill-source
 	// tree). See internal/check/skill_body_id.go.
 	CodeSkillBodyID = "skill-body-id"
+	// CodeSkillClaudeMDSection is the G-0599 shipped-surface citation rule:
+	// a shipped surface may name the consumer's own CLAUDE.md but must not
+	// cite a section of one, since the repo whose CLAUDE.md carries those
+	// sections never ships. The repo-context half of the same shipped-surface
+	// rule skill-body-id mechanizes the id half of; inert in a consumer repo
+	// (no skill-source tree). See internal/check/skill_body_claude_md.go.
+	CodeSkillClaudeMDSection = "skill-body-claude-md-section"
 	// CodeDocIDWidth is the M-0289 doc id-width rule: a repo-facing doc must
 	// not write an id shape below canonical width. Real ids are legitimate
 	// here — only the width is the defect, which is what separates it from
@@ -138,6 +145,7 @@ func Run(t *tree.Tree, loadErrs []tree.LoadError) []Finding {
 	// G-0184: id-shape chokepoint at the committed body-prose layer.
 	findings = append(findings, bodyProseID(t)...)
 	findings = append(findings, skillBodyIDReference(t)...)
+	findings = append(findings, skillClaudeMDSectionReference(t)...)
 	findings = append(findings, statuslineCommentIDReference(t)...)
 	// M-0094: epic-active preflight signal per G-0063.
 	findings = append(findings, epicActiveNoDraftedMilestones(t)...)
