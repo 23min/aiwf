@@ -1,6 +1,6 @@
 ---
 id: D-0053
-title: Accept the per-subject verb-skill fact ledger; widening the backstop retires it
+title: Accept the per-subject verb-skill fact ledger until D-0070 deletes it
 status: proposed
 relates_to:
     - G-0520
