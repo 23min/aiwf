@@ -4,6 +4,19 @@ title: Re-point the skill-edit backstop from content reference to provenance
 status: draft
 parent: E-0087
 tdd: required
+acs:
+    - id: AC-1
+      title: An untrailered edit to a watched shipped surface is refused
+      status: open
+    - id: AC-2
+      title: A trailered, entity-owned edit passes with no policy test naming its path
+      status: open
+    - id: AC-3
+      title: A trailered edit naming an unresolvable entity is refused
+      status: open
+    - id: AC-4
+      title: CLAUDE.md no longer states that a SKILL.md edit requires a structural test
+      status: open
 ---
 ## Goal
 
@@ -26,6 +39,14 @@ as a literal somewhere in the policy sources, which limits deletion to whole fun
 rather than whole files.
 
 ## Acceptance criteria
+
+### AC-1 — An untrailered edit to a watched shipped surface is refused
+
+### AC-2 — A trailered, entity-owned edit passes with no policy test naming its path
+
+### AC-3 — A trailered edit naming an unresolvable entity is refused
+
+### AC-4 — CLAUDE.md no longer states that a SKILL.md edit requires a structural test
 
 ## Constraints
 
