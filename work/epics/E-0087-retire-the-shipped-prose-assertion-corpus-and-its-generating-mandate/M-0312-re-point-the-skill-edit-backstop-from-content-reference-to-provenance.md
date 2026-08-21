@@ -180,8 +180,8 @@ second arm now requires a named id, and the Detail assertions discriminate.
 
 AC-4's absence assertion was written after the CLAUDE.md edit rather than before it, so
 its red was never observed live. It was established afterwards instead: run against
-CLAUDE.md at `ffbd477e5`, the assertion fails on all four retired signatures across both
-named sections, and passes against the current file.
+CLAUDE.md at `ffbd477e5`, every retired signature the ban names fires in at least one of
+the two sections, and the assertion passes against the current file.
 
 ### Baseline carried in
 
@@ -202,3 +202,44 @@ whoever wrote them.
   milestone deletes; closed `wontfix` alongside this work.
 - G-0580 stays open. The watched surface set is out of this milestone's scope, and its
   body still describes the retired predicate.
+- G-0602 — a merge that resolves a conflict by writing new content into a watched
+  `SKILL.md` introduces content no examined commit carries, so the gate is silent on it.
+- G-0603 — nothing catches a missing trailer at composition time, when the repair is an
+  amend rather than a rebase. A `commit-msg` hook could.
+
+## Reviewer notes
+
+Two independent fresh-context reviewers ran over the full change-set: a code-quality lens
+and a design-quality lens on the predicate itself. The design lens returned KEEP against
+its five obligations. Both returned findings; the ones that changed the code are below,
+each fixed on this branch and each pinned by a test that fails without the fix.
+
+- The violation's `Policy` field was set from a named constant. The firing-fixture
+  meta-gate matches a string literal, so the policy had dropped out of its inventory and
+  nothing proved it could fire — the regression class that gate exists to catch,
+  introduced by this milestone. Restoring the literal returns it to the inventory.
+- `--diff-filter=AM` let a rename escape. Git reports a sufficiently similar rename as one
+  R entry, so a commit that moved a skill and rewrote part of it passed with no owner
+  named. The two reviewers disagreed here and the disagreement was a threshold artifact:
+  below git's similarity cutoff a move degrades to delete-plus-add and is caught, above it
+  is not. The filter now admits R, and the fixture is deliberately over the cutoff.
+- An unparseable owning entity read as a missing one, because the loader records a file it
+  cannot parse as a stub rather than an entity. That let an edit to an unrelated file turn
+  a landed commit red while advising the operator to name an entity that already exists —
+  a drift the design's own non-drift obligation forbids.
+- The `prior_ids` arm had no test, and it is the mechanism that keeps older commit
+  trailers resolving across `aiwf reallocate`.
+- Git escapes a non-ASCII path by default, and the escaped form silently missed the
+  `/SKILL.md` suffix test, so such an edit left the watched set entirely.
+- The resolver re-inlined `tree.ResolveByCurrentOrPriorID`, which is byte-identical.
+
+Declined, with reasons: the `id != ""` conjunct in the second arm is redundant against
+case order and is kept deliberately, because stating each arm's condition in full is what
+keeps the two arms independent. The `"structural test"` signature in AC-4's ban is generic
+and could catch unrelated prose in either named section; that is the correct trade for a
+ban, where a false positive costs one reading and a false negative costs the rule.
+
+Two questions the reviews raised are not resolved here because they are decisions rather
+than defects: D-0071's Decision section says the edit must carry "aiwf's verb trailers",
+which is not what shipped, and the replacement mandate carries no named retirement
+trigger — the bookkeeping D-0071 itself demands of a mandate.
