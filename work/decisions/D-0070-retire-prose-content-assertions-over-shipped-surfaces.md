@@ -45,6 +45,20 @@ Two exceptions survive:
 Conversion is not a third disposition. Where an assertion would survive only by being
 rewritten as a shape check, it is deleted.
 
+Re-introduction is banned, and the ban is mechanical rather than remembered. A policy
+fails the suite when a test that reads a shipped-surface fixture asserts that its prose
+contains a particular phrase, unless the assertion sits on the closed allowlist carrying
+the two exception classes. Deletion alone would leave the pattern free to regrow, and the
+mandate that produced it is being removed in the same epic — a corpus deleted without a
+ban returns as soon as someone reaches for the familiar shape. The ban is checked over
+test source, not over prose, so no rewording satisfies it.
+
+The scope of both the deletion and the ban is shipped surfaces. Assertions over files
+that stay in this repo — `CLAUDE.md` and the design docs chief among them — are outside
+it. That is a statement about what this decision governs, not an endorsement: the same
+failure mechanisms apply wherever a test pins a reading of prose, and the case for
+retiring those is simply not the case measured here.
+
 ## Reasoning
 
 Measured over `internal/policies` on the date above: 123 of 904 policy test functions
