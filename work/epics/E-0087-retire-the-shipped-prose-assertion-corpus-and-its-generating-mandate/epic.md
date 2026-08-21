@@ -31,6 +31,12 @@ corpus has no recorded catch across roughly fourteen months, while the misses it
 to prevent are themselves filed as gaps. Two narrow classes are the exception and are
 carried forward rather than deleted.
 
+Two decisions govern this epic and settle what it may delete. D-0070 rules that
+prose-presence assertions over shipped surfaces are deleted rather than converted, and
+names the two exception classes. D-0071 re-points the skill-edit backstop from a
+content-reference requirement to a provenance one. Each is independently actionable;
+taken together they remove the corpus and the obligation that regrows it.
+
 ## Scope
 
 ### In scope
@@ -39,7 +45,7 @@ carried forward rather than deleted.
   provenance requirement, with its own firing fixtures.
 - Deleting prose-presence assertions over shipped surfaces, heading-presence assertions
   included, across the policy suite.
-- Preserving the two exception classes named in the governing decisions: cross-document
+- Preserving the two exception classes named in D-0070: cross-document
   relationship checks, and the trigger phrases that drive skill dispatch.
 - Reconciling the surfaces that describe the discipline — CLAUDE.md's ritual-authoring
   and enforcement sections, and any shipped guidance that restates the mandate.
@@ -65,8 +71,8 @@ carried forward rather than deleted.
   mandate stands, each watched skill's path must survive as a literal somewhere in the
   policy sources, which constrains deletion to whole functions rather than whole files.
   Reversing the order forces careful work to satisfy a rule that is about to be removed.
-- No test function is deleted merely to make a file pass. Deletion follows from the
-  governing decisions' disposition rules, applied per assertion.
+- No test function is deleted merely to make a file pass. Deletion follows from D-0070's
+  disposition rules, applied per assertion.
 - Coverage must not regress. The diff-scoped gate names any regression by file and line.
 
 ## Success criteria
@@ -75,7 +81,7 @@ carried forward rather than deleted.
       refused by the backstop; one that rides a trailered, entity-owned commit passes
       without any accompanying test.
 - [ ] No policy test asserts that a paragraph of shipped prose contains a particular
-      phrase, outside the exception classes named in the governing decisions.
+      phrase, outside the exception classes named in D-0070.
 - [ ] Each surviving exception is demonstrated to fail when the property it claims is
       broken.
 - [ ] Every surface that describes the skill-edit discipline states the provenance rule
@@ -94,8 +100,8 @@ carried forward rather than deleted.
 | Risk | Impact | Mitigation |
 |---|---|---|
 | Deleting a test that turns out to be the sole consumer of a package-level path constant, tripping the unused-symbol linter | med | Re-point the backstop first, which removes the reason those constants exist |
-| A deletion pass that removes a genuine structural assertion sharing a file with prose assertions | med | Per-assertion disposition against the governing decisions, not per-file; probe survivors red before closing |
-| Shipped prose drifts unnoticed once the gate is gone | accepted | Named in both governing decisions; held at review, where the wrap and patch rituals already dispatch an independent reviewer |
+| A deletion pass that removes a genuine structural assertion sharing a file with prose assertions | med | Per-assertion disposition against D-0070, not per-file; probe survivors red before closing |
+| Shipped prose drifts unnoticed once the gate is gone | accepted | Named in both D-0070 and D-0071; held at review, where the wrap and patch rituals already dispatch an independent reviewer |
 
 ## Milestones
 
