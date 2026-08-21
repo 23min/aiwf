@@ -1,7 +1,9 @@
 ---
 id: G-0597
 title: Options offered to a human in a decision are not held to the measurement rule
-status: open
+status: addressed
+addressed_by_commit:
+    - 83e85fbaa
 ---
 ## What's missing
 
