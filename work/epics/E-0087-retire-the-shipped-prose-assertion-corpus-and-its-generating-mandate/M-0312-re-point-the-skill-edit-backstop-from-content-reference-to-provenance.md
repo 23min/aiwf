@@ -1,7 +1,7 @@
 ---
 id: M-0312
 title: Re-point the skill-edit backstop from content reference to provenance
-status: draft
+status: in_progress
 parent: E-0087
 tdd: required
 acs:
