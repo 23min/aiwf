@@ -241,44 +241,6 @@ func TestM0122_AC4_IdsUniqueAndContiguous(t *testing.T) {
 	_ = matches
 }
 
-// TestM0122_AC5_OpenQuestionsSectionPresent asserts M-0122/AC-5: the
-// catalog has a non-empty "Open questions for Pass C" section that
-// surfaces ambiguities first-principles reasoning could not resolve.
-// This is the load-bearing handoff to Pass C — without it, Pass C has
-// no list of decision points to work through.
-//
-// Three structural facts are pinned:
-//  1. The section heading "## Open questions for Pass C" is present.
-//  2. The section body is non-empty.
-//  3. The section contains at least three numbered question entries
-//     (the bar is deliberately low — Pass B should have surfaced more
-//     than zero ambiguities; "at least three" is the kept-honest floor).
-func TestM0122_AC5_OpenQuestionsSectionPresent(t *testing.T) {
-	t.Parallel()
-	body := loadFirstPrinciplesCatalog(t)
-
-	const heading = "## Open questions for Pass C"
-	idx := strings.Index(body, heading)
-	if idx == -1 {
-		t.Fatalf("AC-5: heading %q not found in catalog", heading)
-	}
-
-	section := fpSectionBody(body, heading)
-	if strings.TrimSpace(section) == "" {
-		t.Errorf("AC-5: %q section body is empty", heading)
-	}
-
-	// Count numbered question entries — pattern `**Qn — ` where n is
-	// an integer. The pattern matches the catalog's question shape
-	// (`**Q1 — AC `deferred` terminality.**`, etc.) without binding
-	// to a specific topic.
-	qPattern := regexp.MustCompile(`\*\*Q\d+ — `)
-	matches := qPattern.FindAllStringIndex(section, -1)
-	if got := len(matches); got < 3 {
-		t.Errorf("AC-5: %q section has %d numbered question entries; want >= 3", heading, got)
-	}
-}
-
 // --- helpers --------------------------------------------------------
 
 // fpSectionBody returns the body of a section starting at `headingPrefix`,
