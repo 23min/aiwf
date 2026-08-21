@@ -66,7 +66,7 @@ func PolicyM0228SkillsPolicyBroadenedPrinciple(root string) ([]Violation, error)
 
 	var vs []Violation
 	report := func(detail string) {
-		vs = append(vs, Violation{Policy: policyID, File: relPath, Detail: detail})
+		vs = append(vs, Violation{Policy: "m0228-skills-policy-broadened-principle", File: relPath, Detail: detail})
 	}
 
 	if len(body) == 0 {

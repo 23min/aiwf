@@ -13,18 +13,15 @@ import (
 // ritual snapshot (the source of truth per ADR-0016) and asserts the
 // corrected content, so a future edit that reintroduces the defect reddens.
 //
-// The two ritual-skill path literals below (plan-epic, wf-codebase-health)
-// double as the M-0196 skill-edit→structural-test backstop references for
-// those skills — a modified SKILL.md under embedded-rituals/** must be named
-// verbatim in some internal/policies/*_test.go. aiwfx-whiteboard and
-// aiwfx-wrap-epic are already referenced by their own test files; this file
-// reuses their package-level path constants.
+// The aiwfx-whiteboard and aiwfx-wrap-epic path constants are declared by
+// their own test files; this file reuses them rather than redeclaring
+// (H1 in practice: one source per path).
 const (
 	aiwfxPlanEpicFixturePath    = "internal/skills/embedded-rituals/plugins/aiwf-extensions/skills/aiwfx-plan-epic/SKILL.md"
 	wfCodebaseHealthFixturePath = "internal/skills/embedded-rituals/plugins/wf-rituals/skills/wf-codebase-health/SKILL.md"
 	// aiwf-retitle is a verb skill under embedded/ (not embedded-rituals/),
-	// so the M-0196 backstop does not require this reference; the AC-promote
-	// evidence discipline does.
+	// so the skill-edit provenance backstop does not watch it; the
+	// AC-promote evidence discipline is what asks for this reference.
 	aiwfRetitleFixturePath = "internal/skills/embedded/aiwf-retitle/SKILL.md"
 )
 

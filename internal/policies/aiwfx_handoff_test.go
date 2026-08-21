@@ -10,9 +10,7 @@ import (
 // Authoring locations for the aiwfx-handoff skill and the two boundary
 // rituals that reference it (G-0351). Per G-0182 the embedded snapshot
 // is the canonical authoring location; these seam-tests assert against
-// the same bytes the binary embeds. Naming the two ritual paths here
-// also satisfies the skill-edit-structural-test-backstop, which needs a
-// policy test referencing each edited embedded-rituals SKILL.md.
+// the same bytes the binary embeds.
 const (
 	aiwfxHandoffFixturePath        = "internal/skills/embedded-rituals/plugins/aiwf-extensions/skills/aiwfx-handoff/SKILL.md"
 	aiwfxHandoffStartMilestonePath = "internal/skills/embedded-rituals/plugins/aiwf-extensions/skills/aiwfx-start-milestone/SKILL.md"

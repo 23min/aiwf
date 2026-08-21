@@ -6,9 +6,8 @@ import (
 )
 
 // wf-structural-sweep structural tests (G-0450). The skill lives under
-// internal/skills/embedded-rituals/**, so referencing its path here also
-// discharges the skill-edit-structural-test-backstop (G-0220): the edited
-// ritual SKILL.md is referenced by the tests below. Each assertion is
+// internal/skills/embedded-rituals/**, the canonical authoring location,
+// so these tests assert against the bytes the binary embeds. Each assertion is
 // scoped to a named markdown section — heading count or section-local
 // content — never a flat body grep, per CLAUDE.md §"Substring assertions
 // are not structural assertions".

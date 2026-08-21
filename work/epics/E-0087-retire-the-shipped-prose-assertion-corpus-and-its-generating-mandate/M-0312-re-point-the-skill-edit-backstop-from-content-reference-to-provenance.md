@@ -7,16 +7,20 @@ tdd: required
 acs:
     - id: AC-1
       title: An untrailered edit to a watched shipped surface is refused
-      status: open
+      status: met
+      tdd_phase: done
     - id: AC-2
       title: A trailered, entity-owned edit passes with no policy test naming its path
-      status: open
+      status: met
+      tdd_phase: done
     - id: AC-3
       title: A trailered edit naming an unresolvable entity is refused
-      status: open
+      status: met
+      tdd_phase: done
     - id: AC-4
       title: CLAUDE.md no longer states that a SKILL.md edit requires a structural test
-      status: open
+      status: met
+      tdd_phase: done
 ---
 ## Goal
 
@@ -52,9 +56,10 @@ The required set is `aiwf-entity` alone. `aiwf-verb` is excluded because a ritua
 `trailer-verb-unknown` enforces — the Cobra verb tree plus the ritual stamps — carries no
 value meaning "I edited a shipped surface", so requiring one would mandate the fabricated
 trailer G-0150 closed. `aiwf-actor` is excluded because "who ran the verb" is undefined
-where no verb ran, git's author field already carries the answer, and an `ai/` actor with
-no scope trailers raises `provenance-no-active-scope` at error severity — friction whose
-cheapest escape is a false `human/` actor, which is worse provenance than none.
+where no verb ran — an edit directed in conversation has the human as principal and the
+assistant as a tool, so there is no separate actor to record — and because an `ai/` actor
+with no scope trailers raises `provenance-no-active-scope` at error severity, friction
+whose cheapest escape is a false `human/` actor, which is worse provenance than none.
 
 Fixture: a synthetic commit touching a watched surface with a bare Conventional Commits
 subject and no trailers. The policy fires.
@@ -156,3 +161,111 @@ to remove.
 ## Dependencies
 
 - D-0071, accepted.
+
+## Work log
+
+### AC-1..AC-4 — the predicate swap
+
+All four criteria landed in one commit; they are facets of one replacement and each is
+broken in isolation — deleting the old policy is what lets AC-2 pass, and the CLAUDE.md
+edit is AC-4. · commit 667c8e0fc · `internal/policies` suite green, diff-scoped
+branch-coverage audit and firing-fixture meta-gate clean.
+
+Five vacuity probes were run against the new predicate, each red on break and green on
+restore: the missing-trailer arm disabled, the unresolvable arm disabled, the resolver
+forced always-true, the composite rollup removed, and owned edits refused anyway. The
+first found a real defect. With the missing-trailer arm disabled, an empty id fell
+through to the unresolvable arm — `resolves("")` is false too — so a violation still
+fired on the same path and a file-only assertion could not tell the arms apart. The
+second arm now requires a named id, and the Detail assertions discriminate.
+
+AC-4's absence assertion was written after the CLAUDE.md edit rather than before it, so
+its red was never observed live. It was established afterwards instead: run against
+CLAUDE.md at `ffbd477e5`, every retired signature the ban names fires in at least one of
+the two sections, and the assertion passes against the current file.
+
+### Baseline carried in
+
+`TestGuidance_WithinLineBudget` was already failing when this milestone started — the
+guidance fragment reached 131 lines against a 120-line budget at `83e85fbaa`, a commit
+from a concurrent session on `main`. It is untouched by this work, in a package this
+milestone does not touch, and remains red. The budget's own comment sanctions raising the
+ceiling rather than compressing the rule, but which lines earn their place belongs to
+whoever wrote them.
+
+## Deferrals
+
+- G-0601 — `aiwf history <id>` renders only commits carrying `aiwf-verb`, so a skill-edit
+  commit carrying `aiwf-entity` alone satisfies this gate while staying invisible in the
+  history projection. Auditability is the point of provenance, so the gap is real; adding
+  `aiwf-verb` is what D-0071 rejected, so the fix is not obvious.
+- G-0317 asks for the strengthening D-0071 explicitly rejected, against a predicate this
+  milestone deletes; closed `wontfix` alongside this work.
+- G-0580 stays open. The watched surface set is out of this milestone's scope, and its
+  body still describes the retired predicate.
+- G-0602 — a merge that resolves a conflict by writing new content into a watched
+  `SKILL.md` introduces content no examined commit carries, so the gate is silent on it.
+- G-0603 — nothing catches a missing trailer at composition time, when the repair is an
+  amend rather than a rebase. A `commit-msg` hook could.
+
+## Reviewer notes
+
+Two independent fresh-context reviewers ran over the full change-set: a code-quality lens
+and a design-quality lens on the predicate itself. The design lens returned KEEP against
+its five obligations. A third, deciding pass over the full change-set then found that one
+of the corrective fixes was itself unpinned. Every finding that changed the code is
+below.
+
+- The violation's `Policy` field was set from a named constant. The firing-fixture
+  meta-gate matches a string literal, so the policy had dropped out of its inventory and
+  nothing proved it could fire — the regression class that gate exists to catch,
+  introduced by this milestone. Restoring the literal returns it to the inventory, but
+  restoring it pinned nothing: the deciding pass measured that reverting to a constant
+  left the whole suite green. The pin is `violation-policy-id-literal`, a ban on setting
+  the field from anything but a literal. A ban rather than a per-policy proof because it
+  costs once, and because the alternative — teaching the inventory to resolve constants —
+  buys a second evaluator with its own blind spots. It caught a second, pre-existing
+  instance on its first run, which is now inlined too.
+- `--diff-filter=AM` let a rename escape. Git reports a sufficiently similar rename as one
+  R entry, so a commit that moved a skill and rewrote part of it passed with no owner
+  named. The two reviewers disagreed here and the disagreement was a threshold artifact:
+  below git's similarity cutoff a move degrades to delete-plus-add and is caught, above it
+  is not. The filter now admits R, and the fixture is deliberately over the cutoff.
+- An unparseable owning entity read as a missing one, because the loader records a file it
+  cannot parse as a stub rather than an entity. That let an edit to an unrelated file turn
+  a landed commit red while advising the operator to name an entity that already exists —
+  a drift the design's own non-drift obligation forbids.
+- The `prior_ids` arm had no test, and it is the mechanism that keeps older commit
+  trailers resolving across `aiwf reallocate`.
+- Git escapes a non-ASCII path by default, and the escaped form silently missed the
+  `/SKILL.md` suffix test, so such an edit left the watched set entirely.
+- The resolver re-inlined `tree.ResolveByCurrentOrPriorID`, which is byte-identical.
+
+Declined, with reasons: the `id != ""` conjunct in the second arm is redundant against
+case order and is kept deliberately, because stating each arm's condition in full is what
+keeps the two arms independent. The `"structural test"` signature in AC-4's ban is generic
+and could catch unrelated prose in either named section; that is the correct trade for a
+ban, where a false positive costs one reading and a false negative costs the rule.
+
+A third escape closed alongside them: under a caller's `diff.renames=copies`, a copied
+skill reports as C and no filter here admits it, so the brand-new shipped file was
+invisible while only the touched source was reported. The gate now pins its own
+`diff.renames` rather than inheriting the caller's, so what it watches does not vary with
+who runs it.
+
+Four records disagreed with what shipped, and each was reconciled rather than left to the
+sibling. D-0071's Decision section named the verb trailers; it now names `aiwf-entity` and
+carries why the other two are excluded. That same decision holds a mandate to a named
+owner and a retirement trigger, and the replacement is a mandate by the same grammar —
+recorded as permanent, with the argument that H3's requirement exists to bound accretion
+and this rule accretes nothing: the cost is a commit-message line, not a durable artifact.
+D-0053's named trigger was widening the old backstop, which no longer exists and could not
+have retired a content ledger anyway; its real trigger is D-0070's deletion pass, since the
+ledger is prose-presence assertions over a surface that decision covers. G-0368 asked for a
+pinning test that would have regrown the corpus.
+
+G-0370 was left alone deliberately. Its instruction looks like the same case, but the
+content it pins is dispatch trigger phrases, which D-0070 preserves — and whether that
+exception reaches the always-on guidance fragment, as opposed to a skill's own `## When to
+use`, is a question D-0070 does not answer. Settling it as a side effect of this wrap would
+decide the scope of an accepted decision without the argument.

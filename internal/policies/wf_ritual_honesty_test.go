@@ -9,9 +9,8 @@ import (
 
 // wf-ritual honesty / reframe tests (M-0199 / G-0309, G-0297, G-0294). Each
 // pins one corrected fact in a wf-* engineering ritual. The edited skills
-// live under internal/skills/embedded-rituals/**, so referencing their
-// paths here also discharges the skill-edit-structural-test-backstop
-// (G-0220): every edited ritual SKILL.md is referenced by a test below.
+// live under internal/skills/embedded-rituals/**, the canonical authoring
+// location, so these tests assert against the bytes the binary embeds.
 //
 // These are doc-shaped assertions — there is no kernel set to source-derive
 // — so each is scoped to the named section (heading order or section-local

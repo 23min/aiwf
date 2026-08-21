@@ -6,8 +6,7 @@ import (
 )
 
 // wf-codebase-health "H. Economy" section tests (G-0451). These structural
-// tests pin the new section's prescriptions; the rubric path literal that
-// discharges the skill-edit-structural-test-backstop (G-0220) is the shared
+// tests pin the new section's prescriptions. The rubric path is the shared
 // wfCodebaseHealthFixturePath const declared by a sibling policy test in
 // this package, and the guidance path is g0343GuidanceFixturePath — both
 // reused here rather than redeclared (H1 in practice: one source per path).

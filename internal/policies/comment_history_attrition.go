@@ -28,7 +28,7 @@ import (
 // polices this repo's Go source; `aiwf check` validates the planning tree in
 // consumer repos, whose source language the kernel knows nothing about.
 //
-// Like PolicyBranchCoverageAudit and PolicySkillEditStructuralTestBackstop
+// Like PolicyBranchCoverageAudit and PolicySkillEditProvenanceBackstop
 // it is diff-scoped and reads its base ref from the environment, keeping the
 // uniform func(root) ([]Violation, error) shape the runPolicy harness drives:
 //
