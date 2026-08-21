@@ -19,7 +19,7 @@ acs:
       tdd_phase: done
     - id: AC-4
       title: CLAUDE.md no longer states that a SKILL.md edit requires a structural test
-      status: open
+      status: met
       tdd_phase: done
 ---
 ## Goal
