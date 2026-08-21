@@ -40,9 +40,47 @@ constants that only exist to satisfy the old predicate.
 
 ### AC-1 — A phrase assertion over shipped prose fails the policy suite
 
+A policy fails the suite when a test that reads a shipped-surface fixture asserts its
+prose contains a particular phrase, naming the file and line. The check runs over **test
+source**, not over prose, which is what makes it immune to rewording and distinguishes it
+from the class D-0070 retires.
+
+**The allowlist is closed to the two exception classes named in D-0070, and carries no
+grandfather entries.** This clause is what makes the deletion real rather than incidental.
+Without it the ban is satisfiable by exempting everything that already exists — a move
+this repo has precedent for in the firing-fixture gate's own ledger — and the corpus
+survives with every acceptance criterion green. With it, a green suite means the corpus
+is gone, because the two cannot both be true.
+
+Fixture: plant a long-literal containment assertion in a test reading an embedded-skill
+fixture; the policy fires and names it. Removing the plant returns the suite to green.
+
 ### AC-2 — The cross-document citation walk still fails on a dangling reference
 
+The check that walks every ritual and fails a section reference naming a heading no
+ritual defines survives this milestone intact, and still bites.
+
+It is the one assertion in the corpus with a recorded catch — two dangling citations on
+its first run — and D-0050 names its shape as the one to prefer: a relationship between
+documents rather than a reading of one. No rewording makes it pass falsely.
+
+Probe: introduce a section reference naming a heading that does not exist, confirm the
+walk goes red, revert. An unproven survivor is a finding, not a completion.
+
 ### AC-3 — The dispatch trigger-phrase checks still fail when a phrase is removed
+
+The assertions over trigger phrases in a skill's `## When to use` section and its
+`description:` frontmatter survive, and still bite.
+
+These pin dispatch behaviour rather than prose style: G-0353's session mining measured
+the deployer agent at approximately zero dispatches before those phrasings existed. The
+limit is worth restating, because it bounds how much the exception is worth — nothing
+mechanical consumes a trigger phrase, so the property rests on an assistant's judgment.
+D-0070 keeps the class on the strength of the evidence, not the soundness of the
+mechanism.
+
+Probe: remove one trigger phrase from the deployer card's `description:` and one from
+`aiwfx-release`'s `## When to use`, confirm each goes red, revert.
 
 ## Constraints
 
