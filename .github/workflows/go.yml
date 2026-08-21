@@ -124,9 +124,10 @@ jobs:
       #   - Firing-fixture-presence meta-gate (G-0259): fail if any
       #     non-grandfathered policy has a firing branch no test covers,
       #     and keep the grandfatherDark ledger free of stale entries.
-      #   - Skill-edit structural-test backstop (G-0220): fail if a commit
-      #     edits a ritual SKILL.md under internal/skills/embedded-rituals
-      #     with no referencing structural test under internal/policies/.
+      #   - Skill-edit provenance backstop (G-0220 / D-0071): fail if a
+      #     commit edits a ritual SKILL.md under
+      #     internal/skills/embedded-rituals carrying no aiwf-entity
+      #     trailer, or one naming an id that resolves to no entity.
       #     Diff-scoped on the base ref.
       # The base is the merge-base with origin/main on a PR, or
       # github.event.before on a trunk push; an all-zero before-SHA (a
@@ -144,7 +145,7 @@ jobs:
         env:
           AIWF_COVERAGE_PROFILE: ${{ github.workspace }}/coverage.out
           AIWF_COVERAGE_BASE: ${{ steps.covbase.outputs.base }}
-        run: go test -exec=$GITHUB_WORKSPACE/scripts/sign-and-run.sh -run '^TestPolicy_(BranchCoverageAudit|FiringFixturePresence|FiringFixtureNoStaleAllowlist|SkillEditStructuralTestBackstop|CommentHistoryAttrition|TestExecutableWrite)$' -count=1 ./internal/policies/
+        run: go test -exec=$GITHUB_WORKSPACE/scripts/sign-and-run.sh -run '^TestPolicy_(BranchCoverageAudit|FiringFixturePresence|FiringFixtureNoStaleAllowlist|SkillEditProvenanceBackstop|CommentHistoryAttrition|TestExecutableWrite)$' -count=1 ./internal/policies/
       - uses: actions/upload-artifact@v4
         with:
           name: coverage

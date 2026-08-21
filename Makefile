@@ -144,9 +144,9 @@ test-cov:
 # since origin/main is tested or //coverage:ignore'd), the total
 # firing-fixture-presence meta-gate (G-0259 — every non-grandfathered
 # policy has a test that covers its firing branch) plus its no-stale
-# allowlist check, and the skill-edit structural-test backstop (G-0220 —
-# a ritual SKILL.md edit must be paired with a referencing structural
-# test under internal/policies/). It generates a fresh atomic-mode
+# allowlist check, and the skill-edit provenance backstop (G-0220 /
+# D-0071 — a ritual SKILL.md edit must ride a commit whose aiwf-entity
+# trailer names a real entity). It generates a fresh atomic-mode
 # profile, then delegates to coverage-gate-only. The diff-scoped gates
 # compare the base against the working tree, so uncommitted changes are
 # in scope and you need not commit first. CI runs the same gates in the
@@ -202,7 +202,7 @@ coverage-gate-only:
 	fi; \
 	AIWF_COVERAGE_PROFILE="$(CURDIR)/coverage.out" \
 	AIWF_COVERAGE_BASE="$$base" \
-	go test -exec=$(TEST_EXEC) -run '^TestPolicy_(BranchCoverageAudit|FiringFixturePresence|FiringFixtureNoStaleAllowlist|SkillEditStructuralTestBackstop|CommentHistoryAttrition|TestExecutableWrite)$$' -count=1 ./internal/policies/
+	go test -exec=$(TEST_EXEC) -run '^TestPolicy_(BranchCoverageAudit|FiringFixturePresence|FiringFixtureNoStaleAllowlist|SkillEditProvenanceBackstop|CommentHistoryAttrition|TestExecutableWrite)$$' -count=1 ./internal/policies/
 
 # comment-history-audit is the focused whole-tree run of the comment
 # history-attrition scan — the surface the wf-codebase-health rubric's
