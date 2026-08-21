@@ -254,11 +254,6 @@ func TestAiwfxWhiteboard_AC5_QAGate(t *testing.T) {
 	if !strings.Contains(lower, "one at a time") {
 		t.Error("AC-5: §Q&A gate must enforce one-at-a-time framing")
 	}
-
-	// Reference to CLAUDE.md's Q&A convention or equivalent.
-	if !regexp.MustCompile(`(?i)claude\.md|working with the user|q&a format`).MatchString(section) {
-		t.Error("AC-5: §Q&A gate must reference the CLAUDE.md Q&A convention")
-	}
 }
 
 // TestAiwfxWhiteboard_AC6_AntiPatterns asserts AC-6: the body has

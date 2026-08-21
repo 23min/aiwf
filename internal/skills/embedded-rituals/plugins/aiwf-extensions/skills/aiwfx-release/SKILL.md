@@ -19,7 +19,7 @@ When dispatched, the two push gates (steps 6 and 7) are executed by the orchestr
 
 ## Gate discipline
 
-Per CLAUDE.md §"Working with the user," every mutating action this skill walks you through — committing the CHANGELOG, creating the tag, pushing commits, pushing the tag — is its own gate. The standing invariant is **one approval per action, no bundling**.
+Every mutating action this skill walks you through — committing the CHANGELOG, creating the tag, pushing commits, pushing the tag — is its own gate. The standing invariant is **one approval per action, no bundling**.
 
 A release ritual is the highest-blast-radius sequence aiwf walks you through: a single bundled "tag and push" approval is the difference between a recoverable local mistake and a published artifact every downstream consumer's `aiwf upgrade` will see. Never collapse tag-creation into tag-push. Never collapse "push the commit" into "push the tag" without naming both in the prompt.
 
@@ -121,7 +121,7 @@ git push origin main
 
 **When running as a dispatched subagent, hand this command back to the orchestrating session to execute** rather than running it yourself — see the handoff note under "When to use." Report the approved command, then wait for the orchestrator to confirm the push landed before continuing to CI verification.
 
-This push is its own gate — outward and irreversible. The tag push is a separate gate (next step). Per CLAUDE.md's declared-sequence bright line, outward actions are never batched; the two pushes are never collapsed into one approval.
+This push is its own gate — outward and irreversible. The tag push is a separate gate (next step). Outward actions are never batched; the two pushes are never collapsed into one approval.
 
 ### 7. 🛑 Push gate (tag)
 

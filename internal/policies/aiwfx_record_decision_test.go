@@ -57,16 +57,13 @@ func TestAiwfxRecordDecision_AC1_BodyFillRoutesThroughEditBody(t *testing.T) {
 }
 
 // TestAiwfxRecordDecision_AC2_ADRAuthoringDiscipline pins AC-2: the
-// record-decision skill carries the CLAUDE.md §"Authoring an ADR"
-// discipline — it references the section by name and warns against writing
-// gate/schedule language into an ADR body ("decision is decision").
+// record-decision skill carries the ADR authoring discipline, warning
+// against writing gate/schedule language into an ADR body ("decision is
+// decision").
 func TestAiwfxRecordDecision_AC2_ADRAuthoringDiscipline(t *testing.T) {
 	t.Parallel()
 	body := loadAiwfxRecordDecisionFixture(t)
 
-	if !strings.Contains(body, "Authoring an ADR") {
-		t.Error(`AC-2: record-decision must point at CLAUDE.md §"Authoring an ADR" so the author inherits its discipline`)
-	}
 	// The distinctive doctrine phrase — "decision is decision" — anchors the
 	// no-gate-language rule (no "ratify after X", no "status stays proposed
 	// through Y" in an ADR body).

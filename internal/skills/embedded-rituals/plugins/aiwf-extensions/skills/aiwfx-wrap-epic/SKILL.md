@@ -102,7 +102,7 @@ Append the report to `wrap.md` under a `## Doc findings` section. If findings in
 
 ### 4. 🛑 Declared-sequence gate — close the epic (terminal local sequence)
 
-This is the epic's terminal sequence of *local, reversible* mutations. Per CLAUDE.md's gate-discipline section, present it as a single **declared-sequence gate** that enumerates every action verbatim; the user may approve a subset ("all except the promote"), and any deviation (a merge conflict, a check finding, unexpected dirty state) aborts the sequence and re-gates from the point of deviation. **Excluded from this gate:** the push (step 10) and the origin-branch deletes (step 11) — those are outward and stand as their own gates, never batched here.
+This is the epic's terminal sequence of *local, reversible* mutations. Present it as a single **declared-sequence gate** that enumerates every action verbatim; the user may approve a subset ("all except the promote"), and any deviation (a merge conflict, a check finding, unexpected dirty state) aborts the sequence and re-gates from the point of deviation. **Excluded from this gate:** the push (step 10) and the origin-branch deletes (step 11) — those are outward and stand as their own gates, never batched here.
 
 The enumerated local sequence is **merge → wrap-artefact commit → promote-done → roadmap regen**:
 
@@ -149,7 +149,7 @@ git merge --no-ff --no-commit epic/E-NNNN-<slug>
 
 `--no-ff` preserves the epic as a single merge commit; `--no-commit` leaves the merge staged so the commit-emitting step is the one carrying trailers. Without `--no-commit`, git produces an untrailered merge commit and the kernel's `provenance-untrailered-entity-commit` rule fires once per entity file touched by the merge.
 
-Resolve the operator identity from `git config user.email` (per CLAUDE.md *Provenance model* §"Identity is runtime-derived"); do not hardcode `<id>`. Then commit with the three required trailers and a Conventional Commits subject:
+Resolve the operator identity from `git config user.email` — identity is runtime-derived, not stored; do not hardcode `<id>`. Then commit with the three required trailers and a Conventional Commits subject:
 
 ```bash
 git commit -m "chore(epic): wrap E-NNNN — <epic title>" \
@@ -158,7 +158,7 @@ git commit -m "chore(epic): wrap E-NNNN — <epic title>" \
   --trailer "aiwf-actor: human/<id>"
 ```
 
-The trailer keys are quoted from CLAUDE.md §"Commit conventions" verbatim — `aiwf-verb`, `aiwf-entity`, `aiwf-actor`. Variant casings (e.g. `Aiwf-Verb`) fail the kernel's trailer-keys policy. Record the resulting merge SHA in `wrap.md`.
+The trailer keys are exact — `aiwf-verb`, `aiwf-entity`, `aiwf-actor`. Variant casings (e.g. `Aiwf-Verb`) fail the kernel's trailer-keys policy. Record the resulting merge SHA in `wrap.md`.
 
 **Do not push yet.**
 

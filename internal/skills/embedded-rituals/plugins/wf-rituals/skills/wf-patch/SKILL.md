@@ -9,7 +9,7 @@ A lightweight ritual for changes too small to be a milestone but too significant
 
 ## Gate discipline
 
-Per CLAUDE.md §"Working with the user," mutating actions are gated behind explicit human approval. This skill fires three gates:
+Mutating actions are gated behind explicit human approval. This skill fires three gates:
 
 1. **Commit gate** — after the independent review, before the commit lands.
 2. **Wrap gate (declared sequence)** — one approval covering the patch's *enumerated* terminal sequence: local merge to mainline, tracker closure (e.g. `aiwf promote G-NNNN addressed --by-commit <sha>`) when the patch closes a tracked item, and cleanup (local branch deletion, worktree removal). The gate question lists every action verbatim; approval binds to exactly that list, and the user may approve a subset. Any deviation — merge conflict, check finding, unexpected dirty state, anything not on the list — aborts the sequence and re-gates from the point of deviation.
@@ -39,13 +39,13 @@ If one exists, state the user-observable goal in your own words before touching 
 
 ### 2. Create a descriptive branch
 
-Per CLAUDE.md §"Default to a worktree for any branch work," create it from the project's mainline in its own worktree rather than switching the main checkout in place. `aiwf worktree add` creates the linked worktree and materializes rituals (skills, agents, templates, guidance) into it atomically, in one step (substitute your mainline branch):
+Cut it from the project's mainline in its own worktree rather than switching the main checkout in place. `aiwf worktree add` creates the linked worktree and materializes rituals (skills, agents, templates, guidance) into it atomically, in one step (substitute your mainline branch):
 
 ```bash
 aiwf worktree add patch/G-NNNN-<short-slug> --base main --print-path
 ```
 
-This ritual runs as the calling session's own direct work (not a dispatched subagent per CLAUDE.md's "Subagent worktree isolation" section), so call the harness `EnterWorktree(path: <printed path>)` tool right after `aiwf worktree add` succeeds: creating the worktree only puts it on disk, it does not relocate the session, and only `EnterWorktree` does that.
+This ritual runs as the calling session's own direct work (not a dispatched subagent), so call the harness `EnterWorktree(path: <printed path>)` tool right after `aiwf worktree add` succeeds: creating the worktree only puts it on disk, it does not relocate the session, and only `EnterWorktree` does that.
 
 Name the branch for the gap it closes so the statusline can surface it:
 
