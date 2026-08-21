@@ -1,7 +1,7 @@
 ---
 id: D-0070
 title: Retire prose-content assertions over shipped surfaces
-status: proposed
+status: accepted
 relates_to:
     - D-0050
     - G-0596
