@@ -160,3 +160,45 @@ to remove.
 ## Dependencies
 
 - D-0071, accepted.
+
+## Work log
+
+### AC-1..AC-4 — the predicate swap
+
+All four criteria landed in one commit; they are facets of one replacement and each is
+broken in isolation — deleting the old policy is what lets AC-2 pass, and the CLAUDE.md
+edit is AC-4. · commit 667c8e0fc · `internal/policies` suite green, diff-scoped
+branch-coverage audit and firing-fixture meta-gate clean.
+
+Five vacuity probes were run against the new predicate, each red on break and green on
+restore: the missing-trailer arm disabled, the unresolvable arm disabled, the resolver
+forced always-true, the composite rollup removed, and owned edits refused anyway. The
+first found a real defect. With the missing-trailer arm disabled, an empty id fell
+through to the unresolvable arm — `resolves("")` is false too — so a violation still
+fired on the same path and a file-only assertion could not tell the arms apart. The
+second arm now requires a named id, and the Detail assertions discriminate.
+
+AC-4's absence assertion was written after the CLAUDE.md edit rather than before it, so
+its red was never observed live. It was established afterwards instead: run against
+CLAUDE.md at `ffbd477e5`, the assertion fails on all four retired signatures across both
+named sections, and passes against the current file.
+
+### Baseline carried in
+
+`TestGuidance_WithinLineBudget` was already failing when this milestone started — the
+guidance fragment reached 131 lines against a 120-line budget at `83e85fbaa`, a commit
+from a concurrent session on `main`. It is untouched by this work, in a package this
+milestone does not touch, and remains red. The budget's own comment sanctions raising the
+ceiling rather than compressing the rule, but which lines earn their place belongs to
+whoever wrote them.
+
+## Deferrals
+
+- G-0601 — `aiwf history <id>` renders only commits carrying `aiwf-verb`, so a skill-edit
+  commit carrying `aiwf-entity` alone satisfies this gate while staying invisible in the
+  history projection. Auditability is the point of provenance, so the gap is real; adding
+  `aiwf-verb` is what D-0071 rejected, so the fix is not obvious.
+- G-0317 asks for the strengthening D-0071 explicitly rejected, against a predicate this
+  milestone deletes; closed `wontfix` alongside this work.
+- G-0580 stays open. The watched surface set is out of this milestone's scope, and its
+  body still describes the retired predicate.
