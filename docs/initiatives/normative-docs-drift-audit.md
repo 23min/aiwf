@@ -212,7 +212,8 @@ that no longer exists** — a cross-repo fixture pattern at
 `internal/policies/testdata/<skill-name>/SKILL.md` plus a drift check against
 `~/.claude/plugins/cache/ai-workflow-rituals/`. That directory is absent and
 ADR-0014/0016 retired the channel; the current backstop is
-`internal/policies/skill_edit_structural_test_backstop.go`. `ADR-0010:98`
+`internal/policies/skill_edit_provenance_backstop.go`, which asks a skill edit
+to name its owning entity rather than to be referenced by a test. `ADR-0010:98`
 carries the same stale reference.
 
 **Rituals-plugin framing survives ADR-0014/0016** at `architecture.md:54`

@@ -149,7 +149,9 @@ test-cov:
 # trailer names a real entity). It generates a fresh atomic-mode
 # profile, then delegates to coverage-gate-only. The diff-scoped gates
 # compare the base against the working tree, so uncommitted changes are
-# in scope and you need not commit first. CI runs the same gates in the
+# in scope and you need not commit first — except the skill-edit
+# provenance backstop, which judges commits, since an uncommitted edit
+# carries no provenance to judge. CI runs the same gates in the
 # test job.
 coverage-gate:
 	go test -exec=$(TEST_EXEC) -covermode=atomic -coverprofile=coverage.out -coverpkg=./internal/... -parallel 8 ./...

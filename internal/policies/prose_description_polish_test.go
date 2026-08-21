@@ -20,8 +20,8 @@ const (
 	aiwfxPlanEpicFixturePath    = "internal/skills/embedded-rituals/plugins/aiwf-extensions/skills/aiwfx-plan-epic/SKILL.md"
 	wfCodebaseHealthFixturePath = "internal/skills/embedded-rituals/plugins/wf-rituals/skills/wf-codebase-health/SKILL.md"
 	// aiwf-retitle is a verb skill under embedded/ (not embedded-rituals/),
-	// so the M-0196 backstop does not require this reference; the AC-promote
-	// evidence discipline does.
+	// so the skill-edit provenance backstop does not watch it; the
+	// AC-promote evidence discipline is what asks for this reference.
 	aiwfRetitleFixturePath = "internal/skills/embedded/aiwf-retitle/SKILL.md"
 )
 

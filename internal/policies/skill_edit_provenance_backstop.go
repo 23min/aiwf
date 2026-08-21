@@ -169,13 +169,16 @@ func entityResolver(root string) (func(string) bool, error) {
 		if t.ResolveByCurrentOrPriorID(id) != nil {
 			return true
 		}
-		// A file the loader could not parse still proves the entity
-		// exists: tree.Load records it as a path-derived stub rather
-		// than an entity, and its malformed YAML is a finding for
-		// `aiwf check` to report. Counting it as unresolved would let a
-		// landed commit turn red on an edit to a *different* file, and
-		// would tell the operator to name an entity that exists when it
-		// already does.
+		// A file the loader could not parse still witnesses the entity:
+		// tree.Load records it as a stub whose id comes from the path,
+		// and its malformed YAML is a finding `aiwf check` reports at
+		// error severity, which blocks the push on its own. Counting it
+		// as unresolved would let a landed commit turn red over an edit
+		// to a *different* file, and would tell the operator to name an
+		// entity that already exists. The id is path-derived, so a junk
+		// file at an entity-shaped path would satisfy this — that fence
+		// is the load-error finding, not this resolver, and forging one
+		// costs more than `aiwf add`.
 		for _, s := range t.Stubs {
 			if entity.Canonicalize(s.ID) == entity.Canonicalize(id) {
 				return true
@@ -205,17 +208,22 @@ const (
 // path, which is the file that ships. Deletions stay out — a removed
 // skill has no content left to own.
 //
+// Both git settings are pinned on the invocation rather than inherited,
+// so what the gate watches does not vary with the caller's config.
 // `core.quotePath=false` keeps a non-ASCII path readable rather than
-// C-quoted, so the /SKILL.md suffix test below still matches it.
+// escaped, so the /SKILL.md suffix test below still matches it.
+// `diff.renames=true` fixes detection at renames only: under a caller's
+// `copies` setting a duplicated skill reports as C, which no filter here
+// admits, and the brand-new shipped file would escape. With copy
+// detection off it reports as an ordinary addition and is caught.
 //
 // Merge commits contribute nothing, because `git log` emits no diff for
 // one without an explicit --diff-merges. Content introduced *by* a merge
-// resolution is therefore unowned by construction — see the gap noted in
-// M-0312's Deferrals.
+// resolution is therefore unowned by construction (G-0602).
 func skillEditsInRange(root, baseRef string) ([]skillEdit, error) {
 	format := skillEditRecSep + "%H" + skillEditFldSep +
 		"%(trailers:key=" + gitops.TrailerEntity + ",valueonly,separator=" + skillEditFldSep + ")"
-	cmd := exec.Command("git", "-c", "core.quotePath=false", "log",
+	cmd := exec.Command("git", "-c", "core.quotePath=false", "-c", "diff.renames=true", "log",
 		"--format="+format, "--name-only", "--diff-filter=AMR",
 		baseRef+"..HEAD", "--", skillRitualsDir)
 	cmd.Dir = root

@@ -579,7 +579,7 @@ func TestSkillEditProvenance_RenameIsWatched(t *testing.T) {
 	// this test would pass under the narrower filter too and prove
 	// nothing about R.
 	status := runGit("log", "--format=", "--name-status", "-1")
-	if !strings.Contains(status, "R") {
+	if !strings.HasPrefix(strings.TrimSpace(status), "R") {
 		t.Fatalf("fixture premise broken: git did not report a rename:\n%s", status)
 	}
 
@@ -672,5 +672,40 @@ func TestSkillEditProvenance_NonASCIIPathIsWatched(t *testing.T) {
 	want := []string{weird}
 	if got := violationFiles(vs); !equalStrings(got, want) {
 		t.Errorf("violation files = %v, want %v (a non-ASCII path must not escape)", got, want)
+	}
+}
+
+// TestSkillEditProvenance_CopyDetectionCannotHideANewSkill pins that the
+// gate's watched set does not vary with the caller's git config. A repo
+// configured with `diff.renames=copies` reports a duplicated skill as C,
+// which no filter here admits — so without the pinned setting the
+// brand-new shipped file escapes entirely while only the touched source
+// is reported.
+func TestSkillEditProvenance_CopyDetectionCannotHideANewSkill(t *testing.T) {
+	t.Parallel()
+	const src = skillRitualsDir + "/plugins/aiwf-extensions/skills/aiwfx-fictional-hotel/SKILL.md"
+	const cp = skillRitualsDir + "/plugins/aiwf-extensions/skills/aiwfx-fictional-india/SKILL.md"
+
+	body := strings.Repeat("prescriptive line\n", 60)
+	root, runGit, writeFile, _ := skillFixtureBase(t)
+	runGit("config", "diff.renames", "copies")
+	writeFile(src, body)
+	runGit("add", "-A")
+	runGit("commit", "-m", "seed the skill")
+	baseSHA := trimLine(runGit("rev-parse", "HEAD"))
+
+	writeFile(cp, body)
+	writeFile(src, body+"touched\n")
+	runGit("add", "-A")
+	runGit("commit", "-m", "copy a skill and touch the source, no owner named")
+
+	vs, err := skillEditProvenanceViolations(root, baseSHA)
+	if err != nil {
+		t.Fatalf("skillEditProvenanceViolations: %v", err)
+	}
+	// Sorted by path: the source's skill name sorts before the copy's.
+	want := []string{src, cp}
+	if got := violationFiles(vs); !equalStrings(got, want) {
+		t.Errorf("violation files = %v, want %v (the copy must not escape)", got, want)
 	}
 }
