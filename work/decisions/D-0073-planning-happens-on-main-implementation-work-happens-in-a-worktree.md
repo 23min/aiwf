@@ -1,7 +1,7 @@
 ---
 id: D-0073
 title: Planning happens on main; implementation work happens in a worktree
-status: proposed
+status: accepted
 ---
 > **Date:** 2026-08-22 · **Decided by:** human/peter
 
