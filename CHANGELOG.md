@@ -16,6 +16,23 @@ section in this file.
 
 ## [Unreleased]
 
+### Fixed — G-0615: `wf-patch` no longer tells you to check out the branch it merges into
+
+`wf-patch` ended by switching to mainline, once to fast-forward it and once to run
+the merge. Git allows one checkout per branch, so under the in-repo worktree default
+mainline is already held by the primary checkout and both steps fail outright — at
+the end of the ritual, partway through a sequence the human has already approved.
+
+The whole terminal sequence now resolves the worktree holding mainline once and
+drives it by path with `git -C`, the shape G-0609 gave the wrap rituals: the
+reconcile and the merge, the tracker closure (via `--root`, so the closure commit
+lands on mainline rather than on the patch branch), the branch delete (which removes
+the patch worktree first, since git will not delete a branch a worktree still
+holds), and the push. A documented fallback covers the case where mainline is
+checked out nowhere.
+
+Run `aiwf update` to pick it up.
+
 ### Changed — G-0610: the drafting-history rule names corrections and gives a keep/drop test
 
 The always-on guidance told assistants to state the conclusion rather than the

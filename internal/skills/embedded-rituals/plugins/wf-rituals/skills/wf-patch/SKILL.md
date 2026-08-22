@@ -117,11 +117,24 @@ Once the sequence is approved, execute it in order:
 
 Run this immediately before the merge — not as an earlier precondition a concurrent push can invalidate. The target is your *local* mainline (the branch the patch forked from and merges into), not the remote-tracking ref.
 
-1. Fetch, then fast-forward local mainline to its upstream — folds in commits another clone pushed; concurrent local commits are already on it (substitute your mainline branch and remote; a project with no remote skips this step):
+**Do not check mainline out.** A branch can be checked out in one worktree at a time, so where the patch was cut into its own worktree (step 2) mainline is held elsewhere and `git checkout main` fails with *"fatal: … is already used by worktree at …"*. Resolve the holding worktree once, before the sub-steps below; steps 12 through 15 all drive it by that path:
+
+```bash
+MAIN_WT=$(git worktree list --porcelain \
+  | awk -v b="refs/heads/main" \
+        '/^worktree /{wt=substr($0,10)} $0=="branch "b{print wt; exit}')
+[ -n "$MAIN_WT" ] || echo "mainline is checked out nowhere — take the fallback below before continuing"
+```
+
+`substr($0,10)` rather than `$2` so a worktree path containing spaces survives.
+
+If `MAIN_WT` is empty, mainline is checked out nowhere and a plain `git checkout main` is safe; set `MAIN_WT=.` after checking out so every command below reads the same either way. **Never leave it empty.** `git -C ""` runs against the *current* worktree, which is the patch branch: at sub-step 1 below, `git -C "" merge --ff-only origin/main` silently fast-forwards the patch branch onto mainline's upstream when the patch has no unique commits, and the later steps then operate on the wrong branch.
+
+1. Fetch, then fast-forward local mainline to its upstream — folds in commits another clone pushed; concurrent local commits are already on it (substitute your mainline branch and remote; a project with no remote skips the fetch and this fast-forward, but still needs `MAIN_WT` above):
 
    ```bash
    git fetch
-   git checkout main && git merge --ff-only origin/main
+   git -C "$MAIN_WT" merge --ff-only origin/main
    ```
 
 2. Check whether mainline has advanced past the patch branch's fork point (substitute the project's mainline ref):
@@ -136,10 +149,11 @@ Run this immediately before the merge — not as an earlier precondition a concu
 
 ### 12. Merge the patch branch to mainline
 
+Using `MAIN_WT` from step 11 — this session holds the patch branch, so the merge runs against the worktree holding mainline rather than moving into it. The variable is shell state and this ritual spans many commands: if the shell no longer carries it — a new shell, an aborted and re-gated sequence, a context compaction — re-run step 11's resolution first. An empty `MAIN_WT` merges nothing and reports success:
+
 ```bash
-git checkout main
-git merge --no-ff --no-commit <branch>
-git commit -m "Merge patch/<branch>: <summary>"
+git -C "$MAIN_WT" merge --no-ff --no-commit <branch>
+git -C "$MAIN_WT" commit -m "Merge patch/<branch>: <summary>"
 ```
 
 `--no-ff` keeps the patch as one identifiable merge commit — the branch + explicit-merge audit trail this ritual exists to produce. `--no-commit` leaves the merge staged so the commit above carries the deliberate summary message, not git's default.
@@ -149,17 +163,29 @@ git commit -m "Merge patch/<branch>: <summary>"
 If the patch closes a tracked item:
 
 ```bash
-aiwf promote G-NNNN addressed --by-commit <sha>
+aiwf promote G-NNNN addressed --by-commit <sha> --root "$MAIN_WT"
 ```
 
-This closure is mechanically guarded: `aiwf` refuses a `--by-commit` SHA that is not reachable from `HEAD`. If that refusal fires, the merge did not land — reconcile and merge first (steps 11–12); don't `--force` past it.
+`--root` targets the worktree holding mainline, for the same reason the merge did — the closure commit belongs on mainline, not on the patch branch. Without it the commit lands on whichever branch this session holds, and step 14's branch delete then fails with *"the branch … is not fully merged"*.
+
+That flag also fixes what the guard proves. The closure is mechanically guarded — `aiwf` refuses a `--by-commit` SHA unreachable from the resolved root's `HEAD` — so when it runs against `$MAIN_WT`, a refusal means the merge did not land: reconcile and merge first (steps 11–12), and don't `--force` past it. Run from the patch worktree instead and the same guard rejects the merge commit even when the merge landed perfectly, while accepting the patch commit whether it landed or not.
 
 ### 14. Cleanup
 
 Delete the local branch; remove the worktree if one was used.
 
+Order matters and the branch cannot go first: git refuses to delete a branch a worktree still holds — *"error: cannot delete branch … used by worktree at …"* — and you cannot remove the worktree you are standing in. Leave it, then remove it, then delete the branch:
+
 ```bash
-git branch -d <branch>
+PATCH_WT=$(git worktree list --porcelain \
+  | awk -v b="refs/heads/<branch>" \
+        '/^worktree /{wt=substr($0,10)} $0=="branch "b{print wt; exit}')
+
+# If the patch had its own worktree, leave it before removing it. In a Claude Code
+# session that means the harness `ExitWorktree` tool, not `cd`.
+[ -n "$PATCH_WT" ] && git worktree remove "$PATCH_WT"
+
+git -C "$MAIN_WT" branch -d <branch>
 ```
 
 ### 15. 🛑 Push gate
@@ -167,8 +193,10 @@ git branch -d <branch>
 Mainline now carries the patch (and the closure commit, if any). Push is outward and irreversible — its own gate, never part of the declared-sequence gate above. Show what will be pushed and wait for explicit "push" approval. Then:
 
 ```bash
-git push origin main
+git -C "$MAIN_WT" push origin main
 ```
+
+Push from the worktree holding mainline, not from wherever this session stands. The pre-push hook runs `aiwf check` against the pushing worktree's branch range, so pushing from there is what puts the merge commit inside the audited range. After step 14 the patch worktree is gone anyway, and `MAIN_WT` still names the one that remains.
 
 If a remote copy of the patch branch exists, confirm its deletion separately — remote deletes are not recoverable from local state.
 
