@@ -36,15 +36,6 @@ type documentingPassage struct {
 	// only where the passage sits under an H1 whose section otherwise runs to
 	// EOF, swallowing later H2 sections and weakening the scope to a file grep.
 	stopBefore string
-	// mustTeach are the phrases the instruction is made of. They are the
-	// semantic core rather than incidental wording, so a faithful rewrite
-	// keeps them and a deletion cannot.
-	//
-	// Each phrase must be UNIQUE within its section. A phrase that also
-	// appears in a neighbouring row or summary line is satisfied by that
-	// neighbour, so deleting the passage under test leaves the assertion
-	// green — which is the failure this pair exists to prevent.
-	mustTeach []string
 }
 
 var m0288DocumentingPassages = []documentingPassage{
@@ -52,62 +43,32 @@ var m0288DocumentingPassages = []documentingPassage{
 		relPath: "embedded/aiwf-check/SKILL.md",
 		level:   2,
 		heading: "Findings (errors)",
-		mustTeach: []string{
-			"a spelled-out word suffix",
-			"fewer digits than the kind's minimum",
-			"A prefix and a single digit is conversational shorthand",
-			"references a well-formed id that resolves to no entity",
-		},
 	},
 	{
 		relPath: "embedded-rituals/plugins/aiwf-extensions/skills/aiwfx-plan-epic/SKILL.md",
 		level:   2,
 		heading: "Anti-patterns",
-		mustTeach: []string{
-			"Inventing id-shaped labels for not-yet-allocated milestones",
-			"body-prose-id",
-			"conversation",
-		},
 	},
 	{
 		relPath: "embedded-rituals/plugins/aiwf-extensions/skills/aiwfx-plan-milestones/SKILL.md",
 		level:   2,
 		heading: "Anti-patterns",
-		mustTeach: []string{
-			"Inventing id-shaped labels for not-yet-allocated milestones",
-			"body-prose-id",
-			"conversation",
-		},
 	},
 	{
 		relPath:    "embedded-guidance/aiwf-guidance.md",
 		level:      1,
 		heading:    "aiwf — standing guidance",
 		stopBefore: "## Code-health priming",
-		mustTeach: []string{
-			"Never write a fake id-shaped token in committed prose",
-			"body-prose-id",
-			"backticks",
-		},
 	},
 	{
 		relPath: "embedded/aiwf-reallocate/SKILL.md",
 		level:   2,
 		heading: "What to run",
-		mustTeach: []string{
-			"never gets a",
-			"suffix",
-			"max + 1",
-		},
 	},
 	{
 		relPath: "embedded/aiwf-history/SKILL.md",
 		level:   2,
 		heading: "Composite ids and prefix matching",
-		mustTeach: []string{
-			"anchored on the literal",
-			"prefix-match",
-		},
 	},
 }
 
@@ -144,12 +105,6 @@ func TestM0288_AC3_DocumentingPassagesDescribeRatherThanExhibit(t *testing.T) {
 			}
 			if strings.TrimSpace(section) == "" {
 				t.Fatalf("section %q (level %d) is missing — the passage lost its home", p.heading, p.level)
-			}
-			for _, phrase := range p.mustTeach {
-				if !strings.Contains(section, phrase) {
-					t.Errorf("section %q no longer teaches %q — a rewrite that clears the "+
-						"rejected shape by deleting the instruction is not the fix", p.heading, phrase)
-				}
 			}
 		})
 	}

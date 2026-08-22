@@ -779,8 +779,11 @@ func TestNoReintroducedDeadVerbForms_ContractsAndSkill(t *testing.T) {
 	}
 
 	sites := []string{
+		// The shipped aiwf-contract skill was dropped from this set: over a
+		// shipped surface a negative phrase pin is the class D-0070 retires,
+		// and it names no exception for one. The archive docs stay — they are
+		// not a shipped surface, so the rule does not reach them.
 		"docs/archive/pocv3/contracts-plan.md",
-		"internal/skills/embedded/aiwf-contract/SKILL.md",
 		"docs/archive/pocv3/contracts.md",
 	}
 

@@ -1,7 +1,9 @@
 ---
 id: G-0596
 title: Phrase-content assertions in internal/policies guard nothing and block deletions
-status: open
+status: addressed
+addressed_by_commit:
+    - d3f1d53f6
 ---
 ## What's missing
 

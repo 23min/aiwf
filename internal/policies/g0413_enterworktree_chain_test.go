@@ -60,22 +60,3 @@ func TestG0413_StartEpicWorktreeStepChainsEnterWorktree(t *testing.T) {
 		{"the harness EnterWorktree tool call", "EnterWorktree(path:", false},
 	})
 }
-
-// TestG0413_WfPatchBranchStepChainsEnterWorktree pins wf-patch's own
-// "Create a descriptive branch" step: --print-path is captured and
-// EnterWorktree is chained, since wf-patch always runs as the calling
-// session's own direct work.
-func TestG0413_WfPatchBranchStepChainsEnterWorktree(t *testing.T) {
-	t.Parallel()
-	body := loadWfPatchFixture(t)
-
-	section := extractMarkdownSection(body, 3, "2. Create a descriptive branch")
-	if section == "" {
-		t.Fatal("wf-patch must contain a `### 2. Create a descriptive branch` subsection")
-	}
-	assertMarkers(t, "wf-patch branch-creation subsection", section, []marker{
-		{"the --print-path flag", "--print-path", false},
-		{"the harness EnterWorktree tool call", "EnterWorktree(path:", false},
-		{"the direct-work framing", "own direct work", false},
-	})
-}
