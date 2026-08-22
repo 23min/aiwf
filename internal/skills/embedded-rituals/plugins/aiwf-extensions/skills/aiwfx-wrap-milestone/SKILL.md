@@ -183,13 +183,20 @@ worktree at …"*. Resolve the holding worktree once and drive it by path:
 EPIC_WT=$(git worktree list --porcelain \
   | awk -v b="refs/heads/epic/E-NNNN-<slug>" \
         '/^worktree /{wt=substr($0,10)} $0=="branch "b{print wt; exit}')
+[ -n "$EPIC_WT" ] || echo "the epic branch is checked out nowhere — take the fallback below before continuing"
 ```
 
 If `EPIC_WT` is empty the epic branch is not checked out anywhere and a plain
 `git checkout epic/E-NNNN-<slug>` is safe; set `EPIC_WT=.` after checking out so
-the commands below read the same either way. **Never leave it empty** —
-`git -C ""` is a no-op that silently runs against the current worktree, which
-would merge the milestone branch into itself.
+the commands below read the same either way. **Never leave it empty**, and re-run
+the resolution above if the shell no longer carries it — a new shell, an aborted and
+re-gated sequence, or a context compaction loses it. `git -C ""` runs against the
+current worktree, so the merge below reports `Already up to date.` at exit 0 and the
+epic branch receives nothing. Read exit codes rather than messages from there: the
+commit fails at exit 1 saying `nothing to commit, working tree clean`, and step 15's
+branch delete fails too — while the promote and the roadmap regen between them
+succeed, landing on the milestone branch, because `--root ""` resolves to the current
+worktree.
 
 ```bash
 git -C "$EPIC_WT" merge --no-ff --no-commit milestone/M-NNNN-<slug>

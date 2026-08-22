@@ -16,6 +16,29 @@ section in this file.
 
 ## [Unreleased]
 
+### Fixed — G-0619: the wrap rituals now warn about the failure that actually happens
+
+Both wrap rituals told the operator never to leave the resolved-worktree variable
+empty, and named a consequence git will not produce: merging a branch into itself,
+which prints `Already up to date.` and changes nothing. A warning whose stated danger
+is harmless gets discounted.
+
+Each now describes what was measured instead. In `aiwfx-wrap-milestone` the merge is
+the silent step — exit 0, epic branch receives nothing — while the commit after it
+fails at exit 1 behind `nothing to commit, working tree clean`, a message that reads
+like success; the later branch delete fails too, and between them the promote and the
+roadmap regen succeed onto the wrong branch, because `--root ""` resolves to the
+current worktree. In `aiwfx-wrap-epic` what the fast-forward does turns on whether the
+target's upstream has diverged from the epic rather than on the epic's own commits: a
+loud abort where it has, silence where it has not, and a silently moved epic branch
+only where the epic carries no unique commits.
+
+Both also gain what neither covered — the variable is shell state, so a new shell, an
+aborted sequence or a compaction loses it — and the one-line emptiness check that
+`wf-patch` already carries.
+
+Run `aiwf update` to pick both up.
+
 ### Changed — G-0617: entity templates point at the vocabulary instead of restating it
 
 Every entity template's frontmatter annotated its fields with the kind's closed
