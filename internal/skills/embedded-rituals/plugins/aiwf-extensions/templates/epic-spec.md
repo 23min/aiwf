@@ -1,8 +1,10 @@
 ---
+# Field vocabulary — the allowed statuses, which fields are optional, and
+# what each reference accepts — is printed by `aiwf schema epic`;
+# the value set behind a flag is in `aiwf add epic --help`.
 id: E-NNNN
 title: <imperative title>
-status: proposed         # aiwf epic statuses: proposed | active | done | cancelled
-depends_on: []           # optional: prior epic ids; e.g. [E-NNNN]
+status: proposed
 ---
 
 <!-- A spec states what will be built and what is excluded. The reasoning behind a
