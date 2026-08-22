@@ -1,7 +1,9 @@
 ---
 id: G-0611
 title: aiwfx-release's v-prefixed CHANGELOG heading never matches the tag gate
-status: open
+status: addressed
+addressed_by_commit:
+    - b079f97d3
 ---
 ## What's missing
 
