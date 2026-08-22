@@ -117,18 +117,17 @@ Observable at epic close. Milestone acceptance criteria carry the mechanical bar
 ## Milestones
 
 Sequenced so the decision lands before the work depending on it, and the
-measurement work lands last, when there is something to measure. Ids are
-assigned when the milestones are planned.
+measurement work lands last, when there is something to measure.
 
-- Route `move` through the shared primitive — the ADR-0033 violation, closed
-  against a specification that already exists. Depends on nothing.
-- Decide and implement outbound link rewriting, including the atomic-write
-  question. Depends on the first.
-- Test the primitive's edges against the surviving-mutant work list. Depends on
-  the second, so that the new outbound paths are measured with the rest.
-- Verify or falsify ADR-0033's `docs/` delegation, and route the answer to the
-  gaps that own that half. Depends on nothing; sequenced last because its output
-  is a finding rather than a change.
+- `M-0314` — route `move` through the shared primitive, closing the ADR-0033
+  violation against a specification that already exists · depends on: —
+- `M-0315` — decide and implement outbound link rewriting, including the
+  atomic-write question · depends on: `M-0314`
+- `M-0316` — test the primitive's edges against the surviving-mutant work list,
+  so the new outbound paths are measured with the rest · depends on: `M-0315`
+- `M-0317` — settle whether ADR-0033's `docs/` delegation fires and route the
+  answer to the gaps that own that half; independent, and sequenced last because
+  its output is a finding rather than a change · depends on: —
 
 ## References
 

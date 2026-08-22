@@ -1232,5 +1232,10 @@ Close the gap between ADR-0033's commitment and the code that implements it, so
 that moving an entity leaves no broken markdown link anywhere in the entity set
 the moving verb owns — in either direction.
 
-_No milestones yet._
+| Milestone | Title | Status |
+|---|---|---|
+| M-0314 | Route move through the shared link-region primitive | draft |
+| M-0315 | Rewrite a moved entity's own outbound links | draft |
+| M-0316 | Kill the link primitive's surviving mutants | draft |
+| M-0317 | Settle whether ADR-0033's docs delegation fires | draft |
 
