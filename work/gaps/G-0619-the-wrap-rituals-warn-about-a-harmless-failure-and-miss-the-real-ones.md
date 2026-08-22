@@ -1,8 +1,10 @@
 ---
 id: G-0619
 title: The wrap rituals warn about a harmless failure and miss the real ones
-status: open
+status: addressed
 priority: medium
+addressed_by_commit:
+    - c0a4f13d2d1a2796698a0114dc362d582c890f93
 ---
 ## What's missing
 
