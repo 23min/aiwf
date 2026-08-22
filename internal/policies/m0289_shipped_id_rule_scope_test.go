@@ -27,62 +27,6 @@ import (
 // that this section exists, not merely that the words appear somewhere.
 const idRuleScopeSection = "Which id rule applies where"
 
-// TestM0289_AC5_GuidanceScopesTheIDBullet pins that the shipped guidance no
-// longer states the entity-body rule as though it governed every file.
-func TestM0289_AC5_GuidanceScopesTheIDBullet(t *testing.T) {
-	t.Parallel()
-	raw, err := os.ReadFile(filepath.Join(repoRoot(t), "internal", "skills",
-		"embedded-guidance", "aiwf-guidance.md"))
-	if err != nil {
-		t.Fatalf("reading shipped guidance: %v", err)
-	}
-	body := string(raw)
-	// Scope to the operating rules, excluding the code-health appendix, so a
-	// stray mention there cannot satisfy this.
-	section := extractMarkdownSection(body, 1, "aiwf — standing guidance")
-	if !strings.Contains(section, "## Code-health priming") {
-		t.Fatalf("the code-health anchor is missing — the section scope would widen to the whole file")
-	}
-	section = strings.SplitN(section, "## Code-health priming", 2)[0]
-
-	// Narrow to the one bullet under test. Scoping only to the section would
-	// let a neighbouring bullet satisfy a general word like "entity", so
-	// deleting the scope from THIS bullet would leave the assertion green —
-	// measured, not hypothetical.
-	bullet := ""
-	for _, b := range strings.Split(section, "\n- ") {
-		if strings.Contains(b, "fake id-shaped token") {
-			bullet = b
-			break
-		}
-	}
-	if bullet == "" {
-		t.Fatalf("the id-shape bullet is gone from the shipped guidance entirely")
-	}
-	// Collapse the fragment's hard wrapping and case, so the phrases below
-	// assert content rather than where a line breaks or whether a word opens
-	// a sentence.
-	bullet = strings.ToLower(strings.Join(strings.Fields(bullet), " "))
-
-	// Both corpora and both rules, named inside the one bullet a consumer
-	// reads when deciding what to write.
-	//
-	// The bullet names ONE chokepoint and hands documentation to the skill.
-	// ADR-0018 admits it as the lone exception to the fragment's inclusion
-	// rule, on the reasoning that a per-turn pointer spares the agent a
-	// predictable failed push. The doc rules are advisory at the shipped
-	// default, so there is no failed push for them to spare — naming them
-	// here would widen the exception without earning it. Pinning the
-	// pointer keeps the reader directed somewhere real.
-	for _, phrase := range []string{"body-prose-id", "entity file", "documentation", "aiwf-check"} {
-		if !strings.Contains(bullet, phrase) {
-			t.Errorf("the id-shape bullet does not name %q — without it the instruction "+
-				"reads across every committed file, and a consumer strips the very "+
-				"placeholders the doc rule asks for", phrase)
-		}
-	}
-}
-
 // TestM0289_AC5_CheckSkillMapsCorpusToRule pins the comparison table. The
 // skill documents each finding code in isolation, which is the shape that
 // leaves a consumer deriving the disagreement themselves.

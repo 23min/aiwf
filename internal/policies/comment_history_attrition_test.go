@@ -532,38 +532,6 @@ func TestCommentHistoryAttrition_WiredIntoCoverageGate(t *testing.T) {
 	}
 }
 
-// TestWfCodebaseHealth_F2NamesTheMechanicalCompanion pins that the rubric's
-// comment force routes to the scanner before the read, and — the part that
-// matters for a skill materialized into repos with no such tooling — that it
-// stays conditional with the read as the fallback, mirroring how wf-vacuity
-// references a mutation harness.
-//
-// Scoped to the F2 section rather than grepped over the body: a bare
-// substring would pass on a stray mention anywhere in a 750-line rubric.
-func TestWfCodebaseHealth_F2NamesTheMechanicalCompanion(t *testing.T) {
-	t.Parallel()
-	body := readVerbSkill(t, wfCodebaseHealthFixturePath)
-
-	f2 := extractMarkdownSection(body, 3, "F2.")
-	if f2 == "" {
-		t.Fatal("wf-codebase-health must have a `### F2. …` comments principle")
-	}
-	low := strings.ToLower(f2)
-
-	if !strings.Contains(low, "comment-history-audit") {
-		t.Error("F2 must name a whole-tree audit target, or the rubric's comment force has no mechanical route")
-	}
-	if !strings.Contains(low, "if the project") {
-		t.Error("F2 must condition the scanner on the project having one wired up — the skill materializes into repos that do not")
-	}
-	if !strings.Contains(low, "where no such scanner") {
-		t.Error("F2 must give the read as the fallback when no scanner exists, or the force is unusable in those repos")
-	}
-	if !strings.Contains(low, "cannot classify") {
-		t.Error("F2 must say a clean report is the floor, not the finding — otherwise the scanner reads as a substitute for the review")
-	}
-}
-
 // TestPolicy_CommentHistoryAttritionTree is the whole-tree gate. Unlike its
 // diff-scoped sibling it takes no environment, so it runs in the ordinary
 // policy suite and fails the build on an offending comment anywhere in the

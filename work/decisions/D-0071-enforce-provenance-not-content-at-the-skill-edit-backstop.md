@@ -23,8 +23,15 @@ an edit to a shipped surface should actually have to prove.
 ## Decision
 
 The skill-edit backstop enforces **provenance**: an edit to a shipped surface must ride
-a commit carrying aiwf's verb trailers and naming an owning entity. It no longer
+a commit whose `aiwf-entity` trailer names an owning entity that exists. It no longer
 requires that a policy test reference the edited path.
+
+That trailer is the whole of the requirement. No `aiwf-verb` is asked for, because a
+ritual `SKILL.md` is source rather than an entity file and no aiwf verb commits it — the
+closed set `trailer-verb-unknown` enforces carries no value meaning "I edited a shipped
+surface", so requiring one would mandate exactly the fabricated trailer G-0150 closed. No
+`aiwf-actor` either: where no verb ran, "who ran the verb" is undefined, since an edit
+directed in conversation has the human as principal and the assistant as a tool.
 
 ## Reasoning
 
@@ -64,13 +71,22 @@ Alternatives considered and rejected:
 
 ## Consequences
 
+- The replacement is itself a mandate in H3's grammar — every skill edit needs a trailer —
+  and it is accepted as permanent rather than given a retirement trigger, because none
+  exists to name. Its owner is `CLAUDE.md` §"Ritual content authoring", and this decision
+  is its record. The asymmetry with the rule it retires is deliberate: H3's requirement
+  exists to bound accretion, and the two mandates accrete differently. The old one minted a
+  durable artifact per subject — a test function to maintain, able to rot green, and the
+  growth curve above is what that produced. This one mints a line in a commit message,
+  paid once, leaving nothing behind to maintain and nothing that can drift. There is no
+  population to bound, so what the trigger requirement protects against does not arise.
 - Content drift in shipped prose is held at review rather than by a gate. This is the
   same trade the companion decision takes, and the two stand or fall together.
 - This decision does not remove the existing assertion corpus; it removes the obligation
   that regrows it.
 - CLAUDE.md's ritual-authoring and enforcement sections describe the current mandate and
   need updating in the same work.
-- The verb-trailer requirement is already familiar machinery — the `provenance-untrailered-entity-commit`
+- The entity-trailer requirement is already familiar machinery — the `provenance-untrailered-entity-commit`
   finding enforces the analogous property over entity files — so the new predicate reuses
   an established shape rather than inventing one.
 - G-0504's separate complaint, that `aiwf doctor` byte-checks only verb skills while

@@ -1,6 +1,6 @@
 ---
 id: D-0053
-title: Accept the per-subject verb-skill fact ledger; widening the backstop retires it
+title: Accept the per-subject verb-skill fact ledger until D-0070 deletes it
 status: proposed
 relates_to:
     - G-0520
@@ -30,12 +30,18 @@ Corrections continue to land a per-fact pin in `verb_skill_factual_test.go`,
 section-scoped via the file's `sectionUnder` helper. The ledger is accepted as a
 deliberate interim, not as the target design.
 
-**What retires it:** widening `skillRitualsDir` in
-`internal/policies/skill_edit_structural_test_backstop.go` to cover the
-verb-skill tree (`internal/skills/embedded/`), so every verb-skill edit requires
-a referencing structural test the way every ritual edit already does. When that
-lands, new corrections stop needing a bespoke entry and the existing ones become
-ordinary instances of a general rule.
+**What retires it:** D-0070's deletion pass. That decision retires prose-presence
+assertions over shipped surfaces, scoped to the surface set the `skill-body-id`
+check scans — which includes the verb-skill tree at `internal/skills/embedded/`.
+Every entry in this ledger is such an assertion, so the ledger goes with them
+rather than being generalised into a rule.
+
+The trigger this decision originally named — widening the skill-edit backstop's
+watched set so a verb-skill edit would require a referencing structural test —
+is void. D-0071 re-pointed that backstop at provenance, and a provenance gate
+cannot retire a content ledger: asking who owns an edit is a different question
+from pinning what the prose says. The generalisation this decision anticipated
+turned out to be the wrong end state, and the answer is deletion instead.
 
 ## Reasoning
 
@@ -47,11 +53,13 @@ are the accretion it warns about. Satisfying D5 now at the cost H3 objects to,
 while discharging H3's actual requirement — the owner-and-retirement clause, not
 a ban — settles both.
 
-Widening the backstop is the once-cost form H3 prefers, and it is the right end
-state. It is not patch-sized: it would demand a structural test for every
-existing verb skill on its next edit, or a grandfather ledger of the kind the
-firing-fixture gate already maintains. Sizing that is its own work, and deciding
-it here would be deciding it without the measurement.
+H3's once-cost form, here, is deletion rather than generalisation. Widening the
+backstop to demand a structural test for every verb skill would have spread the
+per-subject cost rather than removing it — a structural test for every existing
+verb skill on its next edit, or a grandfather ledger of the kind the
+firing-fixture gate already maintains. D-0070 measured the corpus these
+assertions belong to and found no recorded catch across it, which settles the
+question the other way: the entries go, and nothing replaces them.
 
 The interim is cheap per entry and the entries are honest — each is verified to
 fail against its own pre-fix text, so none is vacuous. The cost H3 names is real,
@@ -60,6 +68,8 @@ interim and a tax.
 
 ## Follow-ups
 
-- The backstop's scope constant carries a comment stating the verb-skill tree is
-  out of scope. If the widening lands, that comment and this decision are what a
-  reader should find from either direction.
+- The skill-edit backstop's scope constant carries a comment stating the
+  verb-skill tree is out of scope. That remains true under the provenance
+  predicate, and for the same reason: G-0220 was about rituals.
+- The ledger's deletion rides D-0070's pass. A reader arriving here after that
+  pass should find the file gone and this decision explaining why it existed.

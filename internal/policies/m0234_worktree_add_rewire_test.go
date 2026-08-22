@@ -38,51 +38,6 @@ func TestM0234_AC1_StartMilestoneCutStepInvokesWorktreeAdd(t *testing.T) {
 	})
 }
 
-// TestM0234_AC2_WfPatchBranchStepInvokesWorktreeAdd pins AC-2: wf-patch's
-// "Create a descriptive branch" step names `aiwf worktree add`, scoped to
-// the step's own subsection.
-func TestM0234_AC2_WfPatchBranchStepInvokesWorktreeAdd(t *testing.T) {
-	t.Parallel()
-	body := loadWfPatchFixture(t)
-
-	section := extractMarkdownSection(body, 3, "2. Create a descriptive branch")
-	if section == "" {
-		t.Fatal("AC-2: wf-patch must contain a `### 2. Create a descriptive branch` subsection")
-	}
-	assertMarkers(t, "AC-2: wf-patch branch-creation subsection", section, []marker{
-		{"the aiwf worktree add verb", "aiwf worktree add", false},
-	})
-}
-
-// TestM0234_AC3_StartEpicWorktreeStepInvokesWorktreeAdd pins AC-3:
-// aiwfx-start-epic's worktree-placement step (step 8) names `aiwf
-// worktree add` for the placements that create a new worktree (in-repo
-// default and sibling), resolving the epic spec's open question — this
-// ritual does create a worktree directly, so it is rewired here alongside
-// start-milestone and wf-patch.
-func TestM0234_AC3_StartEpicWorktreeStepInvokesWorktreeAdd(t *testing.T) {
-	t.Parallel()
-	body := loadAiwfxStartEpicFixture(t)
-
-	section := findWorktreePromptSection(body)
-	if section == "" {
-		t.Fatal("AC-3: start-epic must contain a `### …worktree…` subsection (step 8)")
-	}
-	assertMarkers(t, "AC-3: start-epic worktree subsection", section, []marker{
-		{"the aiwf worktree add verb", "aiwf worktree add", false},
-		{"the aiwf doctor materialization check", "aiwf doctor", false},
-	})
-
-	// The no-new-worktree placement (main checkout) legitimately keeps
-	// plain `git checkout -b` — only the two placements that create a
-	// worktree are rewired. Guard against a regression where the whole
-	// section stops naming git checkout -b at all (placement 2 would
-	// have nothing to do).
-	if !strings.Contains(section, "git checkout -b") {
-		t.Error("AC-3: start-epic worktree subsection must still name `git checkout -b` for the no-new-worktree (main checkout) placement")
-	}
-}
-
 // TestM0234_AC4_ClaudeMdWorktreeSectionsCiteWorktreeAdd pins AC-4:
 // CLAUDE.md's "Default to a worktree for any branch work" and "Subagent
 // worktree isolation" sections cite `aiwf worktree add` instead of the

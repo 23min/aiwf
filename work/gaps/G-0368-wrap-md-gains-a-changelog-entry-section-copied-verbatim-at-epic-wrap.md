@@ -33,8 +33,11 @@ paragraph to copying `## Changelog entry` verbatim into `CHANGELOG.md` under
 - Rewrite step 7's instructions: copy `## Changelog entry` verbatim into
   `CHANGELOG.md` instead of distilling a new paragraph.
 - Check the "Out of scope" note still holds the copy-not-synthesize boundary.
-- A hand-written pinning test under `internal/policies/`, per this repo's
-  `skill-edit-structural-test-backstop` convention for `SKILL.md` edits.
+- The `SKILL.md` edit rides a commit naming its owning entity, per the
+  `skill-edit-provenance-backstop`. No pinning test: asserting that the template
+  carries a `## Changelog entry` heading is a heading-presence assertion over a
+  shipped surface, which D-0070 deletes rather than adds. Whether the section
+  reads correctly is held at review.
 
 ## Provenance
 

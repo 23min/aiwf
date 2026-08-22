@@ -24,9 +24,9 @@ import (
 //     _BASE to drive the env-fed coverage-audit entry point.
 //   - TestPolicyFiringFixturePresence_Env — sets AIWF_COVERAGE_PROFILE
 //     to drive the env-fed firing-fixture-presence entry point.
-//   - TestPolicySkillEditStructuralTestBackstop_Env — sets
+//   - TestPolicySkillEditProvenanceBackstop_Env — sets
 //     AIWF_COVERAGE_BASE to drive the env-fed skill-edit-backstop entry
-//     point (M-0196 / G-0220).
+//     point (G-0220 / D-0071).
 //   - TestPolicyCommentHistoryAttrition_Env — sets AIWF_COVERAGE_BASE to
 //     drive the env-fed comment-history-attrition entry point.
 //   - TestPolicyTestExecutableWrite_Env — sets AIWF_COVERAGE_BASE to

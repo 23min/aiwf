@@ -88,9 +88,9 @@ type constructionSite struct {
 // comment or string is harmless — a non-executable line falls in no
 // coverage block, so lineInZeroBlock never reports it dark. A policy that
 // set the field from a constant or variable instead of a string literal
-// would be invisible to this scan (a false negative); none does today,
-// and the closed-set-status / enum-literal policies keep id construction
-// literal — so this stays YAGNI rather than a parsed-AST walk.
+// would be invisible to this scan; PolicyViolationPolicyIDLiteral bans
+// that spelling outright, which is what keeps this line-matching
+// inventory complete without teaching it to resolve constants.
 var constructionLinePat = regexp.MustCompile(`Policy:\s*"([a-z0-9-]+)"`)
 
 // firingFixtureCore reports every Violation construction site in

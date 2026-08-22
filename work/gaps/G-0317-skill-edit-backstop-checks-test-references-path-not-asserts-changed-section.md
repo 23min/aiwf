@@ -1,7 +1,7 @@
 ---
 id: G-0317
 title: Skill-edit backstop checks test-references-path, not asserts-changed-section
-status: open
+status: wontfix
 priority: medium
 discovered_in: M-0196
 ---

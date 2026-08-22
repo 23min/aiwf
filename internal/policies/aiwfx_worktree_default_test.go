@@ -82,46 +82,6 @@ func assertMarkers(t *testing.T, where, section string, markers []marker) {
 	}
 }
 
-// TestAiwfxStartEpic_M0190_AC1_WorktreeDefaultsToInRepo pins M-0190/AC-1:
-// the start-epic worktree-placement step recommends in-repo placement as the
-// DEFAULT, reading the configured worktree.dir from the kernel (via
-// `aiwf doctor`) rather than hardcoding it. Heading-scoped to the worktree
-// subsection — the default claim must live inside the placement step, not
-// float elsewhere in the skill body.
-func TestAiwfxStartEpic_M0190_AC1_WorktreeDefaultsToInRepo(t *testing.T) {
-	t.Parallel()
-	body := loadAiwfxStartEpicFixture(t)
-
-	section := findWorktreePromptSection(body)
-	if section == "" {
-		t.Fatal("AC-1: start-epic `## Workflow` must contain a `### …worktree…` subsection")
-	}
-	assertMarkers(t, "AC-1: start-epic worktree subsection", section, []marker{
-		{"the worktree.dir knob", "worktree.dir", false},
-		{"the in-repo default directory", ".claude/worktrees", false},
-		{"the kernel read mechanism (aiwf doctor)", "aiwf doctor", false},
-		{"the default framing", "default", true},
-		{"the in-repo placement", "in-repo", true},
-	})
-
-	// The `## Principles` summary must agree with step 8. An LLM reads
-	// Principles before reaching the workflow steps, so a stale neutral-prompt
-	// bullet there ("a prompt rather than picking on the operator's behalf")
-	// silently steers it back to the pre-M-0190 behavior — a contradiction the
-	// step-8-scoped check above cannot see (different section). Pin it: the
-	// Principles worktree bullet now states the in-repo default. (M-0229/AC-3
-	// dropped the ADR-0023 citation marker — the id-bearing doc-link is gone;
-	// the in-repo/default behavioral markers pin the bullet.)
-	principles := extractMarkdownSection(body, 2, "Principles")
-	if principles == "" {
-		t.Fatal("AC-1: start-epic must contain a `## Principles` section")
-	}
-	assertMarkers(t, "AC-1: start-epic Principles worktree bullet", principles, []marker{
-		{"the in-repo default", "in-repo", true},
-		{"the default framing", "default", true},
-	})
-}
-
 // TestStartRituals_M0190_AC2_OverrideRetained pins M-0190/AC-2: both start
 // rituals keep the per-invocation override — in-repo is the default, not a
 // lock. start-epic retains all three placements; start-milestone names the
