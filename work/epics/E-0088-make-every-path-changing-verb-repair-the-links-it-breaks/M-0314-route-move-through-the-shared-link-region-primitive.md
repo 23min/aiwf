@@ -8,6 +8,7 @@ acs:
     - id: AC-1
       title: aiwf move routes its link rewriting through the shared primitive
       status: open
+      tdd_phase: red
     - id: AC-2
       title: A milestone moved between epics leaves no inbound link broken
       status: open
