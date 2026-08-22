@@ -59,6 +59,12 @@ Create `work/epics/E-NNNN-<slug>/wrap.md` (staged, not yet committed):
 - M-NNNN — <title> (merged <short-sha>)
 - M-NNNN — <title> (merged <short-sha>)
 
+## Changelog entry
+
+### <Added|Changed|Fixed> — E-NNNN: <one-line summary>
+
+<The user-visible delta for a release-notes reader who has never seen the epic spec: verbs added, behaviour changed, gaps closed. Pick the category the epic's dominant delta falls under; add a second `###` entry only when one category genuinely misrepresents what shipped. One bullet per milestone that shipped a distinct user-visible change; a single paragraph when one covers it. Leave a purely internal milestone out — but when the whole epic is internal, say so in one line rather than omitting the entry.>
+
 ## Summary
 
 Two to four sentences on what shipped and why. Reference the goal from the epic spec; honest about what scope shifted mid-flight.
@@ -81,6 +87,10 @@ What is ready for the next epic; what is deliberately left open.
 ```
 
 Use **reference-phrasing for any list-derived count** ("every ADR listed in *ADRs ratified*" rather than "all 4 ADRs"). Avoids drift.
+
+**`## Changelog entry` is authored once — here.** Everything beneath that heading, the `###` category line included, is copied verbatim into `CHANGELOG.md` at step 6; nothing is re-authored there. It sits directly beneath `## Milestones delivered` so that list is in front of you while you write, and beside `## Summary`, which covers the same epic for a reader who has seen the epic spec.
+
+Because that one section travels, keep its references inside it. The reference-phrasing rule above still applies — but a phrase reaching *out* of the section, like "every milestone listed in *Milestones delivered*", resolves here and dangles in `CHANGELOG.md`, where no such section exists. Name the milestones, or name `wrap.md` itself.
 
 ### 2. ADR check — harvest decisions worth keeping
 
@@ -172,9 +182,9 @@ merge would then be a no-op:
 
 The `[Unreleased]` section of `CHANGELOG.md` is a per-epic accumulator: every wrapped epic adds an entry here, and `aiwfx-release` later rolls the accumulated entries into a versioned `## [X.Y.Z]` heading. *Without this step, releases ship with empty changelog entries* — that's the `[Unreleased]` drift this step prevents.
 
-Edit `CHANGELOG.md` to add a new sub-section under `## [Unreleased]`. Use a Keep-a-Changelog category as the heading: `### Added — E-NNNN: <one-line summary>`, `### Changed — E-NNNN: <one-line summary>`, or `### Fixed — E-NNNN: <one-line summary>` as appropriate. The body is a short paragraph (or bulleted milestone list, like prior epic entries in the file) summarising the **user-visible delta**: gaps closed, verbs added, behaviour changes, doctrine landed in `CLAUDE.md`. Internal refactors with no observable delta can be omitted; if everything is internal, a single line saying so still goes in (releases require *some* entry per the changelog-check workflow).
+Copy `wrap.md`'s `## Changelog entry` section into `CHANGELOG.md` — from its `###` category line down to the next `##` heading, landing at the top of `## [Unreleased]`, newest entry first. Verbatim means the finished text, not the template — step 1 is where the placeholders get filled. Don't re-author the prose here — writing it a second time from the same memory is what the copy rule exists to stop. If reading it in place shows it wrong, fix it in `wrap.md` and copy again, so the two never disagree.
 
-The `wrap.md` file already captures the structured detail (milestones, ADRs, gaps); the CHANGELOG entry distils it for a release reader who has not been following along. Reference-phrasing is fine ("every milestone listed in `wrap.md` …") to avoid drift between the two documents.
+Every epic gets an entry — step 1's template says what to write when the whole epic is internal.
 
 Then stage and commit both, **on the epic branch**. The message and trailers were approved as part of the declared-sequence gate (step 4) — there is no separate commit gate. The commit carries the same three trailer keys as the merge, so `aiwf history E-NNNN` surfaces it alongside:
 
@@ -304,6 +314,7 @@ git push origin --delete epic/E-NNNN-<slug>          # its own gate
 - *Force-deleting an unmerged branch.* Reconcile the work or the name; don't force.
 - *Slipping a code change into the wrap commit.* If the change is real, it's a milestone or a `wf-patch`.
 - *Skipping the ADR harvest.* The window to record "why we did it this way" closes when the team forgets.
+- *Writing the CHANGELOG entry fresh at step 6.* It already exists — `wrap.md`'s `## Changelog entry`, written at step 1. Copy it; if it reads wrong, fix the source and copy again.
 - *Pushing before approval.*
 - *Merging without `--no-commit`.* Produces an untrailered merge commit; the kernel rule fires once per entity file touched.
 - *Hardcoding `<id>` in the actor trailer.* Resolve from `git config user.email` at run time per the provenance model.
@@ -315,7 +326,7 @@ git push origin --delete epic/E-NNNN-<slug>          # its own gate
 
 Version-tag cuts, the `[Unreleased]` → `[X.Y.Z]` rename, package publishing, and deployment. Those belong to `aiwfx-release`.
 
-**Note:** *Adding* the per-epic entry under `## [Unreleased]` in `CHANGELOG.md` is **in scope** for this skill (step 6). The `[Unreleased]` heading is the per-epic accumulator; `aiwfx-release` only rolls the accumulated entries forward when cutting a version. Skipping the CHANGELOG-update step at wrap is the failure mode that produces empty release notes — this skill owns prevention.
+**Note:** *Adding* the per-epic entry under `## [Unreleased]` in `CHANGELOG.md` is **in scope** for this skill — as a copy of `wrap.md`'s `## Changelog entry` (step 6), never as fresh prose. The `[Unreleased]` heading is the per-epic accumulator; `aiwfx-release` folds it into a version section when cutting a release. Skipping the CHANGELOG step at wrap is the failure mode that produces empty release notes — this skill owns prevention.
 
 ## Next step
 
