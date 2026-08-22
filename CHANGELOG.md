@@ -16,6 +16,25 @@ section in this file.
 
 ## [Unreleased]
 
+### Fixed — G-0609: the wrap rituals no longer require checking out the branch they merge into
+
+`aiwfx-wrap-epic` and `aiwfx-wrap-milestone` told the operator to `git checkout`
+the integration target. Git allows one checkout per branch, so under the in-repo
+worktree convention the target is already held elsewhere and the documented step
+fails outright.
+
+The epic ritual is reordered: the wrap artefact, the CHANGELOG entry, the promote
+to `done` and the roadmap regen all commit on the epic branch, and the merge lands
+last, so the target receives exactly one commit and is never checked out. That also
+removes an ordering trap — merging before the promote left the target with the merge
+but not the status flip. The wrap artefact drops its `Merge commit:` field, which is
+what forced the sequence onto the target; the SHA is already recoverable from
+`aiwf history`.
+
+The milestone ritual keeps its order, since G-0119 requires its promote to follow
+the merge, and instead resolves the worktree holding the epic branch and drives it
+with `git -C` and `--root`.
+
 ### Changed — E-0087: the skill-edit backstop asks who owns an edit, not whether a test names it
 
 Editing a shipped ritual or skill body no longer requires a policy test to
