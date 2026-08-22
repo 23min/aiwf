@@ -35,6 +35,19 @@ Working directory is the state that does survive between calls, in this harness
 and in an operator's terminal alike. Measured the same way: a `cd` issued in one
 call is still in effect in the next.
 
+That survival has a bound, and the bound is a second route to the same failure.
+Measured the same way: a `cd` to a path outside the repository is undone — the
+harness restores the repository root and reports it at the tail of that command's
+output, where a reader waiting on the next command's result does not look. Every
+relative path issued afterwards resolves against the main checkout. Observed cost
+on 2026-08-22: three consecutive file edits intended for a worktree were written
+to the main checkout, undetected until an unrelated notice named the wrong path.
+
+A guard conditioned on suspicion does not close either route. The operator is not
+uncertain about the working directory; they are unaware it changed. What closes it
+is asserting the location in the same command as the action, and aborting on
+mismatch rather than reporting one.
+
 ## Why it matters
 
 Only the first step is silent; the rest fail in ways that read like success. The
@@ -63,3 +76,14 @@ carried a conflation. Checking out the target moves a branch into a worktree and
 fails when another holds it; changing directory into the worktree that already
 holds it moves nothing and cannot fail that way. Only the first was ever the
 defect, and both were avoided.
+
+One ritual carries a second defect from that same correction. Where the target is
+checked out nowhere, all three fall back to checking it out in the current worktree.
+That is right in two of them, whose later steps need no branch of their own. In
+`aiwfx-wrap-epic` it is not: the fallback sits at step 5, and steps 6 through 8
+commit on the epic branch, so taking it moves the session off the branch those
+commits belong to. Measured on 2026-08-22 against a scratch repository with the
+target held by no worktree — the fallback succeeded, the step 6 assertion reported
+"not on the epic branch" and continued rather than stopping, and the wrap commit
+landed on the target, which then carried a wrap for work it did not contain while
+the epic branch held that work without its wrap.
