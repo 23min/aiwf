@@ -16,6 +16,21 @@ section in this file.
 
 ## [Unreleased]
 
+### Changed — G-0368: an epic's changelog entry is written once, in `wrap.md`
+
+`aiwfx-wrap-epic` composed the `CHANGELOG.md` `[Unreleased]` entry as its own act of
+prose at the wrap-artefact step. It pointed the author at `wrap.md`'s milestone, ADR
+and gap lists, but not at the `## Summary` they had written minutes earlier — so the
+two prose accounts of one epic were written independently, each free to drop a
+milestone the other kept.
+
+The wrap artefact now carries a `## Changelog entry` section directly beneath
+`## Milestones delivered`, so the milestone list is in front of the author while
+they write it, and the wrap-artefact step copies that section verbatim instead of
+composing a second one. `## Summary` stays as its internal counterpart: the same
+epic for a reader following the planning state, where the changelog entry addresses
+one who has never seen the epic spec. `aiwfx-wrap-milestone` remains changelog-free.
+
 ### Fixed — G-0609: the wrap rituals no longer require checking out the branch they merge into
 
 `aiwfx-wrap-epic` and `aiwfx-wrap-milestone` told the operator to `git checkout`
