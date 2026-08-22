@@ -1,8 +1,10 @@
 ---
 id: G-0584
 title: Ritual skill tests assert section-scoped literals that cannot fail
-status: open
+status: addressed
 discovered_in: M-0308
+addressed_by_commit:
+    - d3f1d53f6
 ---
 ## What's missing
 
