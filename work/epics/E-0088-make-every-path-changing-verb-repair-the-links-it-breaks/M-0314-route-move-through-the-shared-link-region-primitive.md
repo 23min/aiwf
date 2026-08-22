@@ -12,7 +12,7 @@ acs:
     - id: AC-2
       title: A milestone moved between epics leaves no inbound link broken
       status: open
-      tdd_phase: red
+      tdd_phase: green
 ---
 
 ## Goal
