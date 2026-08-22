@@ -1,8 +1,10 @@
 ---
 id: G-0617
 title: Template frontmatter restates each kind's vocabulary, unchecked
-status: open
+status: addressed
 priority: medium
+addressed_by_commit:
+    - db843cead
 ---
 ## What's missing
 
