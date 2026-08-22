@@ -67,6 +67,11 @@ lives in the `wf-codebase-health` skill.
 - **Fix closely-related issues in place — the cheap-fix test.** Small, in a file
   this work already touches, covered by a test you're already writing? Make it now.
   File a gap only when it needs its own branch, its own review, or a real decision.
+- **A gap names what is wrong and where, or it is not a gap.** Point at a file, a
+  symbol, or an observable behaviour a reader can go and look at. One that cannot
+  name where is a wish, not a defect — write it as an epic or a milestone, where a
+  plan belongs. A gap records the defect; whether the fix lands as a patch or a
+  milestone is decided by whoever reads it, not written into the body.
 - **State the conclusion, not the drafting history — in entity bodies, docs,
   and code comments alike.** ADR / gap / decision bodies, milestone specs,
   and any doc you author record the current design, not how the text got
