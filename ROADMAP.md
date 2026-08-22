@@ -1224,3 +1224,13 @@ a skill-edit gate that costs once rather than once per edit.
 | M-0312 | Re-point the skill-edit backstop from content reference to provenance | done |
 | M-0313 | Retire the prose-assertion corpus over shipped surfaces | done |
 
+## E-0088 — Make every path-changing verb repair the links it breaks (proposed)
+
+### Goal
+
+Close the gap between ADR-0033's commitment and the code that implements it, so
+that moving an entity leaves no broken markdown link anywhere in the entity set
+the moving verb owns — in either direction.
+
+_No milestones yet._
+
