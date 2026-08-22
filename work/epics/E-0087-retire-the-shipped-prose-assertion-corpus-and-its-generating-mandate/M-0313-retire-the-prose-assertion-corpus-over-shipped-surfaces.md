@@ -12,7 +12,7 @@ acs:
       status: met
     - id: AC-2
       title: The cross-document citation walk still fails on a dangling reference
-      status: open
+      status: met
     - id: AC-3
       title: The dispatch trigger-phrase checks still fail when a phrase is removed
       status: open
