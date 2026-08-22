@@ -1,6 +1,6 @@
 ---
 name: aiwfx-wrap-epic
-description: Closes an aiwf epic — verifies all milestones done, scaffolds a wrap artefact, harvests ADR candidates, runs scoped doc-lint, merges the epic branch into mainline with a trailered merge commit, promotes the epic to done. Use when the user says "wrap E-NNNN" or "close the auth epic" and every milestone in the epic is wrapped. Commit and push require explicit human approval.
+description: Closes an aiwf epic — verifies all milestones done, scaffolds a wrap artefact, harvests ADR candidates, runs scoped doc-lint, promotes the epic to done, then merges the epic branch into mainline with a trailered merge commit. Use when the user says "wrap E-NNNN" or "close the auth epic" and every milestone in the epic is wrapped. Commit and push require explicit human approval.
 ---
 
 # aiwfx-wrap-epic
@@ -38,7 +38,7 @@ tree:
     - "work/epics/E-*/wrap.md"
 ```
 
-If you skip this, the first `aiwf check` after step 7 will warn (or, under `tree.strict: true`, error). Add the entry before staging the wrap artefact.
+If you skip this, the first `aiwf check` after step 6 will warn (or, under `tree.strict: true`, error). Add the entry before staging the wrap artefact.
 
 ## Workflow
 
@@ -53,7 +53,6 @@ Create `work/epics/E-NNNN-<slug>/wrap.md` (staged, not yet committed):
 **Closed by:** <actor>
 **Integration target:** main
 **Epic branch:** epic/E-NNNN-<slug>
-**Merge commit:** <SHA — filled at step 6>
 
 ## Milestones delivered
 
@@ -104,12 +103,19 @@ Append the report to `wrap.md` under a `## Doc findings` section. If findings in
 
 This is the epic's terminal sequence of *local, reversible* mutations. Present it as a single **declared-sequence gate** that enumerates every action verbatim; the user may approve a subset ("all except the promote"), and any deviation (a merge conflict, a check finding, unexpected dirty state) aborts the sequence and re-gates from the point of deviation. **Excluded from this gate:** the push (step 10) and the origin-branch deletes (step 11) — those are outward and stand as their own gates, never batched here.
 
-The enumerated local sequence is **merge → wrap-artefact commit → promote-done → roadmap regen**:
+The enumerated local sequence is **wrap-artefact commit → promote-done → roadmap regen → merge**:
 
-1. **Merge** the epic branch into the integration target with a trailered merge commit (step 6).
-2. **Wrap-artefact commit** — the CHANGELOG `[Unreleased]` entry + `wrap.md`, trailered (step 7).
-3. **Promote** the epic to `done` — status-flip commit (step 8).
-4. **Roadmap regen** — regenerate `ROADMAP.md` now that the epic shows `done` (step 9), committed before the push gate (step 10).
+1. **Wrap-artefact commit** — the CHANGELOG `[Unreleased]` entry + `wrap.md`, trailered (step 6).
+2. **Promote** the epic to `done` — status-flip commit (step 7).
+3. **Roadmap regen** — regenerate `ROADMAP.md` now that the epic shows `done` (step 8).
+4. **Merge** the epic branch into the integration target with a trailered merge commit (step 9).
+
+**Every commit but the merge lands on the epic branch**, so the integration target
+receives exactly one commit and never has to be checked out. That matters because
+a branch can only be checked out once: under the in-repo worktree convention the
+target is already held by another worktree, and `git checkout main` fails outright.
+Keeping the sequence on one branch also removes an ordering trap — merging before
+the promote leaves the target carrying the merge without the status flip.
 
 Once the sequence is approved, execute it:
 
@@ -119,9 +125,29 @@ Run this immediately before the merge — not as an earlier precondition a concu
 
 1. Fetch, then fast-forward local mainline to its upstream — folds in commits another clone pushed; concurrent local commits are already on it (substitute your mainline branch and remote; a project with no remote skips this step):
 
+   First resolve the worktree holding the integration target. A branch can be
+   checked out in one worktree at a time, so under the in-repo worktree
+   convention the target is held elsewhere and `git checkout` on it fails —
+   drive that worktree by path instead. Substitute the project's mainline ref
+   for `main`; `substr($0,10)` rather than `$2` so a path containing spaces
+   survives:
+
+   ```bash
+   TARGET=main
+   TARGET_WT=$(git worktree list --porcelain \
+     | awk -v b="refs/heads/$TARGET" \
+           '/^worktree /{wt=substr($0,10)} $0=="branch "b{print wt; exit}')
+   ```
+
+   If `TARGET_WT` is empty the target is checked out nowhere: check it out here
+   and set `TARGET_WT=.` so every command below reads the same either way.
+   **Never leave it empty** — `git -C ""` is a no-op that silently runs against
+   the current worktree, which would fast-forward or merge the epic branch into
+   itself.
+
    ```bash
    git fetch
-   git checkout main && git merge --ff-only origin/main
+   git -C "$TARGET_WT" merge --ff-only "origin/$TARGET"
    ```
 
 2. Check whether mainline has advanced past the epic branch's fork point (substitute the project's mainline ref):
@@ -132,37 +158,17 @@ Run this immediately before the merge — not as an earlier precondition a concu
 
 3. If that check fails: integrate mainline into the epic branch, resolve any conflicts there, and re-run the project's full local CI gate on the reconciled epic branch. Mainline can move again during that gate, so re-run this check immediately before merging.
 
-4. Only once the check passes does the merge (step 6) run.
+4. Only once the check passes does the sequence run. The check is repeated immediately before the merge (step 9), since mainline can move while the wrap commits are being made.
 
-### 6. Merge epic branch into integration target with a trailered merge commit
+### 6. Wrap-artefact commit — CHANGELOG `[Unreleased]` + `wrap.md`
 
-```bash
-git checkout main
-git pull --ff-only origin main
-```
-
-Stage the merge **without committing** so the next step can attach the required trailers explicitly:
+Steps 6 to 8 all commit on the epic branch. Assert that before the first one —
+run from the main checkout they would land on the target instead, and step 9's
+merge would then be a no-op:
 
 ```bash
-git merge --no-ff --no-commit epic/E-NNNN-<slug>
+[ "$(git rev-parse --abbrev-ref HEAD)" = "epic/E-NNNN-<slug>" ] || echo "not on the epic branch"
 ```
-
-`--no-ff` preserves the epic as a single merge commit; `--no-commit` leaves the merge staged so the commit-emitting step is the one carrying trailers. Without `--no-commit`, git produces an untrailered merge commit and the kernel's `provenance-untrailered-entity-commit` rule fires once per entity file touched by the merge.
-
-Resolve the operator identity from `git config user.email` — identity is runtime-derived, not stored; do not hardcode `<id>`. Then commit with the three required trailers and a Conventional Commits subject:
-
-```bash
-git commit -m "chore(epic): wrap E-NNNN — <epic title>" \
-  --trailer "aiwf-verb: wrap-epic" \
-  --trailer "aiwf-entity: E-NNNN" \
-  --trailer "aiwf-actor: human/<id>"
-```
-
-The trailer keys are exact — `aiwf-verb`, `aiwf-entity`, `aiwf-actor`. Variant casings (e.g. `Aiwf-Verb`) fail the kernel's trailer-keys policy. Record the resulting merge SHA in `wrap.md`.
-
-**Do not push yet.**
-
-### 7. Wrap-artefact commit — CHANGELOG `[Unreleased]` + `wrap.md`
 
 The `[Unreleased]` section of `CHANGELOG.md` is a per-epic accumulator: every wrapped epic adds an entry here, and `aiwfx-release` later rolls the accumulated entries into a versioned `## [X.Y.Z]` heading. *Without this step, releases ship with empty changelog entries* — that's the `[Unreleased]` drift this step prevents.
 
@@ -170,7 +176,7 @@ Edit `CHANGELOG.md` to add a new sub-section under `## [Unreleased]`. Use a Keep
 
 The `wrap.md` file already captures the structured detail (milestones, ADRs, gaps); the CHANGELOG entry distils it for a release reader who has not been following along. Reference-phrasing is fine ("every milestone listed in `wrap.md` …") to avoid drift between the two documents.
 
-Then stage and commit the wrap artefact. Its message and trailers were approved as part of the declared-sequence gate (step 4) — there is no separate commit gate. The commit sits on top of the trailered merge and carries the same three trailer keys, so `aiwf history E-NNNN` surfaces it alongside the merge:
+Then stage and commit both, **on the epic branch**. The message and trailers were approved as part of the declared-sequence gate (step 4) — there is no separate commit gate. The commit carries the same three trailer keys as the merge, so `aiwf history E-NNNN` surfaces it alongside:
 
 ```bash
 git add CHANGELOG.md
@@ -181,7 +187,7 @@ git commit -m "chore(E-NNNN): wrap epic — <one-line summary>" \
   --trailer "aiwf-actor: human/<id>"
 ```
 
-### 8. Promote the epic to `done` — last entity-mutating commit in the bundle
+### 7. Promote the epic to `done` — last verb-driven commit in the bundle
 
 ```bash
 aiwf promote E-NNNN done
@@ -189,17 +195,19 @@ aiwf promote E-NNNN done
 
 aiwf validates `active → done`, rewrites frontmatter, commits with `aiwf-verb: promote`. (If the epic is still `proposed`, that means no milestone ever started — wrap doesn't apply. Investigate.)
 
-**Why promote is last among entity-mutating commits.** The `aiwf promote E-NNNN done` commit ends the authorize scope that opened with `aiwfx-start-epic`. Any commit produced *after* this that goes through a kernel verb — wrap artefact, CHANGELOG entry, reallocates, or other verb-driven wrap-bundle commits — would carry `aiwf-authorized-by:` referencing the just-ended scope and trigger the kernel's `provenance-authorization-ended` finding on push, blocking the wrap with no clean remediation short of `--no-verify` or history rewrite. Keeping `aiwf promote E-NNNN done` as the last *verb-driven* commit in the wrap bundle guarantees every other verb commit lives under the live scope. The one exception is step 9's roadmap-regen commit: it's hand-composed via plain `git commit` (never routed through the CLI's scope-lookup/trailer-decoration path), so it can never receive an auto-stamped `aiwf-authorized-by` — safe to land after promote-done, which is also the only point in the sequence where the roadmap can reflect the epic's actual final `done` state.
+**Why promote is last among verb-driven commits.** The `aiwf promote E-NNNN done` commit ends the authorize scope that opened with `aiwfx-start-epic`. Any commit produced *after* this that goes through a kernel verb — wrap artefact, reallocates, or other verb-driven wrap-bundle commits — would carry `aiwf-authorized-by:` referencing the just-ended scope and trigger the kernel's `provenance-authorization-ended` finding on push, blocking the wrap with no clean remediation short of `--no-verify` or history rewrite. Keeping the promote as the last verb-driven commit guarantees every other verb commit lives under the live scope. The two commits that follow it — the roadmap regen (step 8) and the merge (step 9) — are hand-composed via plain `git commit`, never routed through the CLI's scope-lookup/trailer-decoration path, so neither can receive an auto-stamped `aiwf-authorized-by` whatever its position.
 
 The completion date is recorded in `wrap.md` (step 1) and is recoverable from the `aiwf-verb: promote` commit via `aiwf history E-NNNN`. Do not add a `completed:` field to the epic frontmatter — aiwf's epic schema does not include it, and the parse failure cascades into unresolved-reference findings on every entity that links to this epic.
 
-### 9. Regenerate the roadmap
+### 8. Regenerate the roadmap
+
+Still on the epic branch, and after the promote — this is the first point at which the roadmap can reflect the epic's final `done` state:
 
 ```bash
 aiwf render roadmap --write
 ```
 
-`--write` only rewrites `ROADMAP.md` on disk — it never commits. Now that the epic shows `done`, stage and commit any resulting change as its own small step, with the same trailer set as the rest of the bundle:
+`--write` only rewrites `ROADMAP.md` on disk — it never commits. Stage and commit any resulting change with the same trailer set as the rest of the bundle:
 
 ```bash
 git add ROADMAP.md
@@ -209,15 +217,57 @@ git commit -m "docs(roadmap): regenerate after E-NNNN wrap" \
   --trailer "aiwf-actor: human/<id>"
 ```
 
-If `aiwf render roadmap --write` reported the file already up to date, skip the `git add`/`git commit` — there is nothing to stage. This step still runs inside the declared-sequence gate from step 4 (item 4) — no separate approval, and no `--no-ff` merge output to reconcile since it's a plain file regen.
+If `aiwf render roadmap --write` reported the file already up to date, skip the `git add`/`git commit` — there is nothing to stage.
+
+### 9. Merge the epic branch into the integration target with a trailered merge commit
+
+Everything above is committed on the epic branch, so this merge is the only commit the integration target receives.
+
+`TARGET_WT` was resolved in step 5; the target is still never checked out here.
+
+Mainline can move while the wrap commits are being made, so re-run step 5's
+ancestor check now — this is the "immediately before the merge" step 5 promises:
+
+```bash
+git -C "$TARGET_WT" merge --ff-only "origin/$TARGET"
+git merge-base --is-ancestor "$TARGET" epic/E-NNNN-<slug>
+```
+
+If that fails, mainline advanced: go back to step 5, integrate it into the epic
+branch, and re-run the full local gate there before returning.
+
+Stage the merge **without committing** so the commit-emitting step is the one carrying trailers:
+
+```bash
+git -C "$TARGET_WT" merge --no-ff --no-commit epic/E-NNNN-<slug>
+```
+
+`--no-ff` preserves the epic as a single merge commit. `--no-commit` is what lets the trailers be attached deliberately, so `aiwf history E-NNNN` surfaces the merge alongside the rest of the bundle. (Note the kernel's `provenance-untrailered-entity-commit` rule is *not* the backstop here — it skips ordinary multi-parent merges by construction — so nothing catches an untrailered merge for you.)
+
+Resolve the operator identity from `git config user.email` — identity is runtime-derived, not stored; do not hardcode `<id>`. Then commit with the three required trailers and a Conventional Commits subject:
+
+```bash
+git -C "$TARGET_WT" commit -m "chore(epic): wrap E-NNNN — <epic title>" \
+  --trailer "aiwf-verb: wrap-epic" \
+  --trailer "aiwf-entity: E-NNNN" \
+  --trailer "aiwf-actor: human/<id>"
+```
+
+The trailer keys are exact — `aiwf-verb`, `aiwf-entity`, `aiwf-actor`. Variant casings (e.g. `Aiwf-Verb`) fail the kernel's trailer-keys policy.
+
+**Do not push yet.**
 
 ### 10. 🛑 Push gate
 
 Push is outward and irreversible — its own gate, never part of the declared-sequence gate above. Confirm. Then:
 
 ```bash
-git push origin main
+git -C "$TARGET_WT" push origin "$TARGET"
 ```
+
+Push from the worktree holding the target, not from the epic worktree. The
+pre-push hook runs `aiwf check` against the pushing worktree's branch range, so
+pushing from here is what puts the merge commit inside the audited range.
 
 ### 11. 🛑 Origin branch cleanup — one gate per delete
 
@@ -239,9 +289,10 @@ git push origin --delete epic/E-NNNN-<slug>          # its own gate
 
 ## Constraints
 
-- 🛑 **The terminal local sequence — merge, wrap-artefact commit, promote-done, roadmap regen — runs under one declared-sequence gate (step 4)**, enumerated verbatim and subset-approvable. The push (step 10) and each origin-branch delete (step 11) are outward and keep their own gates; never batch them.
+- 🛑 **The terminal local sequence — wrap-artefact commit, promote-done, roadmap regen, merge — runs under one declared-sequence gate (step 4)**, enumerated verbatim and subset-approvable. The push (step 10) and each origin-branch delete (step 11) are outward and keep their own gates; never batch them.
 - 🛑 **The merge commit and the wrap-artefact commit both carry the three required trailers.** Skipping either is the regression the kernel's `provenance-untrailered-entity-commit` finding catches.
-- 🛑 **`aiwf promote E-NNNN done` is the last *verb-driven* commit in the bundle** (step 8). It ends the active authorize scope; any commit produced after it that routes through a kernel verb carries an ended-scope `aiwf-authorized-by:` and fails the kernel's `provenance-authorization-ended` check on push. The step-9 roadmap-regen commit is the sole, deliberate exception — hand-composed via plain `git commit`, never routed through the CLI's scope-lookup path, so it cannot receive that trailer regardless of position.
+- 🛑 **`aiwf promote E-NNNN done` is the last *verb-driven* commit in the bundle** (step 7). It ends the active authorize scope; any commit produced after it that routes through a kernel verb carries an ended-scope `aiwf-authorized-by:` and fails the kernel's `provenance-authorization-ended` check on push. The roadmap regen (step 8) and the merge (step 9) both follow it and are safe — each is hand-composed via plain `git commit`, never routed through the CLI's scope-lookup path, so neither can receive that trailer regardless of position.
+- 🛑 **Every commit but the merge lands on the epic branch, and the integration target is never checked out** (step 9). A branch can be checked out once; under the in-repo worktree convention the target is held by another worktree, so the merge runs as `git -C "$TARGET_WT"`.
 - 🛑 **Mainline is reconciled into the epic branch before the merge (step 5), not resolved on mainline mid-merge.** After fetching and fast-forwarding local `main`, if `git merge-base --is-ancestor main epic/E-NNNN-<slug>` is false, integrate mainline into the epic branch, resolve conflicts, and re-run the full local gate there first.
 - Every milestone must be `done` before wrap — `aiwf check` and `aiwf history E-NNNN` confirm.
 - Branch-cleanup is origin-only. Do not delete local branches.
@@ -256,14 +307,15 @@ git push origin --delete epic/E-NNNN-<slug>          # its own gate
 - *Pushing before approval.*
 - *Merging without `--no-commit`.* Produces an untrailered merge commit; the kernel rule fires once per entity file touched.
 - *Hardcoding `<id>` in the actor trailer.* Resolve from `git config user.email` at run time per the provenance model.
-- *Promoting the epic to `done` before the wrap-artefact and other verb-driven wrap-bundle commits.* Ends the authorize scope mid-bundle; subsequent verb-driven commits carry an ended-scope `aiwf-authorized-by:` and fail `provenance-authorization-ended` on push. Promote is step 8, after the wrap-artefact commit — the "Why promote is last among entity-mutating commits" section above explains why (and why the step-9 roadmap regen is the one safe exception).
+- *Promoting the epic to `done` before the wrap-artefact commit.* Ends the authorize scope mid-bundle; subsequent verb-driven commits carry an ended-scope `aiwf-authorized-by:` and fail `provenance-authorization-ended` on push. Promote is step 7, after the wrap-artefact commit — the "Why promote is last among verb-driven commits" section above explains why.
+- *Merging before the promote.* Leaves the integration target carrying the merge without the status flip, so the epic reads `active` on mainline and the roadmap regen has nothing to reflect. The merge is step 9, last.
 - *Resolving a mainline conflict on mainline itself, mid-merge.* If mainline has advanced past the epic branch's fork point, reconcile on the epic branch (step 5) and re-run the gate there — mainline only ever receives an already-validated result.
 
 ## Out of scope
 
 Version-tag cuts, the `[Unreleased]` → `[X.Y.Z]` rename, package publishing, and deployment. Those belong to `aiwfx-release`.
 
-**Note:** *Adding* the per-epic entry under `## [Unreleased]` in `CHANGELOG.md` is **in scope** for this skill (step 7). The `[Unreleased]` heading is the per-epic accumulator; `aiwfx-release` only rolls the accumulated entries forward when cutting a version. Skipping the CHANGELOG-update step at wrap is the failure mode that produces empty release notes — this skill owns prevention.
+**Note:** *Adding* the per-epic entry under `## [Unreleased]` in `CHANGELOG.md` is **in scope** for this skill (step 6). The `[Unreleased]` heading is the per-epic accumulator; `aiwfx-release` only rolls the accumulated entries forward when cutting a version. Skipping the CHANGELOG-update step at wrap is the failure mode that produces empty release notes — this skill owns prevention.
 
 ## Next step
 

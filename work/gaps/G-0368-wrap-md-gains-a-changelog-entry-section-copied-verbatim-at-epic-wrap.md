@@ -6,7 +6,7 @@ priority: medium
 ---
 ## Problem
 
-`aiwfx-wrap-epic` step 7 authors the epic's `CHANGELOG.md` `[Unreleased]` entry
+`aiwfx-wrap-epic`'s wrap-artefact step authors the epic's `CHANGELOG.md` `[Unreleased]` entry
 independently from `wrap.md`'s own `## Summary` section, even though both are
 written in the same wrap sitting and describe the same epic. Nothing links the
 two, so the CHANGELOG entry can silently drop a milestone's user-visible delta
@@ -22,7 +22,7 @@ people about an epic, split by audience into two adjacent sections —
 `## Summary` (internal, unchanged) and a new `## Changelog entry` (written for
 a release-notes reader, Keep-a-Changelog heading shape, optional bullet per
 milestone), sitting directly beneath `## Milestones delivered`.
-`aiwfx-wrap-epic` step 7 changes from freely re-authoring a CHANGELOG
+`aiwfx-wrap-epic`'s wrap-artefact step changes from freely re-authoring a CHANGELOG
 paragraph to copying `## Changelog entry` verbatim into `CHANGELOG.md` under
 `[Unreleased]`. `aiwfx-wrap-milestone` stays changelog-free.
 
@@ -30,7 +30,7 @@ paragraph to copying `## Changelog entry` verbatim into `CHANGELOG.md` under
 
 - Add `## Changelog entry` to the `wrap.md` template in `aiwfx-wrap-epic`'s
   `SKILL.md` (step 1's scaffold), directly beneath `## Milestones delivered`.
-- Rewrite step 7's instructions: copy `## Changelog entry` verbatim into
+- Rewrite that step's instructions: copy `## Changelog entry` verbatim into
   `CHANGELOG.md` instead of distilling a new paragraph.
 - Check the "Out of scope" note still holds the copy-not-synthesize boundary.
 - The `SKILL.md` edit rides a commit naming its owning entity, per the

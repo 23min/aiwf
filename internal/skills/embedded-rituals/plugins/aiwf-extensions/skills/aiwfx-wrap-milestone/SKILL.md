@@ -173,9 +173,26 @@ Run this immediately before the merge — not as an earlier precondition. The ep
 
 If the project uses an epic-integration branch, follow the same pattern as `aiwfx-wrap-epic`'s epic-into-trunk merge: stage the merge **without committing** so the merge commit's trailer set can be attached explicitly.
 
+**Do not check the epic branch out.** A branch can be checked out in one worktree
+at a time. Where the milestone was cut into its own worktree — which
+`aiwfx-start-milestone` step 5 offers — the epic branch is held elsewhere and
+`git checkout epic/E-NNNN-<slug>` fails with *"fatal: … is already used by
+worktree at …"*. Resolve the holding worktree once and drive it by path:
+
 ```bash
-git checkout epic/E-NNNN-<slug>
-git merge --no-ff --no-commit milestone/M-NNNN-<slug>
+EPIC_WT=$(git worktree list --porcelain \
+  | awk -v b="refs/heads/epic/E-NNNN-<slug>" \
+        '/^worktree /{wt=substr($0,10)} $0=="branch "b{print wt; exit}')
+```
+
+If `EPIC_WT` is empty the epic branch is not checked out anywhere and a plain
+`git checkout epic/E-NNNN-<slug>` is safe; set `EPIC_WT=.` after checking out so
+the commands below read the same either way. **Never leave it empty** —
+`git -C ""` is a no-op that silently runs against the current worktree, which
+would merge the milestone branch into itself.
+
+```bash
+git -C "$EPIC_WT" merge --no-ff --no-commit milestone/M-NNNN-<slug>
 ```
 
 `--no-ff` preserves the milestone as a single merge commit (rather than fast-forwarding individual milestone commits into the epic). `--no-commit` leaves the merge staged so the commit-emitting step is the one carrying trailers — without it, git produces an untrailered merge commit and the kernel's `trailer-verb-unknown` warning fires (the operator's hand-typed `aiwf-verb: merge` is a fabrication; `merge` is a git concept, not a recognized ritual or kernel verb).
@@ -183,7 +200,7 @@ git merge --no-ff --no-commit milestone/M-NNNN-<slug>
 Resolve the operator identity from `git config user.email` — identity is runtime-derived, not stored; do not hardcode `<id>`. Then commit with the three required trailers and a Conventional Commits subject:
 
 ```bash
-git commit -m "chore(milestone): wrap M-NNNN — <milestone title>" \
+git -C "$EPIC_WT" commit -m "chore(milestone): wrap M-NNNN — <milestone title>" \
   --trailer "aiwf-verb: wrap-milestone" \
   --trailer "aiwf-entity: M-NNNN" \
   --trailer "aiwf-actor: human/<id>"
@@ -200,7 +217,7 @@ Record the resulting merge commit SHA wherever the project tracks merge history 
 If step 1 identified any gap this milestone's own body explicitly claims to fix, close each one first — before the milestone's own promote-to-`done` step below, which ends a delegated milestone's authorize scope. A verb-driven commit produced after that point risks an ended-scope `aiwf-authorized-by:` trailer on push (the same hazard `aiwfx-wrap-epic`'s promote-last ordering exists to avoid, applied here to the reverse ordering problem: gap closure must come *before* the scope-ending act, not after it):
 
 ```bash
-aiwf promote G-NNNN addressed --by-commit <sha>
+aiwf promote G-NNNN addressed --by-commit <sha> --root "$EPIC_WT"
 ```
 
 Cite the AC's own implementation commit, not the merge commit — `--by-commit` is mechanically guarded (`aiwf` refuses a SHA unreachable from `HEAD`), so this only works after the merge (step 12) has landed. Skip entirely if the milestone claims no gap.
@@ -208,8 +225,12 @@ Cite the AC's own implementation commit, not the merge commit — `--by-commit` 
 Then promote the milestone itself:
 
 ```bash
-aiwf promote M-NNNN done
+aiwf promote M-NNNN done --root "$EPIC_WT"
 ```
+
+`--root` targets the worktree holding the epic branch, for the same reason the
+merge did — the promote's commit belongs on that branch. Where the epic branch
+is checked out in the current worktree, `EPIC_WT` is `.` and the flag is a no-op.
 
 aiwf validates `in_progress → done`, rewrites frontmatter, and commits with `aiwf-verb: promote` trailers. This is the moment of closure — the last status-flip commit in the sequence, landing after the merge (and after any gap closures) so a delegated milestone's authorize scope is still live for both.
 
@@ -218,14 +239,14 @@ aiwf validates `in_progress → done`, rewrites frontmatter, and commits with `a
 Now that the milestone's status has actually landed as `done` (step 5's render ran before this promotion, so it's stale the moment promote-done commits):
 
 ```bash
-aiwf render roadmap --write
+aiwf render roadmap --write --root "$EPIC_WT"
 ```
 
 `--write` only rewrites the file on disk — it never commits. Landing this after promote-done is safe despite promote being "the last status-flip commit": the regen commit below is hand-composed via plain `git commit`, never routed through the CLI's scope-lookup/trailer-decoration path, so it cannot pick up an ended-scope `aiwf-authorized-by:` trailer regardless of position (unlike a kernel-verb commit, which would). If the content changed, stage and commit it as its own small step in this same declared sequence, with the ritual's trailers (mirroring the merge commit's hand-composed trailer set above):
 
 ```bash
-git add ROADMAP.md
-git commit -m "docs(roadmap): regenerate after M-NNNN wrap" \
+git -C "$EPIC_WT" add ROADMAP.md
+git -C "$EPIC_WT" commit -m "docs(roadmap): regenerate after M-NNNN wrap" \
   --trailer "aiwf-verb: wrap-milestone" \
   --trailer "aiwf-entity: M-NNNN" \
   --trailer "aiwf-actor: human/<id>"
@@ -235,11 +256,27 @@ If `aiwf render roadmap --write` reported the file already up to date, skip the 
 
 ### 15. Local cleanup
 
-Delete the local milestone branch (and its worktree, if one was used):
+Delete the local milestone branch and, if one was used, its worktree.
+
+Order matters and the branch cannot go first: git refuses to delete a branch a
+worktree still holds — *"error: cannot delete branch … used by worktree at …"* —
+and you cannot remove the worktree you are standing in. Leave it, then remove it,
+then delete the branch:
 
 ```bash
-git branch -d milestone/M-NNNN-<slug>
+MS_WT=$(git worktree list --porcelain \
+  | awk -v b="refs/heads/milestone/M-NNNN-<slug>" \
+        '/^worktree /{wt=substr($0,10)} $0=="branch "b{print wt; exit}')
+
+# If the milestone had its own worktree, leave it before removing it. In a
+# Claude Code session that means the harness `ExitWorktree` tool, not `cd`.
+[ -n "$MS_WT" ] && git worktree remove "$MS_WT"
+
+git -C "$EPIC_WT" branch -d milestone/M-NNNN-<slug>
 ```
+
+Where the milestone shared the epic's worktree, `MS_WT` is empty, there is no
+worktree to remove, and the branch delete is the whole of this step.
 
 These are local and reversible, so they belong inside the gate above.
 
