@@ -1,8 +1,10 @@
 ---
 id: G-0610
 title: Correcting a false claim leaves a paragraph narrating the correction
-status: open
+status: addressed
 priority: medium
+addressed_by_commit:
+    - 595aa80e604d680a062913bc17fca192a19e65bb
 ---
 ## What's missing
 
