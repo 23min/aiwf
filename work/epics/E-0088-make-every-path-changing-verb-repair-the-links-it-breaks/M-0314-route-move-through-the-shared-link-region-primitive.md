@@ -99,3 +99,20 @@ all, so the self-link is what gives that assertion its power.
 
 The moved file's own outbound self-link is left pointing at the pre-move path.
 That is M-0315's subject, so nothing here asserts its post-move destination.
+
+### AC-2 — A milestone moved between epics leaves no inbound link broken
+
+An end-to-end sweep resolves every inbound link on disk after the move and stats
+its destination · commit b967c3352 · tests 635/636
+
+Resolving rather than string-comparing is what makes this an integrity claim: a
+link rewritten to a path nothing occupies satisfies a `Contains` assertion and
+fails a `stat`. The sweep covers both destination flavors and skips the moved
+file, whose own self-link stays pointing at the pre-move path until M-0315.
+
+Handed to M-0316: removing the `://` guard in `rewriteLinkDestination` leaves
+these tests green. A `scheme://` destination is rejected by
+`isEntityRootRelative`, so it resolves through the join branch and keeps its
+scheme segment — which no entity path carries — making the guard arguably
+unreachable-as-behavior and the mutant equivalent. That is one measured case
+rather than a proof, and adjudicating equivalence is that milestone's job.
