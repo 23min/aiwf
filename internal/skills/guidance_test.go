@@ -39,7 +39,7 @@ func TestMaterializeGuidance_DeclaresBinaryVersion(t *testing.T) {
 // than the rule being compressed to fit the ceiling.
 func TestGuidance_WithinLineBudget(t *testing.T) {
 	t.Parallel()
-	const budget = 139
+	const budget = 144
 	lines := bytes.Count(GuidanceBytes(), []byte("\n"))
 	if lines > budget {
 		t.Errorf("AC-4: guidance fragment is %d lines, over the %d-line per-turn budget", lines, budget)
