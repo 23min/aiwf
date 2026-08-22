@@ -147,13 +147,21 @@ Run this immediately before the merge — not as an earlier precondition a concu
    TARGET_WT=$(git worktree list --porcelain \
      | awk -v b="refs/heads/$TARGET" \
            '/^worktree /{wt=substr($0,10)} $0=="branch "b{print wt; exit}')
+   [ -n "$TARGET_WT" ] || echo "the target is checked out nowhere — take the fallback below before continuing"
    ```
 
    If `TARGET_WT` is empty the target is checked out nowhere: check it out here
    and set `TARGET_WT=.` so every command below reads the same either way.
-   **Never leave it empty** — `git -C ""` is a no-op that silently runs against
-   the current worktree, which would fast-forward or merge the epic branch into
-   itself.
+   **Never leave it empty**, and re-run the resolution above if the shell no longer
+   carries it — a new shell, an aborted and re-gated sequence, or a context
+   compaction loses it. `git -C ""` runs against the current worktree, which holds
+   the epic branch. What the fast-forward below does turns on divergence rather than
+   on the epic's own commits: it aborts at exit 128 with *"Not possible to
+   fast-forward"* if the target's upstream has diverged from the epic, does nothing
+   at exit 0 if that upstream is already an ancestor, and silently moves the epic
+   branch onto it where the epic carries no unique commits. In every arm the merge
+   at step 9 then reports `Already up to date.` at exit 0 and the target receives
+   nothing.
 
    ```bash
    git fetch
