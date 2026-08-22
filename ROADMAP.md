@@ -1180,7 +1180,7 @@ because nothing enforced it.
 
 _No milestones yet._
 
-## E-0085 — Measure the spec before the code; record what the measurement changed (proposed)
+## E-0085 — Measure the spec before the code; record what the measurement changed (cancelled)
 
 ### Goal
 
@@ -1190,6 +1190,37 @@ what the measurement changed is left on the record.
 
 | Milestone | Title | Status |
 |---|---|---|
-| M-0308 | Ship the spec-measurement ritual and settle what its record is | draft |
-| M-0309 | Wire the measurement into the start seams and drop the unbacked claim | draft |
+| M-0308 | Ship the spec-measurement ritual and settle what its record is | done |
+| M-0309 | Wire the measurement into the start seams and drop the unbacked claim | cancelled |
+
+## E-0086 — Reduce the preflight pass to the lab rule (done)
+
+### Goal
+
+Keep the one rule the preflight work produced evidence for, and record why the
+rest was dropped.
+
+The epic originally set out to build the smallest version of the milestone
+preflight pass that could be trialled and could fail. D-0069 records the
+rejection of that method, with the measurements and the commands that reproduce
+them. What survives is the lab rule.
+
+| Milestone | Title | Status |
+|---|---|---|
+| M-0310 | Settle what a pass run records about itself | cancelled |
+| M-0311 | Ship the reviewer brief as an invocable skill | cancelled |
+
+## E-0087 — Retire the shipped-prose assertion corpus and its generating mandate (active)
+
+### Goal
+
+Remove the body of tests that assert shipped prose still says particular things, and
+re-point the chokepoint that generates them at the property it was actually meant to
+enforce. The outcome is a smaller policy suite whose green run means something true, and
+a skill-edit gate that costs once rather than once per edit.
+
+| Milestone | Title | Status |
+|---|---|---|
+| M-0312 | Re-point the skill-edit backstop from content reference to provenance | done |
+| M-0313 | Retire the prose-assertion corpus over shipped surfaces | done |
 
