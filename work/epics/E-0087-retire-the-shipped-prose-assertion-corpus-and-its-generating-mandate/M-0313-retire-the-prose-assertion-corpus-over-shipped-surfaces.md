@@ -9,7 +9,7 @@ tdd: advisory
 acs:
     - id: AC-1
       title: A phrase assertion over shipped prose fails the policy suite
-      status: open
+      status: met
     - id: AC-2
       title: The cross-document citation walk still fails on a dangling reference
       status: open
