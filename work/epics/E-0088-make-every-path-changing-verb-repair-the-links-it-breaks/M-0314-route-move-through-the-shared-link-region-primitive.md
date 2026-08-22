@@ -78,3 +78,23 @@ None. The primitive exists.
 - ADR-0033 — the specification
 - E-0088 — the parent epic
 - `internal/verb/move.go`, `linkrewrite.go`, `linkregion.go`
+
+## Work log
+
+### AC-1 — aiwf move routes its link rewriting through the shared primitive
+
+`move` plans inbound link repair through `planLinkRewriteWrites`, excluding its
+own file · commit 051daad1a · tests 634/635
+
+The exclude set is load-bearing rather than defensive, and only in one shape: it
+matters when the moved file's own body carries a link resolving into the move
+set. There the helper emits a second write for the destination path, serialized
+from the *tree's* entity — which still holds the pre-move `parent:` — competing
+with the write `move` already plans to update that field. Measured under
+mutation: dropping the exclude produces two writes at one path, one naming the
+destination epic and one still naming the source epic. A fixture whose milestone
+body links to nothing that moves cannot discriminate the two implementations at
+all, so the self-link is what gives that assertion its power.
+
+The moved file's own outbound self-link is left pointing at the pre-move path.
+That is M-0315's subject, so nothing here asserts its post-move destination.
