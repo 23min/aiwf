@@ -1,8 +1,11 @@
 ---
+# Field vocabulary — the allowed statuses, which fields are optional, and
+# what each reference accepts — is printed by `aiwf schema contract`;
+# the value set behind a flag is in `aiwf add contract --help`.
 id: C-NNNN
 title: <what the contract governs>
-status: proposed         # aiwf contract statuses: proposed | accepted | deprecated | retired | rejected
-linked_adrs: []          # optional: the ADR ids that motivate this contract
+status: proposed
+linked_adrs: []
 ---
 
 <!-- How to use this file. A contract is born complete: `aiwf add` refuses to create

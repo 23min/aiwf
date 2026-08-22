@@ -1,7 +1,9 @@
 ---
 id: G-0612
 title: aiwfx-release's roll-up cannot nest the per-epic sub-headings it folds
-status: open
+status: addressed
+addressed_by_commit:
+    - b079f97d3
 ---
 ## What's missing
 

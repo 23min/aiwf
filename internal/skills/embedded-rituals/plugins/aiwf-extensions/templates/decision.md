@@ -1,10 +1,13 @@
 ---
+# Field vocabulary — the allowed statuses, which fields are optional, and
+# what each reference accepts — is printed by `aiwf schema decision`;
+# the value set behind a flag is in `aiwf add decision --help`.
 id: D-NNNN
 title: <imperative, ≤ 60 chars>
-status: proposed         # aiwf decision statuses: proposed | accepted | superseded | rejected
-relates_to: []           # optional: list of E-NNNN, M-NNNN, ADR-NNNN this decision touches
-supersedes: []           # optional: list of D-NNNN this replaces
-superseded_by:           # optional: D-NNNN that replaces this
+status: proposed
+relates_to: []
+supersedes: []
+superseded_by:
 ---
 
 # <id> — <Decision Title>

@@ -1,11 +1,14 @@
 ---
+# Field vocabulary — the allowed statuses, which fields are optional, and
+# what each reference accepts — is printed by `aiwf schema milestone`;
+# the value set behind a flag is in `aiwf add milestone --help`.
 id: M-NNNN
 title: <imperative title>
-parent: E-NNNN            # required: the parent epic id
-status: draft             # aiwf milestone statuses: draft | in_progress | done | cancelled
-depends_on: []            # optional: prior milestone ids the DAG depends on
-tdd: none                 # optional: required | advisory | none (default none)
-acs: []                   # optional: filled by `aiwf add ac <milestone-id> --title "..."`
+parent: E-NNNN
+status: draft
+depends_on: []
+tdd: none
+acs: []                  # filled by `aiwf add ac`, never by hand
 ---
 
 <!-- A spec states what will be built and what is excluded. The reasoning behind a
