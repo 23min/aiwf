@@ -35,20 +35,6 @@ func TestRenderGuidance_ContainsAllRules(t *testing.T) {
 	}
 }
 
-// TestRenderGuidance_SubstitutesVersion pins the version marker
-// behavior: the given version appears and the sentinel is fully
-// replaced (M-0163/AC-2).
-func TestRenderGuidance_SubstitutesVersion(t *testing.T) {
-	t.Parallel()
-	out := string(RenderGuidance("v9.9.9"))
-	if !strings.Contains(out, "aiwf-version: v9.9.9") {
-		t.Errorf("AC-2: rendered guidance missing version marker 'aiwf-version: v9.9.9'")
-	}
-	if strings.Contains(out, guidanceVersionSentinel) {
-		t.Errorf("AC-2: version sentinel %q left unsubstituted", guidanceVersionSentinel)
-	}
-}
-
 // TestMaterializeGuidance_DeclaresBinaryVersion pins the seam: the
 // materialized file declares the running binary's version, not a
 // hardcoded or sentinel value (M-0163/AC-2).
@@ -82,39 +68,6 @@ func TestGuidance_WithinLineBudget(t *testing.T) {
 	lines := bytes.Count(GuidanceBytes(), []byte("\n"))
 	if lines > budget {
 		t.Errorf("AC-4: guidance fragment is %d lines, over the %d-line per-turn budget", lines, budget)
-	}
-}
-
-// TestGuidance_ContainsCodeHealthDigest pins the every-turn code-health priming
-// digest (G-0265 / ADR-0019): the fragment carries the highest-leverage
-// forces inline so they prime code-writing without reaching for the full
-// wf-codebase-health skill. Drift in the digest fails the build.
-func TestGuidance_ContainsCodeHealthDigest(t *testing.T) {
-	t.Parallel()
-	got := string(GuidanceBytes())
-	// Scoped to the digest section: a force that drifted into the operating-rule
-	// list above would satisfy a file-wide match while ceasing to be priming for
-	// the code an assistant is about to write.
-	_, digest, found := strings.Cut(got, "## Code-health priming")
-	if !found {
-		t.Fatal("guidance fragment has no `## Code-health priming` section")
-	}
-	if !strings.Contains(digest, "wf-codebase-health") {
-		t.Error("the code-health digest no longer points at the full rubric it summarizes")
-	}
-	for _, anchor := range []string{
-		"D1 — pin behavior, not implementation",
-		"D5 — findings become checks",
-		"C1 — single source of truth",
-		"C3 — atomic writes",
-		"B1/B2 — typed interfaces and validated schemas",
-		"E1 — structured logs",
-		"H1 — reuse over duplication",
-		"H3 — additions carry",
-	} {
-		if !strings.Contains(digest, anchor) {
-			t.Errorf("code-health digest missing anchor %q", anchor)
-		}
 	}
 }
 

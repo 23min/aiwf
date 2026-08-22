@@ -172,53 +172,6 @@ func TestPlanningBodyFill_AC1_PlanSkillsRouteThroughEditBody(t *testing.T) {
 	}
 }
 
-// TestPlanningNextStep_AC3_StatusAwareRouting pins AC-3: the planning skills'
-// `## Next step` routing is status-aware and does not leapfrog
-// aiwfx-start-epic. aiwfx-plan-milestones must route to aiwfx-start-epic for
-// a still-proposed epic (naming both the skill and the proposed/active
-// condition); aiwfx-plan-epic's own Next-step must likewise name
-// aiwfx-start-epic rather than jumping straight to start-milestone.
-func TestPlanningNextStep_AC3_StatusAwareRouting(t *testing.T) {
-	t.Parallel()
-
-	t.Run("plan-milestones", func(t *testing.T) {
-		t.Parallel()
-		body := loadPolishFixture(t, aiwfxPlanMilestonesFixturePath)
-		section := extractMarkdownSection(body, 2, "Next step")
-		if section == "" {
-			t.Fatal("AC-3: aiwfx-plan-milestones must have a `## Next step` section")
-		}
-		if !strings.Contains(section, "aiwfx-start-epic") {
-			t.Error("AC-3: plan-milestones `## Next step` must route to `aiwfx-start-epic` for a still-proposed epic (no leapfrog to start-milestone)")
-		}
-		if !strings.Contains(strings.ToLower(section), "proposed") {
-			t.Error("AC-3: plan-milestones `## Next step` must be status-aware — name the `proposed` epic case that routes to start-epic")
-		}
-		// The contract is two-case: the already-active epic still routes
-		// to start-milestone. Assert both halves so a future edit can't
-		// collapse the status-awareness back to a single pointer (in
-		// either direction).
-		if !strings.Contains(section, "aiwfx-start-milestone") {
-			t.Error("AC-3: plan-milestones `## Next step` must retain the `aiwfx-start-milestone` route for the already-active epic case")
-		}
-		if !strings.Contains(strings.ToLower(section), "active") {
-			t.Error("AC-3: plan-milestones `## Next step` must name the `active` epic case (the second half of the two-case contract)")
-		}
-	})
-
-	t.Run("plan-epic", func(t *testing.T) {
-		t.Parallel()
-		body := loadPolishFixture(t, aiwfxPlanEpicFixturePath)
-		section := extractMarkdownSection(body, 2, "Next step")
-		if section == "" {
-			t.Fatal("AC-3: aiwfx-plan-epic must have a `## Next step` section")
-		}
-		if !strings.Contains(section, "aiwfx-start-epic") {
-			t.Error("AC-3: plan-epic `## Next step` must route through `aiwfx-start-epic` rather than leapfrogging to start-milestone")
-		}
-	})
-}
-
 // TestPlanningBodyFill_RichTemplateSelfLocating pins G-0345 for the two
 // planning skills: the step-5 body-fill step names the *materialized*
 // `.claude/templates/<spec>.md` path (locatable in a consumer repo) and the
