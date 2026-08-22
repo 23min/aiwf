@@ -1210,7 +1210,7 @@ them. What survives is the lab rule.
 | M-0310 | Settle what a pass run records about itself | cancelled |
 | M-0311 | Ship the reviewer brief as an invocable skill | cancelled |
 
-## E-0087 — Retire the shipped-prose assertion corpus and its generating mandate (active)
+## E-0087 — Retire the shipped-prose assertion corpus and its generating mandate (done)
 
 ### Goal
 
