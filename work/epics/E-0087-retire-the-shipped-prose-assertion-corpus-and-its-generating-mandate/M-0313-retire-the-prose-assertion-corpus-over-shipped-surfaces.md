@@ -15,7 +15,7 @@ acs:
       status: met
     - id: AC-3
       title: The dispatch trigger-phrase checks still fail when a phrase is removed
-      status: open
+      status: met
 ---
 ## Goal
 
