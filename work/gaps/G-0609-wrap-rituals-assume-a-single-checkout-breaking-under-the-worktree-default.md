@@ -77,3 +77,27 @@ ordering mistake came from — or silently abandons the worktree convention.
 These are also shipped surfaces. Consumers materialize both rituals via
 `aiwf init` / `aiwf update`, and any consumer using git worktrees meets the same
 wall with no context for why.
+
+## Pinning
+
+The fix ships without a regression check, because the obvious one is refused by
+the repo's own rules. A test reading the shipped ritual and asserting it no
+longer instructs a bare checkout is a negative phrase assertion over a shipped
+surface — the class D-0070 retires — and `shipped-prose-assertion` fires on it.
+Measured rather than assumed: the candidate test was written, the policy raised
+a violation naming it, and the candidate was removed.
+
+The two routes that would evade that check are worse than no check. A regexp
+over the same prose exploits the bypass G-0607 records. Writing it as a
+production policy exploits the scope hole G-0606 records. Neither is a pin; both
+are the ban being worked around by its own author.
+
+So this is a second concrete instance of the class G-0608 names — a negative
+regression pin over a shipped surface, with nowhere to live. The first was a
+dead-CLI-form guard whose shipped site was dropped for the same reason. Two
+instances in one epic is the evidence G-0608 was filed to wait for, and settling
+that class would give this fix somewhere to put its check.
+
+What stands in the meantime: the shell snippets in both rituals were executed
+against the live worktree layout and verified to resolve the correct paths, and
+to return empty for a branch checked out nowhere.
