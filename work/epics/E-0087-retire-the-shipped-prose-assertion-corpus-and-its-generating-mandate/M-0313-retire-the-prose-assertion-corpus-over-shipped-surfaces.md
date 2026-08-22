@@ -45,12 +45,27 @@ prose contains a particular phrase, naming the file and line. The check runs ove
 source**, not over prose, which is what makes it immune to rewording and distinguishes it
 from the class D-0070 retires.
 
-**The allowlist is closed to the two exception classes named in D-0070, and carries no
-grandfather entries.** This clause is what makes the deletion real rather than incidental.
-Without it the ban is satisfiable by exempting everything that already exists — a move
-this repo has precedent for in the firing-fixture gate's own ledger — and the corpus
-survives with every acceptance criterion green. With it, a green suite means the corpus
-is gone, because the two cannot both be true.
+**The allowlist is closed and carries no grandfather entries.** This clause is what makes
+the deletion real rather than incidental. Without it the ban is satisfiable by exempting
+everything that already exists — a move this repo has precedent for in the firing-fixture
+gate's own ledger — and the corpus survives with every acceptance criterion green. With
+it, a green suite means the corpus is gone, because the two cannot both be true.
+
+Closure is a property of the code rather than a claim in a comment: the exemptions live
+in one map per admitted class, so adding one means choosing a class and a case fitting
+neither has nowhere to go. Two classes are admitted, and they are not D-0070's two — one
+of D-0070's needs no exemption at all:
+
+- **Trigger phrases.** The phrasings in a skill's `## When to use` section and its
+  `description:` frontmatter that decide whether an assistant reaches for the skill.
+- **Relationship checks reaching their second artefact through code**, by computing the
+  expectation from the behaviour under test rather than restating it. D-0070 keeps the
+  cross-document relationship check for its reach — it fails when either side moves, and
+  no rewording satisfies it falsely — and that reasoning does not depend on the second
+  artefact being a file. The needle is then a stable identifier rather than a phrase.
+- **Cross-document relationship checks are not exempted, because the rule never fires on
+  them.** Their needle is drawn from the second document rather than written into the
+  test, so they fall outside the predicate by construction.
 
 Fixture: plant a long-literal containment assertion in a test reading an embedded-skill
 fixture; the policy fires and names it. Removing the plant returns the suite to green.
@@ -109,6 +124,10 @@ Probe: remove one trigger phrase from the deployer card's `description:` and one
 
 - `internal/policies/` — the test files asserting over embedded skill, ritual, template,
   agent-card, and guidance prose
+- `internal/skills/` — the same class of assertion, reached through the `go:embed` roots
+  rather than a repo-relative path. D-0070 scopes itself by surface, not by package, so a
+  ban stopping at one package would make "wrote the test elsewhere" an exception no
+  allowlist records
 - `internal/policies/d5_structure_test.go` — the citation walk, preserved
 
 ## Out of scope
