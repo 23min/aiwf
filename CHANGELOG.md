@@ -33,6 +33,33 @@ checked out nowhere.
 
 Run `aiwf update` to pick it up.
 
+### Added — G-0614: gap and contract get the prose templates the other four kinds have
+
+`.claude/templates/` shipped rich templates for adr, decision, epic and milestone;
+gap and contract had only the bare heading scaffold `aiwf add` writes. For those two
+kinds a consumer's assistant had nothing to fill in, and the shipped path that names
+a per-kind template resolved to no file.
+
+`gap.md` records a defect and nothing else — what is wrong and **where**, and what
+breaks while it stays open. A gap that cannot point at a file, a symbol, or an
+observable behaviour is a wish rather than a defect, and belongs in an epic or a
+milestone where a plan belongs. The template carries no section for what to do about
+it: that decision belongs to whoever reads the gap. `contract.md` covers the registry
+record — who is on each end of the schema, and how far it is allowed to move, in the
+frozen / additive-only / breaking-allowed-with-migration vocabulary.
+
+The always-on guidance gains the matching rule, so it binds at the moment a gap is
+written rather than only when the template is opened.
+
+### Fixed — G-0614: the add skill described a two-step body route the born-complete kinds refuse
+
+`aiwf-add` offered the `aiwf add` → `aiwf edit-body` flow as working "for every kind
+today". Gap, adr, decision and contract are born complete: `aiwf add` refuses a create
+whose load-bearing sections are empty, so for those four the body has to land in the
+create commit via `--body-file`. The skill now says which kinds each route serves, and
+notes that a template's own frontmatter is field reference to delete rather than body
+content to pass on — `--body-file` refuses content carrying its own frontmatter.
+
 ### Changed — G-0610: the drafting-history rule names corrections and gives a keep/drop test
 
 The always-on guidance told assistants to state the conclusion rather than the
