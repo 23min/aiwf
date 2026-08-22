@@ -1,7 +1,7 @@
 ---
 id: M-0313
 title: Retire the prose-assertion corpus over shipped surfaces
-status: in_progress
+status: done
 parent: E-0087
 depends_on:
     - M-0312
