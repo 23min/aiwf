@@ -1,9 +1,12 @@
 ---
+# Field vocabulary — the allowed statuses, which fields are optional, and
+# what each reference accepts — is printed by `aiwf schema gap`;
+# the value set behind a flag is in `aiwf add gap --help`.
 id: G-NNNN
 title: <what is wrong — the defect, not the fix>
-status: open             # aiwf gap statuses: open | addressed | wontfix
-priority:                # optional: urgent | high | medium | low
-discovered_in:           # optional: the milestone or epic where this surfaced
+status: open
+priority:
+discovered_in:
 ---
 
 <!-- How to use this file. A gap is born complete: `aiwf add` refuses to create one

@@ -16,6 +16,32 @@ section in this file.
 
 ## [Unreleased]
 
+### Changed — G-0617: entity templates point at the vocabulary instead of restating it
+
+Every entity template's frontmatter annotated its fields with the kind's closed
+vocabulary — the allowed statuses, and which fields were optional. That is the same
+data `entity.schemas` declares and `aiwf schema <kind>` prints, maintained by hand in
+six more places, with nothing checking the two agreed. Adding a status to a kind would
+have left the templates teaching the old set in every consumer repo, with `aiwf check`
+clean.
+
+The annotations are gone. Each block now opens with a comment naming where the
+vocabulary actually lives: `aiwf schema <kind>` for statuses, optionality and what
+each reference accepts, and `aiwf add <kind> --help` for the value set behind a flag.
+What is not printed by either — that `acs` is filled by `aiwf add ac` rather than by
+hand — stays as instruction.
+
+### Fixed — G-0617: the epic template offered a depends_on field epics do not have
+
+`epic-spec.md` carried `depends_on: []` annotated "optional: prior epic ids". No such
+field exists for the kind: `entity.schemas` declares `depends_on` under milestone
+alone, `entity.ForwardRefs` walks it only for milestones, the renderers read it only
+for milestones, and `aiwf add --depends-on` is documented milestone-only. Measured
+against a fixture tree, an epic carrying the field draws no finding — it parses, is
+ignored, and is never validated, so an author declaring an epic dependency got
+silence rather than an error. The line is gone; no epic in a tree needs migrating,
+since nothing ever read it.
+
 ### Fixed — G-0615: `wf-patch` no longer tells you to check out the branch it merges into
 
 `wf-patch` ended by switching to mainline, once to fast-forward it and once to run
