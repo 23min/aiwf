@@ -16,6 +16,23 @@ section in this file.
 
 ## [Unreleased]
 
+### Changed — G-0610: the drafting-history rule names corrections and gives a keep/drop test
+
+The always-on guidance told assistants to state the conclusion rather than the
+drafting history, and drew its examples from how a draft evolved and from how code
+evolved — naming the correction case in neither. So finding a claim in a body false
+and then writing a paragraph about the correction, instead of deleting the claim,
+matched no listed example, and an author could hold the rule and breach it. The
+bullet now names the correction case and carries the test that decides any
+backwards-reaching sentence: would a reader who never saw the earlier version need
+it? A keep and a drop example show which side of that line each falls on.
+
+`wf-review-code`'s documentation lens gains the matching item, so retraction
+narration in entity bodies and docs is flagged the way it already is in code
+comments.
+
+Run `aiwf update` to pick both up.
+
 ### Fixed — G-0609: the wrap rituals no longer require checking out the branch they merge into
 
 `aiwfx-wrap-epic` and `aiwfx-wrap-milestone` told the operator to `git checkout`

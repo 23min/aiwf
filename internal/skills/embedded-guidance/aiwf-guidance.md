@@ -84,6 +84,14 @@ lives in the `wf-codebase-health` skill.
   can still *encounter* — a legacy on-disk format, a supported older release,
   an external contract you don't control — which is current truth about the
   input space and is written in the present tense as such.
+  The easiest case to miss is a **correction**: on finding a claim in the
+  body false, delete it and state what is so — never add a paragraph saying
+  the old claim was wrong. `aiwf edit-body --reason` carries that provenance
+  into the commit, where `aiwf history` renders it. For any sentence that
+  reaches backwards, ask: *would a reader who never saw the earlier version
+  need this?* Keep "files written by older releases store the date as a
+  string, so the parser accepts both"; drop "we moved this before the
+  migration; it used to run after."
 - **Keep the reasoning; derive the facts.** Before writing a fact into prose,
   ask whether a check, a field, or a git trailer already holds it — if one
   does, the prose is a second copy, and the copy nothing re-derives.
