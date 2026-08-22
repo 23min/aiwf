@@ -1,7 +1,9 @@
 ---
 id: G-0614
 title: Gap and contract ship no prose template
-status: open
+status: addressed
+addressed_by_commit:
+    - 711669bb9
 ---
 ## What's missing
 

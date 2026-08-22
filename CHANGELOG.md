@@ -16,6 +16,76 @@ section in this file.
 
 ## [Unreleased]
 
+### Changed — G-0617: entity templates point at the vocabulary instead of restating it
+
+Every entity template's frontmatter annotated its fields with the kind's closed
+vocabulary — the allowed statuses, and which fields were optional. That is the same
+data `entity.schemas` declares and `aiwf schema <kind>` prints, maintained by hand in
+six more places, with nothing checking the two agreed. Adding a status to a kind would
+have left the templates teaching the old set in every consumer repo, with `aiwf check`
+clean.
+
+The annotations are gone. Each block now opens with a comment naming where the
+vocabulary actually lives: `aiwf schema <kind>` for statuses, optionality and what
+each reference accepts, and `aiwf add <kind> --help` for the value set behind a flag.
+What is not printed by either — that `acs` is filled by `aiwf add ac` rather than by
+hand — stays as instruction.
+
+### Fixed — G-0617: the epic template offered a depends_on field epics do not have
+
+`epic-spec.md` carried `depends_on: []` annotated "optional: prior epic ids". No such
+field exists for the kind: `entity.schemas` declares `depends_on` under milestone
+alone, `entity.ForwardRefs` walks it only for milestones, the renderers read it only
+for milestones, and `aiwf add --depends-on` is documented milestone-only. Measured
+against a fixture tree, an epic carrying the field draws no finding — it parses, is
+ignored, and is never validated, so an author declaring an epic dependency got
+silence rather than an error. The line is gone; no epic in a tree needs migrating,
+since nothing ever read it.
+
+### Fixed — G-0615: `wf-patch` no longer tells you to check out the branch it merges into
+
+`wf-patch` ended by switching to mainline, once to fast-forward it and once to run
+the merge. Git allows one checkout per branch, so under the in-repo worktree default
+mainline is already held by the primary checkout and both steps fail outright — at
+the end of the ritual, partway through a sequence the human has already approved.
+
+The whole terminal sequence now resolves the worktree holding mainline once and
+drives it by path with `git -C`, the shape G-0609 gave the wrap rituals: the
+reconcile and the merge, the tracker closure (via `--root`, so the closure commit
+lands on mainline rather than on the patch branch), the branch delete (which removes
+the patch worktree first, since git will not delete a branch a worktree still
+holds), and the push. A documented fallback covers the case where mainline is
+checked out nowhere.
+
+Run `aiwf update` to pick it up.
+
+### Added — G-0614: gap and contract get the prose templates the other four kinds have
+
+`.claude/templates/` shipped rich templates for adr, decision, epic and milestone;
+gap and contract had only the bare heading scaffold `aiwf add` writes. For those two
+kinds a consumer's assistant had nothing to fill in, and the shipped path that names
+a per-kind template resolved to no file.
+
+`gap.md` records a defect and nothing else — what is wrong and **where**, and what
+breaks while it stays open. A gap that cannot point at a file, a symbol, or an
+observable behaviour is a wish rather than a defect, and belongs in an epic or a
+milestone where a plan belongs. The template carries no section for what to do about
+it: that decision belongs to whoever reads the gap. `contract.md` covers the registry
+record — who is on each end of the schema, and how far it is allowed to move, in the
+frozen / additive-only / breaking-allowed-with-migration vocabulary.
+
+The always-on guidance gains the matching rule, so it binds at the moment a gap is
+written rather than only when the template is opened.
+
+### Fixed — G-0614: the add skill described a two-step body route the born-complete kinds refuse
+
+`aiwf-add` offered the `aiwf add` → `aiwf edit-body` flow as working "for every kind
+today". Gap, adr, decision and contract are born complete: `aiwf add` refuses a create
+whose load-bearing sections are empty, so for those four the body has to land in the
+create commit via `--body-file`. The skill now says which kinds each route serves, and
+notes that a template's own frontmatter is field reference to delete rather than body
+content to pass on — `--body-file` refuses content carrying its own frontmatter.
+
 ### Fixed — G-0611, G-0612: the release ritual now describes the release this project actually cuts
 
 `aiwfx-release`'s CHANGELOG step told the operator to build a fresh version section

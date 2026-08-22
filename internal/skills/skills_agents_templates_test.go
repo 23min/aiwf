@@ -58,10 +58,10 @@ func TestListRitualAgents(t *testing.T) {
 	}
 }
 
-// TestListRitualTemplates covers M-0150 AC-1: the four vendored ritual
+// TestListRitualTemplates covers M-0150 AC-1: the vendored ritual
 // templates are discovered, name-sorted, with content. The wf-rituals
 // templates/.gitkeep is a dotfile excluded by go:embed, so only the
-// four aiwf-extensions templates qualify.
+// aiwf-extensions templates qualify.
 func TestListRitualTemplates(t *testing.T) {
 	t.Parallel()
 	got, err := ListRitualTemplates()
@@ -72,7 +72,7 @@ func TestListRitualTemplates(t *testing.T) {
 	if !sort.StringsAreSorted(gotNames) {
 		t.Errorf("ListRitualTemplates not name-sorted: %v", gotNames)
 	}
-	want := []string{"adr.md", "decision.md", "epic-spec.md", "milestone-spec.md"}
+	want := []string{"adr.md", "contract.md", "decision.md", "epic-spec.md", "gap.md", "milestone-spec.md"}
 	for _, w := range want {
 		if !contains(gotNames, w) {
 			t.Errorf("ListRitualTemplates missing %q; got %v", w, gotNames)
