@@ -1,8 +1,10 @@
 ---
 id: G-0615
 title: wf-patch assumes a single checkout, breaking under the worktree default
-status: open
+status: addressed
 priority: medium
+addressed_by_commit:
+    - 5ef655b1e758aa809fe770aafb68a8d3ce9faf77
 ---
 ## What's missing
 
