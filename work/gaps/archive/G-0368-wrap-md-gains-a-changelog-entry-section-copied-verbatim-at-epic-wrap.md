@@ -1,8 +1,10 @@
 ---
 id: G-0368
 title: wrap.md gains a Changelog entry section, copied verbatim at epic wrap
-status: open
+status: addressed
 priority: medium
+addressed_by_commit:
+    - 404b949df
 ---
 ## Problem
 
