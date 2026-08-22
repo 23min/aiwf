@@ -1,8 +1,10 @@
 ---
 id: G-0609
 title: Wrap rituals assume a single checkout, breaking under the worktree default
-status: open
+status: addressed
 discovered_in: E-0087
+addressed_by_commit:
+    - 358bf3397
 ---
 ## What's missing
 
