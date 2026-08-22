@@ -1,7 +1,7 @@
 ---
 id: M-0314
 title: Route move through the shared link-region primitive
-status: draft
+status: in_progress
 parent: E-0088
 tdd: required
 acs:
