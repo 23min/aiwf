@@ -57,6 +57,17 @@ func loadSkill(t *testing.T, rel string) skillRec {
 	return skillRec{Content: data}
 }
 
+// analyze stands in for a check: it reads the document and hands back records
+// it derived. Declaring it as a real reader is what makes the two "does not
+// fire" cases below non-vacuous — without it their haystack is untainted for
+// the wrong reason, and they would pass however documentTextFields behaved.
+func analyze(rel string) finding {
+	data, _ := os.ReadFile(rel)
+	return finding{Hint: string(data)}
+}
+
+func analyzeAll(edits []edit) []finding { return nil }
+
 func frontmatterField(body, field string) string { return body }
 func extractMarkdownSection(body string, level int, heading string) string { return body }
 `
@@ -162,7 +173,7 @@ func TestDetectProseAssertions(t *testing.T) {
 			name: "a shipped path used as data, with no read, does not fire",
 			body: `func TestX(t *testing.T) {
 	edits := []edit{{Path: ritualPath}}
-	got := analyze(edits)
+	got := analyzeAll(edits)
 	if !strings.Contains(got[0].Detail, "no trailer here") {
 		t.Error("wrong detail")
 	}
@@ -172,8 +183,7 @@ func TestDetectProseAssertions(t *testing.T) {
 		{
 			name: "a non-content field of a record derived from a read does not fire",
 			body: `func TestX(t *testing.T) {
-	body := readSkill(t, ritualPath)
-	found := analyze(body)
+	found := analyze(ritualPath)
 	if !strings.Contains(found.Hint, "revert the edit") {
 		t.Error("wrong hint")
 	}
@@ -612,4 +622,109 @@ func TestShippedProseAssertionAllowlist_IsClosedAndLive(t *testing.T) {
 func TestPolicy_ShippedProseAssertion(t *testing.T) {
 	t.Parallel()
 	runPolicy(t, PolicyShippedProseAssertion)
+}
+
+// TestDetectProseAssertions_InlinedScopingIsStillScoping pins that a section
+// lookup does not become a claim about prose by being written inline. The
+// permitted spelling binds it to a name first; both must behave the same, or
+// the rule is enforcing a style rather than a property.
+func TestDetectProseAssertions_InlinedScopingIsStillScoping(t *testing.T) {
+	t.Parallel()
+
+	for _, tc := range []struct{ name, body string }{
+		{
+			name: "bound to a name",
+			body: `func TestX(t *testing.T) {
+	body := readSkill(t, ritualPath)
+	workflow := extractMarkdownSection(body, 2, "Workflow")
+	if strings.Count(workflow, "\n### ") != 9 {
+		t.Error("wrong step count")
+	}
+}`,
+		},
+		{
+			name: "inlined into the condition",
+			body: `func TestX(t *testing.T) {
+	body := readSkill(t, ritualPath)
+	if strings.Count(extractMarkdownSection(body, 2, "Workflow"), "\n### ") != 9 {
+		t.Error("wrong step count")
+	}
+}`,
+		},
+		{
+			// strings.SplitN yields text rather than a verdict, so it is
+			// narrowing even when the anchor check fails the test.
+			name: "an anchor split guarding a section is scoping",
+			body: `func TestX(t *testing.T) {
+	body := readSkill(t, ritualPath)
+	if len(strings.SplitN(body, "## Workflow", 2)) != 2 {
+		t.Fatal("no anchor")
+	}
+}`,
+		},
+		{
+			name: "a section-exists guard",
+			body: `func TestX(t *testing.T) {
+	body := readSkill(t, ritualPath)
+	if extractMarkdownSection(body, 2, "Workflow") == "" {
+		t.Fatal("section missing")
+	}
+}`,
+		},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			t.Parallel()
+			fset, files, paths := parseSyntheticPackage(t, map[string]string{
+				"a_test.go": fixtureHeader + "\n" + tc.body + "\n",
+			})
+			if got := detectProseAssertions(fset, files, paths); len(got) != 0 {
+				t.Errorf("scoping must not report on its own; got %+v", got)
+			}
+		})
+	}
+}
+
+// TestDetectProseAssertions_LocatorIsNotAnAssertion pins the discriminator
+// that separates searching a document from making a claim about it: what the
+// branch does. A locator's result reaches a break; an assertion's reaches a
+// failure. Without this the rule fires on the row-lookup step of the very
+// derived-expectation checks D-0070 preserves.
+func TestDetectProseAssertions_LocatorIsNotAnAssertion(t *testing.T) {
+	t.Parallel()
+
+	locate := `func TestX(t *testing.T) {
+	body := readSkill(t, ritualPath)
+	row := ""
+	for _, ln := range strings.Split(body, "\n") {
+		if strings.Contains(ln, "acs-shape/status") {
+			row = ln
+			break
+		}
+	}
+	_ = row
+}`
+	assert := `func TestX(t *testing.T) {
+	body := readSkill(t, ritualPath)
+	if strings.Contains(body, "acs-shape/status") {
+		t.Error("should not be there")
+	}
+}`
+	for _, tc := range []struct {
+		name  string
+		body  string
+		wantN int
+	}{
+		{"a locator feeding control flow does not fire", locate, 0},
+		{"the same call failing the test does fire", assert, 1},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			t.Parallel()
+			fset, files, paths := parseSyntheticPackage(t, map[string]string{
+				"a_test.go": fixtureHeader + "\n" + tc.body + "\n",
+			})
+			if got := detectProseAssertions(fset, files, paths); len(got) != tc.wantN {
+				t.Errorf("got %d violations, want %d: %+v", len(got), tc.wantN, got)
+			}
+		})
+	}
 }

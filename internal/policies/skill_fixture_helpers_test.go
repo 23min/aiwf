@@ -15,6 +15,7 @@ import (
 const (
 	aiwfContractSkillPath  = "internal/skills/embedded/aiwf-contract/SKILL.md"
 	aiwfAuthorizeSkillPath = "internal/skills/embedded/aiwf-authorize/SKILL.md"
+	aiwfCheckSkillPath     = "internal/skills/embedded/aiwf-check/SKILL.md"
 	aiwfAddSkillPath       = "internal/skills/embedded/aiwf-add/SKILL.md"
 	aiwfShowSkillPath      = "internal/skills/embedded/aiwf-show/SKILL.md"
 

@@ -37,6 +37,21 @@ var documentTextFields = map[string]bool{
 	"Body":     true,
 }
 
+// verdictReturners are the strings functions that answer a question about a
+// document — bool or index — rather than handing back part of it. Only these,
+// and local helpers that are not document-text helpers, can be assertions; a
+// call yielding text is narrowing the document for a later claim.
+var verdictReturners = map[string]bool{
+	"strings.Contains":    true,
+	"strings.ContainsAny": true,
+	"strings.HasPrefix":   true,
+	"strings.HasSuffix":   true,
+	"strings.EqualFold":   true,
+	"strings.Index":       true,
+	"strings.LastIndex":   true,
+	"strings.Count":       true,
+}
+
 // reshapers take a document and hand back a reshaped copy. They carry a
 // phrase without testing for one, so they never report on their own.
 var reshapers = map[string]bool{
@@ -191,9 +206,10 @@ func detectProseAssertions(fset *token.FileSet, files []*ast.File, paths map[*as
 				continue
 			}
 			sc := &scopeTaint{
-				shipped: map[string]bool{},
-				lits:    literalNeedles(fd.Body),
-				readers: readers, selfShipped: selfShipped, pathConsts: pathConsts,
+				shipped:    map[string]bool{},
+				pathIdents: map[string]bool{},
+				lits:       literalNeedles(files, fd.Body),
+				readers:    readers, selfShipped: selfShipped, pathConsts: pathConsts,
 				textHelpers: textHelpers,
 			}
 			sc.propagate(fd.Body)
@@ -212,6 +228,57 @@ type scopeTaint struct {
 	selfShipped map[string]bool
 	pathConsts  map[string]bool
 	textHelpers map[string]bool
+	// pathIdents are locals that hold a shipped-surface path rather than its
+	// content: `p := ritualPath`, or a table row whose fields include one.
+	// Without them a path reaching the reader through anything but its own
+	// constant name is invisible, which excludes the table-driven form this
+	// repo mandates for two or more cases.
+	pathIdents map[string]bool
+}
+
+// namesShippedPath reports whether e names a shipped-surface path, whether as a
+// literal, a package constant, or a local carrying one.
+func (sc *scopeTaint) namesShippedPath(e ast.Expr) bool {
+	found := false
+	ast.Inspect(e, func(n ast.Node) bool {
+		switch x := n.(type) {
+		case *ast.Ident:
+			if sc.pathConsts[x.Name] || sc.pathIdents[x.Name] {
+				found = true
+			}
+		case *ast.SelectorExpr:
+			// A field of a table row that carries a path — `tc.path`.
+			if id, ok := x.X.(*ast.Ident); ok && sc.pathIdents[id.Name] {
+				found = true
+			}
+		case *ast.BasicLit:
+			if x.Kind == token.STRING && namesShippedPath(litValue(x)) {
+				found = true
+			}
+		}
+		return true
+	})
+	return found
+}
+
+// anyArgNamesShippedPath reports whether some argument names a shipped path.
+func (sc *scopeTaint) anyArgNamesShippedPath(args []ast.Expr) bool {
+	for _, a := range args {
+		if sc.namesShippedPath(a) {
+			return true
+		}
+	}
+	return false
+}
+
+// anyArgCarriesShipped reports whether some argument carries shipped content.
+func (sc *scopeTaint) anyArgCarriesShipped(args []ast.Expr) bool {
+	for _, a := range args {
+		if sc.carriesShipped(a) {
+			return true
+		}
+	}
+	return false
 }
 
 // propagate seeds taint from reads and carries it across assignments. Several
@@ -222,6 +289,14 @@ func (sc *scopeTaint) propagate(body *ast.BlockStmt) {
 		ast.Inspect(body, func(n ast.Node) bool {
 			switch st := n.(type) {
 			case *ast.AssignStmt:
+				// A local rebound to a shipped path carries it onward.
+				for i, rhs := range st.Rhs {
+					if i < len(st.Lhs) && sc.namesShippedPath(rhs) {
+						if id, ok := st.Lhs[i].(*ast.Ident); ok && id.Name != "_" {
+							sc.pathIdents[id.Name] = true
+						}
+					}
+				}
 				if len(st.Rhs) == 1 && len(st.Lhs) > 1 {
 					if sc.carriesShipped(st.Rhs[0]) {
 						for _, l := range st.Lhs {
@@ -238,6 +313,13 @@ func (sc *scopeTaint) propagate(body *ast.BlockStmt) {
 			case *ast.RangeStmt:
 				if sc.carriesShipped(st.X) {
 					sc.mark(st.Value)
+				}
+				// A table whose rows carry a shipped path makes the row
+				// variable a path carrier, so `tc.path` resolves.
+				if sc.namesShippedPath(st.X) {
+					if id, ok := st.Value.(*ast.Ident); ok && id.Name != "_" {
+						sc.pathIdents[id.Name] = true
+					}
 				}
 			}
 			return true
@@ -286,10 +368,9 @@ func (sc *scopeTaint) carriesShipped(e ast.Expr) bool {
 	case *ast.CallExpr:
 		name := calleeFuncName(x.Fun)
 		if isReadFileCall(x.Fun) {
-			return anyExprNamesShippedPath(x.Args, sc.pathConsts)
+			return sc.anyArgNamesShippedPath(x.Args)
 		}
-		if sc.readers[name] &&
-			(sc.selfShipped[name] || anyExprNamesShippedPath(x.Args, sc.pathConsts)) {
+		if sc.readers[name] && (sc.selfShipped[name] || sc.anyArgNamesShippedPath(x.Args)) {
 			return true
 		}
 		// Only a call handing document text back passes the taint on. One that
@@ -345,14 +426,26 @@ func (sc *scopeTaint) assertions(fset *token.FileSet, fd *ast.FuncDecl, rel stri
 			return true
 		}
 		name := calleeFuncName(ce.Fun)
-		if len(ce.Args) < 2 || !sc.carriesShipped(ce.Args[0]) {
+		// Reporting and formatting calls take a document alongside a format
+		// string; the literal there is a message, not a claim about the
+		// document. Skipping them is what lets the haystack be sought in any
+		// argument position below.
+		if isReportingCall(name) {
 			return true
 		}
-		for _, arg := range ce.Args[1:] {
-			if !sc.isTestAuthoredNeedle(arg) {
+		// The haystack need not be the first argument: `mustContain(t, body,
+		// "…")` is the dominant assertion-helper signature, and keying on
+		// argument zero exits the rule the moment a repeated assertion is
+		// extracted into a helper — the very move H1 asks for.
+		if len(ce.Args) < 2 || !sc.anyArgCarriesShipped(ce.Args) {
+			return true
+		}
+		for i, arg := range ce.Args {
+			if sc.carriesShipped(arg) || !sc.isTestAuthoredNeedle(arg) {
 				continue
 			}
-			if deciding[ce] && !reshapers[name] {
+			_ = i
+			if deciding[ce] && !reshapers[name] && sc.isAsserting(name) {
 				report(arg, name)
 				break
 			}
@@ -389,19 +482,47 @@ func decidingCalls(body *ast.BlockStmt) map[*ast.CallExpr]bool {
 		})
 	}
 	ast.Inspect(body, func(n ast.Node) bool {
-		switch x := n.(type) {
-		case *ast.IfStmt:
-			mark(x.Cond)
-		case *ast.BinaryExpr:
-			switch x.Op {
-			case token.EQL, token.NEQ, token.LSS, token.GTR, token.LEQ, token.GEQ:
-				mark(x.X)
-				mark(x.Y)
-			}
+		ifs, ok := n.(*ast.IfStmt)
+		// Position alone does not make a call an assertion — what matters is
+		// whether failing the condition fails the test. A locator reaches a
+		// `break` or a `continue`; an assertion reaches t.Error or t.Fatal.
+		// Keying on the branch's consequence is what tells a search for the
+		// row to inspect apart from a claim about what the row says.
+		if !ok || !branchFailsTheTest(ifs) {
+			return true
 		}
+		mark(ifs.Cond)
 		return true
 	})
 	return out
+}
+
+// branchFailsTheTest reports whether either arm of an if reports a failure.
+func branchFailsTheTest(ifs *ast.IfStmt) bool {
+	found := false
+	check := func(n ast.Node) {
+		if n == nil {
+			return
+		}
+		ast.Inspect(n, func(m ast.Node) bool {
+			ce, ok := m.(*ast.CallExpr)
+			if !ok {
+				return true
+			}
+			sel, ok := ce.Fun.(*ast.SelectorExpr)
+			if !ok {
+				return true
+			}
+			switch name := sel.Sel.Name; {
+			case strings.HasPrefix(name, "Error"), strings.HasPrefix(name, "Fatal"):
+				found = true
+			}
+			return true
+		})
+	}
+	check(ifs.Body)
+	check(ifs.Else)
+	return found
 }
 
 // isTestAuthoredNeedle reports whether the needle traces back only to string
@@ -567,8 +688,30 @@ func contentReaders(files []*ast.File, pathConsts map[string]bool) (readers, sel
 // literalNeedles maps each identifier in a test bound only to string literals
 // the test wrote — directly, or as elements of a composite literal ranged over,
 // which is how a phrase list reaches a containment call.
-func literalNeedles(body *ast.BlockStmt) map[string]bool {
+func literalNeedles(files []*ast.File, body *ast.BlockStmt) map[string]bool {
 	lits := map[string]bool{}
+	// Package-level declarations count: a phrase list hoisted to a package var
+	// is the same needle, and scoping the scan to the function body is how a
+	// corpus member hides one `var` away from the test that uses it.
+	for _, f := range files {
+		for _, d := range f.Decls {
+			gd, ok := d.(*ast.GenDecl)
+			if !ok || (gd.Tok != token.CONST && gd.Tok != token.VAR) {
+				continue
+			}
+			for _, sp := range gd.Specs {
+				vs, ok := sp.(*ast.ValueSpec)
+				if !ok {
+					continue //coverage:ignore a const or var declaration's specs are ValueSpecs by construction; the guard is here so a hand-built AST cannot panic the walk.
+				}
+				for i, nm := range vs.Names {
+					if i < len(vs.Values) && isLiteralSource(vs.Values[i], lits) {
+						lits[nm.Name] = true
+					}
+				}
+			}
+		}
+	}
 	for pass := 0; pass < 3; pass++ {
 		ast.Inspect(body, func(n ast.Node) bool {
 			switch st := n.(type) {
@@ -671,15 +814,6 @@ func exprNamesShippedPath(e ast.Expr, pathConsts map[string]bool) bool {
 	return found
 }
 
-func anyExprNamesShippedPath(args []ast.Expr, pathConsts map[string]bool) bool {
-	for _, a := range args {
-		if exprNamesShippedPath(a, pathConsts) {
-			return true
-		}
-	}
-	return false
-}
-
 // carriesWord reports whether s holds at least three letters. Parsing code
 // matches on markdown delimiters — "#", "|", "\n\n" — and those are structure,
 // not prose.
@@ -775,4 +909,35 @@ func resultsCarryDiagnostics(res *ast.FieldList) bool {
 		}
 	}
 	return false
+}
+
+// isReportingCall reports whether a call emits a message rather than testing
+// one. A `t.Fatalf("read %s: %v", path, err)` carries a document and a literal
+// side by side without asserting anything about the document.
+func isReportingCall(name string) bool {
+	pkg, fn, ok := strings.Cut(name, ".")
+	if !ok {
+		return false
+	}
+	switch pkg {
+	case "t", "tb", "b", "fmt", "log", "slog":
+		return true
+	}
+	// A method on the test handle reached through another receiver name.
+	return strings.HasPrefix(fn, "Error") || strings.HasPrefix(fn, "Fatal") ||
+		strings.HasPrefix(fn, "Log") || strings.HasPrefix(fn, "Skip")
+}
+
+// isAsserting reports whether a call can be the assertion itself rather than
+// the narrowing that precedes one. A call handing back document text is always
+// narrowing, wherever it sits — inlining `extractMarkdownSection(...)` into the
+// condition does not turn a section lookup into a claim about prose.
+func (sc *scopeTaint) isAsserting(name string) bool {
+	if verdictReturners[name] {
+		return true
+	}
+	if strings.HasPrefix(name, "strings.") {
+		return false
+	}
+	return !sc.textHelpers[name]
 }

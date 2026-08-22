@@ -3,7 +3,6 @@ package policies
 import (
 	"os"
 	"path/filepath"
-	"regexp"
 	"strings"
 	"testing"
 )
@@ -57,41 +56,6 @@ func TestFirstSentence_BranchCoverage(t *testing.T) {
 			t.Parallel()
 			if got := firstSentence(tc.in); got != tc.want {
 				t.Errorf("firstSentence(%q) = %q; want %q", tc.in, got, tc.want)
-			}
-		})
-	}
-}
-
-// stopHereRe matches the prohibited "stop … here" completion-boundary
-// vocabulary in any of its inflections — "stop here", "stop-here",
-// "stopping here", "stops here" — without matching the legitimate
-// "stop and report" instruction (which carries no trailing "here").
-var stopHereRe = regexp.MustCompile(`(?i)stop\w*[\s-]here`)
-
-// TestProsePolish_AC1_CompletionForksShedPauseVocabulary asserts AC-1:
-// aiwfx-plan-epic and aiwfx-wrap-epic keep their completion-boundary forks
-// but carry no "pause" / "stop here" vocabulary — reframed as completion.
-func TestProsePolish_AC1_CompletionForksShedPauseVocabulary(t *testing.T) {
-	t.Parallel()
-	cases := []struct {
-		name, path, reframeToken string
-	}{
-		{"plan-epic", aiwfxPlanEpicFixturePath, "complete for now"},
-		{"wrap-epic", aiwfxWrapEpicFixturePath, "whatever's next"},
-	}
-	for _, tc := range cases {
-		t.Run(tc.name, func(t *testing.T) {
-			t.Parallel()
-			body := loadPolishFixture(t, tc.path)
-			lower := strings.ToLower(body)
-			if strings.Contains(lower, "pause") {
-				t.Errorf("AC-1: %s must shed the prohibited completion-boundary word %q", tc.name, "pause")
-			}
-			if loc := stopHereRe.FindString(body); loc != "" {
-				t.Errorf("AC-1: %s must shed the prohibited completion-boundary vocabulary (found %q)", tc.name, loc)
-			}
-			if !strings.Contains(lower, tc.reframeToken) {
-				t.Errorf("AC-1: %s must carry its completion-reframe token %q (fork kept, vocabulary reframed)", tc.name, tc.reframeToken)
 			}
 		})
 	}

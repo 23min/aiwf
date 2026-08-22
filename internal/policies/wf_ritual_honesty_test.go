@@ -150,40 +150,6 @@ func TestWfTddCycle_RecordFollowsEvidence(t *testing.T) {
 	}
 }
 
-// TestBranchCoverageAudit_FramedAgentPerformed pins AC-3 (G-0297): both
-// wf-tdd-cycle and wf-review-code state the branch-coverage audit is an
-// agent-performed manual walk, and that a project's mechanical coverage
-// gate is typically statement-level (so the manual walk supplies the
-// branch-level assurance).
-func TestBranchCoverageAudit_FramedAgentPerformed(t *testing.T) {
-	t.Parallel()
-	cases := []struct {
-		name    string
-		path    string
-		heading string
-	}{
-		{"wf-tdd-cycle", wfTddCycleFixturePath, "Branch-coverage audit"},
-		{"wf-review-code", wfReviewCodeFixturePath, "Tests"},
-	}
-	for _, tc := range cases {
-		tc := tc
-		t.Run(tc.name, func(t *testing.T) {
-			t.Parallel()
-			body := readVerbSkill(t, tc.path)
-			section := strings.ToLower(sectionUnder(body, tc.heading))
-			if section == "" {
-				t.Fatalf("%s has no %q section", tc.name, tc.heading)
-			}
-			if !strings.Contains(section, "agent-performed") {
-				t.Errorf("%s %q section does not frame the branch-coverage audit as agent-performed (G-0297)", tc.name, tc.heading)
-			}
-			if !strings.Contains(section, "statement") {
-				t.Errorf("%s %q section does not distinguish the statement-level mechanical gate from the manual branch-walk (G-0297)", tc.name, tc.heading)
-			}
-		})
-	}
-}
-
 // TestWfDocLint_SevenHeuristicsPlusStandaloneScan pins the "What it checks"
 // section carrying exactly seven heuristics. The count is the property: the
 // repo-wide path-leak scan is a distinct section, and folding it back in as an

@@ -10,31 +10,6 @@ import (
 	"github.com/23min/aiwf/internal/version"
 )
 
-// guidanceRules are the full-set guidance rules ADR-0018's inclusion
-// principle admits to the consumer fragment (M-0163/AC-1). Each phrase
-// is distinctive enough that substring presence in the rendered
-// fragment is the right "contains every rule" assertion; drift in the
-// embedded content fails the build.
-var guidanceRules = []string{
-	"Each mutating action is its own approval gate",
-	"Never suggest the human pause",
-	"run `aiwf reallocate`, not `git mv`",
-	"Promote an AC to met only with mechanical evidence",
-	"Decide one thing at a time",
-	"Fix closely-related issues in place",
-	"Never write a fake id-shaped token in committed prose",
-}
-
-func TestRenderGuidance_ContainsAllRules(t *testing.T) {
-	t.Parallel()
-	got := string(RenderGuidance("v0.0.0-test"))
-	for _, rule := range guidanceRules {
-		if !strings.Contains(got, rule) {
-			t.Errorf("AC-1: rendered guidance is missing rule %q", rule)
-		}
-	}
-}
-
 // TestMaterializeGuidance_DeclaresBinaryVersion pins the seam: the
 // materialized file declares the running binary's version, not a
 // hardcoded or sentinel value (M-0163/AC-2).
