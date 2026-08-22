@@ -32,22 +32,34 @@ is standing on. The empty case the rituals treat as an exception is the only cas
 this consumer reaches.
 
 Working directory is the state that does survive between calls, in this harness
-and in an operator's terminal alike. It is the mechanism the rituals were written
-to avoid.
+and in an operator's terminal alike. Measured the same way: a `cd` issued in one
+call is still in effect in the next.
 
 ## Why it matters
 
-The failure is silent at both commands that could catch it. The merge lands
-nowhere and reports exit 0; the commit that follows reports `nothing to commit,
-working tree clean` and also exits 0. The ritual then promotes the entity,
-regenerates the roadmap, and deletes the branch — each step resting on a merge
-that did not happen, and the branch delete is where the work is lost.
+Only the first step is silent; the rest fail in ways that read like success. The
+merge reports `Already up to date.` at exit 0 and the target receives nothing.
+The commit after it fails at exit 1 behind `nothing to commit, working tree
+clean`. Between them the promote and the roadmap regen succeed, landing their
+commits on whichever branch the session stands on, since an empty `--root`
+resolves to the current worktree too. The branch delete then fails at exit 1,
+`not fully merged`.
 
-The warnings do not close this. They name the consequence as merging a branch
-into itself, which git declines, so a reader who checks the claim finds a
-non-event and learns to discount the instruction guarding it (G-0619).
+No work is lost — `-d` refuses, and the commits survive on the branch. What is
+lost is the correspondence between the planning tree and the code: the entity is
+marked addressed or done, and that status-flip commit sits on a branch that never
+merged. A reader of the tree sees closed work that did not land.
+
+The warnings do not close this, even now that they describe the failure
+accurately (G-0619). They present an empty variable as the exception to guard
+against, and for an assistant consumer it is not an exception — it is every step
+after the one that sets it.
 
 The pattern reached three rituals by being copied as the fix for a different
 defect: G-0609 and G-0615 corrected rituals that told the operator to check out
-the merge target, which fails under the worktree convention. The correction was
-sound about what not to do and untested about what it replaced it with.
+the merge target, which fails under the worktree convention. That correction was
+sound about what not to do and untested about what it replaced it with. It also
+carried a conflation. Checking out the target moves a branch into a worktree and
+fails when another holds it; changing directory into the worktree that already
+holds it moves nothing and cannot fail that way. Only the first was ever the
+defect, and both were avoided.
