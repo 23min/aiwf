@@ -221,7 +221,7 @@ deleted.
   `go/types`; that closes the resolution holes but not the dataflow ones, and the
   honest version needs SSA, which is more code than it replaces and a permanent
   cost on every test run. Recorded as **G-0605** with the full trade in
-  [`docs/explorations/10-type-aware-static-analysis.md`](../../../docs/explorations/10-type-aware-static-analysis.md).
+  `docs/explorations/10-type-aware-static-analysis.md`.
 
 ## Validation
 
@@ -241,7 +241,7 @@ deleted.
 - **G-0605** — whether aiwf's self-validation should move to type-aware analysis.
   Raised when reviewers proposed `go/types` for the recall holes; the analysis of
   what types and dataflow would each buy is in
-  [`docs/explorations/10-type-aware-static-analysis.md`](../../../docs/explorations/10-type-aware-static-analysis.md).
+  `docs/explorations/10-type-aware-static-analysis.md`.
   Aspirational: the blind spot is shared by every syntax-only check in the repo,
   which is the argument for doing it and the reason it is not this milestone's.
 - **G-0606** — a prose assertion written as a production policy is outside the
