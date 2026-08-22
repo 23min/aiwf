@@ -69,25 +69,27 @@ If anything is red, stop. Releases ride on green commits.
 
 ### 3. Update CHANGELOG.md
 
-Add a new release section. Group entries by Added / Changed / Fixed / Removed. Reference the epic and major milestones; keep entries user-observable, not diff-shaped.
+On a project that has been wrapping with these rituals, `[Unreleased]` already holds this release's content: every wrapped epic and every patch added its own entry there at its own wrap, written for a release-notes reader while the work was fresh. Cutting the release promotes that section as it stands — it does not regroup or re-author it.
+
+Rename `## [Unreleased]` to `## [X.Y.Z] — YYYY-MM-DD`, and open a fresh empty `## [Unreleased]` above it. The accumulated entries stay put, at the heading level they already carry:
 
 ```markdown
-## [vX.Y.Z] — YYYY-MM-DD
+## [Unreleased]
 
-### Added
-- <user-observable feature> (E-NNNN, M-NNNN)
+## [X.Y.Z] — YYYY-MM-DD
 
-### Changed
-- <observable change>
+### Changed — E-NNNN: <the entry that epic's wrap already wrote>
 
-### Fixed
-- <bug fix>
+<its prose, unchanged>
 
-### Removed
-- <retired feature>
+### Fixed — G-NNNN: <the entry that patch's wrap already wrote>
+
+<its prose, unchanged>
 ```
 
-If the project keeps an `[Unreleased]` section at the top of CHANGELOG, move its contents into the new release section.
+The heading carries no `v`: the tag is `vX.Y.Z`, the heading is `[X.Y.Z]`.
+
+If the project has no `## [Unreleased]` heading yet — a first release, or one that adopted these rituals mid-life — open one at the top and put this release's section beneath it. Nothing accumulated, so write the entries now, in the shape above: one per epic or patch this release covers, each naming what a reader of the release notes can now do differently. From then on each wrap fills the section and this step goes back to promoting it.
 
 Stage the CHANGELOG. Show the diff.
 
