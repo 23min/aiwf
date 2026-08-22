@@ -2,6 +2,7 @@
 id: G-0616
 title: Promote's branch guard sends the operator to a branch without the entity
 status: open
+priority: high
 ---
 ## What's missing
 
