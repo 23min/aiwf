@@ -16,6 +16,28 @@ section in this file.
 
 ## [Unreleased]
 
+### Changed — E-0087: the skill-edit backstop asks who owns an edit, not whether a test names it
+
+Editing a shipped ritual or skill body no longer requires a policy test to
+mention its path. The commit must instead carry an `aiwf-entity:` trailer naming
+an entity that resolves in the tree — `skill-edit-provenance-backstop`. The old
+rule cost something on every edit and was satisfiable by a test that asserted
+nothing; the new one costs once and records who the change belongs to.
+
+The tests that rule generated are retired with it. Assertions that a shipped
+surface still contains a particular phrase are deleted rather than converted
+(D-0070) — 129 test functions and 18 files — and a new `shipped-prose-assertion`
+check stops the shape being reached for again across every test package. Two
+classes survive: the phrases that drive skill dispatch, and relationship checks
+that compare two artefacts rather than reading one.
+
+The check is syntactic and says so: a green suite means the common spellings are
+blocked and the retrofit was done by hand, not that no such assertion can exist
+(D-0072). Drift beyond that is held at review, which is what D-0070 chose.
+
+`CLAUDE.md` gains the matching doctrine — over a shipped surface the answer to a
+substring assertion is to drop it, not to scope it.
+
 ### Added — G-0599: a shipped surface that cites a CLAUDE.md section fails the check
 
 `aiwf check` gains `skill-body-claude-md-section`, at error severity, over the
