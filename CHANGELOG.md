@@ -16,6 +16,28 @@ section in this file.
 
 ## [Unreleased]
 
+### Fixed — G-0620: wrap rituals no longer pass a worktree path between commands
+
+`wf-patch`, `aiwfx-wrap-epic` and `aiwfx-wrap-milestone` each resolved the worktree
+holding their merge target into a shell variable in one step and read it back in
+later ones. A shell variable does not survive to the next command where each command
+runs in its own shell, so the variable read back was empty — and `git -C ""` does not
+fail, it runs against the current worktree. The merge then reported `Already up to
+date.` at exit 0 while the target received nothing, and the promote and roadmap
+commits landed on the wrong branch, because `--root ""` resolves the same way.
+
+The rituals now change directory into the target's worktree once, guarded by
+`${VAR:?…}` so an unresolved target aborts instead of silently staying put, and every
+mutating step afterwards asserts its location in the same command as the action and
+aborts on mismatch. Working directory is what survives between commands; a path
+carried in prose is not.
+
+`aiwfx-wrap-epic` keeps the path form at its fast-forward step, because steps 6 to 8
+commit on the epic branch and it must not move there — and its fallback for a target
+no worktree holds is now `git fetch <remote> <ref>:<ref>`, which updates the branch
+without one. The old fallback told the operator to check the target out in the epic
+worktree, which walked them off the branch the next three steps commit on.
+
 ### Fixed — G-0619: the wrap rituals now warn about the failure that actually happens
 
 Both wrap rituals told the operator never to leave the resolved-worktree variable
