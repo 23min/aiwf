@@ -1275,3 +1275,85 @@ func TestApply_UnenumerableSubtreeUnderMove_FailsWithoutMutating(t *testing.T) {
 		t.Error("the destination exists; the refusal did not precede the move")
 	}
 }
+
+// TestApply_RollsBackFileMovedAndRewrittenInOnePlan pins M-0315/AC-1:
+// the write path can carry a content-edit and a move for the SAME file,
+// and a failure after both have landed leaves the worktree fully-old.
+//
+// This is the composition every mover already emits — `aiwf move` and
+// `aiwf retitle` each plan an OpMove of a file plus an OpWrite at that
+// file's new path — and it is the one outbound rewriting needs, since
+// rewriting a moved file's own links means editing the bytes of the file
+// being relocated.
+//
+// The ordering is what makes it non-obvious. captureWrite records the
+// destination's state AFTER the move has put the file there, so the
+// journal holds "restore B's bytes" then "rename B back to A". Replayed
+// LIFO that lands the original bytes at A and nothing at B; replayed in
+// execution order it would reverse the move first and then recreate B,
+// stranding a duplicate at the vacated destination.
+func TestApply_RollsBackFileMovedAndRewrittenInOnePlan(t *testing.T) {
+	t.Parallel()
+	if os.Geteuid() == 0 {
+		t.Skip("root bypasses permission checks")
+	}
+	r := newApplyTestRepo(t)
+
+	srcRel := filepath.Join("work", "epics", "E-9999-src", "M-0001-travelling.md")
+	dstRel := filepath.Join("work", "epics", "E-9998-dst", "M-0001-travelling.md")
+	if err := os.MkdirAll(filepath.Join(r.root, "work", "epics", "E-9999-src"), 0o755); err != nil {
+		t.Fatal(err)
+	}
+	original := []byte("---\nid: M-0001\nparent: E-9999\n---\n\nSee [a sibling](./M-0002-other.md).\n")
+	if err := os.WriteFile(filepath.Join(r.root, srcRel), original, 0o644); err != nil {
+		t.Fatal(err)
+	}
+	if err := exec.Command("git", "-C", r.root, "add", srcRel).Run(); err != nil {
+		t.Fatal(err)
+	}
+	if err := exec.Command("git", "-C", r.root, "commit", "-m", "seed the travelling file").Run(); err != nil {
+		t.Fatal(err)
+	}
+	preCommit := headSHA(t, r.root)
+
+	// An unwritable directory fails a later op, so Apply aborts with the
+	// move AND the rewrite of the moved file both already on disk.
+	noWrite := filepath.Join(r.root, "noWrite")
+	if err := os.Mkdir(noWrite, 0o500); err != nil {
+		t.Fatal(err)
+	}
+	t.Cleanup(func() { _ = os.Chmod(noWrite, 0o755) })
+
+	plan := &verb.Plan{
+		Subject:  "test file move + same-file rewrite rollback",
+		Trailers: []gitops.Trailer{{Key: "aiwf-verb", Value: "test"}},
+		Ops: []verb.FileOp{
+			{Type: verb.OpMove, Path: filepath.ToSlash(srcRel), NewPath: filepath.ToSlash(dstRel)},
+			{Type: verb.OpWrite, Path: filepath.ToSlash(dstRel), Content: []byte("---\nid: M-0001\nparent: E-9998\n---\n\nSee [a sibling](../E-9999-src/M-0002-other.md).\n")},
+			{Type: verb.OpWrite, Path: filepath.Join("noWrite", "child", "blocked.md"), Content: []byte("nope")},
+		},
+	}
+	if _, err := verb.Apply(r.ctx, r.root, plan); err == nil {
+		t.Fatal("expected Apply to fail on the unwritable third op")
+	}
+
+	if headSHA(t, r.root) != preCommit {
+		t.Error("HEAD must not advance")
+	}
+	// Fully-old: the original path holds the original bytes. Restoring the
+	// move without undoing the rewrite would leave the edited content here.
+	restored, readErr := os.ReadFile(filepath.Join(r.root, srcRel))
+	if readErr != nil {
+		t.Fatalf("reading the restored file at its original path: %v", readErr)
+	}
+	if !bytes.Equal(restored, original) {
+		t.Errorf("file at original path = %q, want the pre-Apply bytes %q", restored, original)
+	}
+	// Never half-written: no duplicate stranded at the destination.
+	if _, statErr := os.Stat(filepath.Join(r.root, dstRel)); !os.IsNotExist(statErr) {
+		t.Errorf("stray file left at the vacated destination %s (stat err: %v)", dstRel, statErr)
+	}
+	if got := porcelain(t, r.root); got != "" {
+		t.Errorf("dirty tree after rollback: %q", got)
+	}
+}
