@@ -1,6 +1,6 @@
 ---
 id: D-0074
-title: Refuse epic creation off trunk; report unreachability at activation
+title: Refuse epic creation on a ritual branch; report unreachability at activation
 status: proposed
 ---
 > **Date:** 2026-08-23 · **Decided by:** human/peter
