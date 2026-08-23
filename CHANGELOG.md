@@ -16,6 +16,34 @@ section in this file.
 
 ## [Unreleased]
 
+### Added — G-0616: `aiwf add epic` refuses off trunk
+
+An epic's activating promote must land on trunk (ADR-0010 Tier 1), so an epic
+created on a ritual branch could not be activated at all: the promote refused, and
+moving to trunk put the entity out of view, because its file existed only on the
+branch that created it. `aiwf add epic` now refuses when the current branch
+carries a ritual rung — `epic/`, `milestone/` or `patch/` per ADR-0010's grammar,
+classified by `branchparse.RungOf`. `--force --reason "..."` — already the
+sovereign, human-only override on this verb — is the bypass.
+
+The predicate is the rung rather than inequality with trunk: a repo whose trunk is
+`master` while the configured trunk name is the default `main` has every branch
+unequal to trunk, so the inequality form would refuse every epic creation there.
+
+Scoped to epics. ADR-0010 Tier 2 sanctions gaps discovered during ritual work
+landing on the branch, so a guard across kinds would refuse a documented flow.
+Milestones activate on their parent epic's branch rather than trunk, which turns on
+whether trunk was merged into that branch — the wrap rituals' reconcile step, not a
+creation-time rule. See D-0074.
+
+### Fixed — G-0616: the promote guard reports an entity absent from the expected branch
+
+Where the entity is not present on the branch the activation expects, the refusal
+now says so, instead of advising a move that replaces one refusal with a message
+about a different problem. It states the fact and prescribes no remedy: which
+recovery is correct is unsettled, and the obvious one — merging the branch to trunk
+— drags unrelated in-flight work along with it.
+
 ### Fixed — G-0621: the promote branch guard no longer suggests a checkout that fails
 
 An activating promote landing on the wrong branch is refused, and the refusal told

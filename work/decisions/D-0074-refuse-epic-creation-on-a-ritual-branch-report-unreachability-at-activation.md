@@ -1,6 +1,6 @@
 ---
 id: D-0074
-title: Refuse epic creation off trunk; report unreachability at activation
+title: Refuse epic creation on a ritual branch; report unreachability at activation
 status: proposed
 ---
 > **Date:** 2026-08-23 · **Decided by:** human/peter
@@ -19,8 +19,18 @@ Should the kernel catch this where it is created, where it is activated, or both
 
 Both, with different jobs.
 
-`aiwf add epic` refuses when the current branch is not trunk, naming the worktree
-holding trunk. The existing `--force --reason` on `add` is the bypass; no new flag.
+`aiwf add epic` refuses when the current branch carries a ritual rung —
+`epic/`, `milestone/` or `patch/` per ADR-0010's grammar, classified by
+`branchparse.RungOf`. The existing `--force --reason` on `add` is the bypass; no
+new flag.
+
+The predicate is the rung, not inequality with trunk, and the two are not
+interchangeable. A repo whose trunk is `master` while the configured trunk name is
+the default `main` has every branch unequal to trunk, so the inequality form
+refuses every epic creation in that repo. Measured 2026-08-23: written that way,
+the guard refused the scratch-epic seed in nine tests across two packages, each on
+`master`. What strands an entity is being on a branch that merges later, which is
+what the ritual rungs name.
 
 The promote guard additionally reports when the entity is not reachable from the
 expected branch, stating that fact and prescribing no remedy.
@@ -33,6 +43,11 @@ active epic carries its milestone, and its history shows the reconcile merge tha
 put it there.
 
 ## Reasoning
+
+`branchparse` is the canonical ADR-0010 branch grammar, written so consumers of
+that grammar cannot drift apart. The guard routes through it rather than testing
+prefixes itself; a third copy of the ritual-prefix set is the drift it exists to
+prevent.
 
 The cost of a refusal is paid where it fires. Refusing at creation costs nothing —
 no entity exists yet, and the operator moves and retries. Refusing at activation
