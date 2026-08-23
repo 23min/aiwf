@@ -42,10 +42,11 @@ require bare-id citation for navigation.
   narrative (`README`, `CONTRIBUTING`, non-entity `docs` files) is not
   auto-rewritten — a verb commit must not reach outside the entity set it owns —
   and is left to detection instead. What performs that detection is the
-  `link-check` workflow, which runs lychee over every tracked markdown file on
-  markdown-touching pushes and PRs. The `wf-doc-lint` markdown-link-integrity
-  check (G-0390) describes the same class but is a ritual an assistant invokes,
-  so it carries no mechanical trigger and is not what makes this half hold.
+  `link-check` workflow, which runs lychee over the tracked markdown files
+  `.lychee.toml` does not exclude, on pull requests and on pushes to `main`. The
+  `wf-doc-lint` markdown-link-integrity check (G-0390) describes the same class
+  but is a ritual an assistant invokes, so it carries no mechanical trigger and
+  is not what makes this half hold.
 - Enforcement is at move-time only. No pre-push check rule is added for this
   concern, so the pre-push chokepoint's cost is unchanged.
 - ADR-0004's move-based archive is preserved. Archiving still physically moves the
@@ -68,10 +69,11 @@ require bare-id citation for navigation.
   surface. `reallocate` already accepts this trade.
 - The residual is deliberate: links from non-entity files, and links broken by a
   raw `git mv` that bypasses the verbs, are covered by detection rather than by
-  the mechanical guarantee. That detection is a CI gate rather than an advisory
-  one — `link-check` fails the run — but it reports after the push rather than at
-  the move, and a run already red over an unrepaired link says nothing about the
-  change that just arrived. G-0478 and G-0439 own that residual.
+  the mechanical guarantee. `link-check` fails its run rather than merely
+  reporting, but on trunk-based flow it blocks no merge, and it fires after the
+  push rather than at the move — so a run already red over an unrepaired link
+  says nothing about the change that just arrived. G-0478 and G-0439 own that
+  residual.
 
 ## Validation
 
