@@ -117,24 +117,31 @@ Once the sequence is approved, execute it in order:
 
 Run this immediately before the merge — not as an earlier precondition a concurrent push can invalidate. The target is your *local* mainline (the branch the patch forked from and merges into), not the remote-tracking ref.
 
-**Do not check mainline out.** A branch can be checked out in one worktree at a time, so where the patch was cut into its own worktree (step 2) mainline is held elsewhere and `git checkout main` fails with *"fatal: … is already used by worktree at …"*. Resolve the holding worktree once, before the sub-steps below; steps 12 through 15 all drive it by that path:
+**Move into mainline's worktree; do not check mainline out.** A branch can be checked out in one worktree at a time, so where the patch was cut into its own worktree (step 2) mainline is held elsewhere and `git checkout main` fails with *"fatal: … is already used by worktree at …"*. Changing directory into the worktree that already holds it moves no branch and cannot fail that way. Do it once, here — steps 12 through 15 then run as plain commands carrying no path:
 
 ```bash
 MAIN_WT=$(git worktree list --porcelain \
   | awk -v b="refs/heads/main" \
         '/^worktree /{wt=substr($0,10)} $0=="branch "b{print wt; exit}')
-[ -n "$MAIN_WT" ] || echo "mainline is checked out nowhere — take the fallback below before continuing"
+cd "${MAIN_WT:?mainline is checked out nowhere — take the fallback below}"
+git rev-parse --abbrev-ref HEAD          # prints main; stop if it does not
 ```
+
+Resolve and `cd` in a **single** command. A shell variable does not survive to the next one — where each command runs in its own shell, as it does for an assistant driving one per tool call, a `MAIN_WT` read back at step 12 is empty, and `git -C ""` does not fail: it runs against the current worktree. `${MAIN_WT:?…}` aborts rather than moving nowhere, and the `rev-parse` states where you landed. Working directory is what survives, which is why nothing below carries a path — within the repository; a worktree placed outside it may be reset back to the repo root, which the `rev-parse` also catches.
 
 `substr($0,10)` rather than `$2` so a worktree path containing spaces survives.
 
-If `MAIN_WT` is empty, mainline is checked out nowhere and a plain `git checkout main` is safe; set `MAIN_WT=.` after checking out so every command below reads the same either way. **Never leave it empty.** `git -C ""` runs against the *current* worktree, which is the patch branch: at sub-step 1 below, `git -C "" merge --ff-only origin/main` silently fast-forwards the patch branch onto mainline's upstream when the patch has no unique commits, and the later steps then operate on the wrong branch.
+If the `cd` aborts, mainline is checked out nowhere. Check it out here and stay put — you are then already in the right directory, and the rest of the ritual reads the same. That is safe in this ritual specifically: nothing after this step needs the patch branch checked out, and step 14 deletes it, which requires that it is not.
 
-1. Fetch, then fast-forward local mainline to its upstream — folds in commits another clone pushed; concurrent local commits are already on it (substitute your mainline branch and remote; a project with no remote skips the fetch and this fast-forward, but still needs `MAIN_WT` above):
+```bash
+git checkout main
+```
+
+1. Fetch, then fast-forward local mainline to its upstream — folds in commits another clone pushed; concurrent local commits are already on it (substitute your mainline branch and remote; a project with no remote skips the fetch and this fast-forward, but still needs the `cd` above):
 
    ```bash
    git fetch
-   git -C "$MAIN_WT" merge --ff-only origin/main
+   git merge --ff-only origin/main
    ```
 
 2. Check whether mainline has advanced past the patch branch's fork point (substitute the project's mainline ref):
@@ -149,12 +156,15 @@ If `MAIN_WT` is empty, mainline is checked out nowhere and a plain `git checkout
 
 ### 12. Merge the patch branch to mainline
 
-Using `MAIN_WT` from step 11 — this session holds the patch branch, so the merge runs against the worktree holding mainline rather than moving into it. The variable is shell state and this ritual spans many commands: if the shell no longer carries it — a new shell, an aborted and re-gated sequence, a context compaction — re-run step 11's resolution first. An empty `MAIN_WT` merges nothing and reports success:
+Step 11 left this session standing in mainline's worktree, so the merge needs no path. Assert that in the same command, and abort rather than warn — a working directory can be lost between commands (a re-gated sequence, a context compaction, a harness that resets it when a command ends outside the repository), and the loss does not announce itself where you are looking:
 
 ```bash
-git -C "$MAIN_WT" merge --no-ff --no-commit <branch>
-git -C "$MAIN_WT" commit -m "Merge patch/<branch>: <summary>"
+[ "$(git rev-parse --abbrev-ref HEAD)" = main ] || { echo "not in mainline's worktree — re-run step 11"; exit 1; }
+git merge --no-ff --no-commit <branch>
+git commit -m "Merge patch/<branch>: <summary>"
 ```
+
+Substitute your mainline branch in the test. Checking rather than assuming is what makes the plain commands safe: without it, a lost directory puts the merge on the patch branch, where it reports `Already up to date.` at exit 0 and mainline receives nothing.
 
 `--no-ff` keeps the patch as one identifiable merge commit — the branch + explicit-merge audit trail this ritual exists to produce. `--no-commit` leaves the merge staged so the commit above carries the deliberate summary message, not git's default.
 
@@ -163,12 +173,12 @@ git -C "$MAIN_WT" commit -m "Merge patch/<branch>: <summary>"
 If the patch closes a tracked item:
 
 ```bash
-aiwf promote G-NNNN addressed --by-commit <sha> --root "$MAIN_WT"
+aiwf promote G-NNNN addressed --by-commit <sha>
 ```
 
-`--root` targets the worktree holding mainline, for the same reason the merge did — the closure commit belongs on mainline, not on the patch branch. Without it the commit lands on whichever branch this session holds, and step 14's branch delete then fails with *"the branch … is not fully merged"*.
+No `--root`: the closure commit belongs on mainline, and step 11 put this session there. Run this from the patch worktree instead and the commit lands on the patch branch, after which step 14's branch delete fails with *"the branch … is not fully merged"*.
 
-That flag also fixes what the guard proves. The closure is mechanically guarded — `aiwf` refuses a `--by-commit` SHA unreachable from the resolved root's `HEAD` — so when it runs against `$MAIN_WT`, a refusal means the merge did not land: reconcile and merge first (steps 11–12), and don't `--force` past it. Run from the patch worktree instead and the same guard rejects the merge commit even when the merge landed perfectly, while accepting the patch commit whether it landed or not.
+Standing in the right place also fixes what the guard proves. The closure is mechanically guarded — `aiwf` refuses a `--by-commit` SHA unreachable from the resolved root's `HEAD` — so from mainline's worktree a refusal means the merge did not land: reconcile and merge first (steps 11–12), and don't `--force` past it. From the patch worktree the same guard rejects the merge commit even when the merge landed perfectly, while accepting the patch commit whether it landed or not.
 
 ### 14. Cleanup
 
@@ -181,11 +191,12 @@ PATCH_WT=$(git worktree list --porcelain \
   | awk -v b="refs/heads/<branch>" \
         '/^worktree /{wt=substr($0,10)} $0=="branch "b{print wt; exit}')
 
-# If the patch had its own worktree, leave it before removing it. In a Claude Code
-# session that means the harness `ExitWorktree` tool, not `cd`.
+# Step 11 already moved this session out of the patch worktree, so it can be removed.
+# Where the session entered it through the harness `EnterWorktree` tool rather than by
+# `cd`, leave it with `ExitWorktree` first.
 [ -n "$PATCH_WT" ] && git worktree remove "$PATCH_WT"
 
-git -C "$MAIN_WT" branch -d <branch>
+git branch -d <branch>
 ```
 
 ### 15. 🛑 Push gate
@@ -193,10 +204,10 @@ git -C "$MAIN_WT" branch -d <branch>
 Mainline now carries the patch (and the closure commit, if any). Push is outward and irreversible — its own gate, never part of the declared-sequence gate above. Show what will be pushed and wait for explicit "push" approval. Then:
 
 ```bash
-git -C "$MAIN_WT" push origin main
+git push origin main
 ```
 
-Push from the worktree holding mainline, not from wherever this session stands. The pre-push hook runs `aiwf check` against the pushing worktree's branch range, so pushing from there is what puts the merge commit inside the audited range. After step 14 the patch worktree is gone anyway, and `MAIN_WT` still names the one that remains.
+Push from the worktree holding mainline — step 11 put this session there and step 14 removed the other one. The pre-push hook runs `aiwf check` against the pushing worktree's branch range, so pushing from there is what puts the merge commit inside the audited range.
 
 If a remote copy of the patch branch exists, confirm its deletion separately — remote deletes are not recoverable from local state.
 

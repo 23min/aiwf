@@ -135,38 +135,37 @@ Run this immediately before the merge — not as an earlier precondition a concu
 
 1. Fetch, then fast-forward local mainline to its upstream — folds in commits another clone pushed; concurrent local commits are already on it (substitute your mainline branch and remote; a project with no remote skips this step):
 
-   First resolve the worktree holding the integration target. A branch can be
-   checked out in one worktree at a time, so under the in-repo worktree
-   convention the target is held elsewhere and `git checkout` on it fails —
-   drive that worktree by path instead. Substitute the project's mainline ref
-   for `main`; `substr($0,10)` rather than `$2` so a path containing spaces
-   survives:
+   **Stay on the epic branch here.** Steps 6 through 8 commit on it, so unlike the
+   other wrap rituals this one must not move into the target's worktree yet — it
+   drives that worktree by path, and does so in a single command. A shell variable
+   does not survive to the next command, where each command runs in its own shell
+   as it does for an assistant driving one per tool call, so the resolution and the
+   command that uses it belong together. Substitute the project's mainline ref for
+   `main`; `substr($0,10)` rather than `$2` so a path containing spaces survives:
 
    ```bash
    TARGET=main
    TARGET_WT=$(git worktree list --porcelain \
      | awk -v b="refs/heads/$TARGET" \
            '/^worktree /{wt=substr($0,10)} $0=="branch "b{print wt; exit}')
-   [ -n "$TARGET_WT" ] || echo "the target is checked out nowhere — take the fallback below before continuing"
-   ```
-
-   If `TARGET_WT` is empty the target is checked out nowhere: check it out here
-   and set `TARGET_WT=.` so every command below reads the same either way.
-   **Never leave it empty**, and re-run the resolution above if the shell no longer
-   carries it — a new shell, an aborted and re-gated sequence, or a context
-   compaction loses it. `git -C ""` runs against the current worktree, which holds
-   the epic branch. What the fast-forward below does turns on divergence rather than
-   on the epic's own commits: it aborts at exit 128 with *"Not possible to
-   fast-forward"* if the target's upstream has diverged from the epic, does nothing
-   at exit 0 if that upstream is already an ancestor, and silently moves the epic
-   branch onto it where the epic carries no unique commits. In every arm the merge
-   at step 9 then reports `Already up to date.` at exit 0 and the target receives
-   nothing.
-
-   ```bash
    git fetch
-   git -C "$TARGET_WT" merge --ff-only "origin/$TARGET"
+   if [ -n "$TARGET_WT" ]; then
+     git merge --ff-only "origin/$TARGET"
+   else
+     git fetch origin "$TARGET:$TARGET"   # no worktree holds it — move the ref directly
+   fi
    ```
+
+   The `else` arm is what a fast-forward looks like when no worktree holds the
+   target. Do **not** check the target out here to obtain one: this worktree holds
+   the epic branch, and steps 6 through 8 commit on it. `git fetch <remote>
+   <ref>:<ref>` updates a branch without any worktree, and refuses at exit 128
+   naming the holding path when one exists — so the two arms are mutually exclusive
+   by git's own behaviour rather than by the operator choosing correctly.
+
+   Read the first arm by exit code rather than message: it aborts at exit 128 with
+   *"Not possible to fast-forward"* where the target's upstream has diverged from
+   the epic, and does nothing at exit 0 where that upstream is already an ancestor.
 
 2. Check whether mainline has advanced past the epic branch's fork point (substitute the project's mainline ref):
 
@@ -241,13 +240,24 @@ If `aiwf render roadmap --write` reported the file already up to date, skip the 
 
 Everything above is committed on the epic branch, so this merge is the only commit the integration target receives.
 
-`TARGET_WT` was resolved in step 5; the target is still never checked out here.
+Everything the epic branch needed is now committed, so this is where the session
+moves into the target's worktree. Resolve and `cd` in a single command, and confirm
+where you landed — the target is still never checked *out*, only moved *into*:
+
+```bash
+TARGET=main
+TARGET_WT=$(git worktree list --porcelain \
+  | awk -v b="refs/heads/$TARGET" \
+        '/^worktree /{wt=substr($0,10)} $0=="branch "b{print wt; exit}')
+cd "${TARGET_WT:?the target is checked out nowhere — create a worktree for it with aiwf worktree add, then cd there}"
+git rev-parse --abbrev-ref HEAD          # prints the target; stop if it does not
+```
 
 Mainline can move while the wrap commits are being made, so re-run step 5's
 ancestor check now — this is the "immediately before the merge" step 5 promises:
 
 ```bash
-git -C "$TARGET_WT" merge --ff-only "origin/$TARGET"
+git merge --ff-only "origin/$TARGET"
 git merge-base --is-ancestor "$TARGET" epic/E-NNNN-<slug>
 ```
 
@@ -257,15 +267,18 @@ branch, and re-run the full local gate there before returning.
 Stage the merge **without committing** so the commit-emitting step is the one carrying trailers:
 
 ```bash
-git -C "$TARGET_WT" merge --no-ff --no-commit epic/E-NNNN-<slug>
+[ "$(git rev-parse --abbrev-ref HEAD)" = "$TARGET" ] || { echo "not in the target's worktree — re-run the resolution above"; exit 1; }
+git merge --no-ff --no-commit epic/E-NNNN-<slug>
 ```
+
+Assert and merge in one command, aborting rather than warning: a working directory can be lost between commands — a re-gated sequence, a context compaction, a harness that resets it when a command ends outside the repository — and the loss does not announce itself where you are looking. Without the assertion a lost directory puts the merge on the epic branch, where it reports `Already up to date.` at exit 0 and the target receives nothing.
 
 `--no-ff` preserves the epic as a single merge commit. `--no-commit` is what lets the trailers be attached deliberately, so `aiwf history E-NNNN` surfaces the merge alongside the rest of the bundle. (Note the kernel's `provenance-untrailered-entity-commit` rule is *not* the backstop here — it skips ordinary multi-parent merges by construction — so nothing catches an untrailered merge for you.)
 
 Resolve the operator identity from `git config user.email` — identity is runtime-derived, not stored; do not hardcode `<id>`. Then commit with the three required trailers and a Conventional Commits subject:
 
 ```bash
-git -C "$TARGET_WT" commit -m "chore(epic): wrap E-NNNN — <epic title>" \
+git commit -m "chore(epic): wrap E-NNNN — <epic title>" \
   --trailer "aiwf-verb: wrap-epic" \
   --trailer "aiwf-entity: E-NNNN" \
   --trailer "aiwf-actor: human/<id>"
@@ -280,7 +293,7 @@ The trailer keys are exact — `aiwf-verb`, `aiwf-entity`, `aiwf-actor`. Variant
 Push is outward and irreversible — its own gate, never part of the declared-sequence gate above. Confirm. Then:
 
 ```bash
-git -C "$TARGET_WT" push origin "$TARGET"
+git push origin "$TARGET"
 ```
 
 Push from the worktree holding the target, not from the epic worktree. The
@@ -310,7 +323,7 @@ git push origin --delete epic/E-NNNN-<slug>          # its own gate
 - 🛑 **The terminal local sequence — wrap-artefact commit, promote-done, roadmap regen, merge — runs under one declared-sequence gate (step 4)**, enumerated verbatim and subset-approvable. The push (step 10) and each origin-branch delete (step 11) are outward and keep their own gates; never batch them.
 - 🛑 **The merge commit and the wrap-artefact commit both carry the three required trailers.** Skipping either is the regression the kernel's `provenance-untrailered-entity-commit` finding catches.
 - 🛑 **`aiwf promote E-NNNN done` is the last *verb-driven* commit in the bundle** (step 7). It ends the active authorize scope; any commit produced after it that routes through a kernel verb carries an ended-scope `aiwf-authorized-by:` and fails the kernel's `provenance-authorization-ended` check on push. The roadmap regen (step 8) and the merge (step 9) both follow it and are safe — each is hand-composed via plain `git commit`, never routed through the CLI's scope-lookup path, so neither can receive that trailer regardless of position.
-- 🛑 **Every commit but the merge lands on the epic branch, and the integration target is never checked out** (step 9). A branch can be checked out once; under the in-repo worktree convention the target is held by another worktree, so the merge runs as `git -C "$TARGET_WT"`.
+- 🛑 **Every commit but the merge lands on the epic branch, and the integration target is never checked out** (step 9). A branch can be checked out once; under the in-repo worktree convention the target is held by another worktree, so step 9 changes directory into that worktree rather than checking the branch out.
 - 🛑 **Mainline is reconciled into the epic branch before the merge (step 5), not resolved on mainline mid-merge.** After fetching and fast-forwarding local `main`, if `git merge-base --is-ancestor main epic/E-NNNN-<slug>` is false, integrate mainline into the epic branch, resolve conflicts, and re-run the full local gate there first.
 - Every milestone must be `done` before wrap — `aiwf check` and `aiwf history E-NNNN` confirm.
 - Branch-cleanup is origin-only. Do not delete local branches.
