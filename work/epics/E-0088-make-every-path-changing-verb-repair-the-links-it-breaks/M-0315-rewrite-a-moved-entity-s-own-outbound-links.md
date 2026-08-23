@@ -18,7 +18,7 @@ acs:
     - id: AC-3
       title: A moved entity's own relative links resolve after the move
       status: open
-      tdd_phase: refactor
+      tdd_phase: done
 ---
 
 ## Goal
