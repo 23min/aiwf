@@ -5,6 +5,8 @@ import (
 	"path"
 	"path/filepath"
 	"regexp"
+	"slices"
+	"sort"
 	"strings"
 	"testing"
 )
@@ -19,11 +21,6 @@ const lycheeConfigPath = ".lychee.toml"
 // forget-by-default: a cross-reference there is a frozen snapshot and is
 // not held to keep resolving.
 const archivalExemptPrefix = "docs/archive"
-
-// mdLinkDestination matches a markdown inline link's destination —
-// `](<dest>)` with no whitespace in dest, which is the shape every
-// docs-to-work link in this tree uses.
-var mdLinkDestination = regexp.MustCompile(`\]\(([^)\s]+)\)`)
 
 // TestM0317_AC1_DocsLinkingIntoWorkAreNotShadowedByLycheeExcludes is the
 // mechanical evidence for M-0317/AC-1.
@@ -148,11 +145,30 @@ func lycheeExcludePaths(t *testing.T, configPath string) []string {
 	return parseLycheeExcludePaths(string(raw))
 }
 
+// lycheeExcludeEntry matches one exclude_path element on a line of its
+// own: a double-quoted literal, optionally comma-terminated. Anything
+// else on the line — a single-quoted literal, a trailing comment, two
+// entries sharing a line — fails to match, which is what makes the parser
+// refuse rather than mangle.
+var lycheeExcludeEntry = regexp.MustCompile(`^"([^"]*)",?$`)
+
 // parseLycheeExcludePaths extracts the `exclude_path` array from lychee's
 // TOML config. Hand-parsed rather than via a TOML dependency: the array
 // is a flat list of quoted literals, and the repo carries no TOML
-// decoder. A shape this parser cannot read yields an empty result, which
-// the caller treats as a failure rather than as "nothing excluded".
+// decoder.
+//
+// It reads exactly one TOML spelling — a bracket on the key's line, then
+// one quoted literal per line — and returns nil for every other shape,
+// including ones TOML accepts and lychee honours. That asymmetry is
+// deliberate and is the whole reason the parser can be trusted: a
+// permissive parser that recovers a partial list from an unfamiliar
+// spelling would hand the caller a short list indistinguishable from a
+// genuinely short one, and the caller would pass. Returning nil routes
+// every unreadable shape to the caller's emptiness check, which fails.
+//
+// The failure mode this closes is not hypothetical: reformatting the
+// committed array onto one line is a semantic no-op that lychee honours
+// and that a lenient parser reads as a single bogus entry.
 func parseLycheeExcludePaths(raw string) []string {
 	_, after, found := strings.Cut(raw, "exclude_path = [")
 	if !found {
@@ -163,16 +179,24 @@ func parseLycheeExcludePaths(raw string) []string {
 		return nil
 	}
 
+	// An inline array carries its entries on the key's own line, where
+	// the per-line scan below would never see them.
+	head, rest, found := strings.Cut(body, "\n")
+	if !found || strings.TrimSpace(head) != "" {
+		return nil
+	}
+
 	var out []string
-	for _, line := range strings.Split(body, "\n") {
+	for _, line := range strings.Split(rest, "\n") {
 		line = strings.TrimSpace(line)
 		if line == "" || strings.HasPrefix(line, "#") {
 			continue
 		}
-		v := strings.Trim(strings.TrimSuffix(line, ","), `"`)
-		if v != "" {
-			out = append(out, v)
+		m := lycheeExcludeEntry.FindStringSubmatch(line)
+		if m == nil {
+			return nil
 		}
+		out = append(out, m[1])
 	}
 	return out
 }
@@ -242,7 +266,7 @@ func linksIntoWork(body, linkingFile string) bool {
 		if fenced {
 			continue
 		}
-		for _, m := range mdLinkDestination.FindAllStringSubmatch(stripInlineCode(line), -1) {
+		for _, m := range markdownLinkRegex.FindAllStringSubmatch(stripInlineCode(line), -1) {
 			dest := m[1]
 			resolved := path.Clean(path.Join(dir, dest))
 			if strings.HasPrefix(dest, "work/") {
@@ -327,6 +351,11 @@ func TestM0317_LinksIntoWork(t *testing.T) {
 			body:        "see [G-0311](../../work/gaps/G-0311-slug.md)",
 			want:        false,
 		},
+		{
+			name: "destination naming the work directory itself",
+			body: "see [the tree](../../work)",
+			want: true,
+		},
 	}
 
 	for _, tc := range tests {
@@ -340,6 +369,55 @@ func TestM0317_LinksIntoWork(t *testing.T) {
 				t.Errorf("linksIntoWork(_, %q) = %v, want %v\nbody:\n%s", linking, got, tc.want, tc.body)
 			}
 		})
+	}
+}
+
+// TestM0317_DocsFilesLinkingIntoWork drives the walk over a fixture
+// tree.
+//
+// Against the committed repo the walk returns nothing — every prefix
+// `exclude_path` shadows today is either work-link-free or the exempt
+// archival one — so the arm that reports a violation is not reachable
+// from the live-tree test above. A guard whose firing path only ever runs
+// under a hand-applied mutation is pinned by nobody once the mutation is
+// reverted, which is precisely how a check comes to pass for a reason
+// unrelated to what it claims.
+func TestM0317_DocsFilesLinkingIntoWork(t *testing.T) {
+	t.Parallel()
+
+	root := t.TempDir()
+	write := func(rel, body string) {
+		t.Helper()
+		full := filepath.Join(root, filepath.FromSlash(rel))
+		if err := os.MkdirAll(filepath.Dir(full), 0o755); err != nil {
+			t.Fatalf("mkdir for %s: %v", rel, err)
+		}
+		if err := os.WriteFile(full, []byte(body), 0o644); err != nil {
+			t.Fatalf("writing %s: %v", rel, err)
+		}
+	}
+
+	// Each destination carries the `../` depth its own file needs, so a
+	// hit depends on the walk resolving against the linking file rather
+	// than against the prefix.
+	write("sub/withlink.md", "see [G-0311](../work/gaps/G-0311-slug.md)\n")
+	write("sub/nested/deep.md", "see [G-0311](../../work/gaps/G-0311-slug.md)\n")
+	write("sub/nolink.md", "see [the design](../design/design-decisions.md)\n")
+	write("sub/notmarkdown.txt", "see [G-0311](../work/gaps/G-0311-slug.md)\n")
+	write("other/withlink.md", "see [G-0311](../work/gaps/G-0311-slug.md)\n")
+
+	got := docsFilesLinkingIntoWork(t, root, "sub")
+	want := []string{"sub/nested/deep.md", "sub/withlink.md"}
+	sort.Strings(got)
+	if !slices.Equal(got, want) {
+		t.Errorf("docsFilesLinkingIntoWork(_, %q) = %q, want %q", "sub", got, want)
+	}
+
+	// A prefix naming no directory shadows nothing, which is a clean
+	// result rather than an error: `.lychee.toml` carries an entry for a
+	// tree that has since moved.
+	if got := docsFilesLinkingIntoWork(t, root, "absent"); got != nil {
+		t.Errorf("docsFilesLinkingIntoWork(_, %q) = %q, want nil for a missing directory", "absent", got)
 	}
 }
 
@@ -373,6 +451,31 @@ func TestM0317_ParseLycheeExcludePaths(t *testing.T) {
 		{
 			name: "empty array",
 			raw:  "exclude_path = [\n]\n",
+			want: nil,
+		},
+		// The three shapes below are valid TOML that lychee honours. Each
+		// one defeated a lenient earlier parser: the inline array read as
+		// a single bogus entry, and the other two kept punctuation that
+		// made the docs/ prefix test miss. Refusing beats half-reading,
+		// because the caller can only detect the refusal.
+		{
+			name: "inline array on the key's own line",
+			raw:  "exclude_path = [\"node_modules\", \"docs/research\", \"work\"]\n",
+			want: nil,
+		},
+		{
+			name: "single-quoted literal",
+			raw:  "exclude_path = [\n  'docs/research',\n]\n",
+			want: nil,
+		},
+		{
+			name: "trailing comment sharing an entry's line",
+			raw:  "exclude_path = [\n  \"docs/research\", # narrative\n]\n",
+			want: nil,
+		},
+		{
+			name: "two entries sharing one line",
+			raw:  "exclude_path = [\n  \"node_modules\", \"work\",\n]\n",
 			want: nil,
 		},
 	}
