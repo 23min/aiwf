@@ -24,8 +24,14 @@ var markdownLink = regexp.MustCompile(`\]\(([^)]+)\)`)
 // RewriteLinkDestinations documents: a destination rooted at a known
 // entity directory is root-relative; anything else resolves against the
 // linking file's own directory.
+//
+// The prefix set matches entityRootPrefixes exactly. A broader set (say
+// `work/`) would classify a destination under a non-entity directory as
+// root-relative where the primitive resolves it against the linking
+// file, and the sweep below would then check a path the primitive never
+// produced.
 func resolveDestination(dest, linkingPath string) string {
-	for _, prefix := range []string{"work/", "docs/"} {
+	for _, prefix := range []string{"work/epics/", "work/gaps/", "work/decisions/", "work/contracts/", "docs/adr/"} {
 		if strings.HasPrefix(dest, prefix) {
 			return path.Clean(dest)
 		}
