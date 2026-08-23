@@ -153,3 +153,42 @@ in both halves: dropping the citation from ADR-0033 fails on reachability,
 returning ADR-0046 to proposed fails on settled-ness. `body-prose-id` already
 covers a dangling citation, but never fires on a missing one, which is the half
 that needed its own assertion.
+
+### AC-3 — A moved entity's own relative links resolve after the move
+
+`RewriteLinkDestinationsForMove` resolves a destination against the body's old
+directory and renders it against the new one; wired into every mover that writes
+its own body · commit a66a1a800 · internal/verb 640 passed, 1 skipped, 0 failed
+
+The existing primitive could not reach this case by configuration. It rewrites
+destinations naming a *moved target*, and outbound is the mirror: the target
+stayed put and the linker moved, so the move index holds no entry and the
+destination is left alone. The extension adds the second directory —
+`RewriteLinkDestinations` now delegates with both paths equal, which is exactly
+its previous behaviour.
+
+Three geometries, and they are not interchangeable. `archive` deepens a
+directory; `move` changes which directory, so a sibling stops being one;
+a dir-shaped `retitle` renames a directory in place, same parent and same
+depth. Only the first two can change what a relative destination names — a
+relative path never mentions its own directory — so retitle's test pins the
+*absence* of churn rather than a repair, and reallocate's wiring is a no-op by
+the same geometry. Both are wired anyway: the argument holds for the shapes
+those verbs produce today, not for every shape they might later produce.
+
+The `oldDir == newDir` guard bounds the blast radius, and the bound is the
+reason the recompute is conditional rather than unconditional: re-rendering
+returns a destination's *canonical* spelling, so a body carrying `./x.md` that
+is not moving would be rewritten to `x.md` and pulled into an unrelated verb's
+commit. Measured — dropping the guard makes `move` plan a write for a bystander
+gap that neither moved nor links at anything that moved.
+
+Two guards protect destinations that are not paths, and the corruption each
+prevents is concrete: without the empty-bare guard `(#why-it-matters)` becomes
+`(..#why-it-matters)`; without the scheme guard a `mailto:` address is mangled
+into a relative path. `hasURIScheme` tests for a colon before the first slash,
+so a scheme is distinguished from a filename that merely contains a colon.
+
+Not repaired: a destination already broken before the move. The primitive
+rewrites what resolves to a moved entity or what the geometry invalidated; it
+does not validate the rest. Recorded as a consequence in ADR-0046.
