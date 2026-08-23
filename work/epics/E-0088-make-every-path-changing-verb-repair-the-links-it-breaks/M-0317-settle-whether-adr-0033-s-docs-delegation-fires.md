@@ -142,3 +142,38 @@ That coverage figure is the half that can rot without a signal, so it is what th
 committed test pins. Adding a docs subtree to `exclude_path` takes its links out
 of the checked set while link-check keeps passing, because the links stop being
 read rather than starting to resolve.
+
+### AC-2 — The measured answer is routed to the gaps owning the docs half
+
+**Routed to three records, and the ADR was the one carrying a false claim** ·
+commit c30b92051 · internal/policies green
+
+Both branches this AC anticipated turned out to apply, because the answer sits
+between them. The delegate ADR-0033 names does not fire, so the ADR is where that
+is recorded; the class is covered anyway, so both gaps are re-framed against what
+the covering check actually does.
+
+**ADR-0033.** The Decision's second bullet asserted that non-entity narrative "is
+covered by the advisory `wf-doc-lint` markdown-link-integrity check". It now names
+`link-check`, and says plainly that `wf-doc-lint` is ritual-invoked and so carries
+no mechanical trigger. Consequences claimed the residual was "covered by advisory
+detection only"; it is covered by a CI gate that fails the run, which is stronger
+than advisory and still lands after the push. The decision itself is untouched —
+declining to auto-rewrite, on the ground that a verb commit must not reach outside
+its entity set, is unaffected by which detector sits behind it.
+
+**G-0478** opened by asserting that nothing reports the breakage, which is the
+claim the measurement contradicts, and its title said the same. Both now say what
+is so. Its Resolution shape keeps the detection half but for a different reason:
+lychee already computes that answer, so a rule inside `aiwf check` buys no new
+detection — it buys a pre-push refusal attributable to the commit that caused it,
+rather than a workflow result someone has to notice.
+
+**G-0439** needed the least. Its third sketch — detect at the sweep rather than at
+the release cut — was already the right shape, and the measurement narrows why:
+`CHANGELOG.md` was never outside the detector's reach, so what a sweep skips is
+the repair, not the report.
+
+The routing is pinned by the ADR's citation of both gaps rather than by any
+wording in the three bodies. `body-prose-id` already refuses a dangling id, so the
+uncovered failure was the citation going missing, which that rule cannot see.
