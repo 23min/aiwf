@@ -31,6 +31,16 @@ file's parent changes while its basename does not — but in the first case its
 siblings co-move and in the second they stay. The caller knows which; the
 primitive does not.
 
+The suppression is coarser than the title suggests, and the wider half is the
+more serious one. Excluding an entity inside a moved directory drops its
+*inbound* repair for relative destinations too: measured on a sweep archiving an
+epic and a gap together, the epic body's `../../gaps/G-NNNN-<slug>.md` link to
+the co-swept gap is left pointing at a path nothing occupies, while its
+root-relative sibling is repaired correctly. That is ADR-0033's ratified
+commitment unmet, not only ADR-0046's reach falling short. It is not a
+regression — the same fixture produces byte-identical output before ADR-0046 —
+but a fix that covers only the outbound half would leave it standing.
+
 ## Why it matters
 
 A resolution has to give the primitive the directory-level move, so a
