@@ -8,7 +8,7 @@ priority: high
 
 Moving an entity file breaks every path-based markdown link that names its old location, and the only thing that reports it does so after the push, into a run that is usually already red.
 
-The `link-check` workflow runs lychee over every tracked markdown file on markdown-touching pushes and PRs, and it does resolve `docs/`-to-`work/` destinations: measured at `origin/main` da34c1009, retitling a linked gap took it from three errors to nine, the six new ones naming the vacated path. So detection is not absent, and this gap is not a request to build it. What is missing is a report that arrives while the mover is still in hand, and one that is legible when it arrives.
+The `link-check` workflow runs lychee over the tracked markdown files `.lychee.toml` does not exclude, on pull requests and on pushes to `main`, and it does resolve `docs/`-to-`work/` destinations: measured at `origin/main` da34c1009, retitling a linked gap took it from three errors to nine, the six new ones naming the vacated path. So detection is not absent, and this gap is not a request to build it. What is missing is a report that arrives while the mover is still in hand, and one that is legible when it arrives. On this repo's trunk-based flow the wait is longer than "after the push" suggests: no PR is required, and a push to an epic or milestone branch triggers nothing, so the first run that can see the break is the one after the merge to `main`.
 
 Every mover rewrites links, and every mover's walk stops at the entity tree. `aiwf archive` relocates entities into their per-kind `archive/` subdirectory and repairs the entity bodies that linked to them, through `planArchiveRewrites`. `aiwf rename` and `aiwf retitle` do the same through `planLinkRewriteWrites`. Both walks iterate the loaded tree's entities; neither reads `docs/`. So a link written from a doc to an entity file has no maintainer.
 
@@ -16,7 +16,7 @@ Every mover rewrites links, and every mover's walk stops at the entity tree. `ai
 
 ## Why it matters
 
-Measured on this tree: 59 relative links point from `docs/` into `work/`. Four of them have broken, from two separate move events:
+Measured 2026-07-30: 59 relative links point from `docs/` into `work/` — 78 at `origin/main` da34c1009, of which lychee reads 73. Four had broken then, from two separate move events:
 
 - The archive sweep that closed G-0469 vacated its active path; the two links to it in `docs/initiatives/quality-signal-and-cadence.md` were repaired by hand in the same session.
 - Two links in that same document still name `work/epics/E-0073-mutating-verb-ux-uniformity/epic.md` and its `M-0281` sibling. Both now live under `work/epics/archive/`. They were found by walking the links directly — not because nothing reports that class, but because the report lands in a CI run nobody was reading.
