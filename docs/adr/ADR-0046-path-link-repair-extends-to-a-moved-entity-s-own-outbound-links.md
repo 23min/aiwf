@@ -1,7 +1,7 @@
 ---
 id: ADR-0046
 title: Path-link repair extends to a moved entity's own outbound links
-status: proposed
+status: accepted
 ---
 # ADR-0046 — Path-link repair extends to a moved entity's own outbound links
 
