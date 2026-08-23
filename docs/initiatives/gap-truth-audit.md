@@ -252,6 +252,228 @@ an age-based sweep cannot safely reclaim this; measured, the last 24 hours accou
 for only 6.5 GB. The gap — and `TODO.md`'s line for it — currently tell a reader
 not to reclaim it.
 
+## What causes this — measured, not assumed
+
+Every finding was re-read by four independent classifiers, one per quarter of the
+ledgers, and assigned a cause. They counted **616** findings against the collector's
+605; the difference is confirmed-sound entries the collector skipped and the
+classifiers scored. Percentages below are of 616.
+
+| cause | n | share | what it means |
+|---|---:|---:|---|
+| **wrong at birth** | 252 | 41% | false or unsupported the day it was committed |
+| **drift** | 123 | 20% | true when written, and the world moved |
+| **scope-overclaim** | 116 | 19% | a record cited for more than its sentence carries |
+| **unsearched absence** | 48 | 8% | "nothing does X" — and X existed, findable |
+| **overtaken by decision** | 33 | 5% | an ADR, decision or epic inverted the ground |
+| **arithmetic** | 24 | 4% | count sound, method sound, tree moved |
+| convention / house style | 14 | 2% | drafting-history narration and the like |
+| unknowable or unclear | 6 | 1% | external, or the ledger did not say |
+
+**Drift is a fifth.** The four samples put it at 23.5%, 19.3%, 20.1% and 15.7% —
+independent reads, one conclusion. **Roughly two thirds (416 of 616) was false or
+unsupported at the moment it was written**, and no freshness mechanism reaches any
+of it.
+
+Three findings sharpen this beyond the table.
+
+**Drift is often too fast to re-audit against.** G-0073's "nothing reconciles them"
+was reconciled **17 seconds** after the section was committed. G-0553's Fix-column
+claim died 9.6 hours later, same day. G-0514's three went stale at 27 minutes, 2
+hours and 1 day. No review cadence beats that; the answer is not to write the copy.
+
+**Arithmetic rots only because it is undated.** Six of the eleven counts in one
+sample re-derived *exactly* at their authoring commit. A dated measurement is a
+historical observation and cannot rot — which is why `docs/design/growth.md`'s
+baseline table still reproduces to the digit under re-measurement.
+
+**Absence claims carry severity.** Bodies making negative-existence claims
+("nothing does X", "no verb", "no chokepoint", "the only") carry more findings and,
+more sharply, are likelier to carry a *high* one:
+
+| negative-existence claims in the body | mean findings | carries ≥1 high |
+|---|---:|---:|
+| none | 3.92 | 32% |
+| one or two | 3.95 | **48%** |
+| three or more | **5.47** | 46% |
+
+Correlation with finding count is +0.18 — weak but real. The related intuition that
+*absolutes in general* rot is **not** supported: general absolute density (`every`,
+`all`, `never`, `any`, `exactly`) correlates slightly **negatively** with findings
+(3.89 against 4.30). Body length is the stronger predictor at **+0.44** — the
+longest third of bodies average 5.19 findings and 50% carry a high, against 3.53
+and 36% for the shortest. A reviewer told to check every absolute would spend the
+budget on noise; told to check negative-existence claims in long bodies, they are
+aimed at the class where one grep settles it.
+
+### Two amplifiers that are structural, not authorial
+
+**Contagion.** A false claim in one record is re-asserted in the next without
+re-derivation. G-0333's "every mutating verb ends with `projectionFindings`" was
+copied from `internal/verb/verb.go`'s own package doc, which G-0422 later corrected
+as false for 15 entry points. G-0551's overstatement came from D-0059's Reasoning.
+G-0439's wrong run-count has already propagated into M-0317's Context; G-0552's
+unverifiable cache figure into `TODO.md`. Fixing a source stops downstream copies;
+fixing copies does not.
+
+**Closure throughput.** 46 gaps closed in the 20 days since v0.32.0. 35 of them
+appear somewhere in this audit's findings, across 206 mentions. Every closure can
+invalidate a claim in the ~140 gaps still open, and nothing tells them: G-0599
+closing is why G-0548 went stale, G-0617 closing is why G-0073's own closing
+condition is already met, G-0559 closing is why G-0517 and G-0560 both carry a dead
+sequencing premise. The backlog's own throughput is a drift source.
+
+### The toolchain that produced any of this is not recorded
+
+Whether a given fix was made with a current binary, current skills and current
+guidance is **not answerable from the record, for any commit**.
+
+- The materialized guidance is stamped from `ad5bc521d` (2026-08-22 14:20). Eleven
+  of the 46 closures postdate it, so those sessions read a fragment already missing
+  three shipped rules. For the other 35 nothing can be said: `.claude/` is
+  gitignored and overwritten in place, so no past session's guidance is
+  reconstructible.
+- Of the eighteen trailer keys the kernel writes, **none records a binary version**,
+  and nothing in the verb or commit path captures one.
+
+This is the blind spot behind G-0471 and G-0600, stated as a provenance property
+rather than a verb defect.
+
+The gap is one of **coverage, not investment**. The provenance model is among the
+most heavily built parts of the kernel: roughly 2,300 lines across the five files
+whose subject it is, thirteen finding codes, an authorize FSM, force sovereignty,
+and coherence checks on both the verb side and the history-walking side. **37 of the
+143 audited gaps — a quarter of the backlog — are substantially about it.** All of
+that answers *who is accountable* and *who ran the verb*, to a precision little else
+in the tree matches. None of it answers *what produced this*.
+
+The vocabulary is also closed and expensive to extend. A single existing trailer key
+(`aiwf-prior-entity`) is referenced by every layer that writes, validates, renders or
+documents a commit — the trailer writer, the coherence rules, the hint text,
+`history`, `render`, two shipped skills, and the tests pinning each. A new key is a
+mandate against a policed set, not a field.
+
+Provenance's own defects feed the backlog directly. G-0603 — no chokepoint catches a
+missing `aiwf-entity:` trailer while the edit is still cheap — has a measured
+consequence in this audit: commit `793b1ad97` fixed **G-0562 and G-0578** on
+2026-08-19 carrying no entity trailer, so neither gap closed. Both were still open
+four days later, audited as live subjects, and listed in `TODO.md` as two entries
+with word-for-word identical descriptions. Two of the 143 subjects existed because a
+trailer was absent.
+
+## What would prevent it
+
+Ordered by yield per unit of machinery, not by importance. Each item names the class
+it attacks and what it would have caught in this corpus. Where the honest answer is
+that no mechanism exists, it says so rather than proposing one that would not work.
+
+The ceiling for everything mechanical here is **12–18% of findings**. Four
+classifiers reached that independently. The two thirds that was wrong at birth has
+no chokepoint, and the items in Tier 3 are the ones to stop looking for.
+
+### Tier 1 — ship these
+
+**T1.1 — One citation-resolver rule over entity bodies.** Resolvers: filesystem
+paths, `path:line`, Go symbols, entity ids **and their current status**, backticked
+`aiwf <verb>` / `--flag` / finding codes. Fired at the body-write seam ADR-0043
+already defines, plus pre-push. Most machinery exists and is proven — `body_prose_id.go`
+already tokenises and masks body prose, `skill_coverage.go` already resolves
+backticked verbs against the live Cobra tree, and the planning tree is simply a
+corpus nobody pointed them at. *Catches 10–14% of findings across all four samples,
+spanning drift, overtaken-by-decision and part of wrong-at-birth. The status half
+alone accounts for 7 of 15 high-severity findings in one sample* — "addressed by
+E-0076" (cancelled), "until G-0557 lands" (addressed), "ADR-0003 is accepted"
+(rejected). *Ban-shaped. Will fire on the existing bodies: ship at warning, sweep,
+then promote to error.*
+
+**T1.2 — Three one-liners.** Best ratio in the list.
+- Add `TODO.md` to `aiwf.yaml`'s `docs.paths` (currently `[README.md,
+  docs/workflows.md]`, `strict: true`). 175 ids in that file are checked by nothing.
+- Widen `body-prose-id`'s token regex from `[A-Za-z0-9_]` to Unicode. Four fabricated
+  ids sit on `main` today and `aiwf check` reports clean.
+- Point `comment-history-attrition`'s phrase list at entity bodies. The scanner, the
+  phrases and the `//history:ok` escape all already ship; only the corpus changes.
+  *Catches the ~2% convention class.*
+
+**T1.3 — Duplicate check at `aiwf add gap`.** Print the nearest open-gap titles
+before allocating an id. G-0562 and G-0578 name one call site, filed five days apart,
+neither referencing the other; G-0580 and G-0618 are the same shape. *The only item
+in this list that reduces the number of gaps filed.*
+
+### Tier 2 — real, but costlier
+
+**T2.1 — Aim the independent reviewer at absence claims in long bodies.** Filing has
+no independent-review step; `wf-patch` step 6 already has exactly that shape for
+code, and this audit is the evidence it works — fresh-context reviewers found 605
+findings across 143 gaps that the authors had not, most settled by one command in
+minutes. Two constraints
+the measurement imposes on the instruction: **do not** ask for absolutes in general
+(no signal, and slightly negative), and **do** ask for every negative-existence claim
+to be settled by the search that would falsify it, prioritising long bodies. The
+mechanical companion is a warning-severity scan for absence phrasing unaccompanied by
+a command block. *Targets the 8% unsearched-absence class, which is where the
+severity concentrates. Mandate-shaped — trigger by body shape, not universally.*
+
+**T2.2 — Date-or-derive for counts.** Any cardinal in a body is either dated
+("Measured 2026-08-05: 93 sites") or replaced by a reference phrase naming the
+detector. Grep-shaped, same masking machinery as `body-prose-id`. *Catches the whole
+4% arithmetic class — six of eleven in one sample re-derived exactly at their
+authoring commit and rot only from the undated present tense.*
+
+**T2.3 — Quoted-span attribution.** An attribution naming a record carries a verbatim
+span, and a rule checks that span appears literally in the named source. *Catches
+~11 of the scope-overclaim half, including all three fabricated quotations — one of
+which occurs exactly once in repository history, inside the body that presents it as
+a quote.* Costs an authoring-convention change before any rule helps. Worth it
+because this is the class where review is demonstrably failing: G-0593 shipped the
+prose rule, G-0594 measured the next specification breaching it, and this audit found
+G-0594 breaching it inside its own highest-severity finding.
+
+**T2.4 — Reverse sweep at decision time.** A ritual step on `aiwf promote <ADR|D>
+accepted` and on epic cancellation: name the open gaps this now overtakes. *Reaches
+most of the 5% overtaken-by-decision class, which no reference-based rule can touch —
+those gaps do not cite the record that killed them.* Also the only item that attacks
+the closure-throughput amplifier directly.
+
+**T2.5 — Record the toolchain that produced a mutation.** Makes an entire class
+*investigable*: "was this done with current tooling?" is unanswerable for every
+commit ever made, and each day without it adds more. It would also give G-0471 the
+detector it lacks — a commit whose binary predates its own tree becomes visible.
+*Priced against the reach of an existing trailer key, this is a mandate against a
+closed, policed vocabulary rather than a cheap addition.* A design question
+sits underneath it and should be settled first: **does the version belong on each
+commit at all, or on the materialized artifact set?** The statusline already stamps
+itself, reads the stamp back, and refuses to downgrade — a working precedent that
+points away from a nineteenth trailer key and toward a stamp the artifacts carry and
+`doctor` compares.
+
+### Tier 3 — no good solution exists
+
+Recorded so the search stops here rather than recurring.
+
+**Wrong-at-birth behavioural claims (~41%, the largest class).** "Verbs stage entity
+files" (they use plumbing and fire no hooks). "CI's `aiwf check` always runs"
+(`git log -S` returns zero commits, ever). No check reads a gap body and drives the
+CLI. The only control is the filing-time discipline the shipped guidance already
+states — the command, the expected result, the observed output, the environment
+together — and by this repo's own kernel principle, a guarantee that depends on the
+LLM remembering is not a guarantee. A mandatory `## Measured` section could make the
+*absence* of evidence visible without judging content, at a per-gap tax H3 warns
+against.
+
+**Paraphrase attribution (~13 of scope-overclaim).** "The ADR names the same shape",
+"which is the failure D-0070 measured" — a record cited, unquoted, for what it does
+not say. T2.3 converts the quoted subset; the paraphrased remainder is unreachable.
+
+**Uniqueness and universals.** "The only", "every other verb", "never a false-refuse".
+A grep can flag them for a human; nothing can judge them.
+
+**Contagion.** Nothing can tell that a sentence was lifted from a record rather than
+re-derived. The control is fixing sources, not copies.
+
+**Wrong causal stories.** "An accident of function signature" for what is a declared,
+AC-pinned layering boundary. Nothing greps for a wrong explanation.
+
 ## Ready to act on
 
 ### Promote
@@ -1018,6 +1240,14 @@ initiative doc that replaced them.
   confirmed defect leaves behind a check … never a silent correction". This audit
   measures decay, not volume.
 
+- Whether the cause classification is right at its boundaries. The four classifiers
+  read ledgers rather than re-measuring the tree, and drew the wrong-at-birth /
+  scope-overclaim / convention lines differently — which is why their
+  "false when written" totals span 60% to 78% while their drift figures agree within
+  eight points. The drift share is robust; the split *inside* the remainder is not.
+- Whether any of this generalises past the authors who wrote it. Every breach
+  measured here is by the same small set, as G-0594 already says of its own evidence.
+
 Claims individual auditors could not settle are recorded as **unverifiable** in
 their batch ledgers, each with the command that would settle it, rather than
 asserted here.
@@ -1029,6 +1259,12 @@ its uncommitted working-tree state. 48 independent auditors over 48 batches, eac
 working read-only against a binary built from that tree. No fixes were applied in
 the same pass, so every citation reflects the tree as read; `HEAD` did not move and
 the working tree ended byte-identical to how it started.
+
+A second pass over the completed ledgers assigned every finding a cause, four
+independent classifiers over one quarter each, settling authoring-order questions
+with read-only `git log` against the same tree. §"What causes this" and §"What would
+prevent it" are its output; the prevention items are scored against this corpus and
+carry no claim about any other.
 
 Per-batch ledgers carrying the full evidence — every finding's command, expected
 result, observed output, and quoted fragment, plus the unverifiable claims — are
