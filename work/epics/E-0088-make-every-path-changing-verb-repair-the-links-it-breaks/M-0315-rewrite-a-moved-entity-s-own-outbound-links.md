@@ -17,7 +17,7 @@ acs:
       tdd_phase: done
     - id: AC-3
       title: A moved entity's own relative links resolve after the move
-      status: open
+      status: met
       tdd_phase: done
 ---
 
