@@ -42,11 +42,15 @@ require bare-id citation for navigation.
   narrative (`README`, `CONTRIBUTING`, non-entity `docs` files) is not
   auto-rewritten — a verb commit must not reach outside the entity set it owns —
   and is left to detection instead. What performs that detection is the
-  `link-check` workflow, which runs lychee over the tracked markdown files
-  `.lychee.toml` does not exclude, on pull requests and on pushes to `main`. The
-  `wf-doc-lint` markdown-link-integrity check (G-0390) describes the same class
-  but is a ritual an assistant invokes, so it carries no mechanical trigger and
-  is not what makes this half hold.
+  `link-check` workflow, which runs lychee over the markdown its `./**/*.md`
+  glob reaches and `.lychee.toml` does not exclude — dot-directories fall
+  outside the glob, and the exclusions are regular expressions matched against
+  the whole path rather than directory prefixes — on markdown-touching pull
+  requests, markdown-touching pushes to `main`, and a weekly schedule. Its reach
+  is therefore narrower than "the non-entity tree", and G-0625 measures by how
+  much. The `wf-doc-lint` markdown-link-integrity check (G-0390) describes the
+  same class but is a ritual an assistant invokes, so it carries no mechanical
+  trigger and is not what makes this half hold.
 - Enforcement is at move-time only. No pre-push check rule is added for this
   concern, so the pre-push chokepoint's cost is unchanged.
 - ADR-0004's move-based archive is preserved. Archiving still physically moves the
