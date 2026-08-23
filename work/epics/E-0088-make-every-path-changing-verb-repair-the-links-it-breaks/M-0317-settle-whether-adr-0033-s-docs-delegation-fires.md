@@ -7,7 +7,7 @@ tdd: none
 acs:
     - id: AC-1
       title: A command shows whether doc-lint reports a docs-to-work link break
-      status: open
+      status: met
     - id: AC-2
       title: The measured answer is routed to the gaps owning the docs half
       status: open
