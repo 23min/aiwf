@@ -155,12 +155,13 @@ func Retitle(ctx context.Context, t *tree.Tree, id, newTitle, actor, reason stri
 		// competing write for the same contentPath — a slug-changing
 		// retitle of a dir-shaped kind (epic/contract) can link to one
 		// of its own nested, co-moved entities.
-		// The outbound half (ADR-0046) is a no-op for retitle as slugs are
-		// spelled today: a slug cannot contain a separator, so the rename
-		// is same-parent and same-depth and no relative destination can
-		// change meaning. Passing both paths keeps that a property of the
-		// slug vocabulary rather than of this call site.
-		body = RewriteLinkDestinationsForMove(body, e.Path, contentPath, moves)
+		// Inbound only. For a flat-file kind the slug change renames the
+		// file within its own directory, so no relative destination can
+		// change meaning; for a dir-shaped kind the whole directory moves
+		// and everything inside comes along, which is the case ADR-0046's
+		// scope note excludes. Neither geometry wants an outbound
+		// recompute, so both paths are the post-move one.
+		body = RewriteLinkDestinationsForMove(body, contentPath, contentPath, moves)
 	}
 	content, err := entity.Serialize(&modified, body)
 	if err != nil {
@@ -169,7 +170,11 @@ func Retitle(ctx context.Context, t *tree.Tree, id, newTitle, actor, reason stri
 	ops = append(ops, FileOp{Type: OpWrite, Path: contentPath, Content: content})
 
 	if len(moves) > 0 {
-		rewriteOps, rwErr := planLinkRewriteWrites(t, moves, map[string]bool{e.Path: true})
+		var dirShaped []string
+		if e.Kind == entity.KindEpic || e.Kind == entity.KindContract {
+			dirShaped = append(dirShaped, source)
+		}
+		rewriteOps, rwErr := planLinkRewriteWrites(t, moves, map[string]bool{e.Path: true}, dirShaped)
 		if rwErr != nil { //coverage:ignore defensive: planLinkRewriteWrites only errors on a vanished file or an unserializable entity — neither reachable from a tree the loader just built
 			return nil, rwErr
 		}

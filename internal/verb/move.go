@@ -99,7 +99,7 @@ func Move(ctx context.Context, t *tree.Tree, id, newEpicID, actor string) (*Resu
 	// move already writes that file to update `parent:` and repair its own
 	// outbound links; letting the helper emit a second write for the same
 	// path would put two competing OpWrites in one plan.
-	rewriteOps, err := planLinkRewriteWrites(t, moves, map[string]bool{e.Path: true})
+	rewriteOps, err := planLinkRewriteWrites(t, moves, map[string]bool{e.Path: true}, nil)
 	if err != nil { //coverage:ignore defensive: planLinkRewriteWrites only errors on a vanished file or an unserializable entity — neither reachable from a tree the loader just built
 		return nil, err
 	}

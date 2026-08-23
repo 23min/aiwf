@@ -233,7 +233,13 @@ func planArchiveRewrites(tr *tree.Tree, moves []archiveMove) ([]FileOp, error) {
 	if len(entityMoves) == 0 {
 		return nil, nil //coverage:ignore unreachable: planArchive only calls this when moves is non-empty, and every archiveMove (gap/decision/adr direct, or epic/contract via its own dir-shape entity) yields at least one EntityMove
 	}
-	return planLinkRewriteWrites(tr, entityMoves, nil)
+	var dirShaped []string
+	for _, m := range moves {
+		if m.kind == entity.KindEpic || m.kind == entity.KindContract {
+			dirShaped = append(dirShaped, m.from)
+		}
+	}
+	return planLinkRewriteWrites(tr, entityMoves, nil, dirShaped)
 }
 
 // computeArchiveMoves walks the loaded tree and produces one move per
