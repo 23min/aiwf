@@ -97,3 +97,29 @@ move and both need cases.
 - ADR-0033 — the specification, inbound-only as written
 - E-0088 — the parent epic
 - `internal/verb/linkregion.go`, `linkrewrite.go`, `pathrewrite.go`, `archive.go`
+
+## Work log
+
+### AC-1 — The write path is shown safe or unsafe for editing the file being moved
+
+**Safe.** A plan may move a file and write edited content at its new path;
+failing after both land restores the worktree fully-old · commit 18f6e3e6d ·
+internal/verb 636 passed, 1 skipped, 0 failed
+
+The composition is not new — `aiwf move` and `aiwf retitle` each already emit an
+`OpMove` of a file plus an `OpWrite` at that file's new path. What was untested
+is the failure half for a single file: the existing rollback coverage pairs a
+*directory* move with a rewrite of a file nested inside it, which exercises
+different journal entries.
+
+Correctness rests on the replay order rather than on the undo steps themselves.
+`captureWrite` records the destination's state after the move has already put the
+file there, so the journal reads "restore the destination's bytes", then "rename
+the destination back". Replayed LIFO that leaves the original bytes at the
+original path and nothing at the destination. Replayed in execution order it
+leaves the *edited* bytes at the original path and a stray duplicate at the
+destination — measured by inverting the loop in `applyTx.rollback`, which fires
+all three of the test's assertions.
+
+The answer clears AC-3 to rewrite a moved entity's own body rather than
+reshaping it.
