@@ -76,6 +76,14 @@ func Move(ctx context.Context, t *tree.Tree, id, newEpicID, actor string) (*Resu
 	if err != nil {
 		return nil, err
 	}
+	// ADR-0046: the milestone's own relative destinations resolve against
+	// the directory it sits in, so moving it between epics changes what
+	// they name. Recomputed against the destination before serialization,
+	// so the file's single write carries both the new `parent:` and the
+	// repaired links.
+	moves := []EntityMove{{From: source, To: dest}}
+	body = RewriteLinkDestinationsForMove(body, source, dest, moves)
+
 	content, err := entity.Serialize(&modified, body)
 	if err != nil {
 		return nil, fmt.Errorf("serializing %s: %w", id, err)
@@ -88,13 +96,10 @@ func Move(ctx context.Context, t *tree.Tree, id, newEpicID, actor string) (*Resu
 
 	// ADR-0033: every verb emitting an OpMove repairs the inbound links
 	// pointing at what it moved. The moved milestone is excluded because
-	// move already writes that file to update `parent:`; letting the
-	// helper emit a second write for the same path would put two
-	// competing OpWrites in one plan. Its own outbound links are not this
-	// verb's subject — ADR-0033 commits to links that point *at* the
-	// moved entity.
-	moves := []EntityMove{{From: source, To: dest}}
-	rewriteOps, err := planLinkRewriteWrites(t, moves, map[string]bool{e.Path: true})
+	// move already writes that file to update `parent:` and repair its own
+	// outbound links; letting the helper emit a second write for the same
+	// path would put two competing OpWrites in one plan.
+	rewriteOps, err := planLinkRewriteWrites(t, moves, map[string]bool{e.Path: true}, nil)
 	if err != nil { //coverage:ignore defensive: planLinkRewriteWrites only errors on a vanished file or an unserializable entity — neither reachable from a tree the loader just built
 		return nil, err
 	}

@@ -1,8 +1,10 @@
 ---
 id: G-0622
 title: URL guard skips entity links whose query or fragment contains ://
-status: open
+status: addressed
 discovered_in: M-0314
+addressed_by_commit:
+    - 0e7500a8e
 ---
 ## What's missing
 

@@ -87,6 +87,7 @@ func moveLinkFixture(t *testing.T, r *runner) (milestonePath, otherPath, linking
 			"## What's missing\n\nSee [the cache milestone](" + milestonePath + ") and a bare mention of M-0001 in prose, " +
 				"plus [an untouched gap](" + otherPath + ").\nAlso [the same milestone, relatively](../epics/E-0001-platform/M-0001-cache-layer.md)." +
 				"\nAnd [an external reference](https://example.invalid/work/epics/E-0001-platform/M-0001-cache-layer.md)." +
+				"\nAnd [the milestone with a URL in its query](" + milestonePath + "?u=https://example.com)." +
 				"\n\n## Why it matters\n\nFixture.\n"),
 	}))
 	linking := r.tree().ByID("G-0002")
@@ -188,6 +189,13 @@ func TestMove_RoutesInboundLinkRewriteThroughSharedPrimitive(t *testing.T) {
 	// rewrote URL-shaped destinations would visibly alter it.
 	if !strings.Contains(got, "(https://example.invalid/work/epics/E-0001-platform/M-0001-cache-layer.md)") {
 		t.Errorf("URL-shaped destination must be left untouched even though it embeds the moved path:\n%s", got)
+	}
+	// The mirror of that assertion, and the pair is the point: a scheme
+	// separator inside a `?query` does not make the destination a URL. The
+	// bare path names the moved milestone and is repaired; the suffix is
+	// reattached verbatim (G-0622).
+	if !strings.Contains(got, "("+movedPath+"?u=https://example.com)") {
+		t.Errorf("an entity path carrying a URL in its query must be rewritten with the suffix reattached verbatim:\n%s", got)
 	}
 	if !strings.Contains(got, "("+otherPath+")") {
 		t.Errorf("link to the non-moved gap must remain unchanged (%s):\n%s", otherPath, got)

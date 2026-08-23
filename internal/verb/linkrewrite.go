@@ -35,14 +35,33 @@ type EntityMove struct {
 // splitLinkPathRegions in linkregion.go; only the destination-rewrite
 // predicate below is specific to this primitive.
 func RewriteLinkDestinations(body []byte, linkingFile string, moves []EntityMove) []byte {
+	return RewriteLinkDestinationsForMove(body, linkingFile, linkingFile, moves)
+}
+
+// RewriteLinkDestinationsForMove is the general form, for a body whose
+// own file is moving: destinations are resolved against oldLinkingFile's
+// directory — what they meant before the move — and rendered against
+// newLinkingFile's, so they still name the same file afterwards
+// (ADR-0046).
+//
+// Passing the same path for both yields exactly RewriteLinkDestinations'
+// behaviour: only destinations naming a moved entity change.
+//
+// When the directories differ, a *relative* destination changes meaning
+// even though its target stayed put, so it is re-rendered against the new
+// directory. A root-relative destination names a path from the repo root
+// and is unaffected by the linking file moving, so it changes only when
+// its own target moved. Scheme-bearing destinations (`https://`,
+// `mailto:`) name nothing in the repo and are never recomputed.
+func RewriteLinkDestinationsForMove(body []byte, oldLinkingFile, newLinkingFile string, moves []EntityMove) []byte {
 	moveIndex := make(map[string]string, len(moves))
 	for _, m := range moves {
 		moveIndex[m.From] = m.To
 	}
-	dir := path.Dir(linkingFile)
+	oldDir, newDir := path.Dir(oldLinkingFile), path.Dir(newLinkingFile)
 	return walkBodyLines(body, func(line string) string {
 		return maskCodeSpans(line, func(chunk string) string {
-			return rewriteLinkChunk(chunk, dir, moveIndex)
+			return rewriteLinkChunk(chunk, oldDir, newDir, moveIndex)
 		})
 	})
 }
@@ -50,7 +69,7 @@ func RewriteLinkDestinations(body []byte, linkingFile string, moves []EntityMove
 // rewriteLinkChunk applies the move-based destination rewrite to
 // every in-link-path region of chunk (as split by
 // splitLinkPathRegions), leaving prose regions untouched.
-func rewriteLinkChunk(chunk, dir string, moveIndex map[string]string) string {
+func rewriteLinkChunk(chunk, oldDir, newDir string, moveIndex map[string]string) string {
 	var out strings.Builder
 	out.Grow(len(chunk))
 	for _, reg := range splitLinkPathRegions(chunk) {
@@ -58,7 +77,7 @@ func rewriteLinkChunk(chunk, dir string, moveIndex map[string]string) string {
 			out.WriteString(reg.text)
 			continue
 		}
-		out.WriteString(rewriteLinkDestination(reg.text, dir, moveIndex))
+		out.WriteString(rewriteLinkDestination(reg.text, oldDir, newDir, moveIndex))
 	}
 	return out.String()
 }
@@ -77,18 +96,77 @@ func rewriteLinkChunk(chunk, dir string, moveIndex map[string]string) string {
 // entity link survives a move exactly like a bare path link already
 // does. A destination whose bare-path portion doesn't match a move is
 // returned unchanged, suffix included.
-func rewriteLinkDestination(region, dir string, moveIndex map[string]string) string {
+func rewriteLinkDestination(region, oldDir, newDir string, moveIndex map[string]string) string {
 	inner := strings.TrimSuffix(strings.TrimPrefix(region, "("), ")")
-	if strings.Contains(inner, "://") {
-		return region
-	}
 	bare, suffix := splitDestinationSuffix(inner)
-	resolved, rootRelative := resolveLinkDestination(bare, dir)
-	to, ok := moveIndex[resolved]
-	if !ok {
+	if !isRepoPathDestination(bare) {
 		return region
 	}
-	return "(" + newDestination(to, dir, rootRelative) + suffix + ")"
+	resolved, rootRelative := resolveLinkDestination(bare, oldDir)
+	to, moved := moveIndex[resolved]
+	if !moved {
+		// The target stayed put, so its text still names it — unless the
+		// destination was resolved against the linking file's directory
+		// and that directory changed. A root-relative destination names a
+		// path from the repo root, so neither condition reaches it.
+		if rootRelative || oldDir == newDir {
+			return region
+		}
+		to = resolved
+	}
+	return "(" + newDestination(to, newDir, rootRelative) + suffix + ")"
+}
+
+// isRepoPathDestination reports whether bare — a link destination with
+// any `?query` / `#fragment` already split off — names a file in this
+// repository. Only such a destination can be invalidated by a move, so
+// everything else is returned byte-identical.
+//
+// The test runs on the split-off bare path rather than the whole
+// destination, so a scheme separator inside a suffix
+// (`M-NNNN-<slug>.md?u=https://example.com`) is not mistaken for one in
+// scheme position — the destination is a repo path carrying a URL as a
+// query parameter, and it moves with the file like any other.
+func isRepoPathDestination(bare string) bool {
+	switch {
+	case bare == "":
+		// A suffix-only destination (`#section`) names a place in the
+		// current file, not a file.
+		return false
+	case strings.TrimSpace(bare) != bare:
+		// CommonMark allows whitespace around a destination inside the
+		// parens. Every test below is a prefix test, which a leading space
+		// defeats, and the path arithmetic would then emit two
+		// whitespace-separated tokens — which is not an inline link at
+		// all, so a working link would become literal text. Recomputing
+		// cannot reproduce the surrounding whitespace faithfully, so the
+		// shape is left alone entirely.
+		return false
+	case strings.HasPrefix(bare, "/"):
+		// Site-absolute (`/README.md`), which resolves against a server
+		// root rather than the linking file's directory, and the
+		// protocol-relative URL (`//host/path`) that shares its prefix and
+		// names a host rather than a path. Neither moves with a file.
+		return false
+	case strings.HasPrefix(bare, "<"):
+		// Angle-bracket destination. The delimiters are not part of the
+		// path, and rewriting the inside would strip the closing one.
+		return false
+	}
+	return !hasURIScheme(bare)
+}
+
+// hasURIScheme reports whether s carries a URI scheme prefix (`mailto:`,
+// `tel:`, `https:`), which names something outside the repo's filesystem
+// and so is never resolved as a path. A colon appearing after the first
+// slash is part of a filename, not a scheme.
+func hasURIScheme(s string) bool {
+	colon := strings.IndexByte(s, ':')
+	if colon <= 0 {
+		return false
+	}
+	slash := strings.IndexByte(s, '/')
+	return slash == -1 || colon < slash
 }
 
 // splitDestinationSuffix splits inner into its bare-path portion and
