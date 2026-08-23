@@ -663,524 +663,524 @@ does not validate the SHA's value.
 
 - **Claim:** *"'Patch' appears in the consumer-facing rituals (the optional `wf-rituals` plugin's TDD cycle / code-review / doc-lint surface) … The kernel says nothing about it."*
 - **Measured:** `wf-rituals` is no longer an optional marketplace plugin, and patch is no longer a mention inside three other skills — it is its own 16-step ritual. ADR-0014 (`accepted`, added + promoted 2026-05-29) §1 rules the rituals are embedded in the binary and materialized by `aiwf init`/`update`. `<aiwf> update --help` offers no plugin-selection flag. `wf-patch/SKILL.md` was vendored into the embedded snapshot on 2026-05-29 (`8a2c8acdf`), and `.claude/skills/wf-patch` exists as a materialized artifact in this repo alongside eight other `wf-*` skills. G-0060's "What's missing" text predates all of it (last touched at the 2026-05-11 rename `9df927060`; the 2026-07-22 edit `765e8da78` appended the Investigation section without revisiting these bullets).
-- **Evidence:** batch `C10-1` ledger
+- **Evidence:** [full finding](gap-truth-audit-evidence.md#g-0060)
 
 #### G-0060 · `false-claim`
 
 - **Claim:** *"No branch model. A patch is whatever-shaped work on whatever-shaped branch, with no kernel-level guidance."*
 - **Measured:** The kernel carries a patch branch grammar in Go and a closed rung ladder that includes `patch` as a rung. `internal/branchparse/branchparse.go:30` is `^(?:epic/([Ee]-\d+)|milestone/([Mm]-\d+)|patch/([Gg]-\d+))(?:-|$)`, and `branchparse.go:127-132` declares `legalRungPairs` = `{trunk→epic, epic→milestone, milestone→patch, epic→patch}` with the comments *"milestone → patch — wf-patch under a milestone"* and *"epic → patch — wf-patch directly under an epic"*. Driven live: in a fixture, `<aiwf> authorize E-0001 --to ai/claude` succeeds from branch `patch/G-0001-fix-widget` and is refused from branch `randomthing` with *"current checkout \"randomthing\" does not match a ritual shape … (epic/E-NNNN-&lt;slug&gt; / milestone/M-NNNN-&lt;slug&gt; / patch/g-NNNN-&lt;slug&gt;)"*. ADR-0010 (`accepted`, 2026-05-11/12) line 54 carries the branch-namespace table row for `wf-patch`, and `wf-patch/SKILL.md` Constraints pins `patch/G-NNNN-<short-slug>`. `internal/cli/worktree/worktree.go:51` uses `aiwf worktree add patch/G-0100-fix` as the verb's own help example.
-- **Evidence:** batch `C10-1` ledger
+- **Evidence:** [full finding](gap-truth-audit-evidence.md#g-0060)
 
 #### G-0060 · `false-claim`
 
 - **Claim:** *"**`aiwf check` has no patch-shaped invariants to enforce.** Without a defined shape, `check` cannot say anything is wrong."*
 - **Measured:** `aiwf check` treats `patch/` as one of exactly three ritual namespaces it polices. `internal/check/reflog_walk.go:168-175` (`ritualShape`) matches `epic/`, `milestone/`, `patch/`, and `listRitualHeads` (`reflog_walk.go:137`) filters the branch set it walks for force-pushed-away AI commits through it; `internal/cli/check/isolation_escape_oracle.go:319` names the same set. The consuming finding is `isolation-escape` (`internal/check/isolation_escape.go:34`, `codes.ClassBranchChoreography`), which fires when an AI actor's commit lands off its scope's recorded branch. So a patch branch has a defined shape *and* a check rule that judges commits on it. `internal/check/id_rename_untrailered.go:36` calls this "the branch-policing finding set alongside isolation-escape". Reading of source only — I did not stage a force-pushed orphan to drive the rule.
-- **Evidence:** batch `C10-1` ledger
+- **Evidence:** [full finding](gap-truth-audit-evidence.md#g-0060)
 
 #### G-0060 · `false-claim`
 
 - **Claim:** *"No relationship to gaps, ADRs, or contracts. A patch that closes a gap has no formal way to record `closes G-NNN` in a way `aiwf check` can validate."*
 - **Measured:** The closure route exists, is verb-guarded, and *is* partly check-validated. Driven end-to-end in a fixture reproducing the `wf-patch` shape (branch `patch/G-0001-fix-thing` → commit → `git merge --no-ff` → `aiwf promote G-0001 addressed --by-commit <merge-sha>`): the promote succeeded and wrote `addressed_by_commit: [d61c164…]` into the gap's frontmatter. The verb refuses every degenerate form — no resolver → *"promoting a gap to \"addressed\" requires --by &lt;entity-id&gt; or --by-commit &lt;sha&gt; so the gap-addressed-has-resolver rule is satisfied"*; a fabricated SHA → *"does not resolve to a commit in this repo"*; a real-but-unreachable SHA → *"resolves to a commit not reachable from HEAD"*. On the check side, `gapAddressedHasResolver` (`internal/check/check.go:980-995`) fires at **warning** when an addressed gap carries neither resolver. **What is genuinely missing is narrower than the claim:** `aiwf check` validates only *presence*, not the value — a hand-edited `addressed_by_commit: [not-a-sha-at-all]` produced no finding at all in the fixture.
-- **Evidence:** batch `C10-1` ledger
+- **Evidence:** [full finding](gap-truth-audit-evidence.md#g-0060)
 
 #### G-0068 · `contradicted-by-code`
 
 - **Claim:** "Only `/ac` is a literal in source. The other six are derived via
 - **Measured:** It is not. In a clone of HEAD I replaced the only haystack
-- **Evidence:** batch `C1-5` ledger
+- **Evidence:** [full finding](gap-truth-audit-evidence.md#g-0068)
 
 #### G-0068 · `stale-claims`
 
 - **Claim:** "Discovered during M-0066/AC-6's RED-first sanity check: deleting the
 - **Measured:** True when written, false now. At `56ad4b841^` the site read
-- **Evidence:** batch `C1-5` ledger
+- **Evidence:** [full finding](gap-truth-audit-evidence.md#g-0068)
 
 #### G-0070 · `dead-premise`
 
 - **Claim:** "The `recommended-plugin-not-installed` finding-code string appears verbatim in
 - **Measured:** The check does not exist, so nothing appears in the output. `$A doctor`
-- **Evidence:** batch `C8-2` ledger
+- **Evidence:** [full finding](gap-truth-audit-evidence.md#g-0070)
 
 #### G-0070 · `dead-premise`
 
 - **Claim:** "When implemented, M-0070's AC-3 contract is automatically satisfied without
 - **Measured:** It cannot be. `$A show M-0070` → `done`, archived, AC-3 "Each missing plugin
-- **Evidence:** batch `C8-2` ledger
+- **Evidence:** [full finding](gap-truth-audit-evidence.md#g-0070)
 
 #### G-0073 · `dead-premise`
 
 - **Claim:** two of the five "concrete cross-kind cases the kernel can't represent today", plus one fix-shape arm, rest on ADR-0003 and the `finding` kind.
 - **Measured:** ADR-0003 is **`rejected`** and archived (`docs/adr/archive/ADR-0003-add-finding-f-nnn-as-a-seventh-entity-kind.md`), reversed by ADR-0045 (`accepted`, 2026-08-19). E-0019's *Dependencies* section — the very prose G-0073 cites — now reads *"**The F-NNNN storage model** ([ADR-0003]) — **withdrawn.** aiwf carries six entity kinds and `finding` is not one … The two implementation epics this list anticipated … neither was filed"*, and lists ADR-0004 as *"accepted, and the convention has shipped. **Met.**"*. So the bullet *"E-0019's Dependencies prose lists ADR-0003 and ADR-0004 as required"* is false on both halves — one is withdrawn, the other is met. The bullet *"**Implementation-epic chains.** Once ADR-0003 is ratified, an implementation epic for `finding` is filed"* names a future that has been ruled out. Fix-shape item 1's *"plus future finding"* and the predicate table's row *"| Finding (future) | `resolved` |"* are dead for the same reason.
-- **Evidence:** batch `C10-1` ledger
+- **Evidence:** [full finding](gap-truth-audit-evidence.md#g-0073)
 
 #### G-0073 · `false-claim`
 
 - **Measured:** **the template moved.** `db843cead` (2026-08-22, one day before HEAD, `aiwf-entity: G-0617`) deleted the line `depends_on: []           # optional: prior epic ids; e.g. [E-NNNN]` from `internal/skills/embedded-rituals/plugins/aiwf-extensions/templates/epic-spec.md`. `grep -n depends_on` on that file returns nothing; the frontmatter block is now `id / title / status` plus a pointer comment to `aiwf schema epic`. G-0617 ("Template frontmatter restates each kind's vocabulary, unchecked") is `addressed` and archived. The gap's own stated settlement condition is met.
-- **Evidence:** batch `C10-1` ledger
+- **Evidence:** [full finding](gap-truth-audit-evidence.md#g-0073)
 
 #### G-0073 · `false-claim`
 
 - **Claim:** *"milestone→milestone edges are first-class (writer verb pending per G-0072)"*, and *"G-0072 stays open as the discovery record"*.
 - **Measured:** the two specs **agree today**, and have since 17 seconds after this section was committed. G-0073's edit is `f202250c1` at `2026-08-12 13:13:41 +0000`; `9e9835ae1` (`aiwf edit-body E-0083`) landed at `2026-08-12 13:13:58 +0000` and replaced the quoted resolution path. E-0083's open-questions table row 120 now reads *"Shared with E-0084, which adds the membership rule ADR-0043 decides. Settled jointly before either epic's first milestone lands, not inside whichever starts first — ADR-0043 names the question and neither epic owns it alone."* E-0084's constraint (line 74) and table row 104 match. E-0083 additionally added a risk row (line 128) that **cites this gap by id** for the general point. So the *instance* is settled; the *argument it supports* — no `depends_on` edge expresses "neither of us lands before we settle this together" — survives, and is now sourced from E-0083 rather than from a disagreement that no longer exists.
-- **Evidence:** batch `C10-1` ledger
+- **Evidence:** [full finding](gap-truth-audit-evidence.md#g-0073)
 
 #### G-0110 · `contradicted-by-code`
 
 - **Measured:** false as stated. In a disposable single-package module at module
-- **Evidence:** batch `C3-2` ledger
+- **Evidence:** [full finding](gap-truth-audit-evidence.md#g-0110)
 
 #### G-0110 · `dead-premise`
 
 - **Claim:** "With `--diff` broken for new files, the operator either runs the
 - **Measured:** a working diff-scoped mutation run shipped. `make mutate-diff`
-- **Evidence:** batch `C3-2` ledger
+- **Evidence:** [full finding](gap-truth-audit-evidence.md#g-0110)
 
 #### G-0111 · `already-addressed`
 
 - **Claim:** Concern 4 — "Wrap doesn't close the epic's named resolution gaps … The mechanism is missing on the epic surface." Restated in *Why it matters* as "**no mechanism to land the gap-status flips the epic claims to deliver**".
 - **Measured:** The mechanism shipped on 2026-07-21 in `9cad2af3e` ("fix(ritual): close gaps a milestone's own prose claims to fix at wrap (G-0431)"). `aiwfx-wrap-epic/SKILL.md:24` now carries Precondition 6 — "Neither the epic's own spec nor any milestone's left a gap open that it explicitly claims to fix" — with the disposition rules at line 26; `aiwfx-wrap-milestone/SKILL.md:26` identifies the gaps at step 1 and line 241 runs `aiwf promote G-NNNN addressed --by-commit <sha>` at step 13, ahead of the milestone's own promote-done. The owning gap **G-0431** ("Milestone/epic wrap never closes gaps their own prose claims to fix") is `addressed`. This is precisely the "Skill-driven" option G-0111 itself enumerates; only the "Declarative" option (a `closes:`/`addressed_by:` field on the resolver's frontmatter) is unbuilt — `$A schema` shows milestone references are still only `parent` and `depends_on`.
-- **Evidence:** batch `C10-2` ledger
+- **Evidence:** [full finding](gap-truth-audit-evidence.md#g-0111)
 
 #### G-0111 · `dead-path`
 
 - **Claim:** Resolution path — "Cross-repo coupling pattern from M-0090 / M-0096 applies — author the skill body in `internal/policies/testdata/aiwfx-wrap-epic/SKILL.md` and copy at wrap."
 - **Measured:** `internal/policies/testdata` does not exist. The canonical authoring location is pinned as a Go constant: `internal/policies/aiwfx_wrap_epic_test.go:19` — `const aiwfxWrapEpicFixturePath = "internal/skills/embedded-rituals/plugins/aiwf-extensions/skills/aiwfx-wrap-epic/SKILL.md"`, whose own doc comment (line 11-12) calls it "the canonical authoring location for the `aiwfx-wrap-epic` skill body — the embedded ritual snapshot". The "copy at wrap" half is dead too: ADR-0016 (`accepted`) archives the upstream rituals repo and ADR-0014 (`accepted`) makes the embedded snapshot the single source. A reader following this path writes into a directory that does not exist and looks for a repo that takes no changes.
-- **Evidence:** batch `C10-2` ledger
+- **Evidence:** [full finding](gap-truth-audit-evidence.md#g-0111)
 
 #### G-0121 · `stale-claim`
 
 - **Claim:** "G-0567 is one such disagreement, live and unfixed."
 - **Measured:** `$A show G-0567` → "status: addressed · priority: high · archived", with
-- **Evidence:** batch `C3-3` ledger
+- **Evidence:** [full finding](gap-truth-audit-evidence.md#g-0121)
 
 #### G-0161 · `contradicted-by-code`
 
 - **Claim:** "**ANTI-0007** (no kernel branch-of-verb rule): invoke a mutating
 - **Measured:** the verb refuses. In the fixture, on `main`, with milestone
-- **Evidence:** batch `C3-6` ledger
+- **Evidence:** [full finding](gap-truth-audit-evidence.md#g-0161)
 
 #### G-0161 · `contradicted-by-code`
 
 - **Claim:** "**ANTI-0012** (epic → active with zero milestones legal): promote an
 - **Measured:** the finding **does** fire. After `$A add epic` + `$A promote
-- **Evidence:** batch `C3-6` ledger
+- **Evidence:** [full finding](gap-truth-audit-evidence.md#g-0161)
 
 #### G-0161 · `contradicted-by-code`
 
 - **Claim:** "**ANTI-0001** (no `≥1 AC` requirement): create a milestone with 0
 - **Measured:** two problems.
-- **Evidence:** batch `C3-6` ledger
+- **Evidence:** [full finding](gap-truth-audit-evidence.md#g-0161)
 
 #### G-0168 · `contradicted-by-code`
 
 - **Claim:** The table row `| milestone | `tdd:` | `aiwf add milestone --tdd …` | **none** |`,
 - **Measured:** `aiwf milestone tdd <M-id> --policy none|advisory|required [--reason …]`
-- **Evidence:** batch `C5-1` ledger
+- **Evidence:** [full finding](gap-truth-audit-evidence.md#g-0168)
 
 #### G-0168 · `dead-advice`
 
 - **Claim:** `## Workaround (current)` — "the operator hand-edits the YAML and commits
 - **Measured:** That commit cannot be made in any repo with aiwf's hooks installed. The
-- **Evidence:** batch `C5-1` ledger
+- **Evidence:** [full finding](gap-truth-audit-evidence.md#g-0168)
 
 #### G-0168 · `dead-premise`
 
 - **Claim:** `### Prerequisites for closing` — "**G-0285** (root `--help` banner drift) — the
 - **Measured:** Both premises are false now, and both gaps are `addressed`. The root banner
-- **Evidence:** batch `C5-1` ledger
+- **Evidence:** [full finding](gap-truth-audit-evidence.md#g-0168)
 
 #### G-0168 · `already-addressed`
 
 - **Claim:** `### The check-rule half has landed; a residual remains for the verb` — "The
 - **Measured:** Shipped, exactly as specified. In the fixture, M-0002 (`tdd: none`) with
-- **Evidence:** batch `C5-1` ledger
+- **Evidence:** [full finding](gap-truth-audit-evidence.md#g-0168)
 
 #### G-0169 · `retired-verb-cited-present-tense`
 
 - **Claim:** "**Mutating, bespoke output path:** `aiwf import` (multi-entity import) and
 - **Measured:** Both halves are false at HEAD.
-- **Evidence:** batch `C8-2` ledger
+- **Evidence:** [full finding](gap-truth-audit-evidence.md#g-0169)
 
 #### G-0169 · `contradicted-by-code`
 
 - **Claim:** "A CI consumer scripting `aiwf import --format=json` or `aiwf render roadmap
 - **Measured:** False for `import`, true for `render roadmap`.
-- **Evidence:** batch `C8-2` ledger
+- **Evidence:** [full finding](gap-truth-audit-evidence.md#g-0169)
 
 #### G-0212 · `already-shipped`
 
 - **Claim:** the six classes are catalogued "from history evidence +
 - **Measured:** M-0243 "Named scenarios from G-0212 and G-0269" is `done` under
-- **Evidence:** batch `C5-6` ledger
+- **Evidence:** [full finding](gap-truth-audit-evidence.md#g-0212)
 
 #### G-0212 · `contradicted-by-code`
 
 - **Measured:** the scenario built to test exactly this states the opposite as
-- **Evidence:** batch `C5-6` ledger
+- **Evidence:** [full finding](gap-truth-audit-evidence.md#g-0212)
 
 #### G-0212 · `contradicted-by-code`
 
 - **Measured:** both halves are false. (a) repolock is an **inter-process**
-- **Evidence:** batch `C5-6` ledger
+- **Evidence:** [full finding](gap-truth-audit-evidence.md#g-0212)
 
 #### G-0217 · `false-claim`
 
 - **Claim:** "The current message fires in BOTH cases with identical wording" — case 1
 - **Measured:** An `in_progress` milestone whose branch is ahead of trunk emits **no
-- **Evidence:** batch `C2-3` ledger
+- **Evidence:** [full finding](gap-truth-audit-evidence.md#g-0217)
 
 #### G-0254 · `dead-premise`
 
 - **Claim:** "**`aiwf check` rule (pre-push + CI)** — the authoritative
 - **Measured:** **no workflow invokes `aiwf check`, and none ever has.**
-- **Evidence:** batch `C7-5` ledger
+- **Evidence:** [full finding](gap-truth-audit-evidence.md#g-0254)
 
 #### G-0282 · `dead-premise`
 
 - **Claim:** the gated-annotation extension "is not independently buildable yet
 - **Measured:** the verb exists. `aiwf milestone tdd --help` →
-- **Evidence:** batch `C3-1` ledger
+- **Evidence:** [full finding](gap-truth-audit-evidence.md#g-0282)
 
 #### G-0282 · `contradicted-by-record`
 
 - **Claim:** the `required → advisory` downgrade is "exactly the
 - **Measured:** G-0168 — the sibling gap this section itself names — settled the
-- **Evidence:** batch `C3-1` ledger
+- **Evidence:** [full finding](gap-truth-audit-evidence.md#g-0282)
 
 #### G-0282 · `retired-verb`
 
 - **Measured:** `rewidth` no longer exists. `<audit>/aiwf rewidth --help` →
-- **Evidence:** batch `C3-1` ledger
+- **Evidence:** [full finding](gap-truth-audit-evidence.md#g-0282)
 
 #### G-0311 · `false-claim`
 
 - **Claim:** *"the kernel forces it into three separate epics wired by `depends_on`, with no entity that names 'the subtitle feature.'"*
 - **Measured:** epics cannot be wired by `depends_on` at all. `<aiwf> schema epic` prints `optional fields: (none)` / `reference fields: (none)`. `entity.ForwardRefs`' default arm (`internal/entity/refs.go:63-66`) states *"KindEpic and any future kind without outbound refs falls through to an empty list"*. In a fixture, an epic hand-carrying `depends_on: [ADR-0001]` drew **zero** findings and `<aiwf> show E-0001 --format=json` carried no `depends_on` key — accepted, stored, read by nothing. `<aiwf> epic depends-on E-0001 --on E-0002` → `aiwf: unknown command "epic" for "aiwf"`. The real fallback is unwired sibling epics plus prose, which is worse than the sentence claims — the gap's case survives and strengthens, but the sentence tells a reader a mechanism exists that does not.
-- **Evidence:** batch `C10-1` ledger
+- **Evidence:** [full finding](gap-truth-audit-evidence.md#g-0311)
 
 #### G-0328 · `contradicted-by-code`
 
 - **Claim:** "There is no **standing** test that reproduces the byte-identity
 - **Measured:** three standing, untagged tests do exactly this, in
-- **Evidence:** batch `C3-6` ledger
+- **Evidence:** [full finding](gap-truth-audit-evidence.md#g-0328)
 
 #### G-0333 · `false-absence-claim`
 
 - **Claim:** The Tier-1/Tier-2 boundary "is stated in no AI-discoverable channel
 - **Measured:** False, and false at the moment of filing. Six surfaces carry it;
-- **Evidence:** batch `C2-4` ledger
+- **Evidence:** [full finding](gap-truth-audit-evidence.md#g-0333)
 
 #### G-0370 · `dead-premise`
 
 - **Claim:** "Needs a hand-written pinning test under `internal/policies/` (the
 - **Measured:** The named gate no longer exists.
-- **Evidence:** batch `C7-2` ledger
+- **Evidence:** [full finding](gap-truth-audit-evidence.md#g-0370)
 
 #### G-0398 · `dead-premise`
 
 - **Claim:** "Discovered indirectly: `internal/stresstest/verb_sequence.go`'s
 - **Measured:** The ordering was inverted four days after this gap was written. `Run` in
-- **Evidence:** batch `C5-5` ledger
+- **Evidence:** [full finding](gap-truth-audit-evidence.md#g-0398)
 
 #### G-0412 · `stale-claim`
 
 - **Claim:** the wording "has since been copied verbatim into `internal/cli/renamearea`,
 - **Measured:** 11 of the 12 named files carry neither the string nor a `ResolveRoot(` call
-- **Evidence:** batch `C11-1` ledger
+- **Evidence:** [full finding](gap-truth-audit-evidence.md#g-0412)
 
 #### G-0442 · `contradicted-by-code`
 
 - **Claim:** "There is no verb to **amend, add to, or clear** either field afterward
 - **Measured:** three of the four sub-claims are false.
-- **Evidence:** batch `C5-2` ledger
+- **Evidence:** [full finding](gap-truth-audit-evidence.md#g-0442)
 
 #### G-0444 · `contradicted-by-code`
 
 - **Claim:** "`readHistoryChain` survives only in test comments under `internal/cli/integration/` (e.g. `canonicalize_history_test.go`, `show_cmd_test.go`), **not in production code**; the chain logic now lives inline in `history.go`." Restated in "Why it matters" ("the chain logic is inline") and made operative in "Suggested approach" ("describe the inline `PriorIDs`-chain handling rather than the **retired** `readHistoryChain`").
 - **Measured:** `internal/entityview/historyevent.go:117` declares `func ReadHistoryChain(ctx context.Context, root string, chain []string) ([]HistoryEvent, error)` — production code, not a test file — and `internal/cli/history/history.go:100` calls it (`events, err := entityview.ReadHistoryChain(ctx, rootDir, chain)`). It landed in `5d331e61d` (2026-07-20, "feat(entityview): extract read-side helpers into a neutral package (M-0272)"), three days before G-0444 was filed (`beb1bc399`, 2026-07-23), so the claim was already false at filing. What *is* inline in `Run` is the chain **assembly** (lines 85–98: seed with the queried id, resolve via `ResolveByCurrentOrPriorID`, append `PriorIDs` and the canonical id) — not the "greps the union in one pass" step that `id-allocation.md:164` attributes to `readHistoryChain`, which is precisely what `ReadHistoryChain` still does. The doc line's *description* is therefore still accurate; only the spelling and the owning package moved.
-- **Evidence:** batch `C11-2` ledger
+- **Evidence:** [full finding](gap-truth-audit-evidence.md#g-0444)
 
 #### G-0445 · `contradicted-by-code`
 
 - **Claim:** "`docs/` is not an aiwf-managed path: in a consumer repo `docs/` may hold real shippable implementation."
 - **Measured:** `docs/adr/` is an aiwf-managed path in *every* consumer. `$A --root <fx> add adr --title "Some architectural choice" --body …` created `docs/adr/ADR-0001-some-architectural-choice.md` and committed it (`git show --stat` names that single file). The loader walks `docs/adr` (`internal/tree/tree.go:288`), `aiwf add` routes ADRs there (`internal/verb/add.go:490`), `aiwf init` creates it (`internal/initrepo/initrepo.go:686`), `aiwf archive` sweeps to `docs/adr/archive/` (`internal/verb/archive.go:428`), and `internal/trunk/trunk.go:88,239` reads trunk state from `"work/"` **and** `"docs/adr/"`. The consequence is load-bearing for the gap's own remedy list: I measured that a dirty `docs/adr/ADR-0001-….md` alongside a dirty test path passes `--phase red` today (exit 0), and that any *non-excluded* dirty non-test path refuses (control: `src/component.jsx` → "refusing — red-first requires the test to change before the implementation … : src/component.jsx"). `isPlanningPath` reaches `docs/adr/` only via the `docs/` prefix (4-line function, read at `promote_phase_gate.go:78-85`), so the gap's option 2 — exclude `work/` only — would make every mid-edit ADR false-refuse a legitimate red promote.
-- **Evidence:** batch `C7-6` ledger
+- **Evidence:** [full finding](gap-truth-audit-evidence.md#g-0445)
 
 #### G-0448 · `contradicted-by-code`
 
 - **Claim:** "split by an accident of function signature rather than a declared boundary" / "Whether a rule lands in surface one or surface two is decided purely by 'does it need git/ctx/config' — not by any intentional layering."
 - **Measured:** the boundary is declared in three independent places and is load-bearing.
-- **Evidence:** batch `C9-3` ledger
+- **Evidence:** [full finding](gap-truth-audit-evidence.md#g-0448)
 
 #### G-0448 · `stale-count`
 
 - **Claim:** "Rules are dispatched from two parallel surfaces" (also in the title), with the git/history/area rules "individually invoked and appended in `internal/cli/check/check.go` (~lines 127-305)".
 - **Measured:** four rule-invoking sites, and the largest git/history group is in a file the gap never names.
-- **Evidence:** batch `C9-3` ledger
+- **Evidence:** [full finding](gap-truth-audit-evidence.md#g-0448)
 
 #### G-0472 · `dead-premise`
 
 - **Claim:** "The hook installers carry a cost of a different kind, and it is the
 - **Measured:** All four installers now refuse. `ensurePreHook:1350` has
-- **Evidence:** batch `C9-1` ledger
+- **Evidence:** [full finding](gap-truth-audit-evidence.md#g-0472)
 
 #### G-0478 · `stale-claim`
 
 - **Claim:** Two links in `docs/initiatives/quality-signal-and-cadence.md` *still* name
 - **Measured:** False now, and false when the sentence was last revised. Both links point at
-- **Evidence:** batch `C11-4` ledger
+- **Evidence:** [full finding](gap-truth-audit-evidence.md#g-0478)
 
 #### G-0478 · `dead-premise`
 
 - **Claim:** The recommended first move is "**Detection** … a check rule that resolves every
 - **Measured:** An accepted ADR declines exactly that, and a prior gap proposing it was
-- **Evidence:** batch `C11-4` ledger
+- **Evidence:** [full finding](gap-truth-audit-evidence.md#g-0478)
 
 #### G-0504 · `dead-premise`
 
 - **Claim:** "G-0471 — the binary-versus-source staleness axis, addressed by
 - **Measured:** E-0076 is `status: cancelled`, archived — `aiwf cancel E-0076 ->
-- **Evidence:** batch `C7-1` ledger
+- **Evidence:** [full finding](gap-truth-audit-evidence.md#g-0504)
 
 #### G-0508 · `undercount`
 
 - **Claim:** "Four policies scan `internal/verb` for package-level function
 - **Measured:** **Eight** files in `internal/policies/` carry that walk. The four
-- **Evidence:** batch `C9-1` ledger
+- **Evidence:** [full finding](gap-truth-audit-evidence.md#g-0508)
 
 #### G-0514 · `dead-premise`
 
 - **Claim:** "Measured on the shipped tree, these currently fire under that message" — followed
 - **Measured:** `skill-body-id` fires on **nothing** in the tree today — `aiwf check` reports
-- **Evidence:** batch `C7-3` ledger
+- **Evidence:** [full finding](gap-truth-audit-evidence.md#g-0514)
 
 #### G-0514 · `dead-premise`
 
 - **Claim:** "This lands on the sweep as concrete friction. A sweep driven by the rule's output
 - **Measured:** The sweep is M-0288 (`Sweep shipped surfaces to canonical placeholders and
-- **Evidence:** batch `C7-3` ledger
+- **Evidence:** [full finding](gap-truth-audit-evidence.md#g-0514)
 
 #### G-0517 · `false-premise`
 
 - **Claim:** "These are mostly citations of entities that were genuinely real
 - **Measured:** Of the 113 raw narrow-id occurrences in the three surfaces, 71
-- **Evidence:** batch `C11-3` ledger
+- **Evidence:** [full finding](gap-truth-audit-evidence.md#g-0517)
 
 #### G-0523 · `overclaimed-attribution`
 
 - **Claim:** "The events are already wired, so this needs no consent surface
 - **Measured:** Both halves are false.
-- **Evidence:** batch `C7-1` ledger
+- **Evidence:** [full finding](gap-truth-audit-evidence.md#g-0523)
 
 #### G-0527 · `contradicted-by-code`
 
 - **Claim:** "Asking for the verb that does not exist reports success: `aiwf worktree remove
 - **Measured:** False for all five cases. `aiwf worktree remove /tmp/nonexistent-abc-zzz` printed
-- **Evidence:** batch `C5-5` ledger
+- **Evidence:** [full finding](gap-truth-audit-evidence.md#g-0527)
 
 #### G-0527 · `claim-about-what-does-not-exist`
 
 - **Claim:** "Nothing removes one: teardown is `git worktree remove` plus `git branch -d`,
 - **Measured:** False, and false at authoring time. Four surfaces name it, three of them shipped:
-- **Evidence:** batch `C5-5` ledger
+- **Evidence:** [full finding](gap-truth-audit-evidence.md#g-0527)
 
 #### G-0529 · `contradicted-by-record`
 
 - **Claim:** "The failure is not hypothetical. E-0075 wrapped with an entry that
 - **Measured:** Wrong on all three particulars, and the timeline runs the other
-- **Evidence:** batch `C7-2` ledger
+- **Evidence:** [full finding](gap-truth-audit-evidence.md#g-0529)
 
 #### G-0530 · `already-addressed`
 
 - **Claim:** "The classification of `entity-body-empty` in the shipped-surface table of
 - **Measured:** The correction landed on 2026-08-04, 14 hours after the gap was filed, and it
-- **Evidence:** batch `C7-3` ledger
+- **Evidence:** [full finding](gap-truth-audit-evidence.md#g-0530)
 
 #### G-0530 · `count-does-not-rederive`
 
 - **Claim:** "`## Work log` is the sharpest case — the wrap ritual mandates one entry per
 - **Measured:** The wrap-ritual half re-derives exactly (see below). The emptiness half does not,
-- **Evidence:** batch `C7-3` ledger
+- **Evidence:** [full finding](gap-truth-audit-evidence.md#g-0530)
 
 #### G-0530 · `dead-premise`
 
 - **Claim:** "Gap is the largest population and has no template at all, so its structure is
 - **Measured:** First half true — 620 gaps vs 317 milestones, 88 epics, 75 decisions, 46 ADRs,
-- **Evidence:** batch `C7-3` ledger
+- **Evidence:** [full finding](gap-truth-audit-evidence.md#g-0530)
 
 #### G-0535 · `dead-premise`
 
 - **Claim:** Option 3 — "**Give each an anti-orphan assertion**, as the sovereign
 - **Measured:** The sovereign policy no longer exists. `internal/policies/sovereign.go`,
-- **Evidence:** batch `C1-5` ledger
+- **Evidence:** [full finding](gap-truth-audit-evidence.md#g-0535)
 
 #### G-0535 · `dead-premise`
 
 - **Claim:** "That is what separates these from G-0534, where `internal/verb`
 - **Measured:** G-0534 is `addressed` and archived; its redundancy question was
-- **Evidence:** batch `C1-5` ledger
+- **Evidence:** [full finding](gap-truth-audit-evidence.md#g-0535)
 
 #### G-0536 · `dead-premise`
 
 - **Claim:** "On the tree as it stands the step reports errors on day one. Which
 - **Measured:** false in both the strictest and the realistic reproduction.
-- **Evidence:** batch `C7-1` ledger
+- **Evidence:** [full finding](gap-truth-audit-evidence.md#g-0536)
 
 #### G-0539 · `contradicted-by-code`
 
 - **Claim:** "The pre-commit half prevents rather than detects, and needs one distinction to be safe: a verb's own commit also stages entity files. The verbs drive git themselves, so they can mark their own commits — an environment variable set across the commit call is the cheap version, with the hook skipping when it is present." And: "the second and third are verbs, covered by the same marker" (of `aiwf archive`'s sweep and `aiwf reallocate`'s rewrite).
 - **Measured:** aiwf verb commits fire **no git hooks whatsoever** and stage nothing in the index, so a pre-commit rule reading `git diff --cached` would never see a verb's commit and needs no marker or exemption. In the fixture, with a logging `pre-commit.local` and `commit-msg.local` installed, five verb invocations produced five commits and zero hook firings; the plain `git commit` control fired both hooks.
-- **Evidence:** batch `C1-8` ledger
+- **Evidence:** [full finding](gap-truth-audit-evidence.md#g-0539)
 
 #### G-0555 · `contradicted-by-measurement`
 
 - **Claim:** an age-based sweep cannot reclaim this, therefore only a code fix can — "a sweep
 - **Measured:** a 24-hour-margin sweep run right now would delete **1367 directories holding
-- **Evidence:** batch `C12-1` ledger
+- **Evidence:** [full finding](gap-truth-audit-evidence.md#g-0555)
 
 #### G-0560 · `dead-premise`
 
 - **Claim:** "G-0559 gates it — the strings originate in `internal/entity/entity.go` and
 - **Measured:** G-0559 is `status: addressed`, `addressed_by_commit: b778bc9f32ad…`
-- **Evidence:** batch `C2-1` ledger
+- **Evidence:** [full finding](gap-truth-audit-evidence.md#g-0560)
 
 #### G-0560 · `dead-premise`
 
 - **Claim:** "**ADR-0003 is `accepted` and unimplemented** — an accepted decision to add a
 - **Measured:** `ADR-0003 | rejected | Add finding (F-NNN) as a seventh entity kind |
-- **Evidence:** batch `C2-1` ledger
+- **Evidence:** [full finding](gap-truth-audit-evidence.md#g-0560)
 
 #### G-0562 · `already-fixed`
 
 - **Claim:** "`writeWorktreeHookScript` in `internal/policies/worktree_rituals_check_hook_test.go`
 - **Measured:** false at HEAD. `internal/policies/worktree_rituals_check_hook_test.go:28-34`
-- **Evidence:** batch `C4-2` ledger
+- **Evidence:** [full finding](gap-truth-audit-evidence.md#g-0562)
 
 #### G-0562 · `duplicate`
 
 - **Claim:** (implicit) G-0562 and G-0578 are separate gaps.
 - **Measured:** **They are duplicates — same file, same helper, same single call site.**
-- **Evidence:** batch `C4-2` ledger
+- **Evidence:** [full finding](gap-truth-audit-evidence.md#g-0562)
 
 #### G-0564 · `dead-premise`
 
 - **Claim:** "Two of them — composition tests across verb chains, and tree-level
 - **Measured:** `E-0080` status is **`cancelled`**, path
-- **Evidence:** batch `C3-1` ledger
+- **Evidence:** [full finding](gap-truth-audit-evidence.md#g-0564)
 
 #### G-0571 · `superseded-premise`
 
 - **Claim:** "The narrower option is a create-time refusal on `aiwf add --body-file` and `aiwf edit-body --body-file`, which fires only on new content and would raise none." — presented as an open option.
 - **Measured:** `ADR-0043` (status `accepted`, dated 2026-08-11, i.e. after this body's last edit on 2026-08-08) has already settled the question, and settled it differently and more broadly. Its Decision section reads: *"Body-section membership is enforced at the seams where body bytes are written, and nowhere else."* — **Seam one** is *"A scan over the bytes a verb is about to write, called by every body-supplying verb, refusing the write at error severity for every kind"* (every body-supplying verb, not the two `--body-file` paths), and **Seam two** is *"A gate riding the commit range the provenance audit already resolves, scoped to entities whose body content differs between the range base and HEAD."* `E-0084` ("Enforce body-section membership at the write seams", `proposed`) implements it and names `- Closing G-0571.` The body mentions neither record. A reader acting on the gap's sentence would design a narrower gate than the one already ratified.
-- **Evidence:** batch `C1-7` ledger
+- **Evidence:** [full finding](gap-truth-audit-evidence.md#g-0571)
 
 #### G-0573 · `contradicted-by-code`
 
 - **Claim:** title, plus "It calls `check.Run` directly, and applies none of the four
 - **Measured:** the guard applies all four. `internal/verb/common.go:143-148`:
-- **Evidence:** batch `C1-6` ledger
+- **Evidence:** [full finding](gap-truth-audit-evidence.md#g-0573)
 
 #### G-0573 · `contradicted-by-code`
 
 - **Claim:** "So a knob that escalates a finding to error severity is invisible to every
 - **Measured:** false — falsified against the binary. In a fixture with
-- **Evidence:** batch `C1-6` ledger
+- **Evidence:** [full finding](gap-truth-audit-evidence.md#g-0573)
 
 #### G-0573 · `dead-premise`
 
 - **Claim:** implied throughout — that the surviving symptom is a live, fixable defect
 - **Measured:** ADR-0042 (`Retire tdd.strict; require a complete body at the readiness
-- **Evidence:** batch `C1-6` ledger
+- **Evidence:** [full finding](gap-truth-audit-evidence.md#g-0573)
 
 #### G-0574 · `overclaimed-absence`
 
 - **Claim:** "What is missing is a decided answer to what makes two findings the same finding for the purpose of the guard … That decision is the prerequisite for both repairs above, and it is currently unwritten."
 - **Measured:** `D-0046` — *Diff the shared contract gate by finding identity, not the full struct* — exists, status `accepted`, decided 2026-07-21 (i.e. 18 days before G-0574 was filed on 2026-08-08). It decides exactly this question for `internal/verb/contractgate.go`, names the identity subset (`Code`, `Severity`, `EntityID`, `Subcode`, `Path`), and excludes `Message` for precisely the reason G-0574 describes (a message that interpolates positional/derived state makes an unchanged finding read as introduced). Its **Consequences** section is not scoped to the contract gate: *"Any future consumer that diffs two `contractcheck.Run` (or similarly shaped) result sets for equality should treat `Message` (and any other `Run()`-computed prose field) as unsafe for an equality/identity key across two separate invocations whose input differs by more than the field under test."* `projectionFindings` is a similarly-shaped consumer of `check.Run`. The claim is not merely unsupported — a written decision points the opposite way and the body does not mention it.
-- **Evidence:** batch `C3-5` ledger
+- **Evidence:** [full finding](gap-truth-audit-evidence.md#g-0574)
 
 #### G-0577 · `contradicted-by-code`
 
 - **Claim:** "…`IsTerminalACStatus` drives the AC cancel path's convergence guard, so flipping a terminal silently changes what `aiwf cancel` does with no test to catch it."
 - **Measured:** Two tests catch it, in two packages. Patching `acTransitions["deferred"]` from `{}` to `{"open"}` in a clone: `TestCancelAC_TerminalStatus_ReturnsNoOp/deferred` fails at `ac_same_state_noop_test.go:48` with *"fixture assumes \"deferred\" is terminal in the AC FSM; it is not"*, and `TestIsLegalACTransition_AllPairs/deferred->open` fails at `transition_test.go:196` with *"IsLegalACTransition(\"deferred\", \"open\") = true, want false"*. Nothing about it is silent. (Nuance worth keeping: the first is a fixture-precondition `t.Fatalf`, so it fails *before* exercising `aiwf cancel`'s behaviour — but it fails CI, which is what "no test to catch it" denies.) The half of the sentence that is true: `IsTerminalACStatus` does drive `cancelAC`'s convergence guard — `internal/verb/ac.go:279`.
-- **Evidence:** batch `C3-5` ledger
+- **Evidence:** [full finding](gap-truth-audit-evidence.md#g-0577)
 
 #### G-0578 · `already-addressed`
 
 - **Claim:** "`internal/policies/worktree_rituals_check_hook_test.go` writes the hook
 - **Measured:** False at HEAD. The file's only executable write is line 31,
-- **Evidence:** batch `C4-3` ledger
+- **Evidence:** [full finding](gap-truth-audit-evidence.md#g-0578)
 
 #### G-0578 · `duplicate`
 
 - **Claim:** implicit — the gap is filed as a fresh finding and references no sibling.
 - **Measured:** G-0578 and G-0562 name **the same single call site**, not two.
-- **Evidence:** batch `C4-3` ledger
+- **Evidence:** [full finding](gap-truth-audit-evidence.md#g-0578)
 
 #### G-0580 · `dead-premise`
 
 - **Claim:** "The skill-edit **structural-test** backstop fails the profile-driven
 - **Measured:** that predicate no longer exists. Commit `667c8e0fc`
-- **Evidence:** batch `C1-2` ledger
+- **Evidence:** [full finding](gap-truth-audit-evidence.md#g-0580)
 
 #### G-0586 · `contradicted-by-code`
 
 - **Claim:** "It directs the reader to `aiwf show`, and no entity template carries a section in which an unsettled claim would appear."
 - **Measured:** False, twice over. (a) The shipped epic template `internal/skills/embedded-rituals/plugins/aiwf-extensions/templates/epic-spec.md` carries `## Open questions` — a table with columns `Question | Blocking? | Resolution path`. It has been there since `8a2c8acdf` (2026-05-29), i.e. before this gap was filed on 2026-08-15, so this is not drift. 54 entity files in `work/` currently carry a `## Open questions` section. (b) `aiwf show` does surface it: `aiwf show E-0086 --format=json` returns body key `open_questions`. The milestone template additionally carries `## Deferrals` ("Work this milestone deliberately punted") and `## Reviewer notes`, both surfaced by `aiwf show M-0312 --format=json` as `deferrals` / `reviewer_notes`. This is the load-bearing sentence for "the pointer does not close the hole either", and it does not hold.
-- **Evidence:** batch `C7-4` ledger
+- **Evidence:** [full finding](gap-truth-audit-evidence.md#g-0586)
 
 #### G-0587 · `contradicted-by-code`
 
 - **Claim:** the title and the second paragraph — a shipped skill instructing a
 - **Measured:** shipped surfaces already name exactly that corpus by path, ship, and pass.
-- **Evidence:** batch `C3-4` ledger
+- **Evidence:** [full finding](gap-truth-audit-evidence.md#g-0587)
 
 #### G-0589 · `dead-premise`
 
 - **Claim:** "It will fork a third time at implementation. A shipped review pass has to
 - **Measured:** No review pass will ship. `D-0069` — *Reject the dispatched reading
-- **Evidence:** batch `C2-3` ledger
+- **Evidence:** [full finding](gap-truth-audit-evidence.md#g-0589)
 
 #### G-0590 · `false-claim`
 
 - **Claim:** The HTML render path carries the cancel reason too, so `show` is the only surface that omits it — the field is "already rendered by two other surfaces".
 - **Measured:** The HTML render omits it entirely. `htmlrender.HistoryRow` has no `Body` field at all; `internal/cli/render/resolver.go:666` populates `Reason: e.Reason` (the `aiwf-reason:` trailer, which no cancel commit carries — see the next finding), and no template renders even that: `epic.tmpl:80-93` renders a four-column Date/Verb/Detail/Actor table, and `milestone.tmpl:174-184` renders Date/Verb/Actor plus force/audit/scope chips. Rendering the site and grepping it confirms: the E-0058 cancel reason appears in no rendered page except `G-0590.html` (this gap's own body) and `ADR-0031.html`. Two surfaces *do* carry it — `aiwf history` text and the JSON envelopes — but not the one the body names.
-- **Evidence:** batch `C2-2` ledger
+- **Evidence:** [full finding](gap-truth-audit-evidence.md#g-0590)
 
 #### G-0594 · `overclaimed-attribution`
 
 - **Claim:** "A shipped skill defined the reading state *ambiguous* as the
 - **Measured:** "the specification" resolves to
-- **Evidence:** batch `C7-5` ledger
+- **Evidence:** [full finding](gap-truth-audit-evidence.md#g-0594)
 
 #### G-0600 · `contradicted-by-code`
 
 - **Claim:** "Stamping is uneven. **Only the guidance fragment carries a version today**, so a
 - **Measured:** Both paragraphs are answered by shipped code the gap does not mention.
-- **Evidence:** batch `C7-3` ledger
+- **Evidence:** [full finding](gap-truth-audit-evidence.md#g-0600)
 
 #### G-0601 · `contradicted-by-code`
 
 - **Claim:** "`aiwf history <id>` renders a row only for a commit carrying `aiwf-verb`." (opening sentence) and "Every row that projection does render carries a verb." (end of §What's missing)
 - **Measured:** The projection's drop rule is `verb == "" && actor == ""` — a commit carrying `aiwf-entity` + `aiwf-actor` and **no** `aiwf-verb` renders, with a blank verb column. 19 such commits exist on `main`. `aiwf history M-0158` renders one of them (`1951f02`, subject `feat(spec): M-0158/AC-1+AC-7+AC-8 — scaffold layer-4 branch package`) with an empty verb field. Both claims are false, and were false when the gap was filed (`internal/entityview/` has no commit in `667c8e0f..main`).
-- **Evidence:** batch `C7-4` ledger
+- **Evidence:** [full finding](gap-truth-audit-evidence.md#g-0601)
 
 #### G-0604 · `contradicted-by-code`
 
 - **Claim:** "Each spells the same walk — resolve by current id, fall back to prior ids, then scan the stub list."
 - **Measured:** false for every site except the backstop. `internal/check` consults `prior_ids` nowhere in these walks — `grep` for `PriorIDs`/`ByPriorID`/`ResolveByCurrentOrPriorID` in non-test Go finds the prior-id arm only in `internal/tree/tree.go`, `internal/cli/history/history.go:87`, `internal/policies/skill_edit_provenance_backstop.go:169`, and (through `resolveViaPriorIDs`) `internal/check/provenance.go` + `promote_on_wrong_branch.go` — none of which is one of the cited copies. Confirmed behaviourally in a fixture: a `relates_to: D-0009` where `D-0009` lives only in another entity's `prior_ids:` yields `refs-resolve` / subcode `unresolved`, severity **error** — i.e. `refsResolve` does not fall back to prior ids. The same fixture with `D-0009` in body prose yields `body-prose-id` / `unresolved`, severity **error** — `BodyProseIDIndex` does not either. Expected, had the body been true: both silent.
-- **Evidence:** batch `C9-3` ledger
+- **Evidence:** [full finding](gap-truth-audit-evidence.md#g-0604)
 
 #### G-0606 · `false-count`
 
 - **Claim:** "The live instance is `m0211-guidance-operating-anchors` …" and "The cost of
 - **Measured:** a second live instance exists and predates the first.
-- **Evidence:** batch `C1-3` ledger
+- **Evidence:** [full finding](gap-truth-audit-evidence.md#g-0606)
 
 #### G-0613 · `contradicted-by-code`
 
 - **Claim:** "The wrap ritual is now the only surface naming a category set, so whichever
 - **Measured:** Two shipped surfaces name a closed category set, not one.
-- **Evidence:** batch `C4-3` ledger
+- **Evidence:** [full finding](gap-truth-audit-evidence.md#g-0613)
 
 
 ## `TODO.md`'s own accuracy
