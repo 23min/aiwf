@@ -137,8 +137,18 @@ docs-to-work links.
 lychee reads. The five it does not read are all under `docs/archive/pocv3/`,
 exempt by the Archival tier's forget-by-default convention rather than by
 oversight. The count excludes link shapes sitting inside code spans, which
-lychee does not resolve either — counting them reports 79 and 74, and the extra
-is one illustrative link in ADR-0008.
+lychee does not resolve either — counting them reports 79 links and still 73
+read, the extra being one illustrative link in ADR-0008, a file lychee does not
+read.
+
+The read-set here is lychee's own, taken from `--dump-inputs`, not inferred from
+the config: `exclude_path` entries are regular expressions matched against the
+whole path, so `work` reaches `docs/workflows.md` and `.git` reaches
+`ADR-0008-…-4-digits.md` through the `igit` in "digits". Nine documents outside
+the deliberately-exempt tiers sit outside the checked set for that reason, eight
+of them Normative and five of those accepted ADRs. None carries a docs-to-work
+link today, so the figures above are unaffected — but the exclusion list is not
+doing what its shape suggests, and G-0625 carries whether to anchor it.
 
 That coverage figure is the half that can rot without a signal, so it is what the
 committed test pins. Adding a docs subtree to `exclude_path` takes its links out
@@ -221,9 +231,10 @@ diff-scoped coverage gate is green and silent on all of it.
 
 **A sentence written to correct the ADR was itself false**, in the milestone whose
 deliverable is factual accuracy. It claimed lychee runs over "every tracked
-markdown file on markdown-touching pushes and PRs": `exclude_path` excludes eight
-paths including the whole of `work/`, and the push trigger is `branches: [main]`
-only. Both corrected, in the ADR and in G-0478, which carried the same sentence.
+markdown file on markdown-touching pushes and PRs": the config's ten
+`exclude_path` entries remove a great deal including the whole of `work/`, and
+the push trigger is `branches: [main]` only. Both corrected, in the ADR and in
+G-0478, which carried the same sentence.
 
 Two judgment findings accepted rather than declined. The ADR's "a CI gate rather
 than an advisory one" over-claimed on trunk-based flow where no PR is required
@@ -247,3 +258,47 @@ the decision.
 The milestone's `## Context` still frames the question as open. That is the
 plan-time premise explaining why the work was scoped, and the answer lives in the
 Work log; restating it in both places would fork the finding into two copies.
+
+A second independent pass over the full change-set found the model underneath the
+guard wrong, and with it two derived numbers.
+
+**`exclude_path` entries are regular expressions, not directory prefixes.**
+`lychee --help` says so and `--dump-inputs` confirms it: `work` reaches
+`docs/workflows.md`, and `.git` reaches `ADR-0008-…-4-digits.md` through the
+`igit` inside "digits". The guard bucketed entries by a `docs/` prefix and walked
+only what it judged shadowed, so a work-link added to any of the nine affected
+files left it green — the precise failure it exists to catch, demonstrated by
+adding one to `docs/workflows.md`. It now compiles each entry and matches it
+against every candidate path, keying the archival exemption on the linking file
+instead of the entry; the same probe fails, and the same link under
+`docs/design/` still passes. `TestM0317_FirstMatch` pins the semantics, and a
+mutant swapping the match back to a prefix test dies.
+
+That the primary figures were right anyway is luck rather than method: none of
+the nine carries a docs-to-work link. The naive count was reported as 79 and 74
+and is 79 and 73, because the code-span link it counts sits in ADR-0008, which
+lychee does not read. The read-set is now taken from `--dump-inputs` rather than
+inferred. G-0625 carries the exclusion list itself, which is the larger finding
+underneath: five accepted ADRs and `docs/workflows.md` are outside link discipline
+by accident of substring.
+
+**The parser had a second escape.** It terminated the array at the first `]`
+byte, which a bracket inside an in-array comment satisfies — truncating the list
+and leaving a fragment that still parses, so the caller received a short list
+rather than the refusal it can detect. It now requires a line that is exactly
+`]`. The refusal semantics were also unpinned: flipping `return nil` to
+`continue` passed the whole suite, because every strictness case held only
+unreadable lines. A mixed case closes that, and the mutant now dies.
+
+Two dispositions changed on reflection. The subtests naming a suffix "split"
+were renamed after all — the prior round declined on the ground that they pin
+behaviour, which stands, but they contradicted `linksIntoWork`'s own doc comment
+eight lines above, and two comments in one file disagreeing is its own defect.
+The vacuous "empty destination" case was dropped rather than kept as
+documentation: `[nothing]()` never matches the pattern, so it exercised no arm
+and widening the capture to `*` left the suite green. The anchor and query cases
+collapsed to one, since no mutant killed either alone.
+
+G-0624 also now records the pointy-bracket destination `[x](<path>)`, which fails
+in the opposite direction from the titled form: it matches, but the capture keeps
+the delimiters, so a valid link reads as unresolvable. Both measured.
