@@ -1,7 +1,7 @@
 ---
 id: D-0075
 title: Record AC evidence as what it asserts, not as the symbol that asserts it
-status: proposed
+status: accepted
 relates_to:
     - D-0038
     - D-0050
