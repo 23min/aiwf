@@ -41,7 +41,9 @@ lives in the `wf-codebase-health` skill.
   `git mv` orphans trailer history and cross-references; the verb rewrites them — see the `aiwf-add` skill.
 - **Promote an AC to met only with mechanical evidence.** `aiwf promote
   M-…/AC-… met` needs a test or check that fails if the AC's claim breaks. "I
-  read it and it looks right" is not evidence.
+  read it and it looks right" is not evidence. Record that evidence as what it
+  asserts, not as the symbol that asserts it — a name is a locator beside the
+  claim, never the claim itself; renames outrun every record that spells one.
 - **Decide one thing at a time.** Three or more queued? Present one at a time,
   never batched into one `AskUserQuestion` card. Each: the context, options
   with pros/cons and risks, your plain lean *with its argument*, a numbered
