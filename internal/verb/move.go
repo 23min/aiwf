@@ -86,6 +86,19 @@ func Move(ctx context.Context, t *tree.Tree, id, newEpicID, actor string) (*Resu
 		return findings(fs), nil
 	}
 
+	// ADR-0033: every verb emitting an OpMove repairs the inbound links
+	// pointing at what it moved. The moved milestone is excluded because
+	// move already writes that file to update `parent:`; letting the
+	// helper emit a second write for the same path would put two
+	// competing OpWrites in one plan. Its own outbound links are not this
+	// verb's subject — ADR-0033 commits to links that point *at* the
+	// moved entity.
+	moves := []EntityMove{{From: source, To: dest}}
+	rewriteOps, err := planLinkRewriteWrites(t, moves, map[string]bool{e.Path: true})
+	if err != nil { //coverage:ignore defensive: planLinkRewriteWrites only errors on a vanished file or an unserializable entity — neither reachable from a tree the loader just built
+		return nil, err
+	}
+
 	// Canonical width per AC-1 in M-081. canonNew is resolved above, where the
 	// same-state comparison needs it.
 	canonID := entity.Canonicalize(id)
@@ -99,10 +112,10 @@ func Move(ctx context.Context, t *tree.Tree, id, newEpicID, actor string) (*Resu
 			{Key: gitops.TrailerPriorParent, Value: canonPrior},
 			{Key: gitops.TrailerActor, Value: actor},
 		},
-		Ops: []FileOp{
+		Ops: append([]FileOp{
 			{Type: OpMove, Path: source, NewPath: dest},
 			{Type: OpWrite, Path: dest, Content: content},
-		},
+		}, rewriteOps...),
 	})
 	result.Metadata = map[string]any{"entity_id": canonID, "from": canonPrior, "to": canonNew}
 	return result, nil
