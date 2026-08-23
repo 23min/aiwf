@@ -1,7 +1,7 @@
 ---
 id: M-0315
 title: Rewrite a moved entity's own outbound links
-status: in_progress
+status: done
 parent: E-0088
 depends_on:
     - M-0314
