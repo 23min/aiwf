@@ -134,7 +134,7 @@ func Reallocate(ctx context.Context, t *tree.Tree, idOrPath, actor string) (*Res
 	// Inbound only, for the same reason as retitle: a flat-file kind is
 	// renamed within its directory, and a dir-shaped kind carries its
 	// whole subtree along.
-	movedBody = rewriteReallocateBody(movedBody, newEntityPath, newEntityPath, moves, idPattern, newID)
+	movedBody = rewriteReallocateBody(movedBody, newEntityPath, moves, idPattern, newID)
 	movedContent, err := entity.Serialize(&modified, movedBody)
 	if err != nil {
 		return nil, fmt.Errorf("serializing reallocated %s: %w", newID, err)
@@ -149,7 +149,7 @@ func Reallocate(ctx context.Context, t *tree.Tree, idOrPath, actor string) (*Res
 		if err != nil {
 			return nil, err
 		}
-		body = rewriteReallocateBody(body, rw.entity.Path, rw.entity.Path, moves, idPattern, newID)
+		body = rewriteReallocateBody(body, rw.entity.Path, moves, idPattern, newID)
 		content, err := entity.Serialize(rw.entity, body)
 		if err != nil {
 			return nil, fmt.Errorf("serializing %s after reference rewrite: %w", rw.entity.ID, err)
@@ -177,7 +177,7 @@ func Reallocate(ctx context.Context, t *tree.Tree, idOrPath, actor string) (*Res
 		// Inbound only: where these differ, this entity is co-moving
 		// inside the renamed directory, so its own relative destinations
 		// still name the same content.
-		body = rewriteReallocateBody(body, writePath, writePath, moves, idPattern, newID)
+		body = rewriteReallocateBody(body, writePath, moves, idPattern, newID)
 		content, err := entity.Serialize(e, body)
 		if err != nil {
 			return nil, fmt.Errorf("serializing %s after prose rewrite: %w", e.ID, err)
@@ -253,8 +253,8 @@ func Reallocate(ctx context.Context, t *tree.Tree, idOrPath, actor string) (*Res
 // unrelated link destination (e.g. a URL) is touched by neither pass,
 // instead of being coincidentally (and sometimes incorrectly)
 // rewritten by a blind substring replace.
-func rewriteReallocateBody(body []byte, oldLinkingPath, newLinkingPath string, moves []EntityMove, idPattern *regexp.Regexp, newID string) []byte {
-	body = RewriteLinkDestinationsForMove(body, oldLinkingPath, newLinkingPath, moves)
+func rewriteReallocateBody(body []byte, linkingPath string, moves []EntityMove, idPattern *regexp.Regexp, newID string) []byte {
+	body = RewriteLinkDestinations(body, linkingPath, moves)
 	return rewriteBareIDMentions(body, idPattern, newID)
 }
 

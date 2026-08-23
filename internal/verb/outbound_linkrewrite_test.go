@@ -57,6 +57,7 @@ func TestArchive_MovedEntityKeepsItsOwnRelativeLinksResolving(t *testing.T) {
 				"A protocol-relative URL: [cdn](//cdn.example.invalid/x.png).\n" +
 				"A site-absolute path: [rooted](/README.md).\n" +
 				"An angle-bracket destination: [angled](<../gaps/" + siblingFile + ">).\n" +
+				"A destination padded with spaces: [padded]( " + siblingFile + " ).\n" +
 				"\n## Why it matters\n\nFixture.\n"),
 	}))
 	traveller := r.tree().ByID("G-0002")
@@ -83,8 +84,8 @@ func TestArchive_MovedEntityKeepsItsOwnRelativeLinksResolving(t *testing.T) {
 	got := string(body)
 
 	dests := markdownLink.FindAllStringSubmatch(got, -1)
-	if len(dests) != 10 {
-		t.Fatalf("found %d link destinations in the moved body, want the fixture's 10:\n%s", len(dests), got)
+	if len(dests) != 11 {
+		t.Fatalf("found %d link destinations in the moved body, want the fixture's 11:\n%s", len(dests), got)
 	}
 	var pathDests int
 	for _, m := range dests {
@@ -95,7 +96,8 @@ func TestArchive_MovedEntityKeepsItsOwnRelativeLinksResolving(t *testing.T) {
 		// resolution applies to; an angle-bracket destination carries
 		// delimiters that are not part of the path.
 		if strings.HasPrefix(dest, "#") || strings.Contains(dest, ":") ||
-			strings.HasPrefix(dest, "/") || strings.HasPrefix(dest, "<") {
+			strings.HasPrefix(dest, "/") || strings.HasPrefix(dest, "<") ||
+			strings.TrimSpace(dest) != dest {
 			continue
 		}
 		resolved := resolveDestination(dest, filepath.ToSlash(moved.Path))
@@ -132,6 +134,7 @@ func TestArchive_MovedEntityKeepsItsOwnRelativeLinksResolving(t *testing.T) {
 		"(//cdn.example.invalid/x.png)",
 		"(/README.md)",
 		"(<../gaps/" + siblingFile + ">)",
+		"( " + siblingFile + " )",
 	} {
 		if !strings.Contains(got, untouched) {
 			t.Errorf("destination %s names nothing a move can invalidate and was rewritten anyway:\n%s", untouched, got)
@@ -358,4 +361,87 @@ func TestRetitle_DirShapedKindKeepsLinksIntoItsOwnDirectoryResolving(t *testing.
 		t.Errorf("destination naming a file that co-moved with the directory was rewritten, and now resolves nowhere:\n%s", body)
 	}
 	assertOutboundLinksResolve(t, r.root, string(body), filepath.ToSlash(renamed.Path), 1)
+}
+
+// dirShapedNestedFixture builds an epic directory holding a nested
+// milestone and a `wrap.md` beside the epic body, with the milestone
+// linking to that non-entity file by bare filename. The milestone is the
+// subject: it is not excluded from planLinkRewriteWrites the way the
+// dir-shape entity's own body is, so its outcome is decided by the
+// dirShaped parameter rather than by the verb's inline own-body rewrite.
+func dirShapedNestedFixture(t *testing.T, r *runner) {
+	t.Helper()
+	r.must(verb.Add(r.ctx, r.tree(), entity.KindEpic, "Original name", testActor, verb.AddOptions{}))
+	r.must(verb.Add(r.ctx, r.tree(), entity.KindMilestone, "Nested", testActor, verb.AddOptions{EpicID: "E-0001", TDD: "none"}))
+
+	epic, nested := r.tree().ByID("E-0001"), r.tree().ByID("M-0001")
+	if epic == nil || nested == nil {
+		t.Fatal("fixture entities missing")
+	}
+	epicDir := filepath.Dir(filepath.Join(r.root, filepath.FromSlash(epic.Path)))
+	if err := os.WriteFile(filepath.Join(epicDir, "wrap.md"), []byte("# Wrap\n"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	nestedFull := filepath.Join(r.root, filepath.FromSlash(nested.Path))
+	raw, err := os.ReadFile(nestedFull)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if writeErr := os.WriteFile(nestedFull, append(raw, []byte("\nClosure record: [wrap](wrap.md).\n")...), 0o644); writeErr != nil {
+		t.Fatal(writeErr)
+	}
+	commitFixture(t, r.root, "fixture: nested milestone linking to a non-entity file in its epic dir")
+}
+
+// assertNestedWrapLinkIntact reads the nested milestone at its post-move
+// path and requires its bare-filename link to the co-moved file to be
+// byte-identical — the file travelled with the directory, so the bare
+// name still reaches it and any rewrite at all breaks the link.
+func assertNestedWrapLinkIntact(t *testing.T, r *runner, verbName string) {
+	t.Helper()
+	nested := r.tree().ByID("M-0001")
+	if nested == nil {
+		t.Fatalf("%s: M-0001 missing after the move", verbName)
+	}
+	body, err := os.ReadFile(filepath.Join(r.root, filepath.FromSlash(nested.Path)))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !strings.Contains(string(body), "(wrap.md)") {
+		t.Errorf("%s: the nested milestone's link to a file that co-moved with the directory was rewritten, and now resolves nowhere:\n%s", verbName, body)
+	}
+	assertOutboundLinksResolve(t, r.root, string(body), filepath.ToSlash(nested.Path), 1)
+}
+
+// TestRetitle_NestedEntityKeepsLinksIntoTheMovedDirectory and its two
+// siblings pin the dirShaped parameter itself across the three verbs that
+// populate it. Each drives a nested entity through planLinkRewriteWrites,
+// which is the path the dir-shape entity's own body never takes.
+func TestRetitle_NestedEntityKeepsLinksIntoTheMovedDirectory(t *testing.T) {
+	t.Parallel()
+	r := newRunner(t)
+	dirShapedNestedFixture(t, r)
+	r.must(verb.Retitle(r.ctx, r.tree(), "E-0001", "Renamed epic", testActor, "", 0))
+	assertNestedWrapLinkIntact(t, r, "retitle")
+}
+
+func TestRename_NestedEntityKeepsLinksIntoTheMovedDirectory(t *testing.T) {
+	t.Parallel()
+	r := newRunner(t)
+	dirShapedNestedFixture(t, r)
+	r.must(verb.Rename(r.ctx, r.tree(), "E-0001", "brand-new-slug", testActor, 0))
+	assertNestedWrapLinkIntact(t, r, "rename")
+}
+
+func TestArchive_NestedEntityKeepsLinksIntoTheMovedDirectory(t *testing.T) {
+	t.Parallel()
+	r := newRunner(t)
+	dirShapedNestedFixture(t, r)
+	// Cancel rather than promote: both are terminal, and the sweep needs
+	// every child terminal before it will move the epic dir, but an
+	// activating promote is branch-guarded and this repo has no epic branch.
+	r.must(verb.Cancel(r.ctx, r.tree(), "M-0001", testActor, "", false))
+	r.must(verb.Cancel(r.ctx, r.tree(), "E-0001", testActor, "", false))
+	r.must(verb.Archive(r.ctx, r.root, testActor, ""))
+	assertNestedWrapLinkIntact(t, r, "archive")
 }

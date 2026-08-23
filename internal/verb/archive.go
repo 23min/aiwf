@@ -828,12 +828,12 @@ func entityBody(raw []byte) []byte {
 // would rewrite. An empty body carries nothing.
 //
 // The inbound-only form is the right one here even though the plan this
-// predicts uses the outbound-aware RewriteLinkDestinationsForMove: the
-// only caller is moveBlockers' second loop, which reaches a referrer only
-// after the first loop has marked every path under both ends of every
-// move as seen. So the referrers asked about are never themselves moving,
-// their old and new directories are equal, and the two forms return the
-// same bytes by construction.
+// predicts uses the outbound-aware RewriteLinkDestinationsForMove. A
+// referrer that is itself moving and dirty is declined through the
+// carried set before its own move survives, so any referrer whose move
+// does survive is clean, and for a declined one the pre-move directory is
+// what the plan uses either way. Either path leaves the old and new
+// directories equal here, where the two forms return the same bytes.
 func linksIntoMove(body []byte, linkingPath string, moves []EntityMove) bool {
 	if len(body) == 0 {
 		return false

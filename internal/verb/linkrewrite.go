@@ -133,6 +133,15 @@ func isRepoPathDestination(bare string) bool {
 		// A suffix-only destination (`#section`) names a place in the
 		// current file, not a file.
 		return false
+	case strings.TrimSpace(bare) != bare:
+		// CommonMark allows whitespace around a destination inside the
+		// parens. Every test below is a prefix test, which a leading space
+		// defeats, and the path arithmetic would then emit two
+		// whitespace-separated tokens — which is not an inline link at
+		// all, so a working link would become literal text. Recomputing
+		// cannot reproduce the surrounding whitespace faithfully, so the
+		// shape is left alone entirely.
+		return false
 	case strings.HasPrefix(bare, "/"):
 		// Site-absolute (`/README.md`), which resolves against a server
 		// root rather than the linking file's directory, and the
