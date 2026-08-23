@@ -10,6 +10,7 @@ acs:
     - id: AC-1
       title: The write path is shown safe or unsafe for editing the file being moved
       status: open
+      tdd_phase: red
     - id: AC-2
       title: A decision records whether ADR-0033 reaches outbound links
       status: open
