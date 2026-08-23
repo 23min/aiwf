@@ -47,7 +47,34 @@ func requireExpectedBranchForActivatingTransition(ctx context.Context, t *tree.T
 	if current == expected {
 		return nil
 	}
+	if !reachableFrom(ctx, t.Root, expected, e.Path) {
+		return fmt.Errorf("aiwf promote %s %s: refusing to land on %q — this activation is expected on %q (ADR-0010), and %s is not present on %q, so reaching that branch would replace this refusal with \"entity not found\". The entity exists only where it was created. Resolve that first, or use `--force --reason \"...\"` to land the activation here", e.ID, newStatus, currentBranchLabel(current), expected, e.ID, expected)
+	}
 	return fmt.Errorf("aiwf promote %s %s: refusing to land on %q — this activation is expected on %q (a concurrent session checked out a different branch here? see G-0269); %s, or use `--force --reason \"...\"` to override", e.ID, newStatus, currentBranchLabel(current), expected, retryAdviceFor(ctx, t.Root, expected))
+}
+
+// reachableFrom reports whether path exists in ref's tree.
+//
+// The branch guard compares branch names, which is enough to know the
+// promote is in the wrong place but not enough to know that moving would
+// help. An entity created on a ritual branch exists only there, so the
+// expected branch does not carry it, and an operator who follows the
+// advice meets "entity not found" — a message about a different problem
+// (G-0616).
+//
+// Unreadable refs report reachable: the guard's subject is the branch
+// mismatch, and a failed lookup is not evidence that the entity is
+// absent.
+func reachableFrom(ctx context.Context, workdir, ref, path string) bool {
+	if path == "" {
+		//coverage:ignore defensive: the loader sets Path on every entity it returns, so an empty one means a hand-built Entity that no verb route produces
+		return true
+	}
+	paths, err := gitops.LsTreePaths(ctx, workdir, ref, path)
+	if err != nil {
+		return true
+	}
+	return len(paths) > 0
 }
 
 // retryAdviceFor renders how to reach the expected branch from here.

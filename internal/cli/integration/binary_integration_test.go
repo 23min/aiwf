@@ -153,7 +153,7 @@ func TestBinary_VersionVerb_FallsBackToBuildInfo(t *testing.T) {
 // reported against that verb's name rather than the bundled run.
 //
 // The sequence: init → add epic → add milestone → add ac → rename →
-// promote (entity, AC) → edit-body → cancel → add second epic → move →
+// promote (entity, AC) → edit-body → cancel → move →
 // reallocate → import (dry-run) → check.
 func TestBinary_MutatingVerbs_Subprocess(t *testing.T) {
 	t.Parallel()
@@ -201,6 +201,12 @@ func TestBinary_MutatingVerbs_Subprocess(t *testing.T) {
 	// promote: entity status, then AC status.
 	runVerb("promote E-01",
 		append([]string{"promote", "E-0001", "active"}, rootArgs...)...)
+	// The move target is seeded here, before the branch cut: D-0074
+	// refuses epic creation on a ritual branch, because an epic created
+	// there lives only on that branch until it merges and its
+	// activating promote would refuse.
+	runVerb("add second epic",
+		append([]string{"add", "epic", "--title", "Second"}, rootArgs...)...)
 	// The G-0269 activating-promote branch guard requires the parent
 	// epic's ritual branch checked out before a milestone in_progress
 	// promote.
@@ -220,9 +226,7 @@ func TestBinary_MutatingVerbs_Subprocess(t *testing.T) {
 	runVerb("edit-body",
 		append([]string{"edit-body", "M-0001", "--body-file", bodyFile, "--reason", "subprocess test"}, rootArgs...)...)
 
-	// move: reparent to a fresh second epic.
-	runVerb("add second epic",
-		append([]string{"add", "epic", "--title", "Second"}, rootArgs...)...)
+	// move: reparent to the second epic seeded on trunk above.
 	runVerb("move",
 		append([]string{"move", "M-0001", "--epic", "E-0002"}, rootArgs...)...)
 

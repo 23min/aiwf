@@ -248,3 +248,35 @@ func TestPromote_RefusalNamesTheHoldingWorktree(t *testing.T) {
 		t.Errorf("refusal must not suggest checking out a branch another worktree holds, got: %v", err)
 	}
 }
+
+// TestPromote_RefusalReportsUnreachableEntity pins the second half of
+// D-0074: when the entity is not present on the expected branch, the
+// refusal says so. Reaching that branch does not help — the entity goes
+// out of view there and the next message names a different problem
+// ("entity not found"), which is how G-0616 was measured.
+//
+// The guard states the fact and prescribes no remedy: which recovery is
+// correct is unsettled, and recommending one would assert an answer
+// D-0074 does not have.
+func TestPromote_RefusalReportsUnreachableEntity(t *testing.T) {
+	t.Parallel()
+	r := newRunner(t)
+	// Give trunk history first: without a commit on it, refs/heads/main
+	// does not exist and absence cannot be distinguished from an
+	// unreadable ref.
+	r.must(verb.Add(r.ctx, r.tree(), entity.KindEpic, "Auth rewrite", testActor, verb.AddOptions{}))
+	// Then create the second epic on a ritual branch, bypassing the
+	// creation guard the way an operator with --force would, so it
+	// exists only there — the state G-0616 measured.
+	gitCheckoutNewBranch(t, r.root, "epic/E-0001-auth-rewrite")
+	r.must(verb.Add(r.ctx, r.tree(), entity.KindEpic, "Front-end auth widgets", testActor,
+		verb.AddOptions{Force: true, Reason: "reproducing the stranded state"}))
+
+	_, err := verb.Promote(r.ctx, r.tree(), "E-0002", "active", testActor, "", false, verb.PromoteOptions{})
+	if err == nil {
+		t.Fatal("expected refusal for epic activation off trunk")
+	}
+	if !strings.Contains(err.Error(), "not present on") {
+		t.Errorf("refusal must report that the entity is absent from the expected branch, got: %v", err)
+	}
+}
