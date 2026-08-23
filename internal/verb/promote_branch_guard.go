@@ -42,12 +42,39 @@ func requireExpectedBranchForActivatingTransition(ctx context.Context, t *tree.T
 	current, err := gitops.CurrentBranch(ctx, t.Root)
 	if err != nil {
 		//coverage:ignore defensive: CurrentBranch only errors on a git failure other than detached HEAD (handled as "", nil) — not reachable deterministically in-process
-		return fmt.Errorf("aiwf promote %s %s: could not determine the current branch to verify it matches the expected parent branch %q: %w; check out %q and retry, or use `--force --reason \"...\"` to override", e.ID, newStatus, expected, err, expected)
+		return fmt.Errorf("aiwf promote %s %s: could not determine the current branch to verify it matches the expected parent branch %q: %w; %s, or use `--force --reason \"...\"` to override", e.ID, newStatus, expected, err, retryAdviceFor(ctx, t.Root, expected))
 	}
 	if current == expected {
 		return nil
 	}
-	return fmt.Errorf("aiwf promote %s %s: refusing to land on %q — this activation is expected on %q (a concurrent session checked out a different branch here? see G-0269); `git checkout %s` and retry, or use `--force --reason \"...\"` to override", e.ID, newStatus, currentBranchLabel(current), expected, expected)
+	return fmt.Errorf("aiwf promote %s %s: refusing to land on %q — this activation is expected on %q (a concurrent session checked out a different branch here? see G-0269); %s, or use `--force --reason \"...\"` to override", e.ID, newStatus, currentBranchLabel(current), expected, retryAdviceFor(ctx, t.Root, expected))
+}
+
+// retryAdviceFor renders how to reach the expected branch from here.
+//
+// A branch is checked out in one worktree at a time, so `git checkout`
+// on a branch another worktree holds fails with "already used by
+// worktree at ..." — which is the situation this refusal reports, since
+// the expected branch is exactly the one a sibling worktree is sitting
+// on. Changing directory into the worktree that already holds it moves
+// no branch and cannot fail that way.
+//
+// The checkout form is correct when no worktree holds the branch, and is
+// also the fallback when the worktree list cannot be read: naming a path
+// there would be a guess, and the checkout is what the operator would
+// reach for anyway.
+func retryAdviceFor(ctx context.Context, workdir, expected string) string {
+	worktrees, err := gitops.ListWorktrees(ctx, workdir)
+	if err != nil {
+		//coverage:ignore defensive: ListWorktrees fails only on a git invocation error, which the surrounding verb would already have failed on
+		return fmt.Sprintf("`git checkout %s` and retry", expected)
+	}
+	for _, wt := range worktrees {
+		if wt.Branch == expected {
+			return fmt.Sprintf("cd into the worktree holding it (%s) and retry", wt.Path)
+		}
+	}
+	return fmt.Sprintf("`git checkout %s` and retry", expected)
 }
 
 // currentBranchLabel renders CurrentBranch's result for the refusal
