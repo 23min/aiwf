@@ -124,3 +124,31 @@ all three of the test's assertions.
 
 The answer clears AC-3 to rewrite a moved entity's own body rather than
 reshaping it.
+
+### AC-2 — A decision records whether ADR-0033 reaches outbound links
+
+**Extension, not a separate commitment.** ADR-0046 records it, accepted, and
+ADR-0033 cites it · commit 707db3c4d · internal/policies green
+
+The argument the record rests on: ADR-0033's first bullet says "entity bodies
+that point at it", but the boundary it actually polices is its second bullet —
+"only files the loader owns" — and a moved entity's own body is such a file. The
+rot class, the primitive and the discrimination rules are identical in both
+directions; only the direction differs. The inbound-only wording tracks the
+measurement that motivated the ADR, three of four `docs/adr` files linking into
+`work/`, all inbound. Whether that scoping was deliberate is not recoverable
+from the text, and the record says what it decides rather than claiming to
+recover intent.
+
+Extension over supersession, following the shape ADR-0041 already uses for
+ADR-0030: both stay accepted, and the earlier record keeps its other four
+bullets rather than being restated to avoid orphaning them. Supersession has
+never been used in this repo, and a decision that is narrow rather than wrong is
+a poor first use of it.
+
+The evidence is a relationship check comparing two artefacts, so rewording
+either document leaves it green while breaking the link turns it red. Measured
+in both halves: dropping the citation from ADR-0033 fails on reachability,
+returning ADR-0046 to proposed fails on settled-ness. `body-prose-id` already
+covers a dangling citation, but never fires on a missing one, which is the half
+that needed its own assertion.
