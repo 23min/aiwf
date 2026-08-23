@@ -158,7 +158,7 @@ that needed its own assertion.
 
 `RewriteLinkDestinationsForMove` resolves a destination against the body's old
 directory and renders it against the new one; wired into every mover that writes
-its own body · commit a66a1a800 · internal/verb 641 passed, 1 skipped, 0 failed
+its own body · commit a66a1a800 · internal/verb 640 passed, 1 skipped, 0 failed
 
 The existing primitive could not reach this case by configuration. It rewrites
 destinations naming a *moved target*, and outbound is the mirror: the target
@@ -175,7 +175,10 @@ files no verb enumerates, so those destinations still name the same content and
 recomputing them breaks what worked. Measured: recomputing a dir-shaped
 retitle rewrote an epic body's `[wrap](wrap.md)` to
 `../E-NNNN-<old-slug>/wrap.md`, pointing at a directory that no longer exists.
-`TestRetitle_DirShapedKindKeepsLinksIntoItsOwnDirectoryResolving` pins that.
+Three fixtures pin it, one per verb that relocates a directory, each
+driving a *nested* entity through the shared helper — the path the
+dir-shape entity's own body never takes, since the verb rewrites that one
+inline and excludes it.
 The primitive cannot separate the two shapes from the paths it is given — a
 directory rename and a milestone changing epics look identical — so the callers
 that relocate a directory name it, and G-0623 carries the widening.
@@ -189,10 +192,13 @@ gap that neither moved nor links at anything that moved.
 
 One predicate, `isRepoPathDestination`, decides whether a destination names a
 file in the repo at all, and it runs on the bare path after any `?query` /
-`#fragment` is split off. Four arms, each pinned by a fixture and each
+`#fragment` is split off. Five arms, each pinned by a fixture and each
 preventing a distinct corruption: an anchor-only destination becoming
 `(..#why-it-matters)`, a `mailto:` or `//host` or `/absolute` mangled into a
-relative path, and a rewrite inside `<angle brackets>` stripping the closer.
+relative path, a rewrite inside `<angle brackets>` stripping the closer, and a
+destination padded with spaces — legal in CommonMark, and defeating every
+prefix test above it — emitted as two whitespace-separated tokens, which is not
+an inline link at all, so the link would become literal text.
 Running post-split is what closed G-0622, whose bug was a `://` test applied to
 the whole destination — so a repo path carrying a URL in its query read as a
 URL and was skipped.
