@@ -1,8 +1,10 @@
 ---
 id: G-0616
 title: Promote's branch guard sends the operator to a branch without the entity
-status: open
+status: addressed
 priority: high
+addressed_by_commit:
+    - 93e691002
 ---
 ## What's missing
 
