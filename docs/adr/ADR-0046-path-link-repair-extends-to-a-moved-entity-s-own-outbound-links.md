@@ -48,6 +48,12 @@ operative record for everything else it decided.
   do inbound.
 - Enforcement stays at move time. No pre-push check rule is added, so ADR-0033's
   unchanged-chokepoint-cost property is preserved.
+- The reach is a move that relocates a **single file** — a flat-file entity swept
+  into `archive/`, a milestone moved between epics. A move that relocates a whole
+  directory is excluded: everything inside comes along, including files no verb
+  enumerates, so those destinations still name the same content and recomputing
+  them is what would break them. Telling the two apart needs the directory-level
+  move, which the primitive is not given. Tracked as G-0623.
 
 ## Consequences
 
@@ -64,8 +70,8 @@ operative record for everything else it decided.
   increment: that file is already in the commit, so the blast radius gains
   content but no new path.
 - A moved file whose outbound link was *already* broken before the move is not
-  repaired. The primitive rewrites destinations that resolve to a moved entity;
-  it does not validate the ones that do not.
+  repaired. The primitive recomputes a destination that a move invalidated; it
+  does not validate the ones a move left alone.
 
 ## Validation
 
