@@ -2,6 +2,7 @@ package verb_test
 
 import (
 	"os/exec"
+	"path/filepath"
 	"strings"
 	"testing"
 
@@ -201,5 +202,49 @@ func TestPromote_NonActivatingTransition_IgnoresBranchGuard(t *testing.T) {
 	r.must(verb.Promote(r.ctx, r.tree(), "E-0001", "done", testActor, "", false, verb.PromoteOptions{}))
 	if e := r.tree().ByID("E-0001"); e == nil || e.Status != "done" {
 		t.Errorf("E-0001 = %+v, want status done", e)
+	}
+}
+
+// gitWorktreeAddExisting checks an existing branch out into a linked
+// worktree at path, so the branch is held somewhere other than root.
+func gitWorktreeAddExisting(t *testing.T, root, path, branch string) {
+	t.Helper()
+	cmd := exec.Command("git", "worktree", "add", "-q", path, branch)
+	cmd.Dir = root
+	if out, err := cmd.CombinedOutput(); err != nil {
+		t.Fatalf("git worktree add %s %s: %v\n%s", path, branch, err, out)
+	}
+}
+
+// TestPromote_RefusalNamesTheHoldingWorktree pins G-0621: when the
+// expected branch is held by another worktree, the refusal must point
+// at that worktree's path rather than telling the operator to check the
+// branch out. A branch is checked out in one worktree at a time, so
+// `git checkout <expected>` fails with "already used by worktree at
+// ..." in exactly the situation that produces this refusal — leaving
+// the operator a remedy that refuses too.
+//
+// The expected path is derived by asking git where the branch lives,
+// not transcribed, so the assertion tracks the fixture rather than a
+// copy of it.
+func TestPromote_RefusalNamesTheHoldingWorktree(t *testing.T) {
+	t.Parallel()
+	r := newRunner(t)
+	r.must(verb.Add(r.ctx, r.tree(), entity.KindEpic, "Foundations", testActor, verb.AddOptions{}))
+	// Park trunk in its own worktree, then leave the main checkout on a
+	// different branch so the guard fires with "main" held elsewhere.
+	held := filepath.Join(t.TempDir(), "trunk-wt")
+	gitCheckoutNewBranch(t, r.root, "epic/E-0001-foundations")
+	gitWorktreeAddExisting(t, r.root, held, "main")
+
+	_, err := verb.Promote(r.ctx, r.tree(), "E-0001", "active", testActor, "", false, verb.PromoteOptions{})
+	if err == nil {
+		t.Fatal("expected refusal for epic activation off trunk")
+	}
+	if !strings.Contains(err.Error(), held) {
+		t.Errorf("refusal must name the worktree holding the expected branch (%s), got: %v", held, err)
+	}
+	if strings.Contains(err.Error(), "git checkout main") {
+		t.Errorf("refusal must not suggest checking out a branch another worktree holds, got: %v", err)
 	}
 }

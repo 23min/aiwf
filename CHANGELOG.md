@@ -16,6 +16,22 @@ section in this file.
 
 ## [Unreleased]
 
+### Fixed — G-0621: the promote branch guard no longer suggests a checkout that fails
+
+An activating promote landing on the wrong branch is refused, and the refusal told
+the operator to run `git checkout <expected>`. A branch is checked out in one
+worktree at a time, and the expected branch is precisely the one a sibling worktree
+is sitting on — so under the worktree convention that command fails at exit 128 with
+*"already used by worktree at ..."*, leaving a refusal whose remedy also refuses.
+The only other route offered was `--force`, a sovereign override rather than a fix
+for standing in the wrong directory.
+
+The refusal now asks git where the branch lives. Where a worktree holds it, the
+message names that path and says to change directory into it — which moves no branch
+and cannot fail that way. Where nothing holds it, the checkout form is correct and is
+kept. The same advice replaces the equivalent phrase in the guard's could-not-
+determine-the-branch path.
+
 ### Fixed — G-0620: wrap rituals no longer pass a worktree path between commands
 
 `wf-patch`, `aiwfx-wrap-epic` and `aiwfx-wrap-milestone` each resolved the worktree
