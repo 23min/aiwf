@@ -207,3 +207,86 @@ Not repaired: a destination already broken before the move, and a dir-shaped
 move's outbound links (G-0623). Both are recorded as ADR-0046 consequences, so
 the record states the reach the code has rather than the reach the decision
 argues for.
+
+## Decisions made during implementation
+
+- `ADR-0046` — path-link repair extends to a moved entity's own outbound links.
+  Accepted, extending ADR-0033 rather than superseding it, following the shape
+  ADR-0041 already uses for ADR-0030. AC-2 is this decision.
+- The reach was narrowed to file-shaped moves after review measured that
+  recomputing a dir-shaped move's destinations breaks links that worked. The
+  narrowing is recorded in ADR-0046's Consequences, so the record states the
+  reach the code has rather than the reach the argument supports.
+
+## Validation
+
+Measured at `e7e36e4ee`, after the third review round:
+
+- `make check-fast` — exit 0. `go vet` across the untagged, `stress` and
+  `testpins` tag sets; `go test -race -parallel 8 ./...` reporting `ok` for all
+  71 packages with no `FAIL`; `golangci-lint run` clean.
+- `AIWF_COVERAGE_BASE=epic/E-0088-make-every-path-changing-verb-repair-the-links-it-breaks make coverage-gate`
+  — passes, including the firing-fixture meta-gate.
+- `go test ./internal/verb/` — 644 passed, 1 skipped, 0 failed. The skip
+  predates this milestone.
+- `go build ./...` — exit 0.
+- `aiwf check` — 0 errors, 8 warnings: six `terminal-entity-not-archived`, one
+  `archive-sweep-pending`, one `provenance-untrailered-scope-undefined`. Two of
+  the six are this milestone's own closures (G-0622) and additions awaiting the
+  next sweep; the rest are inherited from mainline. The scope warning reports
+  only that an unpushed branch has no upstream to audit against.
+
+## Deferrals
+
+- `G-0623` — outbound repair skips a move that relocates a whole directory. The
+  primitive cannot separate that from a file changing directories using only the
+  paths it is given, so the resolution needs the directory-level move as an
+  input. The gap also records the wider half review measured: the suppression
+  drops *inbound* relative repair for entities inside a moved directory, which
+  is ADR-0033's ratified commitment unmet rather than only ADR-0046's reach
+  falling short. Neither is a regression — both shapes behave exactly as they
+  did before this milestone.
+- The `colon == 0` boundary in `hasURIScheme` is statement-covered but
+  mutation-surviving; only a destination beginning with `:` distinguishes it.
+  Left to M-0316, whose subject is exactly this class.
+
+## Reviewer notes
+
+Three independent fresh-context review rounds, each returning request-changes,
+each finding a defect the round before did not reach. All three are fixed and
+pinned by a mutation run against the fix:
+
+1. The not-a-path guard set was incomplete — `//host`, `/absolute` and
+   `<angle-bracket>` destinations were corrupted, all three byte-identical
+   before this milestone. Fixed by collapsing the question into one
+   `isRepoPathDestination` predicate applied after the suffix split, which also
+   closed G-0622: its bug was the same test applied to the whole destination, so
+   a repo path carrying a URL in its query read as a URL.
+2. A dir-shaped move rewrote destinations naming files that co-move with the
+   directory. Fixed by narrowing the recompute to file-shaped moves.
+3. That narrowing shipped unpinned — stubbing the whole suppression left the
+   suite green, because the fixture pinned the verb's inline own-body rewrite
+   rather than the shared helper, and carried no nested entity for the parameter
+   to act on. Fixed by three fixtures, one per verb, each driving a nested
+   entity through the helper. A second shape was still corrupted: CommonMark
+   permits whitespace around a destination, which defeats every prefix test in
+   the predicate.
+
+The recurring failure is worth naming for whoever reviews the next milestone in
+this epic: twice a guard shipped with a fixture that could not discriminate it,
+and both times the test passed for a reason unrelated to what it claimed to pin.
+Reading did not catch either; killing the specific mutant did.
+
+Declined, so the next reviewer meets a decision rather than a blank:
+
+- Four "URL stays untouched" assertions elsewhere in the suite sit where the
+  linking file does not move, so they cannot fail. The property they claim is
+  now pinned where it is distinguishable, and deleting the others would churn
+  tests this milestone did not author.
+- The `KindEpic || KindContract` predicate now has five copies across the movers.
+  Extracting it is right and is not this milestone's work — it touches verbs
+  outside the change-set, and the extraction wants its own review.
+
+Not re-derived here: whether ADR-0033's inbound-only scoping was deliberate. The
+text carries no evidence either way, and ADR-0046 records what it decides rather
+than claiming to recover intent.
