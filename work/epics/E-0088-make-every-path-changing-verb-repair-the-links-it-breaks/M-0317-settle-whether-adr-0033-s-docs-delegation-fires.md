@@ -10,7 +10,7 @@ acs:
       status: met
     - id: AC-2
       title: The measured answer is routed to the gaps owning the docs half
-      status: open
+      status: met
 ---
 
 ## Goal
