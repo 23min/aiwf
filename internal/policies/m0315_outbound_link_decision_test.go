@@ -19,6 +19,11 @@ const outboundLinkExtendingADR = "ADR-0046"
 // real: the extending decision resolves to an accepted ADR, and
 // ADR-0033's own References section names it.
 //
+// Retires when either ADR reaches a terminal status: `accepted →
+// superseded` is a legal transition, and a superseding record carries the
+// commitment forward, so this test is what the supersession deletes
+// rather than something it has to keep satisfying.
+//
 // A relationship check rather than a phrase assertion: it compares two
 // artefacts, so deleting the record, un-accepting it, or dropping the
 // citation from ADR-0033 each turn it red, while rewording either

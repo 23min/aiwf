@@ -50,8 +50,12 @@ func TestArchive_MovedEntityKeepsItsOwnRelativeLinksResolving(t *testing.T) {
 				"A bare-filename sibling link: [sibling](" + siblingFile + ").\n" +
 				"A dot-slash sibling link: [same sibling](./" + siblingFile + ").\n" +
 				"A root-relative link that must not move: [rooted](" + siblingPath + ").\n" +
+				"A non-canonical root-relative link: [rooted oddly](work/gaps/./" + siblingFile + ").\n" +
 				"An anchor naming no file: [section](#why-it-matters).\n" +
 				"A scheme naming nothing in the repo: [mail](mailto:nobody@example.invalid).\n" +
+				"A protocol-relative URL: [cdn](//cdn.example.invalid/x.png).\n" +
+				"A site-absolute path: [rooted](/README.md).\n" +
+				"An angle-bracket destination: [angled](<../gaps/" + siblingFile + ">).\n" +
 				"\n## Why it matters\n\nFixture.\n"),
 	}))
 	traveller := r.tree().ByID("G-0002")
@@ -78,15 +82,19 @@ func TestArchive_MovedEntityKeepsItsOwnRelativeLinksResolving(t *testing.T) {
 	got := string(body)
 
 	dests := markdownLink.FindAllStringSubmatch(got, -1)
-	if len(dests) != 5 {
-		t.Fatalf("found %d link destinations in the moved body, want the fixture's 5:\n%s", len(dests), got)
+	if len(dests) != 9 {
+		t.Fatalf("found %d link destinations in the moved body, want the fixture's 9:\n%s", len(dests), got)
 	}
 	var pathDests int
 	for _, m := range dests {
 		dest := m[1]
-		// An anchor names a section of this same file and a scheme names
-		// something outside the repo; neither is a path to resolve.
-		if strings.HasPrefix(dest, "#") || strings.Contains(dest, ":") {
+		// Only a repo-path destination is resolved here. An anchor names a
+		// section of this file; a scheme, a protocol-relative host and a
+		// site-absolute path each name something no repo-relative
+		// resolution applies to; an angle-bracket destination carries
+		// delimiters that are not part of the path.
+		if strings.HasPrefix(dest, "#") || strings.Contains(dest, ":") ||
+			strings.HasPrefix(dest, "/") || strings.HasPrefix(dest, "<") {
 			continue
 		}
 		resolved := resolveDestination(dest, filepath.ToSlash(moved.Path))
@@ -95,8 +103,15 @@ func TestArchive_MovedEntityKeepsItsOwnRelativeLinksResolving(t *testing.T) {
 		}
 		pathDests++
 	}
-	if pathDests != 3 {
-		t.Errorf("resolved %d path destinations, want the fixture's 3", pathDests)
+	if pathDests != 4 {
+		t.Errorf("resolved %d path destinations, want the fixture's 4", pathDests)
+	}
+	// A root-relative destination names a path from the repo root, so
+	// moving the linking file cannot change what it means — including when
+	// its spelling is non-canonical, where re-rendering would silently
+	// canonicalize it and count as a content change.
+	if !strings.Contains(got, "(work/gaps/./"+siblingFile+")") {
+		t.Errorf("non-canonical root-relative destination was canonicalized by the move:\n%s", got)
 	}
 
 	// The root-relative form names a path from the repo root, so the move
@@ -104,14 +119,21 @@ func TestArchive_MovedEntityKeepsItsOwnRelativeLinksResolving(t *testing.T) {
 	if !strings.Contains(got, "("+siblingPath+")") {
 		t.Errorf("root-relative destination %s was rewritten; moving the linking file must not change it:\n%s", siblingPath, got)
 	}
-	// Neither non-path destination may be recomputed: resolving `#anchor`
-	// against a directory yields that directory, and a `mailto:` address
-	// would be mangled into a relative path.
-	if !strings.Contains(got, "(#why-it-matters)") {
-		t.Errorf("anchor-only destination was rewritten by the move:\n%s", got)
-	}
-	if !strings.Contains(got, "(mailto:nobody@example.invalid)") {
-		t.Errorf("scheme-bearing destination was rewritten by the move:\n%s", got)
+	// No non-path destination may be recomputed. Each would be corrupted a
+	// different way: resolving `#anchor` against a directory yields the
+	// directory; a `mailto:` address, a `//host` and a `/absolute` path
+	// would each be mangled into a relative path; and rewriting inside
+	// angle brackets strips the closing one.
+	for _, untouched := range []string{
+		"(#why-it-matters)",
+		"(mailto:nobody@example.invalid)",
+		"(//cdn.example.invalid/x.png)",
+		"(/README.md)",
+		"(<../gaps/" + siblingFile + ">)",
+	} {
+		if !strings.Contains(got, untouched) {
+			t.Errorf("destination %s names nothing a move can invalidate and was rewritten anyway:\n%s", untouched, got)
+		}
 	}
 }
 

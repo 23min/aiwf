@@ -98,24 +98,53 @@ func rewriteLinkChunk(chunk, oldDir, newDir string, moveIndex map[string]string)
 // returned unchanged, suffix included.
 func rewriteLinkDestination(region, oldDir, newDir string, moveIndex map[string]string) string {
 	inner := strings.TrimSuffix(strings.TrimPrefix(region, "("), ")")
-	if strings.Contains(inner, "://") {
+	bare, suffix := splitDestinationSuffix(inner)
+	if !isRepoPathDestination(bare) {
 		return region
 	}
-	bare, suffix := splitDestinationSuffix(inner)
 	resolved, rootRelative := resolveLinkDestination(bare, oldDir)
 	to, moved := moveIndex[resolved]
 	if !moved {
-		// The target stayed put. Its text still names it unless the
-		// linking file's own directory changed and the destination was
-		// resolved against it — a suffix-only destination (`#anchor`)
-		// names no file, and a scheme-bearing one names nothing in the
-		// repo, so neither is re-rendered.
-		if rootRelative || oldDir == newDir || bare == "" || hasURIScheme(bare) {
+		// The target stayed put, so its text still names it — unless the
+		// destination was resolved against the linking file's directory
+		// and that directory changed. A root-relative destination names a
+		// path from the repo root, so neither condition reaches it.
+		if rootRelative || oldDir == newDir {
 			return region
 		}
 		to = resolved
 	}
 	return "(" + newDestination(to, newDir, rootRelative) + suffix + ")"
+}
+
+// isRepoPathDestination reports whether bare — a link destination with
+// any `?query` / `#fragment` already split off — names a file in this
+// repository. Only such a destination can be invalidated by a move, so
+// everything else is returned byte-identical.
+//
+// The test runs on the split-off bare path rather than the whole
+// destination, so a scheme separator inside a suffix
+// (`M-NNNN-<slug>.md?u=https://example.com`) is not mistaken for one in
+// scheme position — the destination is a repo path carrying a URL as a
+// query parameter, and it moves with the file like any other.
+func isRepoPathDestination(bare string) bool {
+	switch {
+	case bare == "":
+		// A suffix-only destination (`#section`) names a place in the
+		// current file, not a file.
+		return false
+	case strings.HasPrefix(bare, "/"):
+		// Site-absolute (`/README.md`), which resolves against a server
+		// root rather than the linking file's directory, and the
+		// protocol-relative URL (`//host/path`) that shares its prefix and
+		// names a host rather than a path. Neither moves with a file.
+		return false
+	case strings.HasPrefix(bare, "<"):
+		// Angle-bracket destination. The delimiters are not part of the
+		// path, and rewriting the inside would strip the closing one.
+		return false
+	}
+	return !hasURIScheme(bare)
 }
 
 // hasURIScheme reports whether s carries a URI scheme prefix (`mailto:`,

@@ -155,6 +155,11 @@ func Retitle(ctx context.Context, t *tree.Tree, id, newTitle, actor, reason stri
 		// competing write for the same contentPath — a slug-changing
 		// retitle of a dir-shaped kind (epic/contract) can link to one
 		// of its own nested, co-moved entities.
+		// The outbound half (ADR-0046) is a no-op for retitle as slugs are
+		// spelled today: a slug cannot contain a separator, so the rename
+		// is same-parent and same-depth and no relative destination can
+		// change meaning. Passing both paths keeps that a property of the
+		// slug vocabulary rather than of this call site.
 		body = RewriteLinkDestinationsForMove(body, e.Path, contentPath, moves)
 	}
 	content, err := entity.Serialize(&modified, body)

@@ -131,6 +131,11 @@ func Reallocate(ctx context.Context, t *tree.Tree, idOrPath, actor string) (*Res
 	if err != nil {
 		return nil, err
 	}
+	// Old and new path, so the outbound half (ADR-0046) recomputes any
+	// relative destination the move invalidated. As ids are spelled today
+	// only the basename changes, leaving the directory — and so every
+	// relative destination — untouched; passing both paths keeps that a
+	// property of the id vocabulary rather than of this call site.
 	movedBody = rewriteReallocateBody(movedBody, target.Path, newEntityPath, moves, idPattern, newID)
 	movedContent, err := entity.Serialize(&modified, movedBody)
 	if err != nil {
@@ -171,7 +176,10 @@ func Reallocate(ctx context.Context, t *tree.Tree, idOrPath, actor string) (*Res
 		if pathInside(e.Path, source) {
 			writePath = newEntityPathAfterRename(e, source, dest)
 		}
-		body = rewriteReallocateBody(body, writePath, writePath, moves, idPattern, newID)
+		// e.Path / writePath are the same string unless this entity is
+		// nested inside the moved directory and co-moving with it, which
+		// is the case whose relative destinations need recomputing.
+		body = rewriteReallocateBody(body, e.Path, writePath, moves, idPattern, newID)
 		content, err := entity.Serialize(e, body)
 		if err != nil {
 			return nil, fmt.Errorf("serializing %s after prose rewrite: %w", e.ID, err)

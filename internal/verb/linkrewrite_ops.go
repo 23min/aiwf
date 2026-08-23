@@ -3,6 +3,7 @@ package verb
 import (
 	"bytes"
 	"fmt"
+	"path/filepath"
 	"sort"
 
 	"github.com/23min/aiwf/internal/entity"
@@ -49,8 +50,11 @@ func planLinkRewriteWrites(tr *tree.Tree, moves []EntityMove, exclude map[string
 		// e.Path is where the body's destinations were written to resolve
 		// from; linkingPath is where they must resolve from once this plan
 		// lands. They differ only for an entity that is itself moving,
-		// which is the case ADR-0046 covers.
-		newBody := RewriteLinkDestinationsForMove(body, e.Path, linkingPath, moves)
+		// which is the case ADR-0046 covers. Slash-normalized because the
+		// primitive compares against markdown destinations, which are
+		// forward-slash regardless of host, while e.Path carries whatever
+		// separator the loader's filepath.Rel produced.
+		newBody := RewriteLinkDestinationsForMove(body, filepath.ToSlash(e.Path), linkingPath, moves)
 		if bytes.Equal(newBody, body) {
 			continue
 		}
