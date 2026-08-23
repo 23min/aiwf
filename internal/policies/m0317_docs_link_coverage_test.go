@@ -82,6 +82,60 @@ func TestM0317_AC1_DocsLinkingIntoWorkAreNotShadowedByLycheeExcludes(t *testing.
 	}
 }
 
+// residualOwningGaps are the gaps that own the residual ADR-0033 declines
+// to cover mechanically — links from non-entity files into the entity
+// tree. M-0317/AC-2 routes the delegation measurement to them.
+var residualOwningGaps = []string{"G-0478", "G-0439"}
+
+// TestM0317_AC2_ADR0033NamesTheGapsOwningItsResidual is the mechanical
+// evidence for M-0317/AC-2.
+//
+// The measurement's consequence for ADR-0033 is that its second bullet
+// named a delegate carrying no mechanical trigger, while the check that
+// does cover the class went unmentioned. Correcting the prose is not what
+// makes the finding survive: what does is that a reader of the decision
+// can reach the gaps that own the residual, so the next person to ask
+// "what covers non-entity narrative?" lands on the measurement instead of
+// re-deriving it.
+//
+// A relationship check rather than a phrase assertion: it compares the
+// ADR against the tree, so deleting either gap or dropping its citation
+// turns it red, while rewording any of the three does not. It is also not
+// redundant with `body-prose-id`, which fires on a *dangling* id and
+// never on a *missing* one — the citation going absent is exactly the
+// failure that rule cannot see.
+//
+// Retires when both gaps reach a terminal status: the residual then has
+// an answer rather than an owner, and the citation becomes history.
+func TestM0317_AC2_ADR0033NamesTheGapsOwningItsResidual(t *testing.T) {
+	t.Parallel()
+
+	root, tr := sharedRepoTree(t)
+
+	adr := tr.ByID("ADR-0033")
+	if adr == nil {
+		t.Fatal("ADR-0033 does not resolve via tr.ByID")
+	}
+	raw, err := os.ReadFile(filepath.Join(root, filepath.FromSlash(adr.Path)))
+	if err != nil {
+		t.Fatalf("reading ADR-0033 at %s: %v", adr.Path, err)
+	}
+	refs := sectionBody(string(raw), "\n## References")
+	if refs == "" {
+		t.Fatal("ADR-0033 has no `## References` section to carry the citations")
+	}
+
+	for _, id := range residualOwningGaps {
+		if tr.ByID(id) == nil {
+			t.Errorf("%s does not resolve via tr.ByID — ADR-0033's residual has no owning gap to reach", id)
+			continue
+		}
+		if !strings.Contains(refs, id) {
+			t.Errorf("ADR-0033's `## References` does not name %s, so the gap owning its non-entity residual is not reachable from the decision:\n%s", id, refs)
+		}
+	}
+}
+
 // lycheeExcludePaths reads lychee's config and returns its exclude_path
 // entries.
 func lycheeExcludePaths(t *testing.T, configPath string) []string {
