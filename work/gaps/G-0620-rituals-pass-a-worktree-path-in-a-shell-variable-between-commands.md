@@ -1,8 +1,10 @@
 ---
 id: G-0620
 title: Rituals pass a worktree path in a shell variable between commands
-status: open
+status: addressed
 priority: high
+addressed_by_commit:
+    - 91493c23f
 ---
 ## What's missing
 
