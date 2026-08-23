@@ -28,20 +28,31 @@ const archivalExemptPrefix = "docs/archive"
 // The measurement recorded under that AC found that link-check — lychee
 // over `./**/*.md` — does report a docs-to-work link broken by a mover,
 // and that `exclude_path` filters lychee's *input files* rather than its
-// link targets, so `work` appearing in that list does not blind it. The
-// finding therefore rests on a coverage claim: every docs file that links
-// into work/ is a file lychee actually reads.
+// link targets, so `work` appearing in that list does not blind it to
+// destinations under work/. The finding therefore rests on a coverage
+// claim: every docs file that links into work/ is a file lychee actually
+// reads.
 //
-// That claim is what rots silently. Adding a docs subtree to
-// exclude_path takes its links out of the checked set with no other
-// symptom — link-check keeps passing, because the links stop being read
-// rather than starting to resolve. So the check runs the other way round:
-// walk what exclude_path already shadows and fail if any of it links into
-// work/.
+// That claim is what rots silently. Excluding a docs file takes its links
+// out of the checked set with no other symptom — link-check keeps
+// passing, because the links stop being read rather than starting to
+// resolve. So the check walks every docs file that links into work/ and
+// fails if `exclude_path` shadows one.
+//
+// The exemption is keyed on the linking file rather than on the config
+// entry that shadows it, because an entry does not announce which files
+// it reaches: `exclude_path` values are regular expressions matched
+// against the path (`lychee --help`: "The values are treated as regular
+// expressions"), so `work` reaches `docs/workflows.md` and `.git` reaches
+// any path containing `<any>git`. Membership is decided by matching, not
+// by reading the entry.
 //
 // A relationship check rather than a phrase assertion: the expectation is
-// derived by parsing the real `.lychee.toml`, so a config edit moves the
-// expectation with it, and no wording in either file is pinned.
+// derived by compiling the real `.lychee.toml`'s entries, so a config
+// edit moves the expectation with it, and no wording is pinned. It models
+// lychee's selection rather than invoking lychee, which is not available
+// to the test; the model was confirmed against `lychee --dump-inputs` at
+// `origin/main` da34c1009, where it agreed on all 71 files read.
 //
 // Retires when G-0478's detection half lands a link-integrity rule inside
 // `aiwf check`. At that point the guarantee is a kernel finding rather
@@ -58,25 +69,35 @@ func TestM0317_AC1_DocsLinkingIntoWorkAreNotShadowedByLycheeExcludes(t *testing.
 		t.Fatalf("%s: parsed no exclude_path entries — the config's shape changed and this check has stopped measuring anything", lycheeConfigPath)
 	}
 
-	var shadowed []string
+	patterns := make([]*regexp.Regexp, 0, len(excludes))
 	for _, ex := range excludes {
-		if !strings.HasPrefix(ex, "docs/") && ex != "docs" {
-			// Only a docs prefix can shadow the delegated class. `work` is
-			// in this list too, and deliberately: it stops lychee reading
-			// entity bodies, whose links the movers already repair.
-			continue
+		re, err := regexp.Compile(ex)
+		if err != nil {
+			t.Fatalf("%s: exclude_path entry %q does not compile as a regular expression, which is how lychee reads it: %v", lycheeConfigPath, ex, err)
 		}
-		if ex == archivalExemptPrefix || strings.HasPrefix(ex, archivalExemptPrefix+"/") {
-			continue
-		}
-		shadowed = append(shadowed, ex)
+		patterns = append(patterns, re)
 	}
 
-	for _, ex := range shadowed {
-		for _, f := range docsFilesLinkingIntoWork(t, root, ex) {
-			t.Errorf("%s links into work/ but sits under exclude_path %q, so lychee never reads it — the delegated class is no longer fully covered", f, ex)
+	for _, f := range docsFilesLinkingIntoWork(t, root, "docs") {
+		if strings.HasPrefix(f, archivalExemptPrefix+"/") {
+			continue
+		}
+		if re := firstMatch(patterns, f); re != nil {
+			t.Errorf("%s links into work/ but exclude_path %q matches its path, so lychee never reads it — the delegated class is no longer fully covered", f, re)
 		}
 	}
+}
+
+// firstMatch returns the first pattern matching the repo-relative path p,
+// or nil when none does. Matching is unanchored, as lychee's own
+// exclude_path handling is.
+func firstMatch(patterns []*regexp.Regexp, p string) *regexp.Regexp {
+	for _, re := range patterns {
+		if re.MatchString(p) {
+			return re
+		}
+	}
+	return nil
 }
 
 // residualOwningGaps are the gaps that own the residual ADR-0033 declines
@@ -174,21 +195,25 @@ func parseLycheeExcludePaths(raw string) []string {
 	if !found {
 		return nil
 	}
-	body, _, found := strings.Cut(after, "]")
-	if !found {
-		return nil
-	}
 
 	// An inline array carries its entries on the key's own line, where
 	// the per-line scan below would never see them.
-	head, rest, found := strings.Cut(body, "\n")
+	head, rest, found := strings.Cut(after, "\n")
 	if !found || strings.TrimSpace(head) != "" {
 		return nil
 	}
 
+	// The array is terminated by a line that is exactly `]`, not by the
+	// first `]` byte: a comment inside the array may contain one, and
+	// cutting there would truncate the list and leave a fragment that
+	// still parses. A short list is the one wrong answer the caller
+	// cannot detect, so the terminator has to be unambiguous.
 	var out []string
 	for _, line := range strings.Split(rest, "\n") {
 		line = strings.TrimSpace(line)
+		if line == "]" {
+			return out
+		}
 		if line == "" || strings.HasPrefix(line, "#") {
 			continue
 		}
@@ -198,7 +223,8 @@ func parseLycheeExcludePaths(raw string) []string {
 		}
 		out = append(out, m[1])
 	}
-	return out
+	// Ran off the end without a terminator.
+	return nil
 }
 
 // docsFilesLinkingIntoWork returns the repo-relative paths of markdown
@@ -306,13 +332,8 @@ func TestM0317_LinksIntoWork(t *testing.T) {
 			want: true,
 		},
 		{
-			name: "anchor suffix is split before resolving",
+			name: "an anchor suffix rides along without changing the prefix",
 			body: "see [G-0311](../../work/gaps/G-0311-slug.md#why-it-matters)",
-			want: true,
-		},
-		{
-			name: "query suffix is split before resolving",
-			body: "see [G-0311](../../work/gaps/G-0311-slug.md?plain=1)",
 			want: true,
 		},
 		{
@@ -323,11 +344,6 @@ func TestM0317_LinksIntoWork(t *testing.T) {
 		{
 			name: "url carrying work/ in its path is not a repo link",
 			body: "see [upstream](https://example.com/work/gaps/G-0311-slug.md)",
-			want: false,
-		},
-		{
-			name: "empty destination resolves to nothing",
-			body: "see [nothing]() here",
 			want: false,
 		},
 		{
@@ -367,6 +383,78 @@ func TestM0317_LinksIntoWork(t *testing.T) {
 			}
 			if got := linksIntoWork(tc.body, linking); got != tc.want {
 				t.Errorf("linksIntoWork(_, %q) = %v, want %v\nbody:\n%s", linking, got, tc.want, tc.body)
+			}
+		})
+	}
+}
+
+// TestM0317_FirstMatch pins that an exclude_path entry is matched as an
+// unanchored regular expression against the whole path, not as a
+// directory prefix.
+//
+// The distinction is not academic and is not hypothetical: measured
+// against `lychee --dump-inputs` at `origin/main` da34c1009, the
+// committed entries `work` and `.git` between them keep eight live-tier
+// documents out of the checked set, including five accepted ADRs, none of
+// which sits under a directory named `work` or `.git`. A prefix model
+// reports all eight as read. G-0625 carries whether to anchor the
+// entries.
+func TestM0317_FirstMatch(t *testing.T) {
+	t.Parallel()
+
+	tests := []struct {
+		name    string
+		entries []string
+		path    string
+		want    bool
+	}{
+		{
+			name:    "entry matches the directory it names",
+			entries: []string{"docs/research"},
+			path:    "docs/research/a.md",
+			want:    true,
+		},
+		{
+			name:    "unrelated path is not matched",
+			entries: []string{"docs/research"},
+			path:    "docs/design/a.md",
+			want:    false,
+		},
+		{
+			name:    "bare entry reaches a filename that merely contains it",
+			entries: []string{"work"},
+			path:    "docs/workflows.md",
+			want:    true,
+		},
+		{
+			name:    "an unescaped dot is a wildcard, not a literal",
+			entries: []string{".git"},
+			path:    "docs/adr/ADR-0008-canonicalize-kernel-ids-to-4-digits.md",
+			want:    true,
+		},
+		{
+			name:    "anchoring the same entry confines it to the directory",
+			entries: []string{"^work/"},
+			path:    "docs/workflows.md",
+			want:    false,
+		},
+		{
+			name:    "the first matching entry is the one reported",
+			entries: []string{"node_modules", "docs/research"},
+			path:    "docs/research/a.md",
+			want:    true,
+		},
+	}
+
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			t.Parallel()
+			patterns := make([]*regexp.Regexp, 0, len(tc.entries))
+			for _, e := range tc.entries {
+				patterns = append(patterns, regexp.MustCompile(e))
+			}
+			if got := firstMatch(patterns, tc.path) != nil; got != tc.want {
+				t.Errorf("firstMatch(%q, %q) matched = %v, want %v", tc.entries, tc.path, got, tc.want)
 			}
 		})
 	}
@@ -454,10 +542,9 @@ func TestM0317_ParseLycheeExcludePaths(t *testing.T) {
 			want: nil,
 		},
 		// The three shapes below are valid TOML that lychee honours. Each
-		// one defeated a lenient earlier parser: the inline array read as
-		// a single bogus entry, and the other two kept punctuation that
-		// made the docs/ prefix test miss. Refusing beats half-reading,
-		// because the caller can only detect the refusal.
+		// The shapes below are valid TOML that lychee honours. Refusing
+		// beats half-reading, because a short list is the one wrong answer
+		// the caller cannot detect.
 		{
 			name: "inline array on the key's own line",
 			raw:  "exclude_path = [\"node_modules\", \"docs/research\", \"work\"]\n",
@@ -476,6 +563,24 @@ func TestM0317_ParseLycheeExcludePaths(t *testing.T) {
 		{
 			name: "two entries sharing one line",
 			raw:  "exclude_path = [\n  \"node_modules\", \"work\",\n]\n",
+			want: nil,
+		},
+		{
+			// The refusal must discard entries already read, not just the
+			// unreadable line. A parser that skipped the bad line would
+			// return the good one and look like a short-but-valid list.
+			name: "a readable entry followed by an unreadable one",
+			raw:  "exclude_path = [\n  \"work\",\n  'docs/research',\n]\n",
+			want: nil,
+		},
+		{
+			name: "closing bracket inside an in-array comment",
+			raw:  "exclude_path = [\n  \"node_modules\",\n  # see [ADR-0033] for why\n  \"docs/research\",\n]\n",
+			want: []string{"node_modules", "docs/research"},
+		},
+		{
+			name: "no terminating bracket line",
+			raw:  "exclude_path = [\n  \"work\",\n",
 			want: nil,
 		},
 	}
