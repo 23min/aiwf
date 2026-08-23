@@ -75,6 +75,9 @@ property has been violated and the decision needs a revisit.
 
 ## References
 
+- ADR-0046 — extends this decision to a moved entity's own outbound links; the
+  commitment below is inbound-only as written, and that record widens it without
+  superseding it
 - Linked epic: E-0063
 - G-0392 — the gap this decision addresses
 - G-0390 — the advisory `wf-doc-lint` markdown-link-integrity backstop
