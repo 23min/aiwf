@@ -1,7 +1,7 @@
 ---
 id: D-0074
 title: Refuse epic creation on a ritual branch; report unreachability at activation
-status: proposed
+status: accepted
 ---
 > **Date:** 2026-08-23 · **Decided by:** human/peter
 
