@@ -1,0 +1,340 @@
+package policies
+
+import (
+	"os"
+	"path"
+	"path/filepath"
+	"regexp"
+	"strings"
+	"testing"
+)
+
+// lycheeConfigPath is the link checker's config, relative to the repo
+// root. `.github/workflows/link-check.yml` passes it to lychee verbatim.
+const lycheeConfigPath = ".lychee.toml"
+
+// archivalExemptPrefix is the one docs subtree that may sit in
+// exclude_path while still linking into work/. CLAUDE.md's documentation
+// hierarchy puts docs/archive/ in the Archival tier, whose links are
+// forget-by-default: a cross-reference there is a frozen snapshot and is
+// not held to keep resolving.
+const archivalExemptPrefix = "docs/archive"
+
+// mdLinkDestination matches a markdown inline link's destination —
+// `](<dest>)` with no whitespace in dest, which is the shape every
+// docs-to-work link in this tree uses.
+var mdLinkDestination = regexp.MustCompile(`\]\(([^)\s]+)\)`)
+
+// TestM0317_AC1_DocsLinkingIntoWorkAreNotShadowedByLycheeExcludes is the
+// mechanical evidence for M-0317/AC-1.
+//
+// The measurement recorded under that AC found that link-check — lychee
+// over `./**/*.md` — does report a docs-to-work link broken by a mover,
+// and that `exclude_path` filters lychee's *input files* rather than its
+// link targets, so `work` appearing in that list does not blind it. The
+// finding therefore rests on a coverage claim: every docs file that links
+// into work/ is a file lychee actually reads.
+//
+// That claim is what rots silently. Adding a docs subtree to
+// exclude_path takes its links out of the checked set with no other
+// symptom — link-check keeps passing, because the links stop being read
+// rather than starting to resolve. So the check runs the other way round:
+// walk what exclude_path already shadows and fail if any of it links into
+// work/.
+//
+// A relationship check rather than a phrase assertion: the expectation is
+// derived by parsing the real `.lychee.toml`, so a config edit moves the
+// expectation with it, and no wording in either file is pinned.
+//
+// Retires when G-0478's detection half lands a link-integrity rule inside
+// `aiwf check`. At that point the guarantee is a kernel finding rather
+// than a CI-only gate, and this test is what that change deletes.
+func TestM0317_AC1_DocsLinkingIntoWorkAreNotShadowedByLycheeExcludes(t *testing.T) {
+	t.Parallel()
+
+	root := repoRoot(t)
+	excludes := lycheeExcludePaths(t, filepath.Join(root, lycheeConfigPath))
+
+	// A parse that silently found nothing would make every assertion below
+	// vacuous, so an empty result is a failure rather than a clean run.
+	if len(excludes) == 0 {
+		t.Fatalf("%s: parsed no exclude_path entries — the config's shape changed and this check has stopped measuring anything", lycheeConfigPath)
+	}
+
+	var shadowed []string
+	for _, ex := range excludes {
+		if !strings.HasPrefix(ex, "docs/") && ex != "docs" {
+			// Only a docs prefix can shadow the delegated class. `work` is
+			// in this list too, and deliberately: it stops lychee reading
+			// entity bodies, whose links the movers already repair.
+			continue
+		}
+		if ex == archivalExemptPrefix || strings.HasPrefix(ex, archivalExemptPrefix+"/") {
+			continue
+		}
+		shadowed = append(shadowed, ex)
+	}
+
+	for _, ex := range shadowed {
+		for _, f := range docsFilesLinkingIntoWork(t, root, ex) {
+			t.Errorf("%s links into work/ but sits under exclude_path %q, so lychee never reads it — the delegated class is no longer fully covered", f, ex)
+		}
+	}
+}
+
+// lycheeExcludePaths reads lychee's config and returns its exclude_path
+// entries.
+func lycheeExcludePaths(t *testing.T, configPath string) []string {
+	t.Helper()
+
+	raw, err := os.ReadFile(configPath)
+	if err != nil {
+		t.Fatalf("reading %s: %v", configPath, err)
+	}
+	return parseLycheeExcludePaths(string(raw))
+}
+
+// parseLycheeExcludePaths extracts the `exclude_path` array from lychee's
+// TOML config. Hand-parsed rather than via a TOML dependency: the array
+// is a flat list of quoted literals, and the repo carries no TOML
+// decoder. A shape this parser cannot read yields an empty result, which
+// the caller treats as a failure rather than as "nothing excluded".
+func parseLycheeExcludePaths(raw string) []string {
+	_, after, found := strings.Cut(raw, "exclude_path = [")
+	if !found {
+		return nil
+	}
+	body, _, found := strings.Cut(after, "]")
+	if !found {
+		return nil
+	}
+
+	var out []string
+	for _, line := range strings.Split(body, "\n") {
+		line = strings.TrimSpace(line)
+		if line == "" || strings.HasPrefix(line, "#") {
+			continue
+		}
+		v := strings.Trim(strings.TrimSuffix(line, ","), `"`)
+		if v != "" {
+			out = append(out, v)
+		}
+	}
+	return out
+}
+
+// docsFilesLinkingIntoWork returns the repo-relative paths of markdown
+// files under prefix carrying at least one markdown link whose
+// destination resolves under work/.
+func docsFilesLinkingIntoWork(t *testing.T, root, prefix string) []string {
+	t.Helper()
+
+	dir := filepath.Join(root, filepath.FromSlash(prefix))
+	if _, err := os.Stat(dir); os.IsNotExist(err) {
+		// An exclude_path entry naming a directory that does not exist
+		// shadows nothing.
+		return nil
+	}
+
+	var out []string
+	err := filepath.WalkDir(dir, func(p string, d os.DirEntry, err error) error {
+		if err != nil {
+			return err
+		}
+		if d.IsDir() || !strings.HasSuffix(p, ".md") {
+			return nil
+		}
+		rel, err := filepath.Rel(root, p)
+		if err != nil {
+			return err
+		}
+		rel = filepath.ToSlash(rel)
+		body, err := os.ReadFile(p)
+		if err != nil {
+			return err
+		}
+		if linksIntoWork(string(body), rel) {
+			out = append(out, rel)
+		}
+		return nil
+	})
+	if err != nil {
+		t.Fatalf("walking %s: %v", prefix, err)
+	}
+	return out
+}
+
+// linksIntoWork reports whether body — the markdown of the file at
+// repo-relative linkingFile — carries a link destination resolving under
+// work/. Fenced blocks and inline-code spans are skipped (the latter via
+// the shared stripInlineCode): a link shape inside one is prose about
+// links, and lychee does not check it either.
+//
+// A destination is resolved against the linking file's own directory,
+// except one already rooted at work/, which names a path from the repo
+// root. Nothing else needs discriminating here: a scheme-bearing
+// destination cannot resolve under work/ once joined to a docs directory,
+// and an `#anchor` or `?query` suffix rides along without changing which
+// prefix the result carries. The predicate is a prefix test rather than a
+// file lookup, so neither shape needs its own arm.
+func linksIntoWork(body, linkingFile string) bool {
+	dir := path.Dir(linkingFile)
+	fenced := false
+	for _, line := range strings.Split(body, "\n") {
+		if strings.HasPrefix(strings.TrimSpace(line), "```") {
+			fenced = !fenced
+			continue
+		}
+		if fenced {
+			continue
+		}
+		for _, m := range mdLinkDestination.FindAllStringSubmatch(stripInlineCode(line), -1) {
+			dest := m[1]
+			resolved := path.Clean(path.Join(dir, dest))
+			if strings.HasPrefix(dest, "work/") {
+				resolved = path.Clean(dest)
+			}
+			if resolved == "work" || strings.HasPrefix(resolved, "work/") {
+				return true
+			}
+		}
+	}
+	return false
+}
+
+// TestM0317_LinksIntoWork covers each arm of the destination scan
+// directly. Driving it only through the live docs tree would leave the
+// discriminating arms — the code-span skips above all — exercised by
+// whatever those files happen to contain rather than on purpose.
+func TestM0317_LinksIntoWork(t *testing.T) {
+	t.Parallel()
+
+	const from = "docs/initiatives/example.md"
+
+	tests := []struct {
+		name        string
+		linkingFile string
+		body        string
+		want        bool
+	}{
+		{
+			name: "relative destination into work",
+			body: "see [G-0311](../../work/gaps/G-0311-slug.md) for detail",
+			want: true,
+		},
+		{
+			name: "root-relative destination into work",
+			body: "see [G-0311](work/gaps/G-0311-slug.md) for detail",
+			want: true,
+		},
+		{
+			name: "anchor suffix is split before resolving",
+			body: "see [G-0311](../../work/gaps/G-0311-slug.md#why-it-matters)",
+			want: true,
+		},
+		{
+			name: "query suffix is split before resolving",
+			body: "see [G-0311](../../work/gaps/G-0311-slug.md?plain=1)",
+			want: true,
+		},
+		{
+			name: "destination staying inside docs is not a work link",
+			body: "see [the design](../design/design-decisions.md)",
+			want: false,
+		},
+		{
+			name: "url carrying work/ in its path is not a repo link",
+			body: "see [upstream](https://example.com/work/gaps/G-0311-slug.md)",
+			want: false,
+		},
+		{
+			name: "empty destination resolves to nothing",
+			body: "see [nothing]() here",
+			want: false,
+		},
+		{
+			name: "link shape inside an inline-code span is prose about links",
+			body: "write it as `[G-0311](../../work/gaps/G-0311-slug.md)` in the body",
+			want: false,
+		},
+		{
+			name: "link shape inside a fenced block is an example",
+			body: "before\n```markdown\n[G-0311](../../work/gaps/G-0311-slug.md)\n```\nafter",
+			want: false,
+		},
+		{
+			name: "a live link after a closed fence still counts",
+			body: "```\ncode\n```\nsee [G-0311](../../work/gaps/G-0311-slug.md)",
+			want: true,
+		},
+		{
+			name:        "depth is resolved against the linking file's own directory",
+			linkingFile: "docs/example.md",
+			body:        "see [G-0311](../../work/gaps/G-0311-slug.md)",
+			want:        false,
+		},
+	}
+
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			t.Parallel()
+			linking := tc.linkingFile
+			if linking == "" {
+				linking = from
+			}
+			if got := linksIntoWork(tc.body, linking); got != tc.want {
+				t.Errorf("linksIntoWork(_, %q) = %v, want %v\nbody:\n%s", linking, got, tc.want, tc.body)
+			}
+		})
+	}
+}
+
+// TestM0317_ParseLycheeExcludePaths covers the parser's arms, including
+// the two that yield an empty result. Those matter because the caller
+// reads empty as "the config's shape changed", so a parser that silently
+// returned nothing for a readable config would disarm the check.
+func TestM0317_ParseLycheeExcludePaths(t *testing.T) {
+	t.Parallel()
+
+	tests := []struct {
+		name string
+		raw  string
+		want []string
+	}{
+		{
+			name: "entries, comments and blank lines",
+			raw:  "exclude_path = [\n  \"node_modules\",\n\n  # a comment inside the block\n  \"work\",\n]\n",
+			want: []string{"node_modules", "work"},
+		},
+		{
+			name: "no exclude_path key at all",
+			raw:  "accept = [200]\n",
+			want: nil,
+		},
+		{
+			name: "unterminated array",
+			raw:  "exclude_path = [\n  \"work\",\n",
+			want: nil,
+		},
+		{
+			name: "empty array",
+			raw:  "exclude_path = [\n]\n",
+			want: nil,
+		},
+	}
+
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			t.Parallel()
+			got := parseLycheeExcludePaths(tc.raw)
+			if len(got) != len(tc.want) {
+				t.Fatalf("parseLycheeExcludePaths() = %q, want %q", got, tc.want)
+			}
+			for i := range got {
+				if got[i] != tc.want[i] {
+					t.Errorf("entry %d = %q, want %q", i, got[i], tc.want[i])
+				}
+			}
+		})
+	}
+}
