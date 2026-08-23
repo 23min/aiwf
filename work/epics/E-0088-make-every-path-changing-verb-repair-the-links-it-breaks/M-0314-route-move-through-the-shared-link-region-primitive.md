@@ -85,7 +85,7 @@ None. The primitive exists.
 ### AC-1 — aiwf move routes its link rewriting through the shared primitive
 
 `move` plans inbound link repair through `planLinkRewriteWrites`, excluding its
-own file · commit 051daad1a · tests 634/635
+own file · commit 051daad1a · tests 635/635 green (+1 test)
 
 The exclude set is load-bearing rather than defensive, and only in one shape: it
 matters when the moved file's own body carries a link resolving into the move
@@ -103,16 +103,22 @@ That is M-0315's subject, so nothing here asserts its post-move destination.
 ### AC-2 — A milestone moved between epics leaves no inbound link broken
 
 An end-to-end sweep resolves every inbound link on disk after the move and stats
-its destination · commit b967c3352 · tests 635/636
+its destination · commit b967c3352 · tests 636/636 green (+1 test)
 
 Resolving rather than string-comparing is what makes this an integrity claim: a
 link rewritten to a path nothing occupies satisfies a `Contains` assertion and
 fails a `stat`. The sweep covers both destination flavors and skips the moved
 file, whose own self-link stays pointing at the pre-move path until M-0315.
 
-Handed to M-0316: removing the `://` guard in `rewriteLinkDestination` leaves
-these tests green. A `scheme://` destination is rejected by
-`isEntityRootRelative`, so it resolves through the join branch and keeps its
-scheme segment — which no entity path carries — making the guard arguably
-unreachable-as-behavior and the mutant equivalent. That is one measured case
-rather than a proof, and adjudicating equivalence is that milestone's job.
+Removing the `://` guard in `rewriteLinkDestination` leaves these tests green,
+but the mutant is **not** equivalent, and M-0316 should record it as a live
+survivor rather than an excused one. The guard tests the whole destination
+before `splitDestinationSuffix` separates a `?query` / `#fragment` suffix, so a
+destination whose suffix carries `://` is distinguished:
+`…/M-NNNN-<slug>.md?u=https://example.com` is left alone with the guard and
+rewritten without it. A scheme in *scheme position* is what the guard means to
+catch, and testing the whole string reaches further than that.
+
+The same measurement is a live ADR-0033 hole rather than only a test gap: those
+destinations name the moved entity and no mover rewrites them. Tracked as
+G-0622, which owns the fix; this milestone neither causes it nor fixes it.
