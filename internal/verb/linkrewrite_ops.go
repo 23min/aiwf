@@ -46,7 +46,11 @@ func planLinkRewriteWrites(tr *tree.Tree, moves []EntityMove, exclude map[string
 		if err != nil { //coverage:ignore defensive: e.Path comes from the loaded tree, so the file is present; a read error needs the file to vanish mid-verb
 			return nil, err
 		}
-		newBody := RewriteLinkDestinations(body, linkingPath, moves)
+		// e.Path is where the body's destinations were written to resolve
+		// from; linkingPath is where they must resolve from once this plan
+		// lands. They differ only for an entity that is itself moving,
+		// which is the case ADR-0046 covers.
+		newBody := RewriteLinkDestinationsForMove(body, e.Path, linkingPath, moves)
 		if bytes.Equal(newBody, body) {
 			continue
 		}

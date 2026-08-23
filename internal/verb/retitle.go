@@ -155,7 +155,7 @@ func Retitle(ctx context.Context, t *tree.Tree, id, newTitle, actor, reason stri
 		// competing write for the same contentPath — a slug-changing
 		// retitle of a dir-shaped kind (epic/contract) can link to one
 		// of its own nested, co-moved entities.
-		body = RewriteLinkDestinations(body, contentPath, moves)
+		body = RewriteLinkDestinationsForMove(body, e.Path, contentPath, moves)
 	}
 	content, err := entity.Serialize(&modified, body)
 	if err != nil {
