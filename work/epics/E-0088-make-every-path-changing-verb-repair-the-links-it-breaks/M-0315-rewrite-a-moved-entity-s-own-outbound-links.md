@@ -14,7 +14,7 @@ acs:
     - id: AC-2
       title: A decision records whether ADR-0033 reaches outbound links
       status: open
-      tdd_phase: green
+      tdd_phase: done
     - id: AC-3
       title: A moved entity's own relative links resolve after the move
       status: open
