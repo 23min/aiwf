@@ -133,10 +133,12 @@ resolves — which is equally why `work` sitting in that list does not blind it 
 docs-to-work links.
 
 **How much of the class is covered?** Bucketing every `docs/` file linking into
-`work/` by whether an `exclude_path` prefix shadows it: 79 links, 74 in files
+`work/` by whether an `exclude_path` prefix shadows it: 78 links, 73 in files
 lychee reads. The five it does not read are all under `docs/archive/pocv3/`,
 exempt by the Archival tier's forget-by-default convention rather than by
-oversight.
+oversight. The count excludes link shapes sitting inside code spans, which
+lychee does not resolve either — counting them reports 79 and 74, and the extra
+is one illustrative link in ADR-0008.
 
 That coverage figure is the half that can rot without a signal, so it is what the
 committed test pins. Adding a docs subtree to `exclude_path` takes its links out
@@ -177,3 +179,71 @@ the repair, not the report.
 The routing is pinned by the ADR's citation of both gaps rather than by any
 wording in the three bodies. `body-prose-id` already refuses a dangling id, so the
 uncovered failure was the citation going missing, which that rule cannot see.
+
+## Validation
+
+`make check-fast` exit 0 (race suite plus the full `golangci-lint` set), `aiwf
+check` 0 errors against a worktree-built binary, `AIWF_COVERAGE_BASE=1b73a9480
+make coverage-gate` exit 0. The measurement runs are recorded per-question under
+AC-1 rather than repeated here.
+
+## Reviewer notes
+
+The measurement survived independent re-derivation: an outside reviewer rebuilt
+the `exclude_path` semantics from its own lychee fixture, reproduced the
+three-error red run at `da34c1009`, confirmed the exempt five under
+`docs/archive/pocv3/`, and wrote a separate link scanner that agreed with
+`linksIntoWork` across all of `docs/`. It also confirmed the G-0478 retitle broke
+no inbound path-link — the failure mode this epic exists to close did not fire on
+the change that closes it.
+
+Three blocking defects came back, all in the pinning and the prose rather than in
+the finding.
+
+**The guard was disarmed by reformatting the file it reads.** Rewriting
+`.lychee.toml`'s array onto one line is a semantic no-op that lychee honours; the
+hand-rolled parser read it as a single bogus entry, and the check passed green
+while 68 links went unread. Single-quoted literals and a trailing comment
+defeated it per-entry the same way. The parser now reads exactly one spelling and
+refuses every other, routing them to the emptiness check that fails. The
+asymmetry is deliberate: a parser that recovers a partial list from an unfamiliar
+shape hands back something indistinguishable from a genuinely short list.
+
+**The guard's firing path was dead in the committed suite.** Every prefix
+`exclude_path` shadows today is either work-link-free or the exempt archival one,
+so the arm that reports a violation was reached only under a hand-applied
+mutation. Correctness had been demonstrated and then reverted, which pins
+nothing. `TestM0317_DocsFilesLinkingIntoWork` drives the walk over a fixture
+tree; a panic injected into each of the four firing arms is now reached by the
+committed suite. Worth stating plainly because no gate here could have caught
+it: the whole addition is a `_test.go` file, which Go does not instrument, so the
+diff-scoped coverage gate is green and silent on all of it.
+
+**A sentence written to correct the ADR was itself false**, in the milestone whose
+deliverable is factual accuracy. It claimed lychee runs over "every tracked
+markdown file on markdown-touching pushes and PRs": `exclude_path` excludes eight
+paths including the whole of `work/`, and the push trigger is `branches: [main]`
+only. Both corrected, in the ADR and in G-0478, which carried the same sentence.
+
+Two judgment findings accepted rather than declined. The ADR's "a CI gate rather
+than an advisory one" over-claimed on trunk-based flow where no PR is required
+and the gate blocks no merge — softened, and G-0478 now says the first run that
+can see a break is the one after the merge to `main`. And the coverage figure was
+79/74, counting a link inside a code span that lychee does not resolve; the
+lychee-true figure is 78/73, corrected in AC-1 with the discrepancy named.
+
+Declined: renaming the two `LinksIntoWork` subtests that say a suffix "is split"
+after the split was deleted. The assertions still pin real behaviour — a mutant
+narrowing the capture kills exactly those two — so the names are inaccurate about
+mechanism, not about outcome, and D1 pins behaviour rather than implementation.
+
+Not adopted here, recorded instead: `markdownLinkRegex` does not match
+CommonMark's titled `[text](path "title")` form, contrary to what its comment
+claimed. No tracked document uses that form, so nothing is missed today; widening
+it would change what `auditDanglingEntityRefs` scans, which is a decision this
+milestone should not make. The comment now states what is so and G-0624 carries
+the decision.
+
+The milestone's `## Context` still frames the question as open. That is the
+plan-time premise explaining why the work was scoped, and the answer lives in the
+Work log; restating it in both places would fork the finding into two copies.
