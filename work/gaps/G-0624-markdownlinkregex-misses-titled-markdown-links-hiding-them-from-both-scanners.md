@@ -23,10 +23,14 @@ resolve; a titled link is skipped rather than resolved, so a rotted one passes.
 the same pattern to decide which `docs/` files link into `work/`, so a file whose
 only such link carries a title reads as having none.
 
-Nothing is missed today: no tracked document uses the titled form, measured
-across `docs/`. The comment above the pattern asserted the opposite — that the
-form was handled — which is what let the shape go unexamined; it now states what
-is so.
+A second CommonMark shape fails differently and is worth deciding alongside it.
+The pointy-bracket destination `[x](<work/gaps/G-0001-a.md>)` does match, but the
+capture keeps the delimiters, yielding `<work/gaps/G-0001-a.md>` — a path that
+can never resolve. So the titled form is skipped silently and the bracketed form
+would be reported as broken when it is not.
+
+Nothing is missed today: no tracked document uses either form, measured across
+`docs/`.
 
 ## Why it matters
 
