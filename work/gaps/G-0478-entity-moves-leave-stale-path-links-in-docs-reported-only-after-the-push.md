@@ -1,6 +1,6 @@
 ---
 id: G-0478
-title: Entity moves leave stale path links in docs/ and no check sees them
+title: Entity moves leave stale path links in docs/, reported only after the push
 status: open
 priority: high
 ---
