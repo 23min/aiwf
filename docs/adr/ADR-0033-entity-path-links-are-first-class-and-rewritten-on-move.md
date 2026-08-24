@@ -39,9 +39,18 @@ require bare-id citation for navigation.
   through one shared link-region primitive generalized from `rewidth`'s machinery.
   Prose, inline code, fenced code, URLs, and external paths are left untouched.
 - The primitive rewrites only files the loader owns (entity bodies). Non-entity
-  narrative (`README`, `CONTRIBUTING`, non-entity `docs` files) is covered by the
-  advisory `wf-doc-lint` markdown-link-integrity check (G-0390), not auto-rewritten
-  — a verb commit must not reach outside the entity set it owns.
+  narrative (`README`, `CONTRIBUTING`, non-entity `docs` files) is not
+  auto-rewritten — a verb commit must not reach outside the entity set it owns —
+  and is left to detection instead. What performs that detection is the
+  `link-check` workflow, which runs lychee over the markdown its `./**/*.md`
+  glob reaches and `.lychee.toml` does not exclude — dot-directories fall
+  outside the glob, and the exclusions are regular expressions matched against
+  the whole path rather than directory prefixes — on markdown-touching pull
+  requests, markdown-touching pushes to `main`, and a weekly schedule. Its reach
+  is therefore narrower than "the non-entity tree", and G-0625 measures by how
+  much. The `wf-doc-lint` markdown-link-integrity check (G-0390) describes the
+  same class but is a ritual an assistant invokes, so it carries no mechanical
+  trigger and is not what makes this half hold.
 - Enforcement is at move-time only. No pre-push check rule is added for this
   concern, so the pre-push chokepoint's cost is unchanged.
 - ADR-0004's move-based archive is preserved. Archiving still physically moves the
@@ -63,8 +72,12 @@ require bare-id citation for navigation.
   links point at a moved entity, widening the commit's blast radius and merge
   surface. `reallocate` already accepts this trade.
 - The residual is deliberate: links from non-entity files, and links broken by a
-  raw `git mv` that bypasses the verbs, are covered by advisory detection only, not
-  the mechanical guarantee.
+  raw `git mv` that bypasses the verbs, are covered by detection rather than by
+  the mechanical guarantee. `link-check` fails its run rather than merely
+  reporting, but on trunk-based flow it blocks no merge, and it fires after the
+  push rather than at the move — so a run already red over an unrepaired link
+  says nothing about the change that just arrived. G-0478 and G-0439 own that
+  residual.
 
 ## Validation
 
@@ -80,5 +93,6 @@ property has been violated and the decision needs a revisit.
   that reach without superseding this record
 - Linked epic: E-0063
 - G-0392 — the gap this decision addresses
-- G-0390 — the advisory `wf-doc-lint` markdown-link-integrity backstop
+- G-0390 — the `wf-doc-lint` markdown-link-integrity check, ritual-invoked
+- G-0478, G-0439 — the non-entity residual, and the measurement of what detects it
 - ADR-0004 — uniform archive convention (preserved)
