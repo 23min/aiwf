@@ -16,6 +16,20 @@ section in this file.
 
 ## [Unreleased]
 
+### Changed — standing guidance: cite a record for what fails if its claim is wrong
+
+The shipped guidance fragment's *Keep the reasoning; derive the facts* rule now
+reaches claims another record already holds, not just facts a check, a field or a
+git trailer holds. Where another record's claim is load-bearing on what you are
+writing, name the record and say what fails in your own text if that claim is wrong,
+rather than reproducing the claim or the reasoning behind it. The test is whether a
+correction to the cited record would leave the sentence needing an edit: if it
+would, the sentence is a copy, and the correction will not reach it.
+
+Consumers pick the rule up on their next `aiwf init` / `aiwf update`. The
+fragment's per-turn line budget rises from 146 to 151 to fit it, rather than the
+rule being packed to fit the budget.
+
 ### Fixed — the retired-verb documentation scan no longer fails on the audit inventories
 
 Internal only; no user-visible change. The scan that keeps `aiwf rewidth` — retired by
