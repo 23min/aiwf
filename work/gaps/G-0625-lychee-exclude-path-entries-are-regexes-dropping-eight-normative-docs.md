@@ -67,9 +67,11 @@ sees a different regex. The literal form has no escapes to disagree about.
 ## Where to fix
 
 - `.lychee.toml` — the `exclude_path` entries and whatever anchoring is chosen.
-- `internal/policies/m0317_docs_link_coverage_test.go` — `firstMatch` models this
-  matching so the coverage guard sees what lychee sees, and
-  `parseLycheeExcludePaths` reads the entries. The parser accepts a literal
-  string and refuses a backslash-bearing basic one, so the anchored spelling
-  above parses and the misreadable one is rejected rather than misread — but a
-  reader changing the entries should confirm that still holds.
+Nothing in the repo reads `exclude_path` today, so anchoring the entries breaks
+no consumer. A guard that modelled this matching in Go was built while measuring
+this and then removed: keeping a second implementation of lychee's file selection
+in step with lychee cost four review rounds and four defects, for a property that
+is a dated observation rather than an invariant. Anyone re-attempting it should
+know that the four defects were all the same shape — the copy disagreeing with
+the original — and that lychee is not available to the test suite, which is what
+forces the copy in the first place.
