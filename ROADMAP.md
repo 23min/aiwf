@@ -1239,3 +1239,20 @@ the moving verb owns — in either direction.
 | M-0316 | Kill the link primitive's surviving mutants | done |
 | M-0317 | Settle whether ADR-0033's docs delegation fires | done |
 
+## E-0089 — Make the legal-workflow table total and correct (proposed)
+
+### Goal
+
+Make the legal-workflow spec table total and correct, so that it can be read — and
+rendered — as the authoritative answer to *what states exist, what moves between
+them, and what is refused*, with no coordinate left silent and no declared outcome
+that the kernel contradicts.
+
+| Milestone | Title | Status |
+|---|---|---|
+| M-0318 | Split every cell by target and correct the contradicted outcomes | draft |
+| M-0319 | Move authorize to GlobalRules and sweep the stale entries there | draft |
+| M-0320 | Re-key the coverage drivers and reconcile the rejection-layer axis | draft |
+| M-0321 | Declare kind-by-verb applicability and enforce cell totality | draft |
+| M-0322 | Decide the rendered legality reference and ship it if taken | draft |
+

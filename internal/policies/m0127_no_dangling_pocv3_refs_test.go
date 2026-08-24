@@ -116,6 +116,11 @@ var m0127Pocv3AllowlistPaths = map[string]string{
 	// post-relocation path — descriptive prose about the bug, not a
 	// live pointer.
 	"work/gaps/G-0439-doc-relocation-sweeps-e-g-e-0034-skip-changelog-md-cross-references.md": "root-cause narrative names the historical docs/pocv3/ path it documents as dangling, not a live reference",
+
+	// The gap whose subject is this allowlist. It reports how many of
+	// the keys below have stopped matching the file they exempt, and
+	// cannot name the literal those keys are about without writing it.
+	"work/gaps/G-0629-nothing-fails-when-an-m0127-allowlist-entry-stops-matching-the-file-it-exempts.md": "the gap about this allowlist; it cannot state its finding without naming the literal the list exempts",
 }
 
 // TestM0127_AC3_NoDanglingDocsPocv3References is the mechanical
