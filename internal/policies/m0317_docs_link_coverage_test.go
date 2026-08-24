@@ -166,12 +166,29 @@ func lycheeExcludePaths(t *testing.T, configPath string) []string {
 	return parseLycheeExcludePaths(string(raw))
 }
 
-// lycheeExcludeEntry matches one exclude_path element on a line of its
-// own: a double-quoted literal, optionally comma-terminated. Anything
-// else on the line — a single-quoted literal, a trailing comment, two
-// entries sharing a line — fails to match, which is what makes the parser
-// refuse rather than mangle.
-var lycheeExcludeEntry = regexp.MustCompile(`^"([^"]*)",?$`)
+// lycheeExcludeBasic and lycheeExcludeLiteral match one exclude_path
+// element on a line of its own — a TOML basic string and a TOML literal
+// string respectively, each optionally comma-terminated. A line matching
+// neither (a trailing comment, two entries sharing a line) is refused
+// rather than mangled.
+//
+// The split exists because only one of the two can be read as raw bytes.
+// TOML decodes escapes inside a *basic* string, so the bytes on the line
+// are not the value lychee compiles: `"^\\.git/"` reaches lychee as
+// `^\.git/`, and handing back the raw bytes would produce a regex meaning
+// something else entirely — non-empty, plausible, and wrong, which is the
+// one answer the caller cannot detect. A basic string carrying a
+// backslash is therefore refused. A *literal* string processes no escapes
+// at all, so its raw bytes are exactly its value and it is read as-is.
+//
+// That asymmetry decides how an anchored entry has to be written. Anchors
+// are the natural fix for an entry meant to name a directory, so the
+// shape is expected: `'^\.git/'` parses here, `"^\\.git/"` is refused,
+// and a refusal reaches the caller's emptiness check, which fails loudly.
+var (
+	lycheeExcludeBasic   = regexp.MustCompile(`^"([^"\\]*)",?$`)
+	lycheeExcludeLiteral = regexp.MustCompile(`^'([^']*)',?$`)
+)
 
 // parseLycheeExcludePaths extracts the `exclude_path` array from lychee's
 // TOML config. Hand-parsed rather than via a TOML dependency: the array
@@ -217,7 +234,10 @@ func parseLycheeExcludePaths(raw string) []string {
 		if line == "" || strings.HasPrefix(line, "#") {
 			continue
 		}
-		m := lycheeExcludeEntry.FindStringSubmatch(line)
+		m := lycheeExcludeBasic.FindStringSubmatch(line)
+		if m == nil {
+			m = lycheeExcludeLiteral.FindStringSubmatch(line)
+		}
 		if m == nil {
 			return nil
 		}
@@ -388,6 +408,47 @@ func TestM0317_LinksIntoWork(t *testing.T) {
 	}
 }
 
+// TestM0317_MarkdownLinkRegexShapes pins which CommonMark destination
+// forms markdownLinkRegex reaches.
+//
+// The pattern is shared by auditDanglingEntityRefs and by linksIntoWork
+// below, and its doc comment makes a behavioral claim about the titled
+// form that nothing else checks — a mutant widening the capture to admit
+// that form leaves the rest of the package green. The two unreached
+// shapes are recorded in G-0624, which carries whether to widen; this
+// test is what makes that gap's premise re-checkable rather than
+// remembered.
+func TestM0317_MarkdownLinkRegexShapes(t *testing.T) {
+	t.Parallel()
+
+	const dest = "work/gaps/G-0001-a.md"
+
+	tests := []struct {
+		name string
+		link string
+		want string // captured destination, or "" for no match
+	}{
+		{name: "bare destination", link: "[x](" + dest + ")", want: dest},
+		{name: "titled destination is not matched at all", link: `[x](` + dest + ` "t")`, want: ""},
+		{name: "pointy brackets are captured with the destination", link: "[x](<" + dest + ">)", want: "<" + dest + ">"},
+		{name: "empty destination is not matched", link: "[x]()", want: ""},
+		{name: "empty link text still matches", link: "[](" + dest + ")", want: dest},
+	}
+
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			t.Parallel()
+			var got string
+			if m := markdownLinkRegex.FindStringSubmatch(tc.link); m != nil {
+				got = m[1]
+			}
+			if got != tc.want {
+				t.Errorf("markdownLinkRegex on %q captured %q, want %q", tc.link, got, tc.want)
+			}
+		})
+	}
+}
+
 // TestM0317_FirstMatch pins that an exclude_path entry is matched as an
 // unanchored regular expression against the whole path, not as a
 // directory prefix.
@@ -403,10 +464,11 @@ func TestM0317_FirstMatch(t *testing.T) {
 	t.Parallel()
 
 	tests := []struct {
-		name    string
-		entries []string
-		path    string
-		want    bool
+		name      string
+		entries   []string
+		path      string
+		want      bool
+		wantMatch string // when set, the pattern firstMatch must report
 	}{
 		{
 			name:    "entry matches the directory it names",
@@ -433,16 +495,21 @@ func TestM0317_FirstMatch(t *testing.T) {
 			want:    true,
 		},
 		{
-			name:    "anchoring the same entry confines it to the directory",
-			entries: []string{"^work/"},
+			// No trailing slash, so only the anchor can do the work here:
+			// an implementation ignoring `^` would still match.
+			name:    "anchoring the same entry confines it to the path's start",
+			entries: []string{"^work"},
 			path:    "docs/workflows.md",
 			want:    false,
 		},
 		{
-			name:    "the first matching entry is the one reported",
-			entries: []string{"node_modules", "docs/research"},
-			path:    "docs/research/a.md",
-			want:    true,
+			// Two entries match, so a scan returning the last one instead
+			// of the first gives a different answer.
+			name:      "the first matching entry is the one reported",
+			entries:   []string{"docs", "docs/research"},
+			path:      "docs/research/a.md",
+			want:      true,
+			wantMatch: "docs",
 		},
 	}
 
@@ -453,8 +520,12 @@ func TestM0317_FirstMatch(t *testing.T) {
 			for _, e := range tc.entries {
 				patterns = append(patterns, regexp.MustCompile(e))
 			}
-			if got := firstMatch(patterns, tc.path) != nil; got != tc.want {
-				t.Errorf("firstMatch(%q, %q) matched = %v, want %v", tc.entries, tc.path, got, tc.want)
+			got := firstMatch(patterns, tc.path)
+			if (got != nil) != tc.want {
+				t.Fatalf("firstMatch(%q, %q) matched = %v, want %v", tc.entries, tc.path, got != nil, tc.want)
+			}
+			if tc.wantMatch != "" && got.String() != tc.wantMatch {
+				t.Errorf("firstMatch(%q, %q) reported %q, want %q", tc.entries, tc.path, got, tc.wantMatch)
 			}
 		})
 	}
@@ -541,7 +612,6 @@ func TestM0317_ParseLycheeExcludePaths(t *testing.T) {
 			raw:  "exclude_path = [\n]\n",
 			want: nil,
 		},
-		// The three shapes below are valid TOML that lychee honours. Each
 		// The shapes below are valid TOML that lychee honours. Refusing
 		// beats half-reading, because a short list is the one wrong answer
 		// the caller cannot detect.
@@ -551,8 +621,18 @@ func TestM0317_ParseLycheeExcludePaths(t *testing.T) {
 			want: nil,
 		},
 		{
-			name: "single-quoted literal",
-			raw:  "exclude_path = [\n  'docs/research',\n]\n",
+			// A TOML literal string processes no escapes, so its bytes are
+			// its value and it can be read as-is. This is the spelling an
+			// anchored entry has to use.
+			name: "literal string is read as its raw bytes",
+			raw:  "exclude_path = [\n  'docs/research',\n  '^\\.git/',\n]\n",
+			want: []string{"docs/research", `^\.git/`},
+		},
+		{
+			// A basic string decodes escapes, so its bytes are not its
+			// value; reading them raw would yield a different regex.
+			name: "basic string carrying an escape is refused",
+			raw:  "exclude_path = [\n  \"^\\\\.git/\",\n]\n",
 			want: nil,
 		},
 		{
@@ -570,7 +650,7 @@ func TestM0317_ParseLycheeExcludePaths(t *testing.T) {
 			// unreadable line. A parser that skipped the bad line would
 			// return the good one and look like a short-but-valid list.
 			name: "a readable entry followed by an unreadable one",
-			raw:  "exclude_path = [\n  \"work\",\n  'docs/research',\n]\n",
+			raw:  "exclude_path = [\n  \"work\",\n  \"docs/research\", # narrative\n]\n",
 			want: nil,
 		},
 		{
