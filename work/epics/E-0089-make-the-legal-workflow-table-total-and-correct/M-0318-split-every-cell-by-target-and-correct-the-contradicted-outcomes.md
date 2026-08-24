@@ -8,6 +8,9 @@ acs:
     - id: AC-1
       title: Rule carries a target and the enforced uniqueness key includes it
       status: open
+    - id: AC-2
+      title: Every legal cell's target agrees with entity.transitions, mechanically
+      status: open
 ---
 
 ## Goal
@@ -15,4 +18,6 @@ acs:
 ## Acceptance criteria
 
 ### AC-1 — Rule carries a target and the enforced uniqueness key includes it
+
+### AC-2 — Every legal cell's target agrees with entity.transitions, mechanically
 
