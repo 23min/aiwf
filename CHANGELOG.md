@@ -16,6 +16,24 @@ section in this file.
 
 ## [Unreleased]
 
+### Fixed — the retired-verb documentation scan no longer fails on the audit inventories
+
+Internal only; no user-visible change. The scan that keeps `aiwf rewidth` — retired by
+ADR-0039 — out of the docs a reader treats as current truth also walks
+`docs/initiatives/`, where two dated drift inventories report, and quote, the gap bodies
+still citing it. Both now carry a documentary-mention exemption, alongside the sibling
+inventory that already had one.
+
+The exemption list gained a guard of its own: an entry naming a file that has gone
+missing, or that has been reworded free of the verb's name, now fails rather than
+sitting there reading like live coverage. The scan skips any `archive/` directory, which
+is where the archival convention eventually moves a realized initiative, so without the
+guard such an entry would stop matching anything and say nothing.
+
+The sibling ban on `docs/pocv3` literals gained one exemption by the same reasoning: the
+gap filed here against *its* allowlist cannot state its finding without naming the
+literal that list exempts.
+
 ### Added — G-0616: `aiwf add epic` refuses off trunk
 
 An epic's activating promote must land on trunk (ADR-0010 Tier 1), so an epic
