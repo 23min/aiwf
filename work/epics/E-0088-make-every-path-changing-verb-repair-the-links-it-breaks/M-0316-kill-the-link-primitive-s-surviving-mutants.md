@@ -29,9 +29,17 @@ outlier: `linkregion.go` measures 70.4 survivors per thousand lines — the
 highest density in the kernel — with `linkrewrite.go` at 30.9, `pathrewrite.go`
 at 21.1 and `archive.go` at 19.1.
 
-The survivors are almost entirely conditional-boundary and conditional-negation
-mutants, which is the signature of a happy path under test and edges that are
-not. That matches the two defects E-0088's earlier milestones fix: both were
+`archive.go`'s share of that is not link code. Its link-rewriting functions —
+`planArchiveRewrites`, `linksIntoMove`, `archiveEntityMoves`, `entityBody`,
+`workingBodyAt` — have no survivors between them; the density comes from the
+archive verb's commit-message builder, planning path and git-status plumbing,
+which G-0630 owns. AC-1 measures the link primitive alone for that reason
+(D-0076).
+
+The link primitive's 19 survivors are 11 conditional-boundary, 4 invert-negatives
+and 4 arithmetic-base, with none surviving from conditional negation. The
+boundary majority is the signature of a happy path under test and edges that are
+not, and it matches the two defects E-0088's earlier milestones fix: both were
 edge cases that the existing tests walked past.
 
 This milestone runs last of the code milestones so the outbound paths M-0315
@@ -42,10 +50,16 @@ surface.
 
 ### AC-1 — Survivor density in the link subsystem meets the kernel baseline
 
-Survivor density across the four named files is at or below 7.7 per thousand
-lines, measured by the same gremlins invocation that established the baseline
-(`--workers 1 --timeout-coefficient 15`). The before and after numbers are both
-recorded with the command that produced them.
+Unexplained-survivor density across the link primitive — `linkregion.go`,
+`linkrewrite.go` and `pathrewrite.go`, 509 lines — is at or below 7.7 per
+thousand lines, measured by the same gremlins invocation that established the
+baseline (`--workers 1 --timeout-coefficient 15`). A survivor counts until it
+carries the equivalence argument AC-2 requires, so the bar cannot be met by
+assertion. The before and after numbers are both recorded with the command that
+produced them.
+
+`archive.go` is outside the denominator per D-0076: every one of its survivors
+is in the archive verb rather than the link primitive, and G-0630 owns them.
 
 ### AC-2 — Every remaining survivor is recorded as equivalent or tracked
 
@@ -88,5 +102,8 @@ with the code. Both traps produced false findings during E-0088's planning.
 ## References
 
 - E-0088 — the parent epic, which records the baseline and the per-file densities
-- `internal/verb/linkregion.go`, `linkrewrite.go`, `pathrewrite.go`, `archive.go`
+- D-0076 — why AC-1 measures the link primitive rather than the four named files
+- G-0630 — `archive.go`'s survivors, which are archive-verb code
+- `internal/verb/linkregion.go`, `linkrewrite.go`, `pathrewrite.go` — the surface
+  AC-1 measures; `archive.go` is measured for AC-2's accounting only
 - `.github/workflows/mutate-hunt.yml` — the invocation and why its flags are set
