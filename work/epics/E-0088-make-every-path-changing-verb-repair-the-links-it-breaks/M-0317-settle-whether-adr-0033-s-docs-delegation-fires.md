@@ -232,7 +232,7 @@ is not corrected above.
 most useful lesson.** Its claim — every docs file linking into `work/` is a file
 lychee reads — is not one this repo can check, because lychee is not available
 to the test suite. Pinning it meant re-implementing lychee's file selection in
-Go: a TOML parser and a regex matcher, some 580 lines. Four review rounds found
+Go: a TOML parser and a regex matcher, 573 lines. Four review rounds found
 four defects and every one was the same shape, the copy disagreeing with the
 original — a config reformat the parser mis-read, entries modelled as directory
 prefixes where lychee uses unanchored regexes, TOML escapes returned raw as a
