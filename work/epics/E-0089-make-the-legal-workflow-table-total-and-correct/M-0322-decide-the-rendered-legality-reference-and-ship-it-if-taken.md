@@ -10,6 +10,9 @@ acs:
     - id: AC-1
       title: The render decision lands before any render code
       status: open
+    - id: AC-2
+      title: If taken, the committed render matches a fresh render, enforced
+      status: open
 ---
 
 ## Goal
@@ -17,4 +20,6 @@ acs:
 ## Acceptance criteria
 
 ### AC-1 — The render decision lands before any render code
+
+### AC-2 — If taken, the committed render matches a fresh render, enforced
 
