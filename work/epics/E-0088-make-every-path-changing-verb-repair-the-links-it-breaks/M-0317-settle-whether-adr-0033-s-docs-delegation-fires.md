@@ -93,8 +93,8 @@ None. Independent of the other milestones and runnable at any point.
 ### AC-1 — A command shows whether doc-lint reports a docs-to-work link break
 
 **Both answers, at different addresses.** The check ADR-0033 names has no
-mechanical trigger; a check it never mentions covers the class · commit
-2a65981da · internal/policies green, 18 M-0317 cases
+mechanical trigger; a check it never mentions covers the class · measured at
+`origin/main` da34c1009
 
 **Environment.** Disposable clone of this repo at `origin/main` da34c1009,
 devcontainer Linux x86_64. lychee 0.24.2 — the version
@@ -133,8 +133,8 @@ resolves — which is equally why `work` sitting in that list does not blind it 
 docs-to-work links.
 
 **How much of the class is covered?** Bucketing every `docs/` file linking into
-`work/` by whether an `exclude_path` prefix shadows it: 78 links, 73 in files
-lychee reads. The five it does not read are all under `docs/archive/pocv3/`,
+`work/` by whether lychee reads it, with the read-set taken from
+`--dump-inputs`: 78 links, 73 in files lychee reads. The five it does not read are all under `docs/archive/pocv3/`,
 exempt by the Archival tier's forget-by-default convention rather than by
 oversight. The count excludes link shapes sitting inside code spans, which
 lychee does not resolve either — counting them reports 79 links and still 73
@@ -151,10 +151,11 @@ None of the eight carries a docs-to-work link today, so the figures above are
 unaffected — but the exclusion list is not doing what its shape suggests, and
 G-0625 carries whether to anchor it.
 
-That coverage figure is the half that can rot without a signal, so it is what the
-committed test pins. Adding a docs subtree to `exclude_path` takes its links out
-of the checked set while link-check keeps passing, because the links stop being
-read rather than starting to resolve.
+That coverage figure is the half that can rot without a signal: excluding a docs
+subtree takes its links out of the checked set while link-check keeps passing,
+because the links stop being read rather than starting to resolve. It is a dated
+observation rather than an invariant, and it is left as one — see `## Reviewer
+notes` for why the guard that pinned it was removed instead of repaired.
 
 ### AC-2 — The measured answer is routed to the gaps owning the docs half
 
@@ -198,151 +199,86 @@ check` 0 errors against a worktree-built binary, `AIWF_COVERAGE_BASE=1b73a9480
 make coverage-gate` exit 0. The measurement runs are recorded per-question under
 AC-1 rather than repeated here.
 
+## Deferrals
+
+Three gaps opened from what the measurement turned up. None is this milestone's
+to resolve — its Out of scope rules out changing `link-check`, the doc-lint
+ritual, or either owning gap's resolution shape.
+
+- **G-0625** — `.lychee.toml`'s `exclude_path` entries are unanchored regular
+  expressions, so `work` and `.git` between them drop eight Normative documents,
+  five of them accepted ADRs, from link-check. Nothing breaks today; the entries
+  do not do what their shape suggests.
+- **G-0624** — `markdownLinkRegex` does not match CommonMark's titled link form
+  and mis-captures the pointy-bracket one, and a second pattern in the same
+  package resolves the titled form differently. No tracked document uses either
+  shape today.
+- **G-0627** — the AC mechanical-evidence rule has no shape for an observational
+  claim, which is what produced this milestone's discarded machinery. See the
+  Reviewer notes below.
+
 ## Reviewer notes
 
-The measurement survived independent re-derivation: an outside reviewer rebuilt
-the `exclude_path` semantics from its own lychee fixture, reproduced the
-three-error red run at `da34c1009`, confirmed the exempt five under
-`docs/archive/pocv3/`, and wrote a separate link scanner that agreed with
-`linksIntoWork` across all of `docs/`. It also confirmed the G-0478 retitle broke
-no inbound path-link — the failure mode this epic exists to close did not fire on
-the change that closes it.
+The measurement survived four independent re-derivations. Reviewers rebuilt the
+`exclude_path` semantics from their own lychee fixtures, reproduced the
+three-error red run at `da34c1009`, the 3-to-9 retitle experiment, the
+`CHANGELOG.md` attribution and the 78/73/5 counts with independently written
+scanners, and confirmed the G-0478 retitle broke no inbound path-link — the
+failure mode this epic exists to close did not fire on the change that closes
+it. No figure in the finding survived unchecked, and none was found wrong that
+is not corrected above.
 
-Three blocking defects came back, all in the pinning and the prose rather than in
-the finding.
+**The AC-1 guard was removed rather than repaired, and that is the milestone's
+most useful lesson.** Its claim — every docs file linking into `work/` is a file
+lychee reads — is not one this repo can check, because lychee is not available
+to the test suite. Pinning it meant re-implementing lychee's file selection in
+Go: a TOML parser and a regex matcher, some 580 lines. Four review rounds found
+four defects and every one was the same shape, the copy disagreeing with the
+original — a config reformat the parser mis-read, entries modelled as directory
+prefixes where lychee uses unanchored regexes, TOML escapes returned raw as a
+different regex, and finally a second array, `exclude`, that silences the whole
+class in one line and that the model did not cover at all. Each fix was correct
+and each left the next one waiting.
 
-**The guard was disarmed by reformatting the file it reads.** Rewriting
-`.lychee.toml`'s array onto one line is a semantic no-op that lychee honours; the
-hand-rolled parser read it as a single bogus entry, and the check passed green
-while 68 links went unread. Single-quoted literals and a trailing comment
-defeated it per-entry the same way. The parser now reads exactly one spelling and
-refuses every other, routing them to the emptiness check that fails. The
-asymmetry is deliberate: a parser that recovers a partial list from an unfamiliar
-shape hands back something indistinguishable from a genuinely short list.
+The measured cost decided it: 682 lines of test against five lines of production
+change, four of them a corrected comment. A second implementation of another
+tool's behaviour is a second source of truth, and this one was kept honest only
+by repeated adversarial review. The coverage figure is a dated observation, so it
+is recorded as one.
 
-**The guard's firing path was dead in the committed suite.** Every prefix
-`exclude_path` shadows today is either work-link-free or the exempt archival one,
-so the arm that reports a violation was reached only under a hand-applied
-mutation. Correctness had been demonstrated and then reverted, which pins
-nothing. `TestM0317_DocsFilesLinkingIntoWork` drives the walk over a fixture
-tree; a panic injected into each of the four firing arms is now reached by the
-committed suite. Worth stating plainly because no gate here could have caught
-it: the whole addition is a `_test.go` file, which Go does not instrument, so the
-diff-scoped coverage gate is green and silent on all of it.
+The claim that guard pinned was never AC-1's. AC-1 asks for a measurement, and a
+measurement cannot break — the command either was run and reported what it
+reported, or it was not. The invariant was invented to satisfy the
+mechanical-evidence rule, and then machinery was built to pin the invention. That
+is a defect in the rule rather than in this milestone alone: it presumes every
+criterion asserts a standing property, and its escape hatch — restate the AC so
+something mechanical can carry it — does not distinguish narrowing a claim from
+substituting a proxy for it. G-0627 carries that, including the discriminator
+that seems to hold: a claim re-derivable from artefacts the test can reach takes
+a test, and one that records an observation of something outside the repository
+takes the four-part record instead. AC-1 stays `met` on that record; the honest
+evidence for a measurement is its reproducibility, not a tripwire.
 
-**A sentence written to correct the ADR was itself false**, in the milestone whose
-deliverable is factual accuracy. It claimed lychee runs over "every tracked
-markdown file on markdown-touching pushes and PRs": the config's ten
-`exclude_path` entries remove a great deal including the whole of `work/`, and
-the push trigger is `branches: [main]` only. Both corrected, in the ADR and in
-G-0478, which carried the same sentence.
+What survives is what checks our own artefacts rather than modelling someone
+else's. `TestM0317_AC2_…` compares ADR-0033's citations against the tree and has
+been defect-free throughout. `TestM0317_MarkdownLinkRegexShapes` pins the
+behaviour of a production pattern whose comment this milestone corrected, and
+makes G-0624's premise re-checkable.
 
-Two judgment findings accepted rather than declined. The ADR's "a CI gate rather
-than an advisory one" over-claimed on trunk-based flow where no PR is required
-and the gate blocks no merge — softened, and G-0478 now says the first run that
-can see a break is the one after the merge to `main`. And the coverage figure was
-79/74, counting a link inside a code span that lychee does not resolve; the
-lychee-true figure is 78/73, corrected in AC-1 with the discrepancy named.
+Findings taken along the way, and worth keeping: ADR-0033's description of
+`link-check` was wrong twice before it was right — the glob does not reach
+dot-directories, `exclude_path` is regex-matched, and there are three triggers,
+not two. The accidentally-excluded document count is eight Normative, the ninth
+being `docs/working-paper.md`, which the Exploratory tier exempts anyway. G-0625
+holds the exclusion-list decision, G-0624 the link-pattern one, and G-0478 gained
+a third resolution option nobody had weighed: `auditDanglingEntityRefs` already
+resolves this class at policy-suite tier over a two-entry list, and its own
+comment invites extension.
 
-Declined: renaming the two `LinksIntoWork` subtests that say a suffix "is split"
-after the split was deleted. The assertions still pin real behaviour — a mutant
-narrowing the capture kills exactly those two — so the names are inaccurate about
-mechanism, not about outcome, and D1 pins behaviour rather than implementation.
-
-Not adopted here, recorded instead: `markdownLinkRegex` does not match
-CommonMark's titled `[text](path "title")` form, contrary to what its comment
-claimed. No tracked document uses that form, so nothing is missed today; widening
-it would change what `auditDanglingEntityRefs` scans, which is a decision this
-milestone should not make. The comment now states what is so and G-0624 carries
-the decision.
-
-The milestone's `## Context` still frames the question as open. That is the
-plan-time premise explaining why the work was scoped, and the answer lives in the
-Work log; restating it in both places would fork the finding into two copies.
-
-A second independent pass over the full change-set found the model underneath the
-guard wrong, and with it two derived numbers.
-
-**`exclude_path` entries are regular expressions, not directory prefixes.**
-`lychee --help` says so and `--dump-inputs` confirms it: `work` reaches
-`docs/workflows.md`, and `.git` reaches `ADR-0008-…-4-digits.md` through the
-`igit` inside "digits". The guard bucketed entries by a `docs/` prefix and walked
-only what it judged shadowed, so a work-link added to any of the nine affected
-files left it green — the precise failure it exists to catch, demonstrated by
-adding one to `docs/workflows.md`. It now compiles each entry and matches it
-against every candidate path, keying the archival exemption on the linking file
-instead of the entry; the same probe fails, and the same link under
-`docs/design/` still passes. `TestM0317_FirstMatch` pins the semantics, and a
-mutant swapping the match back to a prefix test dies.
-
-That the primary figures were right anyway is luck rather than method: none of
-the nine carries a docs-to-work link. The naive count was reported as 79 and 74
-and is 79 and 73, because the code-span link it counts sits in ADR-0008, which
-lychee does not read. The read-set is now taken from `--dump-inputs` rather than
-inferred. G-0625 carries the exclusion list itself, which is the larger finding
-underneath: five accepted ADRs and `docs/workflows.md` are outside link discipline
-by accident of substring.
-
-**The parser had a second escape.** It terminated the array at the first `]`
-byte, which a bracket inside an in-array comment satisfies — truncating the list
-and leaving a fragment that still parses, so the caller received a short list
-rather than the refusal it can detect. It now requires a line that is exactly
-`]`. The refusal semantics were also unpinned: flipping `return nil` to
-`continue` passed the whole suite, because every strictness case held only
-unreadable lines. A mixed case closes that, and the mutant now dies.
-
-Two dispositions changed on reflection. The subtests naming a suffix "split"
-were renamed after all — the prior round declined on the ground that they pin
-behaviour, which stands, but they contradicted `linksIntoWork`'s own doc comment
-eight lines above, and two comments in one file disagreeing is its own defect.
-The vacuous "empty destination" case was dropped rather than kept as
-documentation: `[nothing]()` never matches the pattern, so it exercised no arm
-and widening the capture to `*` left the suite green. The anchor and query cases
-collapsed to one, since no mutant killed either alone.
-
-G-0624 also now records the pointy-bracket destination `[x](<path>)`, which fails
-in the opposite direction from the titled form: it matches, but the capture keeps
-the delimiters, so a valid link reads as unresolvable. Both measured.
-
-A third pass found the same class a third time, and the trigger was a change this
-milestone itself proposes. TOML decodes escapes inside a basic string, so the
-bytes on an `exclude_path` line are not the value lychee compiles: `"^\\.git/"`
-reaches lychee as `^\.git/`, and the parser returned the raw bytes, yielding a
-regex that matches nothing the intended one matches — non-empty, plausible, and
-wrong, which is the single answer the caller cannot detect. Demonstrated as a
-live false green. It matters immediately rather than theoretically because
-anchoring is what G-0625 proposes, so the next edit to this config would have
-tripped it.
-
-The parser now splits the two TOML string forms on the property that actually
-distinguishes them: a literal string processes no escapes, so its bytes are its
-value and it is read as-is; a basic string carrying a backslash is refused. That
-also corrects a decision from the first round, where single-quoted entries were
-refused as merely unfamiliar — they are the one form that is always safe to read
-raw, and they are the spelling an anchored entry has to use, since `"^\.git/"` is
-not loadable TOML at all.
-
-Three smaller corrections. The count of accidentally-excluded documents was
-nine in the milestone and the gap while the test comment beside it said eight;
-eight is right for Normative tier, the ninth being `docs/working-paper.md`, which
-the Exploratory tier already exempts — the change-set was contradicting itself.
-G-0625's proposed spelling `"^\.git/"` does not load, corrected to the literal
-form, and its scope now names the parser as well as the matcher. And a
-half-applied edit of mine had shipped two overlapping comment sentences.
-
-Two findings taken from the round's track-for-later, both the same shape as
-things earlier rounds treated as blocking. Two `FirstMatch` cases claimed more
-than they tested — the anchored case passed with anchors ignored, because a
-trailing slash was doing the work, and the first-match case passed a
-return-the-last-match mutant because only one entry matched. Both now
-discriminate. And `markdownLinkRegex`, whose corrected comment is the only
-production change in this milestone, was unpinned across the whole package: a
-mutant admitting the titled form — directly falsifying that comment — left the
-suite green. `TestM0317_MarkdownLinkRegexShapes` pins all four shapes, which also
-makes G-0624's premise re-checkable rather than remembered.
-
-Carried into G-0478 rather than fixed: the sweep for existing detectors missed
-one. `auditDanglingEntityRefs` already resolves path-form entity references at
-policy-suite tier over a two-entry list, and its own comment invites extension —
-a materially cheaper option than the gap's argument had weighed, and the only
-detector covering `ROADMAP.md`, which lychee excludes outright.
+Declined, so the next reviewer meets a decision rather than a blank. The
+milestone's `## Context` still frames the question as open: that is the plan-time
+premise explaining why the work was scoped, and the answer lives in the Work log,
+so restating it in both places would fork the finding. And the `exclude` array's
+ability to silence the class in one line is left unguarded rather than modelled —
+it is real, it is measured above, and guarding it would rebuild exactly what was
+just removed. It belongs with G-0625, which owns the config.
