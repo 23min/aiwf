@@ -386,6 +386,12 @@ E-0076" (cancelled), "until G-0557 lands" (addressed), "ADR-0003 is accepted"
 (rejected). *Ban-shaped. Will fire on the existing bodies: ship at warning, sweep,
 then promote to error.*
 
+The status resolver is the narrowest slice and is filed as **G-0626**, which
+measures the shape and locates the fix: `BodyProseIDIndex` already resolves each
+body citation to the cited `*entity.Entity`, and the status that entity carries is
+never read. Mint the finding code subcoded from the start, so the remaining
+resolvers widen it by subcode rather than by minting further codes.
+
 **T1.2 — Three one-liners.** Best ratio in the list.
 - Add `TODO.md` to `aiwf.yaml`'s `docs.paths` (currently `[README.md,
   docs/workflows.md]`, `strict: true`). 175 ids in that file are checked by nothing.
@@ -399,6 +405,16 @@ then promote to error.*
 before allocating an id. G-0562 and G-0578 name one call site, filed five days apart,
 neither referencing the other; G-0580 and G-0618 are the same shape. *The only item
 in this list that reduces the number of gaps filed.*
+
+**T1.4 — Cite a record for its holding, not its content.** When another record's
+claim is load-bearing on what you are writing, name the record and state what fails
+here if that claim is wrong; do not reproduce the claim, or the reasoning behind it.
+The test is whether a correction to the cited record would leave the sentence
+needing an edit — if it would, it is a copy. Folds into the embedded guidance's
+existing *Keep the reasoning; derive the facts* bullet rather than adding one, and
+that bullet already carries an `m0211-guidance-operating-anchors` entry, so the rule
+is protected without a new anchor. *Attacks the contagion amplifier — which is why
+the copies are unfindable today, per Tier 3. Ban-shaped; costs once.*
 
 ### Tier 2 — real, but costlier
 
@@ -469,7 +485,27 @@ not say. T2.3 converts the quoted subset; the paraphrased remainder is unreachab
 A grep can flag them for a human; nothing can judge them.
 
 **Contagion.** Nothing can tell that a sentence was lifted from a record rather than
-re-derived. The control is fixing sources, not copies.
+re-derived. The control is fixing sources, not copies — which requires that the
+copies be findable, and they are not. G-0333's copy cites
+`internal/verb/promote.go:171`, not the package doc it was lifted from, and never
+names G-0422, which corrected the claim on 2026-07-18.
+
+Verifying a cited record before citing it was weighed and rejected. Measured
+2026-08-24: open gap bodies carry 779 citations across 134 of 167 gaps, a mean of
+5.9 per citing gap — roughly six verifications per gap filed, and 779 to retrofit,
+which is the mandate shape H3 warns against. It also misses the carriers: of the
+four instances above, one has a Go package doc as its source and two have non-gap
+targets, so a rule scoped to gap citations fires on at most one. And a verification
+is a claim about a moment — one instance measured here expired 2 hours 34 minutes
+after it was written.
+
+The write-side control that *is* reachable is T1.4.
+
+The entity citation graph offers no leverage of its own: measured the same day, 287
+distinct targets for those 779 citations, mean 2.7, most-cited target 11. There is
+no hub set among entities to fix. The one instance traceable end to end had a Go
+package doc as its hub, which points at package docs and design-doc prose as where
+a false universal reaches the most readers.
 
 **Wrong causal stories.** "An accident of function signature" for what is a declared,
 AC-pinned layering boundary. Nothing greps for a wrong explanation.
