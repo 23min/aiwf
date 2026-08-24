@@ -17,7 +17,7 @@ If the milestone isn't actually done — failing tests, unmet ACs, broken build 
 
 ### 1. Verify completion
 
-- Re-read the milestone spec. Walk every AC in frontmatter `acs[]`. Confirm each has at least one test that exercises it green.
+- Re-read the milestone spec. Walk every AC in frontmatter `acs[]`. Confirm each has at least one test that exercises it green — or, where the AC claims an observation rather than a standing property, so that nothing about it can later break, the record that makes it re-runnable: the command, the result expected, the output observed, and the environment it ran in.
 - Run `aiwf show M-NNNN`; confirm every AC's `status` is terminal (`met`, `deferred`, or `cancelled`) — none `open`. Under `tdd: required`, also confirm every `met` AC has `tdd_phase: done` (the kernel's `acs-tdd-audit` will surface it otherwise).
 - Run `aiwf check`. **Zero error-severity findings on the milestone.** The relevant codes: `acs-shape`, `acs-tdd-audit`, `milestone-done-incomplete-acs`, `acs-body-coherence`. Warnings (e.g. `acs-body-coherence`) are advisory but worth resolving before wrap.
 - Run the full test suite. **All pass.**

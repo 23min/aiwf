@@ -58,7 +58,8 @@ This skill is the **per-diff gate**. For whole-codebase structural and operation
 
 ### 5. Tests
 
-- A test exists for the new or changed behavior — every acceptance criterion if AC-driven, otherwise every behavioral change.
+- A test exists for the new or changed behavior — every acceptance criterion if AC-driven, otherwise every behavioral change. An acceptance criterion that claims an observation rather than a standing property is the one exception: nothing about it can later break, so its evidence is the record of the command, the expected result, the observed output and the environment, not a test.
+- Where an acceptance criterion is backed by a test, the test asserts the criterion's own claim. An assertion that pins a different, checkable claim standing in for it is **blocking** — it reads as evidence while leaving the criterion unpinned.
 - **Branch coverage:** every reachable conditional branch in the diff has at least one test exercising it. This is an **agent-performed** manual branch-walk (see `wf-tdd-cycle` § "Branch-coverage audit" — same hard rule), not a tool run: a project's mechanical coverage gate is typically **statement**-level, so this walk is what supplies the branch-level assurance. "Hard rule" means you must perform the walk, not that a tool enforces it at branch granularity.
 - Tests are deterministic.
 - Tests cover happy path *and* edge cases.
@@ -92,7 +93,7 @@ Classify each finding on **two** axes. They answer different questions, and both
 
 **Urgency — when does it get handled?**
 
-- **Blocking** — must be fixed before the change merges. Correctness, constraint violations, missing tests for AC, security issues. A judgment finding blocks only when it violates a rule the project has written down; otherwise it is track-for-later or non-issue.
+- **Blocking** — must be fixed before the change merges. Correctness, constraint violations, missing evidence for an AC, security issues. A judgment finding blocks only when it violates a rule the project has written down; otherwise it is track-for-later or non-issue.
 - **Track for later** — worth recording somewhere durable (the project's gap log, an issue, a ticket), not this change's scope. Note rough sizing if useful.
 - **Non-issue** — acknowledged, no action.
 

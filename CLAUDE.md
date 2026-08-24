@@ -149,7 +149,17 @@ If you use the devcontainer (see [`.devcontainer/README.md`](.devcontainer/READM
 
 ## AC promotion requires mechanical evidence
 
-Before `aiwf promote M-NNNN/AC-<N> met`, there must be a mechanical assertion that fails if the AC's claim breaks — a Go test under `internal/policies/`, a kernel finding-rule, or a fixture-validation script. *"I read it and it looks right"* is not evidence. This applies **even to `tdd: none` milestones**: the `tdd:` policy only controls whether `acs-tdd-audit` fires; it never waives the test obligation. For doc-shaped ACs, the test is a structural assertion scoped to a named markdown section (see §"Substring assertions are not structural assertions") — except over a shipped surface, where D-0070 rules that class out and the evidence has to be a relationship check or a shape claim instead. An AC whose only available evidence would be a phrase assertion over shipped prose is an AC stated at the wrong level; restate what it guarantees so something mechanical can carry it. The chokepoint is the AC-promote command.
+Before `aiwf promote M-NNNN/AC-<N> met` there must be evidence, and which evidence depends on what the AC claims.
+
+**Most ACs claim a standing property** — code produces X for input Y, one artefact agrees with or cites another, the tree has a shape. Such a claim is asserted to hold from now on, so it can break, and its evidence is a mechanical assertion that fails when it does: a Go test under `internal/policies/`, a kernel finding-rule, or a fixture-validation script. *"I read it and it looks right"* is not evidence. This applies **even to `tdd: none` milestones**: the `tdd:` policy only controls whether `acs-tdd-audit` fires; it never waives the test obligation. For doc-shaped ACs, the test is a structural assertion scoped to a named markdown section (see §"Substring assertions are not structural assertions") — except over a shipped surface, where D-0070 rules that class out and the evidence has to be a relationship check instead.
+
+**Some ACs claim an observation** — a command was run against something the test suite cannot reach, and reported what it reported. That claim cannot subsequently break: the command either ran and returned what it returned, or it did not, and there is nothing left for an assertion to watch. Its evidence is the record the observation itself specifies — the command, the result expected, the output observed, and the environment it ran in — written into the milestone where a later reader can re-run it. Re-running is the only re-checking available here, and the record is what makes it possible.
+
+**The discriminator is re-derivation.** Can the claim be re-derived from artefacts a test can reach? Yes — assert it. No — record it.
+
+**Never satisfy this rule with a proxy** — a different, checkable claim written in place of the one the AC made. A proxy is worse than no check at all, because it reads as evidence. The escape hatch is where proxies enter: an AC whose only available evidence would be a phrase assertion over shipped prose is stated at the wrong level, and *restating* it has two outcomes the escape does not distinguish — narrowing the claim to what is honestly checkable, or substituting something checkable for it. Only the first is a restatement. The second means the claim is observational, so keep it and record it. Feasibility does not settle the question: a proxy can be built faithfully and still be the wrong thing to build, so ask not *can I pin this?* but *am I pinning what was claimed?*
+
+The moment the rule binds is the AC-promote command. No gate in the verb enforces it — the obligation is carried at review.
 
 ---
 
