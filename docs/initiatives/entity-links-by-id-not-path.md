@@ -32,12 +32,17 @@ because a path is clickable on GitHub and in an editor, and a bare id is not.
 That single convenience is the origin of an entire subsystem. Measured
 2026-08-24 at `419a0890a`:
 
-- **414 lines** of production code across `internal/verb/linkregion.go` (142)
-  and `linkrewrite.go` (272). E-0088 names `pathrewrite.go` alongside them, but
-  its 95 lines compute an entity's new *filename* from an id and slug and never
-  read a markdown link — a rename needs them whatever the link format is, so
-  they are not a cost of this convenience.
-- **2,343 lines** of link-specific tests beside them.
+- **502 lines** of production code in the files that exist only to repair links:
+  `internal/verb/linkregion.go` (142), `linkrewrite.go` (272) and
+  `linkrewrite_ops.go` (88, the walk that plans a rewrite across the tree).
+  E-0088 names `pathrewrite.go` alongside these, but its 95 lines compute an
+  entity's new *filename* from an id and slug and never read a markdown link — a
+  rename needs them whatever the link format is, so they are not a cost of this
+  convenience.
+- **2,182 lines** of tests, being every `*link*_test.go` in `internal/verb`.
+  Mostly verb-level rather than unit tests, since that is where link repair is
+  observable. `pathrewrite_test.go` is excluded to match the production rule;
+  including it would give 2,343.
 - **Five verbs** wired through it: `archive`, `rename`, `retitle`, `reallocate`,
   `move`.
 - One accepted ADR (ADR-0033), one extension ADR (ADR-0046), one epic (E-0088)
@@ -45,9 +50,10 @@ That single convenience is the origin of an entire subsystem. Measured
   verbs deliberately do not reach.
 
 The largest single component is **masking**: deciding which spans of a document
-may be edited at all. That is all of `linkregion.go` — 142 of the 414 lines,
-more than either of the two jobs `linkrewrite.go` does (resolving a destination
-to a comparable path, and rendering it back in the flavour it was written in).
+may be edited at all. That is all of `linkregion.go`, more than either of the two
+jobs `linkrewrite.go` does (resolving a destination to a comparable path, and
+rendering it back in the flavour it was written in) and more than the tree walk
+in `linkrewrite_ops.go`.
 Fenced code blocks, inline code spans, and the boundaries of a link destination
 all have to be recognized, because a document about links contains text that
 looks exactly like links and must survive byte-identical. A naive rewriter is
@@ -120,10 +126,12 @@ See [G-0478][] and [ADR-0033][] for the specification.
 
 Both are ordinary CommonMark and should render as clickable links wherever the
 full spec is supported; §6 records what still has to be checked about GitHub
-specifically. The two destinations above resolve today and will not stay that
-way: they sit inside a fenced block, which the rewriter masks by design, so the
-next move of either target leaves them naming nothing — this document's subject,
-demonstrated on itself. The prose carries only ids; **every path in the document sits in
+specifically. The destinations above resolve today and will not stay that way,
+and the reason is this document's subject demonstrated on itself: the rewrite
+walk iterates the loaded tree's entities, and a file under `docs/initiatives/` is
+not an entity, so no verb rewrites any link here — not the fenced ones above, nor
+the inline illustration in §1. A move of either target leaves every destination
+naming it pointing at nothing. The prose carries only ids; **every path in the document sits in
 one block, at the bottom, in a fixed syntactic form** (`[label]: destination`,
 at line start).
 
@@ -132,7 +140,7 @@ What that changes:
 - A mover **regenerates the block** from the id-to-path map the loader already
   computes. It never scans prose again.
 - **The masking machinery becomes unnecessary** — `linkregion.go` entire, the
-  largest single component of the 414. Fences, inline code spans and destination
+  largest single component of the subsystem. Fences, inline code spans and destination
   boundaries stop mattering, because nothing edits prose. A derived block is
   replaced wholesale.
 - It is single-source-of-truth applied properly: the id is the fact, the path is
@@ -155,6 +163,7 @@ than vanishing.
 | Does a generated definition block survive human editing in practice? | If authors hand-edit the block, it stops being derived and becomes a second source of truth — the exact failure mode it was adopted to avoid. |
 | Does GitHub's renderer handle the collapsed form `[G-0478][]` consistently in every surface that matters (file view, PR diff, blame)? | Unverified. Worth measuring before committing, not assuming. |
 | Do G-0478 and G-0439 close under this, or persist? | Both concern links from `docs/` into `work/`. A generated block reaches those files only if `docs/` is in scope for the generator, which ADR-0033's second bullet currently forbids for verbs. |
+| Does lychee extract destinations from inside a fenced block or an inline code span? | Decides whether `link-check` reports the rot in §5's own example, or whether nothing does. Not measured — lychee is not installed here; `lychee --dump-inputs` plus a fixture carrying both shapes would settle it. |
 
 ## 7. Relationship to E-0088
 
