@@ -39,7 +39,8 @@ unknown --epic is refused, never converged.
 Markdown links in other entity bodies that point at the moved milestone are
 rewritten to its new path in the same commit. Those bodies are part of the
 move's write set, so an uncommitted edit to any of them refuses the move,
-naming the file. The moved milestone's own outbound links are not rewritten.`,
+naming the file. The moved milestone's own relative links are recomputed against
+its destination directory in the same write, so they keep naming the same files.`,
 		Example: `  # Reparent M-007 under epic E-04
   aiwf move M-007 --epic E-04`,
 		Args:          cobra.ExactArgs(1),

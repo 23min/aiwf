@@ -73,6 +73,27 @@ func TestSubstituteNamePart(t *testing.T) {
 			mode:        substituteSlugMode,
 			wantErr:     true,
 		},
+		{
+			// A hyphen at index 0 is a found prefix separator, not a
+			// missing one: the split proceeds and the empty id prefix is
+			// preserved. Rejecting it would report "no id prefix" for a
+			// name that has one, just an empty one.
+			name:        "leading hyphen splits with an empty id prefix rather than erroring",
+			nameArg:     "-foo-bar",
+			replacement: "new-slug",
+			mode:        substituteSlugMode,
+			want:        "-foo-new-slug",
+		},
+		{
+			// The second hyphen sitting immediately after the first is
+			// still a second hyphen, so the name splits rather than
+			// falling back to the no-slug branch that appends.
+			name:        "doubled hyphen splits at the second, leaving an empty slug segment",
+			nameArg:     "E--slug",
+			replacement: "new-slug",
+			mode:        substituteSlugMode,
+			want:        "E--new-slug",
+		},
 	}
 	for _, tc := range cases {
 		t.Run(tc.name, func(t *testing.T) {
