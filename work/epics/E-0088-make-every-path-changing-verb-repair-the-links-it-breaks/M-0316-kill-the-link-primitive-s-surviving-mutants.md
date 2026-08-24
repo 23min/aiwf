@@ -9,7 +9,7 @@ tdd: none
 acs:
     - id: AC-1
       title: Survivor density in the link subsystem meets the kernel baseline
-      status: open
+      status: met
     - id: AC-2
       title: Every remaining survivor is recorded as equivalent or tracked
       status: open
