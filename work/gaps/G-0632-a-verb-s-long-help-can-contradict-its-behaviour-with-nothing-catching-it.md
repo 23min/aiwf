@@ -19,9 +19,13 @@ pins end to end. The sentence was false from the moment M-0315 landed and stayed
 that way until a reader happened to run `aiwf move --help` while working on
 something else. Corrected in `61abf68c5`.
 
-Nothing caught it, and nothing would have: no test in the tree reads any
-command's `Long`, and the ones that read `--help` output check flag and verb
-*presence* for completion coverage, never the prose.
+Nothing caught it, and nothing in the tree's current shape would have. Tests that
+read a command's `Long` do exist — several assert that a particular phrase is
+present in one command's help, and a policy test walks every command's `Long`,
+`Short` and `Example` to ban one. All of them ask whether a phrase is present or
+absent. None binds a claim in the prose to the behaviour that claim describes,
+which is the only shape that could have caught a sentence saying links are *not*
+rewritten standing beside a test asserting they are.
 
 ## Why it matters
 
@@ -55,9 +59,18 @@ both can read, which in practice means a small structured table of
 claim-to-test bindings rather than prose matching. Real, and not free.
 
 **A prose assertion over the `Long`** (grep for the sentence) is the tempting
-cheap version and is ruled out by D-0070's reasoning: pinning a phrase pins one
-reading, rewording breaks it, and the check tests the words rather than the
-claim. It would have caught this specific sentence and nothing else.
+cheap version, and it is what the presence-asserting tests above already do.
+D-0070 retired that shape, but over a named surface set — skill and ritual
+bodies, templates, agent cards, the guidance fragment — which a Cobra `Long` is
+not part of, which is why those tests pass CI. Its *reasoning* still reaches this
+case: pinning a phrase pins one reading, rewording breaks it, and the check tests
+the words rather than the claim. It would have caught this specific sentence and
+nothing else.
+
+The policy walk is a different instrument and not an alternative here. A ban is
+paid for once and catches a whole class, which is why it survives where presence
+assertions were retired — but no ban can express *this sentence agrees with that
+behaviour*, which is the property that went wrong.
 
 **Recording the boundary** — that `Long` prose is held at review, not
 mechanically — is the third option and is defensible if the first is judged too
