@@ -1,7 +1,7 @@
 ---
 id: M-0316
 title: Kill the link primitive's surviving mutants
-status: draft
+status: in_progress
 parent: E-0088
 depends_on:
     - M-0315
