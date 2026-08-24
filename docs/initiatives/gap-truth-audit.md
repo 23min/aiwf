@@ -321,7 +321,8 @@ appear somewhere in this audit's findings, across 206 mentions. Every closure ca
 invalidate a claim in the ~140 gaps still open, and nothing tells them: G-0599
 closing is why G-0548 went stale, G-0617 closing is why G-0073's own closing
 condition is already met, G-0559 closing is why G-0517 and G-0560 both carry a dead
-sequencing premise. The backlog's own throughput is a drift source.
+sequencing premise. The backlog's own throughput is a drift source. The half anyone
+wrote down is reachable and is T1.5; Tier 3 prices the rest.
 
 ### The toolchain that produced any of this is not recorded
 
@@ -420,6 +421,74 @@ that whole route undecided. Should G-0606 settle that the route is legitimate,
 pinning this rule is a one-line follow-on. *Attacks the contagion amplifier — which
 is why the copies are unfindable today, per Tier 3. Ban-shaped; costs once.*
 
+**T1.5 — Tell both sides of a closure, in three layers.** Filed as G-0628. One
+design, not three options: each layer supplies what only it can, and the shape follows
+this repo's own rule that skills are advisory and `aiwf check` is authoritative.
+
+- **The verb supplies the facts.** `aiwf promote <id> <terminal>` prints the open
+  records whose bodies cite the id it just closed. Near-free, since the work is already
+  done and thrown away — `promote` runs `projectionFindings`, which calls `check.Run`,
+  which reads every body through `bodyProseID` and resolves each citation against
+  `BodyProseIDIndex`. It fires on a bare promote too, which matters because roughly a
+  quarter of closures are bare.
+- **The ritual supplies the prompt for judgment**, in the closure step both `wf-patch`
+  and `aiwfx-wrap-milestone` already carry: does closing this invalidate anything in
+  the records the verb just named, and if so `aiwf edit-body` them now. This is the
+  only layer that can capture what is perishable. The diff survives in git forever;
+  the closer's understanding of what it implies survives for about a minute.
+- **The check supplies the guarantee.** A body citing an entity that went terminal
+  *after* that body was last written is a finding, derived from two commit dates and
+  stored nowhere. It catches what the first two layers missed and what drifts later,
+  and it clears when the body is edited — so the only way to silence it is to do the
+  work. No acknowledgement record, nothing minted per instance.
+
+*Measured 2026-08-24: 36 of the 161 open gaps with a known body-write date cite an
+entity that went terminal afterwards. Over the 224 gaps closed since 2026-06-25, the
+verb notice would print nothing for 160, name one record at the median where it prints
+at all, and four at most — an undercount, since it uses the open set as it stands now
+rather than as it stood at each close.*
+
+Two things this does not claim. It reaches only the half of the closure-throughput
+amplifier that someone wrote down as a citation; Tier 3 prices the rest. And a body
+edited for an unrelated reason clears the finding without anyone having looked, so the
+check is a prompt with natural decay rather than proof of review — the ceiling on
+every mechanism in this class.
+
+Sequencing: the check layer is not a second build on T1.1's status resolver — it is
+that resolver's only deterministic form, so the two are one rule minting one finding
+code. Measured 2026-08-24 over the 170 open gaps: a body citing *any* terminal entity
+fires 568 times across 114 of them, unusable as a check, and the filter that narrows it
+to deferral phrasing reads prose. The body-write date is what makes the resolver
+usable, and it is the check layer.
+
+The same date carries a second property, measured the same day. A record reporting a
+closure is necessarily written after it, so the rule cannot fire on the report: the
+three gaps whose subject is this defect draw no findings from their own bodies. A rule
+keyed on prose would need a sanctioned way to quote a defect while reporting it; this
+one needs none.
+
+It lands as two patches rather than an epic. The layers are independently valuable and
+do not interlock — the check is the guarantee and stands alone, the notice and the
+prompt are speed-ups on top — so the atomic wrap a milestone buys has nothing to hold
+together, and an epic would mint two planning entities for work that needs none. The
+bar each patch answers to is `wf-patch`'s own: land the check that pins the fix, or
+state the escape at the commit gate.
+
+1. **The rule, minted subcoded.** A body citing an entity that went terminal after that
+   body was last written. One subcode exists at this point; the structure is what
+   T1.1's remaining resolvers need, and retrofitting it after a narrow code ships is
+   the expensive path. Ships at warning against the hits measured above, swept, then
+   promoted to error — the sequence T1.1 already specifies. Closes G-0626; leaves
+   G-0628 open on its other two layers.
+2. **The verb notice and the ritual prompt, together.** The prompt reads "act on what
+   the verb just named", so it says nothing without the notice; splitting them ships a
+   ritual step referring to output that does not exist. Closes G-0628.
+
+What stays out: T1.1's remaining resolvers — filesystem paths, `path:line`, Go symbols,
+backticked verbs and flags, finding codes. Those are still a proposal. G-0626 and
+G-0628 are the two slices carrying measured evidence, and scoping the rest in is what
+would turn this into the epic.
+
 ### Tier 2 — real, but costlier
 
 **T2.1 — Aim the independent reviewer at absence claims in long bodies.** Filing has
@@ -453,7 +522,8 @@ G-0594 breaching it inside its own highest-severity finding.
 accepted` and on epic cancellation: name the open gaps this now overtakes. *Reaches
 most of the 5% overtaken-by-decision class, which no reference-based rule can touch —
 those gaps do not cite the record that killed them.* Also the only item that attacks
-the closure-throughput amplifier directly.
+the closure-throughput amplifier directly — though only its decision-shaped part;
+Tier 3 records the mechanical version that was tested and failed.
 
 **T2.5 — Record the toolchain that produced a mutation.** Makes an entire class
 *investigable*: "was this done with current tooling?" is unanswerable for every
@@ -510,6 +580,45 @@ distinct targets for those 779 citations, mean 2.7, most-cited target 11. There 
 no hub set among entities to fix. The one instance traceable end to end had a Go
 package doc as its hub, which points at package docs and design-doc prose as where
 a false universal reaches the most readers.
+
+**Closure throughput.** The amplifier splits, and the split is whether anyone wrote
+the relationship down.
+
+The half that was written down is covered twice over. A body deferring work until a
+cited entity lands, after that entity went terminal, is 18 of 412 distinct citations
+from open gap bodies measured 2026-08-24, and G-0626 catches it on the next `aiwf
+check` rather than at promote time. The closing side is T1.5, filed as G-0628.
+
+What no mechanism reaches is a dependency nobody recorded. Of the four pairs named
+above, two carry a citation edge in one direction or the other, and two carry none at
+all. For those the obvious mechanism — intersect the closing work's diff with the file
+paths the invalidated body cites — was built and run against three of them, and
+returned zero overlap on each. G-0073 cites five Go files, G-0617's fix touched seven,
+and they share none, because what G-0617 invalidated was G-0073's closing condition
+rather than any file it names. The dependency is between claims, and nothing greps
+sentences for entailment.
+
+The frontmatter reference graph cannot be pressed into service either.
+`entity.ForwardRefs` reads frontmatter only, and across 619 gap files exactly two
+gap-to-gap frontmatter edges exist, against 786 prose citations from the open set
+alone. Widening it would change what `referenced_by` means for `aiwf show` and the
+HTML resolver, both of which read the current meaning.
+
+What is left for the unrecorded half is the exposure rather than a detector: closure
+rate x open backlog x the chance a body depends on work elsewhere. The first term is
+the productive half and should not move. The second is the tail, since a same-day
+closure is never exposed — gaps open thirty days or more numbered 60 on 2026-08-24.
+
+The third term is a function of how a body is written, and the rule governing it
+already ships. A gap naming a place — a file, a symbol, an observable behaviour — is
+invalidated only when that place changes, which a diff can see. A gap stating a broad
+thesis with a closing condition about the state of the world is invalidated by
+anything and detectable by nothing; both unrecorded pairs are the second kind. Body
+length being the strongest predictor of findings in this corpus is the same
+observation from the other side. Whether a narrow place-naming gap is in fact
+diff-detectable, where the two unrecorded pairs were not, is unsettled here: settling
+it means running the same intersection over a sample of short, path-citing gaps
+against the closures that touched their files.
 
 **Wrong causal stories.** "An accident of function signature" for what is a declared,
 AC-pinned layering boundary. Nothing greps for a wrong explanation.
