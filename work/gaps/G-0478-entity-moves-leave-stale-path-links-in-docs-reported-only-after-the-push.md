@@ -19,7 +19,7 @@ Every mover rewrites links, and every mover's walk stops at the entity tree. `ai
 Measured 2026-07-30: 59 relative links point from `docs/` into `work/` — 78 at `origin/main` da34c1009, of which lychee reads 73. Four had broken then, from two separate move events:
 
 - The archive sweep that closed G-0469 vacated its active path; the two links to it in `docs/initiatives/quality-signal-and-cadence.md` were repaired by hand in the same session.
-- Two links in that same document still name `work/epics/E-0073-mutating-verb-ux-uniformity/epic.md` and its `M-0281` sibling. Both now live under `work/epics/archive/`. They were found by walking the links directly — not because nothing reports that class, but because the report lands in a CI run nobody was reading.
+- Two links in that same document named `work/epics/E-0073-mutating-verb-ux-uniformity/epic.md` and its `M-0281` sibling after both moved under `work/epics/archive/`. They were found by walking the links directly — not because nothing reports that class, but because the report lands in a CI run nobody was reading. Repaired since, in `5e4750dc9`.
 
 The second pair is the point. The first pair was caught because someone happened to be watching the sweep that caused it. Rot that arrives with no signal is found by accident or not at all, and every sweep adds more.
 
