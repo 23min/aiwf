@@ -44,6 +44,5 @@ what the list exists to spare them.
 
 The list only grows. Adding an entry is one line at the moment a scan blocks a commit;
 removing one requires noticing that a file moved months earlier, which nothing prompts.
-Ten of twenty-four already carry no weight, so the next reader deciding whether an
-exemption is still warranted is reading a document that is 42% inert and gives no sign
-of which part.
+So the next reader deciding whether an exemption is still warranted is reading a list
+whose dead entries look exactly like its live ones.
