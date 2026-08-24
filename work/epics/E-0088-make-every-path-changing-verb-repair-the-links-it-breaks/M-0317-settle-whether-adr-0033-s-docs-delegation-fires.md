@@ -1,7 +1,7 @@
 ---
 id: M-0317
 title: Settle whether ADR-0033's docs delegation fires
-status: in_progress
+status: done
 parent: E-0088
 tdd: none
 acs:
