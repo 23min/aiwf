@@ -1224,7 +1224,7 @@ a skill-edit gate that costs once rather than once per edit.
 | M-0312 | Re-point the skill-edit backstop from content reference to provenance | done |
 | M-0313 | Retire the prose-assertion corpus over shipped surfaces | done |
 
-## E-0088 — Make every path-changing verb repair the links it breaks (proposed)
+## E-0088 — Make every path-changing verb repair the links it breaks (active)
 
 ### Goal
 
@@ -1238,4 +1238,21 @@ the moving verb owns — in either direction.
 | M-0315 | Rewrite a moved entity's own outbound links | draft |
 | M-0316 | Kill the link primitive's surviving mutants | draft |
 | M-0317 | Settle whether ADR-0033's docs delegation fires | draft |
+
+## E-0089 — Make the legal-workflow table total and correct (proposed)
+
+### Goal
+
+Make the legal-workflow spec table total and correct, so that it can be read — and
+rendered — as the authoritative answer to *what states exist, what moves between
+them, and what is refused*, with no coordinate left silent and no declared outcome
+that the kernel contradicts.
+
+| Milestone | Title | Status |
+|---|---|---|
+| M-0318 | Split every cell by target and correct the contradicted outcomes | draft |
+| M-0319 | Move authorize to GlobalRules and sweep the stale entries there | draft |
+| M-0320 | Re-key the coverage drivers and reconcile the rejection-layer axis | draft |
+| M-0321 | Declare kind-by-verb applicability and enforce cell totality | draft |
+| M-0322 | Decide the rendered legality reference and ship it if taken | draft |
 
