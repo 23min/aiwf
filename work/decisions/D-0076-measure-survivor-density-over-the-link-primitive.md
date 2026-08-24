@@ -43,9 +43,11 @@ different subject with a different owner.
 
 Second, 7.7 per thousand lines is a kernel-wide average across packages, and it
 has poor resolution applied to individual small files. `linkregion.go` is 142
-lines, so the target permits at most one survivor in the entire file; two
-mutants argued as equivalent put it at 14.1 and reading as a failure with nothing
-wrong. A bar that a correct file cannot clear is measuring the wrong thing.
+lines, so the bar permits exactly one survivor there and no more: one equivalent
+mutant reads as 7.0 and passes, a second as 14.1 and fails, with nothing between
+them and nothing wrong with the file in either case. Whether a file of that size
+clears the bar is decided by a single mutant, which is a coarser instrument than
+the number's one decimal place suggests.
 
 Counting unexplained survivors rather than raw ones follows the epic's own
 constraint, which already admits equivalence with a written argument. Counting
