@@ -98,7 +98,11 @@ func Rename(ctx context.Context, t *tree.Tree, id, newSlug, actor string, slugMa
 	}
 
 	moves := renameEntityMoves(t, e, source, dest)
-	rewriteOps, err := planLinkRewriteWrites(t, moves, nil)
+	var dirShaped []string
+	if e.Kind == entity.KindEpic || e.Kind == entity.KindContract {
+		dirShaped = append(dirShaped, source)
+	}
+	rewriteOps, err := planLinkRewriteWrites(t, moves, nil, dirShaped)
 	if err != nil { //coverage:ignore defensive: planLinkRewriteWrites only errors on a vanished file or an unserializable entity — neither reachable from a tree the loader just built
 		return nil, err
 	}

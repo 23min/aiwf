@@ -182,14 +182,81 @@ func TestPathSegments(t *testing.T) {
 	}
 }
 
-// TestRelativeFromDir_SamePath pins the degenerate case where dir and
-// target are identical: relativeFromDir returns ".". Not reachable
-// through RewriteLinkDestinations under EntityMove's contract (To is
-// always a file path, never equal to some other file's bare
-// directory), so exercised directly.
-func TestRelativeFromDir_SamePath(t *testing.T) {
+// TestRelativeFromDir pins the shapes the common-prefix walk has to
+// survive, none of which RewriteLinkDestinations reaches under
+// EntityMove's contract (To is always a file path, never equal to some
+// other file's bare directory, and never a prefix of one).
+//
+// The prefix case is the load-bearing one: the walk indexes both slices
+// on every iteration, so it has to stop at the shorter of the two. A
+// bound that only consults dir's length reads past the end of target
+// and panics rather than returning "..".
+func TestRelativeFromDir(t *testing.T) {
 	t.Parallel()
-	if got := relativeFromDir("work/gaps", "work/gaps"); got != "." {
-		t.Errorf("relativeFromDir(same, same) = %q, want %q", got, ".")
+	cases := []struct {
+		name   string
+		dir    string
+		target string
+		want   string
+	}{
+		{name: "identical dir and target", dir: "work/gaps", target: "work/gaps", want: "."},
+		{name: "target is a segment-prefix of dir", dir: "work/gaps", target: "work", want: ".."},
+		{name: "target is two segments above dir", dir: "work/epics/E-0001", target: "work", want: "../.."},
+		{name: "dir is a segment-prefix of target", dir: "work", target: "work/gaps/G-0001-a.md", want: "gaps/G-0001-a.md"},
+		{name: "sibling directories", dir: "work/gaps", target: "work/epics/E-0001/epic.md", want: "../epics/E-0001/epic.md"},
+		{name: "repo root as dir", dir: ".", target: "work/gaps/G-0001-a.md", want: "work/gaps/G-0001-a.md"},
+		{name: "no shared prefix at all", dir: "docs/adr", target: "work/gaps/G-0001-a.md", want: "../../work/gaps/G-0001-a.md"},
+	}
+
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			t.Parallel()
+			if got := relativeFromDir(tc.dir, tc.target); got != tc.want {
+				t.Errorf("relativeFromDir(%q, %q) = %q, want %q", tc.dir, tc.target, got, tc.want)
+			}
+		})
+	}
+}
+
+// TestIsRepoPathDestination pins the destination shapes whose
+// classification nothing else constrains. Everything the predicate
+// rejects is returned byte-identical by the caller, so a wrong
+// rejection is invisible rather than loud.
+//
+// The site-absolute, protocol-relative, angle-bracket, `https` and
+// `mailto` shapes are deliberately absent. The archive test that moves
+// an entity carrying every non-path destination shape and asserts each
+// survives byte-identical already constrains them through the exported
+// surface (outbound_linkrewrite_test.go, currently
+// TestArchive_MovedEntityKeepsItsOwnRelativeLinksResolving); a row here
+// would assert the same outcome a second time and drift from it
+// independently.
+//
+// The leading-colon case is the one worth stating: RFC 3986 requires a
+// scheme to begin with a letter, so `:foo` carries no scheme and is an
+// ordinary relative path.
+func TestIsRepoPathDestination(t *testing.T) {
+	t.Parallel()
+	cases := []struct {
+		name string
+		bare string
+		want bool
+	}{
+		{name: "empty destination names no file", bare: "", want: false},
+		{name: "leading whitespace cannot be reproduced faithfully", bare: " work/gaps/G-0001-a.md", want: false},
+		{name: "trailing whitespace likewise", bare: "work/gaps/G-0001-a.md ", want: false},
+		{name: "leading colon is not a scheme, so it is a repo path", bare: ":foo", want: true},
+		{name: "colon after the first slash is a filename character", bare: "work/gaps/a:b.md", want: true},
+		{name: "root-relative entity path", bare: "work/gaps/G-0001-a.md", want: true},
+		{name: "dot-dot relative entity path", bare: "../work/gaps/G-0001-a.md", want: true},
+	}
+
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			t.Parallel()
+			if got := isRepoPathDestination(tc.bare); got != tc.want {
+				t.Errorf("isRepoPathDestination(%q) = %v, want %v", tc.bare, got, tc.want)
+			}
+		})
 	}
 }

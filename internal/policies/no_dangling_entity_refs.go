@@ -9,9 +9,11 @@ import (
 )
 
 // markdownLinkRegex captures the path-target inside a markdown
-// link `[text](path)`. The capture stops at whitespace or `)`, which
-// also handles the `[text](path "title")` form (title separated by
-// space).
+// link `[text](path)`. The capture stops at whitespace or `)`, and a
+// closing paren must follow it, so CommonMark's titled form
+// `[text](path "title")` does not match at all and its destination is
+// not scanned. No tracked document uses that form; G-0624 carries the
+// decision of whether to widen the pattern or leave the shape unread.
 var markdownLinkRegex = regexp.MustCompile(`\[[^\]]*\]\(([^)\s]+)\)`)
 
 // entityFilenameRegex matches the last path segment of an entity

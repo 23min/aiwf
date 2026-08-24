@@ -233,7 +233,13 @@ func planArchiveRewrites(tr *tree.Tree, moves []archiveMove) ([]FileOp, error) {
 	if len(entityMoves) == 0 {
 		return nil, nil //coverage:ignore unreachable: planArchive only calls this when moves is non-empty, and every archiveMove (gap/decision/adr direct, or epic/contract via its own dir-shape entity) yields at least one EntityMove
 	}
-	return planLinkRewriteWrites(tr, entityMoves, nil)
+	var dirShaped []string
+	for _, m := range moves {
+		if m.kind == entity.KindEpic || m.kind == entity.KindContract {
+			dirShaped = append(dirShaped, m.from)
+		}
+	}
+	return planLinkRewriteWrites(tr, entityMoves, nil, dirShaped)
 }
 
 // computeArchiveMoves walks the loaded tree and produces one move per
@@ -820,6 +826,14 @@ func entityBody(raw []byte) []byte {
 
 // linksIntoMove reports whether body carries a link that one of the moves
 // would rewrite. An empty body carries nothing.
+//
+// The inbound-only form is the right one here even though the plan this
+// predicts uses the outbound-aware RewriteLinkDestinationsForMove. A
+// referrer that is itself moving and dirty is declined through the
+// carried set before its own move survives, so any referrer whose move
+// does survive is clean, and for a declined one the pre-move directory is
+// what the plan uses either way. Either path leaves the old and new
+// directories equal here, where the two forms return the same bytes.
 func linksIntoMove(body []byte, linkingPath string, moves []EntityMove) bool {
 	if len(body) == 0 {
 		return false

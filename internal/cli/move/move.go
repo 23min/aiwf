@@ -34,7 +34,13 @@ reports that at exit 0 and commits nothing. The move spans two surfaces — the
 ` + "`parent:`" + ` field and the file's location under the epic's directory — and both must
 already hold to converge. Ids compare at canonical width, so a narrow --epic
 spelling names the stored epic. The target epic must exist either way: an
-unknown --epic is refused, never converged.`,
+unknown --epic is refused, never converged.
+
+Markdown links in other entity bodies that point at the moved milestone are
+rewritten to its new path in the same commit. Those bodies are part of the
+move's write set, so an uncommitted edit to any of them refuses the move,
+naming the file. The moved milestone's own relative links are recomputed against
+its destination directory in the same write, so they keep naming the same files.`,
 		Example: `  # Reparent M-007 under epic E-04
   aiwf move M-007 --epic E-04`,
 		Args:          cobra.ExactArgs(1),
