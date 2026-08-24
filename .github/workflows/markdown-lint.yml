@@ -18,6 +18,13 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
+      # The two audit inventories at the end of `globs:` are dated, regenerated
+      # rather than maintained, and their per-finding headings repeat by
+      # construction under one flat parent — which `siblings_only` cannot relax.
+      #
+      # This rationale sits here rather than inside `globs:` because that is a
+      # YAML block scalar: every line in it reaches markdownlint-cli2 as a
+      # literal glob pattern, `#` included. A comment placed there is data.
       - uses: DavidAnson/markdownlint-cli2-action@v18
         with:
           globs: |
@@ -29,7 +36,5 @@ jobs:
             !work/**
             !internal/check/testdata/**
             !internal/skills/embedded/**
-            # A dated inventory, regenerated rather than maintained: its
-            # per-finding headings repeat by construction under one flat
-            # parent, which siblings_only cannot relax.
             !docs/initiatives/entity-truth-audit.md
+            !docs/initiatives/gap-truth-audit.md
