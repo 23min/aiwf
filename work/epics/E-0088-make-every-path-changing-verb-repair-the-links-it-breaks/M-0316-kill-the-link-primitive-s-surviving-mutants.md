@@ -166,8 +166,21 @@ notes name this trap and prescribe the cross-check, and `go tool cover` puts hit
 count 1 on the blocks at `132.18` and `136.39`. The commit subject of
 `0b335c19d` claims 16; the attribution above is the measured one.
 
-Commit `0b335c19d` · 243 test lines, no production change · tests 3 new
-functions, 2 tables extended.
+Commit `0b335c19d` · 243 test lines, no production change · four new test
+functions, one existing table extended by two rows, and one flat single-case
+test rewritten as a table.
+
+The 14 are report entries rather than distinct source edits: gremlins maps
+`SUB → ADD` under both `ARITHMETIC_BASE` and `INVERT_NEGATIVES`, so each of the
+two newline guards is reported twice for one edit. The density metric counts
+entries, and the before and after figures count them the same way, so the
+comparison is unaffected.
+
+`90a30ca73` later removed five rows from `TestIsRepoPathDestination` and added a
+doc comment to `linkregion.go`, both after the after-column was measured at
+`0b335c19d`. Each of the 14 was re-applied at `90a30ca73` and each still goes
+red, so the after-column's figures still hold at HEAD; no fresh gremlins run was
+taken there.
 
 ### AC-2 — Every remaining survivor is recorded as equivalent or tracked
 
@@ -220,9 +233,9 @@ mutant at `254:50` is exactly that case — it is killed.
 ## Validation
 
 - `make check-fast` — exit 0.
-- `aiwf check` — 0 errors. Warnings are pre-existing archive-sweep housekeeping
-  and `epic-active-no-drafted-milestones`, which fires because M-0316 was the
-  epic's last `draft`.
+- `aiwf check` — 0 errors. Every warning it reports predates this milestone or
+  follows mechanically from it (the epic's last `draft` milestone became
+  `in_progress`); none names a file this milestone changed.
 - Two full mutation runs, tabulated above, 0 timeouts in each.
 - Every kill and every equivalence claim checked by applying the mutation, not by
   reading. Kill *attribution* additionally checked against the base commit.
@@ -244,17 +257,18 @@ An independent fresh-context reviewer over the full change-set returned
 **request-changes** with five confirmed defects. Every one was reproduced before
 acting on it, and all five are fixed in this milestone.
 
-The one that matters: **the kill count was wrong — 16 claimed, 14 real.** The
-probe that produced 16 applied each mutation at HEAD and observed the suite go
-red, which establishes that a mutant dies, not that the new tests killed it. Two
-were already dead at the base commit. The corrected method — probe at base, and
-attribute only what survives there — is what the Work log records.
+The one that matters: **the kill count was wrong — 16 claimed, 14 real.** A probe
+that applies a mutation at HEAD and sees the suite go red establishes that the
+mutant dies, not that the new tests killed it; two were already dead at the base
+commit. Attribution requires probing at base and counting only what survives
+there, which is the method the Work log records. Commit `0b335c19d`'s subject
+still says 16, so a reader will meet that number.
 
-The other four were all overstated counts or an internal contradiction, and all
-four sat in prose rather than code: the initiative's production-line and
-test-line figures, its claim that most of those lines are masking, and a section
-asserting flatly what a later section listed as unverified. That the code came
-through clean and the prose did not is the finding worth carrying forward.
+Later rounds found more, every one of them in prose and none in code, and every
+one a claim written about measured work rather than a measurement. The recurring
+shape was a count stated from a glance instead of derived — which is why the
+passages above now carry the reasoning and leave the arithmetic to whoever needs
+it.
 
 Two judgment calls, both taken as the reviewer proposed:
 
@@ -263,17 +277,21 @@ Two judgment calls, both taken as the reviewer proposed:
   the test or reclassify the mutant, `splitLinkPathRegions`'s doc comment now
   declares the no-empty-regions invariant, so the test pins a stated contract
   instead of an internal representation.
-- **Five of twelve `TestIsRepoPathDestination` rows were cut.** Those switch arms
-  generate no mutants and the shapes were already pinned end to end by the
-  archive outbound test, so the rows asserted a second time what could not fail
-  independently.
+- **Five of twelve `TestIsRepoPathDestination` rows were cut**, because the
+  archive outbound test already pins each shape as untouched through the exported
+  surface. Three of them reached `HasPrefix` arms that carry no mutants; the
+  `https` and `mailto` rows reach no arm at all and fall through to
+  `hasURIScheme`, which does carry mutants — so for those two the cut removed
+  coverage of a mutant-bearing path, and only the re-probe above establishes that
+  the leading-colon row still kills `:165` on its own.
 
 Declined, with reasons:
 
-- The reviewer read **59% of the diff being prose** as the wrong balance for a
-  measurement milestone. The prose is D-0076, G-0630 and the initiative — each
-  directed rather than drift, and the initiative is the epic's most useful
-  output, not its overhead.
+- The reviewer read **the diff's prose majority** as the wrong balance for a
+  measurement milestone. The prose is D-0076, G-0630, G-0632 and the initiative —
+  each directed rather than drift, and the initiative is the epic's most useful
+  output, not its overhead. Two rounds of review did, however, find every
+  confirmed defect in that prose and none in the code.
 - **D-0076 has no `relates_to: M-0316`.** `--relates-to` exists only on
   `aiwf add`; no verb edits it afterwards and frontmatter is not hand-edited, so
   the milestone is reachable from the decision through prose only.
