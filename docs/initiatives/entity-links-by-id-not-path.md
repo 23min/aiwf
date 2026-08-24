@@ -32,21 +32,26 @@ because a path is clickable on GitHub and in an editor, and a bare id is not.
 That single convenience is the origin of an entire subsystem. Measured
 2026-08-24 at `419a0890a`:
 
-- **509 lines** of production code across `internal/verb/linkregion.go`,
-  `linkrewrite.go` and `pathrewrite.go`.
-- **2,275 lines** of link-specific tests beside them.
+- **414 lines** of production code across `internal/verb/linkregion.go` (142)
+  and `linkrewrite.go` (272). E-0088 names `pathrewrite.go` alongside them, but
+  its 95 lines compute an entity's new *filename* from an id and slug and never
+  read a markdown link — a rename needs them whatever the link format is, so
+  they are not a cost of this convenience.
+- **2,343 lines** of link-specific tests beside them.
 - **Five verbs** wired through it: `archive`, `rename`, `retitle`, `reallocate`,
   `move`.
 - One accepted ADR (ADR-0033), one extension ADR (ADR-0046), one epic (E-0088)
   with four milestones, and two open gaps (G-0478, G-0439) covering the half the
   verbs deliberately do not reach.
 
-Most of the 509 lines are not path arithmetic. They are **masking**: deciding
-which spans of a document may be edited at all. Fenced code blocks, inline code
-spans, and the boundaries of a link destination all have to be recognized,
-because a document about links contains text that looks exactly like links and
-must survive byte-identical. A naive rewriter is about twenty lines and corrupts
-code samples silently.
+The largest single component is **masking**: deciding which spans of a document
+may be edited at all. That is all of `linkregion.go` — 142 of the 414 lines,
+more than either of the two jobs `linkrewrite.go` does (resolving a destination
+to a comparable path, and rendering it back in the flavour it was written in).
+Fenced code blocks, inline code spans, and the boundaries of a link destination
+all have to be recognized, because a document about links contains text that
+looks exactly like links and must survive byte-identical. A naive rewriter is
+about twenty lines and corrupts code samples silently.
 
 ## 2. What other systems do
 
@@ -103,7 +108,8 @@ disqualifying on its own.
 
 ## 5. Candidate shape B — reference-style links with a generated definition block
 
-CommonMark has native indirection, and GitHub renders it:
+CommonMark has native indirection — reference-style links, where the
+destination is defined once and referred to by label:
 
 ```markdown
 See [G-0478][] and [ADR-0033][] for the specification.
@@ -112,17 +118,23 @@ See [G-0478][] and [ADR-0033][] for the specification.
 [ADR-0033]: ../../docs/adr/ADR-0033-entity-path-links-are-first-class-and-rewritten-on-move.md
 ```
 
-Both render as ordinary clickable links. The prose carries only ids; **every path
-in the document sits in one block, at the bottom, in a fixed syntactic form**
-(`[label]: destination`, at line start).
+Both are ordinary CommonMark and should render as clickable links wherever the
+full spec is supported; §6 records what still has to be checked about GitHub
+specifically. The two destinations above resolve today and will not stay that
+way: they sit inside a fenced block, which the rewriter masks by design, so the
+next move of either target leaves them naming nothing — this document's subject,
+demonstrated on itself. The prose carries only ids; **every path in the document sits in
+one block, at the bottom, in a fixed syntactic form** (`[label]: destination`,
+at line start).
 
 What that changes:
 
 - A mover **regenerates the block** from the id-to-path map the loader already
   computes. It never scans prose again.
-- **The masking machinery becomes unnecessary** — most of the 509 lines. Fences,
-  inline code spans and destination boundaries stop mattering, because nothing
-  edits prose. A derived block is replaced wholesale.
+- **The masking machinery becomes unnecessary** — `linkregion.go` entire, the
+  largest single component of the 414. Fences, inline code spans and destination
+  boundaries stop mattering, because nothing edits prose. A derived block is
+  replaced wholesale.
 - It is single-source-of-truth applied properly: the id is the fact, the path is
   derived, and the block is a cache whose invalidation rule is "any move".
 - It is the pattern this repo already uses for `ROADMAP.md` and `STATUS.md` —
