@@ -106,7 +106,12 @@ lives in the `wf-codebase-health` skill.
   met" survives, "all 16 are met" doesn't; in comments and docs too, keep the
   reasoning and drop the arithmetic. A measurement that *is* the point is a
   dated observation. What no check can carry — a judgment, a rejected
-  alternative, why the obvious approach fails — is worth its words.
+  alternative, why the obvious approach fails — is worth its words. What
+  another record already carries is not: where its claim is load-bearing
+  on what you write, name the record and say what fails here if that
+  claim is wrong — don't reproduce the claim, or the reasoning behind it.
+  If a correction there would leave your sentence needing an edit, your
+  sentence is a copy, and the correction will not reach it.
 - **Nothing is settled except by measurement.** A claim is settled true only
   where four things sit together: the command, the result you expected, the
   output you observed, and the environment it ran in. Reading does not settle a
