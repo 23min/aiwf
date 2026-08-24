@@ -218,12 +218,19 @@ func TestRelativeFromDir(t *testing.T) {
 	}
 }
 
-// TestIsRepoPathDestination pins which link destinations are treated as
-// naming a file in this repository, and so may be recomputed when a
-// move invalidates them. Everything the predicate rejects is returned
-// byte-identical by the caller, which makes a wrong rejection invisible
-// rather than loud — the reason each rejected shape is named here
-// rather than left to the callers' end-to-end tests.
+// TestIsRepoPathDestination pins the destination shapes whose
+// classification nothing else constrains. Everything the predicate
+// rejects is returned byte-identical by the caller, so a wrong
+// rejection is invisible rather than loud.
+//
+// The site-absolute, protocol-relative, angle-bracket, `https` and
+// `mailto` shapes are deliberately absent. The archive test that moves
+// an entity carrying every non-path destination shape and asserts each
+// survives byte-identical already constrains them through the exported
+// surface (outbound_linkrewrite_test.go, currently
+// TestArchive_MovedEntityKeepsItsOwnRelativeLinksResolving); a row here
+// would assert the same outcome a second time and drift from it
+// independently.
 //
 // The leading-colon case is the one worth stating: RFC 3986 requires a
 // scheme to begin with a letter, so `:foo` carries no scheme and is an
@@ -238,11 +245,6 @@ func TestIsRepoPathDestination(t *testing.T) {
 		{name: "empty destination names no file", bare: "", want: false},
 		{name: "leading whitespace cannot be reproduced faithfully", bare: " work/gaps/G-0001-a.md", want: false},
 		{name: "trailing whitespace likewise", bare: "work/gaps/G-0001-a.md ", want: false},
-		{name: "site-absolute path resolves against a server root", bare: "/README.md", want: false},
-		{name: "protocol-relative URL names a host", bare: "//example.com/x.md", want: false},
-		{name: "angle-bracket destination carries delimiters", bare: "<work/gaps/G-0001-a.md>", want: false},
-		{name: "https scheme names something outside the repo", bare: "https://example.com/x", want: false},
-		{name: "mailto scheme likewise", bare: "mailto:someone@example.com", want: false},
 		{name: "leading colon is not a scheme, so it is a repo path", bare: ":foo", want: true},
 		{name: "colon after the first slash is a filename character", bare: "work/gaps/a:b.md", want: true},
 		{name: "root-relative entity path", bare: "work/gaps/G-0001-a.md", want: true},
