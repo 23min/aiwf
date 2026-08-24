@@ -121,7 +121,6 @@ type AddOptions struct {
 // non-contract kind, partial bind triplet). Tree-integrity issues
 // arising from the addition are returned as findings, not errors.
 func Add(ctx context.Context, t *tree.Tree, kind entity.Kind, title, actor string, opts AddOptions) (*Result, error) {
-	_ = ctx // reserved for future IO; verbs are currently pure-projection and IO happens in Apply
 	if title == "" {
 		return nil, fmt.Errorf("--title is required")
 	}
@@ -129,6 +128,9 @@ func Add(ctx context.Context, t *tree.Tree, kind entity.Kind, title, actor strin
 		return nil, err
 	}
 	if err := validateAddOptsForKind(kind, opts); err != nil {
+		return nil, err
+	}
+	if err := refuseEpicCreationOnRitualBranch(ctx, t, kind, opts); err != nil {
 		return nil, err
 	}
 	if err := validateDependsOnReferents(t, kind, opts); err != nil {

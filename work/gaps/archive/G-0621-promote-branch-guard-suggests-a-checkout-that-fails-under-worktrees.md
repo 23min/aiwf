@@ -1,8 +1,10 @@
 ---
 id: G-0621
 title: Promote branch guard suggests a checkout that fails under worktrees
-status: open
+status: addressed
 priority: medium
+addressed_by_commit:
+    - ef6ed2edc
 ---
 ## What's missing
 

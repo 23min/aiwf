@@ -2,6 +2,7 @@ package verb_test
 
 import (
 	"os/exec"
+	"path/filepath"
 	"strings"
 	"testing"
 
@@ -201,5 +202,81 @@ func TestPromote_NonActivatingTransition_IgnoresBranchGuard(t *testing.T) {
 	r.must(verb.Promote(r.ctx, r.tree(), "E-0001", "done", testActor, "", false, verb.PromoteOptions{}))
 	if e := r.tree().ByID("E-0001"); e == nil || e.Status != "done" {
 		t.Errorf("E-0001 = %+v, want status done", e)
+	}
+}
+
+// gitWorktreeAddExisting checks an existing branch out into a linked
+// worktree at path, so the branch is held somewhere other than root.
+func gitWorktreeAddExisting(t *testing.T, root, path, branch string) {
+	t.Helper()
+	cmd := exec.Command("git", "worktree", "add", "-q", path, branch)
+	cmd.Dir = root
+	if out, err := cmd.CombinedOutput(); err != nil {
+		t.Fatalf("git worktree add %s %s: %v\n%s", path, branch, err, out)
+	}
+}
+
+// TestPromote_RefusalNamesTheHoldingWorktree pins G-0621: when the
+// expected branch is held by another worktree, the refusal must point
+// at that worktree's path rather than telling the operator to check the
+// branch out. A branch is checked out in one worktree at a time, so
+// `git checkout <expected>` fails with "already used by worktree at
+// ..." in exactly the situation that produces this refusal — leaving
+// the operator a remedy that refuses too.
+//
+// The expected path is derived by asking git where the branch lives,
+// not transcribed, so the assertion tracks the fixture rather than a
+// copy of it.
+func TestPromote_RefusalNamesTheHoldingWorktree(t *testing.T) {
+	t.Parallel()
+	r := newRunner(t)
+	r.must(verb.Add(r.ctx, r.tree(), entity.KindEpic, "Foundations", testActor, verb.AddOptions{}))
+	// Park trunk in its own worktree, then leave the main checkout on a
+	// different branch so the guard fires with "main" held elsewhere.
+	held := filepath.Join(t.TempDir(), "trunk-wt")
+	gitCheckoutNewBranch(t, r.root, "epic/E-0001-foundations")
+	gitWorktreeAddExisting(t, r.root, held, "main")
+
+	_, err := verb.Promote(r.ctx, r.tree(), "E-0001", "active", testActor, "", false, verb.PromoteOptions{})
+	if err == nil {
+		t.Fatal("expected refusal for epic activation off trunk")
+	}
+	if !strings.Contains(err.Error(), held) {
+		t.Errorf("refusal must name the worktree holding the expected branch (%s), got: %v", held, err)
+	}
+	if strings.Contains(err.Error(), "git checkout main") {
+		t.Errorf("refusal must not suggest checking out a branch another worktree holds, got: %v", err)
+	}
+}
+
+// TestPromote_RefusalReportsUnreachableEntity pins the second half of
+// D-0074: when the entity is not present on the expected branch, the
+// refusal says so. Reaching that branch does not help — the entity goes
+// out of view there and the next message names a different problem
+// ("entity not found"), which is how G-0616 was measured.
+//
+// The guard states the fact and prescribes no remedy: which recovery is
+// correct is unsettled, and recommending one would assert an answer
+// D-0074 does not have.
+func TestPromote_RefusalReportsUnreachableEntity(t *testing.T) {
+	t.Parallel()
+	r := newRunner(t)
+	// Give trunk history first: without a commit on it, refs/heads/main
+	// does not exist and absence cannot be distinguished from an
+	// unreadable ref.
+	r.must(verb.Add(r.ctx, r.tree(), entity.KindEpic, "Auth rewrite", testActor, verb.AddOptions{}))
+	// Then create the second epic on a ritual branch, bypassing the
+	// creation guard the way an operator with --force would, so it
+	// exists only there — the state G-0616 measured.
+	gitCheckoutNewBranch(t, r.root, "epic/E-0001-auth-rewrite")
+	r.must(verb.Add(r.ctx, r.tree(), entity.KindEpic, "Front-end auth widgets", testActor,
+		verb.AddOptions{Force: true, Reason: "reproducing the stranded state"}))
+
+	_, err := verb.Promote(r.ctx, r.tree(), "E-0002", "active", testActor, "", false, verb.PromoteOptions{})
+	if err == nil {
+		t.Fatal("expected refusal for epic activation off trunk")
+	}
+	if !strings.Contains(err.Error(), "not present on") {
+		t.Errorf("refusal must report that the entity is absent from the expected branch, got: %v", err)
 	}
 }
