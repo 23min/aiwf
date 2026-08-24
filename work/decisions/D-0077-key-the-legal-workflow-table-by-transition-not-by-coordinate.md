@@ -1,7 +1,7 @@
 ---
 id: D-0077
 title: Key the legal-workflow table by transition, not by coordinate
-status: proposed
+status: accepted
 relates_to:
     - D-0007
     - G-0631
