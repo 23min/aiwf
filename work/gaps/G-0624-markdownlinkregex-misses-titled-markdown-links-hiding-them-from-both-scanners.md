@@ -16,12 +16,15 @@ not a partial capture, no match. Measured directly: the bare form
 `[x](work/gaps/G-0001-a.md)` captures its destination, and the same link with a
 title captures nothing.
 
-Two consumers inherit the blind spot. `auditDanglingEntityRefs` scans the named
-narrative docs for links at entity files and reports the ones that no longer
-resolve; a titled link is skipped rather than resolved, so a rotted one passes.
-`linksIntoWork`, in `internal/policies/m0317_docs_link_coverage_test.go`, reuses
-the same pattern to decide which `docs/` files link into `work/`, so a file whose
-only such link carries a title reads as having none.
+`auditDanglingEntityRefs` inherits the blind spot: it scans the named narrative
+docs for links at entity files and reports the ones that no longer resolve, so a
+titled link is skipped rather than resolved and a rotted one passes.
+`markdownLinkPattern` in `internal/policies/design_doc_anchors.go` is a second
+pattern over the same shape, and it disagrees: `\[([^\]]+)\]\(([^)]+)\)` matches
+the titled form but captures `work/gaps/G-0001-a.md "t"` — destination and title
+together, which is not a path either. So one pattern skips the shape and the
+other mis-captures it; whichever way this is decided, the two want reconciling
+rather than diverging further.
 
 A second CommonMark shape fails differently and is worth deciding alongside it.
 The pointy-bracket destination `[x](<work/gaps/G-0001-a.md>)` does match, but the
@@ -54,7 +57,9 @@ They already collided once on a duplicated helper.
 
 ## Where to fix
 
-- `internal/policies/no_dangling_entity_refs.go` — the pattern and its two
-  consumers' shared home.
-- `internal/policies/m0317_docs_link_coverage_test.go` — `linksIntoWork`, the
-  second consumer, whose table is where a titled-link case belongs.
+- `internal/policies/no_dangling_entity_refs.go` — the pattern and its consumer.
+- `internal/policies/design_doc_anchors.go` — `markdownLinkPattern`, the second
+  pattern over the same shape, which resolves the titled form differently.
+- `internal/policies/m0317_delegation_test.go` —
+  `TestM0317_MarkdownLinkRegexShapes` pins the current behaviour of the first
+  pattern, so a decision here rewrites that table.
