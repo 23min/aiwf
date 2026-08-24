@@ -410,11 +410,15 @@ in this list that reduces the number of gaps filed.*
 claim is load-bearing on what you are writing, name the record and state what fails
 here if that claim is wrong; do not reproduce the claim, or the reasoning behind it.
 The test is whether a correction to the cited record would leave the sentence
-needing an edit — if it would, it is a copy. Folds into the embedded guidance's
-existing *Keep the reasoning; derive the facts* bullet rather than adding one, and
-that bullet already carries an `m0211-guidance-operating-anchors` entry, so the rule
-is protected without a new anchor. *Attacks the contagion amplifier — which is why
-the copies are unfindable today, per Tier 3. Ban-shaped; costs once.*
+needing an edit — if it would, it is a copy. Shipped 2026-08-24 into the embedded
+guidance's existing *Keep the reasoning; derive the facts* bullet rather than as a
+bullet of its own. That bullet carries an `m0211-guidance-operating-anchors` entry,
+but its fragments all sit in the older half — measured the same day, deleting the new
+sentences leaves the anchor policy passing. The rule ships unpinned deliberately: a
+fragment would add a phrase-pin on shipped prose, and G-0606 leaves the standing of
+that whole route undecided. Should G-0606 settle that the route is legitimate,
+pinning this rule is a one-line follow-on. *Attacks the contagion amplifier — which
+is why the copies are unfindable today, per Tier 3. Ban-shaped; costs once.*
 
 ### Tier 2 — real, but costlier
 
