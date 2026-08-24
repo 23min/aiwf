@@ -35,8 +35,11 @@ survivors between them.
 E-0088 named `archive.go` because its survivor density read as an outlier at
 19.1 per thousand lines, and the epic's premise is that three independent signals
 agreed on one subsystem. For this file the mutation signal turns out to point at
-different code than the other two did: the link half is fully constrained, and
-the density comes entirely from the verb half.
+different code than the other two did: the density comes entirely from the verb
+half. The link half is not thereby shown to be well tested — `planArchiveRewrites`,
+`linksIntoMove` and `workingBodyAt` carry five mutants between them and all five
+die, while `archiveEntityMoves` and `entityBody` carry none at all, so for those
+two the run measured nothing either way.
 
 That matters beyond bookkeeping. `archiveCommitBody` composes the commit message
 an operator reads to understand what a sweep did, and `aiwf history` renders it
