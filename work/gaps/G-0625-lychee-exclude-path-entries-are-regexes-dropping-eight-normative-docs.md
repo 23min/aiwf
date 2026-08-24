@@ -1,6 +1,6 @@
 ---
 id: G-0625
-title: lychee exclude_path entries are regexes, dropping nine docs from link-check
+title: lychee exclude_path entries are regexes, dropping eight Normative docs
 status: open
 discovered_in: M-0317
 ---
