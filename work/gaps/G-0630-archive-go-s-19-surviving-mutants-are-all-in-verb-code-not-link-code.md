@@ -62,12 +62,16 @@ move-set shapes asserting the rendered message. `planArchive`, `Archive` and
 selects. The remaining three sit in skip and git-status paths that already have
 fixtures nearby.
 
-Whether all 19 are worth killing is the open question, not a settled target. The
-kernel-wide baseline of 7.7 per thousand lines is an average across packages, and
-applying it per file has poor resolution at these sizes — a decision recorded
-under M-0316 declines to use it as this file's bar for that reason. Some of the
-19 may also be equivalent mutants; none has been checked, because M-0316 scoped
-itself to the link primitive.
+Whether all 19 are worth killing is the open question, not a settled target. At
+1,011 lines the kernel-wide baseline of 7.7 per thousand permits about eight
+survivors here, so this file is over the bar but not wildly past it — nothing
+like the multiples the link primitive showed before this milestone.
+D-0076 removed this file from M-0316/AC-1's denominator on different grounds:
+its survivors are a different subsystem with a different owner, and leaving them
+in made an AC about the link primitive unsatisfiable without work on the archive
+verb. That says nothing about whether the 19 should be killed — only that they
+are not the link primitive's business. Some may be equivalent mutants; none has
+been checked.
 
 ## Where to fix
 
