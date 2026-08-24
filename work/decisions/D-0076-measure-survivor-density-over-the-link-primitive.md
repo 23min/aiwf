@@ -1,7 +1,7 @@
 ---
 id: D-0076
 title: Measure survivor density over the link primitive
-status: proposed
+status: accepted
 relates_to:
     - G-0630
 ---
