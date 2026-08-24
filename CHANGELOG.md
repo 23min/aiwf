@@ -16,6 +16,19 @@ section in this file.
 
 ## [Unreleased]
 
+### Fixed — E-0088: every path-changing verb repairs the links it breaks
+
+- `aiwf move` now repairs the markdown links that point at a milestone it
+  reparents, and recomputes that milestone's own relative links against its new
+  directory. It previously rewrote nothing at all, so reparenting a linked
+  milestone left every reference to it broken.
+- `aiwf archive`, `rename`, `retitle` and `reallocate` now repair a moved
+  entity's *own* outbound relative links, so a file swept into `archive/` keeps
+  its links resolving instead of silently pointing one directory too high.
+- A link destination whose `?query` or `#fragment` contains `://` is no longer
+  mistaken for an external URL and skipped.
+- `aiwf move --help` no longer states the opposite of what the verb does.
+
 ### Changed — standing guidance: cite a record for what fails if its claim is wrong
 
 The shipped guidance fragment's *Keep the reasoning; derive the facts* rule now
