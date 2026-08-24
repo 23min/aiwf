@@ -35,7 +35,7 @@ checkable claim standing in for the one the AC made.
 M-0317/AC-1 took the second. The proxy was "every `docs/` file linking into
 `work/` is a file lychee reads", which is checkable only by re-implementing
 lychee's file selection in Go, since lychee is not available to the test suite.
-That model ran to roughly 580 lines. Four review rounds found four defects in it
+That model ran to 573 lines. Four review rounds found four defects in it
 and every one was the same shape — the copy disagreeing with the original. It was
 removed rather than repaired a fourth time, leaving the milestone at 109 test
 lines against 5 lines of production change.
