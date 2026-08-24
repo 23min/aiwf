@@ -12,7 +12,7 @@ acs:
       status: met
     - id: AC-2
       title: Every remaining survivor is recorded as equivalent or tracked
-      status: open
+      status: met
 ---
 
 ## Goal
