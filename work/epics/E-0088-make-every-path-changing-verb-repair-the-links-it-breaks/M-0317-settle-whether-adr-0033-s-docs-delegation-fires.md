@@ -144,11 +144,12 @@ read.
 The read-set here is lychee's own, taken from `--dump-inputs`, not inferred from
 the config: `exclude_path` entries are regular expressions matched against the
 whole path, so `work` reaches `docs/workflows.md` and `.git` reaches
-`ADR-0008-…-4-digits.md` through the `igit` in "digits". Nine documents outside
-the deliberately-exempt tiers sit outside the checked set for that reason, eight
-of them Normative and five of those accepted ADRs. None carries a docs-to-work
-link today, so the figures above are unaffected — but the exclusion list is not
-doing what its shape suggests, and G-0625 carries whether to anchor it.
+`ADR-0008-…-4-digits.md` through the `igit` in "digits". Nine documents are
+dropped that way; eight are Normative, five of those accepted ADRs, and the
+ninth is `docs/working-paper.md`, which the Exploratory tier exempts anyway.
+None of the eight carries a docs-to-work link today, so the figures above are
+unaffected — but the exclusion list is not doing what its shape suggests, and
+G-0625 carries whether to anchor it.
 
 That coverage figure is the half that can rot without a signal, so it is what the
 committed test pins. Adding a docs subtree to `exclude_path` takes its links out
@@ -302,3 +303,46 @@ collapsed to one, since no mutant killed either alone.
 G-0624 also now records the pointy-bracket destination `[x](<path>)`, which fails
 in the opposite direction from the titled form: it matches, but the capture keeps
 the delimiters, so a valid link reads as unresolvable. Both measured.
+
+A third pass found the same class a third time, and the trigger was a change this
+milestone itself proposes. TOML decodes escapes inside a basic string, so the
+bytes on an `exclude_path` line are not the value lychee compiles: `"^\\.git/"`
+reaches lychee as `^\.git/`, and the parser returned the raw bytes, yielding a
+regex that matches nothing the intended one matches — non-empty, plausible, and
+wrong, which is the single answer the caller cannot detect. Demonstrated as a
+live false green. It matters immediately rather than theoretically because
+anchoring is what G-0625 proposes, so the next edit to this config would have
+tripped it.
+
+The parser now splits the two TOML string forms on the property that actually
+distinguishes them: a literal string processes no escapes, so its bytes are its
+value and it is read as-is; a basic string carrying a backslash is refused. That
+also corrects a decision from the first round, where single-quoted entries were
+refused as merely unfamiliar — they are the one form that is always safe to read
+raw, and they are the spelling an anchored entry has to use, since `"^\.git/"` is
+not loadable TOML at all.
+
+Three smaller corrections. The count of accidentally-excluded documents was
+nine in the milestone and the gap while the test comment beside it said eight;
+eight is right for Normative tier, the ninth being `docs/working-paper.md`, which
+the Exploratory tier already exempts — the change-set was contradicting itself.
+G-0625's proposed spelling `"^\.git/"` does not load, corrected to the literal
+form, and its scope now names the parser as well as the matcher. And a
+half-applied edit of mine had shipped two overlapping comment sentences.
+
+Two findings taken from the round's track-for-later, both the same shape as
+things earlier rounds treated as blocking. Two `FirstMatch` cases claimed more
+than they tested — the anchored case passed with anchors ignored, because a
+trailing slash was doing the work, and the first-match case passed a
+return-the-last-match mutant because only one entry matched. Both now
+discriminate. And `markdownLinkRegex`, whose corrected comment is the only
+production change in this milestone, was unpinned across the whole package: a
+mutant admitting the titled form — directly falsifying that comment — left the
+suite green. `TestM0317_MarkdownLinkRegexShapes` pins all four shapes, which also
+makes G-0624's premise re-checkable rather than remembered.
+
+Carried into G-0478 rather than fixed: the sweep for existing detectors missed
+one. `auditDanglingEntityRefs` already resolves path-form entity references at
+policy-suite tier over a two-entry list, and its own comment invites extension —
+a materially cheaper option than the gap's argument had weighed, and the only
+detector covering `ROADMAP.md`, which lychee excludes outright.
