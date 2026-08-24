@@ -127,16 +127,18 @@ Observable at epic close. Milestone acceptance criteria carry the mechanical bar
 Sequenced so the key change lands first, since everything else is expressed in
 terms of it, and the render lands last, when there is a total table to render.
 
-- Split the cells by target and correct the outcomes the kernel contradicts ·
+- `M-0318` — split every cell by target and correct the outcomes the kernel
+  contradicts, establishing the key everything else is expressed in ·
   depends on: —
-- Move `authorize` to `GlobalRules()` and sweep the stale entries there ·
+- `M-0319` — move `authorize` to `GlobalRules()` and sweep the stale entries
+  already there; independent of the key change and runnable in either order ·
   depends on: —
-- Declare kind-by-verb applicability and enforce totality over applicable rows ·
-  depends on: the split, the `authorize` move
-- Re-key the coverage drivers and reconcile the rejection-layer axis ·
-  depends on: the split
-- Decide the rendered reference and ship it if taken ·
-  depends on: totality
+- `M-0320` — re-key the coverage drivers and settle whether each cell's rejection
+  layer names where the kernel actually refuses · depends on: `M-0318`
+- `M-0321` — declare kind-by-verb applicability and make a missing cell at an
+  applicable coordinate a policy failure · depends on: `M-0318`, `M-0319`
+- `M-0322` — decide the rendered legality reference and ship it if taken;
+  sequenced last so a render cannot publish holes · depends on: `M-0321`
 
 ## References
 
