@@ -33,6 +33,8 @@ line saying what it is.
 - `readStatusAt` and the walker's path-resolving fallback arm are dead in
   production — reachable only through conditions no BulkRevwalk flag produces.
   Annotated rather than deleted, deliberately; nothing tracks the choice
+- G-0626 + T1.4 in gap-truth-audit.md — two patches, guidance rule first, then
+  the status resolver
 
 ## Next, in order (2026-08-23)
 
