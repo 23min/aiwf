@@ -42,7 +42,9 @@ var retiredVerbToken = regexp.MustCompile(`\brewidth\b`)
 // documents the retirement; a file that merely instructs a reader to
 // run the verb is the defect this test exists to catch.
 var m0290DocumentaryMentionAllowlist = map[string]string{
-	"docs/initiatives/entity-truth-audit.md": "dated drift inventory whose finding is that live records still cite the retired verb",
+	"docs/initiatives/entity-truth-audit.md":       "dated drift inventory whose finding is that live records still cite the retired verb",
+	"docs/initiatives/gap-truth-audit.md":          "dated drift inventory naming the verb as the offender the open gaps it enumerates still cite in the present tense",
+	"docs/initiatives/gap-truth-audit-evidence.md": "the same inventory's evidence file, carrying the quoted gap bodies, the measured output of the failing command, and prescriptions to delete the citation",
 }
 
 // TestM0290_AC4_NoShippedSurfaceOffersTheRetiredVerb walks every file
@@ -113,6 +115,35 @@ func TestM0290_AC4_NoNormativeDocOffersTheRetiredVerb(t *testing.T) {
 		}
 		if loc := retiredVerbToken.FindIndex(raw); loc != nil {
 			t.Errorf("AC-4: %s still names the retired width-migration verb;\n  line: %s", rel, lineAround(raw, loc[0]))
+		}
+	}
+}
+
+// TestM0290_AC4_AllowlistKeysAreLive keeps the allowlist from outliving
+// what it exempts. The walk that consumes it skips any directory named
+// "archive", which is where the archival convention moves a realized
+// initiative, so an entry for an archived file stops matching anything
+// and goes on reading like live coverage.
+//
+// Existence is too weak a test on its own: a document reworded free of
+// the token leaves an entry that still resolves. A key earns its place
+// only while the file it names both exists and still carries the token.
+func TestM0290_AC4_AllowlistKeysAreLive(t *testing.T) {
+	t.Parallel()
+	root := repoRoot(t)
+	if len(m0290DocumentaryMentionAllowlist) == 0 {
+		t.Fatal("AC-4: the allowlist is empty — delete it rather than leaving an unused exemption door open")
+	}
+	for rel, why := range m0290DocumentaryMentionAllowlist {
+		raw, err := os.ReadFile(filepath.Join(root, filepath.FromSlash(rel)))
+		if err != nil {
+			t.Errorf("AC-4: the allowlist names %s (%q), which cannot be read — drop the entry rather than "+
+				"leaving the exemption standing: %v", rel, why, err)
+			continue
+		}
+		if !retiredVerbToken.Match(raw) {
+			t.Errorf("AC-4: the allowlist names %s (%q), which no longer names the retired verb — drop the "+
+				"entry rather than leaving the exemption standing", rel, why)
 		}
 	}
 }
