@@ -1236,6 +1236,6 @@ the moving verb owns — in either direction.
 |---|---|---|
 | M-0314 | Route move through the shared link-region primitive | done |
 | M-0315 | Rewrite a moved entity's own outbound links | done |
-| M-0316 | Kill the link primitive's surviving mutants | draft |
+| M-0316 | Kill the link primitive's surviving mutants | in_progress |
 | M-0317 | Settle whether ADR-0033's docs delegation fires | done |
 
