@@ -26,7 +26,7 @@ resolves ids across both trees. An id reference survives every rename, every
 archive sweep, every reallocation, at zero maintenance cost.
 
 Prose in this repo does not use ids as links. It uses **paths** — 
-`[G-0478](../../work/gaps/G-0478-entity-moves-leave-stale-path-links.md)` —
+`[G-0478](../../work/gaps/G-0478-entity-moves-leave-stale-path-links-in-docs-reported-only-after-the-push.md)` —
 because a path is clickable on GitHub and in an editor, and a bare id is not.
 
 That single convenience is the origin of an entire subsystem. Measured
@@ -108,8 +108,8 @@ CommonMark has native indirection, and GitHub renders it:
 ```markdown
 See [G-0478][] and [ADR-0033][] for the specification.
 
-[G-0478]: ../../work/gaps/G-0478-entity-moves-leave-stale-path-links.md
-[ADR-0033]: ../../docs/adr/ADR-0033-entity-path-links-are-first-class.md
+[G-0478]: ../../work/gaps/G-0478-entity-moves-leave-stale-path-links-in-docs-reported-only-after-the-push.md
+[ADR-0033]: ../../docs/adr/ADR-0033-entity-path-links-are-first-class-and-rewritten-on-move.md
 ```
 
 Both render as ordinary clickable links. The prose carries only ids; **every path
