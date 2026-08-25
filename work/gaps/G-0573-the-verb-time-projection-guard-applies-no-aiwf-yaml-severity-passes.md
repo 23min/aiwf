@@ -7,13 +7,15 @@ discovered_in: M-0300
 ---
 ## What's missing
 
-The verb-time projection guard decides whether a mutation may land by projecting
-the post-mutation tree and looking for newly-introduced error-severity findings.
-It calls `check.Run` directly, and applies none of the four `aiwf.yaml` severity
-passes the full `aiwf check` applies afterwards.
+The verb-time projection guard decides whether a mutation may land by projecting the
+post-mutation tree and refusing on newly-introduced error-severity findings. It cannot
+see the body bytes a verb is about to write. `entity-body-empty` reads them from disk
+(`internal/check/entity_body.go:147`) and stays silent when that read fails, while the
+plan carrying the new bytes is applied only after the guard has returned clean. For an
+entity being created there is no file at all, so the rule produces nothing the guard
+could refuse on.
 
-So a knob that escalates a finding to error severity is invisible to every verb.
-Measured in a repo with `tdd.strict: true`:
+Measured 2026-08-25 on `main`, in a fresh repo with `tdd.strict: true`:
 
 ```
 $ aiwf add epic --title "Strict probe epic"
@@ -21,29 +23,18 @@ ok — no findings
 aiwf add epic E-0001 "Strict probe epic"        exit 0
 
 $ aiwf check
-...epic.md:1: error entity-body-empty/epic: E-0001 body section `## Goal` is empty
+work/epics/E-0001-strict-probe-epic/epic.md:1: error entity-body-empty/epic:
+  E-0001 body section `## Goal` is empty
 ... (x3)                                         exit 1
 ```
 
-The verb reports success, commits, and prints `ok — no findings` for a state the
-pre-push hook refuses.
+The severity seam is not what fails. Those are errors rather than the default
+warnings, so the consumer's `aiwf.yaml` is being read, and
+`internal/verb/common.go:146` applies the policy to both sides of the projection diff.
 
 ## Why it matters
 
-The guard exists so a verb refuses rather than landing a bad state; a
-configuration that makes a state bad is exactly what it cannot see. The
-operator's own `aiwf.yaml` therefore has the perverse property that raising a
-severity makes the *gate* stricter while leaving every *writer* unchanged, and
-the gap between them is only discovered at push.
-
-This is the same missing-escalation shape as G-0567, on the write side rather
-than a read surface, and it is the more consequential half: a read surface that
-under-reports is a nuisance the next full check corrects, whereas a writer that
-reports success while landing a gate-refused state has already committed by the
-time anything disagrees.
-
-Both belong to one unpinned property: seven call sites reach `check.Run` and
-each decides independently which severity passes to compose — four for `check`,
-two for `check --fast`, zero for `status`, `show`, `render`, `doctor` and this
-guard. Nothing mechanical holds them in any relation to each other, so the
-next added pass will reach whichever call sites its author happened to edit.
+The guard exists so a verb refuses rather than landing a bad state. A verb that prints
+`ok — no findings`, commits, and leaves a tree the pre-push hook refuses has already
+written the state by the time anything disagrees. A repo carrying the knob gets this
+on every create.
