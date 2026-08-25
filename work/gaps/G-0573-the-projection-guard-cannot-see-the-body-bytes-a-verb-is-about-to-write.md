@@ -1,6 +1,6 @@
 ---
 id: G-0573
-title: The verb-time projection guard applies no aiwf.yaml severity passes
+title: The projection guard cannot see the body bytes a verb is about to write
 status: open
 priority: high
 discovered_in: M-0300
