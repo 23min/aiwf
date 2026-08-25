@@ -16,6 +16,26 @@ section in this file.
 
 ## [Unreleased]
 
+### Added — a closure names the live records that cite it
+
+`aiwf promote <id> <terminal-status>` and `aiwf cancel <id>` now print the still-open
+records whose bodies mention the entity being closed, with the file and line of each
+first mention. Nothing is printed when no live record names it, which is most
+closures.
+
+The notice states a fact and stops: it reports that a record names the entity, not
+that anything the record says is now wrong. Whether a mention is a premise the
+closure falsifies or a past-tense sentence the closure makes *more* accurate is a
+reading, and the person closing the entity is the one holding the context to tell
+those apart — briefly. The tree has always known who cites whom; what was missing
+was surfacing it at the one moment someone can act on it.
+
+Text output only. `--format=json` speaks to a program, which is not the audience for
+a prompt to go and re-read some prose.
+
+This is the first of the three layers G-0628 describes and does not close it; the
+ritual prompt and the standing check remain.
+
 ### Changed — G-0627: the AC-evidence rule names the observational shape and bans proxies
 
 The rule governing `aiwf promote M-NNNN/AC-N met` assumed every acceptance criterion

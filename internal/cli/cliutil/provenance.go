@@ -8,6 +8,7 @@ import (
 	"regexp"
 	"strings"
 
+	"github.com/23min/aiwf/internal/check"
 	"github.com/23min/aiwf/internal/entity"
 	"github.com/23min/aiwf/internal/gitops"
 	"github.com/23min/aiwf/internal/scope"
@@ -297,5 +298,37 @@ func DecorateAndFinish(
 		out.emitErrorEnvelope(label, codeStr, err.Error())
 		return ExitFindings, ""
 	}
-	return FinishVerb(ctx, root, label, result, nil, out)
+	code, sha = FinishVerb(ctx, root, label, result, nil, out)
+	if code == ExitOK {
+		printClosureCiters(t, pctx, out)
+	}
+	return code, sha
+}
+
+// printClosureCiters tells the operator which live records name the
+// entity a closure just took terminal.
+//
+// It reports that a record names the entity and stops short of saying
+// anything is now wrong: whether a mention is a premise the closure
+// falsifies or a past-tense sentence the closure makes more accurate is
+// a reading, and the person closing the entity is the one holding the
+// context to make it.
+//
+// It fires only on a terminal transition, and only in text output. A
+// converging promote never reaches it: a NoOp Result carries no Plan,
+// and the caller above returns on that before this runs. `--format=json` speaks to a program, whose
+// parse a loose line would break.
+func printClosureCiters(t *tree.Tree, pctx ProvenanceContext, out OutputFormat) {
+	if !pctx.IsTerminalPromote || pctx.TargetID == "" || out.JSON() {
+		return
+	}
+	citers := check.CitersOf(t, pctx.TargetID)
+	if len(citers) == 0 {
+		return
+	}
+	Printf("\n%s is now terminal. These live records still name it:\n", pctx.TargetID)
+	for _, c := range citers {
+		Printf("  %-9s %s:%d\n", c.ID, c.Path, c.Line)
+	}
+	Println("Re-read each for a claim this closure just made untrue; `aiwf edit-body <id>` fixes one.")
 }
