@@ -63,7 +63,7 @@ Deciding that ownership settles the open contradiction as a side effect:
 whichever way `## Validation` resolves, it resolves once. That decision is the
 substance of this gap and is why it is not a mechanical edit — it is why the
 G-0635 patch routed here rather than reconciling the copies in passing, having
-already been wrong about this fact twice.
+already stated this fact wrongly and had it corrected at review.
 
 Worth checking during the fix, not assumed now: whether a check could hold the
 result. A rule that no surface outside the owner states population timing is
