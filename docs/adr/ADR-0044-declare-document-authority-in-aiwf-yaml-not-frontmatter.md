@@ -28,6 +28,21 @@ records the fork and names where the next one lands: a shipped review pass has t
 tell a reviewer what to read, and its only options are a hierarchy that omits the
 root files, or a fourth copy of the classification.
 
+A path-based tier is also wrong about files inside the subtrees it names, not
+merely silent about the ones outside them. `docs/design/legal-workflows-audit.md`
+and `docs/design/legal-workflows-first-principles.md` are the Pass A and Pass B
+working artifacts of [ADR-0011](ADR-0011-legal-workflow-spec-methodology.md)'s
+three-pass methodology, kept so the reconciliation they fed stays auditable. The
+audit catalog says in its own header that it is not the spec and not the source of
+truth for what aiwf permits. Both sit under `docs/design/`, which the hierarchy
+assigns to Normative — current truth, kept in lockstep with the code. The tier and
+the document contradict each other, and the tier is what a reader sees first: a
+reviewer weighting those files by path reads their dated rule statements as stale
+current-truth and proposes correcting them, which would destroy the record they
+exist to hold. `PolicyM0128DocumentationHierarchy` reports nothing either way,
+because it asserts the section's shape and never opens a file. A declared list
+expresses the exclusion a subtree cannot — the two files are simply not on it.
+
 The question is now load-bearing rather than editorial. A review pass that audits
 a specification against what the project has committed to must decide which
 documents bind; `wf-doc-lint` reports drift against documents nothing designates;
