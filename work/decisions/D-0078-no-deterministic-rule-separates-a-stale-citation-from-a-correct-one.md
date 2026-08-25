@@ -65,8 +65,8 @@ Alternatives considered and rejected:
 
 - G-0628 closes on two layers. The closure is where the mechanism works, because
   it is the moment one person holds both sides.
-- G-0626 has no deterministic detector. Its subject is the reading this decision
-  rules out, so it needs a disposition rather than a build.
+- G-0626 has no deterministic detector, because its subject is the reading this
+  decision rules out.
 - D-0075 named diff-scoping as the shape worth building when a corpus-wide rule
   proves too noisy. Measured here, it is worse. Diff-scoping is what removes
   grandfathering, not what makes a signal precise; where the norm and the defect

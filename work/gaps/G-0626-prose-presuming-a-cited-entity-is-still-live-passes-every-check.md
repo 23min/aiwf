@@ -1,7 +1,7 @@
 ---
 id: G-0626
 title: Prose presuming a cited entity is still live passes every check
-status: open
+status: wontfix
 priority: medium
 ---
 ## What's missing

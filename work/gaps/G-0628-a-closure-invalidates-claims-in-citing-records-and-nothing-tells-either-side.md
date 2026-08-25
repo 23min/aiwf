@@ -1,8 +1,10 @@
 ---
 id: G-0628
 title: A closure invalidates claims in citing records and nothing tells either side
-status: open
+status: addressed
 priority: high
+addressed_by_commit:
+    - 5f5d9cb20
 ---
 ## What's missing
 
