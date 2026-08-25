@@ -30,8 +30,9 @@ mechanical-evidence rule.
 One ordering edge runs out of this epic and into another. `PromoteACPhase` —
 G-0458's target — writes frontmatter, so it falls inside E-0075's route list and
 under that epic's first decision, which settles where a frontmatter precondition
-sits relative to the same-state comparison. E-0075's decision is settled before
-this epic writes code.
+sits relative to the same-state comparison. ADR-0038 settles it as two seams: a
+commit-side guard at the top of `verb.Apply`, and a claim-side guard in each
+verb's prelude that runs ahead of its same-state comparison.
 
 ## Scope
 
@@ -106,8 +107,8 @@ by-design reason. It goes last because it cannot be decided by implementing it.
   frontmatter-dirty entity (G-0463, G-0466), tracked as E-0075. Same layer,
   different axis, kept separate so a broad precondition change does not ride along
   with mechanical dedup work. The one coupling that is not separable runs the
-  other way and is stated in *Context*: E-0075's first decision is settled before
-  this epic writes code.
+  other way and is stated in *Context*: ADR-0038 settles where that precondition
+  sits.
 - **Prelude error-envelope uniformity** (G-0456). Shares the word "uniformity" and
   nothing else.
 - **Rewriting duplicate records already in history.** These guards prevent new
@@ -129,8 +130,9 @@ by-design reason. It goes last because it cannot be decided by implementing it.
   behavior of `acknowledge illegal` — a re-run with a corrected `--reason`
   dropped, because the guard keys on the SHA alone — is the failure mode any new
   guard has to answer for rather than inherit.
-- E-0075's first decision is settled before this epic writes code, because
-  `PromoteACPhase` writes frontmatter.
+- `PromoteACPhase` writes frontmatter, so ADR-0038's claim-side guard applies to
+  it: the precondition runs in the verb's prelude, ahead of the same-state
+  comparison a convergence guard would add.
 
 ## Success criteria
 
@@ -161,7 +163,6 @@ by-design reason. It goes last because it cannot be decided by implementing it.
 | Which key ack ingest and ack lookup agree on — roll up at ingest, roll up at emit, or look up both | yes | G-0461 leans roll-up-at-ingest; settled together with the guard key above, since both write the same map |
 | Whether an exactly-duplicate `authorize --to` re-grant is a distinct event or a same-state input | yes, for the `Authorize` entry only | G-0460; does not gate the other five entries |
 | Whether `promote <id>/AC-N --phase <same-phase>` converges with a metrics carve-out or keeps a by-design refusal | yes, for that entry only | G-0458; cannot be decided by implementing it, so it is decided before it is scheduled |
-| Where E-0075's frontmatter precondition sits relative to the same-state comparison | yes | E-0075's first decision, settled before this epic writes code |
 
 ## Risks
 
@@ -169,7 +170,7 @@ by-design reason. It goes last because it cannot be decided by implementing it.
 |---|---|---|
 | A duplicate guard keyed so as to ignore `--reason` silently discards a corrected reason, reproducing in three more verbs the defect measured in `acknowledge illegal` | high | the key is an explicit open question resolved before implementation, not a port of the existing guard |
 | A by-design rewrite of an allowlist entry changes no behavior, so it lands with no test and leaves the bar unenforced | medium | the mechanical bar lands first, before any entry is rewritten |
-| A convergence guard on `PromoteACPhase` interacts with E-0075's frontmatter precondition, and the two are designed against different assumptions | medium | sequencing — E-0075's first decision is settled first; G-0458 is scheduled last for the same reason |
+| A convergence guard on `PromoteACPhase` interacts with E-0075's frontmatter precondition, and the two are designed against different assumptions | medium | ADR-0038 fixes both seams, so the convergence guard is designed against a known shape rather than in parallel with it; G-0458 stays scheduled last |
 | Rolling ack keys up at ingest changes the verb's own duplicate-guard read path, which looks the composite spelling up first and falls back to the parent | medium | verified: with the composite key gone the guard still finds the parent-scoped cover — that fallback exists precisely because the two sides disagree about width — but the binding it reports back changes from the AC to its parent, and that value is what the NoOp message names. The cost is an operator-visible message, not a missed guard, and the ingest option is chosen with it in view |
 
 ## Milestones
@@ -197,7 +198,9 @@ deliverables, in execution order:
 - G-0460 — a repeat `authorize --to` leaves two simultaneously-active scopes
 - G-0461 — composite `--for-entity` acks never suppress the rule they target
 - ADR-0036 — same-status FSM transitions converge to NoOp, not refusal
-- E-0075 — write scope; its first decision is settled before this epic writes code
+- E-0075 — write scope; its first decision landed as ADR-0038
+- ADR-0038 — the frontmatter precondition's two seams, the claim-side one ahead
+  of each verb's same-state comparison
 - `internal/policies/verb_result_noop_invariant.go` — the allowlist this epic empties
 - `docs/design/provenance-model.md` — parallel active scopes and deterministic resolution
 - CLAUDE.md §"Same-state convergence — resolve, then converge"
