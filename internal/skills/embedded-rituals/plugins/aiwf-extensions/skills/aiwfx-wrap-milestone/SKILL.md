@@ -257,6 +257,10 @@ session in the worktree holding it.
 
 aiwf validates `in_progress → done`, rewrites frontmatter, and commits with `aiwf-verb: promote` trailers. This is the moment of closure — the last status-flip commit in the sequence, landing after the merge (and after any gap closures) so a delegated milestone's authorize scope is still live for both.
 
+Both promotes list — the gap closures above and the milestone's own — the live records whose bodies still name what each one closed; where none do, nothing prints. Read what each one prints before moving on: this is the one moment anyone holds both the closure and its consequences. Open each record named and look for a sentence that *depends* on that entity being live: work sequenced on it, a premise resting on it, something deferred to it. A record that merely mentions it in passing needs nothing. A record whose claim the closure just falsified needs `aiwf edit-body`, and the correction states what is so now — it does not add a paragraph saying the old claim was wrong.
+
+Those edits are not on the declared sequence's list. Finish the enumerated actions (steps 14–15), then present the edits as their own gate. `aiwf edit-body` needs an active scope that reaches the record, and a citing record can sit anywhere in the tree, so a delegated actor may be refused; where it is, the human runs the correction. If nothing needs an edit, say so — an unremarked notice reads as unread.
+
 ### 14. Regenerate the roadmap
 
 Now that the milestone's status has actually landed as `done` (step 5's render ran before this promotion, so it's stale the moment promote-done commits):
