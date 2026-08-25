@@ -421,68 +421,48 @@ that whole route undecided. Should G-0606 settle that the route is legitimate,
 pinning this rule is a one-line follow-on. *Attacks the contagion amplifier — which
 is why the copies are unfindable today, per Tier 3. Ban-shaped; costs once.*
 
-**T1.5 — Tell both sides of a closure, in three layers.** Filed as G-0628. One
-design, not three options: each layer supplies what only it can, and the shape follows
-this repo's own rule that skills are advisory and `aiwf check` is authoritative.
+**T1.5 — Tell both sides of a closure.** Filed as G-0628, and settled in two layers
+rather than the three proposed.
 
-- **The verb supplies the facts.** `aiwf promote <id> <terminal>` prints the open
-  records whose bodies cite the id it just closed. Near-free, since the work is already
-  done and thrown away — `promote` runs `projectionFindings`, which calls `check.Run`,
-  which reads every body through `bodyProseID` and resolves each citation against
-  `BodyProseIDIndex`. It fires on a bare promote too, which matters because roughly a
-  quarter of closures are bare.
-- **The ritual supplies the prompt for judgment**, in the closure step both `wf-patch`
-  and `aiwfx-wrap-milestone` already carry: does closing this invalidate anything in
-  the records the verb just named, and if so `aiwf edit-body` them now. This is the
+- **The verb supplies the facts.** `aiwf promote <id> <terminal>` and `aiwf cancel`
+  print the live records whose bodies name the entity just closed, with the file and
+  line of each first mention. It fires on a bare promote too, which matters because
+  roughly a quarter of closures are bare.
+- **The ritual supplies the prompt for judgment**, in the closure step of `wf-patch`,
+  `aiwfx-wrap-milestone` and `aiwfx-wrap-epic`, with the notice documented in the
+  `aiwf-promote` skill for the closure paths no ritual carries a step for. This is the
   only layer that can capture what is perishable. The diff survives in git forever;
-  the closer's understanding of what it implies survives for about a minute.
-- **The check supplies the guarantee.** A body citing an entity that went terminal
-  *after* that body was last written is a finding, derived from two commit dates and
-  stored nowhere. It catches what the first two layers missed and what drifts later,
-  and it clears when the body is edited — so the only way to silence it is to do the
-  work. No acknowledgement record, nothing minted per instance.
+  the closer's understanding of what it implies survives for about a minute. The
+  corrections it prompts are mutations no declared sequence enumerated, so they are
+  judged at the closure and gated once the enumerated actions finish.
+- **The check supplies no guarantee, and none ships.** D-0078 carries the measurement:
+  citing a terminal entity is how this tree references completed work, so every
+  deterministic trigger over citations and dates fires on the norm rather than the
+  defect. What separates them is whether a sentence presumes the entity is still live,
+  which is a reading of prose.
 
-*Measured 2026-08-24: 36 of the 161 open gaps with a known body-write date cite an
-entity that went terminal afterwards. Over the 224 gaps closed since 2026-06-25, the
-verb notice would print nothing for 160, name one record at the median where it prints
-at all, and four at most — an undercount, since it uses the open set as it stands now
-rather than as it stood at each close.*
+*Measured 2026-08-24: over the 224 gaps closed since 2026-06-25, the verb notice would
+print nothing for 160, name one record at the median where it prints at all, and four
+at most — an undercount, since it uses the open set as it stands now rather than as it
+stood at each close.*
 
 Two things this does not claim. It reaches only the half of the closure-throughput
-amplifier that someone wrote down as a citation; Tier 3 prices the rest. And a body
-edited for an unrelated reason clears the finding without anyone having looked, so the
-check is a prompt with natural decay rather than proof of review — the ceiling on
-every mechanism in this class.
+amplifier that someone wrote down as a citation; Tier 3 prices the rest. And it
+reaches only entities: a document is never named, because the resolver walks the entity
+tree, so a stale claim in this file is invisible to it.
 
-Sequencing: the check layer is not a second build on T1.1's status resolver — it is
-that resolver's only deterministic form, so the two are one rule minting one finding
-code. Measured 2026-08-24 over the 170 open gaps: a body citing *any* terminal entity
-fires 568 times across 114 of them, unusable as a check, and the filter that narrows it
-to deferral phrasing reads prose. The body-write date is what makes the resolver
-usable, and it is the check layer.
+Sequencing: the check layer was to be T1.1's status resolver in its only deterministic
+form, so ruling it out leaves G-0626 with no detector and needing a disposition of its
+own rather than a build. D-0078 carries the three triggers measured and what would
+reopen the question.
 
-The same date carries a second property, measured the same day. A record reporting a
-closure is necessarily written after it, so the rule cannot fire on the report: the
-three gaps whose subject is this defect draw no findings from their own bodies. A rule
-keyed on prose would need a sanctioned way to quote a defect while reporting it; this
-one needs none.
+It landed as two patches rather than an epic, each under `wf-patch`.
 
-It lands as two patches rather than an epic. The layers are independently valuable and
-do not interlock — the check is the guarantee and stands alone, the notice and the
-prompt are speed-ups on top — so the atomic wrap a milestone buys has nothing to hold
-together, and an epic would mint two planning entities for work that needs none. The
-bar each patch answers to is `wf-patch`'s own: land the check that pins the fix, or
-state the escape at the commit gate.
-
-1. **The rule, minted subcoded.** A body citing an entity that went terminal after that
-   body was last written. One subcode exists at this point; the structure is what
-   T1.1's remaining resolvers need, and retrofitting it after a narrow code ships is
-   the expensive path. Ships at warning against the hits measured above, swept, then
-   promoted to error — the sequence T1.1 already specifies. Closes G-0626; leaves
-   G-0628 open on its other two layers.
-2. **The verb notice and the ritual prompt, together.** The prompt reads "act on what
-   the verb just named", so it says nothing without the notice; splitting them ships a
-   ritual step referring to output that does not exist. Closes G-0628.
+1. **The verb notice.** A citer walk over the loaded tree, printed at the shared
+   verb-finish seam, scoped to a terminal promote or a cancel and silent under
+   `--format=json`.
+2. **The ritual prompt.** The closure step in the three wrap rituals, plus the notice
+   documented in the `aiwf-promote` skill.
 
 What stays out: T1.1's remaining resolvers — filesystem paths, `path:line`, Go symbols,
 backticked verbs and flags, finding codes. Those are still a proposal. G-0626 and
@@ -584,10 +564,12 @@ a false universal reaches the most readers.
 **Closure throughput.** The amplifier splits, and the split is whether anyone wrote
 the relationship down.
 
-The half that was written down is covered twice over. A body deferring work until a
-cited entity lands, after that entity went terminal, is 18 of 412 distinct citations
-from open gap bodies measured 2026-08-24, and G-0626 catches it on the next `aiwf
-check` rather than at promote time. The closing side is T1.5, filed as G-0628.
+The half that was written down is covered on the closing side only. A body deferring
+work until a cited entity lands, after that entity went terminal, is 18 of 412 distinct
+citations from open gap bodies measured 2026-08-24 — a count reached by matching
+deferral phrasing, which is the prose reading D-0078 rules out. No check catches it.
+The closing side is T1.5, filed as G-0628, which tells the closer at the moment of
+closure instead.
 
 What no mechanism reaches is a dependency nobody recorded. Of the four pairs named
 above, two carry a citation edge in one direction or the other, and two carry none at
