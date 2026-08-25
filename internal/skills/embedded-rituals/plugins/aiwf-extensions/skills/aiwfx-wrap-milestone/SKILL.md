@@ -31,6 +31,8 @@ If anything is red, stop and report. Wrap does not paper over failure.
 
 This gates milestone *closure*, not the per-commit work: the implementation commits are already in, but the milestone is not yet wrapped, so there is still a chance to fix things *inside* the milestone. Findings become corrective commits on the milestone branch — before any AC flips to `met` and before the commit gate (step 7). The review feeds the human gate; it does not replace it.
 
+**Point the review at the spec's evidence, not only at the code.** Before dispatching, bring `## Work log`, `## Validation` and `## Deferrals` up to date and commit them with `aiwf edit-body M-NNNN`, so the reviewer reads them from the tree and the spec is not left dirty across step 2's corrective commits. Then name all three in the brief: a section met as part of a diff gets skimmed as source, and these are claims — the archived spec is what a later reader consults for what this milestone established, and no gate checks prose.
+
 Dispatch a **fresh-context reviewer** (a subagent with no authorship attachment) over the milestone's full change-set (`git diff <base>..HEAD`), briefed adversarially per `wf-review-code` §"Independence" (enumerate the load-bearing claims, instruct *verify by measuring not reasoning*, name the risk areas). Run two lenses:
 
 - **Code-quality** (`wf-review-code`): correctness, AC coverage, branch-coverage discipline, conventions, docs. For a large milestone, *slice the review by concern or file group* — one agent over thousands of lines goes shallow, the exact failure independence is meant to avoid.
@@ -66,25 +68,27 @@ If the report is clean, note "doc-lint: clean" and continue. If findings:
 
 - **Broken code references** — fix in this milestone, or open a gap.
 - **Removed-feature docs** — same.
-- **Orphan files / TODOs** — record under the spec's `## Reviewer notes` for the reviewer to consider; don't block wrap.
+- **Orphan files / TODOs** — record under the spec's `## Reviewer notes`. The deciding review has already run, so this lands for a later reader rather than for it; don't block wrap.
 
 `wf-doc-lint` reports only — it does not rewrite prose. Any prose changes happen here as deliberate edits.
 
 ### 4. Finalize the milestone spec's wrap-side sections
 
-The milestone spec itself carries the wrap-side sections; finalize them in place:
+`## Work log`, `## Validation` and `## Deferrals` went through the review at step 2. Confirm each still reads true after any corrective commits, and update it where one changed the answer.
+
+Anything you add or change in the spec from here lands after the deciding review. Unless something sends you back through that review, no independent reader sees it — and the outcome you record in `## Reviewer notes` cannot be read by the review it records, whatever else happens. Write accordingly: nothing downstream will catch a claim made here.
 
 - `## Work log` — confirm one entry per AC with the final outcome and commit SHA. The phase timeline is in `aiwf history M-NNNN/AC-<N>`; don't duplicate dates here.
 - `## Decisions made during implementation` — confirm every mid-flight decision is captured (each should already have an `ADR-NNNN` or `D-NNNN` from `aiwfx-record-decision` invocations during work).
-- `## Validation` — paste the test-suite and build results.
-- `## Deferrals` — list any work this milestone deliberately punted. Before opening a gap for one, apply the **cheap-fix test**: if the change is small, lands in a file this milestone already touches, and is covered by a test you are already writing, **make it now as a corrective commit on the milestone branch** — the same route step 2's review fixes take, so it lands before the wrap commit rather than dirtying it — then record it under `## Reviewer notes`. If it touched source or tests, re-run step 1's gates and re-enter step 2's scoped confirmation — a fix landing after the deciding review is still code no reviewer has seen. A gap is for work that needs its own branch, its own review, or a decision you are not ready to make. For each deferral that survives the test, **open a gap entity** so it survives:
+- `## Validation` — confirm the step 1 gate results you committed at step 2 still hold; re-paste them if a corrective commit changed the answer.
+- `## Deferrals` — confirm the list covers every piece of work this milestone deliberately punted. Before opening a gap for one, apply the **cheap-fix test**: if the change is small, lands in a file this milestone already touches, and is covered by a test you are already writing, **make it now as a corrective commit on the milestone branch** — the same route step 2's review fixes take, so it lands before the wrap commit rather than dirtying it — then record it under `## Reviewer notes`. If it touched source or tests, re-run step 1's gates. Re-enter step 2's scoped confirmation whenever the fix touched source, tests, or one of the evidence sections that review read, committing a changed section with `aiwf edit-body M-NNNN` first as step 2 did, so the re-dispatched reviewer's diff carries it and the spec is not left dirty for the verbs that follow. What lands after the deciding review is unread, whether it is code or a claim about it. A gap is for work that needs its own branch, its own review, or a decision you are not ready to make. For each deferral that survives the test, **open a gap entity** so it survives:
 
   ```bash
   aiwf add gap --title "<deferred-work>" --discovered-in M-NNNN
   ```
 
   Then mirror the resulting `G-NNNN` id here. Deferred ACs (status `deferred`) get a one-line note pointing at the receiving milestone or gap.
-- `## Reviewer notes` — trade-offs, deliberate omissions, places where the obvious approach was rejected. The reviewer agent reads this first.
+- `## Reviewer notes` — trade-offs, deliberate omissions, places where the obvious approach was rejected, and the review's own outcome. A later reviewer reads it first; the review whose outcome it records cannot.
 
 For ACs that were `cancelled` mid-implementation, link to the `D-NNNN` decision (or the conversation context) explaining why under the cancelled AC's body section. The kernel only guards the structural state (`status: cancelled`, position-stable in `acs[]`); the why is the human's narrative.
 
@@ -98,7 +102,7 @@ aiwf render roadmap --write
 
 ### 6. Stage all changes and prepare the wrap commit
 
-The implementation is already committed, per-AC, from `aiwfx-start-milestone` step 6 — this step does not bundle any source or test files. The milestone spec carries all the wrap-side prose now (Work log, Validation, Deferrals, Reviewer notes); that, plus the regenerated roadmap from step 5, is what's left to stage:
+The implementation is already committed, per-AC, from `aiwfx-start-milestone` step 6 — this step does not bundle any source or test files. The milestone spec carries whatever wrap-side prose step 4 finished; that, plus the regenerated roadmap from step 5, is what's left to stage:
 
 ```bash
 git add work/epics/E-NNNN-<slug>/M-NNNN-<slug>.md ROADMAP.md

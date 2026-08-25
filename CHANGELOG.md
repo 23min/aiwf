@@ -16,6 +16,30 @@ section in this file.
 
 ## [Unreleased]
 
+### Changed — the wrap rituals put their own prose in front of a reviewer
+
+`aiwfx-wrap-milestone`'s deciding review now covers the milestone's evidence, not only
+its code. The ritual brings `## Work log`, `## Validation` and `## Deferrals` up to date
+and commits them with `aiwf edit-body` before dispatching, then names all three in the
+reviewer's brief — a section met as part of a diff gets skimmed as source, and these are
+claims. The re-review trigger widened to match: a corrective fix re-enters the scoped
+confirmation when it touches one of those sections, not only when it touches source or
+tests, and a re-entry commits the changed section first so the re-dispatched reviewer's
+diff carries it. The ritual now warns that anything added to the spec after that review
+goes unread unless something sends it back through, and that the outcome recorded in
+`## Reviewer notes` cannot be read by the review it records. The milestone template says
+the same of that section, and both name the later reviewer who does read it. The
+reviewer role card asks for `## Validation`, `## Deferrals` and `## Reviewer notes`
+among its inputs.
+
+`aiwfx-wrap-epic` referenced no reviewer at any step, while authoring the
+`## Changelog entry` that its own step 6 copies verbatim into this file. It now takes
+a scoped read of `wrap.md` by someone who did not write it, before the
+declared-sequence gate, checking the artefact's claims against the tree — that the
+milestones listed merged at the SHAs given, that the ids named resolve at the status
+claimed, and that the changelog entry describes what a consumer will observe. A
+correction made at the copy step goes back through that read.
+
 ### Changed — the wrap rituals ask what the closure just invalidated
 
 `wf-patch`, `aiwfx-wrap-milestone` and `aiwfx-wrap-epic` now carry a step at their
