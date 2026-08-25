@@ -20,11 +20,15 @@ triggers to `**/*.go`, `go.mod`, `go.sum`, `.golangci.yml`,
 `.github/workflows/go.yml` and `Makefile`. None of the embedded trees is
 listed, so a commit touching only them does not start it.
 
-Those bytes are test inputs, not just payload. Policy tests parse them —
-`internal/policies/skill_fixture_helpers_test.go`,
-`m0210_trailer_commit_drift.go` and `aiwfx_handoff_test.go` all read the
-wrap-milestone ritual, and the wider suite reads the other embedded skills. A
-prose edit can turn the policy suite red.
+Those bytes are test inputs, not just payload, and the coupling reaches the
+prose itself. `internal/policies/cheap_fix_escape_test.go:70` locates the
+wrap-milestone ritual's step-4 section by scanning `### ` headings for the
+literal `wrap-side sections`; the heading it depends on is
+`aiwfx-wrap-milestone/SKILL.md:75`. Rename that heading in a markdown-only
+commit and the helper returns nothing, every assertion over that section
+fails, and no Go workflow runs to say so.
+`d0054_fixed_and_pinned_disposition_test.go` and `aiwfx_handoff_test.go` reach
+the same ritual through the shared helper in `skill_fixture_helpers_test.go`.
 
 Nothing else covers the class. The pre-push hook chain runs `aiwf check`
 (`.git/hooks/pre-push`), then `golangci-lint`, `gitleaks`, and exactly one
@@ -41,9 +45,11 @@ git log --oneline 90346026a..main -- internal/skills/
 ```
 
 — and `gh run list --commit <sha>` for the resulting HEAD lists only
-`gitleaks`, `link-check`, `markdown-lint` and `scrub`. Both commits edited the
-step-4 region of the wrap-milestone ritual that the policy tests above parse.
-Both happened to be green, verified by an operator running `make ci` locally.
+`gitleaks`, `link-check`, `markdown-lint` and `scrub`. `f875c1bf1` edited the
+step-4 region those tests parse; `9cdf7ac4f`'s change to the same file landed
+further down, in the worktree-guard section. Both were green, but only the
+first is known to have had `make ci` run against it before the push — whether
+the other did is not recorded anywhere the tree can show, which is the point.
 
 ## Why it matters
 
@@ -67,12 +73,24 @@ The straightforward fix is to add the embedded trees to `go.yml`'s two path
 filters, so the workflow that already knows how to judge these bytes starts
 when they change. That is one edit to one file and introduces no new surface.
 
-Its cost is the reason it is a decision rather than an edit: every ritual-prose
-commit would then run the full matrix — build, vet, race, lint, coverage gates
-— and ritual prose changes often. Whoever fixes this should weigh that against
-the narrower alternative of a separate workflow running only
-`go test ./internal/policies/` on embedded-content paths, which is cheaper per
-commit but adds a second workflow to keep in step with the first.
+Its cost is smaller than it first looks. Widening the filter runs the full
+matrix — build, vet, race, lint, coverage gates — on every commit touching
+embedded content, and measured 2026-08-25 over the last hundred commits on
+`main`, four did:
+
+```
+git log --oneline -100 --format='%h' | while read -r c; do
+  git show --name-only --format='' "$c" | grep -q '^internal/skills/embedded' && echo x
+done | wc -l
+  4
+```
+
+At that rate the added CI is roughly one commit in twenty-five, which makes the
+narrower alternative — a separate workflow running only
+`go test ./internal/policies/` on embedded-content paths — a poor trade: it
+saves little and leaves a second workflow to keep in step with the first.
+Re-measure before deciding, since a stretch of ritual-heavy work moves the
+rate.
 
 Worth checking during the fix rather than assumed here: whether the filter
 should name the embedded trees explicitly or `internal/skills/**` wholesale.
