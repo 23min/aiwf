@@ -25,6 +25,20 @@ created by default — `aiwfx-start-epic` places one in-repo unless told otherwi
 Measured 2026-08-25 after E-0088 closed: its worktree was still on disk holding
 a merged branch, at 160 MB.
 
+Removing it surfaced something the ritual caveat does not carry. *"You cannot
+remove the worktree you are standing in"* reads as a git refusal, and is not
+one. Measured 2026-08-25: `git -C <repo> worktree remove <path>`, issued from a
+shell whose working directory was that same path, succeeded and deleted it.
+Git's refusals cover a dirty or a locked worktree — `git worktree remove -h`
+reads *"force removal even if worktree is dirty or locked"* — and not one a
+process is standing in. The cost lands on the caller's *next* command,
+which starts in a path that no longer exists. For an agent session rooted in the
+worktree the caveat is then unfollowable rather than merely awkward, since such
+a session has no `cd` to escape with: its working directory is re-established
+before each command, so moving out does not persist. The removal has to be
+issued from outside the worktree, or the path recreated by the same command that
+deletes it.
+
 The likely cause is a coupling. Both rituals that clean up treat *remove the
 worktree* and *delete the branch* as one act — same paragraph, same ordering
 caveat. `aiwfx-wrap-epic` decided deliberately not to delete the branch, and
@@ -96,8 +110,11 @@ What the written boundary should carry, beyond naming `git worktree remove`:
 
 - `internal/skills/embedded-rituals/plugins/aiwf-extensions/skills/aiwfx-wrap-epic/SKILL.md`
   — the epic's worktree is the operator's to time, and the branch stays; say
-  both, and say they are separate decisions.
-- `internal/skills/embedded/aiwf-worktree/SKILL.md` — why `add` has no inverse.
+  both, say they are separate decisions, and say where the removal is issued
+  from, since the session running the wrap is routinely inside the worktree it
+  would remove.
+- `internal/skills/embedded/aiwf-worktree/SKILL.md` — why `add` has no inverse,
+  and what `git worktree remove` does when the caller is standing in the target.
 - `internal/skills/embedded-rituals/plugins/wf-rituals/skills/wf-patch/SKILL.md`
   and `.../aiwfx-wrap-milestone/SKILL.md` — the two that already dispose, if the
   duplicated resolution block is worth reconciling once the boundary is written.
