@@ -91,10 +91,17 @@ func (a m0211Anchor) present(lowerBody string) bool {
 // consumer-operating rule to the guidance and to this slice extends the
 // guarantee; the set is deliberately hand-curated (the audience call is human
 // judgment, per the CLAUDE.md "audience, not importance" authoring rule).
+//
+// The guarantee is presence, not meaning: a fragment reports that a rule's
+// distinctive words are still in the body, so deleting a rule fires while a
+// rewrite keeping those words but inverting the rule passes. Presence is the
+// regression direction worth mechanizing — a rule silently dropped ships
+// nowhere, and nothing else looks for its absence. A rule inverted in place is
+// a content change, which review reads (D-0070).
 var m0211OperatingAnchors = []m0211Anchor{
 	{"gate-per-mutation", []string{"each mutating action", "approval gate"}},
 	{"reallocate-not-git-mv", []string{"aiwf reallocate", "git mv"}},
-	{"ac-mechanical-evidence", []string{"mechanical evidence"}},
+	{"ac-mechanical-evidence", []string{"mechanical evidence", "artefacts", "proxy"}},
 	{"one-decision-at-a-time", []string{"one thing at a time"}},
 	{"never-suggest-pause", []string{"never suggest", "pause"}},
 	{"body-prose-id", []string{"body-prose-id"}},

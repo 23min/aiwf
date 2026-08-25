@@ -34,6 +34,26 @@ aiwf promote <M-NNNN>/AC-N --phase <p>   # AC tdd_phase (mutex with positional s
 
 `aiwf promote` enforces the per-kind legal-transition function. If the move is illegal it reports a finding and exits without writing; if the target status is the one already recorded there is no move to make, so it exits 0 having written nothing. To reach a terminal-cancel status use `aiwf cancel <id>` instead — same end state, clearer intent in the log.
 
+## Evidence for promoting an AC to `met`
+
+An AC reaches `met` on evidence, and which evidence depends on what the AC claims. "I read it and it looks right" is never it.
+
+**A standing property** — code produces X for input Y, one artefact agrees with or cites another, the tree has a shape — is claimed to hold from now on. It can break, so its evidence is a mechanical assertion that fails when it does: a test, a check rule, or a fixture validation.
+
+**An observation** — a command was run against something the test suite cannot reach, and reported what it reported — cannot break. The command either ran and returned what it returned, or it did not, and no assertion can watch that. Its evidence is the record the observation itself specifies: the command, the result expected, the output observed, and the environment it ran in, written into the milestone where a later reader can re-run it. Re-running is the only re-checking available, and the record is what makes it possible.
+
+The discriminator between the two is re-derivation: can the claim be rebuilt from artefacts a test can reach? Yes — assert it. No — record it.
+
+### Never satisfy this with a proxy
+
+A proxy is a different, checkable claim written in place of the one the AC made. It is worse than no check at all, because it reads as evidence: a later reader sees a passing assertion and takes the AC as pinned, when what is pinned is something else.
+
+An AC that resists pinning is often stated at the wrong level, and restating it is the right move — but restating has two outcomes, and only one of them is honest. **Narrowing** keeps the AC's claim and reduces it to the part that is checkable, so the evidence still bears on what was claimed. **Substituting** replaces the claim with a different one that happens to be checkable, and the evidence then bears on something the AC never asserted.
+
+Before writing an assertion, ask: *does this assert what the AC claimed, or something else that happens to be checkable?* If only a substitution is available, the claim is observational — keep it and record it.
+
+Feasibility does not settle this. A proxy can be built faithfully, match its subject exactly, and still be the wrong thing to build; the more faithful it is, the more convincingly it reads as evidence for a claim it does not test. The question is never *can I pin this?* but *am I pinning what was claimed?*
+
 ## --force --reason for exceptional moves
 
 When a transition the FSM disallows must happen anyway (rare), pass `--force --reason "<text>"`:

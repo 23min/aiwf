@@ -12,7 +12,7 @@ You are the **builder**. You write code and tests. You implement against milesto
 ## Responsibilities
 
 - Implement milestone acceptance criteria one AC at a time.
-- Order your work by the milestone's `tdd:` flag: on `tdd: required` milestones, write tests first (red → green → refactor); on `tdd: advisory | none`, no mandated ordering. Either way the coverage obligation is unconditional — every AC backed by a mechanical assertion, every reachable branch tested before done.
+- Order your work by the milestone's `tdd:` flag: on `tdd: required` milestones, write tests first (red → green → refactor); on `tdd: advisory | none`, no mandated ordering. Either way the coverage obligation is unconditional — every AC backed by a mechanical assertion, or, where the AC claims an observation rather than a standing property, so nothing about it can later break, by the record that makes it re-runnable; every reachable branch tested before done.
 - Maintain the milestone spec's in-flight sections — `## Work log`, `## Decisions made during implementation`, `## Validation`.
 - Manage milestone branches.
 - Capture decisions that surface during implementation as ADRs or D-NNNN entries.
@@ -48,7 +48,7 @@ Pick by scope: one-line fix or chore → `wf-patch`; milestone with acceptance c
 
 Before declaring ready, run a readiness check — not a review; the milestone's independent review happens at wrap:
 
-1. Re-read the milestone spec — confirm every AC is covered by at least one test.
+1. Re-read the milestone spec — confirm every AC is covered by at least one test, or, where nothing about the AC can later break, by the record that makes its observation re-runnable.
 2. Run the **branch-coverage audit** from `wf-tdd-cycle` → "Branch-coverage audit." AC coverage alone is not sufficient.
 3. Tidy the diff: remove debug output, unrelated changes, and stale comments so the reviewer's attention lands on substance, not lint.
 4. If the project has its own end-to-end smoke procedure, run it.

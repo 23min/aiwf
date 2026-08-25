@@ -17,7 +17,7 @@ If the spec doesn't exist or isn't ready, use `aiwfx-plan-milestones` first. If 
 
 ### 1. Preflight
 
-- Read the milestone spec. Confirm every AC is concrete and testable. If any AC is vague, stop and ask the user to refine before starting work.
+- Read the milestone spec. Confirm every AC is concrete, and either testable or observational — an AC that claims someone ran a command beyond the tests' reach is met by the record of it, not by a test, and restating it as something testable substitutes a claim it never made. If any AC is vague, stop and ask the user to refine before starting work.
 - Read the parent epic's spec for context.
 - Read prior milestone specs in the same epic if this milestone builds on them.
 - **ACs are expected to already exist.** `aiwfx-plan-milestones` creates and body-fills each AC at plan time, so a milestone normally reaches this preflight with `acs[]` populated and its `### AC-N — <title>` bodies filled — confirm they are present and filled (the first bullet already covers whether each is concrete). **Recovery fallback only** — a hand-written spec whose `acs[]` is empty: add them now and fill each body before proceeding, rather than deferring the contract into implementation:
@@ -137,7 +137,7 @@ If a piece of work surfaces that's deferred, apply the **cheap-fix test** first:
 
 Before invoking `aiwfx-wrap-milestone`, confirm the change is *ready to be reviewed* — not that it *has been* reviewed. These are gates you clear yourself so a broken or noisy diff never reaches an independent reviewer; none of them is the review:
 
-- Re-read the milestone spec; confirm every AC has at least one passing test.
+- Re-read the milestone spec; confirm every AC has at least one passing test — or, where the AC claims an observation rather than a standing property, the record that makes it re-runnable: the command, the result expected, the output observed, and the environment it ran in.
 - Run `aiwf check` (or `aiwf show M-NNNN`); confirm zero error-severity findings on the milestone. The `acs-tdd-audit`, `milestone-done-incomplete-acs`, and `acs-shape` codes are the AC-related ones to watch for.
 - Run the **branch-coverage audit** from `wf-tdd-cycle` — every reachable conditional branch in the diff has an explicit test. This is a hard rule.
 - Tidy the diff: remove debug output, unrelated changes, and stale comments so the reviewer's attention lands on substance, not lint. Reading your own code for correctness catches little — which is exactly why the review that follows is *independent*, not another pass by you.
