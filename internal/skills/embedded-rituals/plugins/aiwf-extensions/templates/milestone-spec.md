@@ -141,6 +141,8 @@ changed to make it possible now?>
 ## Reviewer notes
 
 <!-- Trade-offs, deliberate omissions, places where the obvious approach was
-     rejected. Filled at wrap; the reviewer agent reads this first. -->
+     rejected, and the deciding review's own outcome. Filled at wrap, after
+     that review — so the review whose outcome it records cannot have read it.
+     A later reviewer reads it first. -->
 
 - (none)

@@ -111,6 +111,10 @@ Append the report to `wrap.md` under a `## Doc findings` section. If findings in
 
 ### 4. 🛑 Declared-sequence gate — close the epic (terminal local sequence)
 
+**Before presenting the gate, have `wrap.md` read by someone who did not write it.** The artefact makes fresh claims — what shipped, which milestones merged, which follow-ups survive — and one of them travels: step 6 copies `## Changelog entry` verbatim into `CHANGELOG.md`, where it becomes release notes for readers who will never see this epic. It is authored once, by the author of the work, and no gate downstream checks prose.
+
+A scoped read is enough. This is not the milestone's two-lens review, which would be disproportionate for an aggregation whose milestones were each reviewed already. Dispatch a fresh-context reader over `wrap.md` alone, briefed per `wf-review-code` §"Independence", and have it check the artefact's claims against the tree rather than against the epic spec: that each milestone listed merged at the SHA given, that every ADR, decision and gap named resolves and carries the status claimed, and that `## Changelog entry` describes what a consumer will observe. Fix what it finds before presenting the gate, and present its outcome alongside the sequence — the artefact is part of what this gate approves.
+
 This is the epic's terminal sequence of *local, reversible* mutations. Present it as a single **declared-sequence gate** that enumerates every action verbatim; the user may approve a subset ("all except the promote"), and any deviation (a merge conflict, a check finding, unexpected dirty state) aborts the sequence and re-gates from the point of deviation. **Excluded from this gate:** the push (step 10) and the origin-branch deletes (step 11) — those are outward and stand as their own gates, never batched here.
 
 The enumerated local sequence is **wrap-artefact commit → promote-done → roadmap regen → merge**:
@@ -189,7 +193,7 @@ merge would then be a no-op:
 
 The `[Unreleased]` section of `CHANGELOG.md` is a per-epic accumulator: every wrapped epic adds an entry here, and `aiwfx-release` later rolls the accumulated entries into a versioned `## [X.Y.Z]` heading. *Without this step, releases ship with empty changelog entries* — that's the `[Unreleased]` drift this step prevents.
 
-Copy `wrap.md`'s `## Changelog entry` section into `CHANGELOG.md` — from its `###` category line down to the next `##` heading, landing at the top of `## [Unreleased]`, newest entry first. Verbatim means the finished text, not the template — step 1 is where the placeholders get filled. Don't re-author the prose here — writing it a second time from the same memory is what the copy rule exists to stop. If reading it in place shows it wrong, fix it in `wrap.md` and copy again, so the two never disagree.
+Copy `wrap.md`'s `## Changelog entry` section into `CHANGELOG.md` — from its `###` category line down to the next `##` heading, landing at the top of `## [Unreleased]`, newest entry first. Verbatim means the finished text, not the template — step 1 is where the placeholders get filled. Don't re-author the prose here — writing it a second time from the same memory is what the copy rule exists to stop. If reading it in place shows it wrong, fix it in `wrap.md` and copy again, so the two never disagree. That correction is a deviation: it changes the artefact the gate approved, so it aborts and re-gates like any other, this time with the corrected text read before you re-present it. Left inside the sequence it is prose no one but its author has seen, one step from the release notes.
 
 Every epic gets an entry — step 1's template says what to write when the whole epic is internal.
 

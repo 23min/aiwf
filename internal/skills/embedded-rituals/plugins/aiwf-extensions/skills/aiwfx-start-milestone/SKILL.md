@@ -151,7 +151,7 @@ When the readiness checks are clean, declare:
 
 > *"Implementation complete. <N> tests passing, build green, branch-coverage audit clean, diff tidied. Ready for `aiwfx-wrap-milestone` — which runs the independent review before closing."*
 
-The implementation is already committed, per-AC, from step 6 — there is nothing left to bundle. `aiwfx-wrap-milestone` dispatches the independent two-lens review, then commits only the wrap-side spec updates (Work log, Validation, Reviewer notes, Deferrals) and closes the milestone via its own declared-sequence gate.
+The implementation is already committed, per-AC, from step 6 — there is nothing left to bundle. `aiwfx-wrap-milestone` brings the spec's evidence sections up to date, dispatches the independent two-lens review over them and the code, then commits the remaining wrap-side prose and closes the milestone via its own declared-sequence gate.
 
 ## Constraints
 

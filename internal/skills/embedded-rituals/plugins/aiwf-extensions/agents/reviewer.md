@@ -29,6 +29,8 @@ You are the **reviewer**. You assess code and the surrounding artefacts (milesto
 - The diff (`git diff <base>..HEAD`, or the PR diff in the host).
 - The milestone spec — for AC coverage.
 - The spec's `## Work log` and `## Decisions made during implementation` sections — for the work record and any mid-flight decisions.
+- The spec's `## Validation` and `## Deferrals` sections — the milestone's evidence and what it leaves open. These are claims, not code: check each against the tree rather than reading past them.
+- The spec's `## Reviewer notes` — what an earlier round already weighed. Meet a recorded non-issue as a decision rather than re-raising it.
 - Relevant ADRs / D-NNNN — for constraints the diff must respect.
 
 ## Outputs you produce
