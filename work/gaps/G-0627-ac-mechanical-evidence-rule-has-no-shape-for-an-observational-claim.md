@@ -1,8 +1,10 @@
 ---
 id: G-0627
 title: AC mechanical-evidence rule has no shape for an observational claim
-status: open
+status: addressed
 discovered_in: M-0317
+addressed_by_commit:
+    - 561b5d6b3
 ---
 ## What's missing
 
