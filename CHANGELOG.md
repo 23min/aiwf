@@ -16,6 +16,25 @@ section in this file.
 
 ## [Unreleased]
 
+### Changed — the wrap rituals ask what the closure just invalidated
+
+`wf-patch`, `aiwfx-wrap-milestone` and `aiwfx-wrap-epic` now carry a step at their
+closure point: read the notice the promote just printed, open each record it names,
+and look for a sentence that depends on the closed entity still being live. A mention
+in passing needs nothing; a premise the closure falsified is corrected with
+`aiwf edit-body` while whoever closed it still holds why.
+
+Those corrections are mutations nobody approved, and a closure usually sits inside an
+already-approved declared sequence. The step separates the two halves rather than
+bending either: judge at the closure, where the understanding is, and gate the edits
+once the enumerated actions finish, where the approval belongs. A notice needing no
+edit is reported as such — an unremarked one cannot be told apart from an unread one.
+
+`aiwf promote`'s own skill now documents the notice, which reaches the closures no
+ritual gives a judgment step — `aiwf cancel`, and superseding a decision record.
+
+This is the second of G-0628's three layers; the standing check remains.
+
 ### Added — a closure names the live records that cite it
 
 `aiwf promote <id> <terminal-status>` and `aiwf cancel <id>` now print the still-open
@@ -33,8 +52,7 @@ was surfacing it at the one moment someone can act on it.
 Text output only. `--format=json` speaks to a program, which is not the audience for
 a prompt to go and re-read some prose.
 
-This is the first of the three layers G-0628 describes and does not close it; the
-ritual prompt and the standing check remain.
+This is the first of the three layers G-0628 describes and does not close it.
 
 ### Changed — G-0627: the AC-evidence rule names the observational shape and bans proxies
 

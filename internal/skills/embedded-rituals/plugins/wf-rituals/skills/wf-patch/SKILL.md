@@ -5,15 +5,16 @@ description: One-off branch-and-merge ritual for fixes, chores, or tweaks too sm
 
 # wf-patch
 
-A lightweight ritual for changes too small to be a milestone but too significant to lose in a careless commit. The branch + explicit-merge shape is the audit trail; the independent review and the three gates — commit, wrap, push — are the safety net.
+A lightweight ritual for changes too small to be a milestone but too significant to lose in a careless commit. The branch + explicit-merge shape is the audit trail; the independent review and the gates are the safety net.
 
 ## Gate discipline
 
-Mutating actions are gated behind explicit human approval. This skill fires three gates:
+Mutating actions are gated behind explicit human approval. This skill fires three gates, plus a fourth that fires only when a closure turns one up:
 
 1. **Commit gate** — after the independent review, before the commit lands.
 2. **Wrap gate (declared sequence)** — one approval covering the patch's *enumerated* terminal sequence: local merge to mainline, tracker closure (e.g. `aiwf promote G-NNNN addressed --by-commit <sha>`) when the patch closes a tracked item, and cleanup (local branch deletion, worktree removal). The gate question lists every action verbatim; approval binds to exactly that list, and the user may approve a subset. Any deviation — merge conflict, check finding, unexpected dirty state, anything not on the list — aborts the sequence and re-gates from the point of deviation.
 3. **Push gate** — push to origin is never part of the wrap sequence. It is the only action that leaves the machine; it always stands alone.
+4. **Correction gate (conditional)** — fires only when the tracker closure at step 13 names a live record whose claim it falsified. The corrections are not on the wrap gate's list, so they take an approval of their own; see step 13.
 
 The consolidation at the wrap gate is sound only because mechanical gates carry the safety load: the full local CI gate green at the verify step, plus whatever pre-push validation the project wires up. If the project has no mechanical gates, fall back to one approval per action — the declared-sequence gate is earned, not free.
 
@@ -180,6 +181,10 @@ No `--root`: the closure commit belongs on mainline, and step 11 put this sessio
 
 Standing in the right place also fixes what the guard proves. The closure is mechanically guarded — `aiwf` refuses a `--by-commit` SHA unreachable from the resolved root's `HEAD` — so from mainline's worktree a refusal means the merge did not land: reconcile and merge first (steps 11–12), and don't `--force` past it. From the patch worktree the same guard rejects the merge commit even when the merge landed perfectly, while accepting the patch commit whether it landed or not.
 
+The promote lists the live records whose bodies still name the item you just closed; where none do, it prints nothing. Read what it prints before moving on — this is the one moment anyone holds both the closure and its consequences. Open each record named and look for a sentence that *depends* on that item being live: work sequenced on it, a premise resting on it, something deferred to it. A record that merely mentions it in passing needs nothing. A record whose claim the closure just falsified needs `aiwf edit-body`, and the correction states what is so now — it does not add a paragraph saying the old claim was wrong.
+
+Those edits are not on the wrap gate's list. Finish the enumerated actions (step 14), then present the edits as their own gate, before the push (step 15) ships a body the closure just made stale. `aiwf edit-body` needs an active scope that reaches the record, and a citing record can sit anywhere in the tree, so a delegated actor may be refused; where it is, the human runs the correction. If nothing needs an edit, say so — an unremarked notice reads as unread.
+
 ### 14. Cleanup
 
 Delete the local branch; remove the worktree if one was used.
@@ -234,7 +239,7 @@ If the patch surfaced a pattern, pitfall, or implicit decision worth keeping, re
 
 ## Constraints
 
-- 🛑 Never commit, merge, promote, push, or delete a branch without explicit human approval. Three gates: commit (step 8), wrap (step 10, declared sequence), push (step 15).
+- 🛑 Never commit, merge, promote, push, or delete a branch without explicit human approval. Three gates: commit (step 8), wrap (step 10, declared sequence), push (step 15). A closure that turns up a record needing correction (step 13) adds a fourth, which fires only when there is one.
 - The full local CI gate must be green before the commit gate.
 - Every patch adds a `CHANGELOG.md` entry under `## [Unreleased]` (step 4) — always, with a minimal one-line form for internal-only patches. No skip.
 - 🛑 A patch that fixes a defect lands the check that pins it (step 3) — a regression test that fails without the fix, a lint rule, or a gate entry. Two named escapes only: a change with no logic to pin, and a defect you don't pin — because you can't, or because you judge it not worth the test — stated at the commit gate and recorded in the project's tracker. Both are stated explicitly so the human can veto them; neither is a silent default.
