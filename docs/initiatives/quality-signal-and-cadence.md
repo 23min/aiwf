@@ -223,7 +223,7 @@ the wrong selector when the existing ones have known depth gaps:
   — mutation testing's `--diff <ref>` filter excludes new files entirely. The
   blind spot is precisely on newly-written code, which is the code most
   likely to carry an untested mutant.
-- **[G-0317](../../work/gaps/G-0317-skill-edit-backstop-checks-test-references-path-not-asserts-changed-section.md)**
+- **[G-0317](../../work/gaps/archive/G-0317-skill-edit-backstop-checks-test-references-path-not-asserts-changed-section.md)**
   — the ritual-content backstop checks that *some* test references the edited
   `SKILL.md` path, not that a test asserts against the section that changed.
 - **[G-0328](../../work/gaps/G-0328-golden-fixture-byte-identity-comparator-for-aiwf-check.md)**
@@ -452,7 +452,7 @@ item 4 down is independently actionable.
    judgement: it is the highest-value item in Q2.
 6. [G-0110](../../work/gaps/G-0110-gremlins-diff-ref-filter-excludes-new-files-entirely-manual-mutation-review-needed-for-m-0094-95-96.md)
    — mutation testing's new-file blind spot.
-7. [G-0317](../../work/gaps/G-0317-skill-edit-backstop-checks-test-references-path-not-asserts-changed-section.md)
+7. [G-0317](../../work/gaps/archive/G-0317-skill-edit-backstop-checks-test-references-path-not-asserts-changed-section.md)
    — assert-the-changed-section, not reference-the-path.
 8. [G-0328](../../work/gaps/G-0328-golden-fixture-byte-identity-comparator-for-aiwf-check.md)
    — golden-fixture comparator for `aiwf check` output.

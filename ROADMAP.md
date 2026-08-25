@@ -1224,7 +1224,7 @@ a skill-edit gate that costs once rather than once per edit.
 | M-0312 | Re-point the skill-edit backstop from content reference to provenance | done |
 | M-0313 | Retire the prose-assertion corpus over shipped surfaces | done |
 
-## E-0088 — Make every path-changing verb repair the links it breaks (active)
+## E-0088 — Make every path-changing verb repair the links it breaks (done)
 
 ### Goal
 
@@ -1234,10 +1234,10 @@ the moving verb owns — in either direction.
 
 | Milestone | Title | Status |
 |---|---|---|
-| M-0314 | Route move through the shared link-region primitive | draft |
-| M-0315 | Rewrite a moved entity's own outbound links | draft |
-| M-0316 | Kill the link primitive's surviving mutants | draft |
-| M-0317 | Settle whether ADR-0033's docs delegation fires | draft |
+| M-0314 | Route move through the shared link-region primitive | done |
+| M-0315 | Rewrite a moved entity's own outbound links | done |
+| M-0316 | Kill the link primitive's surviving mutants | done |
+| M-0317 | Settle whether ADR-0033's docs delegation fires | done |
 
 ## E-0089 — Make the legal-workflow table total and correct (proposed)
 

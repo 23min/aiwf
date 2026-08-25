@@ -102,6 +102,12 @@ type linkPathRegion struct {
 // `)`. Nesting and escapes are not handled — markdown's link-path
 // grammar disallows unescaped `)` inside the path, and the callers'
 // inputs don't include escaped link paths.
+//
+// Every region emitted carries at least one byte, and concatenating
+// them in order reproduces s exactly. Both are part of the contract: a
+// caller may index or count regions, not only concatenate their text,
+// and an empty region would make the alternation the type name promises
+// untrue while remaining invisible to a caller that only concatenates.
 func splitLinkPathRegions(s string) []linkPathRegion {
 	var out []linkPathRegion
 	var buf strings.Builder

@@ -39,11 +39,18 @@ lives in the `wf-codebase-health` skill.
 - **Allocate ids on your working branch and push promptly; on a collision run `aiwf reallocate`, not `git mv`.**
   In a multi-clone setup, `aiwf add --fetch` first (an unpushed peer id is invisible → you collide).
   `git mv` orphans trailer history and cross-references; the verb rewrites them — see the `aiwf-add` skill.
-- **Promote an AC to met only with mechanical evidence.** `aiwf promote
-  M-…/AC-… met` needs a test or check that fails if the AC's claim breaks. "I
-  read it and it looks right" is not evidence. Record that evidence as what it
-  asserts, not as the symbol that asserts it — a name is a locator beside the
-  claim, never the claim itself; renames outrun every record that spells one.
+- **Promote an AC to met only with mechanical evidence — unless it claims an
+  observation.** `aiwf promote M-…/AC-… met` needs a test or check that fails
+  if the AC's claim breaks; "I read it and it looks right" is not evidence.
+  Assert what a test can re-derive from artefacts it reaches; an AC claiming a
+  command was *run* beyond that reach claims nothing that can break, so its
+  evidence is the record instead — command, expectation, observation,
+  environment. Never write a **proxy**: a different, checkable claim standing
+  in for the one the AC made; it reads as evidence, which makes it worse than
+  none. Ask *am I pinning what was claimed?* The `aiwf-promote` skill carries
+  the rest. Record evidence as what it asserts, not as the symbol that asserts
+  it — a name is a locator beside the claim, never the claim itself; renames
+  outrun every record that spells one.
 - **Decide one thing at a time.** Three or more queued? Present one at a time,
   never batched into one `AskUserQuestion` card. Each: the context, options
   with pros/cons and risks, your plain lean *with its argument*, a numbered

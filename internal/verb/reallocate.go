@@ -131,6 +131,9 @@ func Reallocate(ctx context.Context, t *tree.Tree, idOrPath, actor string) (*Res
 	if err != nil {
 		return nil, err
 	}
+	// Inbound only, for the same reason as retitle: a flat-file kind is
+	// renamed within its directory, and a dir-shaped kind carries its
+	// whole subtree along.
 	movedBody = rewriteReallocateBody(movedBody, newEntityPath, moves, idPattern, newID)
 	movedContent, err := entity.Serialize(&modified, movedBody)
 	if err != nil {
@@ -171,6 +174,9 @@ func Reallocate(ctx context.Context, t *tree.Tree, idOrPath, actor string) (*Res
 		if pathInside(e.Path, source) {
 			writePath = newEntityPathAfterRename(e, source, dest)
 		}
+		// Inbound only: where these differ, this entity is co-moving
+		// inside the renamed directory, so its own relative destinations
+		// still name the same content.
 		body = rewriteReallocateBody(body, writePath, moves, idPattern, newID)
 		content, err := entity.Serialize(e, body)
 		if err != nil {

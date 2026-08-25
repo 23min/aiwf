@@ -36,6 +36,51 @@ a prompt to go and re-read some prose.
 This is the first of the three layers G-0628 describes and does not close it; the
 ritual prompt and the standing check remain.
 
+### Changed — G-0627: the AC-evidence rule names the observational shape and bans proxies
+
+The rule governing `aiwf promote M-NNNN/AC-N met` assumed every acceptance criterion
+claims a standing property of the repository — something that can later break, and so
+something a test can watch. Some criteria claim an observation instead: a command was
+run against something the test suite cannot reach, and reported what it reported. That
+cannot break, so the rule demanded a tripwire on nothing, and its only escape ("restate
+the AC so something mechanical can carry it") silently permitted a *proxy* — a
+different, checkable claim written in place of the one the criterion made.
+
+The shipped guidance now states the discriminator: a claim re-derivable from artefacts a
+test can reach is asserted; one that is not is met by the four-part measurement record —
+command, expectation, observation, environment — left where a reader can re-run it. It
+also carries the proxy guard, with the question that separates an honest narrowing from a
+substitution: *does this assert what the AC claimed, or something else that happens to be
+checkable?* A proxy reads as evidence, which makes it worse than no check, and building
+one faithfully does not make it the right thing to build.
+
+The surfaces that check compliance asked for a test against every acceptance criterion
+unconditionally, which would have failed a criterion following the amended rule. The
+start-milestone preflight and readiness check, the wrap-milestone verification step, the
+code-review checklist and the builder agent card all now name the observational record as
+the alternative, and the code-review checklist treats an assertion that pins a substitute
+claim as blocking.
+
+The guidance fragment's per-turn line budget rises from 151 to 158 to fit the rule, rather
+than the rule being packed to fit the budget.
+
+Consumer-visible through `.claude/aiwf-guidance.md`, the `aiwf-promote` skill, the
+`aiwfx-start-milestone`, `aiwfx-wrap-milestone` and `wf-review-code` rituals, and the
+`builder` agent card, all refreshed by `aiwf init` / `aiwf update`.
+
+### Fixed — E-0088: every path-changing verb repairs the links it breaks
+
+- `aiwf move` now repairs the markdown links that point at a milestone it
+  reparents, and recomputes that milestone's own relative links against its new
+  directory. It previously rewrote nothing at all, so reparenting a linked
+  milestone left every reference to it broken.
+- `aiwf archive`, `rename`, `retitle` and `reallocate` now repair a moved
+  entity's *own* outbound relative links, so a file swept into `archive/` keeps
+  its links resolving instead of silently pointing one directory too high.
+- A link destination whose `?query` or `#fragment` contains `://` is no longer
+  mistaken for an external URL and skipped.
+- `aiwf move --help` no longer states the opposite of what the verb does.
+
 ### Changed — standing guidance: cite a record for what fails if its claim is wrong
 
 The shipped guidance fragment's *Keep the reasoning; derive the facts* rule now

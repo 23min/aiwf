@@ -76,6 +76,14 @@ func Move(ctx context.Context, t *tree.Tree, id, newEpicID, actor string) (*Resu
 	if err != nil {
 		return nil, err
 	}
+	// ADR-0046: the milestone's own relative destinations resolve against
+	// the directory it sits in, so moving it between epics changes what
+	// they name. Recomputed against the destination before serialization,
+	// so the file's single write carries both the new `parent:` and the
+	// repaired links.
+	moves := []EntityMove{{From: source, To: dest}}
+	body = RewriteLinkDestinationsForMove(body, source, dest, moves)
+
 	content, err := entity.Serialize(&modified, body)
 	if err != nil {
 		return nil, fmt.Errorf("serializing %s: %w", id, err)
@@ -84,6 +92,16 @@ func Move(ctx context.Context, t *tree.Tree, id, newEpicID, actor string) (*Resu
 	proj := projectReplace(t, &modified, dest)
 	if fs := projectionFindings(t, proj); check.HasErrors(fs) {
 		return findings(fs), nil
+	}
+
+	// ADR-0033: every verb emitting an OpMove repairs the inbound links
+	// pointing at what it moved. The moved milestone is excluded because
+	// move already writes that file to update `parent:` and repair its own
+	// outbound links; letting the helper emit a second write for the same
+	// path would put two competing OpWrites in one plan.
+	rewriteOps, err := planLinkRewriteWrites(t, moves, map[string]bool{e.Path: true}, nil)
+	if err != nil { //coverage:ignore defensive: planLinkRewriteWrites only errors on a vanished file or an unserializable entity — neither reachable from a tree the loader just built
+		return nil, err
 	}
 
 	// Canonical width per AC-1 in M-081. canonNew is resolved above, where the
@@ -99,10 +117,10 @@ func Move(ctx context.Context, t *tree.Tree, id, newEpicID, actor string) (*Resu
 			{Key: gitops.TrailerPriorParent, Value: canonPrior},
 			{Key: gitops.TrailerActor, Value: actor},
 		},
-		Ops: []FileOp{
+		Ops: append([]FileOp{
 			{Type: OpMove, Path: source, NewPath: dest},
 			{Type: OpWrite, Path: dest, Content: content},
-		},
+		}, rewriteOps...),
 	})
 	result.Metadata = map[string]any{"entity_id": canonID, "from": canonPrior, "to": canonNew}
 	return result, nil

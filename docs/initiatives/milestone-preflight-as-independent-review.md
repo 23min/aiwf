@@ -741,7 +741,7 @@ What survives the cancellation is this document, plus:
 - [D-0066](../../work/decisions/D-0066-record-a-spec-measurement-as-a-body-section-not-a-trailer.md)
   — a completed pass records itself as a body section written with `aiwf edit-body`,
   because a trailer has no slot and an empty body write produces no commit.
-- [G-0584](../../work/gaps/G-0584-ritual-skill-tests-assert-section-scoped-literals-that-cannot-fail.md)
+- [G-0584](../../work/gaps/archive/G-0584-ritual-skill-tests-assert-section-scoped-literals-that-cannot-fail.md)
   — the ritual policy tests match literals transcribed from the prose they guard.
 - [G-0585](../../work/gaps/G-0585-rituals-clear-a-question-by-reading-it.md)
   — every site the table below lists grants a verdict on the basis of reading.
