@@ -385,13 +385,17 @@ spanning drift, overtaken-by-decision and part of wrong-at-birth. The status hal
 alone accounts for 7 of 15 high-severity findings in one sample* — "addressed by
 E-0076" (cancelled), "until G-0557 lands" (addressed), "ADR-0003 is accepted"
 (rejected). *Ban-shaped. Will fire on the existing bodies: ship at warning, sweep,
-then promote to error.*
+then promote to error — for the resolvers that read structure. The status half does
+not ship; D-0078 rules it out.*
 
-The status resolver is the narrowest slice and is filed as **G-0626**, which
-measures the shape and locates the fix: `BodyProseIDIndex` already resolves each
-body citation to the cited `*entity.Entity`, and the status that entity carries is
-never read. Mint the finding code subcoded from the start, so the remaining
-resolvers widen it by subcode rather than by minting further codes.
+The status resolver does not ship. **G-0626** measured the shape and located the
+fix — `BodyProseIDIndex` already resolves each body citation to the cited
+`*entity.Entity`, and the status that entity carries is never read — but reading
+that status does not separate a stale premise from a citation of completed work,
+which is what D-0078 measures and rules out. The remaining resolvers are
+unaffected: each asks whether a referent exists, not what a sentence claims about
+it. Whichever of them ships first mints its finding code subcoded, so the others
+widen it by subcode rather than by minting further codes.
 
 **T1.2 — Three one-liners.** Best ratio in the list.
 - Add `TODO.md` to `aiwf.yaml`'s `docs.paths` (currently `[README.md,
@@ -452,9 +456,8 @@ reaches only entities: a document is never named, because the resolver walks the
 tree, so a stale claim in this file is invisible to it.
 
 Sequencing: the check layer was to be T1.1's status resolver in its only deterministic
-form, so ruling it out leaves G-0626 with no detector and needing a disposition of its
-own rather than a build. D-0078 carries the three triggers measured and what would
-reopen the question.
+form, so ruling it out leaves G-0626 with no detector. D-0078 carries the three
+triggers measured and what would reopen the question.
 
 It landed as two patches rather than an epic, each under `wf-patch`.
 
@@ -466,7 +469,7 @@ It landed as two patches rather than an epic, each under `wf-patch`.
 
 What stays out: T1.1's remaining resolvers — filesystem paths, `path:line`, Go symbols,
 backticked verbs and flags, finding codes. Those are still a proposal. G-0626 and
-G-0628 are the two slices carrying measured evidence, and scoping the rest in is what
+G-0628 were the two slices carrying measured evidence, and scoping the rest in is what
 would turn this into the epic.
 
 ### Tier 2 — real, but costlier
