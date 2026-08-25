@@ -1,7 +1,9 @@
 ---
 id: G-0635
 title: Wrap rituals author prose after the review, or with no review at all
-status: open
+status: addressed
+addressed_by_commit:
+    - f875c1bf1
 ---
 ## What's missing
 
