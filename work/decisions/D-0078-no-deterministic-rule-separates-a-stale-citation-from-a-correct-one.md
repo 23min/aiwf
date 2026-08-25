@@ -1,7 +1,7 @@
 ---
 id: D-0078
 title: No deterministic rule separates a stale citation from a correct one
-status: proposed
+status: accepted
 relates_to:
     - D-0075
     - G-0626
