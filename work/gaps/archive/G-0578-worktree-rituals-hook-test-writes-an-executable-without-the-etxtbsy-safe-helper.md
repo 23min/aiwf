@@ -1,8 +1,10 @@
 ---
 id: G-0578
 title: Worktree-rituals hook test writes an executable without the ETXTBSY-safe helper
-status: open
+status: addressed
 discovered_in: M-0306
+addressed_by_commit:
+    - 793b1ad97
 ---
 ## What's missing
 

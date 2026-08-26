@@ -1,8 +1,10 @@
 ---
 id: G-0562
 title: A worktree-hook test writes its executable without WriteExecutable
-status: open
+status: addressed
 priority: medium
+addressed_by_commit:
+    - 793b1ad97
 ---
 ## What's missing
 
@@ -56,8 +58,9 @@ been in scope for either half of it.
   through `testsupport.WriteExecutable`.
 - Whether `internal/policies` should join the whole-file adopted-package list is
   the second question, and the more consequential one: adopting a package is a
-  standing cost, and the list is deliberately short. Worth deciding on the
-  evidence of whether other exec-bearing writes exist there, not reflexively.
+  standing cost, and the list is deliberately short. The evidence it asked for —
+  five further exec-bit writes in the package, four of them in files that exec —
+  is measured in G-0641, which carries that question.
 
 ## Related
 

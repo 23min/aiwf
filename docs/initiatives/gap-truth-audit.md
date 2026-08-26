@@ -367,22 +367,27 @@ paths, `path:line`, Go symbols, entity ids **and their current status**, backtic
 already defines, plus pre-push. Most machinery exists and is proven — `body_prose_id.go`
 already tokenises and masks body prose, `skill_coverage.go` already resolves
 backticked verbs against the live Cobra tree, and the planning tree is simply a
-corpus nobody pointed them at. *Catches 10–14% of findings across all four samples,
-spanning drift, overtaken-by-decision and part of wrong-at-birth. The status half
-alone accounts for 7 of 15 high-severity findings in one sample* — "addressed by
-E-0076" (cancelled), "until G-0557 lands" (addressed), "ADR-0003 is accepted"
-(rejected). *Ban-shaped. Will fire on the existing bodies: ship at warning, sweep,
-then promote to error — for the resolvers that read structure. The status half does
-not ship; D-0078 rules it out.*
+corpus nobody pointed them at. *Recall was estimated at 10–14% of findings across
+all four samples, spanning drift, overtaken-by-decision and part of wrong-at-birth.
+The status half alone accounts for 7 of 15 high-severity findings in one sample* —
+"addressed by E-0076" (cancelled), "until G-0557 lands" (addressed), "ADR-0003 is
+accepted" (rejected).
 
-The status resolver does not ship. **G-0626** measured the shape and located the
-fix — `BodyProseIDIndex` already resolves each body citation to the cited
+**None of it ships.** The estimate above is recall; D-0079 measured precision over
+the live tree, and every resolver runs near a quarter. What fires is mostly a
+proposal naming what it proposes, a negative test naming what must not exist, or a
+path resolving under another root. D-0079 carries the counts and the instances, and
+states why the resolvers do not meet the reopening condition D-0078 sets.
+
+**G-0626** measured the status resolver's shape and located the fix —
+`BodyProseIDIndex` already resolves each body citation to the cited
 `*entity.Entity`, and the status that entity carries is never read — but reading
 that status does not separate a stale premise from a citation of completed work,
-which is what D-0078 measures and rules out. The remaining resolvers are
-unaffected: each asks whether a referent exists, not what a sentence claims about
-it. Whichever of them ships first mints its finding code subcoded, so the others
-widen it by subcode rather than by minting further codes.
+which is what D-0078 measures and rules out.
+
+Nor do the other resolvers escape it by asking a narrower question. Whether a
+referent exists and what a sentence claims about it are the same question: whether
+a referent *should* exist is exactly what the sentence claims.
 
 **T1.2 — Widen `body-prose-id`'s token regex past ASCII.** `idTokenPattern`
 (`internal/check/body_prose_id.go`) matched `[A-Za-z0-9_]` after the kind prefix, so a
@@ -405,10 +410,12 @@ Two candidates that sat under this heading are ruled out, measured 2026-08-25:
   `//history:ok` escape is Go comment syntax with no markdown equivalent. Pointing it
   at bodies is a tier move, not a corpus swap.
 
-**T1.3 — Duplicate check at `aiwf add gap`.** Print the nearest open-gap titles
-before allocating an id. G-0562 and G-0578 name one call site, filed five days apart,
-neither referencing the other; G-0580 and G-0618 are the same shape. *The only item
-in this list that reduces the number of gaps filed.*
+**T1.3 — Surface the existing gaps at filing time.** `aiwf add` allocates an id
+without showing what the tree already holds on the same subject, so a duplicate lands
+and the two copies then age apart. Filed as G-0640, which carries the measured pairs
+and the design: `aiwf add --dry-run`, a ranked list of the nearest open gaps, and
+deliberately no threshold. *The only item in this list that reduces the number of
+gaps filed rather than catching them afterwards.*
 
 **T1.4 — Cite a record for its holding, not its content.** When another record's
 claim is load-bearing on what you are writing, name the record and state what fails
