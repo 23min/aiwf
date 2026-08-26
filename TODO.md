@@ -122,7 +122,8 @@ wrong thing, and no gate at the point one would still be cheap.
   is invisible to the ban entirely
 - **G-0640** — nothing surfaces an existing gap at filing time, so duplicates land.
   The one entry in this file that reduces how many gaps get filed rather than how
-  many are wrong; G-0562 and G-0578 in cluster 4 are what it would have caught
+  many are wrong; G-0562 and G-0578, filed five days apart against one call site
+  with neither referencing the other, are what it would have caught
 - **G-0638** — the epic branch guard's `--force` bypass is recorded nowhere and
   gated by nothing, so the escape hatch leaves no trace the next reader can find
 - **G-0629** — nothing fails when an m0127 allowlist entry stops matching the file
@@ -277,11 +278,6 @@ begin.
   `internal/initrepo`'s share runs `sh <path>` rather than `execve`, so that part is
   uniformity debt rather than race exposure
 
-Already fixed, awaiting only the promote:
-
-- **G-0562 / G-0578** — `793b1ad97` (2026-08-19). One call site, two independently
-  filed sightings; the fix commit carries no `aiwf-entity:` trailer, which is why
-  neither closed. Promote both, keep one entry
 Decisions, not sweeps:
 
 - **G-0493** — `edit-body`'s two modes judge frontmatter divergence by different
