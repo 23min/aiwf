@@ -1,7 +1,9 @@
 ---
 id: G-0637
 title: Embedded ritual content ships in the binary but skips the Go workflow
-status: open
+status: addressed
+addressed_by_commit:
+    - 7f3a0849b
 ---
 ## What's missing
 
