@@ -1,8 +1,10 @@
 ---
 id: G-0562
 title: A worktree-hook test writes its executable without WriteExecutable
-status: open
+status: addressed
 priority: medium
+addressed_by_commit:
+    - 793b1ad97
 ---
 ## What's missing
 
