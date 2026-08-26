@@ -1,8 +1,10 @@
 ---
 id: G-0633
 title: Two walks answer which bodies mention an id, and they disagree
-status: open
+status: addressed
 priority: medium
+addressed_by_commit:
+    - f4912b7a0
 ---
 ## What's missing
 
