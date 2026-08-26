@@ -1,8 +1,10 @@
 ---
 id: G-0641
 title: Five exec-bit writes in internal/policies bypass the ETXTBSY-safe helper
-status: open
+status: addressed
 priority: medium
+addressed_by_commit:
+    - 940bddd7dd1c4439e5d6f1aebd2ee9318febdeee
 ---
 ## What's missing
 
