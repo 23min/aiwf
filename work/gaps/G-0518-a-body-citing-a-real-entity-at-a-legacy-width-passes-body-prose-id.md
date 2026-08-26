@@ -1,8 +1,10 @@
 ---
 id: G-0518
 title: A body citing a real entity at a legacy width passes body-prose-id
-status: open
+status: addressed
 priority: medium
+addressed_by_commit:
+    - 8adc844b7
 ---
 ## Problem
 
