@@ -1,8 +1,10 @@
 ---
 id: G-0642
 title: wf-doc-lint excludes a hand-authored TODO.md on a generated-file premise
-status: open
+status: addressed
 priority: medium
+addressed_by_commit:
+    - 45e589afca84fbf30632aa649f7c85fcc1ff8756
 ---
 ## What's missing
 
