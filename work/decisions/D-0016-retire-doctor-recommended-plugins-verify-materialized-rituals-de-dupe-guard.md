@@ -26,7 +26,7 @@ Claude-only, so the recommend-warning has nothing left to recommend.
 - `aiwf.yaml` is decoded with lax `yaml.Unmarshal` (no `KnownFields`), so an
   existing consumer that still declares `doctor.recommended_plugins` simply has
   the key **ignored** — removing the Go field breaks no one.
-- Flipping doctor (AC-1) already forces removal of the M-070 recommend-warning
+- Flipping doctor (AC-1) already forces removal of the M-0070 recommend-warning
   tests and the two self-check steps regardless; keeping an unread config field
   would leave dead, untested config surface — a YAGNI/"no vestigial knobs"
   smell.
