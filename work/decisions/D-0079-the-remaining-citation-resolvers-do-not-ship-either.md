@@ -1,7 +1,7 @@
 ---
 id: D-0079
 title: The remaining citation resolvers do not ship either
-status: proposed
+status: accepted
 relates_to:
     - D-0078
     - G-0595
