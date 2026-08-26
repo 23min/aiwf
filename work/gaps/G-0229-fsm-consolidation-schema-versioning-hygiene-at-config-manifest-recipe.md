@@ -15,7 +15,7 @@ Three small consistency gaps in how the kernel represents closed-set and on-disk
 
 ## Why it matters
 
-C4's verdict was Strong precisely because aiwf has explicit migration paths *when* changes occur (`aiwf rewidth` for ADR-0008, Legacy* capture for deprecated fields, semver-tagged releases). The three gaps above are "places where a change *could* occur and the path isn't declared yet" — the cheapest moment to add the version field is before the first change you'd want to migrate.
+C4's verdict was Strong precisely because aiwf declares what happens *when* changes occur (permanent parser tolerance for legacy id widths under ADR-0008, `Legacy*` capture for deprecated fields, semver-tagged releases). The three gaps above are "places where a change *could* occur and the path isn't declared yet" — the cheapest moment to add the version field is before the first change you'd want to migrate.
 
 ## Source
 
