@@ -58,14 +58,33 @@ import (
 // other finding codes per the closed-set convention (G-0129).
 
 // idTokenPattern picks up any token shaped like an aiwf id: a known
-// prefix followed by an alphanumeric suffix, with an optional
+// prefix followed by a letter/digit/underscore suffix, with an optional
 // composite `/AC-<suffix>` tail. Loose by design — the classifier
 // below decides malformed-shape vs strict-form-unresolved vs silent.
 //
-// The trailing `\b` boundary matches at the transition between a word
-// character (digit/letter) and a non-word character, so tokens
-// embedded in URL paths or sentence punctuation are picked up cleanly.
-var idTokenPattern = regexp.MustCompile(`\b(?:E|M|G|D|C|ADR)-[A-Za-z0-9_]+(?:/AC-[A-Za-z0-9_]+)?\b`)
+// The suffix is matched in two alternatives, not by one Unicode class,
+// because neither shape of a single class works. Keep the trailing `\b`
+// and the class rejects what the widening exists to admit: Go's `\b` is
+// ASCII-only, so it cannot match after a non-ASCII letter and `M-α`
+// yields no token at all. Drop the `\b` and the class has no right
+// boundary, so it runs on through whatever follows a real id where a
+// script sets no space between words — the citation in `M-0001の仕様`
+// becomes one malformed token.
+//
+// The split keeps both properties. The first alternative governs ASCII
+// input; its class stops at the first non-ASCII rune, which is the
+// boundary a lone Unicode class lacks. The second admits a suffix that
+// starts outside ASCII, which is how `G-α` becomes a candidate at all.
+//
+// The second alternative has no right boundary of its own: in
+// `G-αはM-0001` it runs on, and the real id inside the run is not
+// scanned as its own token. The run-on itself always fires — it can
+// match neither strict pattern — so nothing passes silently. Widening
+// that class to also reach a punctuation suffix costs more than it
+// repays: `M-…` is the shape-notation for an unallocated id, and
+// skillBodyID scans code spans, so any class admitting `…` fires on the
+// shipped guidance fragment that writes it deliberately.
+var idTokenPattern = regexp.MustCompile(`\b(?:E|M|G|D|C|ADR)-(?:[A-Za-z0-9_]+(?:/AC-[A-Za-z0-9_]+)?\b|[\p{L}\p{N}_]+)`)
 
 // strictBareIDPattern matches strict-form bare ids per kind. Anchored
 // for whole-token matching after idTokenPattern picks the candidate.

@@ -30,7 +30,7 @@ Plus the **clock-injection refactor** that the no-time-now policy implies for th
 
 Documentation drift (code knows the convention, CLAUDE.md doesn't say it) is the single failure mode CLAUDE.md was built to prevent — the doc itself says *"kernel functionality must be AI-discoverable."* Each missing convention is one place a new reader (human or LLM) re-derives a discipline that already exists.
 
-The four policy tests are the leftover P1–P8 set after the others fold into their natural-parent cluster gaps (layering → G-α; envelope structural → G-ζ; NoOp invariant → G-δ; DOM-structural → G-η). These four don't fit any other cluster.
+The four policy tests are the leftover P1–P8 set after the others fold into their natural-parent cluster gaps (layering → G-0227; envelope structural → G-0232; NoOp invariant → G-0230; DOM-structural → G-0233). These four don't fit any other cluster.
 
 ## Source
 

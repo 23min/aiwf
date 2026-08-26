@@ -3,6 +3,7 @@ package check
 import (
 	"os"
 	"path/filepath"
+	"strconv"
 	"strings"
 	"testing"
 
@@ -161,11 +162,12 @@ func TestBodyProseID_Matrix(t *testing.T) {
 	}
 }
 
-// TestBodyProseID_EdgeCases pins the rule's contract for inputs that
-// reviewer passes flagged as edge cases: ASCII-only id grammar
-// (Unicode tokens silent), HTML tags scanned as prose, empty body
-// silent, prefix-suffix concatenated tokens (M-0001prefix) deliberately
-// fire malformed-shape, narrow numeric leak (M-1) deliberately fires.
+// TestBodyProseID_EdgeCases pins the rule's contract at its edges: a
+// suffix starting outside ASCII fires like an ASCII one, while a real id
+// abutting non-ASCII text stays a resolvable citation; HTML tags are
+// scanned as prose; an empty body is silent; prefix-suffix concatenated
+// tokens (M-0001prefix) deliberately fire malformed-shape, as does the
+// narrow numeric leak (M-1).
 // The cases here document intent so future "simplification" attempts
 // surface as test failures rather than silent behavior shifts.
 func TestBodyProseID_EdgeCases(t *testing.T) {
@@ -174,6 +176,7 @@ func TestBodyProseID_EdgeCases(t *testing.T) {
 		name        string
 		body        string
 		wantSubcode string
+		wantToken   string // quoted in the message; a truncated token is a wrong locator
 		silent      bool
 	}{
 		{
@@ -182,13 +185,28 @@ func TestBodyProseID_EdgeCases(t *testing.T) {
 			silent: true,
 		},
 		{
-			name:   "ASCII-only grammar — Greek M-α does not match",
-			body:   "References M-α which is not an aiwf id shape.",
+			name:        "Unicode suffix — Greek M-α fires malformed-shape",
+			body:        "References M-α which is not an aiwf id shape.",
+			wantSubcode: "malformed-shape",
+			wantToken:   "M-α",
+		},
+		{
+			name:        "Unicode suffix — Cyrillic M-АБВ fires malformed-shape",
+			body:        "References M-АБВ.",
+			wantSubcode: "malformed-shape",
+			wantToken:   "M-АБВ",
+		},
+		{
+			// Languages that set no space between a citation and the
+			// following word: without a boundary the token would absorb
+			// the sentence and a resolvable id would read as malformed.
+			name:   "real id abutting non-ASCII text stays a resolvable citation",
+			body:   "詳細は M-0001の仕様を参照してください。",
 			silent: true,
 		},
 		{
-			name:   "ASCII-only grammar — Cyrillic M-АБВ does not match",
-			body:   "References M-АБВ.",
+			name:   "composite id abutting non-ASCII text stays resolvable",
+			body:   "M-0001/AC-1の記述を参照。",
 			silent: true,
 		},
 		{
@@ -242,6 +260,14 @@ func TestBodyProseID_EdgeCases(t *testing.T) {
 			}
 			if tc.wantSubcode != "" && got[0].Subcode != tc.wantSubcode {
 				t.Errorf("Subcode = %q, want %q", got[0].Subcode, tc.wantSubcode)
+			}
+			if tc.wantToken != "" {
+				if len(got) != 1 {
+					t.Errorf("got %d findings, want 1: %+v", len(got), got)
+				}
+				if !strings.Contains(got[0].Message, strconv.Quote(tc.wantToken)) {
+					t.Errorf("Message = %q, want it to quote token %q", got[0].Message, tc.wantToken)
+				}
 			}
 		})
 	}

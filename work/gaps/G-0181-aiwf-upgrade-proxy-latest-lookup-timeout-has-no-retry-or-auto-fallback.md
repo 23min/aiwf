@@ -31,7 +31,7 @@ version — exactly the class a retry or a `,direct` fallback would absorb.
 ## Already shipped (the quick patch)
 
 A focused remediation **hint** now prints on the proxy-lookup-failure
-branch (M-… / `proxyLookupFailedHint`): it tells the operator the
+branch (`proxyLookupFailedHint`): it tells the operator the
 subsequent `go install` may still succeed via GOPROXY's `,direct`
 fallback, and if not, to retry / pin `@vX.Y.Z` / `GOPROXY=direct aiwf
 upgrade`. That removes the dead-end but does not make the lookup itself
