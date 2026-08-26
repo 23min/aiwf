@@ -2,7 +2,7 @@
 id: G-0640
 title: Nothing surfaces an existing gap at filing time, so duplicates land and rot
 status: open
-priority: medium
+priority: low
 ---
 ## What's missing
 
