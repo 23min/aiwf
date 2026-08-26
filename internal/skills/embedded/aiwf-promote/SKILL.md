@@ -87,6 +87,18 @@ A flag/kind/status mismatch is a usage error (Go-error before any disk work), no
 
 Use the verb route, not hand-editing: the gap-addressed-has-resolver and adr-supersession-mutual checks fire whenever the field is missing, and the verb route writes the field atomically with the status change so the standing check goes silent immediately.
 
+### Close against what the resolver actually satisfies
+
+Before closing, re-read the record's own body for a claim the resolver does not
+satisfy. The terminal-status notice looks outward, at live records that name this
+one; nothing looks inward at the record being closed.
+
+A record carrying a defect and the open question that defect raised is closed
+honestly only when the resolver answers both. Where it answers one, split the
+remainder into a record of its own first, then close against what landed. Closing on
+partial evidence buries the rest: the status reads terminal, and the unanswered half
+sits inside a record nobody reopens.
+
 ## --audit-only --reason for backfilling state already reached
 
 When state was already reached via a manual `git commit` (no aiwf trailers), `aiwf promote <id> <state> --audit-only --reason "..."` records an empty-diff commit with the trailer block so `aiwf history` reflects the move. The verb refuses unless the entity is **already** at the named state — audit-only records what's true, not transitions. Mutex with `--force`. Human-only (the kernel refuses non-human actors). See `aiwf-authorize` and the G24 recovery story.
