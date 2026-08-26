@@ -16,6 +16,8 @@ section in this file.
 
 ## [Unreleased]
 
+## [0.33.0] — 2026-08-26
+
 ### Fixed — embedded content no longer ships without a CI run
 
 `go:embed` compiles the ritual, skill, guidance, statusline, hook, recipe and
@@ -71,7 +73,11 @@ edit is reported as such — an unremarked one cannot be told apart from an unre
 `aiwf promote`'s own skill now documents the notice, which reaches the closures no
 ritual gives a judgment step — `aiwf cancel`, and superseding a decision record.
 
-This is the second of G-0628's three layers; the standing check remains.
+This is the second of the two layers that ship. A third — a standing `aiwf check`
+rule flagging every citation of a closed entity — was measured and rejected
+(D-0078): no deterministic rule separates a citation the closure invalidated
+from one that reads correctly, and the shape measured fired 2,047 times across
+26% of this repo's body-write commits — reports a reader must judge anyway.
 
 ### Added — a closure names the live records that cite it
 
@@ -90,7 +96,7 @@ was surfacing it at the one moment someone can act on it.
 Text output only. `--format=json` speaks to a program, which is not the audience for
 a prompt to go and re-read some prose.
 
-This is the first of the three layers G-0628 describes and does not close it.
+This is the first of the two layers that close G-0628, and does not close it alone.
 
 ### Changed — G-0627: the AC-evidence rule names the observational shape and bans proxies
 
@@ -130,7 +136,7 @@ Consumer-visible through `.claude/aiwf-guidance.md`, the `aiwf-promote` skill, t
   reparents, and recomputes that milestone's own relative links against its new
   directory. It previously rewrote nothing at all, so reparenting a linked
   milestone left every reference to it broken.
-- `aiwf archive`, `rename`, `retitle` and `reallocate` now repair a moved
+- `aiwf archive`, `rename` and `retitle` now repair a moved
   entity's *own* outbound relative links, so a file swept into `archive/` keeps
   its links resolving instead of silently pointing one directory too high.
 - A link destination whose `?query` or `#fragment` contains `://` is no longer
@@ -176,8 +182,7 @@ created on a ritual branch could not be activated at all: the promote refused, a
 moving to trunk put the entity out of view, because its file existed only on the
 branch that created it. `aiwf add epic` now refuses when the current branch
 carries a ritual rung — `epic/`, `milestone/` or `patch/` per ADR-0010's grammar,
-classified by `branchparse.RungOf`. `--force --reason "..."` — already the
-sovereign, human-only override on this verb — is the bypass.
+classified by `branchparse.RungOf`. `--force --reason "..."` is the bypass.
 
 The predicate is the rung rather than inequality with trunk: a repo whose trunk is
 `master` while the configured trunk name is the default `main` has every branch
@@ -444,7 +449,7 @@ mask — that rule exempts link carriers so an id may ride in a doc-link
 destination, but a link here is exactly as unresolvable as prose.
 
 Scope stops at `CLAUDE.md` by measurement. A rule over any repo-local path
-would fire on roughly thirty legitimate references — `ROADMAP.md`, which
+would fire on many legitimate references — `ROADMAP.md`, which
 consumers hold as render output, consumer tree paths under `work/`, and the
 deliberately fictional docs examples in `wf-doc-lint` — needing an allowlist
 larger than the defect set. The rule is inert in a consumer repo, where the
