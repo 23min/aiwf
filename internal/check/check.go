@@ -58,9 +58,10 @@ const (
 	CodeTitlesNonempty          = "titles-nonempty"
 	CodeADRSupersessionMutual   = "adr-supersession-mutual"
 	CodeGapAddressedHasResolver = "gap-addressed-has-resolver"
-	// CodeBodyProseID is the G-0184 body-prose id-shape rule. Subcodes:
-	// malformed-shape, unresolved, unresolved-milestone, unresolved-ac.
-	// See internal/check/body_prose_id.go for the classifier shape.
+	// CodeBodyProseID is the G-0184 body-prose id-shape rule. See
+	// internal/check/body_prose_id.go for the classifier shape and the
+	// subcodes it emits — classifyBodyToken is the source, so an
+	// enumeration here would be a second copy that nothing re-derives.
 	CodeBodyProseID = "body-prose-id"
 	// CodeSkillBodyID is the G-0299 skill-body id-reference rule: a shipped
 	// SKILL.md body must cite no real (digit-bearing) entity id. The mirror

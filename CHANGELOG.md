@@ -16,6 +16,43 @@ section in this file.
 
 ## [Unreleased]
 
+### Added — G-0518: `body-prose-id/narrow-width` catches an entity body citing a real entity below canonical width
+
+`body-prose-id` canonicalized an id-shaped token before resolving it, so a body
+citing `E-19` resolved it to `E-0019` and passed silently — the planning record could name
+an entity at a width no aiwf surface emits, and nothing said so. The new
+`narrow-width` subcode reports it, naming the id to write.
+
+The rule is **reference-shaped rather than width-shaped**: it fires on a token
+that resolves *only* after padding. Narrow read tolerance is permanent — no verb
+widens an id in place, so a tree that archived entities before adopting canonical
+width holds narrow ids under `<kind>/archive/` forever — and a body citing one is
+correct as written, so it stays silent. So does citing that same entity at
+canonical width, which is what every aiwf surface prints. A tree whose ids are
+uniformly narrow therefore never trips this at all; `entity-id-narrow-width`
+already judges those entities directly. Only the parent segment of a composite
+carries a width claim. Backticks remain the opt-out here, unlike the doc rules.
+
+Width is judged on the working-tree and trunk tiers only. A citation that
+resolves against a sibling branch keeps reporting its `cross-branch-` subcode and
+is judged for width once that branch merges — trunk is authoritative where a
+sibling branch is provisional, the distinction ADR-0030 and ADR-0041 already draw.
+
+**Warning severity**, taking the sibling `doc-id-width`'s posture and joining
+`cross-branch-pending` / `cross-branch-collision` as the third non-blocking
+`body-prose-id` subcode. Blocking would cost more here than at the push: unlike
+`entity-id-narrow-width`, which reaches verbs only through the
+introduced-findings projection, this scans the whole body, so an error would
+refuse `edit-body` / `import` / `reallocate` over a **pre-existing** citation the
+verb never touched — sharpest on `reallocate`, which rewrites every active body
+and is itself remedial work. No strictness knob ships; add one when a consumer
+asks to block on it.
+
+Two citations in this repo's own bodies were swept: D-0016 now writes `M-0070`,
+and G-0113's illustrative epic reference was reworded to carry no id shape (an
+entity body is where real ids belong, so a `<prefix>-NNNN` placeholder there is
+`body-prose-id/malformed-shape` rather than a fix).
+
 ### Fixed — G-0633: `aiwf reallocate` no longer rewrites citations of a different entity
 
 `entity.IDGrepAlternation` matched any number of leading zeros, so the pattern for

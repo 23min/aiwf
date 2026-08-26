@@ -456,14 +456,16 @@ func TestBodyProseID_CommonMarkShapes_G0240(t *testing.T) {
 
 // TestBodyProseID_TrunkTier_G0241 pins the second-tier trunk
 // resolution (G-0241): a strict-form token that misses the working-
-// tree index but appears in Tree.TrunkIDs is silent — the id IS
-// allocated, just not visible on this branch. The negative cases pin
-// that the trunk tier does not widen anything else: truly-unknown ids
-// still fire with a populated trunk set, malformed shapes are never
-// laundered by trunk membership, and a locally-visible parent stays
-// authoritative for AC validation even when its id also appears on
-// trunk. All pre-existing tests in this file run with TrunkIDs nil
-// and pin the degraded (primary-tier-only) behavior.
+// tree index but appears in Tree.TrunkIDs carries no resolution defect
+// — the id IS allocated, just not visible on this branch. The negative
+// cases pin that the trunk tier does not widen anything else:
+// truly-unknown ids still fire with a populated trunk set, malformed
+// shapes are never laundered by trunk membership, and a locally-visible
+// parent stays authoritative for AC validation even when its id also
+// appears on trunk. Resolving on the trunk tier does not settle the
+// token's spelling either, so a narrow token reaching a canonical trunk
+// id still fires narrow-width. All pre-existing tests in this file run
+// with TrunkIDs nil and pin the degraded (primary-tier-only) behavior.
 func TestBodyProseID_TrunkTier_G0241(t *testing.T) {
 	t.Parallel()
 	cases := []struct {
@@ -492,9 +494,18 @@ func TestBodyProseID_TrunkTier_G0241(t *testing.T) {
 			silent:   true,
 		},
 		{
-			name:     "narrow token resolves canonical-width trunk id",
-			body:     "Depends on G-500 (narrow legacy form).",
-			trunkIDs: []string{"G-0500"},
+			name:        "narrow token against canonical-width trunk id fires narrow-width",
+			body:        "Depends on G-500 (narrow legacy form).",
+			trunkIDs:    []string{"G-0500"},
+			wantSubcode: "narrow-width",
+		},
+		{
+			// Trunk ids enter the as-written set too, so a trunk-only
+			// entity that IS stored narrow makes a narrow citation of it
+			// correct — the same tolerance a working-tree entity gets.
+			name:     "narrow token against a trunk id stored narrow",
+			body:     "Depends on G-500 (narrow on trunk too).",
+			trunkIDs: []string{"G-500"},
 			silent:   true,
 		},
 		{
@@ -889,6 +900,233 @@ func writeTwoGapsBodyProseFixture(t *testing.T, root, prose string) []*entity.En
 		{ID: "G-0002", Kind: entity.KindGap, Title: "Fixture", Status: "open", Path: g1Path},
 		{ID: "G-0003", Kind: entity.KindGap, Title: "Fixture", Status: "open", Path: g2Path},
 	}
+}
+
+// TestBodyProseID_NarrowWidth_G0518 pins the narrow-width subcode: a
+// citation that resolves ONLY after canonicalization fires, and one
+// that resolves as written does not.
+//
+// The rule is reference-shaped rather than width-shaped, so both
+// legitimate spellings of a genuinely-narrow entity stay silent — the
+// narrow one because read tolerance is permanent and no verb widens an
+// id in place, the canonical one because that is what every aiwf
+// surface prints. A narrow token resolving nowhere is a resolution
+// defect rather than a width one and keeps reporting `unresolved`.
+func TestBodyProseID_NarrowWidth_G0518(t *testing.T) {
+	t.Parallel()
+	cases := []struct {
+		name string
+		body string
+		// extraID, when non-empty, is written as one more entity so the
+		// prose has something beyond the base fixture to resolve
+		// against. archived places it under the kind's archive subdir,
+		// which is where a narrow id lives once canonical width is
+		// adopted — no verb widens one in place.
+		extraID  string
+		archived bool
+		// stubID, when non-empty, enters the tree as a parse-failure
+		// stub rather than a loaded entity.
+		stubID      string
+		wantSubcode string
+		wantMessage string
+		silent      bool
+	}{
+		{
+			name:        "narrow bare id naming a canonical entity",
+			body:        "The render is invisible to anyone auditing M-123.",
+			extraID:     "M-0123",
+			wantSubcode: "narrow-width",
+			wantMessage: `id "M-123" below canonical width — write M-0123`,
+		},
+		{
+			name:        "narrow epic id, two digits below canonical",
+			body:        "Scope leaks through E-19's depends_on chain.",
+			extraID:     "E-0019",
+			wantSubcode: "narrow-width",
+			wantMessage: `write E-0019`,
+		},
+		{
+			name:        "narrow composite parent",
+			body:        "Per M-001/AC-1, the AC holds.",
+			wantSubcode: "narrow-width",
+			wantMessage: `id "M-001/AC-1" below canonical width — write M-0001/AC-1`,
+		},
+		{
+			name:   "canonical bare id",
+			body:   "Per M-0001, the rule applies.",
+			silent: true,
+		},
+		{
+			name:     "narrow token naming an entity stored narrow",
+			body:     "Superseded by G-018, archived before canonical width.",
+			extraID:  "G-018",
+			archived: true,
+			silent:   true,
+		},
+		{
+			name:     "canonical token naming an entity stored narrow",
+			body:     "Superseded by G-0018, archived before canonical width.",
+			extraID:  "G-018",
+			archived: true,
+			silent:   true,
+		},
+		{
+			name:        "narrow token resolving nowhere stays unresolved",
+			body:        "See G-777 for the proposed rule.",
+			wantSubcode: "unresolved",
+		},
+		{
+			// The parent segment is what carries the width, so the
+			// as-written test has to be applied to it and not to the
+			// whole composite token — no entity is ever stored under a
+			// composite spelling, so testing the token would make the
+			// silence path unreachable here.
+			name:    "narrow composite parent naming a milestone stored narrow",
+			body:    "Per M-002/AC-1, the AC holds.",
+			extraID: "M-002",
+			silent:  true,
+		},
+		{
+			// Width is settled the moment the parent resolves, so it is
+			// reported ahead of the AC position rather than after it.
+			name:        "narrow composite parent with an absent AC reports the width",
+			body:        "Per M-001/AC-9, the gap is closed.",
+			wantSubcode: "narrow-width",
+			wantMessage: `write M-0001/AC-9`,
+		},
+		{
+			// A stub is an entity whose file failed to parse. That
+			// failure is already its own finding, so resolution against
+			// a stub is silent — including its stored spelling.
+			name:   "narrow token naming a narrow stub",
+			body:   "Superseded by G-018, whose file does not parse.",
+			stubID: "G-018",
+			silent: true,
+		},
+		{
+			name:   "narrow token inside backticks",
+			body:   "Historical trailers carry narrow widths, e.g. `G-018` for `G-0018`.",
+			silent: true,
+		},
+	}
+
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			t.Parallel()
+			root := t.TempDir()
+			ents := writeBodyProseFixture(t, root, tc.body)
+			if tc.extraID != "" {
+				ents = append(ents, writeExtraEntity(t, root, tc.extraID, tc.archived))
+			}
+			tr := &tree.Tree{Root: root, Entities: ents}
+			if tc.stubID != "" {
+				tr.Stubs = []*entity.Entity{{ID: tc.stubID, Path: "work/gaps/" + tc.stubID + "-unparseable.md"}}
+			}
+
+			got := bodyProseID(tr)
+			if tc.silent {
+				if len(got) != 0 {
+					t.Fatalf("expected silent, got %d findings: %+v", len(got), got)
+				}
+				return
+			}
+			if len(got) != 1 {
+				t.Fatalf("findings = %d, want 1: %+v", len(got), got)
+			}
+			f := got[0]
+			if f.Subcode != tc.wantSubcode {
+				t.Fatalf("Subcode = %q, want %q (message %q)", f.Subcode, tc.wantSubcode, f.Message)
+			}
+			// narrow-width is non-blocking: it would otherwise refuse
+			// edit-body / import / reallocate over a pre-existing
+			// citation the verb is not touching. Every other subcode
+			// here blocks.
+			wantSeverity := SeverityError
+			if tc.wantSubcode == "narrow-width" {
+				wantSeverity = SeverityWarning
+			}
+			if f.Severity != wantSeverity {
+				t.Errorf("Severity = %v, want %v", f.Severity, wantSeverity)
+			}
+			if tc.wantMessage != "" && !strings.Contains(f.Message, tc.wantMessage) {
+				t.Errorf("Message = %q, want it to contain %q", f.Message, tc.wantMessage)
+			}
+		})
+	}
+}
+
+// TestBodyProseID_NarrowWidth_ThroughLoader_G0518 crosses the seam the
+// table test above stops short of. Every case there hands bodyProseID a
+// hand-built *entity.Entity, which asserts the classifier's contract but
+// takes on faith the premise underneath it: that tree.Load stores an
+// entity's `id:` verbatim. narrowCitation is only able to tell a narrow
+// citation from a narrow entity because it does — several sibling
+// helpers in tree.go canonicalize on read, and an entity loaded that way
+// would invert this rule for exactly the trees it protects.
+//
+// So this drives the real loader against a real archived narrow entity
+// and asserts the silence end to end.
+func TestBodyProseID_NarrowWidth_ThroughLoader_G0518(t *testing.T) {
+	t.Parallel()
+	root := t.TempDir()
+
+	mustWriteFile(t, root, "work/gaps/archive/G-018-legacy.md",
+		"---\nid: G-018\ntitle: Legacy\nstatus: wontfix\n---\n\n## What's missing\n\nNothing now.\n\n## Why it matters\n\nIt did once.\n")
+	mustWriteFile(t, root, "work/gaps/G-0002-citing.md",
+		"---\nid: G-0002\ntitle: Citing\nstatus: open\n---\n\n## What's missing\n\nSupersedes G-018, archived before canonical width.\n\n## Why it matters\n\nIt matters.\n")
+
+	tr, _, err := tree.Load(t.Context(), root)
+	if err != nil {
+		t.Fatalf("tree.Load: %v", err)
+	}
+	legacy := tr.ByID("G-018")
+	if legacy == nil {
+		t.Fatal("tree.Load did not load the archived narrow gap")
+	}
+	if legacy.ID != "G-018" {
+		t.Fatalf("loaded ID = %q, want %q verbatim — narrowCitation cannot tell a narrow citation "+
+			"from a narrow entity once the loader canonicalizes", legacy.ID, "G-018")
+	}
+	if got := bodyProseID(tr); len(got) != 0 {
+		t.Fatalf("citing an archived narrow entity at its stored width fired %d findings, want 0: %+v", len(got), got)
+	}
+}
+
+// writeExtraEntity writes one more entity into the fixture tree so body
+// prose has something beyond the base fixture to resolve against, and
+// returns its loaded form. id is stored verbatim, since a narrow
+// spelling is what these cases turn on; archived places the file under
+// the kind's archive subdir. The body carries no id-shaped token, so
+// scanning it adds no finding of its own.
+func writeExtraEntity(t *testing.T, root, id string, archived bool) *entity.Entity {
+	t.Helper()
+	var dir, name string
+	var kind entity.Kind
+	switch {
+	case strings.HasPrefix(id, "G-"):
+		dir, name, kind = "work/gaps", id+"-extra.md", entity.KindGap
+	case strings.HasPrefix(id, "E-"):
+		dir, name, kind = "work/epics", id+"-extra/epic.md", entity.KindEpic
+	case strings.HasPrefix(id, "M-"):
+		// Under the epic writeBodyProseFixture already laid down.
+		dir, name, kind = "work/epics/E-0001-foo", id+"-extra.md", entity.KindMilestone
+	default:
+		t.Fatalf("fixture has no layout for id %q", id)
+	}
+	if archived {
+		dir += "/archive"
+	}
+	rel := dir + "/" + name
+	mustWriteFile(t, root, rel,
+		"---\nid: "+id+"\ntitle: Extra\nstatus: open\n---\n\n## Goal\n\nSomething.\n")
+	e := &entity.Entity{ID: id, Kind: kind, Title: "Extra", Status: "open", Path: rel}
+	if kind == entity.KindMilestone {
+		// So a composite citation of this milestone has a position to
+		// resolve against, and the AC arm is reached rather than
+		// short-circuited by a missing AC.
+		e.ACs = []entity.AcceptanceCriterion{{ID: "AC-1", Title: "First AC", Status: "open"}}
+	}
+	return e
 }
 
 func mustWriteFile(t *testing.T, root, rel, content string) {

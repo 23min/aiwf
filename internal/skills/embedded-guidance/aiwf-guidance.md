@@ -138,10 +138,10 @@ lives in the `wf-codebase-health` skill.
   since re-reading confirms a claim's direction and not its scope. With none, the
   claim is wrong, not unsupported. No check reaches any of this; it is discipline at
   the moment of writing, and the cost of skipping it is paid by whoever reads next.
-- **Never write a fake id-shaped token in committed prose** — in an **entity
-  file**, cite the real id; a placeholder, letter suffix, or number for a
-  nonexistent entity fails `body-prose-id`, and backticks mean "discussing the
-  syntax". Documentation follows a different rule — see the `aiwf-check` skill.
+- **Never write a fake or narrow id-shaped token in committed prose** — in an
+  **entity file**, cite the real id at canonical width; a placeholder, a letter
+  suffix, a number naming no entity, or too few digits all fail `body-prose-id`,
+  and backticks mean "discussing the syntax". Docs differ — see `aiwf-check`.
 
 ## Code-health priming — for the code you write here
 

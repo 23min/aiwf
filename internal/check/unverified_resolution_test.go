@@ -47,6 +47,11 @@ func TestMarkUnverifiedResolution_DowngradesOnlyWhenTheScanWasSkipped(t *testing
 // touch exactly the subcodes whose verdict rests on the tier stack, and
 // leave the rest.
 //
+// `narrow-width` is excluded for the opposite reason to `unresolved`:
+// it asserts the id resolves SOMEWHERE, which a working-tree hit alone
+// establishes. A ref-less load that has not found the entity stops at
+// `unresolved` and is downgraded there instead.
+//
 // `unresolved-ac` is the interesting exclusion: it fires only after the
 // parent entity was found in the working tree, and asserts something
 // about the AC list in that file, which the caller is holding. A
@@ -60,6 +65,7 @@ func TestMarkUnverifiedResolution_LeavesEverythingElseAlone(t *testing.T) {
 		{Code: CodeRefsResolve, Severity: SeverityError, Subcode: "wrong-kind"},
 		{Code: CodeBodyProseID, Severity: SeverityError, Subcode: "malformed-shape"},
 		{Code: CodeBodyProseID, Severity: SeverityError, Subcode: "unresolved-ac"},
+		{Code: CodeBodyProseID, Severity: SeverityWarning, Subcode: "narrow-width"},
 		{Code: CodeRefsResolve, Severity: SeverityError, Subcode: "unresolved-ac"},
 		{Code: CodeIDsUnique, Severity: SeverityError, Subcode: "unresolved"},
 		{Code: CodeIDsUnique, Severity: SeverityError, Subcode: "unresolved-milestone"},

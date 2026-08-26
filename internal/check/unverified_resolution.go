@@ -75,6 +75,12 @@ func MarkUnverifiedResolution(findings []Finding, t *tree.Tree) []Finding {
 // `unresolved-ac` qualifies under neither. It fires only once the
 // parent entity is in hand, and asserts something about the AC list in
 // that file, which the caller is holding.
+//
+// `narrow-width` qualifies under neither either, for the opposite
+// reason to `unresolved`: it asserts the id resolves SOMEWHERE, which a
+// working-tree hit alone establishes. A ref-less load reaching it has
+// already found the entity; one that has not stops short and reports
+// `unresolved`, which this pass then downgrades.
 func dependsOnTheTierStack(code, subcode string) bool {
 	switch subcode {
 	case "unresolved":

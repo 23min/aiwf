@@ -78,6 +78,10 @@ var hintTable = map[string]string{
 	"body-prose-id/unresolved":           "the body prose references a well-formed id that resolves to no entity; fix it with `aiwf edit-body <id>` — check the spelling, or wrap in backticks if the prose is discussing a hypothetical id shape rather than a real reference",
 	"body-prose-id/unresolved-milestone": "the composite id's parent milestone does not exist; fix the prose with `aiwf edit-body <id>` — check the spelling or remove the reference",
 	"body-prose-id/unresolved-ac":        "the parent milestone exists but has no AC with that id; fix the prose with `aiwf edit-body <id>` — check the AC number, or add the AC entry via `aiwf add ac <milestone-id> --title \"...\"`",
+	// G-0518: the citation names a real entity, so the fix is a widened
+	// number rather than the placeholder the doc rules ask for — writing
+	// one here would trip malformed-shape instead.
+	"body-prose-id/narrow-width": "the body prose spells a real entity's id below canonical width, e.g. writing `M-007` where the entity is `M-0007`; fix it with `aiwf edit-body <id>`, writing the id the finding names. If the token was meant as an illustration rather than a citation, do not widen it — rewrite the sentence without an id shape, since a placeholder in an entity body is itself a finding.",
 	// M-0259/AC-2: the mirror of refs-resolve/cross-branch-pending for
 	// prose tokens — non-blocking, per ADR-0030.
 	"body-prose-id/cross-branch-pending": "no action needed — the id exists on another local or remote-tracking branch and will resolve locally once that branch merges; run `git fetch` if the branch is a teammate's not-yet-fetched remote work",
