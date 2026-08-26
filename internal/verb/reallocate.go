@@ -295,9 +295,11 @@ func rewriteBareIDMentions(body []byte, idPattern *regexp.Regexp, newID string) 
 // prevent false matches against longer ids — M-001 must not match
 // M-0010 or M-0011, M-0001 must not match M-00010 either.
 func proseRewritePattern(id string) *regexp.Regexp {
-	// IDGrepAlternation builds a wrapped alternation `(<prefix>0*<n>)`
-	// that matches every zero-padded form of the same numeric value.
-	// Wrap in word boundaries so `M-001` doesn't match `M-0010`.
+	// IDGrepAlternation builds a wrapped alternation over the widths
+	// that name this same entity — the ones entity.Canonicalize maps
+	// onto the same id, which is neither every zero-padded form nor
+	// only the literal one. Wrap in word boundaries so `M-001` doesn't
+	// match `M-0010`.
 	return regexp.MustCompile(`\b` + entity.IDGrepAlternation(id) + `\b`)
 }
 
@@ -581,6 +583,21 @@ func projectReallocate(t *tree.Tree, original, modified *entity.Entity, rewrites
 // findProseMentions returns every entity (including the target
 // itself) whose body mentions oldID at a word boundary. The caller
 // rewrites these bodies as part of the same commit.
+//
+// check.CitersOf walks the same bodies asking a different question:
+// which records make a claim about the entity, rather than which text
+// would break if its id moved. Both resolve a width to an entity the
+// same way, since proseRewritePattern's alternation is derived from
+// the same Canonicalize that one compares through. What differs is
+// reach: this walk reads raw body bytes, so it sees every non-prose
+// carrier that one's mask blanks — among them link destinations and
+// titles, reference-link definitions, autolinks, and a fenced block's
+// info string. Reading them is the point
+// here, because a path left alone is a path broken.
+// TestIDMatcherAgreement fixes the destination case, the member of
+// that class with a live consequence. What the table does not cover is
+// the separate axis of exclusions listed on CitersOf — archived,
+// terminal, and the target's own body — none of which this walk drops.
 //
 // Read errors and frontmatter-split failures are silently skipped:
 // the projection-level findings cover those cases, and a malformed

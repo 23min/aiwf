@@ -74,23 +74,31 @@ func Canonicalize(id string) string {
 }
 
 // IDGrepAlternation returns a POSIX-extended regex alternation that
-// matches both the canonical and narrow legacy widths of id, suitable
-// for `git log --grep -E ...^aiwf-entity: <pattern>$` queries that
-// must continue to find pre-migration commit trailers (per AC-2 and
-// AC-4 in M-081).
+// matches every width naming the same entity as id, suitable for
+// `git log --grep -E ...^aiwf-entity: <pattern>$` queries that must
+// continue to find pre-migration commit trailers (per AC-2 and AC-4
+// in M-081).
+//
+// The alternatives are derived by asking Canonicalize, so a token
+// matches this pattern exactly when it canonicalizes onto the same id.
+// That equivalence is what callers comparing text against an on-disk
+// id depend on, and it bounds the pattern at both ends: a width below
+// the kind's grammar floor names no entity, and one above the
+// canonical pad names a *different* legal entity, since CanonicalPad
+// is a minimum rather than a maximum (`M-0007` and `M-00007` both
+// load, and are not the same milestone).
 //
 // For composite ids the parent recurses; the AC-N sub-id is anchored
 // verbatim. For unrecognized ids the input is regex-quoted unchanged
 // so callers always receive a syntactically-valid pattern.
 //
-// Concretely, an input of `E-22` returns `(E-0*22)` (any width that
-// equals 22 numerically); `E-0022` returns the same. A composite whose
-// parent meets the milestone floor, `M-221/AC-1`, returns
-// `(M-0*221)/AC-1` — the parent recurses, the AC-N sub-id is anchored
-// verbatim. A composite whose parent is below the floor (`M-22/AC-1`,
-// two digits where the grammar wants three) is not a valid composite
-// id, so ParseCompositeID rejects it and the whole input is
-// regex-quoted through unchanged. The pattern is intended to be
+// Concretely, an input of `E-22` returns `(E-22|E-022|E-0022)`; `E-0022`
+// returns the same. A composite whose parent meets the milestone floor,
+// `M-221/AC-1`, returns `(M-221|M-0221)/AC-1` — the parent recurses, the
+// AC-N sub-id is anchored verbatim. A composite whose parent is below
+// the floor (`M-22/AC-1`, two digits where the grammar wants three) is
+// not a valid composite id, so ParseCompositeID rejects it and the
+// whole input is regex-quoted through unchanged. The pattern is intended to be
 // embedded in a wider regex (anchors, prefix), so it is wrapped in a
 // single capture group for unambiguous concatenation.
 func IDGrepAlternation(id string) string {
@@ -111,16 +119,29 @@ func IDGrepAlternation(id string) string {
 		if !idPatterns[k].MatchString(id) {
 			break
 		}
-		// Strip leading zeros to get the canonical numeric value, then
-		// emit a pattern that matches any zero-padded form of it.
-		// `0*` accepts both narrow (`E-22`) and canonical (`E-0022`)
-		// trailers. The bare numeric portion is regex-quoted defensively
-		// even though we know it's digits.
+		// Strip leading zeros to get the numeric value, then enumerate
+		// the paddings that name this same entity — which is exactly
+		// the set Canonicalize maps onto the same id, so the two are
+		// one rule rather than two encodings of it. The candidate is
+		// regex-quoted defensively even though we know it's digits.
 		trimmed := strings.TrimLeft(num, "0")
 		if trimmed == "" {
 			trimmed = "0"
 		}
-		return "(" + regexp.QuoteMeta(prefix) + "0*" + regexp.QuoteMeta(trimmed) + ")"
+		canonical := Canonicalize(id)
+		var alts []string
+		for w := len(trimmed); w <= CanonicalPad; w++ {
+			cand := prefix + strings.Repeat("0", w-len(trimmed)) + trimmed
+			if Canonicalize(cand) == canonical {
+				alts = append(alts, regexp.QuoteMeta(cand))
+			}
+		}
+		if len(alts) == 0 {
+			// id is padded above CanonicalPad, so Canonicalize leaves it
+			// alone and no other width maps onto it: it names only itself.
+			return "(" + regexp.QuoteMeta(id) + ")"
+		}
+		return "(" + strings.Join(alts, "|") + ")"
 	}
 	return regexp.QuoteMeta(id)
 }
