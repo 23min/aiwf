@@ -9,9 +9,9 @@ priority: medium
 Two walks answer "which entity bodies mention this id", independently, and give
 different answers.
 
-`findProseMentions` (`internal/verb/reallocate.go:574`) reads every entity file,
+`findProseMentions` (`internal/verb/reallocate.go:605`) reads every entity file,
 splits the frontmatter, and matches the raw body against `proseRewritePattern`
-(`:283`) — `\b` plus `entity.IDGrepAlternation(id)` plus `\b`, an alternation
+(`:297`) — `\b` plus `entity.IDGrepAlternation(id)` plus `\b`, an alternation
 over every zero-padded form of the number.
 
 `CitersOf` (`internal/check/citers.go`) performs the same read and split, then
