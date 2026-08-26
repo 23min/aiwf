@@ -35,6 +35,21 @@ on tokens like `G7` and `M16`. The reason does not carry here, since widening th
 class after the hyphen leaves the anchor in place — so the two holes want different
 remedies rather than one shared fix.
 
+## What the remedy reaches
+
+The widened pattern admits a suffix beginning with a letter or digit — the form
+all four of `G-0235`'s tokens take. A suffix of punctuation stays out of reach,
+deliberately: `M-…` is not matched, and admitting it costs more than it repays.
+`M-…` is the shape-notation for an unallocated id, written that way in the
+shipped guidance fragment, and `skill-body-id` scans code spans — so a class
+admitting the ellipsis reports that fragment as a defect. Measured 2026-08-26: a
+pattern whose non-ASCII alternative is `[^\x00-\x7F]+` matches `M-…` and fires
+one error, at `internal/skills/embedded-guidance/aiwf-guidance.md:43`.
+
+`G-0181`'s occurrence is therefore repaired by hand rather than caught by the
+rule, which is why the tree reads clean without the punctuation case being
+covered.
+
 ## Why it matters
 
 This check is the only mechanical backstop for the prose-id convention, and a clean
