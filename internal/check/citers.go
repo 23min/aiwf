@@ -45,6 +45,16 @@ type Citation struct {
 // one the shipped-surface rule uses for the same reason. Over-inclusion
 // costs a glance; a citation missed at the only moment anyone is
 // looking costs the whole notice.
+//
+// findProseMentions in internal/verb walks the same bodies for
+// reallocate. It resolves widths identically — its pattern is built
+// from the same Canonicalize this compares through — and differs in
+// reach: it reads raw body bytes, so it sees every non-prose carrier
+// this masks out, link destinations and titles, reference-link
+// definitions and autolinks alike. That reach belongs there, where a
+// path left alone is a path broken, and not here, where the question
+// is what a record claims. TestIDMatcherAgreement fixes the
+// destination case, the member of that class with a live consequence.
 func CitersOf(t *tree.Tree, id string) []Citation {
 	target := entity.Canonicalize(id)
 	var out []Citation

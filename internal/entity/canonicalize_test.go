@@ -78,8 +78,11 @@ func TestCanonicalize(t *testing.T) {
 // regex-alternation helper used by `git log --grep` callers
 // (admin_cmd.go's history reader, scopes.go's authorize-commit
 // reader). The pattern must compile cleanly under POSIX-extended
-// regex semantics and match both narrow and canonical-width
-// renderings of the input id.
+// regex semantics and match a token exactly when that token
+// canonicalizes onto the same id — every width from the kind's
+// grammar floor up to the canonical pad, and no other. A width below
+// the floor names no entity; one above the pad names a different
+// legal entity, since CanonicalPad is a minimum rather than a maximum.
 func TestIDGrepAlternation_MatchesBothWidths(t *testing.T) {
 	t.Parallel()
 	tests := []struct {
@@ -92,7 +95,9 @@ func TestIDGrepAlternation_MatchesBothWidths(t *testing.T) {
 			"epic-22",
 			"E-22",
 			[]string{"E-22", "E-0022", "E-022"},
-			[]string{"E-220", "E-2", "E-23", "E-0023"},
+			// E-00022 is a legal id of its own (the grammar is \d{2,}),
+			// so it must not be swept in as a spelling of this one.
+			[]string{"E-220", "E-2", "E-23", "E-0023", "E-00022"},
 		},
 		{
 			"epic-canonical",
@@ -103,8 +108,12 @@ func TestIDGrepAlternation_MatchesBothWidths(t *testing.T) {
 		{
 			"milestone-narrow",
 			"M-007",
-			[]string{"M-007", "M-0007", "M-7"}, // M-7 below grammar floor but matches numerically
-			[]string{"M-070", "M-008"},
+			[]string{"M-007", "M-0007"},
+			// M-7 is below the milestone floor, so it names no entity and
+			// Canonicalize leaves it as-is; M-00007 is a legal milestone of
+			// its own. Matching either would let `aiwf reallocate M-007`
+			// rewrite text that does not refer to M-0007.
+			[]string{"M-070", "M-008", "M-7", "M-00007"},
 		},
 		{
 			"composite-narrow",
@@ -115,8 +124,10 @@ func TestIDGrepAlternation_MatchesBothWidths(t *testing.T) {
 		{
 			"adr-canonical",
 			"ADR-0001",
-			[]string{"ADR-0001", "ADR-1"},
-			[]string{"ADR-0010", "ADR-0002"},
+			// The ADR floor is the canonical pad, so exactly one spelling
+			// names this entity.
+			[]string{"ADR-0001"},
+			[]string{"ADR-0010", "ADR-0002", "ADR-1", "ADR-00001"},
 		},
 		{
 			// All-zeros input: trimmed numeric becomes empty, so the
@@ -124,7 +135,29 @@ func TestIDGrepAlternation_MatchesBothWidths(t *testing.T) {
 			"epic-all-zeros",
 			"E-0000",
 			[]string{"E-0000", "E-00"},
-			[]string{"E-0001"},
+			// E-0 is below the epic floor and E-00000 is above the pad,
+			// so the row pins both bounds for the all-zeros shape.
+			[]string{"E-0001", "E-0", "E-00000"},
+		},
+		{
+			// Padded above the canonical width, so Canonicalize leaves it
+			// alone and it names only itself. The negatives carry the
+			// weight: a narrower spelling canonicalizes elsewhere, and a
+			// wider one is another entity again.
+			"milestone-above-canonical-pad",
+			"M-00007",
+			[]string{"M-00007"},
+			[]string{"M-0007", "M-007", "M-000007"},
+		},
+		{
+			// A number with more digits than the canonical pad names only
+			// itself. M-012345 in the negatives is what fails if the
+			// upper bound is ever dropped: it is legal, and canonicalizes
+			// to itself rather than to this id.
+			"milestone-number-wider-than-the-pad",
+			"M-12345",
+			[]string{"M-12345"},
+			[]string{"M-1234", "M-012345", "M-123456"},
 		},
 	}
 	for _, tt := range tests {

@@ -16,6 +16,26 @@ section in this file.
 
 ## [Unreleased]
 
+### Fixed — G-0633: `aiwf reallocate` no longer rewrites citations of a different entity
+
+`entity.IDGrepAlternation` matched any number of leading zeros, so the pattern for
+`M-0007` also matched `M-00007`. Both are legal ids — the grammar takes three
+digits or more, and the canonical pad is a minimum rather than a maximum — and
+they name different milestones. `aiwf reallocate M-0007` rewrote prose citing
+`M-00007` to the new id, silently repointing a reference to an entity that had not
+moved. The same slack at the other end matched `M-7`, below the kind's floor,
+turning a token that names nothing into a live reference.
+
+The same pattern resolves commit trailers, so `aiwf history E-0022` and
+`aiwf authorize`'s scope lookup also returned commits belonging to `E-00022`. Those
+now answer for the entity asked about.
+
+The alternation is now derived from `entity.Canonicalize`: a token matches exactly
+when it canonicalizes onto the same id. Every width from the kind's floor to the
+canonical pad still matches, so `git log --grep` still finds pre-migration commit
+trailers — measured across every trailer in this repo's history, none of which sits
+outside that range.
+
 ### Fixed — G-0639: `body-prose-id` now sees a fabricated id with a non-ASCII suffix
 
 `idTokenPattern` matched `[A-Za-z0-9_]` after the kind prefix, so an id-shaped
