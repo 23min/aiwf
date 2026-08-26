@@ -22,7 +22,7 @@ section is replaced wholesale by a delta the human accepts. No verb writes it an
 no tool regenerates it, so there is no source to regenerate.
 
 The exclusion is still right — a working ordering file names not-yet-done work,
-and its staleness is cleared by the next wholesale replacement rather than by a
+and what clears an entry is the operator's next pass over the file rather than a
 lint finding. Only the reason given for it is wrong, and it is the reason a
 reader carries to the next file they have to classify.
 
