@@ -18,6 +18,11 @@ package check
 //     resolves to no entity in the tree. Catches fabricated canonical-
 //     width tokens (M-9999) and stale references to deleted entities.
 //
+//   - narrow-width — the token resolves, but only once padded to
+//     canonical width, and no entity is stored under the narrow
+//     spelling. Catches a citation of a real entity written the way an
+//     older tree spelled ids (E-19 for E-0019).
+//
 //   - unresolved-milestone / unresolved-ac — composite ids (M-NNN/AC-N)
 //     whose parent milestone is missing, or whose parent is present but
 //     has no AC at the named position. Mirror the subcodes refsResolve
@@ -185,6 +190,14 @@ type BodyProseIndex struct {
 	// escalates a local-only hit to error severity only when it can
 	// (ADR-0041).
 	HasRemoteTrackingRefs bool
+	// AsWritten is the id set spelled exactly as the tree stores it —
+	// no canonicalization on either side — across the same populations
+	// ByID and Trunk cover. It is what lets narrowCitation ask whether a
+	// narrow token names an entity that is itself narrow (G-0518). The
+	// entity loader keeps `id:` verbatim, which is what makes the
+	// question answerable at all: every other index in this struct has
+	// already canonicalized the width away.
+	AsWritten map[string]bool
 }
 
 // BodyProseIDIndex builds the id-resolution index that ScanBodyProseID
@@ -196,9 +209,11 @@ type BodyProseIndex struct {
 // over planned files, then pass it to ScanBodyProseID per file.
 func BodyProseIDIndex(t *tree.Tree) BodyProseIndex {
 	idx := BodyProseIndex{
-		ByID: make(map[string]*entity.Entity, len(t.Entities)+len(t.Stubs)),
+		ByID:      make(map[string]*entity.Entity, len(t.Entities)+len(t.Stubs)),
+		AsWritten: make(map[string]bool, len(t.Entities)+len(t.Stubs)),
 	}
 	for _, e := range t.Entities {
+		idx.AsWritten[e.ID] = true
 		key := entity.Canonicalize(e.ID)
 		if _, exists := idx.ByID[key]; exists {
 			continue
@@ -206,6 +221,7 @@ func BodyProseIDIndex(t *tree.Tree) BodyProseIndex {
 		idx.ByID[key] = e
 	}
 	for _, e := range t.Stubs {
+		idx.AsWritten[e.ID] = true
 		key := entity.Canonicalize(e.ID)
 		if _, exists := idx.ByID[key]; exists {
 			continue
@@ -216,6 +232,7 @@ func BodyProseIDIndex(t *tree.Tree) BodyProseIndex {
 		idx.Trunk = make(map[string]bool, len(t.TrunkIDs))
 		for _, tid := range t.TrunkIDs {
 			idx.Trunk[entity.Canonicalize(tid.ID)] = true
+			idx.AsWritten[tid.ID] = true
 		}
 	}
 	idx.CrossBranch = crossBranchIndex(t)
@@ -386,24 +403,47 @@ func maskFor(body []byte, includeCode bool) string {
 // authoritative when it has the id — a locally-visible milestone with
 // a missing AC fires unresolved-ac even if the id also appears on
 // trunk. The trunk tier (idx.Trunk) is consulted only on a ByID miss
-// (G-0241): a strict-form token known on trunk is silent. For a
-// composite token whose parent is trunk-only, the AC position cannot
-// be validated without the parent's file, so the whole token is
-// silent — refusing would re-create the verb-time refusal G-0241
-// fixes, and the position is validated by the tree-walking rule once
-// the file is visible (post rebase/merge). Malformed-shape tokens
-// never reach the trunk tier: trunk ids are strict-form by
-// construction, so trunk membership cannot launder a malformed token.
+// (G-0241): a strict-form token known on trunk carries no resolution
+// defect. For a composite token whose parent is trunk-only, the AC
+// position cannot be validated without the parent's file, so the
+// position goes unjudged — refusing would re-create the verb-time
+// refusal G-0241 fixes, and the tree-walking rule judges it once the
+// file is visible (post rebase/merge). Malformed-shape tokens never
+// reach the trunk tier: trunk ids are strict-form by construction, so
+// trunk membership cannot launder a malformed token.
+//
+// Resolving on the working-tree or trunk tier settles WHICH entity the
+// token names but not whether it is spelled the way that entity is
+// stored, so both hand off to narrowCitation (G-0518) rather than
+// returning silent. The cross-branch tier does not, and the asymmetry
+// is the one ADR-0030 and ADR-0041 already draw: trunk is
+// authoritative, a sibling branch is provisional. A width verdict
+// against a spelling that may never land would fire an error over an
+// entity the operator cannot reach, and the citation is visible on
+// that tier anyway through its own cross-branch- subcode. Once the
+// branch merges, the entity is in the working tree and the width is
+// judged like any other — the same deferral the composite AC position
+// takes on a trunk-only parent.
 func classifyBodyToken(tok string, idx BodyProseIndex) (subcode, msg string) {
 	if strictCompositeIDPattern.MatchString(tok) {
 		parent, sub, _ := entity.ParseCompositeID(tok)
 		canonParent := entity.Canonicalize(parent)
 		parentEntity, ok := idx.ByID[canonParent]
-		if !ok {
-			if idx.Trunk[canonParent] {
-				return "", ""
-			}
+		if !ok && !idx.Trunk[canonParent] {
 			return "unresolved-milestone", fmt.Sprintf("composite id %q whose parent %q is not allocated", tok, parent)
+		}
+		// Only the parent segment carries a width claim — the AC segment
+		// is a single digit by grammar. Judged ahead of the AC position
+		// because it is settled the moment the parent resolves, on either
+		// tier; a token carrying both defects reports the second one on
+		// the run after this is fixed.
+		if code, msg := narrowCitation(tok, parent, idx); code != "" {
+			return code, msg
+		}
+		if !ok {
+			// Parent visible on trunk only: its acs[] is not in hand, so
+			// the AC position cannot be judged here.
+			return "", ""
 		}
 		for _, ac := range parentEntity.ACs {
 			if ac.ID == sub {
@@ -414,11 +454,8 @@ func classifyBodyToken(tok string, idx BodyProseIndex) (subcode, msg string) {
 	}
 	if strictBareIDPattern.MatchString(tok) {
 		canon := entity.Canonicalize(tok)
-		if _, ok := idx.ByID[canon]; ok {
-			return "", ""
-		}
-		if idx.Trunk[canon] {
-			return "", ""
+		if _, inTree := idx.ByID[canon]; inTree || idx.Trunk[canon] {
+			return narrowCitation(tok, tok, idx)
 		}
 		// M-0259/AC-2: a miss against both ByID and the (silent) Trunk
 		// tier consults the cross-branch view before hard-failing
@@ -445,25 +482,71 @@ func classifyBodyToken(tok string, idx BodyProseIndex) (subcode, msg string) {
 	return "malformed-shape", fmt.Sprintf("id-shaped token %q that does not match the kind's strict id pattern (wrap in backticks if discussing id syntax)", tok)
 }
 
-// bodyProseIDSeverity maps a classifyBodyToken subcode to its finding
-// severity. Every subcode is a hard, blocking error except
-// cross-branch-pending and cross-branch-collision (M-0259/AC-2/AC-3,
-// ADR-0030, D-0036), which are visible but non-blocking warnings:
-// cross-branch-pending because the id is published and merely unmerged;
-// and cross-branch-collision because divergent content is ambiguous
-// between a genuine duplicate-mint collision and an ordinary
-// same-entity edit on an unmerged sibling branch — the actual
-// duplicate-mint case is still caught, just later, by the
-// pre-existing blocking ids-unique/trunk-collision check.
+// narrowCitation reports the narrow-width subcode for a token that has
+// already resolved, or ("", "") when its spelling is legitimate. bareID
+// is the segment carrying the width — the token itself for a bare id,
+// the parent for a composite.
 //
-// The two are named rather than matched on the cross-branch- prefix
+// The rule is reference-shaped rather than width-shaped (G-0518): what
+// fires is a token that resolves ONLY after canonicalization. Narrow
+// read tolerance is permanent, so a repo that archived entities before
+// canonical width was adopted holds genuinely-narrow ids under
+// `<kind>/archive/` forever, and a body citing one is correct as
+// written — idx.AsWritten is what keeps it silent. The converse case is
+// held by the width test: that same archived entity cited at canonical
+// width is correct too, because canonical is what every aiwf surface
+// emits, and only a token narrower than what it resolves to fires.
+//
+// The two facts together mean a tree whose ids are uniformly narrow
+// never fires this at all — every citation matches an entity spelled
+// the same way. Such a tree is already reported by
+// entity-id-narrow-width, which judges the entities themselves.
+func narrowCitation(tok, bareID string, idx BodyProseIndex) (subcode, msg string) {
+	canon := entity.Canonicalize(tok)
+	if canon == tok || idx.AsWritten[bareID] {
+		return "", ""
+	}
+	return "narrow-width", fmt.Sprintf("id %q below canonical width — write %s, the entity it resolves to", tok, canon)
+}
+
+// bodyProseIDSeverity maps a classifyBodyToken subcode to its finding
+// severity. Every subcode is a hard, blocking error except three, which
+// are visible but non-blocking warnings.
+//
+// cross-branch-pending and cross-branch-collision (M-0259/AC-2/AC-3,
+// ADR-0030, D-0036): the former because the id is published and merely
+// unmerged; the latter because divergent content is ambiguous between a
+// genuine duplicate-mint collision and an ordinary same-entity edit on
+// an unmerged sibling branch — the actual duplicate-mint case is still
+// caught, just later, by the pre-existing blocking
+// ids-unique/trunk-collision check.
+//
+// Those two are named rather than matched on the cross-branch- prefix
 // they share, so membership in that family does not by itself confer
 // non-blocking severity: cross-branch-local-only is an error, since a
 // reference resolvable from no published ref makes the tree valid on
 // one machine only (ADR-0041).
+//
+// narrow-width (G-0518) is the third, and takes docIDWidth's posture
+// for the reason that rule states: a citation below canonical width is
+// a real defect, but blocking one falls on prose the operator did not
+// write and is not editing. What makes blocking cost more here than at
+// the push is the verb layer. entityIDNarrowWidth reaches verbs only
+// through projectionFindings, which reports what a change INTRODUCES,
+// so a pre-existing narrow entity never blocks a write. ScanBodyProseID
+// has no such diff — it scans the whole body — so at error severity a
+// pre-existing narrow citation would refuse edit-body, import and
+// reallocate on the entity carrying it. reallocate is the sharpest,
+// since it rewrites every active body and refuses on any error: an
+// id-collision fix, which is remedial work under time pressure, could
+// be declined over a citation it never touched. A warning keeps the
+// finding visible on every check while leaving those verbs free.
+//
+// Unlike docIDWidth this has no strictness knob, because none is asked
+// for yet — add one when a consumer wants to block on it, not before.
 func bodyProseIDSeverity(subcode string) Severity {
 	switch subcode {
-	case "cross-branch-pending", "cross-branch-collision":
+	case "cross-branch-pending", "cross-branch-collision", "narrow-width":
 		return SeverityWarning
 	default:
 		return SeverityError
