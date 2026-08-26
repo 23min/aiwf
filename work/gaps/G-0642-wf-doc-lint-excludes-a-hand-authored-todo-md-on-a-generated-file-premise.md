@@ -1,6 +1,6 @@
 ---
 id: G-0642
-title: Skill and preamble state different reconcile rules for an ordering file
+title: wf-doc-lint excludes a hand-authored TODO.md on a generated-file premise
 status: open
 priority: medium
 ---
