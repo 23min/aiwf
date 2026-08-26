@@ -16,6 +16,38 @@ section in this file.
 
 ## [Unreleased]
 
+### Fixed — G-0639: `body-prose-id` now sees a fabricated id with a non-ASCII suffix
+
+`idTokenPattern` matched `[A-Za-z0-9_]` after the kind prefix, so an id-shaped
+token whose suffix began outside ASCII never became a candidate: it was never
+classified, never judged against the strict form, and produced no finding at any
+severity. `aiwf check` reported a clean tree over four such tokens.
+
+The suffix now matches in two alternatives. ASCII input is governed by the
+original class, unchanged. A suffix that starts outside ASCII — `G-α`, `M-АБВ` —
+is admitted by a second, Unicode alternative.
+
+Two alternatives rather than one Unicode class, because neither shape of a single
+class works. Keeping the trailing `\b` rejects exactly what the widening exists to
+admit: Go's `\b` is ASCII-only, so it cannot match after a non-ASCII letter and
+`M-α` still yields nothing. Dropping the `\b` leaves the class with no right
+boundary, so it runs on through whatever follows a real id where a script sets no
+space between words, and the resolvable citation in `M-0001の仕様` becomes one
+malformed token. Splitting keeps the ASCII boundary and admits the non-ASCII start.
+
+Punctuation suffixes stay out of reach: `M-…` is not matched. It is the
+shape-notation for an unallocated id, and `skill-body-id` scans code spans, so a
+class admitting `…` fires on the shipped guidance fragment that writes it
+deliberately.
+
+### Fixed — `aiwf reallocate` no longer refuses over prose in an archived body
+
+Reallocation rewrites cross-references wherever they sit, archive included, and
+its verb-time body scan judged those writes too — so a malformed token already
+frozen in an archived body refused the rewrite, naming a file the operator has no
+business editing. Archived entities are outside that convention's scope, as they
+already are for `aiwf check` (ADR-0004), and the scan now skips them.
+
 ## [0.33.0] — 2026-08-26
 
 ### Fixed — embedded content no longer ships without a CI run

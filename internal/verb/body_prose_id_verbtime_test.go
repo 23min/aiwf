@@ -345,3 +345,70 @@ func findingsContainSubcode(fs []check.Finding, code, subcode string) bool {
 	}
 	return false
 }
+
+// TestReallocate_ArchivedBodyDoesNotBlockProseRewrite pins the scope of
+// the reallocate verb-time gate.
+//
+// Reallocation rewrites cross-references wherever they sit, archive
+// included, so an archived body enters the write set carrying prose the
+// verb did not author. Archived entities are outside the convention the
+// scan enforces (ADR-0004 §"Check shape rules" — the tree-walking rule
+// skips them for the same reason) and their bodies are frozen, so a
+// malformed token already sitting in one must not refuse the rewrite.
+// Without the scope, `aiwf reallocate` is unusable in any tree whose
+// archive predates the convention.
+func TestReallocate_ArchivedBodyDoesNotBlockProseRewrite(t *testing.T) {
+	t.Parallel()
+	r := newRunner(t)
+	r.must(verb.Add(r.ctx, r.tree(), entity.KindGap, "Target gap", testActor,
+		verb.AddOptions{BodyOverride: bornCompleteFixtureBody(entity.KindGap)}))
+	r.must(verb.Add(r.ctx, r.tree(), entity.KindGap, "Referring gap", testActor,
+		verb.AddOptions{BodyOverride: []byte(
+			"## What's missing\n\nFollows from G-0001.\n\n" +
+				"## Why it matters\n\nFixture prose.\n",
+		)}))
+	r.must(verb.Cancel(r.ctx, r.tree(), "G-0002", testActor, "fixture", false))
+	r.must(verb.Archive(r.ctx, r.root, testActor, ""))
+	archived := r.tree().ByID("G-0002")
+	if archived == nil || !entity.IsArchivedPath(archived.Path) {
+		t.Fatalf("G-0002 not archived; got %+v", archived)
+	}
+
+	// The malformed token is planted after the archive move: every verb
+	// that writes a body refuses it, which is the behaviour under test
+	// everywhere except here. A frozen archive acquires one by predating
+	// the rule, not by passing a gate.
+	archivedPath := filepath.Join(r.root, archived.Path)
+	raw, err := os.ReadFile(archivedPath)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if writeErr := os.WriteFile(archivedPath, append(raw, "\nCluster G-\u03b1 owns it.\n"...), 0o644); writeErr != nil {
+		t.Fatal(writeErr)
+	}
+	commitFixture(t, r.root, "fixture: pre-convention archive body")
+
+	res, err := verb.Reallocate(r.ctx, r.tree(), "G-0001", testActor)
+	if err != nil {
+		t.Fatalf("verb error: %v", err)
+	}
+	if findingsContainSubcode(res.Findings, check.CodeBodyProseID, "malformed-shape") {
+		t.Fatalf("archived body blocked the rewrite: %+v", res.Findings)
+	}
+	if res.Plan == nil {
+		t.Fatalf("expected a Plan; reallocate refused: %+v", res.Findings)
+	}
+	// The exemption is only under test while the archived body is
+	// actually in the write set. Without this, a change that stopped
+	// rewriting archived cross-references would leave the test green and
+	// the guard dead.
+	var wroteArchived bool
+	for _, op := range res.Plan.Ops {
+		if op.Type == verb.OpWrite && filepath.ToSlash(op.Path) == filepath.ToSlash(archived.Path) {
+			wroteArchived = true
+		}
+	}
+	if !wroteArchived {
+		t.Fatalf("archived body never entered the write set; the exemption is untested. ops = %+v", res.Plan.Ops)
+	}
+}

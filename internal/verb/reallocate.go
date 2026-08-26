@@ -203,6 +203,14 @@ func Reallocate(ctx context.Context, t *tree.Tree, idOrPath, actor string) (*Res
 		if op.Type != OpWrite || len(op.Content) == 0 {
 			continue
 		}
+		// Archived bodies are outside the convention's scope, exactly as
+		// they are for the tree-walking rule (ADR-0004 §"Check shape
+		// rules"). Reallocation writes to them only to keep a
+		// cross-reference live, so prose the verb did not author must not
+		// block that write.
+		if entity.IsArchivedPath(op.Path) {
+			continue
+		}
 		parsed, parseErr := entity.Parse(op.Path, op.Content)
 		if parseErr != nil { //coverage:ignore op.Content always parses — the verb just serialized it; defensive in case future op shapes carry non-parseable content
 			continue
