@@ -396,11 +396,19 @@ func TestAdoptedPackagesRouteThroughWriteExecutable(t *testing.T) {
 }
 
 // adoptedPackages are the packages held clean whole-file rather than
-// only diff-scoped: internal/stresstest is where the ETXTBSY flake was
-// measured, and internal/contractverify is where it recurred.
+// only diff-scoped. The bar is an ETXTBSY flake observed firing, not one
+// merely reachable: internal/stresstest is where it was measured,
+// internal/contractverify where it recurred, and internal/policies where
+// it surfaced against a hook-test stand-in (G-0562, G-0570, G-0578).
+// What a firing costs here is a verdict rather than a wrong answer: this
+// suite execs its stand-ins from subprocesses it spawns in parallel, on
+// the every-push path, so the fixture step fails and the property the
+// test exists to pin goes unevaluated — from `make check-fast` through
+// CI alike.
 var adoptedPackages = []string{
 	"internal/stresstest",
 	"internal/contractverify",
+	"internal/policies",
 }
 
 // everyLine returns a changed-line set covering the whole file, turning

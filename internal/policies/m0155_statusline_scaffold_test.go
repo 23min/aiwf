@@ -69,7 +69,7 @@ func TestM0155_AC3_ScaffoldStatuslineRefreshesInPlace(t *testing.T) {
 		}
 		// An older aiwf script (or any drift) must be refreshed, not
 		// preserved — the scaffold-once lifecycle was retired in G-0337.
-		if err := os.WriteFile(dest, []byte("# stale older statusline\n"), 0o755); err != nil {
+		if err := testsupport.WriteExecutable(dest, []byte("# stale older statusline\n")); err != nil {
 			t.Fatalf("write stale: %v", err)
 		}
 		res, err := skills.ScaffoldStatuslineWithHome(root, home, skills.StatuslineScopeProject)

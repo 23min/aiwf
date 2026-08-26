@@ -16,6 +16,16 @@ section in this file.
 
 ## [Unreleased]
 
+### Fixed — G-0641: five exec-bit test writes in `internal/policies` route through the ETXTBSY-safe helper
+
+Test-internal only; no user-facing change. Five fixtures wrote an executable
+stand-in with a bare `os.WriteFile(…, 0o755)`, which holds a writable descriptor
+a concurrent fork can inherit — making the later `execve` fail with `ETXTBSY` and
+losing the verdict the test existed to produce. They now use
+`testsupport.WriteExecutable`, and `internal/policies` joins the packages held
+clean whole-file, so a bare `os.WriteFile` cannot return to a line a future diff
+does not touch.
+
 ### Fixed — G-0642: `wf-doc-lint` no longer classes a hand-authored `TODO.md` as generated
 
 The skill excluded `TODO.md` from lint scope by listing it beside `ROADMAP.md`,
@@ -27,6 +37,7 @@ met a rule whose two halves disagreed.
 The working-ordering-file case now carries its own clause and its own reason: it
 names work deliberately not done yet, and lint would read the not-yet as drift.
 The exclusion is unchanged; what a reader learns from it is not.
+
 ### Added — G-0518: `body-prose-id/narrow-width` catches an entity body citing a real entity below canonical width
 
 `body-prose-id` canonicalized an id-shaped token before resolving it, so a body
