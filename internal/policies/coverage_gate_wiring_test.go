@@ -6,6 +6,8 @@ import (
 	"path/filepath"
 	"strings"
 	"testing"
+
+	"github.com/23min/aiwf/internal/testsupport"
 )
 
 // coverage_gate_wiring_test.go — G-0469 chokepoint pins.
@@ -124,7 +126,7 @@ func stubbedGoEnv(t *testing.T, extra ...string) []string {
 	t.Helper()
 	stub := t.TempDir()
 	script := "#!/bin/sh\necho \"BASE=$AIWF_COVERAGE_BASE\"\necho \"PROFILE=$AIWF_COVERAGE_PROFILE\"\n"
-	if err := os.WriteFile(filepath.Join(stub, "go"), []byte(script), 0o755); err != nil {
+	if err := testsupport.WriteExecutable(filepath.Join(stub, "go"), []byte(script)); err != nil {
 		t.Fatalf("writing go stub: %v", err)
 	}
 

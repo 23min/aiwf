@@ -8,6 +8,8 @@ import (
 	"path/filepath"
 	"strings"
 	"testing"
+
+	"github.com/23min/aiwf/internal/testsupport"
 )
 
 // prepush_lint_hook_test.go — G-0179 chokepoint pins.
@@ -393,7 +395,7 @@ func TestPrepushSecretScanHook_ScanScope(t *testing.T) {
 	// sh -c) because the hook word-splits $gitleaks_cmd.
 	stub := filepath.Join(fx.dir, "gitleaksstub.sh")
 	stubBody := "#!/bin/sh\necho \"stub-args=$*\" >&2\nexit 0\n"
-	if err := os.WriteFile(stub, []byte(stubBody), 0o755); err != nil {
+	if err := testsupport.WriteExecutable(stub, []byte(stubBody)); err != nil {
 		t.Fatalf("writing gitleaks stub: %v", err)
 	}
 
@@ -471,7 +473,7 @@ func TestPrepushLintHook_CacheIsolation(t *testing.T) {
 	// (not an inline sh -c) because the hook word-splits $lint_cmd.
 	stub := filepath.Join(fx.dir, "lintstub.sh")
 	stubBody := "#!/bin/sh\necho \"stub-cache=$GOLANGCI_LINT_CACHE\" >&2\nexit 0\n"
-	if err := os.WriteFile(stub, []byte(stubBody), 0o755); err != nil {
+	if err := testsupport.WriteExecutable(stub, []byte(stubBody)); err != nil {
 		t.Fatalf("writing lint stub: %v", err)
 	}
 

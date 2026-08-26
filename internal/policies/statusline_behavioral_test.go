@@ -118,7 +118,7 @@ func writeGhStub(t *testing.T) string {
 		"  printf '%s' \"${STUB_GH_JSON:-[]}\"\n" +
 		"fi\n" +
 		"exit 0\n"
-	if err := os.WriteFile(filepath.Join(dir, "gh"), []byte(stub), 0o755); err != nil {
+	if err := testsupport.WriteExecutable(filepath.Join(dir, "gh"), []byte(stub)); err != nil {
 		t.Fatal(err)
 	}
 	return dir
