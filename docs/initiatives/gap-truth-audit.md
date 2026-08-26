@@ -196,19 +196,6 @@ graduated from vacuous to obstructive.
 
 Not stale claims in existing gaps — live defects with no gap of their own.
 
-### `body-prose-id` cannot see a non-ASCII fake id
-
-`idTokenPattern` (`internal/check/body_prose_id.go:68`) is
-`\b(?:E|M|G|D|C|ADR)-[A-Za-z0-9_]+…`. `[A-Za-z0-9_]` is ASCII-only, so `G-α` never
-matches the token pattern and is never considered. Measured: ASCII `G-alpha`
-refuses the add; Greek `G-α` passes clean.
-
-**Four live instances sit on `main` right now** — `G-0235`'s body line 33 carries
-`G-α`, `G-ζ`, `G-δ`, `G-η`, and `aiwf check` reports the tree clean. The real ids
-are named in the gap's own cited source: G-0227, G-0232, G-0230, G-0233. This is
-precisely the class `CLAUDE.md` bans ("no letter/placeholder suffixes"), and the
-check written to enforce it has an encoding-shaped hole. Belongs in cluster 1.
-
 ### `link-check` has been red on `main` for 10 consecutive runs
 
 Commit `d82259f5a` — *"aiwf archive: sweep 8 entities into archive/"*, 2026-08-22
@@ -397,13 +384,14 @@ unaffected: each asks whether a referent exists, not what a sentence claims abou
 it. Whichever of them ships first mints its finding code subcoded, so the others
 widen it by subcode rather than by minting further codes.
 
-**T1.2 — Widen `body-prose-id`'s token regex to Unicode.** `idTokenPattern`
-(`internal/check/body_prose_id.go`) matches `[A-Za-z0-9_]` after the kind prefix, so a
-fabricated id carrying a non-ASCII suffix never becomes a candidate token and produces
-no finding at any severity. Two lines in the active tree carry one and `aiwf check`
-reports clean over both. Filed as G-0639. *Catches the ~2% convention class. One
-line of regex, plus the two bodies — which the widened rule blocks a push over until
-they are repaired, so they belong in the same change.*
+**T1.2 — Widen `body-prose-id`'s token regex past ASCII.** `idTokenPattern`
+(`internal/check/body_prose_id.go`) matched `[A-Za-z0-9_]` after the kind prefix, so a
+fabricated id carrying a non-ASCII suffix never became a candidate token and produced
+no finding at any severity. Filed as G-0639; shipped 2026-08-26 as two alternatives
+rather than one widened class, together with the archive scope `aiwf reallocate`'s
+verb-time scan needed in order to keep rewriting cross-references into frozen bodies.
+G-0639 records what the remedy reaches and the punctuation suffix it declines.
+*Caught the ~2% convention class.*
 
 Two candidates that sat under this heading are ruled out, measured 2026-08-25:
 
