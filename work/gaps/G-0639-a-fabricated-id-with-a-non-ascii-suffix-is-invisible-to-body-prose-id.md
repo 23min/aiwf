@@ -1,8 +1,10 @@
 ---
 id: G-0639
 title: A fabricated id with a non-ASCII suffix is invisible to body-prose-id
-status: open
+status: addressed
 priority: medium
+addressed_by_commit:
+    - 57ab69c4945f420d17520353c254e4681bf1f9dc
 ---
 ## What's missing
 
