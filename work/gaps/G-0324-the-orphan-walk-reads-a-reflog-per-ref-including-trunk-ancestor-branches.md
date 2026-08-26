@@ -1,6 +1,6 @@
 ---
 id: G-0324
-title: 'Branch hygiene: prune merged ritual branches; oracle skips merged refs'
+title: The orphan walk reads a reflog per ref, including trunk-ancestor branches
 status: open
 priority: low
 discovered_in: M-0216
