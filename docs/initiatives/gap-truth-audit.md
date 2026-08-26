@@ -410,10 +410,12 @@ Two candidates that sat under this heading are ruled out, measured 2026-08-25:
   `//history:ok` escape is Go comment syntax with no markdown equivalent. Pointing it
   at bodies is a tier move, not a corpus swap.
 
-**T1.3 — Duplicate check at `aiwf add gap`.** Print the nearest open-gap titles
-before allocating an id. G-0562 and G-0578 name one call site, filed five days apart,
-neither referencing the other; G-0580 and G-0618 are the same shape. *The only item
-in this list that reduces the number of gaps filed.*
+**T1.3 — Surface the existing gaps at filing time.** `aiwf add` allocates an id
+without showing what the tree already holds on the same subject, so a duplicate lands
+and the two copies then age apart. Filed as G-0640, which carries the measured pairs
+and the design: `aiwf add --dry-run`, a ranked list of the nearest open gaps, and
+deliberately no threshold. *The only item in this list that reduces the number of
+gaps filed rather than catching them afterwards.*
 
 **T1.4 — Cite a record for its holding, not its content.** When another record's
 claim is load-bearing on what you are writing, name the record and state what fails
