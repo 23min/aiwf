@@ -45,6 +45,8 @@ there. The sibling `CHANGELOG.md` bullet is the shape to follow: name the class,
 then say what makes lint the wrong instrument for it.
 
 The file sits under `internal/skills/embedded-rituals/`, so the edit is subject
-to `skill-edit-structural-test-backstop`. D-0050 governs what that test may
-assert, and G-0606 leaves the standing of phrase-pins over shipped prose
-undecided, so the backstop is satisfied structurally.
+to `skill-edit-provenance-backstop`: the commit must carry an `aiwf-entity:`
+trailer resolving to a real entity. D-0071 retired the earlier requirement that
+such an edit ride a policy test referencing the edited path, on the grounds that
+a content mandate is satisfiable by a test checking nothing in particular and
+charges per edit rather than once.
