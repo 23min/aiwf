@@ -397,14 +397,25 @@ unaffected: each asks whether a referent exists, not what a sentence claims abou
 it. Whichever of them ships first mints its finding code subcoded, so the others
 widen it by subcode rather than by minting further codes.
 
-**T1.2 — Three one-liners.** Best ratio in the list.
-- Add `TODO.md` to `aiwf.yaml`'s `docs.paths` (currently `[README.md,
-  docs/workflows.md]`, `strict: true`). 175 ids in that file are checked by nothing.
-- Widen `body-prose-id`'s token regex from `[A-Za-z0-9_]` to Unicode. Four fabricated
-  ids sit on `main` today and `aiwf check` reports clean.
-- Point `comment-history-attrition`'s phrase list at entity bodies. The scanner, the
-  phrases and the `//history:ok` escape all already ship; only the corpus changes.
-  *Catches the ~2% convention class.*
+**T1.2 — Widen `body-prose-id`'s token regex to Unicode.** `idTokenPattern`
+(`internal/check/body_prose_id.go`) matches `[A-Za-z0-9_]` after the kind prefix, so a
+fabricated id carrying a non-ASCII suffix never becomes a candidate token and produces
+no finding at any severity. Two lines in the active tree carry one and `aiwf check`
+reports clean over both. Filed as G-0639. *Catches the ~2% convention class. One
+line of regex, plus the two bodies — which the widened rule blocks a push over until
+they are repaired, so they belong in the same change.*
+
+Two candidates that sat under this heading are ruled out, measured 2026-08-25:
+
+- **`TODO.md` into `docs.paths` changes nothing.** `doc-id-slug` is silent on a bare
+  id and on an id that names no entity — both by design, both stated in its own header
+  — and `doc-id-width` needs a narrow id to fire. That file carries no markdown link
+  and no narrow id, so the two rules would run against it and find nothing. What would
+  actually reach its ids is G-0519, which the slug rule's header defers to by name.
+- **`comment-history-attrition` cannot take entity bodies as a corpus.** It sits at
+  the CI tier as a Go policy because it polices this repo's own source, and its
+  `//history:ok` escape is Go comment syntax with no markdown equivalent. Pointing it
+  at bodies is a tier move, not a corpus swap.
 
 **T1.3 — Duplicate check at `aiwf add gap`.** Print the nearest open-gap titles
 before allocating an id. G-0562 and G-0578 name one call site, filed five days apart,
