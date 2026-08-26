@@ -367,22 +367,27 @@ paths, `path:line`, Go symbols, entity ids **and their current status**, backtic
 already defines, plus pre-push. Most machinery exists and is proven — `body_prose_id.go`
 already tokenises and masks body prose, `skill_coverage.go` already resolves
 backticked verbs against the live Cobra tree, and the planning tree is simply a
-corpus nobody pointed them at. *Catches 10–14% of findings across all four samples,
-spanning drift, overtaken-by-decision and part of wrong-at-birth. The status half
-alone accounts for 7 of 15 high-severity findings in one sample* — "addressed by
-E-0076" (cancelled), "until G-0557 lands" (addressed), "ADR-0003 is accepted"
-(rejected). *Ban-shaped. Will fire on the existing bodies: ship at warning, sweep,
-then promote to error — for the resolvers that read structure. The status half does
-not ship; D-0078 rules it out.*
+corpus nobody pointed them at. *Recall was estimated at 10–14% of findings across
+all four samples, spanning drift, overtaken-by-decision and part of wrong-at-birth.
+The status half alone accounts for 7 of 15 high-severity findings in one sample* —
+"addressed by E-0076" (cancelled), "until G-0557 lands" (addressed), "ADR-0003 is
+accepted" (rejected).
 
-The status resolver does not ship. **G-0626** measured the shape and located the
-fix — `BodyProseIDIndex` already resolves each body citation to the cited
+**None of it ships.** The estimate above is recall; D-0079 measured precision over
+the live tree, and every resolver runs near a quarter. What fires is mostly a
+proposal naming what it proposes, a negative test naming what must not exist, or a
+path resolving under another root. D-0079 carries the counts and the instances, and
+states why the resolvers do not meet the reopening condition D-0078 sets.
+
+**G-0626** measured the status resolver's shape and located the fix —
+`BodyProseIDIndex` already resolves each body citation to the cited
 `*entity.Entity`, and the status that entity carries is never read — but reading
 that status does not separate a stale premise from a citation of completed work,
-which is what D-0078 measures and rules out. The remaining resolvers are
-unaffected: each asks whether a referent exists, not what a sentence claims about
-it. Whichever of them ships first mints its finding code subcoded, so the others
-widen it by subcode rather than by minting further codes.
+which is what D-0078 measures and rules out.
+
+Nor do the other resolvers escape it by asking a narrower question. Whether a
+referent exists and what a sentence claims about it are the same question: whether
+a referent *should* exist is exactly what the sentence claims.
 
 **T1.2 — Widen `body-prose-id`'s token regex past ASCII.** `idTokenPattern`
 (`internal/check/body_prose_id.go`) matched `[A-Za-z0-9_]` after the kind prefix, so a
