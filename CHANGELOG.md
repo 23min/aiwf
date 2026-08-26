@@ -16,6 +16,20 @@ section in this file.
 
 ## [Unreleased]
 
+### Fixed — embedded content no longer ships without a CI run
+
+`go:embed` compiles the ritual, skill, guidance, statusline, hook, recipe and
+HTML-template trees into the binary, but the `go` workflow's path filter listed
+only Go sources and build manifests. A commit editing embedded content changed
+what ships — and could turn the policy suite red, since those tests parse the
+same bytes — while no Go workflow ran and the push reported success.
+Releases inherited it: a tag could point at a binary no Go workflow had judged.
+
+The filter now covers every embedded tree on both triggers.
+`TestGoWorkflowCoversEveryEmbeddedTree` derives the expected set by reading the
+`go:embed` directives, so a newly embedded tree fails the suite until the
+workflow names it rather than silently escaping CI.
+
 ### Changed — the wrap rituals put their own prose in front of a reviewer
 
 `aiwfx-wrap-milestone`'s deciding review now covers the milestone's evidence, not only

@@ -1,5 +1,17 @@
 name: go
 
+# The `internal/*` entries below are embedded into the binary with
+# `go:embed`, so editing one of them changes what ships even though no Go
+# file changed — and the policy suite parses those bytes, so a prose edit
+# can turn tests red. They belong in the filter for the same reason
+# `go.sum` does. `TestGoWorkflowCoversEveryEmbeddedTree` derives this list
+# from the `go:embed` directives themselves and fails when a new embedded
+# tree is not represented here.
+#
+# `internal/skills/**` names the whole package rather than its five embedded
+# subtrees: nothing lives there but those trees and Go sources, which
+# `**/*.go` already selects, so the wider pattern costs no extra runs and
+# needs no edit when a tree is added.
 on:
   pull_request:
     paths:
@@ -9,6 +21,9 @@ on:
       - ".golangci.yml"
       - ".github/workflows/go.yml"
       - "Makefile"
+      - "internal/skills/**"
+      - "internal/recipe/embedded/**"
+      - "internal/htmlrender/embedded/**"
   push:
     branches: [main, "poc/**"]
     paths:
@@ -18,6 +33,9 @@ on:
       - ".golangci.yml"
       - ".github/workflows/go.yml"
       - "Makefile"
+      - "internal/skills/**"
+      - "internal/recipe/embedded/**"
+      - "internal/htmlrender/embedded/**"
 
 # GO_VERSION is the single source of truth for this workflow's toolchain
 # pin. A stdlib CVE that only a toolchain release can clear is remediated
