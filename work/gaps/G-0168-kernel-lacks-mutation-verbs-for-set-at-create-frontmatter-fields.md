@@ -31,7 +31,7 @@ For comparison, fields that **do** have post-creation mutation verbs
 | AC | `tdd_phase` | `aiwf promote <id>/AC-N --phase <p>` |
 | (all) | `title` (+ slug) | `aiwf retitle <id> "..."` |
 | (all) | slug only | `aiwf rename <id> <new-slug>` |
-| (all) | `id` | `aiwf reallocate <id>`, `aiwf rewidth` |
+| (all) | `id` | `aiwf reallocate <id>` |
 | milestone | `parent` (epic) | `aiwf move <M-id> --epic <E-id>` |
 | milestone | `depends_on:` | `aiwf milestone depends-on <id> --on <ids>` |
 | gap | `addressed_by:` | `aiwf promote <gap> addressed --by <id>` |
