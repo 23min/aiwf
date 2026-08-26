@@ -34,7 +34,7 @@ line saying what it is.
   production — reachable only through conditions no BulkRevwalk flag produces.
   Annotated rather than deleted, deliberately; nothing tracks the choice
 
-## Next, in order (2026-08-23)
+## Next, in order (2026-08-26)
 
 Clusters 1–9 and 11 cover the *defect* surface; cluster 12 covers the machine the
 gates run on. Cluster 10 is the exception: absences in what the kernel can
@@ -43,11 +43,14 @@ Feature and enhancement gaps fit none and are not listed, at any priority — th
 filter is what the gap is, not how urgent it is. Each gap sits in exactly one
 cluster.
 
-In flight: **E-0088** owns M-0314..M-0317 — every path-changing verb repairs the
-links it breaks. M-0314 is the entry point; M-0315 and M-0316 follow it and
-M-0317 settles whether ADR-0033's `docs/` delegation fires at all. It closes no
-gap listed below, so nothing is omitted on its account: the `docs/` half stays as
+In flight: nothing. **E-0088** closed with M-0314..M-0317 all done; its residue is
+G-0623 and G-0630 in cluster 1, and the `docs/` half it declined to cross stays as
 G-0478 and G-0439 in cluster 11.
+
+Planned, not started: **E-0089** owns M-0318..M-0322 — make the legal-workflow table
+total and correct, per D-0077. It owns four gaps: G-0631 in cluster 2, G-0417 in
+cluster 11, and G-0160 and G-0166, which are unlisted. Starting it does not advance
+cluster 1, which is where seven of this week's twelve new gaps landed.
 
 ### 1. Lying gates
 
@@ -117,6 +120,22 @@ wrong thing, and no gate at the point one would still be cheap.
 - **G-0608** — negative regression pins over shipped surfaces fit neither class
   D-0070 names; one site was dropped rather than invent a third, and a second pin
   is invisible to the ban entirely
+- **G-0640** — nothing surfaces an existing gap at filing time, so duplicates land.
+  The one entry in this file that reduces how many gaps get filed rather than how
+  many are wrong; G-0562 and G-0578 in cluster 4 are what it would have caught
+- **G-0638** — the epic branch guard's `--force` bypass is recorded nowhere and
+  gated by nothing, so the escape hatch leaves no trace the next reader can find
+- **G-0629** — nothing fails when an m0127 allowlist entry stops matching the file
+  it exempts; the exemption outlives its subject and the scan still reports green
+- **G-0625** — lychee's `exclude_path` entries are read as regexes, dropping eight
+  Normative paths out of the link gate's reach
+- **G-0624** — `markdownLinkRegex` misses titled markdown links, so they are
+  invisible to the walk that is supposed to see every link
+- **G-0623** — outbound link repair covers single-file moves only, so a move that
+  relocates a whole directory leaves ADR-0046's commitment unmet. E-0088's residue
+- **G-0630** — `archive.go`'s 19 surviving mutants sit in the verb's own commit
+  builder and planning path, not the link code E-0088's Context named. The measure
+  that justified the epic did not measure what the epic changed
 
 ### 2. Surfaces that state something false *(one decision first)*
 
@@ -159,6 +178,12 @@ neither reads what it says.
   shipped and Normative surfaces; only `CLAUDE.md` and the provenance model omit it.
   The body's "undocumented" premise is dead — it is an instance of this cluster, not
   a report of one
+- **G-0631** *(high)* — the legal-workflow spec declares every terminal-state
+  `promote` illegal while the kernel returns a NoOp at exit 0. The cell key carries
+  no target, so one cell covers both. Owned by E-0089's M-0318, which changes the
+  key rather than correcting the fifteen cells
+- **G-0632** — a verb's long help can contradict its behaviour with nothing catching
+  it; the help text is the surface a reader trusts before they run anything
 
 ### 3. Oracles — what tells the builder it is wrong *(design first)*
 
@@ -257,9 +282,6 @@ Already fixed, awaiting only the promote:
 - **G-0562 / G-0578** — `793b1ad97` (2026-08-19). One call site, two independently
   filed sightings; the fix commit carries no `aiwf-entity:` trailer, which is why
   neither closed. Promote both, keep one entry
-- **G-0622** — `0e7500a8e`, on the E-0088 branch and not on `main` at all; it arrives
-  terminal on merge. Listed so it is not re-filed
-
 Decisions, not sweeps:
 
 - **G-0493** — `edit-body`'s two modes judge frontmatter divergence by different
@@ -380,6 +402,9 @@ silently goes stale, or it cannot be enforced at all.
 - **G-0235** — down to two unbuilt policy tests, `cited_entity_ids_resolve` and
   `cache_invalidation_documented`. Every `CLAUDE.md` item it was filed for has landed,
   been dropped, or been satisfied elsewhere; the body still reads as a doc sweep
+- **G-0634** — `aiwf worktree` ships `add` and nothing that undoes it, and no
+  surface says what does: not the skill, not ADR-0023, not any design doc. The
+  repo's own verb-design rule requires the answer
 
 ### 8. Error contract *(parallel any time)*
 
@@ -422,6 +447,11 @@ inventory question is the one that stands on its own.
 - **G-0448** — the check rule list is split across four dispatch surfaces, and the
   split is a declared layering boundary rather than an accident. What is missing is a
   wiring chokepoint; `Where to fix` omits the surface carrying seven rules
+- **G-0633** — two walks answer "which entity bodies mention this id" independently
+  and disagree. Duplication with a measurable consequence: the closure notice and
+  `reallocate`'s prose sweep act on different answers
+- **G-0636** — milestone-spec section timing is restated across five surfaces; a
+  correction has to find all five or the tree contradicts itself
 
 ### 10. What the model can't express *(each gated on a decision)*
 
@@ -465,7 +495,8 @@ in flight, and G-0519 and G-0548 are missing chokepoints rather than stale text.
 
 - **G-0412** — coverage-ignore rationale text is inaccurate across several files
 - **G-0414** — stale test naming in a real-binary test
-- **G-0417** — dead branch-not-found code and stale spec-table rows
+- **G-0417** — dead branch-not-found code and stale spec-table rows. Owned by
+  E-0089's M-0319, which sweeps them while moving `authorize` into the same file
 - **G-0436** — `CLAUDE.md` cites two dead `cmd/aiwf/` things; the id-allocation half
   was repointed in 2026-07 when G-0443 closed
 - **G-0439** — relocation and archive sweeps skip references outside their own scope.
