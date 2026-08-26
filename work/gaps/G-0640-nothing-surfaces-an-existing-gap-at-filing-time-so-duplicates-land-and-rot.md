@@ -22,11 +22,11 @@ The tree carries the result. Measured 2026-08-26:
   through a bare `os.WriteFile` rather than `testsupport.WriteExecutable`. Filed
   2026-08-06 and 2026-08-11, neither referencing the other. The defect was fixed
   on 2026-08-19 by `793b1ad97`, which routed that fixture through the helper.
-  Neither closed against it for a week. G-0578 did on 2026-08-26; G-0562 stays open
-  on a second question its body carries and the narrower copy does not — whether
-  `internal/policies` joins the whole-file adopted-package list. A re-filing is not
-  a copy: the later gap was the thinner one, so closing the pair as duplicates would
-  have dropped the analysis the first filer did.
+  Neither closed against it for a week; both closed on 2026-08-26. A re-filing is
+  not a copy — the later gap was the thinner one, and the earlier carried a second
+  question it did not, which moved to G-0641 rather than closing alongside it.
+  Closing the pair as duplicates would have dropped both the analysis and the
+  question.
 - **G-0580 and G-0618 name one hole across two predicates.** Both describe the
   skill-edit backstop reaching only `SKILL.md` under the embedded-rituals subtree,
   leaving agent cards and verb skills outside it. G-0580 names the structural-test
