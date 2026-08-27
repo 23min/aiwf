@@ -1,7 +1,7 @@
 ---
 id: G-0324
 title: The orphan walk reads a reflog per ref, including trunk-ancestor branches
-status: open
+status: wontfix
 priority: low
 discovered_in: M-0216
 ---
