@@ -27,9 +27,16 @@ Measured in a throwaway repository:
 - older tip reachable from `main` → **yes**, so the commit is on the mainline and
   fully auditable.
 
-The shape is ordinary: reusing a ritual branch after its work has merged. A
-long-lived `epic/*` branch that is reset or rewound after a merge produces one
-false finding per rewind.
+The precondition is that the older tip is reachable from trunk when the check
+runs — it landed before the ref moved off it. Two neighbouring shapes do not
+trigger it, both measured: resetting a merged branch to trunk itself leaves the
+previous tip an ancestor of the new one, so the pair is a fast-forward the walk
+skips; and a branch rewound before its work ever reached trunk yields a genuine
+orphan, reported correctly.
+
+One false finding per rewind is an upper bound. `RunOrphanedAICommits`
+deduplicates per SHA, and a pre-rewind tip carrying a human actor is filtered
+before it reaches a finding.
 
 ## Why it matters
 
@@ -46,12 +53,28 @@ without checking trunk-reachability by hand, which is the check's own job.
 Filter the orphan by trunk-reachability before reporting: an older tip reachable
 from the trunk head is not orphaned.
 
-The comparison is free. `reflog_walk.go` already holds a `*CommitDAG` built by a
-single `git rev-list --all --reflog --parents` (`internal/check/orphan_dag.go`),
-and the walk already calls `dag.isAncestor` for the newer-tip comparison in the
-same loop. The trunk head is already resolved — `listRitualHeads` takes it as
-`trunkShort`.
+The ancestry machinery is in hand: `reflog_walk.go` holds a `*CommitDAG` built by
+one `git rev-list --all --reflog --parents` (`internal/check/orphan_dag.go`), and
+the walk already calls `dag.isAncestor` in the same loop.
 
-Separate from the per-ref reflog cost recorded in G-0324. Both land in the same
-function; this one changes what the walk reports, that one changes what it
-spends.
+The trunk head is not. `trunkShort` is a branch short name — `"main"`, derived by
+`Config.TrunkBranchShortName` — while `dag.isAncestor` compares two SHAs over a
+`parents` map that carries no ref information. Resolving the tip costs one
+`git rev-parse`, or a signature change threading in the
+`branchTips map[string]string` that `RunPromoteOnWrongBranch` already takes for
+this same comparison; threading it reorders the caller, since
+`internal/cli/check/provenance.go` builds `branchTips` after it calls the walk.
+
+Two conditions to settle. `trunkShort` can be empty, which `listRitualHeads`
+already guards for; and the default trunk ref is remote-tracking, so the short
+name may not resolve — measured, `git rev-parse main` fails in a clone carrying
+`refs/remotes/origin/main` but no local `main`. With no resolvable trunk head,
+report as today, the way `RunPromoteOnWrongBranch` does. `CommitDAG.isAncestor`
+further documents that a SHA not sourced from its own `--all --reflog` build
+needs the explicit unknown-key guard re-established.
+
+Separate from the per-ref reflog cost recorded in G-0324, which is `wontfix`:
+that one changes what the walk spends, this one changes what it reports. Its
+closure reason carries a constraint that binds here too — the walk's subject is
+commits a non-fast-forward update removed from a branch, so no filter may key on
+whether the *branch* is merged.
