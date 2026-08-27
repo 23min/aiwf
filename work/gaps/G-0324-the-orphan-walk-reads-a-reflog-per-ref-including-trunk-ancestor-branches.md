@@ -28,7 +28,7 @@ the date depending on `--date`, and the finding message wants the date. That is
 either two batched invocations or parsing the date out of `%gD` under
 `--date=iso`.
 
-The same shape has already been paid down once in this function. M-0216/AC-6
+The same shape has already been paid down once in this function. M-0216/AC-1
 replaced the per-pair `git merge-base --is-ancestor` fan-out — 683 subprocesses
 on this repository at the M-0215 baseline — with the in-memory `CommitDAG`. The
 per-ref reflog reads are what remains of that pattern.
@@ -54,7 +54,7 @@ not measured.)
 Process spawns dominate the walk's cost, and they scale with the number of ritual
 branches a repository keeps rather than with the amount of unvalidated work.
 
-Keeping merged branches is deliberate. `aiwfx-wrap-epic`'s Conventions state that
+Keeping merged branches is deliberate. `aiwfx-wrap-epic`'s Principles state that
 *"local branches are preserved (so `tig` / `gitk` keep labelling history); origin
 branches for completed milestones are deleted to reduce remote refname clutter."*
 A local ref is what labels a merge in `git log --graph`. Batching the reflog read
@@ -67,10 +67,10 @@ filtered and grouped in memory as above. Behavior is unchanged: same refs, same
 consecutive-pair walk, same findings.
 
 `aiwf check` in this checkout no longer reproduces the 46 — one local branch, no
-ritual refs, one reflog file — because the merged branches were pruned in the
-interim. Pruning reduces the same cost and needs no code, but it has to be
-repeated after every wrap and it contradicts the wrap ritual's preservation
-policy, so it is a workaround rather than the resolution.
+ritual refs — because the merged branches were pruned in the interim. Pruning
+reduces the same cost and needs no code, but it has to be repeated after every
+wrap and it contradicts the wrap ritual's preservation policy, so it is a
+workaround rather than the resolution.
 
 G-0323 proposed a validated-trunk watermark so `aiwf check` walks only new
 commits, which would have subsumed this. It is `wontfix`, so the per-ref cost has
