@@ -1,6 +1,6 @@
 ---
 id: G-0111
-title: 'Wrap-side ritual: scope ends before done, human-only on done, wrap-epic update'
+title: Scope-end is welded to the terminal promote; no operator-driven way to end one
 status: open
 priority: high
 discovered_in: M-0096
