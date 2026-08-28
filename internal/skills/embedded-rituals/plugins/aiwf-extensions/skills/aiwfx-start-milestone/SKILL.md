@@ -20,6 +20,7 @@ If the spec doesn't exist or isn't ready, use `aiwfx-plan-milestones` first. If 
 - Read the milestone spec. Confirm every AC is concrete, and either testable or observational — an AC that claims someone ran a command beyond the tests' reach is met by the record of it, not by a test, and restating it as something testable substitutes a claim it never made. If any AC is vague, stop and ask the user to refine before starting work.
 - Read the parent epic's spec for context.
 - Read prior milestone specs in the same epic if this milestone builds on them.
+- **Record what this milestone closes, now.** When the work sets out to resolve a tracked gap, list that id under the spec's `## Closes` section while the reason for starting is still in front of you. `aiwfx-wrap-milestone` reads that section and closes each id it names; a gap named only in running prose is read by nothing, so at wrap it is reconstructed by hand or missed. List a gap only when this work is expected to resolve it — one it merely touches, or punts, belongs under `## Deferrals`. Delete the section when the milestone closes nothing.
 - **ACs are expected to already exist.** `aiwfx-plan-milestones` creates and body-fills each AC at plan time, so a milestone normally reaches this preflight with `acs[]` populated and its `### AC-N — <title>` bodies filled — confirm they are present and filled (the first bullet already covers whether each is concrete). **Recovery fallback only** — a hand-written spec whose `acs[]` is empty: add them now and fill each body before proceeding, rather than deferring the contract into implementation:
 
   ```bash
@@ -132,6 +133,8 @@ For each AC, in sequence:
 If a decision surfaces mid-implementation that wasn't pre-locked in the spec, invoke `aiwfx-record-decision` to capture it. Mirror the decision id under the spec's `## Decisions made during implementation` section.
 
 If a piece of work surfaces that's deferred, apply the **cheap-fix test** first: if the change is small, lands in a file this milestone already touches, and is covered by a test you are already writing, make it now rather than filing it. Otherwise open a gap (`aiwf add gap --title "..." --discovered-in M-NNNN`) and mirror the resulting `G-NNNN` id under the spec's `## Deferrals` section.
+
+The cheap-fix test also runs the other way. When a change made under it resolves a gap this milestone never set out to close, add that id to `## Closes` in the same breath. An opportunistic fix is exactly what a start-time list cannot anticipate, so it is recorded as it happens or not at all.
 
 ### 7. Readiness check before handoff
 
