@@ -1,6 +1,6 @@
 ---
 id: G-0646
-title: Closing an epic is not a sovereign act; a non-human actor can promote it done
+title: Closing an epic is not a sovereign act, and the gate reaches only promote
 status: open
 priority: medium
 ---
