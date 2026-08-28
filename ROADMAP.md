@@ -1256,3 +1256,11 @@ that the kernel contradicts.
 | M-0321 | Declare kind-by-verb applicability and enforce cell totality | draft |
 | M-0322 | Decide the rendered legality reference and ship it if taken | draft |
 
+## E-0090 — Make closing an epic a sovereign act and give scopes an operator-driven end (proposed)
+
+### Goal
+
+A human is the only actor who may declare an epic closed, on either edge that closes one, and a human can end an authorization scope deliberately instead of waiting for a status flip to end it as a side effect.
+
+_No milestones yet._
+
