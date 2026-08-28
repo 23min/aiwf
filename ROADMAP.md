@@ -1262,5 +1262,9 @@ that the kernel contradicts.
 
 A human is the only actor who may declare an epic closed, on either edge that closes one, and a human can end an authorization scope deliberately instead of waiting for a status flip to end it as a side effect.
 
-_No milestones yet._
+| Milestone | Title | Status |
+|---|---|---|
+| M-0323 | Settle what closing an epic is | draft |
+| M-0324 | Refuse a non-human actor on both edges that close an epic | draft |
+| M-0325 | Add an operator-driven end to aiwf authorize | draft |
 
