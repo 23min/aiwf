@@ -51,6 +51,12 @@ lives in the `wf-codebase-health` skill.
   the rest. Record evidence as what it asserts, not as the symbol that asserts
   it — a name is a locator beside the claim, never the claim itself; renames
   outrun every record that spells one.
+- **A test pins a rule, not an input.** One test per rule you decided, however
+  many inputs could exercise it — nine spellings of a malformed address are one
+  rule and eight guesses. Test-first is not the exception: a test written
+  before the code states a decision, not a forecast. An uncovered branch is a
+  rule not yet pinned; a covered branch with a new input is enumeration, so
+  coverage is what tells the two apart.
 - **Decide one thing at a time.** Three or more queued? Present one at a time,
   never batched into one `AskUserQuestion` card. Each: the context, options
   with pros/cons and risks, your plain lean *with its argument*, a numbered
