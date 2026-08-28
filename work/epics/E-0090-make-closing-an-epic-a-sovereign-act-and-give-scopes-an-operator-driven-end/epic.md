@@ -62,11 +62,11 @@ Separately, an authorization scope has one exit: the terminal promote or cancel 
 
 ## Milestones
 
-Ids are allocated by `aiwfx-plan-milestones`; the sequence is:
+- `M-0323` — settle closure authority on both terminal edges and the semantics of an operator-driven end, in one ADR · depends on: —
+- `M-0324` — refuse a non-human actor on both edges that close an epic, with the `cancel` call site and the historical ratification · depends on: `M-0323`
+- `M-0325` — add an operator-driven end to `aiwf authorize`, additive alongside the auto-end · depends on: `M-0323`
 
-- The ADR settling closure authority on both terminal edges and the semantics of an operator-driven end · depends on: —
-- Sovereign gating of both terminal edges, with the `cancel` call site and the historical ratification · depends on: the ADR
-- The `aiwf authorize` end mode and its discoverability surface · depends on: the ADR
+`M-0324` and `M-0325` depend only on the ADR, not on each other, so their order is soft.
 
 ## ADRs produced
 
