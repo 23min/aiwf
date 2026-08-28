@@ -6,8 +6,15 @@ parent: E-0090
 depends_on:
     - M-0323
 tdd: required
+acs:
+    - id: AC-1
+      title: Promoting an epic to done with a non-human actor is refused before any write
+      status: open
 ---
 
 ## Goal
 
 ## Acceptance criteria
+
+### AC-1 — Promoting an epic to done with a non-human actor is refused before any write
+
