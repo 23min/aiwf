@@ -13,6 +13,9 @@ acs:
     - id: AC-2
       title: Cancelling an epic with a non-human actor is refused at the verb, not the audit
       status: open
+    - id: AC-3
+      title: Every commit the widened audit fires on is ratified and check reports no error
+      status: open
 ---
 
 ## Goal
@@ -22,4 +25,6 @@ acs:
 ### AC-1 — Promoting an epic to done with a non-human actor is refused before any write
 
 ### AC-2 — Cancelling an epic with a non-human actor is refused at the verb, not the audit
+
+### AC-3 — Every commit the widened audit fires on is ratified and check reports no error
 
