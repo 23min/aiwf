@@ -23,7 +23,8 @@ If the milestone isn't actually done — failing tests, unmet ACs, broken build 
 - Run the full test suite. **All pass.**
 - Run the project's build. **Green.**
 - Run the project's full lint gate — the same linter set CI runs on push (e.g. a `make ci` target), not a subset like `go vet` alone. **Clean.** Unpushed branches accumulate lint debt invisibly; the wrap is the cheap moment to catch it.
-- Identify every gap this milestone's own body (Goal/Context prose, AC descriptions, `## References`) explicitly names as something this work *fixes* or *closes* — distinct from a gap merely referenced for background, or one the spec *discovered* here and is deliberately leaving open (that one belongs in `## Deferrals`, step 4, not here — promoting it would be wrong). For each fixed gap, confirm the implementing AC and its commit SHA from the `## Work log`. These become the `aiwf promote G-NNNN addressed --by-commit <sha>` calls in step 13.
+- **Read the spec's `## Closes` section first.** It lists the gaps this milestone recorded at start as the ones it sets out to resolve, and it is the worklist. Being a named heading, it is addressable rather than only readable — `aiwf show M-NNNN --format json` carries body sections keyed by heading slug.
+- Then sweep the body (Goal/Context prose, AC descriptions, `## References`) for a gap this work fixed that never reached that list — an opportunistic fix, or a milestone started before the section existed. The sweep is the residue, not the primary source; anything it turns up is added to `## Closes` so the record matches what happened. Distinguish both from a gap merely referenced for background, or one the spec *discovered* here and is deliberately leaving open (that one belongs in `## Deferrals`, step 4, not here — promoting it would be wrong). For each gap to close, confirm the implementing AC and its commit SHA from the `## Work log`. These become the `aiwf promote G-NNNN addressed --by-commit <sha>` calls in step 13.
 
 If anything is red, stop and report. Wrap does not paper over failure.
 
@@ -334,7 +335,7 @@ After the declared-sequence gate, finish up. The origin-branch delete is an **ou
 - *Ledger padding.* A gap opened and closed inside the same wrap is a fix that should have been made inline. Filing it costs a title, a body, and a reader's attention that the fix itself would not have.
 - *Skipping doc-lint.* Doc drift compounds; the milestone wrap is the cheap moment to catch it.
 - *Slipping unrelated code into the wrap commit.* If the change isn't part of this milestone, it's a separate `wf-patch`.
-- *Wrapping without checking whether the milestone's own prose claims to fix a gap.* A milestone whose own body names a gap as what it fixes, wrapped without closing that gap, leaves the tracker silently overstating what's still open.
+- *Wrapping without reading `## Closes`.* A milestone that recorded a gap as the thing it resolves, wrapped without closing that gap, leaves the tracker silently overstating what's still open. Reconstructing the list from prose at wrap instead of reading the section is the same failure one step earlier: it is the search that gets skipped.
 - *Promoting a claimed-fixed gap after the milestone's own promote-done.* Ordering matters (step 13) — closing gaps after `aiwf promote M-NNNN done` risks an ended-scope `aiwf-authorized-by:` trailer on the gap-promote commit.
 
 ## Next step

@@ -22,6 +22,18 @@ acs: []                  # filled by `aiwf add ac`, never by hand
 
 <1–2 sentences: what this milestone achieves.>
 
+## Closes
+
+<!-- Gaps this milestone sets out to close, one id per line, recorded now rather
+     than reconstructed at wrap. List a gap only when this work is expected to
+     resolve it: a gap the work merely touches, or punts, belongs under
+     `## Deferrals`. `aiwfx-wrap-milestone` reads this section and closes each id
+     listed; one the work advanced without finishing gets its claim corrected
+     there instead. Delete the section when the milestone closes nothing.
+     One line per gap: the id, then what this milestone resolves in it. -->
+
+- (none)
+
 ## Context
 
 <!-- 2–3 sentences: what exists before this milestone, what must be in place, what
