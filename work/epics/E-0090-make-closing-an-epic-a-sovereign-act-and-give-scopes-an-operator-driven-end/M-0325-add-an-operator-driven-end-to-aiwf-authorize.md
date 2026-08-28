@@ -10,6 +10,9 @@ acs:
     - id: AC-1
       title: The end mode ends the targeted scope without changing its entity's status
       status: open
+    - id: AC-2
+      title: Re-ending converges to a NoOp; naming no resolvable scope is refused
+      status: open
 ---
 
 ## Goal
@@ -17,4 +20,6 @@ acs:
 ## Acceptance criteria
 
 ### AC-1 — The end mode ends the targeted scope without changing its entity's status
+
+### AC-2 — Re-ending converges to a NoOp; naming no resolvable scope is refused
 
