@@ -51,7 +51,7 @@ ADR-0040 constrains the shape of any answer to question 2: prevention belongs at
 
 ## Out of scope
 
-- Any code change. This milestone produces a decision record.
+- Any production-code change. The deliverable is a decision record; the only code that lands here is the policy tests pinning the two ACs.
 - Whether the automatic scope-end survives. The epic already decided it does.
 
 ## Dependencies
