@@ -1,8 +1,10 @@
 ---
 id: G-0647
 title: Wrap reconstructs gap-closure claims from prose; nothing records them at start
-status: open
+status: addressed
 priority: high
+addressed_by_commit:
+    - 7ed5bca1b
 ---
 ## What's missing
 
