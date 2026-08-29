@@ -1,7 +1,9 @@
 ---
 id: G-0650
 title: Wrap review never asks whether the implementation could be materially smaller
-status: open
+status: addressed
+addressed_by_commit:
+    - f954051
 ---
 ## What's missing
 
