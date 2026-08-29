@@ -16,6 +16,9 @@ acs:
     - id: AC-3
       title: Every commit the widened audit fires on is ratified and check reports no error
       status: open
+    - id: AC-4
+      title: The static audit catches a scripted aiwf cancel of a sovereign edge
+      status: open
 ---
 ## Goal
 
@@ -48,6 +51,8 @@ Adding `active → done` is a one-line change, because `promote` already calls t
 After the closed set widens, `aiwf check` over the tree reports no error-severity `fsm-history-consistent` finding. The historical acts the audit now reaches carry a ratification recorded by a human with a written reason.
 
 Stated as a property of the tree rather than as a count, because widening the set is what determines which commits qualify, and a number written now would be a forecast.
+
+### AC-4 — The static audit catches a scripted aiwf cancel of a sovereign edge
 
 ## Constraints
 
