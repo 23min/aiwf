@@ -1,7 +1,7 @@
 ---
 id: M-0324
 title: Refuse a non-human actor on every terminal epic edge
-status: in_progress
+status: done
 parent: E-0090
 depends_on:
     - M-0323
