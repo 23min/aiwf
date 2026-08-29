@@ -31,10 +31,24 @@ import (
 //
 // M-0097/AC-1 (original chokepoint); M-0130 (consolidation).
 
-// sovereignActPromoteRegexes builds one regex per kernel-declared
-// sovereign-act-shape transition. Each regex matches `aiwf promote
-// <prefix>-<id> <to>` (case-sensitive, whitespace-flexible). Returned
-// in deterministic order matching `entity.SovereignActShapes()`.
+// sovereignActPromoteRegexes builds the regexes matching automation-
+// shaped invocations of a kernel-declared sovereign-act-shape
+// transition. Every entry yields a `aiwf promote <prefix>-<id> <to>`
+// regex, at the entry's own index, so the leading len(shapes) elements
+// align positionally with `entity.SovereignActShapes()`. Entries
+// reachable through `aiwf cancel` yield a second regex for that
+// spelling, appended after the promote block.
+//
+// Both spellings are needed because a transition is named by the state
+// it reaches, not by the verb that reaches it: ADR-0047 places both
+// epic cancel edges in the closed set, and a human spells those `aiwf
+// cancel <id>`. Matching only the promote form would leave the audit
+// blind to the natural spelling, and blind silently — an unmatched
+// line produces no finding.
+//
+// Cancel-reachability is derived from entity.CancelTarget, the same
+// mapping the cancel verb consults to pick its target, rather than
+// from a hand-kept list of which edges cancel can reach.
 //
 // Built on-demand rather than as a package-level var so a future
 // kernel-side addition lands in the same compilation unit without a
@@ -42,8 +56,22 @@ import (
 // closed set is tiny — single-digit entries — so the overhead is
 // negligible).
 func sovereignActPromoteRegexes() []*regexp.Regexp {
-	shapes := entity.SovereignActShapes()
+	return sovereignActRegexesFor(entity.SovereignActShapes())
+}
+
+// sovereignActRegexesFor is the deterministic core of
+// sovereignActPromoteRegexes, factored out so the cancel-reachability
+// rule can be exercised against fabricated shape lists.
+//
+// It needs to be: every entry in the kernel's live closed set is an
+// epic today, and the cancel form is deduplicated per prefix, so
+// dropping the reachability test entirely would produce byte-identical
+// output for the current set. The rule would be real logic that no
+// input constrains.
+func sovereignActRegexesFor(shapes []entity.SovereignActShape) []*regexp.Regexp {
 	out := make([]*regexp.Regexp, 0, len(shapes))
+	var cancelForms []*regexp.Regexp
+	seenCancelPrefix := map[string]bool{}
 	for _, s := range shapes {
 		prefix := entity.IDPrefix(s.Kind)
 		if prefix == "" {
@@ -60,8 +88,26 @@ func sovereignActPromoteRegexes() []*regexp.Regexp {
 		// data.
 		pattern := `aiwf\s+promote\s+` + regexp.QuoteMeta(prefix) + `\S+\s+` + regexp.QuoteMeta(string(s.To))
 		out = append(out, regexp.MustCompile(pattern))
+
+		if entity.CancelTarget(s.Kind, s.From) != s.To || seenCancelPrefix[prefix] {
+			continue
+		}
+		// The cancel spelling names no status, so it cannot
+		// discriminate on From the way the promote form does: one
+		// regex per kind is all this spelling can express, and a
+		// second entry for the same kind would only duplicate it.
+		//
+		// That makes the pattern wider than the closed set whenever a
+		// kind has some cancel-reachable edges in the set and some
+		// out of it. No kind is in that position — for epics, every
+		// state cancel can be reached from is in the set — and the
+		// audit's subject is automation-shaped source, where the
+		// honest response to a genuine split would be to narrow this
+		// deliberately rather than to inherit an over-match silently.
+		seenCancelPrefix[prefix] = true
+		cancelForms = append(cancelForms, regexp.MustCompile(`aiwf\s+cancel\s+`+regexp.QuoteMeta(prefix)+`\S+`))
 	}
-	return out
+	return append(out, cancelForms...)
 }
 
 // auditUnforcedSovereignActPromote scans the named paths under fsys
