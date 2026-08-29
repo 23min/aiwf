@@ -1,6 +1,7 @@
 package authorize_test
 
 import (
+	"strings"
 	"testing"
 
 	"github.com/23min/aiwf/internal/cli/authorize"
@@ -81,5 +82,61 @@ func TestRun_ResolveActorFailure(t *testing.T) {
 	rc := authorize.Run(authorize.Options{ID: "E-0001", Root: root, To: "ai/claude", Reason: "delegate"})
 	if rc != cliutil.ExitUsage {
 		t.Errorf("rc = %d, want ExitUsage", rc)
+	}
+}
+
+// TestRun_EndParticipatesInTheModeMutex covers --end's arm of the
+// exactly-one-of guard (M-0325/AC-1). Without it the counter would
+// treat --end as no mode at all, and `--to X --end` would open a scope
+// while silently discarding the end the operator also asked for.
+func TestRun_EndParticipatesInTheModeMutex(t *testing.T) {
+	t.Parallel()
+	rc := authorize.Run(authorize.Options{ID: "E-0001", To: "ai/claude", End: true, Reason: "both at once"})
+	if rc != cliutil.ExitUsage {
+		t.Errorf("rc = %d, want ExitUsage", rc)
+	}
+}
+
+// TestRun_ScopeRequiresEnd covers the --scope gate: every other mode
+// either creates a scope or re-derives its target from the FSM, so a
+// --scope they ignored would read to the operator as having selected
+// one.
+func TestRun_ScopeRequiresEnd(t *testing.T) {
+	t.Parallel()
+	rc := authorize.Run(authorize.Options{ID: "E-0001", To: "ai/claude", ScopeSHA: "1a2b3c4", Reason: "delegate"})
+	if rc != cliutil.ExitUsage {
+		t.Errorf("rc = %d, want ExitUsage", rc)
+	}
+}
+
+// TestRun_EndDispatchesToTheEndMode covers the dispatch arm that maps
+// --end onto verb.AuthorizeEnd and forwards --scope.
+//
+// The entity deliberately does not exist, so the verb refuses right
+// after Run hands off: what this pins is which mode Run handed off in.
+// The exit code cannot say — FinishVerb reports an uncoded refusal as
+// ExitUsage, the same code the flag gates return — so the refusal text
+// is the discriminator. A dispatch that fell through would leave
+// vOpts.Mode at its zero value, AuthorizeOpen, whose own missing-agent
+// refusal fires before the tree is consulted and never mentions the id.
+//
+// Serial: CaptureRun redirects the process's stderr, which cannot be
+// shared with a parallel test.
+func TestRun_EndDispatchesToTheEndMode(t *testing.T) {
+	root := mustNewGitRepo(t)
+	mustGit(t, root, "commit", "--allow-empty", "-m", "init")
+
+	rc, _, stderr := testutil.CaptureRun(t, func() int {
+		return authorize.Run(authorize.Options{ID: "E-0001", Root: root, End: true, Reason: "no such entity"})
+	})
+	if rc == cliutil.ExitOK {
+		t.Fatalf("rc = ExitOK; the entity does not exist, so the verb must refuse")
+	}
+	if !strings.Contains(stderr, `entity "E-0001" not found`) {
+		t.Errorf("refusal was %q; want the tree lookup that only runs once Run has dispatched a mode "+
+			"and called the verb", strings.TrimSpace(stderr))
+	}
+	if strings.Contains(stderr, "--to") {
+		t.Errorf("refusal names --to, so the dispatch fell through to the open mode: %q", strings.TrimSpace(stderr))
 	}
 }
