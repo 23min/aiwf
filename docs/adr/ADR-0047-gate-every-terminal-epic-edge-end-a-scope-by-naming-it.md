@@ -95,6 +95,11 @@ existing pause mode already refuses on the same ground when no scope qualifies.
 Naming an already-ended scope with `--scope` does converge, because there the
 target resolves and its ended state is exactly the effect asked for.
 
+A reason is required, as it already is for pause and resume. Ending is
+irreversible where those are not, so the case for recording why is stronger, not
+weaker; opening a scope takes an optional reason because a grant is undone by
+ending it, and an end is undone by nothing.
+
 The end commit carries the same `aiwf-scope-ends: <auth-sha>` the automatic end
 writes, so the scope replay is unchanged. An operator end stays distinguishable
 in history because it rides an `aiwf-verb: authorize` commit rather than a
@@ -135,10 +140,12 @@ A sovereign-act refusal names the human-run path only: offering `--force` there
 would be wrong every time it appeared, since the message is reachable only for a
 non-human actor whose force trailer `verb.Apply` refuses anyway.
 
-The automatic end's predicate changes from active-only to non-ended, which is a
-correctness fix rather than a behaviour change anyone relies on: no scope has ever
-been paused in this repo, so no tree carries the stranded state the old predicate
-produced.
+The automatic end's predicate changes from active-only to non-ended. That is a
+real change to an existing invocation, and the only one here: an entity carrying a
+paused scope reaches a terminal status and now ends that scope where before it
+stranded it. No tree in this repo is affected, because no scope has ever been
+paused here — but the claim to make is "no invocation changes behaviour except on
+an entity carrying a paused scope", not the absolute.
 
 ## Validation
 
@@ -153,12 +160,15 @@ a guard for a state nothing can produce.
 
 - ADR-0040 — prevention at the verb route, ratification at the history route; the
   source of the constraint that a widened closed set arrives with its call site
-- ADR-0038 — the two-seam placement reasoning this follows
+- ADR-0036 — same-state transitions converge to a NoOp rather than refusing; the
+  R1-before-R2 ordering the end mode's convergence rules follow
 - D-0008 — sovereign-act shape is a property over legal transitions, never below
   them
 - E-0090 — the epic this serves; M-0324 carries the gating, M-0325 the end mode
 - G-0646 — the closing edges left ungated, and the gate reaching only promote
-- G-0022 — the reserved revoke trailer slot this fills
+- G-0022 — the revoke capability this builds. Its reserved `aiwf-revoked-by:`
+  slot stays unused: the end writes `aiwf-scope-ends:`, which the replay already
+  reads
 - G-0460 — asks whether more than one live scope per entity should be legal; the
   signal named under Validation above
 - G-0111 — the scope end welded to the terminal promote, which survives this
