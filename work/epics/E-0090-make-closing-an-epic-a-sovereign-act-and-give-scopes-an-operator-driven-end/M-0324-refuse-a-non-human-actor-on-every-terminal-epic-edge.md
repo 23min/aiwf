@@ -73,6 +73,10 @@ It pins that the transitions are *named*, not that what the rows say about them 
 
 ### AC-6 — The legal-workflow spec models sovereignty, derived from the closed set
 
+`spec.GlobalRules()` carries a cross-cutting rule for the sovereignty gate, and a policy test binds its subject to `entity.SovereignActShapes()` rather than to a written-out list of edges, so widening the closed set without touching the spec turns it red. The rule declares `RejectionLayerVerbTime` with `BlockingStrict`, matching where the refusal actually happens.
+
+The rule carries no `ExpectedErrorCode`, because the refusal has none to name. That keeps it outside the spec's two code-oriented drift arms, which skip any rule with an empty code — the binding here is to the closed set, not to an impl-side code literal. `TestM0123_AC2_IllegalImpliesErrorCode` iterates `Rules()` and not `GlobalRules()`, so the empty code is schema-legal.
+
 ## Constraints
 
 - Sovereign-act shape is a property over legal transitions (D-0008); every entry added is FSM-legal and `TestSovereignActShapes_AllFSMLegal` stays green.
@@ -92,10 +96,16 @@ The two pins in `m0293_force_enforcement_surfaces_test.go` assert phrasing, so a
 
 The ratification burden falls on the `done` edge alone: every epic cancel in this repo's history was run by a human actor, so the audit's non-human predicate excludes them all.
 
+The legal-workflow spec models sovereignty for no edge today, the shipped `proposed → active` included: all four epic cells are bare `OutcomeLegal`, and the only preconditioned ones are the child-cascade pair. AC-6 closes that for the whole closed set rather than only for the edges this milestone adds. The stress catalogue's `verb-sequence` walk is unaffected either way — it runs as a human actor, so it never reaches the gate, and its oracle already treats an FSM-legal transition refused by an orthogonal rule as legitimate.
+
 ## Out of scope
 
 - Any change to the automatic scope-end at terminal promote.
 - The identity substrate. The gate keys on a self-declared actor: an invocation that omits `--actor` inherits the human identity from `git config` and passes through. That property is shared with the shipped activation gate and is not addressed here.
+
+## Deferrals
+
+- G-0649 — the sovereign-act refusal carries no finding code, so AC-6's spec rule can be declared but not bound through the drift arms that pair every other illegal rule against the impl. Giving it a code changes the shipped activation gate's exit from 2 to 1, which needs its own decision.
 
 ## Dependencies
 
