@@ -13,7 +13,7 @@ acs:
       tdd_phase: done
     - id: AC-2
       title: Cancelling an epic with a non-human actor is refused at the verb, not the audit
-      status: open
+      status: met
       tdd_phase: done
     - id: AC-3
       title: Every commit the widened audit fires on is ratified and check reports no error
