@@ -1265,6 +1265,6 @@ A human is the only actor who may put an epic into a terminal status, on every e
 | Milestone | Title | Status |
 |---|---|---|
 | M-0323 | Settle what closing an epic is | done |
-| M-0324 | Refuse a non-human actor on every terminal epic edge | draft |
+| M-0324 | Refuse a non-human actor on every terminal epic edge | in_progress |
 | M-0325 | Add an operator-driven end to aiwf authorize | draft |
 
