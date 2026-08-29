@@ -115,6 +115,36 @@ func GlobalRules() []Rule {
 			BlockingStrict:    true,
 			Sources:           RuleSource{Decision: "ADR-0010"},
 		},
+		// ADR-0047: a transition the kernel treats as a sovereign act is
+		// refused for any actor that is not human/, before anything is
+		// written. Cross-cutting rather than per-cell because the closed
+		// set spans several (Kind, FromState, Verb) coordinates and is
+		// reached by more than one verb — promote for the opening and
+		// completion edges, cancel for the two cancelled ones.
+		//
+		// The subject names the kernel's closed set rather than
+		// enumerating today's entries, so this cell cannot drift out of
+		// step with entity.SovereignActShapes() as that set widens. The
+		// membership itself lives in one place, in the entity package,
+		// and is not copied here.
+		//
+		// ExpectedErrorCode is empty because the refusal carries no
+		// finding code — it is a bare verb error, which is also why it
+		// exits as a usage error rather than as the legality refusal it
+		// is. G-0649 tracks that; until it resolves, this rule stays
+		// outside the two code-oriented drift arms, which skip any rule
+		// with an empty code.
+		{
+			Preconditions: []Predicate{
+				{Subject: "sovereign-act-shape", Op: "==", Value: "true"},
+				{Subject: "actor-role", Op: "!=", Value: "human"},
+				{Subject: "force", Op: "==", Value: "false"},
+			},
+			Outcome:        OutcomeIllegal,
+			RejectionLayer: RejectionLayerVerbTime,
+			BlockingStrict: true,
+			Sources:        RuleSource{Decision: "ADR-0047"},
+		},
 	}
 }
 
