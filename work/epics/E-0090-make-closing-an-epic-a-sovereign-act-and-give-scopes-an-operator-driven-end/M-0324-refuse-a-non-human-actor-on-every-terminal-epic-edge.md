@@ -19,6 +19,9 @@ acs:
     - id: AC-4
       title: The static audit catches a scripted aiwf cancel of a sovereign edge
       status: open
+    - id: AC-5
+      title: The audit catalogue names every transition in the sovereign closed set
+      status: open
 ---
 ## Goal
 
@@ -53,6 +56,8 @@ After the closed set widens, `aiwf check` over the tree reports no error-severit
 Stated as a property of the tree rather than as a count, because widening the set is what determines which commits qualify, and a number written now would be a forecast.
 
 ### AC-4 — The static audit catches a scripted aiwf cancel of a sovereign edge
+
+### AC-5 — The audit catalogue names every transition in the sovereign closed set
 
 ## Constraints
 
