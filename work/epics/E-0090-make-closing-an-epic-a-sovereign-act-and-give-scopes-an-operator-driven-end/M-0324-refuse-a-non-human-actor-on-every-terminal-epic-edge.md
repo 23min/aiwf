@@ -1,6 +1,6 @@
 ---
 id: M-0324
-title: Refuse a non-human actor on both edges that close an epic
+title: Refuse a non-human actor on every terminal epic edge
 status: draft
 parent: E-0090
 depends_on:
