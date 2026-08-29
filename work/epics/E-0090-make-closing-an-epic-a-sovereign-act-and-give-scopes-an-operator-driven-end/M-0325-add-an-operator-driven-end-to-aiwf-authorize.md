@@ -25,7 +25,9 @@ Give a human a way to end an authorization scope deliberately, without changing 
 
 `AuthorizeMode` is a closed three-value set — open, pause, resume. A scope's only exit today is the terminal promote or cancel of its own entity, which stamps `aiwf-scope-ends` as a side effect of the status change. So withdrawing a delegation requires closing the work, and nothing in the log distinguishes a human ending a delegation from an entity happening to reach a terminal status.
 
-G-0022 reserved an `aiwf-revoked-by:` trailer slot for a revoke verb that was never built. This milestone builds that surface, additively: today's automatic end is unchanged, so no existing invocation behaves differently.
+G-0022 reserved an `aiwf-revoked-by:` trailer slot for a revoke verb that was never built. This milestone builds that surface. No existing invocation changes behaviour: the automatic end fires exactly where it already fires, and the one change to it is the predicate deciding which scopes it covers.
+
+ADR-0047 settles the semantics. An end names its scope by authorize-commit SHA and defaults to the entity's sole candidate; ending covers scopes in `active` or `paused` state; and nothing undoes an end.
 
 ## Acceptance criteria
 
@@ -33,7 +35,7 @@ G-0022 reserved an `aiwf-revoked-by:` trailer slot for a revoke verb that was ne
 
 After the verb runs, the targeted scope's replayed state is `ended` and the entity's status is what it was before. The two assertions together are the point: an end that only worked by moving the entity to a terminal status would be the behavior this milestone exists to replace.
 
-Which scope is "targeted" is decided by M-0323's ADR, since multiple simultaneously-active scopes are legal.
+"Targeted" is what ADR-0047 defines: the scope named by `--scope <auth-sha>`, or the entity's sole non-ended scope when `--scope` is absent. More than one candidate and no `--scope` is a refusal listing them, which AC-2 covers.
 
 ### AC-2 — Re-ending converges to a NoOp; naming no resolvable scope is refused
 
@@ -47,23 +49,27 @@ The flag appears in `aiwf authorize --help`, it is tab-completable, and the `aiw
 
 ## Constraints
 
-- Additive only. The automatic scope-end at terminal promote is unchanged, and no existing invocation changes behavior.
+- The automatic scope-end fires where it already fires; only the predicate choosing which scopes it covers changes. No existing invocation behaves differently.
 - One mutation, one commit, or none — a converging re-run writes nothing and carries no `commit_sha`.
-- The mode is a peer of `--to` / `--pause` / `--resume`, which are mutually exclusive; the new one joins that exclusion rather than combining with them.
-- What undoes an end is answered in M-0323's ADR, not invented here.
+- The mode is a peer of `--to` / `--pause` / `--resume`, which are mutually exclusive; the new one joins that exclusion rather than combining with them. `--scope` modifies the end mode and is not itself a mode.
+- What undoes an end is answered in ADR-0047, not invented here.
 
 ## Design notes
 
-Scope state is a projection over git trailers, not stored state — `internal/scope` replays commits forward from the authorize commit. So ending a scope means writing a trailer that the replay reads, in the same shape the automatic end already writes, rather than mutating a record.
+Scope state is a projection over git trailers, not stored state — `internal/scope` replays commits forward from the authorize commit. So ending a scope means writing a trailer that the replay reads, in the same shape the automatic end already writes, rather than mutating a record. `ReplayScopes` therefore needs no change: it already resolves `aiwf-scope-ends: <auth-sha>` by SHA.
+
+An operator end stays distinguishable from an automatic one in history without a new trailer, because it rides an `aiwf-verb: authorize` commit rather than a `promote` or `cancel`.
+
+The paused-scope fix is one predicate in `loadActiveScopeAuthSHAsForEntity` (`internal/cli/cliutil/provenance.go`), which today collects only scopes in `active` state.
 
 The CHANGELOG entry belongs to this milestone: the surface is new and consumer-visible.
 
 ## Out of scope
 
-- Removing or re-timing the automatic end.
+- Removing or re-timing the automatic end. Only its predicate changes.
 - Same-state convergence for a duplicate `authorize --to` re-grant (G-0460). It shares the targeting question and is a separate defect.
 - Time-bound scopes, verb-set restrictions, and the rest of G-0022's extension list.
 
 ## Dependencies
 
-- M-0323 — the ADR settles which scope the mode targets and what undoes an end.
+- M-0323 — produced ADR-0047, which settles which scope the mode targets, what "ending" covers, and what undoes an end.
