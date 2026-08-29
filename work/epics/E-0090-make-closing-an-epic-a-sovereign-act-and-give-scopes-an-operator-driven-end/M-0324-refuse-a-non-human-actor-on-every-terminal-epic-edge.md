@@ -22,7 +22,7 @@ acs:
     - id: AC-4
       title: The static audit catches a scripted aiwf cancel of a sovereign edge
       status: open
-      tdd_phase: refactor
+      tdd_phase: done
     - id: AC-5
       title: The audit catalogue names every transition in the sovereign closed set
       status: open
