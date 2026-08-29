@@ -68,9 +68,11 @@ The evidence is the shipped `fsm-history-consistent/forced-untrailered` rule, wh
 
 ### AC-4 — The static audit catches a scripted aiwf cancel of a sovereign edge
 
-The audit keys its patterns on `(prefix, To)`, so it matches only the `aiwf promote <id> <to>` spelling. For an entry a human would reach with `aiwf cancel`, it emits a pattern for that spelling too, and fires on a line carrying it without `--force`. The qualifying entries are those where `entity.CancelTarget(s.Kind, s.From) == s.To`, so the pattern set stays derived from the closed set rather than enumerating spellings by hand.
+The audit keys its patterns on `(prefix, To)`, so it matches only the `aiwf promote <id> <to>` spelling. It emits a pattern for the `aiwf cancel <id>` spelling too — one per distinct id prefix in the closed set — and fires on a line carrying it without `--force`.
 
-Fails if a widened set adds a cancel-reachable entry whose spelling the audit cannot see.
+One regex per kind is all the cancel spelling can express, because it names no status and so cannot discriminate on the from-state the way the promote form does. That makes it wider than the closed set for any kind whose sovereign edges are not all cancel-reachable: a scripted cancel of such a kind would be reported though the kernel permits it. No kind is in that position, and the audit's subject is automation-shaped source, where the finding names a file and a line and is cheap to answer.
+
+Fails if a widened set adds a prefix whose cancel spelling the audit cannot see.
 
 ### AC-5 — The audit catalogue names every transition in the sovereign closed set
 
@@ -84,7 +86,7 @@ It pins that the transitions are *named*, not that what the rows say about them 
 
 The rule's subject names the kernel's closed set — `sovereign-act-shape` — rather than enumerating the entries it holds today. Nothing therefore needs re-syncing as the set widens, and there is no second copy of the set to drift. The alternative, listing the four transitions and deriving the expected list in a test, would have bought a drift check by first creating the drift it detects; single-source-of-truth says make the drift impossible instead.
 
-That choice is what the AC can honestly claim. A symbolic rule cannot go stale, so no test asserts that it tracks a widening — there is nothing to track. What is asserted is that exactly one such rule exists, that it is `OutcomeIllegal` at `RejectionLayerVerbTime` with `BlockingStrict` (matching where the refusal happens, which ADR-0040 requires of a prevention rule), that its other two preconditions scope it to a non-human unforced actor, and that its authorizing record resolves through the loader at status `accepted`. The residual risk is stated rather than hidden: if someone later rewrites the predicate into something meaningless, only review catches it.
+That choice is what the AC can honestly claim. A symbolic rule cannot go stale, so no test asserts that it tracks a widening — there is nothing to track. What is asserted is that exactly one such rule exists, that it is `OutcomeIllegal` at `RejectionLayerVerbTime` with `BlockingStrict` (matching where the refusal happens, which ADR-0040 requires of a prevention rule), that its preconditions match subject, operator and value exactly — the value axis carries the meaning, since `force == "true"` inverts the rule and an actor-role compared against anything but `human` refuses the wrong population — and that its authorizing record resolves through the loader at status `accepted`. The residual risk is stated rather than hidden: the subject is a string the spec and the kernel each spell independently, so a rule renamed on one side and not the other is caught by review rather than by a test.
 
 The rule carries no `ExpectedErrorCode`, because the refusal has none to name. That keeps it outside the spec's two code-oriented drift arms, which skip any rule with an empty code. `TestM0123_AC2_IllegalImpliesErrorCode` iterates `Rules()` and not `GlobalRules()`, so the empty code is schema-legal; G-0649 carries the underlying question.
 
@@ -109,7 +111,7 @@ The two pins in `m0293_force_enforcement_surfaces_test.go` assert phrasing, so a
 
 The ratification burden falls on the `done` edge alone: every epic cancel in this repo's history was run by a human actor, so the audit's non-human predicate excludes them all.
 
-The legal-workflow spec models sovereignty for no edge today, the shipped `proposed → active` included: all four epic cells are bare `OutcomeLegal`, and the only preconditioned ones are the child-cascade pair. AC-6 closes that for the whole closed set rather than only for the edges this milestone adds. The stress catalogue's `verb-sequence` walk is unaffected either way — it runs as a human actor, so it never reaches the gate, and its oracle already treats an FSM-legal transition refused by an orthogonal rule as legitimate.
+The stress catalogue's `verb-sequence` walk is unaffected by the widening: it runs as a human actor, so it never reaches the gate, and its oracle already treats an FSM-legal transition refused by an orthogonal rule as legitimate. AC-6's own account of what the spec modelled beforehand is in its AC body.
 
 ## Out of scope
 
@@ -122,7 +124,7 @@ The legal-workflow spec models sovereignty for no edge today, the shipped `propo
 
 One closed-set entry, refusal proved at the binary seam with HEAD unmoved,
 and a human control so the gate is scoped to the actor rather than the edge
-· commit 15f6360e6 · tests 3/3. A mutation probe found the actor predicate's
+· commit 15f6360e6 · A mutation probe found the actor predicate's
 prefix boundary unconstrained — `HasPrefix(actor, "human/")` replaced by
 `Contains(actor, "human")` left the whole suite green — and the pin that
 closes it was watched red under the mutant and green on correct code.
@@ -155,18 +157,24 @@ Observation, re-runnable by a later reader:
 
 ### AC-4 — The static audit sees the cancel spelling
 
-The regex builder emits a cancel-form pattern per cancel-reachable prefix,
-reachability derived from `entity.CancelTarget` · commit 3970cc754 · tests
-4/4. The builder's core was extracted so the reachability rule could be
-driven with fabricated shape lists: against the live closed set, every
-entry is an epic and the cancel form is deduplicated per prefix, so
-deleting the rule entirely produced byte-identical output. It was real
-logic no input constrained.
+The regex builder emits a cancel-form pattern per distinct id prefix in
+the closed set · commit 3970cc754, narrowed at review in d48a4f586 ·
+covered by the count-and-spelling assertion in
+`TestSovereignActPromoteRegexes_TracksKernelClosedSet`.
+
+It first restricted emission to cancel-reachable entries, deriving
+reachability from `entity.CancelTarget`, with the builder's core extracted
+so that rule could be driven with fabricated shape lists. The compression
+lens at wrap costed it: against any closed set whose entries share one
+kind, the rule produces byte-identical output, so it bought a partial
+guarantee — over-match is still accepted for a kind with mixed edges — for
+roughly seventy-five lines. Cut, with the residual over-match documented
+where the emission happens.
 
 ### AC-5 — The catalogue names every sovereign transition
 
 Six rows brought onto the widened set, checked by a test that derives the
-expected transitions from the closed set · commit ec874f5f1 · tests 1/1,
+expected transitions from the closed set · commit ec874f5f1 ·
 watched failing on all four transitions beforehand and on a row with one
 transition removed. Two defects predating this milestone were corrected in
 passing: R-AUDIT-0050 cited a function that does not exist, and
@@ -176,7 +184,7 @@ with no flag.
 ### AC-6 — The legal-workflow spec models sovereignty
 
 One cross-cutting `GlobalRules` entry, symbolic in the closed set rather
-than enumerating it · commit e5ccbe809 · tests 1/1. A mutation dropping
+than enumerating it · commit e5ccbe809 · A mutation dropping
 the `actor-role` precondition and downgrading the rejection layer to
 check-time turns it red on both counts.
 
@@ -207,6 +215,112 @@ bound for a push.
   duplicate costs 100 seconds, scoping the walk to the closed set's kinds
   recovers none of it, and the suite's wall time would go from roughly 40
   seconds to 140 on every push.
+
+## Reviewer notes
+
+**Recurring obligation.** Two standing rules land here, and both bind future
+change rather than this one. `m0324_audit_catalogue_test.go` requires every
+entry in the sovereign closed set to be named in the audit catalogue's
+sovereign-acts section; its owner is whoever widens that set, nothing
+retires it, and it carries an unstated second obligation — the section
+heading string is now load-bearing, so renaming that section turns it red.
+`m0324_spec_sovereignty_test.go` requires exactly one `GlobalRules` entry
+carrying the sovereignty precondition, at a fixed outcome, layer and
+strictness, citing an accepted record; its owner is whoever edits that
+accessor, and **G-0649 retires it** — giving the refusal a finding code lets
+the rule move into `Rules()` and be bound by the drift arms that already
+cover every other illegal cell. The regex-builder assertions are behavior
+pins rather than mandates: they cost nothing per future entry, because the
+count is re-derived from the closed set.
+
+**Deletions.** Two genuine retirements. `TestPromote_EpicActive_OtherTransitionsUnaffected`
+pinned that the rule fired on `proposed → active` and no other epic
+transition; ADR-0047 leaves that claim with no subject, since all four legal
+epic transitions are now sovereign. Its three subtests and three rows of the
+`IsSovereignActShape` false-cases table went with it. Kind-scoping survives
+separately and is still a live claim. A third retirement came from review:
+the cancel-reachability rule and the extraction built to constrain it.
+
+**Same-outcome clusters.** One cluster of five — "a non-human actor is
+refused at a sovereign epic edge" — across the verb layer and the seam. An
+independent reviewer established distinctness by deleting each closed-set
+entry singly and recording which tests died; no two members share a kill
+set. The one overlap worth naming is that the verb-layer cancel test and the
+seam's `from proposed` case both die on the guard-ordering mutation, leaving
+the unit test's marginal value as its `res == nil` assertion and its
+package's coverage. Both are real but small.
+
+**Three lenses ran, not two.** Code-quality was sliced in two by concern.
+Design-quality was skipped deliberately and the reason is worth recording,
+since a later reader will notice its absence: `wf-rethink` triggers on a new
+module boundary, core abstraction, or data model, and this milestone widened
+an existing closed set, added a second consumer of an existing gate, and
+added one row to an existing spec table. The third lens was a trial —
+whether the same result could be had with materially less logic. It found a
+helper duplicating one in the same package, two tests contributing zero
+incremental coverage, and the reachability rule above; it also declined two
+available cuts, citing this repo's seam-and-layer rule and its
+comment-content mandate. Acting on it removed about a hundred lines net. A
+gap filed on trunk proposes making that question a standing fourth item in
+the wrap review's shape-measurement step.
+
+**What the reviews found, and the pattern in it.** Both correctness lenses
+returned request-changes. Between them the blocking findings were: an AC test
+that compared predicate operators but never their values, so the spec rule
+passed while inverted; two behaviours asserted in comments and pinned by
+nothing; a vacuous subtest; a catalogue row understating the promote verb by
+two edges; and a decision resting on a measurement that was wrong.
+
+Every one of those is a claim that could only be read rather than run. The
+claims a command could check — guard ordering, the ratification count, which
+transitions are legal, the exit code, whether a human still succeeds on all
+four edges — were right the first time and survived independent
+re-derivation. That is the same asymmetry M-0323 recorded, holding a second
+time, and it is now the strongest argument this epic has for keeping the
+review independent rather than making it another pass by the author.
+
+**The sharpest instance.** Two comments claimed the allow-rule refuses an
+unauthorized non-human actor before the sovereign gate is consulted, and used
+that to justify a fixture's design and a test's layer. Measured false: the
+unforced gate returns before a plan exists, so it is reached with any actor
+and no scope at all. The claim was true of the neighbouring `--force`
+fixture, whose own doc comment says so correctly, and was carried across to a
+case where force is absent and the reasoning does not hold.
+
+**Declined, with the evidence.** `TestFSMHistoryConsistent_PerfBudget`
+asserts a ten-second wall-clock budget and runs on every push. It was
+observed failing at 10.29s during this milestone and passing at 4.82s alone
+on the same machine minutes later, no code change between — it measures
+runner load, which is the oracle shape the stress-lane guidance refuses for
+scenarios. Not filed: one observation, and the fix is a real decision
+(benchmark, subprocess-count assertion, or a different lane) rather than a
+correction. Recorded here so the next reader meets a judgment rather than a
+blank. This milestone doubled that fixture's findings from 50 to 100 by
+widening the closed set; finding construction is small next to the walk and
+the isolated run keeps roughly twofold headroom, so that is context, not
+cause.
+
+**Not fixed, deliberately.** `aiwfx-wrap-epic` does not mention that
+`aiwf promote <epic> done` is now sovereign, while its sibling
+`aiwfx-start-epic` documents the analogous activation in three places. The
+ritual is unaffected in practice — it runs with no `--actor`, so identity
+resolves to the operator's own — but an agent invoked under a delegated
+scope can no longer close an epic and no shipped surface says so. Left for
+the epic's own wrap, where the ritual surfaces are already in scope.
+
+**A shipped error message changed.** The sovereign refusal read
+`aiwf promote epic done: …`; it now names the verb the operator ran and both
+states. Calling the gate from `cancel` made the old text name a command the
+reader had not run, and with several edges sovereign the destination alone no
+longer identifies which was refused. The exit code is unchanged, and no
+consumer read the old text.
+
+**Where a manual audit failed and a gate caught it.** The branch-coverage
+walk is agent-performed, and mine cleared a refusal branch that no test
+reached: the integration test covering it drives the binary as a subprocess,
+so it contributes nothing to `internal/verb`'s coverage profile. The
+diff-scoped gate named the line. Worth knowing that the seam-and-layer rule
+has a coverage consequence, not only a correctness one.
 
 ## Deferrals
 
