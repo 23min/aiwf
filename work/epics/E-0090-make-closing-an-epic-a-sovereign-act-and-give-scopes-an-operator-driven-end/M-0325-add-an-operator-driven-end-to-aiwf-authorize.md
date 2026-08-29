@@ -26,7 +26,7 @@ Give a human a way to end an authorization scope deliberately, without changing 
 
 ## Context
 
-`AuthorizeMode` is a closed three-value set — open, pause, resume. A scope's only exit today is the terminal promote or cancel of its own entity, which stamps `aiwf-scope-ends` as a side effect of the status change. So withdrawing a delegation requires closing the work, and nothing in the log distinguishes a human ending a delegation from an entity happening to reach a terminal status.
+`AuthorizeMode` is a closed three-value set — open, pause, resume. A scope's only exit today is the terminal promote or cancel of its own entity, which stamps `aiwf-scope-ends` as a side effect of the status change. So withdrawing a delegation requires closing the work: there is no way to record that a human ended a delegation while the entity it was opened on keeps living.
 
 G-0022 reserved an `aiwf-revoked-by:` trailer slot for a revoke verb that was never built. This milestone builds that surface. No existing invocation changes behaviour: the automatic end fires exactly where it already fires, and the one change to it is the predicate deciding which scopes it covers.
 
@@ -51,6 +51,15 @@ That ordering is the kernel's R1-before-R2: an argument must name something real
 The flag appears in `aiwf authorize --help`, it is tab-completable, and the `aiwf-authorize` skill documents it. The completion half is already policed by the drift test that fails CI on a flag added without completion wiring.
 
 ### AC-4 — The automatic end covers paused scopes, not only active ones
+
+An entity carrying one paused scope reaches a terminal status; afterwards that
+scope's replayed state is `ended`. Today it stays `paused` forever, because
+`loadActiveScopeAuthSHAsForEntity` collects only scopes in `active` state and
+nothing else ever emits their `aiwf-scope-ends:` trailer.
+
+The assertion is over the replayed state rather than the emitted trailer, so it
+holds whichever way the predicate is written. `paused → ended` is already legal
+in the scope FSM, so this closes an exit the FSM permits and no code fires.
 
 ## Constraints
 
