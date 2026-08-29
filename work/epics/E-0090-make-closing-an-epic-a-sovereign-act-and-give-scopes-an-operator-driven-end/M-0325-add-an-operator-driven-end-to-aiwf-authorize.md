@@ -18,7 +18,7 @@ acs:
     - id: AC-3
       title: The end mode is reachable from --help, tab-completion, and the authorize skill
       status: open
-      tdd_phase: red
+      tdd_phase: green
     - id: AC-4
       title: The automatic end covers paused scopes, not only active ones
       status: open
