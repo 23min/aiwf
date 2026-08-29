@@ -10,7 +10,7 @@ acs:
       status: met
     - id: AC-2
       title: E-0090's Open questions table routes every row to that ADR
-      status: open
+      status: met
 ---
 ## Goal
 
