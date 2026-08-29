@@ -23,16 +23,18 @@ type SovereignActShape struct {
 // as sovereign-act-shape. The list is consulted by:
 //
 //   - `requireHumanActorForSovereignAct` (internal/verb/
-//     promote_sovereign_act.go) — runtime verb gate, refuses non-
-//     human actors at promote time.
+//     promote_sovereign_act.go) — runtime verb gate, refuses a non-
+//     human actor before anything is written. Called from both
+//     `Promote` and `Cancel`, since a transition is named by the
+//     state it reaches rather than by the verb that reaches it.
 //   - `forcedUntraileredFindings` (internal/check/
 //     fsm_history_consistent.go, M-0130/AC-3) — historical audit,
 //     emits the `fsm-history-consistent/forced-untrailered` subcode
 //     when a sovereign-act-shape commit lacks the `aiwf-force`
 //     trailer.
-//   - `auditUnforcedEpicActivate` (internal/policies/
+//   - `auditUnforcedSovereignActPromote` (internal/policies/
 //     aiwf_promote_epic_active_audit.go) — static CI/script audit,
-//     builds one regex per entry via `entity.SovereignActShapes()` so
+//     derives its patterns from `entity.SovereignActShapes()` so
 //     adding a new entry here automatically widens the audit's reach.
 //
 // D-0008 promises a closed-set invariant: every entry here must be a

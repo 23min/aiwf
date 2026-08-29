@@ -11,11 +11,13 @@ import (
 // E-0001 already promoted to active by a human, on trunk, before the
 // epic branch is cut.
 //
-// The scope that fixture opens is load-bearing here for the same reason
-// it is there: without an active scope authorizing ai/claude, the
-// allow-rule refuses a non-human actor with provenance-no-active-scope
-// before the sovereign gate is ever consulted, and a test built without
-// it would pass while proving nothing about the gate.
+// The scope the shared fixture opens is incidental to the cases below,
+// not load-bearing: the unforced gate returns before a plan exists, so
+// it is reached with any actor and no scope at all. The allow-rule that
+// refuses an unauthorized non-human actor runs at the apply seam, past
+// this refusal. The scope is load-bearing for sovereignForceRepo's own
+// `--force` cases precisely because force skips the gate and leaves the
+// allow-rule as what answers.
 func activeEpicUnderScopeRepo(t *testing.T) (root, binDir string) {
 	t.Helper()
 	return sovereignScopedRepo(t, [][]string{{"promote", "E-0001", "active"}})

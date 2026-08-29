@@ -3,9 +3,11 @@ package entity
 import "testing"
 
 // TestIsSovereignActShape_TrueCases enumerates every entry the kernel
-// currently treats as sovereign-act-shape — FSM-legal transitions that
-// require an explicit sovereignty acknowledgment (human/ actor by
-// default; --force --reason for non-human actors).
+// currently treats as sovereign-act-shape — FSM-legal transitions a
+// `human/` actor reaches with no flag and a non-human actor cannot
+// reach at all. `--force` is not the non-human route: it relaxes this
+// gate rather than the FSM, and the apply seam then refuses the force
+// trailer it produces from a non-human actor.
 //
 // The set holds epic proposed → active, authorized by M-0095
 // (motivated by G-0063), and the edges into a terminal epic status
@@ -38,9 +40,11 @@ func TestIsSovereignActShape_TrueCases(t *testing.T) {
 // tuple with unknown kind or unknown status.
 //
 // Legal-but-not-sovereign-act-shape cases (the "negative space" the
-// AC-3 predicate must NOT fire on) get explicit coverage because
-// they're the failure mode that matters most: a too-broad predicate
-// would mis-fire on routine epic transitions.
+// predicate must NOT fire on) get explicit coverage because they are
+// the failure mode that matters most: a too-broad predicate would
+// refuse routine transitions the kernel permits. Every such case is
+// now another kind's — the epic FSM's four legal transitions are all
+// sovereign, so epics contribute no negative space.
 func TestIsSovereignActShape_FalseCases(t *testing.T) {
 	t.Parallel()
 	cases := []struct {

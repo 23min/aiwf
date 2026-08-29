@@ -41,18 +41,10 @@ func Rules() []Rule {
 // per-rule exclusion. Only the code-oriented AC-5 drift arms union
 // Rules() and GlobalRules().
 //
-// Today the global rules are:
-//   - scope-reach (D-0006): an authorized agent's verb is refused when
-//     the target is out of scope.
-//   - branch-context-required (E-0030 / M-0103 / ADR-0010): aiwf
-//     authorize refuses opening a scope on an ai/* agent when no ritual
-//     branch context is in play — neither --branch was supplied nor is
-//     the current checkout a recognized ritual shape. The precondition
-//     names "target-agent-role" (the role part of --to <role>/<id>) and
-//     "ritual-branch-context-present" (true when either signal is set).
-//   - branch-not-found (E-0030 / M-0103): aiwf authorize refuses when
-//     --branch <name> was supplied but no local branch by that name
-//     resolves under refs/heads/.
+// Each entry carries its own comment naming what it refuses and the
+// record that authorizes it; the cells are the enumeration, so no
+// index of them is kept here to drift out of step with the slice
+// below.
 //
 // The two M-0103 entries are scaffold-quality: they pin the codes into
 // the bidirectional drift net so M-0123/AC-5's legality-codes-referenced

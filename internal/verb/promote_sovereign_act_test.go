@@ -41,6 +41,13 @@ func TestPromote_EpicActive_RefusesNonHumanActor(t *testing.T) {
 	if !strings.Contains(msg, "sovereign") {
 		t.Errorf("error should name the act as sovereign so the reader understands why; got %v", err)
 	}
+	// The gate takes the verb name as an argument, so each call site
+	// supplies its own. The cancel site is pinned in cancel_guards_test.go;
+	// this is the promote site's half. Nothing derives one from the other,
+	// so a check at one says nothing about the other.
+	if !strings.Contains(msg, "aiwf promote") {
+		t.Errorf("error must name the verb the operator ran; got %v", err)
+	}
 }
 
 // TestPromote_EpicActive_HumanActorSucceeds pins M-0095/AC-2: the
@@ -59,25 +66,19 @@ func TestPromote_EpicActive_HumanActorSucceeds(t *testing.T) {
 	}
 }
 
-// The transition-scoping counterpart to the kind-scoping test below is
-// deliberately absent. It pinned M-0095/AC-3 — that the rule fired on
-// `proposed → active` and on no other epic transition — and ADR-0047
-// leaves that claim with no subject: every edge into a terminal epic
-// status is now sovereign, so all four legal epic transitions are, and
-// the negative space it guarded is empty. Kind-scoping is still real
-// and is pinned below.
+// Transition-scoping needs no epic test: all four legal epic
+// transitions are sovereign, so the negative space is empty. Only
+// kind-scoping remains a live claim, and it is pinned below.
 
 // TestPromote_SovereignEdge_HumanIsAPrefixNotASubstring pins the
 // boundary of the actor predicate: human-ness is the `human/` prefix,
-// not the presence of the word anywhere in the actor string.
+// not the presence of the word anywhere in the actor string. Without
+// it, a predicate testing for containment accepts `ai/human-helper` at
+// every sovereign edge.
 //
-// The case exists because a mutation probe found the boundary
-// unconstrained — replacing the prefix test with a substring
-// containment left the whole suite green, so `ai/human-helper` would
-// have reached every sovereign edge. It has to run here rather than
-// through the binary: an actor with no authorizing scope is refused by
-// the allow-rule before the gate is consulted, so the seam-level test
-// cannot reach the predicate with an arbitrary actor.
+// The verb layer is the cheaper place to state it, not the only one —
+// the gate returns before a plan exists, so the binary reaches it with
+// an arbitrary actor too.
 func TestPromote_SovereignEdge_HumanIsAPrefixNotASubstring(t *testing.T) {
 	t.Parallel()
 	r := newRunner(t)

@@ -1,8 +1,6 @@
 package policies
 
 import (
-	"os"
-	"path/filepath"
 	"strings"
 	"testing"
 
@@ -57,14 +55,12 @@ func TestM0324_AC5_CatalogueNamesEverySovereignTransition(t *testing.T) {
 // section, failing the test when the heading has moved rather than
 // silently searching an empty string — a locator that resolves to
 // nothing would make every assertion above pass for the wrong reason.
+//
+// Reads through loadAuditCatalog, this package's existing accessor for
+// the same file, rather than re-deriving the path.
 func sovereignActsSectionText(t *testing.T) string {
 	t.Helper()
-	root := repoRoot(t)
-	data, err := os.ReadFile(filepath.Join(root, "docs", "design", "legal-workflows-audit.md"))
-	if err != nil {
-		t.Fatalf("reading the audit catalogue: %v", err)
-	}
-	section := extractMarkdownSection(string(data), 3, sovereignActsSection)
+	section := extractMarkdownSection(loadAuditCatalog(t), 3, sovereignActsSection)
 	if strings.TrimSpace(section) == "" {
 		t.Fatalf("the audit catalogue has no `### %s` section; the locator is stale", sovereignActsSection)
 	}

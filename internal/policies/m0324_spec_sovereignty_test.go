@@ -94,15 +94,30 @@ func TestM0324_AC6_SpecModelsTheSovereigntyGate(t *testing.T) {
 	// that is actually refused: a non-human actor, unforced. Without
 	// them the rule would read as refusing everyone, including the human
 	// it exists to require.
-	want := map[string]string{"actor-role": "!=", "force": "=="}
-	got := map[string]string{}
-	for _, p := range r.Preconditions {
-		got[p.Subject] = p.Op
+	//
+	// Op and Value are compared together. The value axis carries the
+	// meaning here — `force == "true"` inverts the rule into "refuse
+	// only when forced", and an actor-role compared against anything but
+	// "human" refuses the wrong population — so an assertion that read
+	// only the op would pass on a rule saying the opposite of what this
+	// test claims to check.
+	want := map[string]spec.Predicate{
+		"sovereign-act-shape": {Subject: "sovereign-act-shape", Op: "==", Value: "true"},
+		"actor-role":          {Subject: "actor-role", Op: "!=", Value: "human"},
+		"force":               {Subject: "force", Op: "==", Value: "false"},
 	}
-	for subject, op := range want {
-		if got[subject] != op {
-			t.Errorf("precondition %q has op %q, want %q — present preconditions: %+v",
-				subject, got[subject], op, r.Preconditions)
+	got := map[string]spec.Predicate{}
+	for _, p := range r.Preconditions {
+		got[p.Subject] = p
+	}
+	if len(r.Preconditions) != len(want) {
+		t.Errorf("rule carries %d preconditions, want %d — an extra one narrows the rule to a "+
+			"case the kernel does not actually restrict itself to: %+v",
+			len(r.Preconditions), len(want), r.Preconditions)
+	}
+	for subject, w := range want {
+		if got[subject] != w {
+			t.Errorf("precondition %q is %+v, want %+v", subject, got[subject], w)
 		}
 	}
 }

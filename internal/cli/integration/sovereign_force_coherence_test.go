@@ -145,6 +145,26 @@ func TestSovereignForce_NonHumanActor_RefusedBeforeCommit(t *testing.T) {
 			wantExit:    1,
 		},
 		{
+			// The epic, not the milestone: this case exists for the
+			// sovereign closed set, which holds epic edges only. It
+			// covers cancel's `if !force` skip — without it, the gate
+			// would run unconditionally and refuse the forced human
+			// path, and nothing else notices.
+			name: "cancel a sovereign epic edge",
+			site: "internal/verb/cancel.go sovereign-act gate, --force skip",
+			setup: [][]string{
+				// The cascade guard refuses while M-0001 is non-terminal,
+				// and it sits behind the gate under test.
+				{"cancel", "M-0001", "--reason", "clearing the cascade guard"},
+			},
+			args: []string{
+				"cancel", "E-0001", "--force", "--reason", "escalation",
+				"--actor", "ai/claude", "--principal", "human/peter",
+			},
+			wantRefusal: "only humans wield --force",
+			wantExit:    1,
+		},
+		{
 			// A phase transition, not a status one: promoting an AC to met
 			// under tdd: required is refused by acs-tdd-audit as a
 			// projection finding, again short of the site under test.
