@@ -19,17 +19,19 @@ acs:
 ---
 ## Goal
 
-Refuse a non-human actor on both edges that close an epic, at the verb, before anything is written — and ratify the one commit already in history that the widened audit will fire on.
+Refuse a non-human actor on every edge into a terminal epic status, at the verb, before anything is written — and ratify the historical acts the widened audit reaches.
 
 ## Closes
 
-- G-0646 — both closing edges gated, with the `cancel` call site that makes the second entry enforceable.
+- G-0646 — every terminal epic edge gated, with the `cancel` call site that makes the two cancel entries enforceable at the verb.
 
 ## Context
 
 `sovereignActShapes` holds one entry, epic `proposed → active`. Measured in a fixture, `aiwf promote <epic> done --actor ai/claude --principal human/fixture` exits 0, flips the status, writes no force trailer, and leaves a tree `aiwf check` calls clean. Commit `c030cb926` is that act, already in this repo's history.
 
-Adding `active → done` to the closed set is a one-line change, because `promote` already calls the gate. `active → cancelled` is not: `requireHumanActorForSovereignAct` has a single call site, so a set entry alone would leave `cancel` silent while the transition-shaped history audit fired on the landed commit — refusal after the act, which is the record ADR-0040 exists to prevent.
+ADR-0047 rules every edge into a terminal epic status sovereign, so three entries join the set: `active → done`, `active → cancelled`, and `proposed → cancelled`.
+
+Adding `active → done` is a one-line change, because `promote` already calls the gate. The two cancel edges are not: `requireHumanActorForSovereignAct` has a single call site, so set entries alone would leave `cancel` silent while the history audit fired on the landed commit — refusal after the act, which is the record ADR-0040 exists to prevent. The audit sees a cancel because it compares an entity's `status:` field across a commit and its parent rather than reading the verb's trailers, and a cancel commit carries no `aiwf-to:` at all.
 
 ## Acceptance criteria
 
@@ -39,7 +41,7 @@ Adding `active → done` to the closed set is a one-line change, because `promot
 
 ### AC-2 — Cancelling an epic with a non-human actor is refused at the verb, not the audit
 
-`aiwf cancel <epic>` with a non-human actor is refused before anything is written, by the same predicate. The distinguishing assertion is *where*: the refusal comes from the verb, with `HEAD` unmoved — not from a later `aiwf check` over a commit that already landed.
+`aiwf cancel <epic>` with a non-human actor is refused before anything is written, by the same predicate, from both `active` and `proposed`. The distinguishing assertion is *where*: the refusal comes from the verb, with `HEAD` unmoved — not from a later `aiwf check` over a commit that already landed.
 
 ### AC-3 — Every commit the widened audit fires on is ratified and check reports no error
 
@@ -60,6 +62,8 @@ The refusal message names only the human-run path. Offering `--force` there woul
 
 Two other consumers read the same closed set and widen automatically — the history audit in `internal/check/fsm_history_consistent.go`, and the static audit in `internal/policies/` that builds one regex per entry. Neither needs an edit.
 
+The ratification burden falls on the `done` edge alone: every epic cancel in this repo's history was run by a human actor, so the audit's non-human predicate excludes them all.
+
 ## Out of scope
 
 - Any change to the automatic scope-end at terminal promote.
@@ -67,4 +71,4 @@ Two other consumers read the same closed set and widen automatically — the his
 
 ## Dependencies
 
-- M-0323 — the ADR decides whether the `cancel` edge is in scope at all, which AC-2 assumes.
+- M-0323 — produced ADR-0047, which rules the cancel edges sovereign and requires the call site to land with them.
