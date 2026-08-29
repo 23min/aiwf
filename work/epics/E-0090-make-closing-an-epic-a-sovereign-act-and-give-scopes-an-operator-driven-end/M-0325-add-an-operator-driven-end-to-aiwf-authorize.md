@@ -21,7 +21,7 @@ acs:
       tdd_phase: done
     - id: AC-4
       title: The automatic end covers paused scopes, not only active ones
-      status: open
+      status: met
       tdd_phase: done
 ---
 ## Goal
