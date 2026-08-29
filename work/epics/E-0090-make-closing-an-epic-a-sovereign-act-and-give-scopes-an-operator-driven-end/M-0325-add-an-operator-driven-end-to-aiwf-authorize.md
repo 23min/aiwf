@@ -22,7 +22,7 @@ acs:
     - id: AC-4
       title: The automatic end covers paused scopes, not only active ones
       status: open
-      tdd_phase: red
+      tdd_phase: green
 ---
 ## Goal
 
