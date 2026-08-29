@@ -60,7 +60,11 @@ Stated as a property of the tree rather than as a count, because widening the se
 
 The refusal message names only the human-run path. Offering `--force` there would be wrong every time it appeared: the message is reachable only for a non-human actor, and `verb.Apply` refuses that actor's force trailer anyway.
 
-Two other consumers read the same closed set and widen automatically — the history audit in `internal/check/fsm_history_consistent.go`, and the static audit in `internal/policies/` that builds one regex per entry. Neither needs an edit.
+Two other consumers read the same closed set and widen automatically — the history audit in `internal/check/fsm_history_consistent.go`, and the static audit in `internal/policies/aiwf_promote_epic_active_audit.go` that builds one regex per entry. Neither needs an edit to pick up the new entries.
+
+The static audit does need a decision, though, because widening the set exposes an asymmetry in what it scans. Its pattern is `aiwf\s+promote\s+<prefix>\S+\s+<to>`, so after the widening it catches `aiwf promote E-NNNN cancelled` in automation-shaped source and misses `aiwf cancel E-NNNN` — the natural spelling, and the very route this milestone adds a call site for. Either extend the pattern to the cancel form or record the gap in this milestone's Out of scope; silently inheriting it is the one option to refuse.
+
+Three rows of `docs/design/legal-workflows-audit.md` scope sovereignty to epic activation and go stale the moment three entries join the set: R-AUDIT-0050 (line 139) describes the static audit as scanning for `aiwf promote E-<id> active`; R-RULE-001 (line 543) notes `proposed → active` is the sovereign-act edge; R-RULE-078 (line 640) is titled "Epic activate". The existing pins in `m0293_force_enforcement_surfaces_test.go` assert those rows' phrasing rather than their coverage, so nothing turns red when they stop being true.
 
 The ratification burden falls on the `done` edge alone: every epic cancel in this repo's history was run by a human actor, so the audit's non-human predicate excludes them all.
 
