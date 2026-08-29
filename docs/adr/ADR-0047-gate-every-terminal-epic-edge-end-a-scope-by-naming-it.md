@@ -1,7 +1,7 @@
 ---
 id: ADR-0047
 title: Gate every terminal epic edge; end a scope by naming it
-status: proposed
+status: accepted
 ---
 ## Context
 
