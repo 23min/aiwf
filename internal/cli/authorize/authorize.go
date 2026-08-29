@@ -96,7 +96,10 @@ func NewCmd(correlationID string) *cobra.Command {
 	cmd.Flags().StringVar(&resume, "resume", "", "resume the most-recently-paused scope on <id>; the argument is the reason")
 	cmd.Flags().StringVar(&reason, "reason", "", "rationale text for --to (optional) / --force (required) / --end (required); ignored by --pause and --resume (their argument is the reason)")
 	cmd.Flags().BoolVar(&end, "end", false, "end a non-ended scope on <id> without changing the entity's status (ADR-0047); requires --reason, and --scope when the entity carries more than one candidate")
-	cmd.Flags().StringVar(&scopeSHA, "scope", "", "which scope --end targets, as the authorize-commit SHA or any unambiguous prefix (`aiwf show <id>` prints one per scope); omit to target the entity's sole non-ended scope")
+	// No backticks in this usage string: cobra reads a backticked span as
+	// the flag's value-placeholder name, so a quoted command here renders
+	// as "--scope aiwf show <id>" in place of "--scope string".
+	cmd.Flags().StringVar(&scopeSHA, "scope", "", "which scope --end targets, as the authorize-commit SHA or any unambiguous prefix (aiwf show <id> prints one per scope); omit to target the entity's sole non-ended scope")
 	cmd.Flags().StringVar(&branch, "branch", "", "ritual branch the scope is bound to (ADR-0010); when set, the authorize commit carries an aiwf-branch: trailer with this value. From `main` or a ritual-shape current branch (epic/milestone/patch), naming a ritual-shape future branch is accepted — the step-7 pattern of aiwfx-start-epic (M-0104/AC-4) or step-4 of aiwfx-start-milestone (M-0105/AC-6). The named branch is cut by a later step of the ritual.")
 	cmd.Flags().BoolVar(&force, "force", false, "open a fresh scope on a terminal scope-entity (requires --reason); sovereign, so the actor must be human/... — a force trailer from a non-human actor is refused before anything is written")
 	out = cliutil.AddFormatFlags(cmd)
@@ -130,17 +133,17 @@ func completeScopeFlag(root *string) func(*cobra.Command, []string, string) ([]s
 		if len(args) == 0 {
 			return nil, cobra.ShellCompDirectiveNoFileComp
 		}
-		dir := strings.TrimSpace(*root)
-		if dir == "" {
-			dir = "."
-		}
-		scopes, err := cliutil.LoadEntityScopes(context.Background(), dir, args[0])
+		// An unset --root passes through as "", which the git subprocess
+		// already reads as the current working directory — the same place
+		// a "." would name.
+		scopes, err := cliutil.LoadEntityScopes(context.Background(), strings.TrimSpace(*root), args[0])
 		if err != nil {
+			//coverage:ignore LoadEntityScopes short-circuits to (nil, nil) when HasCommits reports no commits, so a missing or empty repo never reaches here; an error means `git log` failed after HasCommits succeeded on the same root, which no deterministic fixture produces.
 			return nil, cobra.ShellCompDirectiveNoFileComp
 		}
 		var out []string
 		for _, s := range scopes {
-			if s == nil || s.State == scope.StateEnded {
+			if s.State == scope.StateEnded {
 				continue
 			}
 			sha := s.AuthSHA

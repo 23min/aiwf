@@ -258,7 +258,7 @@ Verbs:
   set-priority <id> <level>      set a gap or decision's priority (urgent|high|medium|low); --clear removes it
   rename-area <old> <new>        rename a declared area (aiwf.yaml areas.members) and rewrite every entity tagged with it, in one commit
   archive [--apply | --dry-run] [--kind <kind>]  sweep terminal-status entities into their per-kind archive/ subdir (ADR-0004); dry-run by default, --apply commits
-  authorize <id> --to <agent>    open an autonomous-work scope on <id> for <agent>; --pause "<reason>" / --resume "<reason>" cycle the scope; human-only verb
+  authorize <id> --to <agent>    open an autonomous-work scope on <id> for <agent>; --pause "<reason>" / --resume "<reason>" cycle the scope, --end retires one without touching the entity's status; human-only verb
   acknowledge illegal <sha> --reason "..."  record a sovereign exemption for a historical commit's audit finding; --for-entity <id> binds the ack to one entity; human actor required
   acknowledge mistag <id> --reason "..."    accept an area-mistag warning as legitimate cross-cutting work; human actor required
   worktree add <branch> [path]   create a git worktree and materialize aiwf's rituals into it atomically; --base <ref> for a new branch (default HEAD), --print-path to emit only the resulting path (for cd "$(...)")
@@ -334,6 +334,8 @@ Flags for 'authorize':
   --to <agent>                   open scope (e.g. ai/claude); refused on terminal scope-entity unless --force --reason
   --pause "<reason>"             pause the most-recently-opened active scope on <id>
   --resume "<reason>"            resume the most-recently-paused scope on <id>
+  --end --reason "..."           end a non-ended scope on <id> without changing the entity's status; records aiwf-scope-ends:
+  --scope <auth-sha>             which scope --end targets (full SHA or any unambiguous prefix); omit for the sole non-ended scope
   --branch <ref>                 bind the scope to a ritual branch; records an aiwf-branch: trailer
 
 Flags for 'import':

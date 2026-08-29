@@ -17,3 +17,9 @@ var CurrentBranchForTest = currentBranch
 // M-0103 / AC-2 + AC-4: distinguishes "no --branch passed" from
 // "--branch <name> refers to a missing branch" in the verb's preflight.
 var BranchExistsForTest = branchExists
+
+// CompleteScopeFlagForTest exposes the unexported completeScopeFlag
+// constructor. M-0325/AC-3: --scope's suggestions are the entity's own
+// non-ended scopes, which is behaviour rather than wiring — the drift
+// test only checks that some completion function is registered.
+var CompleteScopeFlagForTest = completeScopeFlag
