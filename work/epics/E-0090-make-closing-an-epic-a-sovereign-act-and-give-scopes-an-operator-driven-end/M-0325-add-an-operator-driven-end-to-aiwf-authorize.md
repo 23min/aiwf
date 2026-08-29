@@ -28,9 +28,9 @@ Give a human a way to end an authorization scope deliberately, without changing 
 
 `AuthorizeMode` is a closed three-value set — open, pause, resume. A scope's only exit today is the terminal promote or cancel of its own entity, which stamps `aiwf-scope-ends` as a side effect of the status change. So withdrawing a delegation requires closing the work: there is no way to record that a human ended a delegation while the entity it was opened on keeps living.
 
-G-0022 reserved an `aiwf-revoked-by:` trailer slot for a revoke verb that was never built. This milestone builds that surface. No existing invocation changes behaviour: the automatic end fires exactly where it already fires, and the one change to it is the predicate deciding which scopes it covers.
+G-0022 reserved an `aiwf-revoked-by:` trailer slot for a revoke verb that was never built. This milestone builds that capability, though not through that slot: the end writes `aiwf-scope-ends:`, which the replay already reads. The automatic end fires exactly where it already fires; the one behaviour that changes is which scopes it covers, so a terminal promote or cancel of an entity carrying a paused scope now ends that scope rather than stranding it — which is AC-4.
 
-ADR-0047 settles the semantics. An end names its scope by authorize-commit SHA and defaults to the entity's sole candidate; ending covers scopes in `active` or `paused` state; and nothing undoes an end.
+ADR-0047 settles the semantics. An end names its scope by authorize-commit SHA and defaults to the entity's sole candidate; it takes a required reason, as pause and resume do; ending covers scopes in `active` or `paused` state; and nothing undoes an end.
 
 ## Acceptance criteria
 
@@ -63,7 +63,7 @@ in the scope FSM, so this closes an exit the FSM permits and no code fires.
 
 ## Constraints
 
-- The automatic scope-end fires where it already fires; only the predicate choosing which scopes it covers changes. No existing invocation behaves differently.
+- The automatic scope-end fires where it already fires; only the predicate choosing which scopes it covers changes. The one invocation that behaves differently is a terminal promote or cancel of an entity carrying a paused scope, which AC-4 requires.
 - One mutation, one commit, or none — a converging re-run writes nothing and carries no `commit_sha`.
 - The mode is a peer of `--to` / `--pause` / `--resume`, which are mutually exclusive; the new one joins that exclusion rather than combining with them. `--scope` modifies the end mode and is not itself a mode.
 - What undoes an end is answered in ADR-0047, not invented here.
