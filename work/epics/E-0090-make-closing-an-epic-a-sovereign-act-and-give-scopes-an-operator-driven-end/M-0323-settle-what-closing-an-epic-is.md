@@ -54,6 +54,38 @@ ADR-0040 constrains the shape of any answer to question 2: prevention belongs at
 - Any production-code change. The deliverable is a decision record; the only code that lands here is the policy tests pinning the two ACs.
 - Whether the automatic scope-end survives. The epic already decided it does.
 
+## Work log
+
+### AC-1 — Produced ADR resolves and is accepted
+
+ADR-0047 written and ratified; E-0090's `## ADRs produced` cites it. Pinned by a
+relationship check that reads the id out of the epic rather than expecting a
+literal · commit e457200c8 · tests 2/2, each watched failing on a nonexistent
+ADR and on a real-but-unratified one before being accepted as evidence.
+
+### AC-2 — Open questions route to that ADR
+
+All three rows routed to ADR-0047, each carrying the answer in one clause. Same
+commit; the check derives the expected id from `## ADRs produced`, so the two ACs
+cannot drift apart · commit e457200c8 · tests 2/2, watched failing on a row
+routed elsewhere and on an added row left unrouted.
+
+## Decisions made during implementation
+
+Four questions were settled, three from the epic's table and one found while
+reading the code:
+
+- Every edge into a terminal epic status is sovereign, `proposed → cancelled`
+  included, because `cancelled` is terminal whatever state it is reached from.
+- An end names its scope by authorize-commit SHA and defaults to the entity's
+  sole candidate; more than one candidate and no name refuses, none at all
+  refuses.
+- Nothing undoes an end. The inverse is a fresh grant.
+- Ending covers paused scopes as well as active ones. The automatic end's
+  predicate collects only `active` today, so a paused scope survives its
+  entity's closure permanently; ADR-0047 rules that a defect and M-0325 carries
+  the one-predicate fix.
+
 ## Dependencies
 
 - None. This is the epic's first milestone; both others depend on it.
