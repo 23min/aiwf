@@ -16,6 +16,40 @@ section in this file.
 
 ## [Unreleased]
 
+### Added — `aiwf authorize <id> --end`: retire a scope without closing its entity
+
+An authorization scope had one exit: the terminal promote or cancel of the entity
+it was opened on. Withdrawing a delegation therefore meant closing the work, and
+there was no way to record that a human ended a delegation while the entity kept
+living.
+
+`--end` ends one scope and leaves the entity's status alone. `--scope <auth-sha>`
+names which, by full SHA or any unambiguous prefix — the seven characters
+`aiwf show <id>` prints are enough. Omit it and the verb targets the entity's sole
+non-ended scope, refusing and listing the candidates when there is more than one:
+ending is terminal, so a wrong guess is not recoverable the way a wrong `--pause`
+is. `--reason` is required, because an end moves no status and its commit is the
+only artefact that records why the delegation was withdrawn.
+
+The commit carries the same `aiwf-scope-ends: <auth-sha>` the automatic end
+already writes, so scope replay is unchanged; an operator end stays
+distinguishable in history by riding an `aiwf-verb: authorize` commit rather than
+a `promote` or `cancel`. Re-ending an already-ended scope converges at exit 0
+without a commit; a `--scope` that matches nothing is refused. See ADR-0047.
+
+### Fixed — a paused scope is now ended when its entity closes, instead of stranded
+
+The automatic scope-end at terminal promote or cancel selected scopes in `active`
+state only. A scope left `paused` on an entity that then closed stayed paused
+permanently: no verb acts on a terminal entity, so nothing could resume it, and
+nothing else emitted its `aiwf-scope-ends:` trailer — while the scope FSM has
+permitted `paused → ended` all along.
+
+Both ends now cover every non-ended scope. The side effect fires exactly where it
+fired before; only which scopes it covers changes, so the single invocation that
+behaves differently is a terminal promote or cancel of an entity carrying a paused
+scope.
+
 ### Fixed — G-0641: five exec-bit test writes in `internal/policies` route through the ETXTBSY-safe helper
 
 Test-internal only; no user-facing change. Five fixtures wrote an executable
