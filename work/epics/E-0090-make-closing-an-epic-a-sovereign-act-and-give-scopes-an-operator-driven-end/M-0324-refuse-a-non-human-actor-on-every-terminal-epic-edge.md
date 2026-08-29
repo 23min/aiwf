@@ -153,6 +153,53 @@ Observation, re-runnable by a later reader:
 | Before | `1 findings (1 errors, 0 warnings)` — `fsm-history-consistent/forced-untrailered` on `c030cb92`, E-0029 `active → done` |
 | After | `1 findings (0 errors, 1 warnings)` — the remaining warning is `provenance-untrailered-scope-undefined`, which reports that an unpushed branch has no upstream to audit against and clears on first push |
 
+### AC-4 — The static audit sees the cancel spelling
+
+The regex builder emits a cancel-form pattern per cancel-reachable prefix,
+reachability derived from `entity.CancelTarget` · commit 3970cc754 · tests
+4/4. The builder's core was extracted so the reachability rule could be
+driven with fabricated shape lists: against the live closed set, every
+entry is an epic and the cancel form is deduplicated per prefix, so
+deleting the rule entirely produced byte-identical output. It was real
+logic no input constrained.
+
+### AC-5 — The catalogue names every sovereign transition
+
+Six rows brought onto the widened set, checked by a test that derives the
+expected transitions from the closed set · commit ec874f5f1 · tests 1/1,
+watched failing on all four transitions beforehand and on a row with one
+transition removed. Two defects predating this milestone were corrected in
+passing: R-AUDIT-0050 cited a function that does not exist, and
+R-RULE-001's Note required `--force --reason` for an edge a human reaches
+with no flag.
+
+### AC-6 — The legal-workflow spec models sovereignty
+
+One cross-cutting `GlobalRules` entry, symbolic in the closed set rather
+than enumerating it · commit e5ccbe809 · tests 1/1. A mutation dropping
+the `actor-role` precondition and downgrading the rejection layer to
+check-time turns it red on both counts.
+
+## Validation
+
+Run on the milestone branch at the readiness pass, in the devcontainer
+(Linux, `go test` unwrapped):
+
+| Gate | Command | Result |
+|---|---|---|
+| Full CI-parity gate | `make ci` | exit 0; self-check passed (29 steps) |
+| Full linter set | (within `make ci`) | `0 issues.` |
+| Diff-scoped coverage | `AIWF_COVERAGE_BASE=epic/E-0090-… make coverage-gate` | `ok internal/policies` |
+| Kernel check | `aiwf check` | 0 errors, 1 warning |
+
+The one warning is `provenance-untrailered-scope-undefined`: a branch with
+no upstream gives the provenance audit no range to walk. It clears on the
+first push and is not a finding about this work.
+
+`make ci` was run rather than `make check-fast` because this milestone
+changed Go across four packages and the epic branch it merges into is
+bound for a push.
+
 ## Decisions made during implementation
 
 - D-0081 — the ratification's evidence is the shipped kernel rule plus the
