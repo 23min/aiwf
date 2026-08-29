@@ -152,9 +152,11 @@ var errNoDelimiterRow = errors.New("second table row is not a delimiter")
 // single data row under its header and delimiter.
 var errTooFewRows = errors.New("table has too few rows")
 
-// delimiterCellRE matches one cell of a markdown table delimiter row —
-// three or more dashes, optionally colon-anchored on either side.
-var delimiterCellRE = regexp.MustCompile(`^:?-{3,}:?$`)
+// delimiterCellRE matches one cell of a markdown table delimiter row.
+// GFM requires one or more hyphens per cell with optional leading and
+// trailing colons for alignment, so `|-|-|` is as legal as `|---|---|`
+// and a stricter pattern would red-flag a lawful reformat.
+var delimiterCellRE = regexp.MustCompile(`^:?-+:?$`)
 
 // parseResolutionCells returns the final cell of every data row in a
 // markdown table, given the section text containing it. Row 0 is the
@@ -228,6 +230,16 @@ func TestParseResolutionCells(t *testing.T) {
 		{
 			name:    "colon anchored delimiter is accepted",
 			section: "| Q | R |\n|:---|---:|\n| a | ADR-0001 |",
+			want:    []string{"ADR-0001"},
+		},
+		{
+			name:    "single hyphen delimiter is accepted, as GFM allows",
+			section: "| Q | R |\n|-|-|\n| a | ADR-0001 |",
+			want:    []string{"ADR-0001"},
+		},
+		{
+			name:    "two hyphen delimiter is accepted",
+			section: "| Q | R |\n|--|--|\n| a | ADR-0001 |",
 			want:    []string{"ADR-0001"},
 		},
 		{
