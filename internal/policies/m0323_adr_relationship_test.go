@@ -1,6 +1,8 @@
 package policies
 
 import (
+	"errors"
+	"fmt"
 	"os"
 	"path/filepath"
 	"regexp"
@@ -18,11 +20,15 @@ import (
 // citation keeps both green; one that rewrites only half does not.
 const m0323EpicID = "E-0090"
 
-// adrIDInProseRE matches an ADR id as cited in body prose. Width is left
-// open rather than pinned at four digits because the kernel's parsers
-// tolerate narrower legacy widths on input; comparisons below run through
-// entity.Canonicalize so `ADR-47` and `ADR-0047` compare equal.
-var adrIDInProseRE = regexp.MustCompile(`\bADR-\d+\b`)
+// adrIDInProseRE matches an ADR id as cited in body prose; epicIDInProseRE
+// does the same for an epic. Width is left open rather than pinned at four
+// digits because the kernel's parsers tolerate narrower legacy widths on
+// input; comparisons below run through entity.Canonicalize so `ADR-47` and
+// `ADR-0047` compare equal.
+var (
+	adrIDInProseRE  = regexp.MustCompile(`\bADR-\d+\b`)
+	epicIDInProseRE = regexp.MustCompile(`\bE-\d+\b`)
+)
 
 // loadM0323Epic reads the epic body by resolving its id through the
 // loader, per CLAUDE.md §"Policy tests that read entity files resolve via
@@ -68,22 +74,31 @@ func producedADRIDs(t *testing.T, body string) []string {
 	return out
 }
 
-// TestM0323_AC1_ProducedADRsResolveAndAreAccepted asserts every ADR the
+// TestM0323_AC1_ProducedADRsResolveAndNameTheEpic asserts every ADR the
 // epic names under `## ADRs produced` resolves through the loader, is an
-// ADR, and is at status accepted.
+// ADR, is at status accepted, and names the epic back.
 //
 // The claim is a relationship, not a phrase: the test reads the cited id
 // out of the epic rather than expecting a literal, so it fails when the
 // ADR is missing, when it is some other kind, when it has not been
 // ratified, and when the epic's citation drifts to an id that resolves to
-// none of those things. It deliberately does not assert that the ADR
-// answers M-0323's three questions well — that is content correctness
-// over prose, held at review, and a phrase match would pin one reading
-// that any rewording breaks.
-func TestM0323_AC1_ProducedADRsResolveAndAreAccepted(t *testing.T) {
+// none of those things.
+//
+// The back-reference conjunct is what makes the pairing identify a
+// specific ADR rather than any ratified one. Without it, repointing the
+// epic at an unrelated accepted ADR satisfies every other clause while
+// the milestone's actual deliverable goes unreferenced. It survives a
+// reallocate of either id because that verb rewrites cross-references on
+// both sides.
+//
+// It deliberately does not assert that the ADR answers M-0323's three
+// questions well — that is content correctness over prose, held at
+// review, and a phrase match would pin one reading that any rewording
+// breaks.
+func TestM0323_AC1_ProducedADRsResolveAndNameTheEpic(t *testing.T) {
 	t.Parallel()
 
-	_, tr := sharedRepoTree(t)
+	root, tr := sharedRepoTree(t)
 	body := loadM0323Epic(t)
 
 	for _, id := range producedADRIDs(t, body) {
@@ -101,19 +116,55 @@ func TestM0323_AC1_ProducedADRsResolveAndAreAccepted(t *testing.T) {
 			t.Errorf("%s cites %s, whose status is %q, expected %q",
 				m0323EpicID, id, e.Status, entity.StatusAccepted)
 		}
+		adrBody, err := os.ReadFile(filepath.Join(root, e.Path))
+		if err != nil {
+			t.Errorf("reading %s at %s: %v", id, e.Path, err)
+			continue
+		}
+		if !namesEntity(string(adrBody), epicIDInProseRE, m0323EpicID) {
+			t.Errorf("%s cites %s, but %s's body never names %s — the citation is one-way, "+
+				"so it identifies no particular ADR", m0323EpicID, id, id, m0323EpicID)
+		}
 	}
 }
 
-// openQuestionsResolutionCells returns the final cell of every data row
-// in the epic's `## Open questions` table — the Resolution path column.
-// The header row and the `|---|` delimiter row are dropped; a table whose
-// shape stops matching that layout yields no cells and fails the caller.
-func openQuestionsResolutionCells(t *testing.T, body string) []string {
-	t.Helper()
-	section := extractMarkdownSection(body, 2, "Open questions")
-	if strings.TrimSpace(section) == "" {
-		t.Fatalf("%s has no `## Open questions` section", m0323EpicID)
+// namesEntity reports whether body cites want, comparing canonicalized so
+// a narrower legacy width in either position still matches.
+func namesEntity(body string, re *regexp.Regexp, want string) bool {
+	want = entity.Canonicalize(want)
+	for _, raw := range re.FindAllString(body, -1) {
+		if entity.Canonicalize(raw) == want {
+			return true
+		}
 	}
+	return false
+}
+
+// errNoDelimiterRow reports a table whose second row is not the
+// `|---|---|` delimiter markdown requires. It is a distinct error rather
+// than a generic parse failure because it is the shape that previously
+// failed open: without the check, a table missing its delimiter silently
+// loses its first data row from the audit while the caller still reads as
+// evidence that every row was audited.
+var errNoDelimiterRow = errors.New("second table row is not a delimiter")
+
+// errTooFewRows reports a section carrying no table, or one without a
+// single data row under its header and delimiter.
+var errTooFewRows = errors.New("table has too few rows")
+
+// delimiterCellRE matches one cell of a markdown table delimiter row —
+// three or more dashes, optionally colon-anchored on either side.
+var delimiterCellRE = regexp.MustCompile(`^:?-{3,}:?$`)
+
+// parseResolutionCells returns the final cell of every data row in a
+// markdown table, given the section text containing it. Row 0 is the
+// header and row 1 the delimiter; both are dropped, and the delimiter is
+// verified rather than assumed.
+//
+// Pure and error-returning so the malformed-table cases can be exercised
+// against synthetic input; the *testing.T wrapper below is what the live
+// assertion calls.
+func parseResolutionCells(section string) ([]string, error) {
 	var rows [][]string
 	for _, line := range strings.Split(section, "\n") {
 		line = strings.TrimSpace(line)
@@ -126,15 +177,95 @@ func openQuestionsResolutionCells(t *testing.T, body string) []string {
 		}
 		rows = append(rows, cells)
 	}
-	// Row 0 is the header, row 1 the `---` delimiter; the rest are data.
 	if len(rows) < 3 {
-		t.Fatalf("%s `## Open questions` has no data rows; section reads:\n%s", m0323EpicID, section)
+		return nil, fmt.Errorf("%w: got %d, need a header, a delimiter and at least one data row", errTooFewRows, len(rows))
+	}
+	for _, c := range rows[1] {
+		if !delimiterCellRE.MatchString(c) {
+			return nil, fmt.Errorf("%w: %q", errNoDelimiterRow, strings.Join(rows[1], "|"))
+		}
 	}
 	var out []string
 	for _, cells := range rows[2:] {
 		out = append(out, cells[len(cells)-1])
 	}
-	return out
+	return out, nil
+}
+
+// openQuestionsResolutionCells returns the Resolution path cell of every
+// data row in the epic's `## Open questions` table.
+func openQuestionsResolutionCells(t *testing.T, body string) []string {
+	t.Helper()
+	section := extractMarkdownSection(body, 2, "Open questions")
+	if strings.TrimSpace(section) == "" {
+		t.Fatalf("%s has no `## Open questions` section", m0323EpicID)
+	}
+	cells, err := parseResolutionCells(section)
+	if err != nil {
+		t.Fatalf("%s `## Open questions`: %v; section reads:\n%s", m0323EpicID, err, section)
+	}
+	return cells
+}
+
+// TestParseResolutionCells covers the malformed-table shapes the live
+// assertion must refuse rather than silently skip. The no-delimiter case
+// is the one that matters: dropping that row from a real table used to
+// remove a data row from the audit with the suite still green.
+func TestParseResolutionCells(t *testing.T) {
+	t.Parallel()
+
+	tests := []struct {
+		name    string
+		section string
+		want    []string
+		wantErr error
+	}{
+		{
+			name:    "well formed table yields one cell per data row",
+			section: "| Q | B? | R |\n|---|---|---|\n| a | yes | ADR-0001 |\n| b | no | ADR-0001 |",
+			want:    []string{"ADR-0001", "ADR-0001"},
+		},
+		{
+			name:    "colon anchored delimiter is accepted",
+			section: "| Q | R |\n|:---|---:|\n| a | ADR-0001 |",
+			want:    []string{"ADR-0001"},
+		},
+		{
+			name:    "missing delimiter row is refused, not silently skipped",
+			section: "| Q | B? | R |\n| a | yes | still open |\n| b | no | ADR-0001 |",
+			wantErr: errNoDelimiterRow,
+		},
+		{
+			name:    "header and delimiter with no data row is refused",
+			section: "| Q | R |\n|---|---|",
+			wantErr: errTooFewRows,
+		},
+		{
+			name:    "prose with no table at all is refused",
+			section: "All resolved — see the ADR.",
+			wantErr: errTooFewRows,
+		},
+	}
+
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			t.Parallel()
+
+			got, err := parseResolutionCells(tc.section)
+			if tc.wantErr != nil {
+				if !errors.Is(err, tc.wantErr) {
+					t.Fatalf("parseResolutionCells() error = %v, want %v", err, tc.wantErr)
+				}
+				return
+			}
+			if err != nil {
+				t.Fatalf("parseResolutionCells() unexpected error: %v", err)
+			}
+			if strings.Join(got, "\x1f") != strings.Join(tc.want, "\x1f") {
+				t.Errorf("parseResolutionCells() = %q, want %q", got, tc.want)
+			}
+		})
+	}
 }
 
 // TestM0323_AC2_OpenQuestionsRouteToTheProducedADR asserts every row of
