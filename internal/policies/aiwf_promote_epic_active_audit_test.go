@@ -166,28 +166,53 @@ func TestAuditUnforcedSovereignActPromote_BranchCoverage(t *testing.T) {
 }
 
 // TestSovereignActPromoteRegexes_TracksKernelClosedSet asserts the
-// regex builder produces exactly one regex per
-// `entity.SovereignActShapes()` entry. Without this pin, a future
-// regression that hardcoded the list back to a single regex would
-// pass the existing fixture tests (since the kernel's closed set has
-// one entry today) but silently break consolidation when the second
-// entry lands.
+// regex builder produces one promote regex per
+// `entity.SovereignActShapes()` entry, positionally aligned, plus one
+// cancel regex per distinct prefix, and that both spellings match the
+// invocation a human would actually write. Without this pin, a
+// regression that hardcoded the list back to a single regex would pass
+// the fixture tests below and silently narrow the audit's reach.
+//
+// Both the expected count and the example invocations are derived from
+// the closed set rather than written out, so an entry added for a new
+// kind is covered here with no edit.
 func TestSovereignActPromoteRegexes_TracksKernelClosedSet(t *testing.T) {
 	t.Parallel()
 	shapes := entity.SovereignActShapes()
 	regexes := sovereignActPromoteRegexes()
-	if len(regexes) != len(shapes) {
-		t.Fatalf("regex count = %d, want %d (one per kernel sovereign-act-shape entry); shapes=%+v", len(regexes), len(shapes), shapes)
+
+	prefixes := map[string]bool{}
+	for _, s := range shapes {
+		if p := entity.IDPrefix(s.Kind); p != "" {
+			prefixes[p] = true
+		}
 	}
-	// Each regex should match the canonical command shape for its
-	// corresponding shape entry. We construct an example invocation
-	// from the entry's data and assert the regex at the same index
-	// matches it.
+	if len(prefixes) == 0 {
+		t.Fatal("no closed-set entry resolves to an id prefix; the cancel arm below has no " +
+			"subject and would pass while asserting nothing")
+	}
+	want := len(shapes) + len(prefixes)
+	if len(regexes) != want {
+		t.Fatalf("regex count = %d, want %d (one promote regex per entry, plus one cancel regex "+
+			"per distinct prefix); shapes=%+v", len(regexes), want, shapes)
+	}
+	// Each promote regex should match the canonical command shape for
+	// its corresponding shape entry, at the same index.
 	for i, s := range shapes {
-		prefix := entity.IDPrefix(s.Kind)
-		example := "aiwf promote " + prefix + "0001 " + string(s.To)
+		example := "aiwf promote " + entity.IDPrefix(s.Kind) + "0001 " + string(s.To)
 		if !regexes[i].MatchString(example) {
 			t.Errorf("regex[%d] (%s) does not match example invocation %q built from shape entry %+v", i, regexes[i].String(), example, s)
+		}
+	}
+	// The cancel spelling is what a human uses to reach the terminal
+	// edges, and the audit was blind to it until M-0324. Asserted
+	// through the OR-over-regexes predicate rather than by index,
+	// because the cancel forms are appended after the promote block.
+	for prefix := range prefixes {
+		example := "aiwf cancel " + prefix + "0001"
+		if !lineMatchesAnySovereignActRegex(example, regexes) {
+			t.Errorf("no regex matches %q; automation invoking that spelling would pass the "+
+				"audit unseen", example)
 		}
 	}
 }

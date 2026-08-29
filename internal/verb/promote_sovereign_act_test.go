@@ -41,6 +41,13 @@ func TestPromote_EpicActive_RefusesNonHumanActor(t *testing.T) {
 	if !strings.Contains(msg, "sovereign") {
 		t.Errorf("error should name the act as sovereign so the reader understands why; got %v", err)
 	}
+	// The gate takes the verb name as an argument, so each call site
+	// supplies its own. The cancel site is pinned in cancel_guards_test.go;
+	// this is the promote site's half. Nothing derives one from the other,
+	// so a check at one says nothing about the other.
+	if !strings.Contains(msg, "aiwf promote") {
+		t.Errorf("error must name the verb the operator ran; got %v", err)
+	}
 }
 
 // TestPromote_EpicActive_HumanActorSucceeds pins M-0095/AC-2: the
@@ -59,55 +66,31 @@ func TestPromote_EpicActive_HumanActorSucceeds(t *testing.T) {
 	}
 }
 
-// TestPromote_EpicActive_OtherTransitionsUnaffected pins M-0095/AC-3:
-// the rule is scoped exactly to `proposed → active`. Other epic
-// transitions performed by a non-human actor are not refused *by this
-// rule*. Each subtest stages an epic in the appropriate starting state
-// and asserts the rule's error message (with its tell-tale "sovereign"
-// substring) does not appear when the non-human actor moves it.
-func TestPromote_EpicActive_OtherTransitionsUnaffected(t *testing.T) {
+// Transition-scoping needs no epic test: all four legal epic
+// transitions are sovereign, so the negative space is empty. Only
+// kind-scoping remains a live claim, and it is pinned below.
+
+// TestPromote_SovereignEdge_HumanIsAPrefixNotASubstring pins the
+// boundary of the actor predicate: human-ness is the `human/` prefix,
+// not the presence of the word anywhere in the actor string. Without
+// it, a predicate testing for containment accepts `ai/human-helper` at
+// every sovereign edge.
+//
+// The verb layer is the cheaper place to state it, not the only one —
+// the gate returns before a plan exists, so the binary reaches it with
+// an arbitrary actor too.
+func TestPromote_SovereignEdge_HumanIsAPrefixNotASubstring(t *testing.T) {
 	t.Parallel()
-	cases := []struct {
-		name      string
-		setup     func(r *runner) // leaves E-0001 in the appropriate starting state
-		newStatus entity.Status
-	}{
-		{
-			name: "proposed -> cancelled",
-			setup: func(r *runner) {
-				r.must(verb.Add(r.ctx, r.tree(), entity.KindEpic, "Cancelled path", testActor, verb.AddOptions{}))
-			},
-			newStatus: entity.StatusCancelled,
-		},
-		{
-			name: "active -> done",
-			setup: func(r *runner) {
-				r.must(verb.Add(r.ctx, r.tree(), entity.KindEpic, "Done path", testActor, verb.AddOptions{}))
-				r.must(verb.Promote(r.ctx, r.tree(), "E-0001", "active", testActor, "", false, verb.PromoteOptions{}))
-			},
-			newStatus: entity.StatusDone,
-		},
-		{
-			name: "active -> cancelled",
-			setup: func(r *runner) {
-				r.must(verb.Add(r.ctx, r.tree(), entity.KindEpic, "Active cancelled", testActor, verb.AddOptions{}))
-				r.must(verb.Promote(r.ctx, r.tree(), "E-0001", "active", testActor, "", false, verb.PromoteOptions{}))
-			},
-			newStatus: entity.StatusCancelled,
-		},
+	r := newRunner(t)
+	r.must(verb.Add(r.ctx, r.tree(), entity.KindEpic, "Prefix boundary", testActor, verb.AddOptions{}))
+	r.must(verb.Promote(r.ctx, r.tree(), "E-0001", "active", testActor, "", false, verb.PromoteOptions{}))
+
+	_, err := verb.Promote(r.ctx, r.tree(), "E-0001", "done", "ai/human-helper", "", false, verb.PromoteOptions{})
+	if err == nil {
+		t.Fatal("an actor merely containing \"human\" closed the epic; want refusal")
 	}
-	for _, tc := range cases {
-		t.Run(tc.name, func(t *testing.T) {
-			r := newRunner(t)
-			tc.setup(r)
-			_, err := verb.Promote(r.ctx, r.tree(), "E-0001", tc.newStatus, "ai/claude", "", false, verb.PromoteOptions{})
-			// The rule under test must not fire. Other refusals (e.g.,
-			// resolver requirements) may legitimately produce an error;
-			// we only assert the absence of the sovereign-act message.
-			if err != nil && strings.Contains(err.Error(), "sovereign") {
-				t.Errorf("rule should not fire on %s; got %v", tc.name, err)
-			}
-		})
+	if !strings.Contains(err.Error(), "sovereign act requires a human/ actor") {
+		t.Errorf("refusal did not come from the sovereign gate; got %v", err)
 	}
 }
 
