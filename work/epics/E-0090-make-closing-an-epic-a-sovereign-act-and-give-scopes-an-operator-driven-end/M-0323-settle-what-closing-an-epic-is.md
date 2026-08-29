@@ -86,6 +86,59 @@ reading the code:
   entity's closure permanently; ADR-0047 rules that a defect and M-0325 carries
   the one-predicate fix.
 
+## Validation
+
+Run on the milestone branch at the readiness pass, in the devcontainer (Linux,
+`go build ./...` unwrapped):
+
+| Gate | Command | Result |
+|---|---|---|
+| Tests + lint + vet | `make check-fast` | exit 0, zero `FAIL` |
+| Full linter set | `make lint` | `0 issues.` |
+| Diff-scoped coverage | `AIWF_COVERAGE_BASE=main make coverage-gate` | `ok internal/policies` |
+| Kernel check | `aiwf check` | 0 errors, 1 warning |
+
+The one warning is `provenance-untrailered-scope-undefined`: a freshly cut branch
+has no upstream, so the provenance audit has no range to walk. It clears on the
+first push and is not a finding about this work.
+
+Both AC tests were watched failing before being accepted as evidence — a
+nonexistent ADR id, a real but unratified one, a question row routed to another
+ADR, and a row added with no route. Each produced a distinct message naming the
+row or id at fault.
+
+## Deferrals
+
+None. The one defect found while reading the code — the automatic scope-end
+collecting only `active` scopes, so a paused scope survives its entity's closure
+— was not punted: ADR-0047 rules on it and M-0325 carries the fix as AC-4.
+
+## Reviewer notes
+
+**Recurring obligation.** This milestone adds two standing checks, and they are a
+real ongoing cost rather than a one-off: every future edit to E-0090's body must
+keep `## ADRs produced` citing an accepted ADR and every `## Open questions` row
+routed to it. The obligation is narrow — it binds one entity, not a class of
+future change — and nothing retires it, because the loader resolves archived
+entities too, so the tests keep passing after the epic is swept rather than
+needing deletion. Owner is E-0090.
+
+**Deletions.** Nothing was retired. Nothing qualified: the milestone's output is a
+decision record plus its evidence, and it touched no existing test.
+
+**Same-outcome clusters.** Two tests, so no cluster of three or more to judge.
+They fail for different reasons — one on the epic-to-ADR citation, one on the
+question-table routing — and share only their fixture loader.
+
+**A hole found in the ADR while writing the specs against it.** The end-mode rule
+covered one candidate and many, but not zero. It now states that a bare `--end`
+with no candidate refuses, matching what `--pause` already does when no scope
+qualifies, while `--scope` naming an already-ended scope converges.
+
+**Not asserted, deliberately.** Neither AC checks that ADR-0047 answers its three
+questions *well*. That is content correctness over prose, which this repo holds at
+review; a phrase assertion would pin one reading that any rewording breaks.
+
 ## Dependencies
 
 - None. This is the epic's first milestone; both others depend on it.
