@@ -35,7 +35,7 @@ Separately, an authorization scope has one exit: the terminal promote or cancel 
 
 - Sovereign-act shape is a property *over* legal transitions, never below them (D-0008). Every entry added must be FSM-legal, and `TestSovereignActShapes_AllFSMLegal` pins it.
 - Prevention at the verb route, ratification at the history route (ADR-0040). A widened closed set arrives together with its call site, never before it — a gate that reports after the commit lands produces exactly the record that ADR closes.
-- The end mode is additive: no existing invocation changes behaviour, and no consumer relying on today's auto-end is affected.
+- The end mode is additive. One existing invocation does change behaviour, and only one: a terminal promote or cancel of an entity carrying a paused scope now ends that scope instead of stranding it. No consumer relying on today's auto-end for an active scope is affected.
 - `--force` stays human-only. The coherence guard at `verb.Apply` already refuses a force trailer from a non-human actor and is not modified here.
 
 ## Success criteria
@@ -43,6 +43,7 @@ Separately, an authorization scope has one exit: the terminal promote or cancel 
 - [ ] A non-human actor is refused on every edge into a terminal epic status, at the verb, before anything is written.
 - [ ] A human can end an authorization scope without changing the status of its entity.
 - [ ] Every historical commit the widened audit fires on carries a ratification, and `aiwf check` reports no error-severity finding on the tree.
+- [ ] A paused scope on an entity that reaches a terminal status is ended, not stranded.
 - [ ] The end mode is reachable from `aiwf authorize --help`, from tab-completion, and from the `aiwf-authorize` skill.
 - [ ] Every question in *Open questions* is answered by the ADR listed under *ADRs produced*.
 
@@ -50,7 +51,7 @@ Separately, an authorization scope has one exit: the terminal promote or cancel 
 
 | Question | Blocking? | Resolution path |
 |---|---|---|
-| Does the end mode target the most-recently-opened active scope, mirroring `--pause` / `--resume`, or every active scope on the entity, mirroring the auto-end? `docs/design/provenance-model.md` §"Multiple parallel scopes" holds that several active scopes on one entity are legal, so the two existing answers disagree. | yes | ADR-0047 — neither. The end names its scope by authorize-commit SHA and defaults to the sole candidate. |
+| Does the end mode target the most-recently-opened active scope, mirroring `--pause` / `--resume`, or every active scope on the entity, mirroring the auto-end? Two live scopes on one entity are producible — two `authorize --to` calls naming different agents, or the duplicate re-grant G-0460 reports — and nothing refuses them, so the two existing answers disagree. | yes | ADR-0047 — neither. The end names its scope by authorize-commit SHA and defaults to the sole candidate. |
 | Is cancelling an epic a sovereign act, or is completion the only closure a human must make? | yes | ADR-0047 — every edge into a terminal status is sovereign, `proposed → cancelled` included. |
 | What undoes an end? Re-authorizing opens a fresh scope rather than reviving the ended one, and `ended` is terminal in the scope FSM. Is that the whole answer? | no | ADR-0047 — yes. Nothing undoes an end; the inverse is a fresh grant. |
 
