@@ -80,14 +80,6 @@ func TestPromote_EpicActive_OtherTransitionsUnaffected(t *testing.T) {
 			newStatus: entity.StatusCancelled,
 		},
 		{
-			name: "active -> done",
-			setup: func(r *runner) {
-				r.must(verb.Add(r.ctx, r.tree(), entity.KindEpic, "Done path", testActor, verb.AddOptions{}))
-				r.must(verb.Promote(r.ctx, r.tree(), "E-0001", "active", testActor, "", false, verb.PromoteOptions{}))
-			},
-			newStatus: entity.StatusDone,
-		},
-		{
 			name: "active -> cancelled",
 			setup: func(r *runner) {
 				r.must(verb.Add(r.ctx, r.tree(), entity.KindEpic, "Active cancelled", testActor, verb.AddOptions{}))
@@ -108,6 +100,32 @@ func TestPromote_EpicActive_OtherTransitionsUnaffected(t *testing.T) {
 				t.Errorf("rule should not fire on %s; got %v", tc.name, err)
 			}
 		})
+	}
+}
+
+// TestPromote_SovereignEdge_HumanIsAPrefixNotASubstring pins the
+// boundary of the actor predicate: human-ness is the `human/` prefix,
+// not the presence of the word anywhere in the actor string.
+//
+// The case exists because a mutation probe found the boundary
+// unconstrained — replacing the prefix test with a substring
+// containment left the whole suite green, so `ai/human-helper` would
+// have reached every sovereign edge. It has to run here rather than
+// through the binary: an actor with no authorizing scope is refused by
+// the allow-rule before the gate is consulted, so the seam-level test
+// cannot reach the predicate with an arbitrary actor.
+func TestPromote_SovereignEdge_HumanIsAPrefixNotASubstring(t *testing.T) {
+	t.Parallel()
+	r := newRunner(t)
+	r.must(verb.Add(r.ctx, r.tree(), entity.KindEpic, "Prefix boundary", testActor, verb.AddOptions{}))
+	r.must(verb.Promote(r.ctx, r.tree(), "E-0001", "active", testActor, "", false, verb.PromoteOptions{}))
+
+	_, err := verb.Promote(r.ctx, r.tree(), "E-0001", "done", "ai/human-helper", "", false, verb.PromoteOptions{})
+	if err == nil {
+		t.Fatal("an actor merely containing \"human\" closed the epic; want refusal")
+	}
+	if !strings.Contains(err.Error(), "sovereign act requires a human/ actor") {
+		t.Errorf("refusal did not come from the sovereign gate; got %v", err)
 	}
 }
 

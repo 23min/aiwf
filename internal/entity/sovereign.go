@@ -46,6 +46,15 @@ var sovereignActShapes = []SovereignActShape{
 	// planning time" — they remain open candidates pending their
 	// own authorizing ADRs.
 	{KindEpic, StatusProposed, StatusActive},
+	// epic active → done. Authorized by ADR-0047, which rules every
+	// edge into a terminal epic status sovereign, arguing from
+	// irreversibility rather than effort: `done` has no outgoing
+	// edges, and the kernel answers an unwanted terminal status with
+	// a new entity rather than a transition back. Milestones share
+	// the terminal shape and are deliberately excluded — an epic is
+	// the unit a scope is opened on, a milestone is work inside a
+	// scope someone already holds.
+	{KindEpic, StatusActive, StatusDone},
 }
 
 // IsSovereignActShape reports whether (k, from, to) names a transition

@@ -21,6 +21,17 @@ import (
 // nothing about the guard.
 func sovereignForceRepo(t *testing.T) (root, binDir string) {
 	t.Helper()
+	return sovereignScopedRepo(t, nil)
+}
+
+// sovereignScopedRepo builds that repo, running onMain (if any) in the
+// window after the entities exist and before the epic branch is cut.
+// That window is not incidental: ADR-0010 expects an epic activation on
+// trunk, and requireExpectedBranchForActivatingTransition refuses it
+// anywhere else, so a caller wanting an `active` epic has to promote
+// here rather than after the checkout below.
+func sovereignScopedRepo(t *testing.T, onMain [][]string) (root, binDir string) {
+	t.Helper()
 	bin := testutil.AiwfBinary(t)
 	binDir = filepath.Dir(bin)
 	root = t.TempDir()
@@ -42,6 +53,11 @@ func sovereignForceRepo(t *testing.T) (root, binDir string) {
 	} {
 		if out, err := testutil.RunBin(t, root, binDir, nil, args...); err != nil {
 			t.Fatalf("aiwf %v: %v\n%s", args, err, out)
+		}
+	}
+	for _, args := range onMain {
+		if out, err := testutil.RunBin(t, root, binDir, nil, args...); err != nil {
+			t.Fatalf("on-main setup aiwf %v: %v\n%s", args, err, out)
 		}
 	}
 	if out, err := testutil.RunGit(root, "checkout", "-q", "-b", "epic/E-0001-platform"); err != nil {

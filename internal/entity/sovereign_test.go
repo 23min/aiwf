@@ -7,8 +7,9 @@ import "testing"
 // require an explicit sovereignty acknowledgment (human/ actor by
 // default; --force --reason for non-human actors).
 //
-// Today's closed set has one entry: epic proposed → active, authorized
-// by M-0095 (motivated by G-0063). New entries land alongside the ADR
+// The set holds epic proposed → active, authorized by M-0095
+// (motivated by G-0063), and the edges into a terminal epic status
+// that ADR-0047 rules sovereign. New entries land alongside the ADR
 // or kernel-spec that ratifies them.
 func TestIsSovereignActShape_TrueCases(t *testing.T) {
 	t.Parallel()
@@ -18,6 +19,7 @@ func TestIsSovereignActShape_TrueCases(t *testing.T) {
 		to   Status
 	}{
 		{KindEpic, StatusProposed, StatusActive},
+		{KindEpic, StatusActive, StatusDone},
 	}
 	for _, c := range cases {
 		t.Run(string(c.kind)+"/"+string(c.from)+"->"+string(c.to), func(t *testing.T) {
@@ -47,7 +49,6 @@ func TestIsSovereignActShape_FalseCases(t *testing.T) {
 	}{
 		// Legal epic transitions that are NOT sovereign-act-shape.
 		{"epic proposed->cancelled", KindEpic, StatusProposed, StatusCancelled},
-		{"epic active->done", KindEpic, StatusActive, StatusDone},
 		{"epic active->cancelled", KindEpic, StatusActive, StatusCancelled},
 		// Other kinds — their activation/acceptance edges are
 		// explicitly out of scope per M-0095's spec body ("separate
