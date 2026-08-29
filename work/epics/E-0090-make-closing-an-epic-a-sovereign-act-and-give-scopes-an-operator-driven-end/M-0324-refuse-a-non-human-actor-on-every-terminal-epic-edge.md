@@ -18,7 +18,7 @@ acs:
     - id: AC-3
       title: Every commit the widened audit fires on is ratified and check reports no error
       status: open
-      tdd_phase: green
+      tdd_phase: done
     - id: AC-4
       title: The static audit catches a scripted aiwf cancel of a sovereign edge
       status: open
