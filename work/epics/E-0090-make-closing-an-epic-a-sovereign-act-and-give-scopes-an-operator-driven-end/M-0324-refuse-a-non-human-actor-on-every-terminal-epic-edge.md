@@ -61,6 +61,8 @@ After the closed set widens, `aiwf check` over the tree reports no error-severit
 
 Stated as a property of the tree rather than as a count, because widening the set is what determines which commits qualify, and a number written now would be a forecast.
 
+The evidence is the shipped `fsm-history-consistent/forced-untrailered` rule, which fires on exactly this class and blocks the pre-push hook, together with the acknowledgment commit that clears it. No policy test asserts the same property a second time: D-0081 records why, with the measurements that decided it. The claim is pinnable and is deliberately left unpinned, which is the reason it carries a decision rather than a silent omission.
+
 ### AC-4 — The static audit catches a scripted aiwf cancel of a sovereign edge
 
 The audit keys its patterns on `(prefix, To)`, so it matches only the `aiwf promote <id> <to>` spelling. For an entry a human would reach with `aiwf cancel`, it emits a pattern for that spelling too, and fires on a line carrying it without `--force`. The qualifying entries are those where `entity.CancelTarget(s.Kind, s.From) == s.To`, so the pattern set stays derived from the closed set rather than enumerating spellings by hand.
@@ -104,6 +106,51 @@ The legal-workflow spec models sovereignty for no edge today, the shipped `propo
 
 - Any change to the automatic scope-end at terminal promote.
 - The identity substrate. The gate keys on a self-declared actor: an invocation that omits `--actor` inherits the human identity from `git config` and passes through. That property is shared with the shipped activation gate and is not addressed here.
+
+## Work log
+
+### AC-1 — Epic active → done gated at the verb
+
+One closed-set entry, refusal proved at the binary seam with HEAD unmoved,
+and a human control so the gate is scoped to the actor rather than the edge
+· commit 15f6360e6 · tests 3/3. A mutation probe found the actor predicate's
+prefix boundary unconstrained — `HasPrefix(actor, "human/")` replaced by
+`Contains(actor, "human")` left the whole suite green — and the pin that
+closes it was watched red under the mutant and green on correct code.
+
+### AC-2 — Both cancel edges gated at the verb, not the audit
+
+Two closed-set entries plus the `cancel` call site that makes them
+enforceable, placed ahead of the cascade guards · commit 811f208d9 · tests
+5/5. The gate now takes the verb name, because a message reading `aiwf
+promote` after `aiwf cancel` sends the operator to a command that did not
+refuse them. Relocating the call after the cascade guards turns all three
+refusal cases red, so the ordering is pinned rather than only commented.
+
+### AC-3 — The act the widened audit reaches is ratified
+
+`aiwf acknowledge illegal c030cb926` · commit ba39a9b2c. The phase ladder
+records the kernel rule's own output rather than a Go test: `aiwf check`
+reported the finding before the acknowledgment and reports none after. No
+Go test exists for this AC, by the judgment recorded in D-0081.
+
+Observation, re-runnable by a later reader:
+
+| Field | Value |
+|---|---|
+| Command | `aiwf check` at the repo root |
+| Environment | devcontainer (Linux), binary built from this branch via `make diag-aiwf` |
+| Expected | no error-severity finding once the acknowledgment lands |
+| Before | `1 findings (1 errors, 0 warnings)` — `fsm-history-consistent/forced-untrailered` on `c030cb92`, E-0029 `active → done` |
+| After | `1 findings (0 errors, 1 warnings)` — the remaining warning is `provenance-untrailered-scope-undefined`, which reports that an unpushed branch has no upstream to audit against and clears on first push |
+
+## Decisions made during implementation
+
+- D-0081 — the ratification's evidence is the shipped kernel rule plus the
+  acknowledgment commit, not a policy test duplicating it. Measured: the
+  duplicate costs 100 seconds, scoping the walk to the closed set's kinds
+  recovers none of it, and the suite's wall time would go from roughly 40
+  seconds to 140 on every push.
 
 ## Deferrals
 
