@@ -611,6 +611,7 @@ func authorizeEnd(e *entity.Entity, actor string, opts AuthorizeOptions) (*Resul
 		return nil, err
 	}
 	if err := CheckTrailerCoherence(trailers); err != nil {
+		//coverage:ignore no coherence rule can fire on this trailer set: every rule keys on a trailer this mode never emits (principal, on-behalf-of, authorized-by, audit-only, force), and Authorize has already required a human/ actor. The call stays so the set is still checked if it ever grows one of those.
 		return nil, err
 	}
 
