@@ -8,6 +8,7 @@ import (
 	"github.com/23min/aiwf/internal/branchparse"
 	"github.com/23min/aiwf/internal/codes"
 	"github.com/23min/aiwf/internal/entity"
+	"github.com/23min/aiwf/internal/entityview"
 	"github.com/23min/aiwf/internal/gitops"
 	"github.com/23min/aiwf/internal/scope"
 	"github.com/23min/aiwf/internal/tree"
@@ -176,7 +177,7 @@ func (e *PreflightRungPairError) Code() string {
 	return CodePreflightRungPair.ID
 }
 
-// AuthorizeMode picks one of the three sub-verbs of `aiwf authorize`.
+// AuthorizeMode picks one of the sub-verbs of `aiwf authorize`.
 // Each mode produces exactly one commit; mixing modes is a usage error
 // caught by the cmd dispatcher before this package sees the call.
 type AuthorizeMode int
@@ -194,6 +195,11 @@ const (
 	// AuthorizeResume resumes the most-recently-paused scope on the
 	// named entity. Reason is required (non-empty after trim).
 	AuthorizeResume
+	// AuthorizeEnd ends one non-ended scope on the named entity
+	// without touching the entity's status (ADR-0047). The target is
+	// AuthorizeOptions.ScopeSHA when set, otherwise the entity's sole
+	// non-ended scope. Reason is required (non-empty after trim).
+	AuthorizeEnd
 )
 
 // AuthorizeOptions configures one invocation of the authorize verb.
@@ -205,7 +211,8 @@ const (
 // AuthorizeOpen the slice is unused (a fresh scope doesn't depend on
 // existing ones); for AuthorizePause / AuthorizeResume it is the
 // source of truth for the most-recently-opened-active /
-// most-recently-paused selection.
+// most-recently-paused selection, and for AuthorizeEnd it is the
+// candidate set the target is resolved against.
 type AuthorizeOptions struct {
 	Mode AuthorizeMode
 	// Agent is the role/<id> the scope authorizes (e.g. "ai/claude").
@@ -265,6 +272,19 @@ type AuthorizeOptions struct {
 	TrunkShort string
 	Force      bool
 	Scopes     []*scope.Scope
+	// ScopeSHA (ADR-0047) names which scope AuthorizeEnd ends, as the
+	// authorize-commit SHA or any unambiguous prefix of one. Empty
+	// means "the entity's sole non-ended scope", which refuses when
+	// the count is not exactly one. Ignored by every other mode.
+	//
+	// A prefix is accepted because `aiwf show` prints scopes at seven
+	// characters, so the surface an operator reads the value from
+	// never displays a full SHA. Whatever arrives here, the emitted
+	// aiwf-scope-ends: trailer carries the resolved full SHA — the
+	// replay matches that trailer by exact equality, while the
+	// trailer's own shape rule admits 7-40 hex, so a short value would
+	// commit and validate without ending anything.
+	ScopeSHA string
 }
 
 // Authorize runs the `aiwf authorize` verb. Refusal rules per
@@ -304,6 +324,8 @@ func Authorize(ctx context.Context, t *tree.Tree, id, actor string, opts Authori
 		return authorizeTransition(e, actor, opts.Reason, opts.Scopes,
 			scope.StatePaused, "resume", "resumed",
 			"no paused scope on %s to resume")
+	case AuthorizeEnd:
+		return authorizeEnd(e, actor, opts)
 	default:
 		return nil, fmt.Errorf("aiwf authorize: unknown mode %d", opts.Mode)
 	}
@@ -532,6 +554,144 @@ func authorizeTransition(
 	})
 	result.Metadata = map[string]any{"entity_id": entity.Canonicalize(e.ID), "action": modeWord}
 	return result, nil
+}
+
+// authorizeEnd handles --end: it ends one non-ended scope on the entity
+// without touching the entity's status (ADR-0047).
+//
+// The commit carries the same `aiwf-scope-ends: <auth-sha>` the
+// automatic end writes, so the scope replay needs no new case. What
+// distinguishes an operator end in history is the commit it rides —
+// `aiwf-verb: authorize` rather than a promote or cancel — which is
+// also what keeps it outside the wrap-bundle exception in
+// internal/check/provenance.go, whose predicate requires the
+// terminating commit to be a promote.
+func authorizeEnd(e *entity.Entity, actor string, opts AuthorizeOptions) (*Result, error) {
+	reason := strings.TrimSpace(opts.Reason)
+	if reason == "" {
+		// Required by policy rather than by construction: unlike pause
+		// and resume, whose reason is their own flag's argument, --end
+		// takes the shared --reason. An end changes no status, so its
+		// commit is the only artefact recording that the delegation was
+		// withdrawn, and with no reason on it nothing in the tree says
+		// why (ADR-0047).
+		return nil, fmt.Errorf("aiwf authorize --end requires --reason \"...\" (non-empty after trim)")
+	}
+
+	target, err := resolveScopeToEnd(e.ID, opts.ScopeSHA, opts.Scopes)
+	if err != nil {
+		return nil, err
+	}
+	// R1 resolved a real scope above; R2 asks whether the effect already
+	// holds. Reachable only via --scope: without one the candidate set
+	// excludes ended scopes, so a converging target never surfaces.
+	if target.State == scope.StateEnded {
+		return &Result{
+			NoOp: true,
+			NoOpMessage: fmt.Sprintf("scope %s on %s is already ended; nothing to end",
+				entityview.ShortHash(target.AuthSHA), entity.Canonicalize(e.ID)),
+		}, nil
+	}
+
+	trailers := []gitops.Trailer{
+		{Key: gitops.TrailerVerb, Value: "authorize"},
+		{Key: gitops.TrailerEntity, Value: entity.Canonicalize(e.ID)},
+		{Key: gitops.TrailerActor, Value: actor},
+		// The full SHA, never the operator's abbreviation: the replay
+		// matches this value by exact equality while the trailer's shape
+		// rule admits 7-40 hex, so a short value commits and validates
+		// while leaving the scope open.
+		{Key: gitops.TrailerScopeEnds, Value: target.AuthSHA},
+		{Key: gitops.TrailerReason, Value: reason},
+	}
+	// No aiwf-scope: trailer. Its closed set is opened|paused|resumed —
+	// termination has always been recorded by aiwf-scope-ends alone, and
+	// adding a fourth event value would fork one fact across two keys.
+	if err := validateAuthorizeTrailers(trailers); err != nil {
+		return nil, err
+	}
+	if err := CheckTrailerCoherence(trailers); err != nil {
+		return nil, err
+	}
+
+	result := plan(&Plan{
+		Subject: fmt.Sprintf("aiwf authorize %s --end --scope %s",
+			entity.Canonicalize(e.ID), entityview.ShortHash(target.AuthSHA)),
+		Body:       reason,
+		Trailers:   trailers,
+		AllowEmpty: true,
+	})
+	result.Metadata = map[string]any{
+		"entity_id": entity.Canonicalize(e.ID),
+		"action":    "end",
+		"scope":     target.AuthSHA,
+	}
+	return result, nil
+}
+
+// resolveScopeToEnd picks the scope --end targets, per ADR-0047.
+//
+// With a wanted SHA it matches by prefix over *every* scope, ended ones
+// included, because resolution precedes convergence: naming a scope that
+// is already ended has to resolve so the caller can converge on it,
+// while a value naming nothing at all is a refusal. Restricting the
+// candidates to non-ended scopes would collapse those two into one
+// refusal and lose the distinction.
+//
+// Without a wanted SHA the candidates are the non-ended scopes, and the
+// count must be exactly one: bare --end names no target, so zero
+// candidates leaves nothing to resolve, and more than one would make the
+// verb guess at an irreversible act.
+func resolveScopeToEnd(entityID, wanted string, scopes []*scope.Scope) (*scope.Scope, error) {
+	id := entity.Canonicalize(entityID)
+	if w := strings.TrimSpace(wanted); w != "" {
+		var matches []*scope.Scope
+		for _, s := range scopes {
+			if strings.HasPrefix(s.AuthSHA, w) {
+				matches = append(matches, s)
+			}
+		}
+		switch len(matches) {
+		case 1:
+			return matches[0], nil
+		case 0:
+			return nil, fmt.Errorf("aiwf authorize --end: no scope on %s matches --scope %q; "+
+				"`aiwf show %s` lists every scope with its auth-sha", id, w, id)
+		default:
+			return nil, fmt.Errorf("aiwf authorize --end: --scope %q matches %d scopes on %s; "+
+				"pass more characters to name one:\n%s", w, len(matches), id, renderScopeChoices(matches))
+		}
+	}
+	var live []*scope.Scope
+	for _, s := range scopes {
+		if s.State != scope.StateEnded {
+			live = append(live, s)
+		}
+	}
+	switch len(live) {
+	case 1:
+		return live[0], nil
+	case 0:
+		return nil, fmt.Errorf("no non-ended scope on %s to end", id)
+	default:
+		return nil, fmt.Errorf("aiwf authorize --end: %s has %d non-ended scopes; "+
+			"name one with --scope <auth-sha>:\n%s", id, len(live), renderScopeChoices(live))
+	}
+}
+
+// renderScopeChoices lists candidate scopes for a refusal, one per
+// line, in the shape an operator can copy straight back into --scope.
+//
+// Abbreviation goes through entityview.ShortHash, the same call
+// `aiwf show` renders its scope table with, so the value offered here
+// and the value the operator read there are one function's output
+// rather than two literals that happen to agree.
+func renderScopeChoices(scopes []*scope.Scope) string {
+	var b strings.Builder
+	for _, s := range scopes {
+		fmt.Fprintf(&b, "  %s  %s  (%s)\n", entityview.ShortHash(s.AuthSHA), s.Agent, s.State)
+	}
+	return strings.TrimRight(b.String(), "\n")
 }
 
 // mostRecentScopeInState returns the most-recently-opened scope whose
