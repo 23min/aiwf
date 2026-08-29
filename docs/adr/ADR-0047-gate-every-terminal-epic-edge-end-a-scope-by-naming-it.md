@@ -70,10 +70,11 @@ record ADR-0040 exists to prevent.
 
 ### An operator ends a scope by naming it, and `--end` defaults to the only candidate
 
-`aiwf authorize <id> --end` gains `--scope <auth-sha>`, a peer of `--to`,
-`--pause` and `--resume`. It ends the scope named by `--scope`; with no `--scope`
-it ends the entity's sole non-ended scope; with more than one candidate and no
-`--scope` it refuses, listing them.
+`aiwf authorize` gains `--end`, a mode alongside `--to`, `--pause` and `--resume`
+and mutually exclusive with them, plus `--scope <auth-sha>`, which modifies the
+end mode rather than being a mode itself. `--end` ends the scope named by
+`--scope`; with no `--scope` it ends the entity's sole non-ended scope; with more
+than one candidate and no `--scope` it refuses, listing them.
 
 Ending is terminal, so the target must be unambiguous. Copying pause's
 convention — pick the most-recently-opened and record nothing — would convert a
@@ -95,10 +96,18 @@ existing pause mode already refuses on the same ground when no scope qualifies.
 Naming an already-ended scope with `--scope` does converge, because there the
 target resolves and its ended state is exactly the effect asked for.
 
-A reason is required, as it already is for pause and resume. Ending is
-irreversible where those are not, so the case for recording why is stronger, not
-weaker; opening a scope takes an optional reason because a grant is undone by
-ending it, and an end is undone by nothing.
+A reason is required. Not by analogy with pause and resume, whose reason is their
+flag's own argument and so unavoidable by construction rather than by policy; and
+not from irreversibility, which `aiwf cancel` disproves as the kernel's trigger by
+taking an optional reason on a terminal act.
+
+The ground is that nothing else in the tree records this one. Every other
+irreversible act leaves a second trace that carries its own why: a cancel or a
+terminal promote moves a status, and the automatic end rides that same commit, so
+a reader who wants to know why a scope ended reads the transition it accompanied.
+An operator end changes no status — the entity keeps living, and the commit is the
+only artefact that changes. With no reason on it, the record says a delegation was
+withdrawn and nothing at all about why, and no later reader can recover it.
 
 The end commit carries the same `aiwf-scope-ends: <auth-sha>` the automatic end
 writes, so the scope replay is unchanged. An operator end stays distinguishable
@@ -141,11 +150,18 @@ would be wrong every time it appeared, since the message is reachable only for a
 non-human actor whose force trailer `verb.Apply` refuses anyway.
 
 The automatic end's predicate changes from active-only to non-ended. That is a
-real change to an existing invocation, and the only one here: an entity carrying a
-paused scope reaches a terminal status and now ends that scope where before it
-stranded it. No tree in this repo is affected, because no scope has ever been
-paused here — but the claim to make is "no invocation changes behaviour except on
-an entity carrying a paused scope", not the absolute.
+real change to an existing invocation, and the only one on the scope-end side: an
+entity carrying a paused scope reaches a terminal status and now ends that scope
+where before it stranded it. No tree in this repo is affected, because no scope has
+ever been paused here — but the claim the milestone specs must make is "no
+invocation changes behaviour except on an entity carrying a paused scope", not the
+absolute.
+
+That scoping matters because this decision changes existing invocations on the
+gating side too, deliberately and by its own Context: `aiwf promote <epic> done`
+from a non-human actor exits 0 today and is refused once the closed set widens.
+Nothing here is additive across the whole decision; only the end mode is additive
+relative to the automatic end that precedes it.
 
 ## Validation
 
@@ -160,8 +176,9 @@ a guard for a state nothing can produce.
 
 - ADR-0040 — prevention at the verb route, ratification at the history route; the
   source of the constraint that a widened closed set arrives with its call site
-- ADR-0036 — same-state transitions converge to a NoOp rather than refusing; the
-  R1-before-R2 ordering the end mode's convergence rules follow
+- `CLAUDE.md` §"Same-state convergence — resolve, then converge" — the
+  R1-before-R2 ordering the end mode's convergence rules follow. ADR-0036 settles
+  the FSM-transition case specifically and does not reach a mode of `authorize`
 - D-0008 — sovereign-act shape is a property over legal transitions, never below
   them
 - E-0090 — the epic this serves; M-0324 carries the gating, M-0325 the end mode
