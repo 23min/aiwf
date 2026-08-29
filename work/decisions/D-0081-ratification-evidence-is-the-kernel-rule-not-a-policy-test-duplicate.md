@@ -1,7 +1,7 @@
 ---
 id: D-0081
 title: Ratification evidence is the kernel rule, not a policy-test duplicate
-status: proposed
+status: accepted
 ---
 ## Question
 
