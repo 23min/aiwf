@@ -30,10 +30,11 @@ import (
 // TargetID, CreationRefs, MoveSource feed the allow-rule's
 // reachability check.
 //
-// IsTerminalPromote is true when the verb is a `promote` whose
-// target state is terminal for the entity's kind. Triggers the
-// scope-end side effect — writing aiwf-scope-ends for every active
-// scope on the target entity.
+// IsTerminalPromote is true when the verb takes the entity to a
+// status that is terminal for its kind — a `promote` whose target
+// state has no outgoing edges, or a `cancel`. Triggers the scope-end
+// side effect: one aiwf-scope-ends trailer per non-ended scope on the
+// target entity, ending each atomically with the transition.
 type ProvenanceContext struct {
 	Actor             string
 	Principal         string
@@ -48,8 +49,8 @@ type ProvenanceContext struct {
 // (already produced by the verb function) and decorates Plan.Trailers
 // with the provenance metadata: aiwf-principal (when actor is non-
 // human), aiwf-on-behalf-of and aiwf-authorized-by (when an active
-// scope authorized the act), aiwf-scope-ends (one trailer per active
-// scope on the entity, when the verb is a terminal promote).
+// scope authorized the act), aiwf-scope-ends (one trailer per non-ended
+// scope on the entity, when the verb takes it terminal).
 //
 // Returns a Go error when the allow-rule denies the act; the cmd
 // dispatcher surfaces it as a refusal. Returns nil and decorates the
@@ -111,7 +112,7 @@ func gateAndDecorate(ctx context.Context, root string, t *tree.Tree, plan *verb.
 		)
 	}
 	if pctx.IsTerminalPromote && pctx.TargetID != "" {
-		ends, err := loadActiveScopeAuthSHAsForEntity(ctx, root, pctx.TargetID)
+		ends, err := loadEndableScopeAuthSHAsForEntity(ctx, root, pctx.TargetID)
 		if err != nil {
 			return fmt.Errorf("computing scope-ends for %s: %w", pctx.TargetID, err)
 		}
@@ -234,19 +235,26 @@ func readActorOpenerEntities(ctx context.Context, root, actor string) ([]string,
 	return entities, nil
 }
 
-// loadActiveScopeAuthSHAsForEntity returns the auth-SHAs of every
-// active scope on entityID, in open-order. Used by the terminal-
+// loadEndableScopeAuthSHAsForEntity returns the auth-SHAs of every
+// non-ended scope on entityID, in open-order. Used by the terminal-
 // promote scope-end side effect — the verb's commit must carry one
 // `aiwf-scope-ends: <auth-sha>` per matched scope, ending each scope
 // atomically with the entity's transition to a terminal state.
-func loadActiveScopeAuthSHAsForEntity(ctx context.Context, root, entityID string) ([]string, error) {
+//
+// Paused scopes are included, not only active ones (ADR-0047). Once the
+// entity is terminal no verb will act on it again, so a paused scope
+// there can never be resumed; leaving it paused strands a delegation in
+// a state its own FSM offers an exit from. `paused → ended` is legal in
+// that FSM, and this is what fires it.
+func loadEndableScopeAuthSHAsForEntity(ctx context.Context, root, entityID string) ([]string, error) {
 	scopes, err := LoadEntityScopes(ctx, root, entityID)
 	if err != nil {
+		//coverage:ignore LoadEntityScopes short-circuits to (nil, nil) when HasCommits reports no commits, so a repo-less or empty root never reaches here; an error means `git log` failed after HasCommits succeeded on the same root, which no deterministic fixture produces.
 		return nil, err
 	}
 	var shas []string
 	for _, s := range scopes {
-		if s.State == scope.StateActive {
+		if s.State != scope.StateEnded {
 			shas = append(shas, s.AuthSHA)
 		}
 	}
