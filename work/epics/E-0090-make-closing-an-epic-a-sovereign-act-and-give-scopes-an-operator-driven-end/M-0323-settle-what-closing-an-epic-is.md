@@ -124,37 +124,62 @@ keep `## ADRs produced` citing an accepted ADR that names the epic back, and eve
 entity, not a class of future change — and the archive sweep does not end it,
 because the loader resolves archived entities too.
 
-Two things do force an edit, and neither is deletion. Superseding ADR-0047 turns
-AC-1 red, since the check requires status `accepted`; that is a legitimate future
-act, so the retirement trigger exists rather than not. And the `## Open questions`
-check binds the section's *shape*: rewriting the table as prose at wrap ("all
-resolved — see ADR-0047") fails, as does a resolution cell that mentions a second
-ADR for context. Owner is E-0090.
+**Nothing retires these checks, and that cost is accepted rather than unnoticed.**
+No condition in this milestone deletes them; they bind E-0090's body until someone
+removes them deliberately. What exists instead are breakage triggers — legitimate
+future acts that turn them red and force an edit rather than ending the
+obligation. Superseding ADR-0047 is one, since AC-1 requires status `accepted`.
+The `## Open questions` check binds the section's *shape*, so rewriting the table
+as prose at wrap ("all resolved — see ADR-0047") is another, as is a resolution
+cell that mentions a second ADR for context. AC-1 has the matching constraint on
+its own section: every ADR id appearing under `## ADRs produced` must be accepted
+*and* name E-0090 back, so an aside citing some other ADR for context belongs
+under `## References` instead. Owner is E-0090.
 
 **Deletions.** Nothing was retired. Nothing qualified: the milestone's output is a
 decision record plus its evidence, and it touched no existing test.
 
-**Same-outcome clusters.** Three tests, so no cluster of three or more claiming
-one outcome. They fail for different reasons — the epic-to-ADR citation, the
-question-table routing, and the table parser's own malformed-input handling. The
-first two are not independent: both consume `producedADRIDs`, so a broken
-`## ADRs produced` fails both, and AC-2's message then blames the question rows
-for a fault that is not theirs.
+**Same-outcome clusters.** At top level, three tests failing for different reasons
+— the epic-to-ADR citation, the question-table routing, and the table parser's
+malformed-input handling. The first two are not independent: both consume
+`producedADRIDs`, so a broken `## ADRs produced` fails both, and AC-2's message
+then blames the question rows for a fault that is not theirs.
 
-**Independent review.** One fresh-context reviewer over `git diff main..HEAD`;
-the design lens was skipped because this milestone introduced no module boundary,
-abstraction, or data model. Verdict was request-changes on five findings, all
-fixed here: three citations that named records saying something else (ADR-0038 for
-reasoning that is ADR-0036's, G-0022's `aiwf-revoked-by:` slot described as filled
-when this design leaves it unused, and `provenance-model.md` §"Multiple parallel
-scopes" credited with a same-entity claim its example does not make — its scopes
-sit on different entities); one constraint asserting no invocation changes
-behaviour, which forbade M-0325's own AC-4; and one fail-open in AC-2's evidence.
+Measured at subtest granularity there is one cluster, and it is real: two of
+`TestParseResolutionCells`'s refusal cases — header-and-delimiter-with-no-data-row
+and prose-with-no-table — reach the same sentinel through the same `len(rows) < 3`
+branch. They are kept as distinct inputs onto one branch rather than as
+independent failure reasons, which is what the counting rule asks to be stated
+rather than hidden.
 
-The reviewer re-derived every measurable claim independently and they held: the
-three-edge FSM, the single call site, the diff-shaped history audit, the
-one-ratification cost on `done` and zero on both cancel edges, and the
-active-only scope-end predicate.
+**Independent review — two fresh-context passes over `git diff main..HEAD`.** The
+design lens was skipped in both: this milestone introduced no module boundary,
+abstraction, or data model.
+
+Both passes returned request-changes, and between them every finding landed on the
+argument layer or on the evidence, never on a measurable claim. Across the two,
+each code fact in the ADR and the three specs was independently re-derived and
+held: the three-edge FSM, the single call site, the diff-shaped history audit, the
+one-ratification cost on `done` with zero on both cancel edges, the active-only
+scope-end predicate, and the reachability of two live scopes on one entity.
+
+The first pass found three citations naming records that said something else, one
+constraint that forbade M-0325's own AC-4, and a fail-open in AC-2's evidence. The
+second found that one of those citation fixes had substituted a second wrong
+record — ADR-0036 was cited for an R1-before-R2 ordering that lives in `CLAUDE.md`
+and that ADR-0036's own Scope clause excludes — that the behaviour-change claim
+was stated unscoped in the ADR while the specs scoped it correctly, and that the
+required-reason decision rested on two premises the code falsifies: pause and
+resume carry their reason as their flag's argument rather than by policy, and
+`aiwf cancel` is irreversible with an optional reason. The decision survived on a
+different ground; the argument for it did not.
+
+**What that pattern says about this milestone.** Its deliverable is an argument,
+and both passes found the arguments weaker than the measurements. Every claim that
+could be checked mechanically was right the first time; the claims that could only
+be read were wrong three times. That is the case for the review being independent
+rather than another pass by the author, and it is worth stating plainly here
+because the same asymmetry will hold for M-0324 and M-0325.
 
 Two findings belong to M-0324 and are recorded in its spec rather than fixed here:
 the static audit's regex will not see the `aiwf cancel` spelling after the
