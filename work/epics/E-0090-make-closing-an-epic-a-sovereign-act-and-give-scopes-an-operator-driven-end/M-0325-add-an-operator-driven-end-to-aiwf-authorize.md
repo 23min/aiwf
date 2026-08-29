@@ -13,7 +13,7 @@ acs:
       tdd_phase: done
     - id: AC-2
       title: Re-ending converges to a NoOp; naming no resolvable scope is refused
-      status: open
+      status: met
       tdd_phase: done
     - id: AC-3
       title: The end mode is reachable from --help, tab-completion, and the authorize skill
