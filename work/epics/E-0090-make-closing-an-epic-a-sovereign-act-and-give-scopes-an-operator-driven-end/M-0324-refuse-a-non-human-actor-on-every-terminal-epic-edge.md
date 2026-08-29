@@ -25,7 +25,7 @@ acs:
       tdd_phase: done
     - id: AC-5
       title: The audit catalogue names every transition in the sovereign closed set
-      status: open
+      status: met
       tdd_phase: done
     - id: AC-6
       title: The legal-workflow spec models sovereignty, derived from the closed set
