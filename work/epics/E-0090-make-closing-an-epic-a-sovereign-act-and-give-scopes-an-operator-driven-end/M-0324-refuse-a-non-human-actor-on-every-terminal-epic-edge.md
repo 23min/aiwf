@@ -10,7 +10,7 @@ acs:
     - id: AC-1
       title: Promoting an epic to done with a non-human actor is refused before any write
       status: open
-      tdd_phase: red
+      tdd_phase: green
     - id: AC-2
       title: Cancelling an epic with a non-human actor is refused at the verb, not the audit
       status: open
