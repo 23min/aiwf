@@ -73,6 +73,30 @@ func Cancel(ctx context.Context, t *tree.Tree, id, actor, reason string, force b
 		return nil, fmt.Errorf("%s is already %s", id, target)
 	}
 
+	// Sovereign-act gate (ADR-0047): the closed set carries both epic
+	// cancel edges, and this is the call site that makes them
+	// enforceable here. The history audit is transition-shaped rather
+	// than verb-shaped, so it observes a cancel whether or not this
+	// verb consults the set — without this call the act would land at
+	// exit 0 and fail the next push, which is refusal after the fact
+	// rather than prevention (ADR-0040).
+	//
+	// Placed ahead of the cascade guards, as promote places its own:
+	// who may declare the disposition is settled before the tree is
+	// asked whether the disposition is currently possible. An actor
+	// refused here would still be refused after disposing of every
+	// child, so answering the authority question first spares them the
+	// work.
+	//
+	// --force skips it and reaches verb.Apply's coherence guard, which
+	// refuses a force trailer from a non-human actor, so both routes
+	// into these edges stay closed.
+	if !force {
+		if err := requireHumanActorForSovereignAct("cancel", e.Kind, e.Status, target, actor); err != nil {
+			return nil, err
+		}
+	}
+
 	// Cancel-cascade guards (D-0003 / D-0004): refuse-with-listing when a
 	// parent still owns non-terminal children. No auto-cascade — the
 	// operator disposes each child first. Runs after the terminal/target

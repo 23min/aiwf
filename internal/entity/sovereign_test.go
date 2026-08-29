@@ -20,6 +20,8 @@ func TestIsSovereignActShape_TrueCases(t *testing.T) {
 	}{
 		{KindEpic, StatusProposed, StatusActive},
 		{KindEpic, StatusActive, StatusDone},
+		{KindEpic, StatusActive, StatusCancelled},
+		{KindEpic, StatusProposed, StatusCancelled},
 	}
 	for _, c := range cases {
 		t.Run(string(c.kind)+"/"+string(c.from)+"->"+string(c.to), func(t *testing.T) {
@@ -47,9 +49,13 @@ func TestIsSovereignActShape_FalseCases(t *testing.T) {
 		from Status
 		to   Status
 	}{
-		// Legal epic transitions that are NOT sovereign-act-shape.
-		{"epic proposed->cancelled", KindEpic, StatusProposed, StatusCancelled},
-		{"epic active->cancelled", KindEpic, StatusActive, StatusCancelled},
+		// No legal epic transition appears here. ADR-0047 rules every
+		// edge into a terminal epic status sovereign, and with
+		// proposed → active already in the set from M-0095, the epic
+		// FSM's four legal transitions are now sovereign without
+		// exception. The negative space this table guards has moved
+		// entirely to other kinds.
+		//
 		// Other kinds — their activation/acceptance edges are
 		// explicitly out of scope per M-0095's spec body ("separate
 		// open question, deferred at planning time").

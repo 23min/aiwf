@@ -59,49 +59,13 @@ func TestPromote_EpicActive_HumanActorSucceeds(t *testing.T) {
 	}
 }
 
-// TestPromote_EpicActive_OtherTransitionsUnaffected pins M-0095/AC-3:
-// the rule is scoped exactly to `proposed → active`. Other epic
-// transitions performed by a non-human actor are not refused *by this
-// rule*. Each subtest stages an epic in the appropriate starting state
-// and asserts the rule's error message (with its tell-tale "sovereign"
-// substring) does not appear when the non-human actor moves it.
-func TestPromote_EpicActive_OtherTransitionsUnaffected(t *testing.T) {
-	t.Parallel()
-	cases := []struct {
-		name      string
-		setup     func(r *runner) // leaves E-0001 in the appropriate starting state
-		newStatus entity.Status
-	}{
-		{
-			name: "proposed -> cancelled",
-			setup: func(r *runner) {
-				r.must(verb.Add(r.ctx, r.tree(), entity.KindEpic, "Cancelled path", testActor, verb.AddOptions{}))
-			},
-			newStatus: entity.StatusCancelled,
-		},
-		{
-			name: "active -> cancelled",
-			setup: func(r *runner) {
-				r.must(verb.Add(r.ctx, r.tree(), entity.KindEpic, "Active cancelled", testActor, verb.AddOptions{}))
-				r.must(verb.Promote(r.ctx, r.tree(), "E-0001", "active", testActor, "", false, verb.PromoteOptions{}))
-			},
-			newStatus: entity.StatusCancelled,
-		},
-	}
-	for _, tc := range cases {
-		t.Run(tc.name, func(t *testing.T) {
-			r := newRunner(t)
-			tc.setup(r)
-			_, err := verb.Promote(r.ctx, r.tree(), "E-0001", tc.newStatus, "ai/claude", "", false, verb.PromoteOptions{})
-			// The rule under test must not fire. Other refusals (e.g.,
-			// resolver requirements) may legitimately produce an error;
-			// we only assert the absence of the sovereign-act message.
-			if err != nil && strings.Contains(err.Error(), "sovereign") {
-				t.Errorf("rule should not fire on %s; got %v", tc.name, err)
-			}
-		})
-	}
-}
+// The transition-scoping counterpart to the kind-scoping test below is
+// deliberately absent. It pinned M-0095/AC-3 — that the rule fired on
+// `proposed → active` and on no other epic transition — and ADR-0047
+// leaves that claim with no subject: every edge into a terminal epic
+// status is now sovereign, so all four legal epic transitions are, and
+// the negative space it guarded is empty. Kind-scoping is still real
+// and is pinned below.
 
 // TestPromote_SovereignEdge_HumanIsAPrefixNotASubstring pins the
 // boundary of the actor predicate: human-ness is the `human/` prefix,

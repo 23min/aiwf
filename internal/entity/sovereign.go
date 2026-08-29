@@ -55,6 +55,15 @@ var sovereignActShapes = []SovereignActShape{
 	// the unit a scope is opened on, a milestone is work inside a
 	// scope someone already holds.
 	{KindEpic, StatusActive, StatusDone},
+	// epic → cancelled, from either state it is reachable from. Same
+	// authorization (ADR-0047), which declines to treat cancelling a
+	// proposed epic as the lesser act: discarding a plan that never
+	// became work invites that reading, but `cancelled` is terminal
+	// whatever state it is reached from, so the two are equally
+	// unrecoverable. Both are reached by `aiwf cancel` rather than by
+	// promote, which is why that verb consults this set too.
+	{KindEpic, StatusActive, StatusCancelled},
+	{KindEpic, StatusProposed, StatusCancelled},
 }
 
 // IsSovereignActShape reports whether (k, from, to) names a transition
