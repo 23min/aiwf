@@ -1256,15 +1256,15 @@ that the kernel contradicts.
 | M-0321 | Declare kind-by-verb applicability and enforce cell totality | draft |
 | M-0322 | Decide the rendered legality reference and ship it if taken | draft |
 
-## E-0090 — Make closing an epic a sovereign act and give scopes an operator-driven end (proposed)
+## E-0090 — Make closing an epic a sovereign act and give scopes an operator-driven end (active)
 
 ### Goal
 
-A human is the only actor who may declare an epic closed, on either edge that closes one, and a human can end an authorization scope deliberately instead of waiting for a status flip to end it as a side effect.
+A human is the only actor who may put an epic into a terminal status, on every edge that reaches one, and a human can end an authorization scope deliberately instead of waiting for a status flip to end it as a side effect.
 
 | Milestone | Title | Status |
 |---|---|---|
-| M-0323 | Settle what closing an epic is | draft |
-| M-0324 | Refuse a non-human actor on both edges that close an epic | draft |
+| M-0323 | Settle what closing an epic is | in_progress |
+| M-0324 | Refuse a non-human actor on every terminal epic edge | draft |
 | M-0325 | Add an operator-driven end to aiwf authorize | draft |
 
