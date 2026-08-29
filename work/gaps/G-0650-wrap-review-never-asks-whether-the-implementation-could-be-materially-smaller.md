@@ -92,3 +92,64 @@ The addition should be a fourth question in the existing brief rather than a
 new skill: the reviewer, the independence, and the bucketed numstat the
 question needs are all already there, and a standalone skill would be a
 per-subject mandate carried forever.
+
+## The second question — is anything built over-guarded
+
+The same stance, applied to a different substance. The compression question
+asks whether logic is duplicated; this one asks whether a branch never
+fires. Every other lens asks whether a guard is *missing*; nothing asks the
+inverse, and a defensive branch is neither duplication nor a large bucket,
+so the compression question does not reach it either.
+
+> For each guard the change adds, name the caller that can produce the state
+> it catches. If a caller can, the guard stays and the question is closed.
+> If none can — and especially where a test or an invariant forbids it —
+> say so explicitly: the guard, and the test the branch-coverage rule
+> requires for it, are both waste. Removal needs the unreachability
+> demonstrated, not assumed. Treat every annotation the change adds marking
+> a branch unreachable as a claim to be checked, not as an answer.
+
+**It defaults the opposite way to the compression question, and getting
+that backwards turns a review lens into a safety regression.** Compression
+defaults to cut-unless-constrained: a wrongly-kept helper costs lines. This
+one defaults to keep-unless-proven-dead: a wrongly-removed guard costs a
+crash. "I could not think of a caller" is not a demonstration.
+
+**The cost of an unnecessary guard is doubled wherever the branch-coverage
+rule is in force**, which is what makes the question worth more here than it
+would be generically. That rule requires a shipped defensive path to carry a
+test, so an unnecessary guard buys a branch that cannot fire plus a test
+constructing a state production cannot reach. Both are carried forever.
+
+Two instances from the trial run, one in each direction, which is why the
+question forces an argument rather than presuming its conclusion. A guard
+against an unknown entity kind in the sovereign-act regex builder cannot
+fire while the closed-set invariant test passes, because that test validates
+every entry against the FSM and an unknown kind fails validation — and an
+independent reviewer measured its subtest asserting nothing, so neutering
+the guard left the package green. Against that, a same-status branch in the
+cancel verb is annotated unreachable on a mathematical argument and should
+stay: the argument rests on a helper's behaviour that could change without
+anyone revisiting the site.
+
+## Both rules must ship, so both must be project-agnostic
+
+These are review discipline rather than aiwf operation, and the wrap ritual
+that would carry them materializes into every consumer repo. So the rule
+text reaches projects that share none of this repo's tooling.
+
+The annotation this repo uses to mark a branch unreachable is internal to
+it: the coverage audit that consumes it is repo-development tooling and the
+marker appears in no shipped surface. Naming that spelling in the rule would
+cite a mechanism a consumer does not have.
+
+The precedent to follow already exists and solves exactly this. The
+branch-coverage rule ships in the TDD-cycle ritual and states the same
+obligation generically — unreachable branches are documented *where the
+project records such things* — without naming any marker. Both questions
+above are written to that discipline: they name the category, never the
+implementation.
+
+The quoted blocks are the text that ships. The evidence around them in this
+gap is not; it stays here, where a reader deciding whether the rules earn
+their place can weigh it.
