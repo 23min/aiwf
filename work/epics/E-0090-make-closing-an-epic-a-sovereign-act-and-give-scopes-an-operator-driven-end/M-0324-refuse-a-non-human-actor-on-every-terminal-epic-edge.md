@@ -57,7 +57,15 @@ Stated as a property of the tree rather than as a count, because widening the se
 
 ### AC-4 — The static audit catches a scripted aiwf cancel of a sovereign edge
 
+The audit keys its patterns on `(prefix, To)`, so it matches only the `aiwf promote <id> <to>` spelling. For an entry a human would reach with `aiwf cancel`, it emits a pattern for that spelling too, and fires on a line carrying it without `--force`. The qualifying entries are those where `entity.CancelTarget(s.Kind, s.From) == s.To`, so the pattern set stays derived from the closed set rather than enumerating spellings by hand.
+
+Fails if a widened set adds a cancel-reachable entry whose spelling the audit cannot see.
+
 ### AC-5 — The audit catalogue names every transition in the sovereign closed set
+
+Every entry in `entity.SovereignActShapes()` is named by the sovereign-acts section of `docs/design/legal-workflows-audit.md`, with the expectation derived from the closed set rather than written as a literal — so widening the set without touching the catalogue turns the check red and names the missing transition.
+
+It pins that the transitions are *named*, not that what the rows say about them is true. R-RULE-001's Note is false in a way this check does not reach; content correctness in the catalogue stays held at review.
 
 ## Constraints
 
@@ -70,11 +78,11 @@ Stated as a property of the tree rather than as a count, because widening the se
 
 The refusal message names only the human-run path. Offering `--force` there would be wrong every time it appeared: the message is reachable only for a non-human actor, and `verb.Apply` refuses that actor's force trailer anyway.
 
-Two other consumers read the same closed set and widen automatically — the history audit in `internal/check/fsm_history_consistent.go`, and the static audit in `internal/policies/aiwf_promote_epic_active_audit.go` that builds one regex per entry. Neither needs an edit to pick up the new entries.
+Two other consumers read the same closed set. The history audit in `internal/check/fsm_history_consistent.go` widens with no edit. The static audit in `internal/policies/aiwf_promote_epic_active_audit.go` picks up the new entries for the `promote` spelling with no edit, and AC-4 extends it to the `cancel` spelling. That pattern cannot discriminate on `From`, so for a kind where only some from-states were sovereign it would over-match; no such kind exists — for epics both from-states reach `cancelled` — and the builder says so where it makes the choice.
 
-The static audit does need a decision, though, because widening the set exposes an asymmetry in what it scans. Its pattern is `aiwf\s+promote\s+<prefix>\S+\s+<to>`, so after the widening it catches `aiwf promote E-NNNN cancelled` in automation-shaped source and misses `aiwf cancel E-NNNN` — the natural spelling, and the very route this milestone adds a call site for. Either extend the pattern to the cancel form or record the gap in this milestone's Out of scope; silently inheriting it is the one option to refuse.
+Six rows of `docs/design/legal-workflows-audit.md` scope sovereignty to epic activation: R-AUDIT-0050, R-AUDIT-0113, R-AUDIT-0115, R-RULE-001, R-RULE-002 and R-RULE-078. AC-5 brings them onto the widened set. Two carry defects predating this milestone, corrected in passing: R-AUDIT-0050 cites `auditUnforcedEpicActivate`, a function that does not exist, and R-RULE-001's Note requires `--force --reason` for a transition a human reaches with no flag. R-AUDIT-0115 is the one row this milestone makes true rather than stale — it claims `cancel` carries the same sovereign rules as promote, which the missing call site falsifies today.
 
-Three rows of `docs/design/legal-workflows-audit.md` scope sovereignty to epic activation and go stale the moment three entries join the set: R-AUDIT-0050 (line 139) describes the static audit as scanning for `aiwf promote E-<id> active`; R-RULE-001 (line 543) notes `proposed → active` is the sovereign-act edge; R-RULE-078 (line 640) is titled "Epic activate". Only R-RULE-078 is pinned at all, in `m0293_force_enforcement_surfaces_test.go`, and that pin asserts its phrasing rather than its coverage. R-AUDIT-0050 and R-RULE-001 carry no pin, so nothing turns red when any of the three stops being true.
+The two pins in `m0293_force_enforcement_surfaces_test.go` assert phrasing, so a row rewritten to cover every terminal edge keeps them green without checking that it did. AC-5's check is derived from the closed set instead.
 
 The ratification burden falls on the `done` edge alone: every epic cancel in this repo's history was run by a human actor, so the audit's non-human predicate excludes them all.
 
