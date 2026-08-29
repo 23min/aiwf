@@ -30,6 +30,7 @@ acs:
     - id: AC-6
       title: The legal-workflow spec models sovereignty, derived from the closed set
       status: open
+      tdd_phase: red
 ---
 ## Goal
 
