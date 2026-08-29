@@ -24,17 +24,44 @@ asking for a working shorter version yields either an artefact or a named
 constraint. A usable form, scoped to logic:
 
 > Take the largest logic bucket. Write a version that does the same thing
-> in materially fewer lines, or name the specific constraint that prevents
-> it — an interface you do not control, a branch each arm genuinely needs,
-> a schema invariant, a policy the repo enforces.
+> in **half** the lines. Apply it in a scratch copy, run the gates, and
+> report what actually broke. If you cannot reach half, report how far you
+> got and name the specific constraint that stops you — an interface you do
+> not control, a branch each arm genuinely needs, a schema invariant, a
+> policy the repo enforces. Comments the policy mandates, tests pinning
+> distinct rules, and planning prose are out of scope and do not count
+> toward the target.
 
-Two properties are load-bearing and easy to get wrong. It must be scoped to
-**logic, not line count**: doc comments here are policy-enforced, and a
-line-count reviewer would attack exactly the prose `CLAUDE.md` mandates. And
-it must run at wrap, against a fresh-context reviewer that already holds the
-bucketed numstat — not at the TDD cycle's refactor step, where the author is
-minutes from having written the code and author-blindness is the whole
-problem.
+Four properties are load-bearing, and each addresses a way the question
+degrades.
+
+**Half, not "materially fewer".** A hedged target is satisfied by a five
+percent trim, reported as success. Half is deliberately unreachable by
+tightening, so it forces the structural reading — two things that should be
+one — which is where the value was. A failed attempt is still output:
+"reached seventy percent, the rest is irreducible because X" is a finding.
+The number is a provocation, not a threshold to clear.
+
+**Scoped to logic, not line count.** Doc comments here are policy-enforced
+and were the single largest bucket in the run below. A lens told to shrink
+the change, without the bucket split in front of it, attacks exactly the
+prose `CLAUDE.md` mandates.
+
+**Measured, not proposed.** The trial reported "still passing: X, Y, Z" —
+a prediction. Requiring the cut to be applied and the gates run converts
+each one into evidence, kills the plausible-but-wrong reduction, and
+self-limits volume, since a reviewer who must run each cut proposes fewer
+and better ones.
+
+**The escape hatch stays typed.** A lens told to find a cut will find one.
+The named-constraint alternative is the only protection, and it works
+because it demands a specific shape. Loosened to free text it yields
+rationalisations.
+
+It must also run at wrap, against a fresh-context reviewer that already
+holds the bucketed numstat — not at the TDD cycle's refactor step, where the
+author is minutes from having written the code and author-blindness is the
+whole problem.
 
 ## Why it matters
 
