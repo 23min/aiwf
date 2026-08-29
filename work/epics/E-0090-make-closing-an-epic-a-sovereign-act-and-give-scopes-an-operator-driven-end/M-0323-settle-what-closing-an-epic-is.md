@@ -102,10 +102,12 @@ The one warning is `provenance-untrailered-scope-undefined`: a freshly cut branc
 has no upstream, so the provenance audit has no range to walk. It clears on the
 first push and is not a finding about this work.
 
-Both AC tests were watched failing before being accepted as evidence — a
-nonexistent ADR id, a real but unratified one, a question row routed to another
-ADR, and a row added with no route. Each produced a distinct message naming the
-row or id at fault.
+Every guard was watched failing before being accepted as evidence, each with a
+distinct message naming the row or id at fault: a nonexistent ADR id; a real but
+unratified one; a question row routed to another ADR; a row added with no route;
+an `## Open questions` table stripped of its delimiter row with a data row's
+resolution cell blanked; and the whole epic repointed at an unrelated accepted
+ADR. The last two passed before the review found them and fail now.
 
 ## Deferrals
 
@@ -117,18 +119,52 @@ collecting only `active` scopes, so a paused scope survives its entity's closure
 
 **Recurring obligation.** This milestone adds two standing checks, and they are a
 real ongoing cost rather than a one-off: every future edit to E-0090's body must
-keep `## ADRs produced` citing an accepted ADR and every `## Open questions` row
-routed to it. The obligation is narrow — it binds one entity, not a class of
-future change — and nothing retires it, because the loader resolves archived
-entities too, so the tests keep passing after the epic is swept rather than
-needing deletion. Owner is E-0090.
+keep `## ADRs produced` citing an accepted ADR that names the epic back, and every
+`## Open questions` row routed to it. The obligation is narrow — it binds one
+entity, not a class of future change — and the archive sweep does not end it,
+because the loader resolves archived entities too.
+
+Two things do force an edit, and neither is deletion. Superseding ADR-0047 turns
+AC-1 red, since the check requires status `accepted`; that is a legitimate future
+act, so the retirement trigger exists rather than not. And the `## Open questions`
+check binds the section's *shape*: rewriting the table as prose at wrap ("all
+resolved — see ADR-0047") fails, as does a resolution cell that mentions a second
+ADR for context. Owner is E-0090.
 
 **Deletions.** Nothing was retired. Nothing qualified: the milestone's output is a
 decision record plus its evidence, and it touched no existing test.
 
-**Same-outcome clusters.** Two tests, so no cluster of three or more to judge.
-They fail for different reasons — one on the epic-to-ADR citation, one on the
-question-table routing — and share only their fixture loader.
+**Same-outcome clusters.** Three tests, so no cluster of three or more claiming
+one outcome. They fail for different reasons — the epic-to-ADR citation, the
+question-table routing, and the table parser's own malformed-input handling. The
+first two are not independent: both consume `producedADRIDs`, so a broken
+`## ADRs produced` fails both, and AC-2's message then blames the question rows
+for a fault that is not theirs.
+
+**Independent review.** One fresh-context reviewer over `git diff main..HEAD`;
+the design lens was skipped because this milestone introduced no module boundary,
+abstraction, or data model. Verdict was request-changes on five findings, all
+fixed here: three citations that named records saying something else (ADR-0038 for
+reasoning that is ADR-0036's, G-0022's `aiwf-revoked-by:` slot described as filled
+when this design leaves it unused, and `provenance-model.md` §"Multiple parallel
+scopes" credited with a same-entity claim its example does not make — its scopes
+sit on different entities); one constraint asserting no invocation changes
+behaviour, which forbade M-0325's own AC-4; and one fail-open in AC-2's evidence.
+
+The reviewer re-derived every measurable claim independently and they held: the
+three-edge FSM, the single call site, the diff-shaped history audit, the
+one-ratification cost on `done` and zero on both cancel edges, and the
+active-only scope-end predicate.
+
+Two findings belong to M-0324 and are recorded in its spec rather than fixed here:
+the static audit's regex will not see the `aiwf cancel` spelling after the
+widening, and three `legal-workflows-audit.md` rows scope sovereignty to epic
+activation with pins that assert their phrasing rather than their coverage.
+
+**G-0648 filed while wrapping.** `aiwfx-wrap-epic`'s precondition 6 scopes itself
+to the epic's own spec as well as its milestones', but the reading route it gives
+is a `## Closes` section only the milestone template carries. Not this milestone's
+work and not deferred by it — recorded because nothing else held it.
 
 **A hole found in the ADR while writing the specs against it.** The end-mode rule
 covered one candidate and many, but not zero. It now states that a bare `--end`
