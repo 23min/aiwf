@@ -23,6 +23,9 @@ acs:
     - id: AC-5
       title: The audit catalogue names every transition in the sovereign closed set
       status: open
+    - id: AC-6
+      title: The legal-workflow spec models sovereignty, derived from the closed set
+      status: open
 ---
 ## Goal
 
@@ -67,6 +70,8 @@ Fails if a widened set adds a cancel-reachable entry whose spelling the audit ca
 Every entry in `entity.SovereignActShapes()` is named by the sovereign-acts section of `docs/design/legal-workflows-audit.md`, with the expectation derived from the closed set rather than written as a literal — so widening the set without touching the catalogue turns the check red and names the missing transition.
 
 It pins that the transitions are *named*, not that what the rows say about them is true. R-RULE-001's Note is false in a way this check does not reach; content correctness in the catalogue stays held at review.
+
+### AC-6 — The legal-workflow spec models sovereignty, derived from the closed set
 
 ## Constraints
 
