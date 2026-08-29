@@ -80,9 +80,15 @@ It pins that the transitions are *named*, not that what the rows say about them 
 
 ### AC-6 — The legal-workflow spec models sovereignty, derived from the closed set
 
-`spec.GlobalRules()` carries a cross-cutting rule for the sovereignty gate, and a policy test binds its subject to `entity.SovereignActShapes()` rather than to a written-out list of edges, so widening the closed set without touching the spec turns it red. The rule declares `RejectionLayerVerbTime` with `BlockingStrict`, matching where the refusal actually happens.
+`spec.GlobalRules()` carries a cross-cutting rule for the sovereignty gate, so the legality encoding states that a human is required to open or close an epic. Before this milestone it stated that for no edge at all, the shipped `proposed → active` included: every epic cell was bare `OutcomeLegal`, and the only preconditioned ones were the child-cascade pair.
 
-The rule carries no `ExpectedErrorCode`, because the refusal has none to name. That keeps it outside the spec's two code-oriented drift arms, which skip any rule with an empty code — the binding here is to the closed set, not to an impl-side code literal. `TestM0123_AC2_IllegalImpliesErrorCode` iterates `Rules()` and not `GlobalRules()`, so the empty code is schema-legal.
+The rule's subject names the kernel's closed set — `sovereign-act-shape` — rather than enumerating the entries it holds today. Nothing therefore needs re-syncing as the set widens, and there is no second copy of the set to drift. The alternative, listing the four transitions and deriving the expected list in a test, would have bought a drift check by first creating the drift it detects; single-source-of-truth says make the drift impossible instead.
+
+That choice is what the AC can honestly claim. A symbolic rule cannot go stale, so no test asserts that it tracks a widening — there is nothing to track. What is asserted is that exactly one such rule exists, that it is `OutcomeIllegal` at `RejectionLayerVerbTime` with `BlockingStrict` (matching where the refusal happens, which ADR-0040 requires of a prevention rule), that its other two preconditions scope it to a non-human unforced actor, and that its authorizing record resolves through the loader at status `accepted`. The residual risk is stated rather than hidden: if someone later rewrites the predicate into something meaningless, only review catches it.
+
+The rule carries no `ExpectedErrorCode`, because the refusal has none to name. That keeps it outside the spec's two code-oriented drift arms, which skip any rule with an empty code. `TestM0123_AC2_IllegalImpliesErrorCode` iterates `Rules()` and not `GlobalRules()`, so the empty code is schema-legal; G-0649 carries the underlying question.
+
+The citation check is this AC's own, not a reuse. `TestM0123_AC6_RuleDecisionSourcesResolve` resolves `Sources.Decision` for `Rules()` cells but requires the target to be a decision entity, while the cross-cutting rules cite ADRs — so it could not cover this rule without redefining what that field admits.
 
 ## Constraints
 
