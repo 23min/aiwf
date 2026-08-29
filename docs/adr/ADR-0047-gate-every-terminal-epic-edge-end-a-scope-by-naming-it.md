@@ -89,6 +89,12 @@ Defaulting to the sole candidate is not a guess: with one candidate it is the
 only resolution available. The default therefore costs nothing in precision and
 removes the lookup from the common path.
 
+With no `--scope` and no candidate, the verb refuses rather than converging —
+bare `--end` names no target, so there is nothing for R1 to resolve, and the
+existing pause mode already refuses on the same ground when no scope qualifies.
+Naming an already-ended scope with `--scope` does converge, because there the
+target resolves and its ended state is exactly the effect asked for.
+
 The end commit carries the same `aiwf-scope-ends: <auth-sha>` the automatic end
 writes, so the scope replay is unchanged. An operator end stays distinguishable
 in history because it rides an `aiwf-verb: authorize` commit rather than a
@@ -145,14 +151,18 @@ a guard for a state nothing can produce.
 
 ## References
 
-- Related ADRs: `ADR-0040` (prevention at the verb route, ratification at the
-  history route), `ADR-0038` (the two-seam placement reasoning this follows).
-- aiwf decisions: `D-0008` (sovereign-act shape is a property over legal
-  transitions, never below them).
-- Linked epics and milestones: `E-0090`, `M-0323`, `M-0324`, `M-0325`.
-- Gaps: `G-0646` (both closing edges ungated, gate reaches only promote), `G-0022`
-  (the reserved revoke trailer slot), `G-0460` (repeat authorize leaves two active
-  scopes), `G-0111` (scope end welded to the terminal promote).
-- `docs/design/provenance-model.md` §"Multiple parallel scopes" — a human may hold
+- ADR-0040 — prevention at the verb route, ratification at the history route; the
+  source of the constraint that a widened closed set arrives with its call site
+- ADR-0038 — the two-seam placement reasoning this follows
+- D-0008 — sovereign-act shape is a property over legal transitions, never below
+  them
+- E-0090 — the epic this serves; M-0324 carries the gating, M-0325 the end mode
+- G-0646 — the closing edges left ungated, and the gate reaching only promote
+- G-0022 — the reserved revoke trailer slot this fills
+- G-0460 — asks whether more than one live scope per entity should be legal; the
+  signal named under Validation above
+- G-0111 — the scope end welded to the terminal promote, which survives this
+  decision
+- docs/design/provenance-model.md §"Multiple parallel scopes" — a human may hold
   several active scopes at once, and the kernel resolves a verb against the
-  most-recently-opened.
+  most-recently-opened
