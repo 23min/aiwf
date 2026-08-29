@@ -9,7 +9,7 @@ tdd: required
 acs:
     - id: AC-1
       title: The end mode ends the targeted scope without changing its entity's status
-      status: open
+      status: met
       tdd_phase: done
     - id: AC-2
       title: Re-ending converges to a NoOp; naming no resolvable scope is refused
