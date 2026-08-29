@@ -10,6 +10,7 @@ acs:
     - id: AC-1
       title: The end mode ends the targeted scope without changing its entity's status
       status: open
+      tdd_phase: red
     - id: AC-2
       title: Re-ending converges to a NoOp; naming no resolvable scope is refused
       status: open
