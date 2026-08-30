@@ -48,6 +48,7 @@ aiwf check --since HEAD~50   # walk the last 50 commits
 
 | Code | Meaning |
 |---|---|
+| `milestone-done-empty-release-note` | A milestone is `status: done` with no `## Release note` an author wrote — the section absent, or present and carrying nothing but whitespace, headings, or the template's guidance comment. The epic wrap composes its changelog entry from these notes and copies that entry verbatim into the changelog, so an unwritten one is a shipped change described by nobody who did the work. `promote` runs the projection findings as preconditions and gates on error severity, so this rule also refuses the `done` promote that would create the state. A milestone with nothing user-facing writes that in those words rather than leaving the section blank. Archived entities are out of scope, as for every archive-scoped rule. |
 | `ids-unique` | Two entities share an id. Almost always from a parallel-branch merge. |
 | `ids-unique/trunk-collision` | An id allocated on this branch is also allocated on the configured trunk ref (default `refs/remotes/origin/main`) at a different path — i.e. two different entities now share it across branches. The cross-tree variant of `ids-unique`. The pre-push hook surfaces this before the colliding push lands. |
 | `frontmatter-shape` | Required field missing or malformed. |
@@ -121,7 +122,6 @@ Doc findings are warnings until `aiwf.yaml: docs.strict: true`. Sweep your docs 
 
 | Code | Meaning |
 |---|---|
-| `milestone-done-empty-release-note` | A milestone is `status: done` carrying a `## Release note` section nobody filled in. The epic wrap composes its changelog entry from these notes and copies that entry verbatim into the changelog, so an empty one is a shipped change described by nobody who did the work. Scoped to a section that is **present** and empty — a spec written before the section existed carries no such heading and is out of scope. Warning, not error: a milestone with genuinely nothing user-facing says so in those words rather than being blocked. Archived entities are out of scope, as for every archive-scoped rule. |
 | `titles-nonempty` | Title is missing or whitespace-only. |
 | `roadmap-case-collision` | More than one case-variant of the generated roadmap artifact exists at the repo root (e.g. both `ROADMAP.md` and `roadmap.md`). Only physically possible on a case-sensitive filesystem; `aiwf render roadmap --write` reconciles to a single existing variant but cannot pick between two, so it leaves this advisory for you to resolve. |
 | `adr-supersession-mutual` | ADR A says it's superseded by B, but B does not list A in its `supersedes`. |

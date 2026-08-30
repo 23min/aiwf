@@ -206,6 +206,28 @@ func (f *CellFixture) epicAt(t *testing.T, fromState string) string {
 	return ""
 }
 
+// writeReleaseNote gives a milestone the `## Release note` the kernel requires
+// before it can reach `done`. The rule is error-severity and Promote runs the
+// projection findings as preconditions, so a fixture driving a milestone to
+// `done` has to write one exactly as a real wrap does.
+func (f *CellFixture) writeReleaseNote(t *testing.T, id string) {
+	t.Helper()
+	e := f.Tree().ByID(id)
+	if e == nil { //coverage:ignore defensive: the milestone this fixture just created is in its own tree
+		t.Fatalf("writeReleaseNote: %s not in the tree", id)
+	}
+	raw, err := os.ReadFile(filepath.Join(f.Root, e.Path))
+	if err != nil { //coverage:ignore defensive: the file the preceding verb just wrote is readable
+		t.Fatalf("writeReleaseNote: reading %s: %v", e.Path, err)
+	}
+	_, body, ok := entity.Split(raw)
+	if !ok { //coverage:ignore defensive: an entity file the kernel serialized always splits
+		t.Fatalf("writeReleaseNote: %s has no frontmatter", e.Path)
+	}
+	updated := append(append([]byte{}, body...), []byte("\n## Release note\n\nNo user-visible change.\n")...)
+	f.Must(verb.EditBody(f.ctx, f.Tree(), id, updated, testActor, "fixture: release note"))
+}
+
 func (f *CellFixture) milestoneAt(t *testing.T, fromState string, opts BringOpts) string {
 	t.Helper()
 	parentTDD := opts.ParentTDD
@@ -220,6 +242,12 @@ func (f *CellFixture) milestoneAt(t *testing.T, fromState string, opts BringOpts
 		return "M-0001"
 	case entity.StatusInProgress:
 		f.Must(verb.Promote(f.ctx, f.Tree(), "M-0001", entity.StatusInProgress, testActor, "fixture-setup", true, verb.PromoteOptions{}))
+		// A milestone at in_progress is the state a `done` promote is attempted
+		// from, and `done` requires a written release note. Seeding it here is
+		// the same shape as seeding terminal ACs below: the fixture satisfies
+		// the target state's preconditions so the transition under test is the
+		// only thing being judged.
+		f.writeReleaseNote(t, "M-0001")
 		return "M-0001"
 	case entity.StatusDone:
 		f.Must(verb.Promote(f.ctx, f.Tree(), "M-0001", entity.StatusInProgress, testActor, "fixture-setup", true, verb.PromoteOptions{}))
@@ -239,6 +267,7 @@ func (f *CellFixture) milestoneAt(t *testing.T, fromState string, opts BringOpts
 			f.Must(verb.PromoteACPhase(f.ctx, f.Tree(), acID, entity.TDDPhaseDone, testActor, "", false, nil))
 			f.Must(verb.Promote(f.ctx, f.Tree(), acID, entity.StatusMet, testActor, "covered by Test"+fmt.Sprint(i+1), false, verb.PromoteOptions{}))
 		}
+		f.writeReleaseNote(t, "M-0001")
 		f.Must(verb.Promote(f.ctx, f.Tree(), "M-0001", entity.StatusDone, testActor, "", false, verb.PromoteOptions{}))
 		return "M-0001"
 	case entity.StatusCancelled:

@@ -48,9 +48,8 @@ const releaseNoteFilled = "## Goal\n\nx\n\n## Release note\n\nThe verb now accep
 // the heading with its guidance comment and nothing an author wrote.
 const scaffoldOnly = "## Goal\n\nx\n\n## Release note\n\n<!-- The user-visible delta of this milestone. -->\n"
 
-// noSection is a spec written before the section existed — 281 milestones in
-// this repo's own tree are shaped this way, which is why an absent heading is
-// out of scope rather than reported.
+// noSection is a spec with no such heading at all. It counts as unwritten:
+// scoping to present-and-empty would make deleting the heading an escape.
 const noSection = "## Goal\n\nx\n\n## Work log\n\n### AC-1 — x\n\ndone\n"
 
 func TestMilestoneDoneEmptyReleaseNote(t *testing.T) {
@@ -64,11 +63,12 @@ func TestMilestoneDoneEmptyReleaseNote(t *testing.T) {
 	}{
 		{"done with only the scaffold comment fires", "done", scaffoldOnly, true},
 		{"done with an empty section fires", "done", "## Goal\n\nx\n\n## Release note\n", true},
+		{"done with no such section fires", "done", noSection, true},
 		{"done with a written note is clean", "done", releaseNoteFilled, false},
-		{"done with no such section is out of scope", "done", noSection, false},
-		{"in_progress with an empty section is not yet due", "in_progress", scaffoldOnly, false},
-		{"draft with an empty section is not yet due", "draft", scaffoldOnly, false},
-		{"cancelled with an empty section is not due", "cancelled", scaffoldOnly, false},
+		// One case for the status gate, not one per non-done status: every
+		// non-done status leaves through the same arm, so the rest would be
+		// spellings of one rule rather than distinct rules.
+		{"a milestone short of done is not yet due", "in_progress", noSection, false},
 	}
 
 	for _, tc := range cases {
@@ -89,8 +89,14 @@ func TestMilestoneDoneEmptyReleaseNote(t *testing.T) {
 			if f.Code != CodeMilestoneDoneEmptyReleaseNote {
 				t.Errorf("Code = %q, want %q", f.Code, CodeMilestoneDoneEmptyReleaseNote)
 			}
-			if f.Severity != SeverityWarning {
-				t.Errorf("Severity = %v, want warning", f.Severity)
+			if f.Severity != SeverityError {
+				t.Errorf("Severity = %v, want error — the promote precondition gates on error severity", f.Severity)
+			}
+			if f.Path == "" {
+				t.Error("Path is empty; the finding must name the file to look at")
+			}
+			if f.Field != "release_note" {
+				t.Errorf("Field = %q, want release_note", f.Field)
 			}
 			if f.EntityID != "M-0001" {
 				t.Errorf("EntityID = %q, want M-0001", f.EntityID)

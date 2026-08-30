@@ -13,44 +13,45 @@ import (
 // carrying a `## Release note` section nobody filled in.
 const CodeMilestoneDoneEmptyReleaseNote = "milestone-done-empty-release-note"
 
-// releaseNoteSectionSlug is the section this rule reads, in the slug form
-// ParseBodySections keys by.
-var releaseNoteSectionSlug = entity.SectionSlug("Release note")
+// ReleaseNoteSectionHeading is the milestone-spec section this rule reads. It is
+// exported so a policy can resolve it against the heading the shipped template
+// actually carries: renaming the section coherently across the template and the
+// rituals would otherwise leave this rule looking for a heading no spec has, and
+// it would stop firing permanently with nothing red.
+const ReleaseNoteSectionHeading = "Release note"
 
-// milestoneDoneEmptyReleaseNote fires (warning) when a non-archived milestone at
-// `done` carries a `## Release note` section with nothing an author wrote in it.
+// releaseNoteSectionSlug is that heading in the slug form ParseBodySections
+// keys by.
+var releaseNoteSectionSlug = entity.SectionSlug(ReleaseNoteSectionHeading)
+
+// milestoneDoneEmptyReleaseNote fires (error) when a non-archived milestone at
+// `done` has no `## Release note` an author filled in — the section absent, or
+// present and carrying nothing but whitespace, headings, or the template's own
+// guidance comment.
 //
 // The section is where a milestone records its own user-visible delta, and the
 // epic wrap composes the epic's changelog entry from those notes and copies that
-// entry verbatim into the changelog. A note left empty is therefore a shipped
-// change that reaches a release described by nobody who did the work — the
-// failure this rule exists to catch, measured on a real release that shipped
-// three such changes undocumented.
+// entry verbatim into the changelog. An empty one is a shipped change that
+// reaches a release described by nobody who did the work — measured on a real
+// release that shipped three such changes undocumented.
 //
 // The rule governs two surfaces from one definition, because `promote` runs the
-// projection findings as preconditions: it reports standing state in
-// `aiwf check`, and it refuses a `done` promote that would produce that state.
+// projection findings as preconditions and gates on error severity
+// (`verb.Promote` -> `check.HasErrors`): it reports standing state in
+// `aiwf check`, and it refuses the `done` promote that would produce that state.
+// Error severity is what makes the second surface real — at warning it would
+// report only after the fact, and the milestone wrap pushes before it promotes.
 //
-// Scoped to a section that is *present* and empty, never to one that is absent.
-// A spec written before the section existed carries no such heading, and this
-// repo's own tree holds 281 such milestones at `done` — an absent-or-empty rule
-// would report every one of them on the day it landed and be switched off rather
-// than acted on. A spec scaffolded from the current template carries the
-// heading, so present-and-empty selects exactly the milestones the section
-// applies to. `entity-body-empty` draws the same line for the same reason.
-//
-// The residual is that deleting the heading evades the rule. That is the general
-// hole G-0571 reports, and the obligation to reconcile this rule with the
-// required-sections machinery that closes it is recorded there.
+// A milestone with nothing user-facing is not blocked, it is asked for four
+// words: the template names "no user-visible change" as a valid note. That is
+// the escape, rather than a scope that lets an unwritten note through.
 //
 // Archive-scoped per ADR-0004: an archived milestone is historical state, not
-// active drift. Every done milestone is swept there eventually, so the live
-// window this rule governs is the promote itself and the span before the sweep.
-//
-// Warning rather than error, because a milestone can legitimately have nothing
-// user-visible to report — the template asks for those words explicitly ("no
-// user-visible change"), and an error would block the wrap before the author has
-// the chance to write them.
+// active drift, and every milestone reaching `done` is swept there eventually.
+// The live window this rule governs is the promote itself and the span before
+// the sweep. That gate is also why the rule costs nothing to adopt: every
+// milestone already at `done` in this repo is archived, so the rule reports on
+// none of them.
 func milestoneDoneEmptyReleaseNote(t *tree.Tree) []Finding {
 	var findings []Finding
 	for _, e := range t.Entities {
@@ -76,17 +77,15 @@ func milestoneDoneEmptyReleaseNote(t *tree.Tree) []Finding {
 		// Comments are stripped first so a spec carrying only the template's
 		// guidance comment reads as the empty section it is.
 		sections := entity.ParseBodySections(stripHTMLComments(body))
-		content, present := sections[releaseNoteSectionSlug]
-		if !present {
-			continue
-		}
-		if !isAllWhitespaceOrHeadings([]byte(content), false) {
+		// An absent section counts as empty: scoping to present-and-empty would
+		// make deleting the heading an escape from the rule.
+		if !isAllWhitespaceOrHeadings([]byte(sections[releaseNoteSectionSlug]), false) {
 			continue
 		}
 		findings = append(findings, Finding{
 			Code:     CodeMilestoneDoneEmptyReleaseNote,
-			Severity: SeverityWarning,
-			Message: fmt.Sprintf("milestone %s is done with an empty `## Release note`; the epic wrap composes its changelog entry from these notes, so this milestone's change reaches the release described by nobody who did the work — write the user-visible delta, or the words \"no user-visible change\" when there is none",
+			Severity: SeverityError,
+			Message: fmt.Sprintf("milestone %s is done without a `## Release note` an author wrote; the epic wrap composes its changelog entry from these notes, so this milestone's change reaches the release described by nobody who did the work — write the user-visible delta, or the words \"no user-visible change\" when there is none",
 				e.ID),
 			Path:     e.Path,
 			EntityID: e.ID,
