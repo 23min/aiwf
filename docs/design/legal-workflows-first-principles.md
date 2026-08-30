@@ -325,7 +325,7 @@ These rules pin the principal × agent × scope provenance commitments. Codified
 | R-FP-0121 | trailers | `aiwf-authorized-by:` SHAs are validated at read time (every `aiwf check` pass), not write time. Three sub-cases: missing SHA (`provenance-authorization-missing`), out-of-scope reference (`provenance-authorization-out-of-scope`), ended scope (`provenance-authorization-ended`). | Codified in provenance-model.md. Write-time SHA validation gives only weak guarantees because SHAs can become stale via rebase/force-push. | load-bearing | error |
 | R-FP-0122 | trailers | `aiwf-to:` records the target state of a promote (and the agent for an authorize). | Codified in design-decisions.md §"Acceptance criteria and TDD." Target state belongs in the structured trailer, not the commit subject. | load-bearing | error |
 | R-FP-0123 | trailers | `aiwf-prior-entity:` is written by `aiwf reallocate` alongside `aiwf-entity:`. The bridge that keeps both ids' histories complete. | Codified in design-decisions.md §"Markdown is the source of truth." | load-bearing | error |
-| R-FP-0124 | trailers | `aiwf-reason:` is non-empty after trim. Required on `--pause`, `--resume`, and `--force`; optional on `--to`. | Codified in provenance-model.md §"Trailer set." Empty reasons defeat the audit purpose. | load-bearing | error |
+| R-FP-0124 | trailers | `aiwf-reason:` is non-empty after trim. Required on `--pause`, `--resume`, `--end`, and `--force`; optional on `--to`. | Codified in provenance-model.md §"Trailer set." Empty reasons defeat the audit purpose. | load-bearing | error |
 
 ### 6c. Scope FSM
 
@@ -334,7 +334,7 @@ These rules pin the principal × agent × scope provenance commitments. Codified
 | R-FP-0125 | scope FSM | Scope states are closed: `active`, `paused`, `ended`. | Codified in provenance-model.md. The closed set means the parser/renderer is bounded. | load-bearing | error |
 | R-FP-0126 | scope FSM | `active → paused` is legal via `aiwf authorize <id> --pause "<reason>"`. | Codified in provenance-model.md. | load-bearing | error |
 | R-FP-0127 | scope FSM | `paused → active` is legal via `aiwf authorize <id> --resume "<reason>"`. | Codified in provenance-model.md. | load-bearing | error |
-| R-FP-0128 | scope FSM | `active → ended` and `paused → ended` are automatic when the scope-entity reaches a terminal status. Recorded by `aiwf-scope-ends: <auth-sha>` on the terminal-promote commit. | Codified in provenance-model.md §"Scope termination." | load-bearing | error |
+| R-FP-0128 | scope FSM | `active → ended` and `paused → ended` take either of two routes, both recorded by `aiwf-scope-ends: <auth-sha>`: automatic, when a promote or cancel takes the scope-entity to a terminal status, covering every non-ended scope on it; or deliberate, via `aiwf authorize <id> --end`. | Codified in provenance-model.md §"The `aiwf authorize` verb" and ADR-0047. | load-bearing | error |
 | R-FP-0129 | scope FSM | `ended` is terminal. Un-canceling the scope-entity does not resurrect the ended scope; the human issues a new authorization. | Codified in provenance-model.md ("Q3.5: strict end-on-terminal"). | load-bearing | error |
 | R-FP-0130 | scope FSM | A non-human actor's verb succeeds only if at least one active scope's reachability check passes (the verb's target entity reaches the scope-entity via the reference graph). | Codified in provenance-model.md §"Scope check." Without this, the gating function is trivially true and the scope concept is decorative. | load-bearing | error |
 | R-FP-0131 | scope FSM | Human actors with no `--principal` flag bypass the scope check. Humans need no authorization to act. | Codified in provenance-model.md. Scopes constrain agents-acting-for-humans; humans are sovereign by themselves. | load-bearing | error |
@@ -349,6 +349,7 @@ These rules pin the principal × agent × scope provenance commitments. Codified
 | R-FP-0135 | `aiwf authorize` | `--pause "<reason>"` requires a most-recently-opened active scope for `<id>`. If none, the verb refuses with `provenance-no-active-scope-to-pause`. | Codified in provenance-model.md. | load-bearing | error |
 | R-FP-0136 | `aiwf authorize` | `--resume "<reason>"` requires a most-recently-paused scope for `<id>`. If none, the verb refuses with `provenance-no-paused-scope-to-resume`. | Codified in provenance-model.md. | load-bearing | error |
 | R-FP-0137 | `aiwf authorize` | A scope is addressed by the SHA of its `authorize` commit. No separate scope id namespace. | Codified in provenance-model.md §"Scope id." | load-bearing | error |
+| R-FP-0177 | `aiwf authorize` | `--end` ends one non-ended scope on `<id>` without changing the entity's status. Targets `--scope <auth-sha>` (an unambiguous prefix of 4+ chars), or the sole non-ended scope when `--scope` is omitted; refuses listing the candidates when more than one qualifies. `--reason` required. | Codified in ADR-0047. Ending is terminal, so the target must be unambiguous — pause's most-recently-opened convention would convert a re-derivation error into an unrecoverable one. | load-bearing | error |
 
 **Total: 27 rules in §6.**
 

@@ -112,7 +112,7 @@ When state was already reached via a manual `git commit` (no aiwf trailers), `ai
 
 For agents acting under an active authorization scope, the kernel matches the scope automatically (no `--scope` flag) and stamps `aiwf-on-behalf-of:` + `aiwf-authorized-by:` on the commit. Open the scope first with `aiwf authorize`. Without an active scope, agent promotions refuse with `provenance-no-active-scope`.
 
-When the scope-entity reaches a **terminal status** via `aiwf promote` (e.g., `aiwf promote E-NNNN done`), every active scope on that entity auto-ends — the commit carries one `aiwf-scope-ends: <auth-sha>` per ended scope.
+When the scope-entity reaches a **terminal status** via `aiwf promote` or `aiwf cancel` (e.g., `aiwf promote E-NNNN done`), every non-ended scope on that entity auto-ends — the commit carries one `aiwf-scope-ends: <auth-sha>` per ended scope. A paused scope is included: nothing will act on a terminal entity, so nothing could resume it.
 
 ## What aiwf does
 
