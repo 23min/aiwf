@@ -44,3 +44,13 @@ section is present and empty, it refuses and tells the operator `aiwf check` wil
 block until the section is filled — which is true. An operator can satisfy that
 refusal by deleting the heading rather than filling it, and then neither the gate
 nor the check says anything. The stricter body is the one that is harder to land.
+
+## Inherited obligation
+
+M-0326 ships a standalone `aiwf check` rule reporting a `done` milestone whose
+`## Release note` is absent or empty, rather than making it this machinery's
+first consumer. Enforcing the declared set is the blast radius measured above
+and belongs to this gap, so routing that one rule through it would have pulled
+the cost forward into a milestone about something else. Whoever closes this gap
+folds that rule into the general mechanism or records why it stays separate —
+leaving it unexamined is the outcome the split was chosen to avoid.
