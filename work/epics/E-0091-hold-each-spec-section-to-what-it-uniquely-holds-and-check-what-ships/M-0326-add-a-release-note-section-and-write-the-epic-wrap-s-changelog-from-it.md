@@ -85,15 +85,16 @@ for it.
 `aiwf check` reports a milestone whose status is `done` and whose
 `## Release note` is absent or empty.
 
-Two things to settle in implementation:
+The rule is standalone: its own finding keyed to this section, not the first
+consumer of `internal/entity/required_sections.go`. That file declares a
+per-kind required set nothing enforces, and enforcing it would begin reporting
+every entity missing a section its kind requires — G-0571 measures that at 119
+findings over 60 live entities. The blast radius belongs to that gap, not to
+this milestone.
 
-- *Blast radius.* Every milestone already `done` lacks the section. The rule
-  lands at warning severity against a measured baseline and escalates only once
-  that baseline is clean.
-- *Overlap.* `internal/entity/required_sections.go` already declares a per-kind
-  required set that nothing enforces — G-0571, scheduled to a later milestone in
-  this epic. Decide whether this rule is that machinery's first consumer or a
-  standalone rule, and if standalone, say why.
+One thing to settle in implementation: every milestone already `done` lacks
+`## Release note`, so this rule too lands at warning severity against a measured
+baseline and escalates only once that baseline is clean.
 
 ## Constraints
 
@@ -134,6 +135,9 @@ Two things to settle in implementation:
   milestone supplies the input; the check is a separate milestone.
 - Widening the changelog category set. That is a decision revisit tracked in
   G-0613.
+- Enforcing the declared per-kind required-section set. AC-3 ships a standalone
+  rule; folding it into that machinery, or recording why it stays separate, is
+  an obligation carried by whoever closes G-0571 and is written there.
 
 ## Dependencies
 
