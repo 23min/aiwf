@@ -81,11 +81,15 @@ raise set. Two unrelated surfaces, one mechanism.
 **Name one owner and point the rest at it** — the same move `db843cead` made
 for vocabulary, not a hand reconciliation of five copies.
 
-`templates/milestone-spec.md` is the natural owner: it is the artefact whose
-sections these are, it already carries a per-section comment for each, and a
-spec author has it open while filling them. The rituals and agent cards would
-then say which sections they touch, and stop saying when those sections are
-otherwise filled.
+Which surface should own a given rule is decided by where that rule binds, and
+the template owns less than it appears to. Its per-section comments are consumed
+when a spec is scaffolded and do not survive into the file: measured 2026-08-30,
+1 of 325 milestone specs still carries the `## Work log` comment, and recent
+specs carry none at all. So the template can own a rule read while a spec is
+being authored, but not one that binds during implementation — that rule has to
+live in the ritual the implementing agent is following. The rituals and agent
+cards would then say which sections they touch, and stop restating rules whose
+owner is elsewhere.
 
 Deciding that ownership settles the open contradiction as a side effect:
 whichever way `## Validation` resolves, it resolves once. That decision is the
@@ -93,32 +97,14 @@ substance of this gap and is why it is not a mechanical edit — it is why the
 G-0635 patch routed here rather than reconciling the copies in passing, having
 already stated this fact wrongly and had it corrected at review.
 
-The content half takes the same owner. The template's `## Work log` comment
-becomes the entry line plus the destinations no other section holds — design
-reasoning to the module's own docstring, a seam's measurements to the contract
-body, the phase timeline to `aiwf history`, an unpinnable property to a gap or a
-recorded decision — and then points at the sections below for the rest rather
-than copying their rules. Enumerating every destination would restate what
-`## Deferrals`, `## Decisions made during implementation` and `## Reviewer
-notes` already state a few lines down, which is this gap's own defect committed
-inside its fix; naming only the homeless facts is what keeps the rule shorter
-than the comment it replaces.
-
-Routing rather than a length cap: an author will not delete a paragraph they
-judge to matter without somewhere to put it, so naming the destination is what
-makes the cut safe, and a ban costs once where a per-entry budget costs forever.
-A ceiling is the wrong instrument for the reason the line-budget instance above
-supplies — one that can be raised is raised. The checkable arm is narrow:
-phase-transition words in a Work log entry contradict the rule and are
-grep-shaped.
-
-Two destinations had to be settled against surfaces that already own them rather
-than invented. A property that could not be pinned, or was judged not worth
-pinning, goes to a gap or a recorded decision per `wf-codebase-health` D5 and
-`aiwfx-wrap-milestone` step 2 — not to `## Reviewer notes`. A rejected
-alternative splits on whether it earned a decision entity: `## Decisions made
-during implementation` carries it with its id, `## Reviewer notes` keeps the
-ones that did not.
+The content half is settled for `## Work log` and open for the rest. That
+section's purpose is now stated in the template and in `aiwfx-start-milestone`:
+the index from each AC to the commit that implemented it, which is the one fact
+no other record holds. The two invitations that grew it — the template's optional
+prose paragraph and the ritual's "audit trail of mid-flight context" — are gone.
+What remains open here is every other section's content rule, and whether the
+section survives at all: retiring it is tracked in G-0530, and depends on
+`aiwf history` being able to see an implementation commit.
 
 Worth checking during the fix, not assumed now: whether a check could hold the
 result. A rule that no surface outside the owner states population timing is
