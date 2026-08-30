@@ -1,7 +1,7 @@
 ---
 id: G-0655
 title: aiwf history discards commits carrying an entity trailer and nothing else
-status: open
+status: wontfix
 ---
 ## What's missing
 
