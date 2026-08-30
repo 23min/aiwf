@@ -120,7 +120,7 @@ Predicate widened from `== StateActive` to `!= StateEnded`; the function is rena
 
 ### Review round
 
-`0465da2f6` applies the independent review's findings; `58afdc7a7` pins the rendering change one of them produced. Between them they alter behaviour no AC anticipated, which is why they are recorded here rather than folded into an AC above: `--scope` gained a four-character floor and now refuses an explicitly-passed empty value, the success and NoOp messages name the agent, and `aiwf history` renders a distinct ended-chip on an `aiwf authorize --end` row. That last one is the milestone's own doing — an `aiwf-scope-ends:` trailer riding an `authorize` commit is a shape that did not exist before this mode, and on it the old chip claimed the entity had ended.
+`0465da2f6` applies the first round's findings; `58afdc7a7` pins the rendering change one of them produced; `6783d98bb` answers the second round, reconciling the four-character `--scope` floor across the six surfaces that promised any prefix and bringing `design-decisions.md` onto the shipped capability; a third round carried the same class further, into the `aiwf-promote` skill and both legal-workflow catalogues. Between them they alter behaviour no AC anticipated, which is why they are recorded here rather than folded into an AC above: `--scope` gained a four-character floor and now refuses an explicitly-passed empty value, the success and NoOp messages name the agent, and `aiwf history` renders a distinct ended-chip on an `aiwf authorize --end` row. That last one is the milestone's own doing — an `aiwf-scope-ends:` trailer riding an `authorize` commit is a shape that did not exist before this mode, and on it the old chip claimed the entity had ended.
 
 ## Decisions made during implementation
 
@@ -128,7 +128,7 @@ Predicate widened from `== StateActive` to `!= StateEnded`; the function is rena
 
 ## Validation
 
-Run on the milestone branch at `58afdc7a7`, in the devcontainer (linux/amd64, go 1.25):
+Run on the milestone branch at HEAD, in the devcontainer (linux/amd64, go 1.25):
 
 - `AIWF_COVERAGE_BASE=epic/E-0090-… make ci` — green. Covers `go vet`, the full `golangci-lint` set, `go test -race` with coverage, the diff-scoped coverage gate, the firing-fixture meta-gate, and `aiwf doctor --self-check` (29 steps).
 - `aiwf check` — 0 errors, 4 warnings: the unpushed-branch provenance skip, the G-0646 archive sweep pair, and `epic-active-no-drafted-milestones`. The last is new and expected — M-0325 was the epic's final `draft` milestone, so the warning is E-0090 reporting it is ready to wrap.
@@ -150,5 +150,7 @@ The diff-scoped coverage gate failed twice on this branch and was the only thing
 **`internal/verb` and `internal/cli/authorize` both import `internal/entityview`** for `ShortHash`. A downward edge (tier 2 → tier 4) the layering policy permits. The alternative was a third local copy of a seven-character truncation, next to the two that exist; routing through the call `aiwf show` renders with also makes the "same abbreviation the operator read" claim true by construction rather than by two literals agreeing. The CLI half of that was written as the inline copy and corrected at review — which is the finding worth keeping, because the argument for routing through was already written down in this section while the code did the opposite one package over, and its test compared two literals under a comment claiming otherwise.
 
 **A `--help` rendering defect was introduced and fixed inside AC-3.** Only running the binary caught it. Worth repeating at the next render-touching milestone: the surface a test asserts on and the surface an operator reads are not the same artefact.
+
+**The review rounds converged on one class, and it was never the engine.** Three independent passes attacked the implementation — target resolution, convergence ordering, the trailer's SHA width, the unreachability annotations, the blast radius of the widened predicate — and none of it broke. Every blocking finding across all three rounds was instead a surface that described the old behaviour: a shipped skill, a normative design doc, two legal-workflow catalogues, and six flag descriptions that promised a prefix rule the code had stopped honouring. The pattern worth carrying: a change to a kernel predicate falsifies prose in more places than the change itself touches, and the ones it does not touch are exactly the ones no gate reaches.
 
 **The manual branch-coverage audit was wrong again, in the same way as M-0324.** Three CLI lines were verified through the integration tests and cleared; those drive the binary as a subprocess and contribute nothing to the profile, so only `make ci` caught them. The pattern across two milestones: every claim a command could check was right first time, and the ones resting on reading were not.
