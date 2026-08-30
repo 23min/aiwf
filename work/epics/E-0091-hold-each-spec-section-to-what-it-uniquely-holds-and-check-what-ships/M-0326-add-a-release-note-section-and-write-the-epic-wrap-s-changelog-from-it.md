@@ -8,6 +8,9 @@ acs:
     - id: AC-1
       title: Every milestone-spec section a ritual names resolves to one the template ships
       status: open
+    - id: AC-2
+      title: The epic wrap composes its changelog entry from milestone Release notes
+      status: open
 ---
 
 ## Goal
@@ -15,4 +18,6 @@ acs:
 ## Acceptance criteria
 
 ### AC-1 — Every milestone-spec section a ritual names resolves to one the template ships
+
+### AC-2 — The epic wrap composes its changelog entry from milestone Release notes
 
