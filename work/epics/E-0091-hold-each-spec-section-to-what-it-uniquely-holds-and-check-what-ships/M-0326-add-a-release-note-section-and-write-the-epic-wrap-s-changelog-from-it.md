@@ -84,8 +84,22 @@ for it.
 
 ### AC-3 — A milestone reaching done with an empty Release note is reported
 
-`aiwf check` reports a milestone whose status is `done` and whose
-`## Release note` is absent or empty.
+`aiwf check` reports a milestone at `status: done` whose `## Release note`
+section is present and empty. `promote` runs the projection findings as
+preconditions, so the same rule refuses a `done` promote that would produce
+that state — one rule, both surfaces.
+
+Present-and-empty rather than absent-or-empty, which is what measurement
+forces: 281 milestones are already `done` and not one carries the section, so
+an absent-or-empty rule reports 281 findings the day it lands and gets turned
+off rather than acted on. A spec scaffolded from the template carries the
+heading, so present-and-empty selects exactly the milestones the section
+applies to and reports nothing today. `entity-body-empty` is scoped the same
+way, for the same reason.
+
+The residual is that deleting the heading evades the rule. That is the hole
+G-0571 reports generally, and the obligation to reconcile this rule with the
+required-sections machinery is recorded there.
 
 The rule is standalone: its own finding keyed to this section, not the first
 consumer of `internal/entity/required_sections.go`. That file declares a
@@ -94,9 +108,8 @@ every entity missing a section its kind requires — G-0571 measures that at 119
 findings over 60 live entities. The blast radius belongs to that gap, not to
 this milestone.
 
-One thing to settle in implementation: every milestone already `done` lacks
-`## Release note`, so this rule too lands at warning severity against a measured
-baseline and escalates only once that baseline is clean.
+The baseline is therefore zero rather than something to escalate away from, so
+the rule lands at its real severity immediately.
 
 ## Constraints
 
