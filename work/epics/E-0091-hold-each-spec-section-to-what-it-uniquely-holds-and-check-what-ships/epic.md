@@ -135,11 +135,11 @@ opposite here, since guidance and rituals ship as product (G-0529).
 
 ## Milestones
 
-<!-- Sequenced in `aiwfx-plan-milestones`; the ordering below is the dependency
-     shape this epic assumes, not an allocation. -->
+<!-- Allocated one at a time as each is started. An entry with no id is the
+     dependency shape this epic assumes, not an allocation. -->
 
-- `## Release note` joins the milestone spec and feeds the epic wrap's changelog
-  entry · depends on: —
+- `M-0326` — `## Release note` joins the milestone spec and feeds the epic wrap's
+  changelog entry · depends on: —
 - The history projection sees entity-trailered commits, and a chokepoint catches
   a missing trailer while it is cheap · depends on: —
 - `## Work log` retires, its unique fact derivable without it · depends on: the
