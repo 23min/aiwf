@@ -111,15 +111,17 @@ changed to make it possible now?>
 
 ## Work log
 
-<!-- One entry per AC (preferred) or per meaningful unit of work. Append-only;
+<!-- The index from each AC to the commit that implemented it. `aiwf history`
+     lists commits carrying kernel trailers; an implementation commit reaches it
+     only when it carries them too, which it normally does not — so this is where
+     that link lives.
+     One entry per AC (preferred) or per meaningful unit of work. Append-only;
      never rewrite earlier entries.
-       Header:    "AC-<N> — <short title>" or "<short title>" if not AC-scoped.
+       Header:     "AC-<N> — <short title>" or "<short title>" if not AC-scoped.
        First line: <one-line outcome> · commit <SHA> · tests <N/M>
-     Optional prose paragraph for non-obvious context: what changed, file:line
-     references, why a detour was needed. Phase transitions for `tdd: required`
-     milestones should be visible here too (red/green/refactor/done) — but the
-     authoritative record is `aiwf history <milestone-id>/AC-<N>` via the kernel's
-     trailers, so don't duplicate the timeline here. -->
+     That line is the entry. The phase timeline lives in
+     `aiwf history <milestone-id>/AC-<N>`. Design reasoning belongs in the code it
+     explains; anything else has its own section. -->
 
 ### AC-1 — <short title>
 

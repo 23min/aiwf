@@ -16,6 +16,17 @@ section in this file.
 
 ## [Unreleased]
 
+### Changed — the milestone Work log says what it is for, and stops inviting prose
+
+`## Work log` carried no statement of its purpose in any binding surface, and two
+invitations to write more: the template offered an *"optional prose paragraph for
+non-obvious context"*, and `aiwfx-start-milestone` called the section *"the audit trail
+of mid-flight context"*. Both are gone. Both surfaces now name what the section uniquely
+holds — the index from each acceptance criterion to the commit that implemented it.
+`aiwf history` lists commits carrying kernel trailers, and an implementation commit
+normally carries none, so that link has nowhere else to live. The template also no
+longer both invites phase transitions and forbids duplicating them, one sentence apart.
+
 ## [0.34.0] — 2026-08-30
 
 ### Changed — E-0090: closing an epic is a human's act
