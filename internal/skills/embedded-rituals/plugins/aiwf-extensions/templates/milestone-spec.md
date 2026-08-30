@@ -109,6 +109,23 @@ changed to make it possible now?>
      (prose is human-owned), but `aiwfx-start-milestone` / `aiwfx-wrap-milestone`
      rely on the structure. -->
 
+## Release note
+
+<!-- The user-visible delta of this milestone, written for someone reading
+     release notes who will never see this spec: what a consumer can now do, or
+     what changed under them.
+
+     The epic wrap composes the epic's changelog entry from these notes, and
+     that entry is copied verbatim into the changelog — so this is the last
+     point at which the change is described by someone who did the work.
+     Reconstructing it later from milestone titles is what leaves a shipped
+     change undescribed.
+
+     Not the commit index, which `## Work log` holds, and not the epic's
+     summary, which the epic wrap writes. One short paragraph, or one line per
+     user-facing change. "No user-visible change" is a valid note; empty is
+     not. -->
+
 ## Work log
 
 <!-- The index from each AC to the commit that implemented it. `aiwf history`
