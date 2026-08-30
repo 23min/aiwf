@@ -7,7 +7,7 @@ priority: low
 
 The I2.5 provenance model ([`docs/design/provenance-model.md`](../../docs/design/provenance-model.md)) deliberately keeps the verb surface narrow. Six known extensions are filed here for future evaluation, all YAGNI for the PoC:
 
-1. **Explicit revoke verb (`aiwf revoke <auth-sha> --reason "..."`).** End an active scope before its scope-entity reaches a terminal status. The trailer slot is reserved (`aiwf-revoked-by:`) but the verb is not implemented in I2.5. Scopes today auto-end only on terminal scope-entity status; a human cannot un-authorize an in-flight scope without forcing the entity to a terminal status.
+1. **Explicit scope end — delivered.** A human ends an in-flight scope with `aiwf authorize <id> --end`, which retires one named scope without moving its entity's status (ADR-0047). It ships as a mode of `authorize` rather than the `aiwf revoke` verb sketched here, and writes the `aiwf-scope-ends:` trailer the replay already reads — so the reserved `aiwf-revoked-by:` slot stays unused, and nothing further is owed on this item.
 2. **Time-bound scopes (`--until <date>` or `--for <duration>`).** Auto-end on a wall-clock deadline. Adds a clock dependency to the kernel; not present today.
 3. **Verb-set restrictions (`--verbs add,promote`).** Constrain which verbs an agent can invoke under a scope. Real safety win in adversarial settings; significant added complexity.
 4. **Pattern scopes (`--pattern "M-007/*"`).** Scope by id pattern instead of (or in addition to) reference-graph reachability. More flexible; harder to verify; the "did the agent act outside scope?" question gets fuzzier.
