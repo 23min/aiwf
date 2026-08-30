@@ -1277,5 +1277,7 @@ change reach the changelog by check rather than by recall. Today the spec's
 largest section duplicates records the kernel owns while hiding the one link it
 uniquely holds, and a release's notes rest on whoever cut it remembering.
 
-_No milestones yet._
+| Milestone | Title | Status |
+|---|---|---|
+| M-0326 | Add a Release note section and write the epic wrap's changelog from it | draft |
 
