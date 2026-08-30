@@ -172,7 +172,7 @@ The implementation is already committed, per-AC, from step 6 — there is nothin
 - *Improvising the parent epic branch when it doesn't exist.* The previous version of this skill silently fell through to `git checkout -b epic/E-NNNN-<slug> origin/main # if missing`. That masks the precondition failure (the parent epic wasn't activated) and produces a parent branch with no `aiwf promote E-NNNN active` commit on it. Stop and run `aiwfx-start-epic` instead.
 - *Bundling the promote and authorize commits.* One verb = one commit. The promote (step 3) and authorize (step 4) each land on the parent epic branch in their own commit.
 - *Cutting the milestone branch before the sovereign acts.* The kernel's preflight refuses authorize-on-milestone-branch with `branch-context-required` at the verb layer; the `isolation-escape` kernel finding catches the same shape post-hoc at `aiwf check` (warning severity). Branch cut belongs at step 5, after the trailers have landed on the parent.
-- *Skipping the Work log section.* It's the audit trail of mid-flight context next to each AC's commits. Don't reconstruct it after the fact.
+- *Skipping the Work log section.* It is where the link from an AC to its implementation commit lives — `aiwf history` sees a commit only when it carries kernel trailers, and an implementation commit normally carries none. Don't reconstruct it after the fact.
 - *Hand-editing `acs[]` in frontmatter.* Use `aiwf add ac` / `aiwf promote M-NNNN/AC-<N>` / `aiwf rename M-NNNN/AC-<N>` instead — the verbs preserve position-stability and the body-coherence pairing.
 - *Mixing milestones.* One milestone per branch. Don't fold "while I was here" work into the diff.
 - *Skipping the branch-coverage audit.* "I'll catch it in review" doesn't catch it.
