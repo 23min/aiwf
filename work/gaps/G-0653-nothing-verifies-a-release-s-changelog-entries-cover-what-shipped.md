@@ -28,6 +28,15 @@ pins a rule, not an input" rule, and G-0628's new `aiwf-promote` skill section.
 Every mechanical gate passed. A human asking whether skills and guidance had
 been updated is what caught them.
 
+Measured 2026-08-30, the two routes are different and neither is guarded. G-0647
+ran `wf-patch`, whose step 4 makes the entry mandatory — *"every patch adds one,
+even if it's a single line stating nothing user-facing changed"* — and the branch's
+single implementation commit touched four files, none of them `CHANGELOG.md`. The
+ritual asked and nothing checked, so the entry was never written rather than lost
+in a merge. G-0628 never entered a ritual: it landed as a direct `docs(skills)`
+commit on the trunk, so no surface asked at all. A check that only guards the
+patch route would catch the first and miss the second.
+
 Two of the three rode in on `docs(` commits. That prefix reads as "no
 user-visible change" — true in most repos, false in this one: aiwf ships its
 guidance and rituals as product, embedded under `internal/skills/`, so a
