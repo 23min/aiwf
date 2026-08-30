@@ -77,6 +77,25 @@
 #   unreachable-branch mutants are common false-positive LIVED cases
 #   that no test can kill. Don't chase them.
 #
+#   Two further traps, both producing readings that look like test gaps
+#   and are not. Each cost a false finding before it was understood:
+#     - NOT COVERED is an upper bound in switch-dense code. Gremlins
+#       places mutants inside a multi-clause `case` condition, while Go
+#       instruments the case *body* — so a mutant in the condition reads
+#       NOT COVERED even where the case is exercised. Measured on
+#       internal/entity: mutants at columns 18, 35, 57 and 80 of a case
+#       condition whose coverage block begins at column 93, while
+#       `go tool cover` reports the enclosing function at 100%. Check
+#       that column against `go tool cover` before believing it.
+#     - Efficacy means nothing where the tests are not co-located.
+#       Gremlins runs the package's own tests, so a package whose suite
+#       lives in a sibling reports an efficacy that measures the test
+#       layout rather than the suite. Measured on internal/cli: 75.36%
+#       efficacy and 61.39% coverage against a suite that lives entirely
+#       in internal/cli/integration, where the same code measures 88.5%
+#       under `go test -coverpkg`. Confirm where a package's tests live
+#       before reading its score.
+#
 # Scoped multi-dispatch (exclude_files input):
 #   A package too large for one dispatch to finish inside
 #   timeout-minutes can be split across several dispatches, each

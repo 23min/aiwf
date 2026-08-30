@@ -103,6 +103,7 @@ var noOpClaimScopes = []claimScope{
 	// None: convergence rests on something a working copy cannot
 	// contradict, or on a comparison the verb already makes itself.
 	{"AcknowledgeIllegal", claimScopeNone, "ackAlreadyRecorded walks git history, so its baseline is already the record rather than the working copy"},
+	{"authorizeEnd", claimScopeNone, "a scope's state is a projection over commit trailers, replayed by the caller before the verb is entered — the entity's own file records nothing about it, so no working copy can contradict the claim that a scope is already ended"},
 	{"editBodyExplicit", claimScopeNone, "explicitBodySettled already compares the requested content against HEAD, and the verb exists to commit a divergent working copy — a guard refusing divergence would block the route every other refusal recommends"},
 }
 

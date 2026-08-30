@@ -11,20 +11,24 @@ import (
 
 	"github.com/23min/aiwf/internal/branchparse"
 	"github.com/23min/aiwf/internal/cli/cliutil"
+	"github.com/23min/aiwf/internal/entityview"
+	"github.com/23min/aiwf/internal/scope"
 	"github.com/23min/aiwf/internal/tree"
 	"github.com/23min/aiwf/internal/verb"
 )
 
-// NewCmd builds `aiwf authorize <id>` in its three modes:
+// NewCmd builds `aiwf authorize <id>` in its four modes:
 //
 //	aiwf authorize <id> --to <agent> [--reason "..."] [--force]
 //	aiwf authorize <id> --pause "<reason>"
 //	aiwf authorize <id> --resume "<reason>"
+//	aiwf authorize <id> --end [--scope <auth-sha>] --reason "..."
 //
-// Exactly one of --to / --pause / --resume must be set. The dispatcher
-// resolves the actor (must be human/), locks the repo, loads the
-// existing scopes for the entity from git log (so --pause / --resume
-// can find their target), and hands off to verb.Authorize.
+// Exactly one of --to / --pause / --resume / --end must be set. The
+// dispatcher resolves the actor (must be human/), locks the repo, loads
+// the existing scopes for the entity from git log (so --pause /
+// --resume / --end can find their target), and hands off to
+// verb.Authorize.
 //
 // Per docs/design/provenance-model.md §"The aiwf authorize verb"
 // the `--reason` argument has a different role per mode:
@@ -32,21 +36,26 @@ import (
 //   - --pause / --resume: required; the argument to the flag is itself
 //     the reason (e.g. `--pause "blocked by E-09"`). Passing both
 //     `--pause "..."` and `--reason "..."` is a usage error.
+//   - --end: required, and carried by --reason, because --end is a
+//     boolean mode with a modifier of its own (--scope) rather than a
+//     flag whose argument could double as the reason (ADR-0047).
 func NewCmd(correlationID string) *cobra.Command {
 	var (
-		actor  string
-		root   string
-		to     string
-		pause  string
-		resume string
-		reason string
-		branch string
-		force  bool
-		out    *cliutil.OutputFormat
+		actor    string
+		root     string
+		to       string
+		pause    string
+		resume   string
+		reason   string
+		branch   string
+		scopeSHA string
+		force    bool
+		end      bool
+		out      *cliutil.OutputFormat
 	)
 	cmd := &cobra.Command{
 		Use:   "authorize <id>",
-		Short: "Open / pause / resume an autonomous-work scope on an entity",
+		Short: "Open / pause / resume / end an autonomous-work scope on an entity",
 		Example: `  # Delegate autonomous work on an epic to ai/claude
   aiwf authorize E-14 --to ai/claude --reason "delegated cobra+completion epic"
 
@@ -54,22 +63,33 @@ func NewCmd(correlationID string) *cobra.Command {
   aiwf authorize E-14 --pause "blocked on review feedback"
 
   # Resume the most-recently-paused scope
-  aiwf authorize E-14 --resume "review feedback addressed"`,
+  aiwf authorize E-14 --resume "review feedback addressed"
+
+  # End the entity's only non-ended scope, leaving its status alone
+  aiwf authorize E-14 --end --reason "taking this back in-loop"
+
+  # End one scope by name when the entity carries several
+  aiwf authorize E-14 --end --scope 1a2b3c4 --reason "agent reassigned"`,
 		Args:          cobra.ExactArgs(1),
 		SilenceErrors: true,
 		SilenceUsage:  true,
 		RunE: func(c *cobra.Command, args []string) error {
 			return cliutil.WrapExitCode(Run(Options{
-				ID:     args[0],
-				Actor:  actor,
-				Root:   root,
-				To:     to,
-				Pause:  pause,
-				Resume: resume,
-				Reason: reason,
-				Branch: branch,
-				Force:  force,
-				Out:    *out,
+				ID:       args[0],
+				Actor:    actor,
+				Root:     root,
+				To:       to,
+				Pause:    pause,
+				Resume:   resume,
+				Reason:   reason,
+				Branch:   branch,
+				End:      end,
+				ScopeSHA: scopeSHA,
+				// c.Flags() is the only place the passed-vs-defaulted
+				// distinction survives; Run cannot recover it.
+				ScopeSHASet: c.Flags().Changed("scope"),
+				Force:       force,
+				Out:         *out,
 			}))
 		},
 	}
@@ -78,7 +98,12 @@ func NewCmd(correlationID string) *cobra.Command {
 	cmd.Flags().StringVar(&to, "to", "", "agent the scope authorizes (e.g. ai/claude); opens a new scope")
 	cmd.Flags().StringVar(&pause, "pause", "", "pause the most-recently-opened active scope on <id>; the argument is the reason")
 	cmd.Flags().StringVar(&resume, "resume", "", "resume the most-recently-paused scope on <id>; the argument is the reason")
-	cmd.Flags().StringVar(&reason, "reason", "", "rationale text for --to (optional) / --force (required); ignored by --pause and --resume (their argument is the reason)")
+	cmd.Flags().StringVar(&reason, "reason", "", "rationale text for --to (optional) / --force (required) / --end (required); ignored by --pause and --resume (their argument is the reason)")
+	cmd.Flags().BoolVar(&end, "end", false, "end a non-ended scope on <id> without changing the entity's status (ADR-0047); requires --reason, and --scope when the entity carries more than one candidate")
+	// No backticks in this usage string: cobra reads a backticked span as
+	// the flag's value-placeholder name, so a quoted command here renders
+	// as "--scope aiwf show <id>" in place of "--scope string".
+	cmd.Flags().StringVar(&scopeSHA, "scope", "", "which scope --end targets, as the authorize-commit SHA or an unambiguous prefix of at least 4 characters (aiwf show <id> prints one per scope, at 7); omit to target the entity's sole non-ended scope")
 	cmd.Flags().StringVar(&branch, "branch", "", "ritual branch the scope is bound to (ADR-0010); when set, the authorize commit carries an aiwf-branch: trailer with this value. From `main` or a ritual-shape current branch (epic/milestone/patch), naming a ritual-shape future branch is accepted — the step-7 pattern of aiwfx-start-epic (M-0104/AC-4) or step-4 of aiwfx-start-milestone (M-0105/AC-6). The named branch is cut by a later step of the ritual.")
 	cmd.Flags().BoolVar(&force, "force", false, "open a fresh scope on a terminal scope-entity (requires --reason); sovereign, so the actor must be human/... — a force trailer from a non-human actor is refused before anything is written")
 	out = cliutil.AddFormatFlags(cmd)
@@ -91,7 +116,44 @@ func NewCmd(correlationID string) *cobra.Command {
 	// fix/*, chore/*, etc.) are deliberately omitted so completion is
 	// the discoverability surface for the convention itself.
 	_ = cmd.RegisterFlagCompletionFunc("branch", completeBranchFlag)
+	// --scope's value set is the entity's own scopes, which is exactly
+	// what args[0] names, so it enumerates dynamically rather than
+	// opting out of completion the way --to does for want of an agent
+	// registry.
+	_ = cmd.RegisterFlagCompletionFunc("scope", completeScopeFlag(&root))
 	return cmd
+}
+
+// completeScopeFlag suggests the non-ended scopes on the entity named as
+// the command's first argument, each as the seven-character prefix
+// `aiwf show` prints followed by its agent and state as the description.
+//
+// Ended scopes are omitted: naming one converges rather than refusing,
+// so suggesting one would offer a value whose only outcome is "nothing
+// to change". Before the entity id is typed there is nothing to
+// enumerate against, so the list is empty and the shell falls through.
+func completeScopeFlag(root *string) func(*cobra.Command, []string, string) ([]string, cobra.ShellCompDirective) {
+	return func(_ *cobra.Command, args []string, _ string) ([]string, cobra.ShellCompDirective) {
+		if len(args) == 0 {
+			return nil, cobra.ShellCompDirectiveNoFileComp
+		}
+		// An unset --root passes through as "", which the git subprocess
+		// already reads as the current working directory — the same place
+		// a "." would name.
+		scopes, err := cliutil.LoadEntityScopes(context.Background(), strings.TrimSpace(*root), args[0])
+		if err != nil {
+			//coverage:ignore LoadEntityScopes short-circuits to (nil, nil) when HasCommits reports no commits, so a missing or empty repo never reaches here; an error means `git log` failed after HasCommits succeeded on the same root, which no deterministic fixture produces.
+			return nil, cobra.ShellCompDirectiveNoFileComp
+		}
+		var out []string
+		for _, s := range scopes {
+			if s.State == scope.StateEnded {
+				continue
+			}
+			out = append(out, entityview.ShortHash(s.AuthSHA)+"\t"+s.Agent+" ("+string(s.State)+")")
+		}
+		return out, cobra.ShellCompDirectiveNoFileComp
+	}
 }
 
 // completeBranchFlag is the cobra completion function for --branch.
@@ -189,8 +251,22 @@ type Options struct {
 	Resume string
 	Reason string
 	Branch string
-	Force  bool
-	Out    cliutil.OutputFormat
+	// End selects the scope-ending mode (ADR-0047). A bool rather than
+	// a reason-carrying string like Pause / Resume, because the mode
+	// takes a modifier of its own in ScopeSHA and its reason rides the
+	// shared Reason field.
+	End      bool
+	ScopeSHA string
+	// ScopeSHASet records whether --scope was passed at all, which its
+	// value cannot: cobra leaves an unset string flag empty, and an
+	// operator who passed `--scope "$SCOPE"` with the variable unset
+	// arrives here identically. Without the distinction the selector is
+	// discarded and --end falls back to the sole-candidate default,
+	// which resolves a target the operator did not name and then ends
+	// it irreversibly.
+	ScopeSHASet bool
+	Force       bool
+	Out         cliutil.OutputFormat
 }
 
 // Run executes `aiwf authorize`. Returns one of the cliutil.Exit* codes.
@@ -205,8 +281,11 @@ func Run(opts Options) (code int) {
 	if opts.Resume != "" {
 		modes++
 	}
+	if opts.End {
+		modes++
+	}
 	if modes != 1 {
-		cliutil.Errorln("aiwf authorize: pick exactly one of --to <agent>, --pause \"<reason>\", or --resume \"<reason>\"")
+		cliutil.Errorln("aiwf authorize: pick exactly one of --to <agent>, --pause \"<reason>\", --resume \"<reason>\", or --end")
 		return cliutil.ExitUsage
 	}
 	// `--reason` is meaningful only with --to (and --to --force). For
@@ -225,8 +304,24 @@ func Run(opts Options) (code int) {
 	// binding. Silently ignoring --branch in those modes is a usability
 	// footgun, so refuse the combination upfront — matches the
 	// existing --reason + --pause/--resume gate above.
-	if (opts.Pause != "" || opts.Resume != "") && opts.Branch != "" {
-		cliutil.Errorln("aiwf authorize: --branch is only meaningful with --to (binds a fresh scope to a ritual branch); --pause / --resume reuse the opening scope's branch")
+	if opts.Branch != "" && opts.To == "" {
+		cliutil.Errorln("aiwf authorize: --branch is only meaningful with --to (binds a fresh scope to a ritual branch); --pause / --resume / --end act on a scope whose binding is already recorded")
+		return cliutil.ExitUsage
+	}
+	// --scope names which scope --end targets; every other mode either
+	// creates a scope or re-derives its target from the FSM, so a
+	// silently-ignored --scope would read as having selected one.
+	if (opts.ScopeSHA != "" || opts.ScopeSHASet) && !opts.End {
+		cliutil.Errorln("aiwf authorize: --scope is only meaningful with --end (it names which scope to end)")
+		return cliutil.ExitUsage
+	}
+	// A --scope that was passed but names nothing is a refusal, never a
+	// silent fall-back to the sole-candidate default: the operator
+	// supplied a selector, so honouring the default would end a scope
+	// they did not name.
+	if opts.ScopeSHASet && strings.TrimSpace(opts.ScopeSHA) == "" {
+		cliutil.Errorln("aiwf authorize: --scope was given an empty value; pass the auth-sha of the scope to end " +
+			"(`aiwf show <id>` prints one per scope), or omit --scope to target the entity's sole non-ended scope")
 		return cliutil.ExitUsage
 	}
 	if opts.Force && strings.TrimSpace(opts.Reason) == "" {
@@ -305,8 +400,12 @@ func Run(opts Options) (code int) {
 	case opts.Resume != "":
 		vOpts.Mode = verb.AuthorizeResume
 		vOpts.Reason = opts.Resume
+	case opts.End:
+		vOpts.Mode = verb.AuthorizeEnd
+		vOpts.Reason = opts.Reason
+		vOpts.ScopeSHA = opts.ScopeSHA
 	}
-	if vOpts.Mode == verb.AuthorizePause || vOpts.Mode == verb.AuthorizeResume {
+	if vOpts.Mode == verb.AuthorizePause || vOpts.Mode == verb.AuthorizeResume || vOpts.Mode == verb.AuthorizeEnd {
 		scopes, scopesErr := cliutil.LoadEntityScopes(ctx, rootDir, opts.ID)
 		if scopesErr != nil {
 			//coverage:ignore LoadEntityScopes' `git log` only fails for
