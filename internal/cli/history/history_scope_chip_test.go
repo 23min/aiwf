@@ -20,7 +20,7 @@ import (
 func TestRenderScopeChips_EndedChipNamesTheScopeOnAuthorizeRows(t *testing.T) {
 	t.Parallel()
 
-	const authSHA = "6865fa3b91b9b35645ca771857ebbc17b0e2ebe2"
+	const authSHA = "deadbeefdeadbeefdeadbeefdeadbeefdeadbeef"
 	scopeEntities := map[string]string{authSHA: "E-0001"}
 
 	cases := []struct {
@@ -66,7 +66,7 @@ func TestRenderScopeChips_EndedChipNamesTheScopeOnAuthorizeRows(t *testing.T) {
 func TestRenderScopeChips_UnknownScopeEntityFallsBackToTheSHA(t *testing.T) {
 	t.Parallel()
 
-	const authSHA = "0123456789abcdef0123456789abcdef01234567"
+	const authSHA = "cafef00dcafef00dcafef00dcafef00dcafef00d"
 	got := history.RenderScopeChips(
 		entityview.HistoryEvent{Verb: "promote", ScopeEnds: []string{authSHA}},
 		map[string]string{}, false)
