@@ -11,15 +11,29 @@ carry content something else already holds:
 
 | section | what already holds it |
 |---|---|
-| `## Work log` | `aiwf history` and the commit trailers it reads |
+| `## Work log` | partly `aiwf history` — see below |
 | `## Dependencies` | the `depends_on:` frontmatter field |
 | `## Surfaces touched` | the milestone's own diff |
 | `## References` | inline links |
 
-Measured over the entity tree on 2026-08-03, all four are thin: median word
-counts of 0, 14, 21 and 24 respectively. `## Work log` is the sharpest case —
-the wrap ritual mandates one entry per acceptance criterion with its outcome and
-commit SHA, and the section is empty in half the milestones that carry it.
+Three of the four are thin: measured over the entity tree on 2026-08-03, median
+word counts of 14, 21 and 24 for `## Dependencies`, `## Surfaces touched` and
+`## References`.
+
+`## Work log` is the opposite, and its row needs the correction the gap-truth
+audit recorded and nobody applied. Counted with the per-AC subsections the
+template prescribes, it had a median of 226.5 words and was the spec's
+third-largest section; the 0-word median came from a method that excluded the
+subsections. Re-measured 2026-08-30: 175 populated Work logs, 122 of them
+carrying prose beyond the stated one-line entry, median 283 words against a
+stated shape of about fifteen. It is the largest section, not the thinnest.
+
+Its owner is also only half right. `aiwf history` holds the phase timeline, the
+promotes and — where the `aiwf-tests` trailer is written — the test counts. It
+does **not** hold the link from an AC to the commit that implemented it: history
+needs an entity trailer plus a verb or actor, and an implementation commit
+normally carries none. That link is the one fact the section uniquely holds, and
+retiring the section depends on the kernel being able to supply it.
 
 `## References` has the weakest claim of the four, and it is worth stating so the
 row is not read as equivalent to its neighbours. The other three each name an
@@ -30,6 +44,24 @@ it is not available here: `internal/entity/entity.go` declares it under
 one is a decision and none is a milestone. Whether prose-elsewhere is enough to
 retire the section is the open part of this row; the other three do not depend on
 the answer.
+
+## What replaces it
+
+`## Work log` is not deleted into a hole. What a human opening an archived
+milestone wants is not a per-AC log but what the milestone delivered, and that
+is also the one input the epic wrap's `## Changelog entry` has never had — it is
+written from milestone titles and merge SHAs, with no milestone-level source.
+
+So the section is replaced by a short `## Release note`: a few sentences of
+user-visible delta, bounded by its consumer's format, with a named downstream
+reader the Work log never had. The per-AC mechanics move to `aiwf history`, where
+they are derived and cannot drift. The milestone then keeps two prose sections
+written after the work — `## Release note` and `## Reviewer notes` — each bounded
+and each with a reader.
+
+The section's purpose is now stated in the template and in
+`aiwfx-start-milestone`, and the two texts that invited unbounded prose are gone.
+That is the interim state, not the destination.
 
 ## Why it matters
 
