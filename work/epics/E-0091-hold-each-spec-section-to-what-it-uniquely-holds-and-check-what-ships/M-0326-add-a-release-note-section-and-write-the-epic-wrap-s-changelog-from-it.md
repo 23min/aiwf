@@ -210,6 +210,31 @@ Template ships `## Release note`; the milestone wrap reviews it at step 2 and th
 
 ## Validation
 
+Run on the milestone branch at `f63fe1da1`, in the devcontainer (Linux; `go test`
+runs unwrapped there, so no signing wrapper is involved).
+
+- `AIWF_COVERAGE_BASE=main make ci` — exit 0. Race suite, the diff-scoped
+  coverage audit against `main`, the profile-driven gates, and the 29-step
+  `aiwf doctor --self-check`.
+- `aiwf check` — 0 errors, 2 warnings, both predating this milestone:
+  `epic-active-no-drafted-milestones` on the parent epic, which follows from
+  allocating one milestone at a time, and
+  `provenance-untrailered-scope-undefined`, which follows from the branch having
+  no upstream.
+- Live-tree behaviour of the new rule, measured with a binary built from this
+  branch rather than the one on PATH: `aiwf check` reports the same two warnings
+  as before the rule existed. Two independent reasons it reports nothing: 281
+  milestones are `done` and none carries the section, and 0 milestones are
+  `done` and not archived.
+- Statement coverage on both new files: 100%. The manual branch walk added two
+  arms statement coverage cannot see — the `IsDir` arm of a short-circuited skip
+  condition, and a post-load read failure.
+- Mutation probe: 6 mutants per unit, 12 total, all killed, each file restored
+  byte-identical to its pre-probe hash. One mutant survived on first run and was
+  the useful result — it showed the archive-skip test asserting nothing, because
+  its fixture used a per-milestone `archive/` subdirectory the loader does not
+  recognize, so no milestone loaded at all.
+
 ## Deferrals
 
 - (none)
