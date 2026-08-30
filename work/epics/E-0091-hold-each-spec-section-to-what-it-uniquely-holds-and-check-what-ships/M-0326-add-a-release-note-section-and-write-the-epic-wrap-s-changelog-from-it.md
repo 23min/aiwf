@@ -162,6 +162,10 @@ baseline and escalates only once that baseline is clean.
 
 `PolicyMilestoneSectionNameResolution` reports a shipped surface naming a section no template heading or wrap-artefact section carries · commit ff39bb5b2 · tests 15/15
 
+### AC-2 — Release note ships, and the epic wrap composes from it
+
+Template ships `## Release note`; the milestone wrap reviews it at step 2 and the epic wrap composes its changelog entry from these notes · commit e2bb40351 · tests 15/15 via AC-1's check, which went red on all three surfaces before the section existed
+
 ## Decisions made during implementation
 
 - (none)
