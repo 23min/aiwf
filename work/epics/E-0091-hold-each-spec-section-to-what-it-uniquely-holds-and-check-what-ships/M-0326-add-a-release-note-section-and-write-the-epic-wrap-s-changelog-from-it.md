@@ -157,6 +157,10 @@ baseline and escalates only once that baseline is clean.
 
 ## Work log
 
+### AC-1 — Section names resolve against the artefacts that carry them
+
+`PolicyMilestoneSectionNameResolution` reports a shipped surface naming a section no template heading or wrap-artefact section carries · commit ff39bb5b2 · tests 15/15
+
 ## Decisions made during implementation
 
 - (none)
