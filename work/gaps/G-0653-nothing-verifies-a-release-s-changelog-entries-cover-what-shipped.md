@@ -1,7 +1,7 @@
 ---
 id: G-0653
 title: Nothing verifies a release's CHANGELOG entries cover what shipped
-status: open
+status: wontfix
 priority: medium
 ---
 ## What's missing
