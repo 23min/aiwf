@@ -52,10 +52,10 @@ carries.
 
 ### AC-1 — Every milestone-spec section a ritual names resolves to one the template ships
 
-A check resolves each milestone-spec section name mentioned in the shipped
-ritual, agent-card and template trees against the heading set
-`templates/milestone-spec.md` carries. A name matching no heading is reported,
-naming the file and the name.
+A check resolves each backticked `## Section` name mentioned in the ritual
+authoring tree against the headings the shipped templates and the wrap
+artefact's scaffold carry. A name matching none of them is reported, naming the
+file and the line.
 
 The evidence is a relationship between two artefacts rather than an assertion
 about either one's prose, which is what D-0070 leaves available over a shipped
@@ -179,8 +179,8 @@ Milestone specs now carry a `## Release note` section: the user-visible delta of
 that milestone's work, written at its wrap by whoever did it. `aiwfx-wrap-epic`
 composes the epic's changelog entry from those notes rather than reconstructing
 it from milestone titles and merge SHAs, and `aiwfx-wrap-milestone` puts the
-note in front of the independent reviewer, since it is the one spec section that
-travels verbatim into the changelog.
+note in front of the independent reviewer, since it is the input to the one
+section that reaches the changelog verbatim.
 
 `aiwf check` gains `milestone-done-empty-release-note` (warning): a non-archived
 milestone at `done` with no `## Release note` an author wrote. It reports without
@@ -188,20 +188,23 @@ blocking — `aiwf check` and `promote` both gate on error severity — because 
 error it would demand a section the kernel's own scaffold does not write. Every
 milestone already at `done` is archived, so the rule reports on none of them.
 
-A new policy check resolves every milestone-spec and wrap-artefact section name
-the shipped rituals, agent cards and templates mention against the headings
-those artefacts actually carry, so renaming a section on either side is caught
-rather than left to drift.
+A new policy check resolves the backticked section names written in the ritual
+authoring tree against the headings the shipped templates and the wrap
+artefact's scaffold carry, so a surface naming a section no artefact has is
+reported. It resolves against the union of those artefacts rather than against
+the one a mention names, so it catches a name that matches nothing and not a
+rename of a heading another template still carries; per-target resolution is the
+section-ownership work G-0636 tracks.
 
 ## Work log
 
 ### AC-1 — Section names resolve against the artefacts that carry them
 
-`PolicyMilestoneSectionNameResolution` reports a shipped surface naming a section no template heading or wrap-artefact section carries · commit ff39bb5b2 · tests 15/15
+`PolicyMilestoneSectionNameResolution` reports a shipped surface naming a section no template heading or wrap-artefact section carries · commit ff39bb5b2, largely rewritten in ec3d2a7d2 and 1526a1124 · tests 15/15
 
 ### AC-2 — Release note ships, and the epic wrap composes from it
 
-Template ships `## Release note`; the milestone wrap reviews it at step 2 and the epic wrap composes its changelog entry from these notes · commit e2bb40351 · tests 15/15 via AC-1's check, which went red on all three surfaces before the section existed
+Template ships `## Release note`; the milestone wrap reviews it at step 2 and the epic wrap composes its changelog entry from these notes · commit e2bb40351 · tests 15/15 via AC-1's check, which went red on both rituals naming the section before the template carried it
 
 ### AC-3 — A done milestone with an empty Release note is reported
 
@@ -238,19 +241,21 @@ there, so no signing wrapper is involved).
   no upstream.
 - Live-tree behaviour of the new rule, measured with a binary built from this
   branch rather than the one on PATH: `aiwf check` reports the same two warnings
-  as before the rule existed. Two independent reasons it reports nothing: 281
-  milestones are `done` and none carries the section, and 0 milestones are
-  `done` and not archived.
+  as before the rule existed. The reason is the archive gate — every milestone
+  already at `done` is archived, so none is in scope.
 - Severity, measured rather than reasoned: `aiwf check` exits non-zero only via
   `check.HasErrors`, which matches error severity alone, and `promote` gates its
   projection findings the same way. A warning therefore reaches neither the push
   nor the transition.
-- Statement coverage on both new files: 100%.
-- Mutation probe, final round: 7 mutants across the two units, all killed, each
-  file restored byte-identical to its pre-probe hash. Every one of the seven was
-  a mutant that survived an earlier round — the kind guard, the heading-vs-empty
-  flag, the severity, the two skip-condition arms, the span split, and the
-  scaffold-fence marker.
+- Statement coverage on both new files: every statement covered except one
+  `//coverage:ignore`'d block, the `filepath.Rel` arm of the surface walk, which
+  cannot fail for a path the walk itself produced. `go tool cover -func` reports
+  93.8% on the function holding it and 100% on every other.
+- Mutation probe: every mutant a review round found surviving is now killed —
+  the kind guard, the heading-vs-empty flag, the severity, the two
+  skip-condition arms, the span split, the scaffold-fence marker, and the status
+  boundary between `done` and merely terminal. Each file was restored
+  byte-identical to its pre-probe hash.
 
 ## Deferrals
 
@@ -293,8 +298,21 @@ precondition on a transition the legal-workflow table declares legal. All three
 retired with the severity. The exemption list retired too, by scaffolding the
 section it existed to excuse.
 
-What is deliberately left: a rename can still strand a mention in a shipped tree
-this policy does not walk, and a backtick span wrapped across a line is invisible
-to it. Both are stated in the policy's doc comment rather than implied away, and
-resolving them needs a reference that names which artefact it means — the
-section-ownership work G-0636 tracks.
+A third round, run over the full change-set after those fixes, found the same
+class once more and in the same place: the `## Release note` claimed the section
+check catches a rename on either side. It does not. The universe is the union
+across every shipped template, so a heading another template also carries stays
+resolvable after the milestone template renames it — `## Goal` and
+`## Validation` both, and `## Validation` is the section G-0636 exists to settle.
+The policy's own doc comment stated the weaker true claim while the spec stated
+the stronger false one. That round also found the coverage figure overstated, a
+mutation count that a surviving status-boundary mutant contradicted, and the
+reviewer agent card still listing the sections a reviewer reads without the one
+this milestone added.
+
+What is deliberately left, and stated in the policy's doc comment rather than
+implied away: the union masks a rename of a heading another template carries; a
+mention in a shipped tree this policy does not walk is unreachable to it; and a
+backtick span wrapped across a line is invisible to it. All three want a
+reference that names which artefact it means, which is the section-ownership
+work G-0636 tracks.

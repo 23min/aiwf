@@ -68,10 +68,12 @@ func TestMilestoneDoneEmptyReleaseNote(t *testing.T) {
 		// bool at the call site, so without a case here either reading passes.
 		{"done with only a sub-heading fires", "done", "## Goal\n\nx\n\n## Release note\n\n### TBD\n", true},
 		{"done with a written note is clean", "done", releaseNoteFilled, false},
-		// One case for the status gate, not one per non-done status: every
-		// non-done status leaves through the same arm, so the rest would be
-		// spellings of one rule rather than distinct rules.
+		// Two cases for the status gate, either side of the boundary that
+		// matters: one status short of done, and one terminal status that is
+		// not done. Widening the gate to "terminal" would start reporting a
+		// cancelled milestone, which has no release note to write.
 		{"a milestone short of done is not yet due", "in_progress", noSection, false},
+		{"a cancelled milestone owes no release note", "cancelled", noSection, false},
 	}
 
 	for _, tc := range cases {

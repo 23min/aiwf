@@ -32,8 +32,7 @@ var releaseNoteSectionSlug = entity.SectionSlug(ReleaseNoteSectionHeading)
 // The section is where a milestone records its own user-visible delta, and the
 // epic wrap composes the epic's changelog entry from those notes and copies that
 // entry verbatim into the changelog. An empty one is a shipped change that
-// reaches a release described by nobody who did the work — measured on a real
-// release that shipped three such changes undocumented.
+// reaches a release described by nobody who did the work.
 //
 // It reports and does not block. `aiwf check` exits non-zero on error severity
 // alone, and `promote` gates its projection findings the same way, so this rule
@@ -46,7 +45,7 @@ var releaseNoteSectionSlug = entity.SectionSlug(ReleaseNoteSectionHeading)
 // Absence counts, rather than only an empty section that is present. Scoping to
 // present-and-empty would make deleting the heading an escape, and it would buy
 // nothing: the archive gate below already spares every milestone written before
-// the section existed, measured at 281 archived and 0 live.
+// the section existed, and every milestone already at `done` is archived.
 //
 // Archive-scoped per ADR-0004: an archived milestone is historical state, not
 // active drift, and every milestone reaching `done` is swept there eventually.
