@@ -1268,3 +1268,14 @@ A human is the only actor who may put an epic into a terminal status, on every e
 | M-0324 | Refuse a non-human actor on every terminal epic edge | done |
 | M-0325 | Add an operator-driven end to aiwf authorize | done |
 
+## E-0091 — Hold each spec section to what it uniquely holds, and check what ships (proposed)
+
+### Goal
+
+Make a milestone spec carry only what no other record holds, and make a shipped
+change reach the changelog by check rather than by recall. Today the spec's
+largest section duplicates records the kernel owns while hiding the one link it
+uniquely holds, and a release's notes rest on whoever cut it remembering.
+
+_No milestones yet._
+
