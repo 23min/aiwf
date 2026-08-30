@@ -11,6 +11,7 @@ import (
 
 	"github.com/23min/aiwf/internal/branchparse"
 	"github.com/23min/aiwf/internal/cli/cliutil"
+	"github.com/23min/aiwf/internal/entityview"
 	"github.com/23min/aiwf/internal/scope"
 	"github.com/23min/aiwf/internal/tree"
 	"github.com/23min/aiwf/internal/verb"
@@ -84,8 +85,11 @@ func NewCmd(correlationID string) *cobra.Command {
 				Branch:   branch,
 				End:      end,
 				ScopeSHA: scopeSHA,
-				Force:    force,
-				Out:      *out,
+				// c.Flags() is the only place the passed-vs-defaulted
+				// distinction survives; Run cannot recover it.
+				ScopeSHASet: c.Flags().Changed("scope"),
+				Force:       force,
+				Out:         *out,
 			}))
 		},
 	}
@@ -146,11 +150,7 @@ func completeScopeFlag(root *string) func(*cobra.Command, []string, string) ([]s
 			if s.State == scope.StateEnded {
 				continue
 			}
-			sha := s.AuthSHA
-			if len(sha) > 7 {
-				sha = sha[:7]
-			}
-			out = append(out, sha+"\t"+s.Agent+" ("+string(s.State)+")")
+			out = append(out, entityview.ShortHash(s.AuthSHA)+"\t"+s.Agent+" ("+string(s.State)+")")
 		}
 		return out, cobra.ShellCompDirectiveNoFileComp
 	}
@@ -257,8 +257,16 @@ type Options struct {
 	// shared Reason field.
 	End      bool
 	ScopeSHA string
-	Force    bool
-	Out      cliutil.OutputFormat
+	// ScopeSHASet records whether --scope was passed at all, which its
+	// value cannot: cobra leaves an unset string flag empty, and an
+	// operator who passed `--scope "$SCOPE"` with the variable unset
+	// arrives here identically. Without the distinction the selector is
+	// discarded and --end falls back to the sole-candidate default,
+	// which resolves a target the operator did not name and then ends
+	// it irreversibly.
+	ScopeSHASet bool
+	Force       bool
+	Out         cliutil.OutputFormat
 }
 
 // Run executes `aiwf authorize`. Returns one of the cliutil.Exit* codes.
@@ -303,8 +311,17 @@ func Run(opts Options) (code int) {
 	// --scope names which scope --end targets; every other mode either
 	// creates a scope or re-derives its target from the FSM, so a
 	// silently-ignored --scope would read as having selected one.
-	if opts.ScopeSHA != "" && !opts.End {
+	if (opts.ScopeSHA != "" || opts.ScopeSHASet) && !opts.End {
 		cliutil.Errorln("aiwf authorize: --scope is only meaningful with --end (it names which scope to end)")
+		return cliutil.ExitUsage
+	}
+	// A --scope that was passed but names nothing is a refusal, never a
+	// silent fall-back to the sole-candidate default: the operator
+	// supplied a selector, so honouring the default would end a scope
+	// they did not name.
+	if opts.ScopeSHASet && strings.TrimSpace(opts.ScopeSHA) == "" {
+		cliutil.Errorln("aiwf authorize: --scope was given an empty value; pass the auth-sha of the scope to end " +
+			"(`aiwf show <id>` prints one per scope), or omit --scope to target the entity's sole non-ended scope")
 		return cliutil.ExitUsage
 	}
 	if opts.Force && strings.TrimSpace(opts.Reason) == "" {

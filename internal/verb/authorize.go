@@ -556,6 +556,11 @@ func authorizeTransition(
 	return result, nil
 }
 
+// minScopePrefix is the shortest --scope abbreviation the end mode will
+// resolve, matching the floor `git rev-parse --verify` enforces on an
+// abbreviated revision.
+const minScopePrefix = 4
+
 // authorizeEnd handles --end: it ends one non-ended scope on the entity
 // without touching the entity's status (ADR-0047).
 //
@@ -575,7 +580,7 @@ func authorizeEnd(e *entity.Entity, actor string, opts AuthorizeOptions) (*Resul
 		// commit is the only artefact recording that the delegation was
 		// withdrawn, and with no reason on it nothing in the tree says
 		// why (ADR-0047).
-		return nil, fmt.Errorf("aiwf authorize --end requires --reason \"...\" (non-empty after trim)")
+		return nil, fmt.Errorf("--end requires --reason \"...\" (non-empty after trim)")
 	}
 
 	target, err := resolveScopeToEnd(e.ID, opts.ScopeSHA, opts.Scopes)
@@ -588,8 +593,8 @@ func authorizeEnd(e *entity.Entity, actor string, opts AuthorizeOptions) (*Resul
 	if target.State == scope.StateEnded {
 		return &Result{
 			NoOp: true,
-			NoOpMessage: fmt.Sprintf("scope %s on %s is already ended; nothing to end",
-				entityview.ShortHash(target.AuthSHA), entity.Canonicalize(e.ID)),
+			NoOpMessage: fmt.Sprintf("scope %s (%s) on %s is already ended; nothing to end",
+				entityview.ShortHash(target.AuthSHA), target.Agent, entity.Canonicalize(e.ID)),
 		}, nil
 	}
 
@@ -615,9 +620,13 @@ func authorizeEnd(e *entity.Entity, actor string, opts AuthorizeOptions) (*Resul
 		return nil, err
 	}
 
+	// The agent rides the subject because ending is irreversible and the
+	// operator may not have named the target: with one candidate a bare
+	// --end resolves it for them, so the record of what was withdrawn is
+	// the first place they learn whose authorization it was.
 	result := plan(&Plan{
-		Subject: fmt.Sprintf("aiwf authorize %s --end --scope %s",
-			entity.Canonicalize(e.ID), entityview.ShortHash(target.AuthSHA)),
+		Subject: fmt.Sprintf("aiwf authorize %s --end --scope %s (%s)",
+			entity.Canonicalize(e.ID), entityview.ShortHash(target.AuthSHA), target.Agent),
 		Body:       reason,
 		Trailers:   trailers,
 		AllowEmpty: true,
@@ -646,6 +655,16 @@ func authorizeEnd(e *entity.Entity, actor string, opts AuthorizeOptions) (*Resul
 func resolveScopeToEnd(entityID, wanted string, scopes []*scope.Scope) (*scope.Scope, error) {
 	id := entity.Canonicalize(entityID)
 	if w := strings.TrimSpace(wanted); w != "" {
+		// A shorter abbreviation that happens to be unique is not the
+		// same as a name the operator meant, and this act cannot be
+		// undone. git draws the line in the same place for the same
+		// reason; both surfaces that print an auth-sha here emit seven
+		// characters, so nothing legitimate is turned away.
+		if len(w) < minScopePrefix {
+			return nil, fmt.Errorf("--scope %q is too short to name a scope; "+
+				"pass at least %d characters (`aiwf show %s` prints each scope's auth-sha)",
+				w, minScopePrefix, id)
+		}
 		var matches []*scope.Scope
 		for _, s := range scopes {
 			if strings.HasPrefix(s.AuthSHA, w) {
@@ -656,10 +675,10 @@ func resolveScopeToEnd(entityID, wanted string, scopes []*scope.Scope) (*scope.S
 		case 1:
 			return matches[0], nil
 		case 0:
-			return nil, fmt.Errorf("aiwf authorize --end: no scope on %s matches --scope %q; "+
+			return nil, fmt.Errorf("no scope on %s matches --scope %q; "+
 				"`aiwf show %s` lists every scope with its auth-sha", id, w, id)
 		default:
-			return nil, fmt.Errorf("aiwf authorize --end: --scope %q matches %d scopes on %s; "+
+			return nil, fmt.Errorf("--scope %q matches %d scopes on %s; "+
 				"pass more characters to name one:\n%s", w, len(matches), id, renderScopeChoices(matches))
 		}
 	}
@@ -675,7 +694,7 @@ func resolveScopeToEnd(entityID, wanted string, scopes []*scope.Scope) (*scope.S
 	case 0:
 		return nil, fmt.Errorf("no non-ended scope on %s to end", id)
 	default:
-		return nil, fmt.Errorf("aiwf authorize --end: %s has %d non-ended scopes; "+
+		return nil, fmt.Errorf("%s has %d non-ended scopes; "+
 			"name one with --scope <auth-sha>:\n%s", id, len(live), renderScopeChoices(live))
 	}
 }

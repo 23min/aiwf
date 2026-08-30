@@ -71,10 +71,10 @@ New trailers, layered on the existing set:
 | `aiwf-principal:` | Accountability-bearer. The person whose judgment authorizes this. | Required when `aiwf-actor:` starts with `ai/`. Forbidden when `aiwf-actor:` starts with `human/`. |
 | `aiwf-on-behalf-of:` | The principal whose authorized scope this commit is acting under. Equal to or attributable-to a principal of an `aiwf-verb: authorize` commit. | Only inside an authorized scope. Required-with `aiwf-authorized-by:`. |
 | `aiwf-authorized-by:` | Git SHA of the `aiwf-verb: authorize` commit that opened the scope. | Only inside an authorized scope. Required-with `aiwf-on-behalf-of:`. |
-| `aiwf-scope:` | Scope state event marker on the authorize verb itself. Closed-set: `opened \| paused \| resumed`. (No `ended` — see "Scope termination.") | Only on `aiwf-verb: authorize` commits. |
+| `aiwf-scope:` | Scope state event marker on the authorize verb itself. Closed-set: `opened \| paused \| resumed`. (No `ended` — termination is recorded by `aiwf-scope-ends:` alone, whichever route ends the scope.) | Only on `aiwf-verb: authorize` commits. |
 | `aiwf-branch:` | Ritual branch the scope is bound to (ADR-0010, M-0102). The kernel finding `isolation-escape` (M-0106) reads this value when checking whether an AI-actor commit drifted off the recorded branch. | Optional on `aiwf-verb: authorize` commits; emitted only when the operator passes `--branch <name>` (backward-compatible no-op when absent). |
-| `aiwf-scope-ends:` | Lists the SHAs of authorize commits whose scope this commit is auto-ending. Repeatable (one trailer per ended scope). | On any commit that promotes the scope-entity of one or more active scopes to a terminal status. |
-| `aiwf-reason:` | Free-text rationale for verbs that require one. Non-empty after trim. | Required on `aiwf authorize --pause` and `--resume`; optional on `aiwf authorize --to`. Distinct from `aiwf-force:` (sovereign override) and `aiwf-audit-only:` (G24 backfill rationale) — each reason-bearing trailer carries its own semantic. |
+| `aiwf-scope-ends:` | Lists the SHAs of authorize commits whose scope this commit ends. Repeatable (one trailer per ended scope). | On any commit taking the scope-entity of one or more non-ended scopes to a terminal status, and on an `aiwf authorize --end` commit, which ends one named scope and leaves the entity alone. |
+| `aiwf-reason:` | Free-text rationale for verbs that require one. Non-empty after trim. | Required on `aiwf authorize --pause`, `--resume` and `--end`; optional on `aiwf authorize --to`. Distinct from `aiwf-force:` (sovereign override) and `aiwf-audit-only:` (G24 backfill rationale) — each reason-bearing trailer carries its own semantic. |
 
 The pre-I2.5 trailers (`aiwf-verb`, `aiwf-entity`, `aiwf-actor`, `aiwf-to`, `aiwf-force`, `aiwf-prior-entity`, `aiwf-tests`) keep their existing semantics. `aiwf-actor:` specifically retains its meaning: **whoever ran the verb**, consistent with current PoC behavior.
 
@@ -403,7 +403,7 @@ If an LLM tried the same with `--force`, the verb refuses with `provenance-force
 
 Documented as known-incomplete; deferred from I2.5 by design:
 
-- **G22 — provenance model extension surface.** Future verbs and flags: `aiwf revoke <auth-sha> --reason "..."` (explicit revocation); time-bound scopes (`--until <date>`); verb-set restrictions (`--verbs add,promote`); pattern scopes (`--pattern "M-007/*"`); sub-agent delegation (whether an agent can authorize a sub-agent — the policy question reserved by Q3.6b's deferred mutually-exclusive pair).
+- **G22 — provenance model extension surface.** Future verbs and flags: time-bound scopes (`--until <date>`); verb-set restrictions (`--verbs add,promote`); pattern scopes (`--pattern "M-007/*"`); sub-agent delegation (whether an agent can authorize a sub-agent — the policy question reserved by Q3.6b's deferred mutually-exclusive pair).
 - **G23 — delegated `--force` via `aiwf authorize --allow-force`.** A future flag on `aiwf authorize` letting the agent invoke `--force` within scope, while still writing the human as `aiwf-principal:`. YAGNI for the PoC; revisit if real friction shows up.
 - **Bulk-import per-entity attribution.** When `aiwf import` ingests data with per-row author info, the importer should write per-entity `aiwf-actor:` pairs instead of one collapsed trailer. Bundled into G22.
 

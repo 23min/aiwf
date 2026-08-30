@@ -99,11 +99,11 @@ func TestAuthorize_End_TargetResolution_Refusals(t *testing.T) {
 
 	ended := endTarget("aaaaaaa", scope.StateEnded, "ai/claude")
 	active := endTarget("bbbbbbb", scope.StateActive, "ai/claude")
-	second := endTarget("ccccccc", scope.StateActive, "ai/other")
-	// Two candidates sharing a leading character, so a one-character
-	// --scope is genuinely ambiguous rather than merely short.
-	twinA := endTarget("d1111111", scope.StateActive, "ai/claude")
-	twinB := endTarget("d2222222", scope.StatePaused, "ai/other")
+	// Two candidates sharing a four-character prefix, so an ambiguous
+	// --scope is one the resolver will actually consider: anything
+	// shorter is refused for being short before ambiguity is reached.
+	twinA := endTarget("dddd1111", scope.StateActive, "ai/claude")
+	twinB := endTarget("dddd2222", scope.StatePaused, "ai/other")
 
 	cases := []struct {
 		name     string
@@ -119,24 +119,24 @@ func TestAuthorize_End_TargetResolution_Refusals(t *testing.T) {
 		},
 		{
 			name:     "--scope prefix matches more than one scope",
-			scopeSHA: "d",
+			scopeSHA: "dddd",
 			scopes:   []*scope.Scope{twinA, twinB},
 			want:     []string{"matches 2 scopes", "ai/claude", "ai/other"},
 		},
 		{
-			name:   "bare --end with no candidate at all",
-			scopes: nil,
-			want:   []string{"no non-ended scope on E-0001 to end"},
+			// Distinct from the row above: too short to resolve at all,
+			// refused before any candidate is considered. A unique short
+			// prefix is not the same as a name the operator meant, and
+			// this act cannot be undone.
+			name:     "--scope shorter than the minimum prefix",
+			scopeSHA: "dd",
+			scopes:   []*scope.Scope{twinA, twinB},
+			want:     []string{"too short to name a scope", "at least 4"},
 		},
 		{
 			name:   "bare --end when every scope is ended",
 			scopes: []*scope.Scope{ended},
 			want:   []string{"no non-ended scope on E-0001 to end"},
-		},
-		{
-			name:   "bare --end with two live candidates",
-			scopes: []*scope.Scope{active, second},
-			want:   []string{"--scope", "ai/claude", "ai/other"},
 		},
 		{
 			// A paused scope is a candidate: ADR-0047 scopes ending to

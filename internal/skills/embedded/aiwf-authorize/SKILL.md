@@ -5,7 +5,7 @@ description: Use when a human wants to delegate autonomous work on an entity to 
 
 # aiwf-authorize
 
-The `aiwf authorize` verb opens, pauses, or resumes an **authorization scope** — the kernel's typed lifecycle for "this human authorizes this agent to act on this entity." Without an active scope, the kernel refuses non-human actors at verb time and `aiwf check` flags any commit they produced as `provenance-no-active-scope`.
+The `aiwf authorize` verb opens, pauses, resumes, or ends an **authorization scope** — the kernel's typed lifecycle for "this human authorizes this agent to act on this entity." Without an active scope, the kernel refuses non-human actors at verb time and `aiwf check` flags any commit they produced as `provenance-no-active-scope`.
 
 ## When to use
 
@@ -72,7 +72,7 @@ After the scope is open, ordinary `aiwf check` rules apply to subsequent agent c
 |---|---|
 | `provenance-no-active-scope` | the agent ran a verb without a matching active scope. Open one with `aiwf authorize`, or run the verb as the human directly. |
 | `provenance-authorization-out-of-scope` | the verb's target entity has no reference path to the scope-entity. Either authorize the right entity or work on something the existing scope already reaches. |
-| `provenance-authorization-ended` | the scope was already ended (terminal-promote / revoke). Open a fresh scope with a new `aiwf authorize`. |
+| `provenance-authorization-ended` | the scope was already ended — by a closing promote or cancel, or by `aiwf authorize <id> --end`. Open a fresh scope with a new `aiwf authorize`. |
 | `provenance-authorization-missing` | the `aiwf-authorized-by:` SHA didn't resolve. Usually a typo or a force-pushed reference. |
 | `provenance-trailer-incoherent` | the trailer set violated a required-together / mutually-exclusive rule. Often: a non-human actor without `--principal`, or a human actor with a stray `--principal`. |
 

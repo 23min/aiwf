@@ -24,18 +24,17 @@ import (
 func TestLoadEndableScopeAuthSHAsForEntity_SelectsEveryNonEndedScope(t *testing.T) {
 	t.Parallel()
 	root := t.TempDir()
-	mustGitInRoot(t, root, "init", "-q", "-b", "main")
-	mustGitInRoot(t, root, "config", "user.email", "test@example.com")
-	mustGitInRoot(t, root, "config", "user.name", "Tester")
+	// runGit seeds the GIT identity vars itself, so no config step here.
+	runGit(t, root, "init", "-q", "-b", "main")
 
 	active := openScopeCommit(t, root, "E-0001", "ai/active")
 	paused := openScopeCommit(t, root, "E-0001", "ai/paused")
-	mustGitInRoot(t, root, "commit", "--allow-empty", "-m", "aiwf authorize E-0001 --pause",
+	runGit(t, root, "commit", "--allow-empty", "-m", "aiwf authorize E-0001 --pause",
 		"--trailer", "aiwf-verb: authorize", "--trailer", "aiwf-entity: E-0001",
 		"--trailer", "aiwf-actor: human/test", "--trailer", "aiwf-scope: paused",
 		"--trailer", "aiwf-reason: holding")
 	ended := openScopeCommit(t, root, "E-0001", "ai/ended")
-	mustGitInRoot(t, root, "commit", "--allow-empty", "-m", "aiwf authorize E-0001 --end",
+	runGit(t, root, "commit", "--allow-empty", "-m", "aiwf authorize E-0001 --end",
 		"--trailer", "aiwf-verb: authorize", "--trailer", "aiwf-entity: E-0001",
 		"--trailer", "aiwf-actor: human/test", "--trailer", "aiwf-scope-ends: "+ended,
 		"--trailer", "aiwf-reason: withdrawn")
@@ -52,7 +51,7 @@ func TestLoadEndableScopeAuthSHAsForEntity_SelectsEveryNonEndedScope(t *testing.
 	// which is `paused` — the replay's own rule, not an assumption here.
 	want := map[string]string{active: "the active scope", paused: "the paused scope"}
 	if len(got) != len(want) {
-		t.Fatalf("selected %d scopes, want %d: got %v", len(got), len(want), abbrev(got))
+		t.Fatalf("selected %d scopes, want %d: got %v", len(got), len(want), got)
 	}
 	for _, sha := range got {
 		if _, ok := want[sha]; !ok {
@@ -80,7 +79,7 @@ func TestLoadEndableScopeAuthSHAsForEntity_SelectsEveryNonEndedScope(t *testing.
 // which is the AuthSHA the replay assigns the resulting scope.
 func openScopeCommit(t *testing.T, root, entityID, agent string) string {
 	t.Helper()
-	mustGitInRoot(t, root, "commit", "--allow-empty", "-m", "aiwf authorize "+entityID+" --to "+agent,
+	runGit(t, root, "commit", "--allow-empty", "-m", "aiwf authorize "+entityID+" --to "+agent,
 		"--trailer", "aiwf-verb: authorize",
 		"--trailer", "aiwf-entity: "+entityID,
 		"--trailer", "aiwf-actor: human/test",
@@ -91,24 +90,4 @@ func openScopeCommit(t *testing.T, root, entityID, agent string) string {
 		t.Fatalf("git rev-parse HEAD: %v", err)
 	}
 	return strings.TrimSpace(string(out))
-}
-
-func mustGitInRoot(t *testing.T, root string, args ...string) {
-	t.Helper()
-	cmd := exec.Command("git", append([]string{"-C", root}, args...)...)
-	if out, err := cmd.CombinedOutput(); err != nil {
-		t.Fatalf("git %v: %v\n%s", args, err, out)
-	}
-}
-
-// abbrev shortens SHAs for a failure message.
-func abbrev(shas []string) []string {
-	out := make([]string, 0, len(shas))
-	for _, s := range shas {
-		if len(s) > 8 {
-			s = s[:8]
-		}
-		out = append(out, s)
-	}
-	return out
 }

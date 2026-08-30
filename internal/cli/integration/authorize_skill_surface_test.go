@@ -20,12 +20,11 @@ import (
 // cannot slip past by omission — it has to be added here deliberately,
 // and the reason has to survive review.
 var authorizePlumbingFlags = map[string]string{
-	"actor":          "registered by every verb; identity resolution is documented once, in the provenance model",
-	"root":           "registered by every verb; names the consumer repo, not anything about authorization",
-	"format":         "registered by every verb through AddFormatFlags",
-	"pretty":         "registered by every verb through AddFormatFlags",
-	"correlation-id": "registered by every verb through AddFormatFlags; a diagnostics correlation token",
-	"trace":          "registered by every verb through AddFormatFlags; a diagnostic-logging switch",
+	"actor":  "registered by every verb; identity resolution is documented once, in the provenance model",
+	"root":   "registered by every verb; names the consumer repo, not anything about authorization",
+	"format": "registered by every verb through AddFormatFlags",
+	"pretty": "registered by every verb through AddFormatFlags",
+	"trace":  "registered by every verb through AddFormatFlags; a diagnostic-logging switch",
 }
 
 // TestPolicy_AuthorizeSkillDocumentsItsOwnSurface is M-0325/AC-3's skill

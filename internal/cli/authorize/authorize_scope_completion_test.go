@@ -6,6 +6,7 @@ import (
 
 	"github.com/23min/aiwf/internal/cli/authorize"
 	"github.com/23min/aiwf/internal/cli/cliutil/testutil"
+	"github.com/23min/aiwf/internal/entityview"
 )
 
 // TestCompleteScopeFlag_SuggestsNonEndedScopesOfTheNamedEntity is
@@ -41,14 +42,20 @@ func TestCompleteScopeFlag_SuggestsNonEndedScopesOfTheNamedEntity(t *testing.T) 
 		t.Fatalf("completion offered %d candidates, want 1 (the entity's one non-ended scope): %v", len(got), got)
 	}
 	sha, desc, _ := strings.Cut(got[0], "\t")
-	if sha != live[:7] {
-		t.Errorf("suggested %q, want %q — the seven characters `aiwf show` prints, so the value the "+
-			"operator sees there and the one completion offers are the same string", sha, live[:7])
+	// Derived from ShortHash rather than spelled as a second literal:
+	// aiwf show, the refusal listing and the commit subject all render
+	// through that call, so an assertion against a hand-written prefix
+	// would keep passing if the shared abbreviation moved and completion
+	// alone stayed behind — the two-literals-that-agree failure this
+	// milestone set out to avoid.
+	if want := entityview.ShortHash(live); sha != want {
+		t.Errorf("suggested %q, want %q — completion must offer the same abbreviation every other "+
+			"surface renders", sha, want)
 	}
 	if !strings.Contains(desc, "ai/claude") {
 		t.Errorf("description %q does not name the agent, which is what tells two candidates apart", desc)
 	}
-	for _, absent := range []string{ended[:7], elsewhere[:7]} {
+	for _, absent := range []string{entityview.ShortHash(ended), entityview.ShortHash(elsewhere)} {
 		if strings.Contains(got[0], absent) {
 			t.Errorf("completion offered %q; an ended scope converges and a scope on another entity "+
 				"is not a candidate at all", absent)

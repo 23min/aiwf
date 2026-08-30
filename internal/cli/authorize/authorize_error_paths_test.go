@@ -27,14 +27,20 @@ func TestRun_ModeMutex(t *testing.T) {
 		to     string
 		pause  string
 		resume string
+		end    bool
 	}{
 		{name: "none selected"},
 		{name: "to and pause both set", to: "ai/claude", pause: "blocked"},
+		// --end is a bool rather than a reason-carrying string, so it
+		// reaches the counter by a different route than its three
+		// siblings; a counter that missed it would open a scope and
+		// silently discard the end the operator also asked for.
+		{name: "to and end both set", to: "ai/claude", end: true},
 	}
 	for _, tc := range tests {
 		t.Run(tc.name, func(t *testing.T) {
 			t.Parallel()
-			rc := authorize.Run(authorize.Options{ID: "E-0001", To: tc.to, Pause: tc.pause, Resume: tc.resume})
+			rc := authorize.Run(authorize.Options{ID: "E-0001", To: tc.to, Pause: tc.pause, Resume: tc.resume, End: tc.end})
 			if rc != cliutil.ExitUsage {
 				t.Errorf("rc = %d, want ExitUsage", rc)
 			}
@@ -85,18 +91,6 @@ func TestRun_ResolveActorFailure(t *testing.T) {
 	}
 }
 
-// TestRun_EndParticipatesInTheModeMutex covers --end's arm of the
-// exactly-one-of guard (M-0325/AC-1). Without it the counter would
-// treat --end as no mode at all, and `--to X --end` would open a scope
-// while silently discarding the end the operator also asked for.
-func TestRun_EndParticipatesInTheModeMutex(t *testing.T) {
-	t.Parallel()
-	rc := authorize.Run(authorize.Options{ID: "E-0001", To: "ai/claude", End: true, Reason: "both at once"})
-	if rc != cliutil.ExitUsage {
-		t.Errorf("rc = %d, want ExitUsage", rc)
-	}
-}
-
 // TestRun_ScopeRequiresEnd covers the --scope gate: every other mode
 // either creates a scope or re-derives its target from the FSM, so a
 // --scope they ignored would read to the operator as having selected
@@ -104,6 +98,34 @@ func TestRun_EndParticipatesInTheModeMutex(t *testing.T) {
 func TestRun_ScopeRequiresEnd(t *testing.T) {
 	t.Parallel()
 	rc := authorize.Run(authorize.Options{ID: "E-0001", To: "ai/claude", ScopeSHA: "1a2b3c4", Reason: "delegate"})
+	if rc != cliutil.ExitUsage {
+		t.Errorf("rc = %d, want ExitUsage", rc)
+	}
+}
+
+// TestRun_ScopePassedEmpty_Refuses covers the distinction cobra erases:
+// an operator who passed `--scope "$SCOPE"` with the variable unset
+// arrives with the same empty string as one who passed no --scope at
+// all. Falling back to the sole-candidate default there would resolve a
+// target they did not name and then end it irreversibly.
+func TestRun_ScopePassedEmpty_Refuses(t *testing.T) {
+	t.Parallel()
+	rc := authorize.Run(authorize.Options{
+		ID: "E-0001", Root: t.TempDir(), End: true, Reason: "the selector named nothing",
+		ScopeSHA: "   ", ScopeSHASet: true,
+	})
+	if rc != cliutil.ExitUsage {
+		t.Errorf("rc = %d, want ExitUsage", rc)
+	}
+}
+
+// TestRun_BranchWithEndRejected pins what the --branch gate rewrite was
+// made for. The gate reads "--branch without --to" rather than
+// enumerating the modes that reject it, so --end is refused rather than
+// silently dropping the flag; no other test passes Branch alongside End.
+func TestRun_BranchWithEndRejected(t *testing.T) {
+	t.Parallel()
+	rc := authorize.Run(authorize.Options{ID: "E-0001", End: true, Reason: "ending", Branch: "epic/E-0001-eng"})
 	if rc != cliutil.ExitUsage {
 		t.Errorf("rc = %d, want ExitUsage", rc)
 	}

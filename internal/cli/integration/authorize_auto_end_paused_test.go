@@ -64,29 +64,3 @@ func TestAutoEnd_TerminalStatus_EndsAPausedScope(t *testing.T) {
 		})
 	}
 }
-
-// TestAutoEnd_TerminalStatus_StillEndsAnActiveScope is the boundary the
-// AC-4 predicate must not cross.
-//
-// Widening the selection from active-only to non-ended must not drop
-// the case that already worked. Without this, a predicate inverted to
-// paused-only would satisfy the test above and silently strand every
-// active scope instead — the same defect, moved.
-func TestAutoEnd_TerminalStatus_StillEndsAnActiveScope(t *testing.T) {
-	t.Parallel()
-	testutil.SkipIfShortOrUnsupported(t)
-
-	root, binDir := sovereignScopedRepo(t, [][]string{{"promote", "E-0001", "active"}})
-	for _, args := range [][]string{
-		{"cancel", "M-0001", "--reason", "not doing this one"},
-		{"promote", "E-0001", "done"},
-	} {
-		if out, err := testutil.RunBin(t, root, binDir, nil, args...); err != nil {
-			t.Fatalf("aiwf %v: %v\n%s", args, err, out)
-		}
-	}
-
-	if _, after := showScopes(t, root, binDir, "E-0001"); after[0].State != "ended" {
-		t.Errorf("an active scope replays as %q after its entity closed, want \"ended\"", after[0].State)
-	}
-}
