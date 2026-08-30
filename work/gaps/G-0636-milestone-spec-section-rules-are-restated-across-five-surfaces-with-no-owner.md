@@ -1,6 +1,6 @@
 ---
 id: G-0636
-title: Milestone-spec section timing is restated across five surfaces with no owner
+title: Milestone-spec section rules are restated across five surfaces with no owner
 status: open
 ---
 ## What's missing
