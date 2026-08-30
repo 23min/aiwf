@@ -16,6 +16,23 @@ section in this file.
 
 ## [Unreleased]
 
+### Changed — E-0090: closing an epic is a human's act
+
+Every edge into a terminal epic status — `active → done`, `active → cancelled`,
+`proposed → cancelled` — now requires a `human/` actor, joining the activation edge
+that was already gated. A non-human actor is refused at the verb, before anything is
+written, and `aiwf cancel` consults the same closed set `aiwf promote` does, so both
+spellings of a terminal edge are gated alike. Sovereignty here tracks irreversibility
+rather than effort: cancelling a *proposed* epic discards a plan that never became
+work, but `cancelled` is terminal whichever state it is reached from.
+
+This changes an invocation that used to succeed. `aiwf promote <epic> done` run by an
+agent exited 0 before; it is now refused, and the remedy is for a human to run it —
+not `--force`, which a non-human actor cannot wield either. One historical commit in
+this repo's own log qualified and was ratified.
+
+Closes G-0646. See ADR-0047.
+
 ### Added — `aiwf authorize <id> --end`: retire a scope without closing its entity
 
 An authorization scope had one exit: the terminal promote or cancel of the entity
