@@ -121,6 +121,7 @@ Doc findings are warnings until `aiwf.yaml: docs.strict: true`. Sweep your docs 
 
 | Code | Meaning |
 |---|---|
+| `milestone-done-empty-release-note` | A milestone is `status: done` carrying a `## Release note` section nobody filled in. The epic wrap composes its changelog entry from these notes and copies that entry verbatim into the changelog, so an empty one is a shipped change described by nobody who did the work. Scoped to a section that is **present** and empty — a spec written before the section existed carries no such heading and is out of scope. Warning, not error: a milestone with genuinely nothing user-facing says so in those words rather than being blocked. Archived entities are out of scope, as for every archive-scoped rule. |
 | `titles-nonempty` | Title is missing or whitespace-only. |
 | `roadmap-case-collision` | More than one case-variant of the generated roadmap artifact exists at the repo root (e.g. both `ROADMAP.md` and `roadmap.md`). Only physically possible on a case-sensitive filesystem; `aiwf render roadmap --write` reconciles to a single existing variant but cannot pick between two, so it leaves this advisory for you to resolve. |
 | `adr-supersession-mutual` | ADR A says it's superseded by B, but B does not list A in its `supersedes`. |
