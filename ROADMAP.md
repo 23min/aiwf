@@ -1256,7 +1256,7 @@ that the kernel contradicts.
 | M-0321 | Declare kind-by-verb applicability and enforce cell totality | draft |
 | M-0322 | Decide the rendered legality reference and ship it if taken | draft |
 
-## E-0090 — Make closing an epic a sovereign act and give scopes an operator-driven end (active)
+## E-0090 — Make closing an epic a sovereign act and give scopes an operator-driven end (done)
 
 ### Goal
 
