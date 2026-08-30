@@ -8,7 +8,7 @@ acs:
     - id: AC-1
       title: Every milestone-spec section a ritual names resolves to one the template ships
       status: open
-      tdd_phase: green
+      tdd_phase: done
     - id: AC-2
       title: The epic wrap composes its changelog entry from milestone Release notes
       status: open
