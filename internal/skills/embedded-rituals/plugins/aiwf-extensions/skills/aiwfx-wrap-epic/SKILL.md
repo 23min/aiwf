@@ -81,6 +81,10 @@ Two to four sentences on what shipped and why. Reference the goal from the epic 
 
 - G-NNNN — <slug>             (gap that survives the epic)
 
+## Doc findings
+
+<Filled by the doc-lint sweep at step 3; "clean" when it reports nothing.>
+
 ## Handoff
 
 What is ready for the next epic; what is deliberately left open.

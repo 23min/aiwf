@@ -70,10 +70,6 @@ func TestPromote_EpicDoneWithAllTerminalChildren_Succeeds(t *testing.T) {
 	// this fixture (pure FSM scaffolding, not a branch-discipline
 	// test) — force past it.
 	r.must(verb.Promote(r.ctx, r.tree(), "M-0001", "in_progress", testActor, "fixture-setup", true, verb.PromoteOptions{}))
-	// `done` requires a written `## Release note`; this fixture is about the
-	// epic's terminal-children guard, so satisfy that precondition rather than
-	// let it decide the outcome.
-	appendReleaseNote(t, r, "No user-visible change.")
 	r.must(verb.Promote(r.ctx, r.tree(), "M-0001", "done", testActor, "", false, verb.PromoteOptions{}))
 
 	r.must(verb.Promote(r.ctx, r.tree(), "E-0001", "done", testActor, "", false, verb.PromoteOptions{}))

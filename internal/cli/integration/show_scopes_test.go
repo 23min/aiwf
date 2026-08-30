@@ -2,8 +2,6 @@ package integration
 
 import (
 	"encoding/json"
-	"os"
-	"path/filepath"
 	"strings"
 	"testing"
 
@@ -143,24 +141,6 @@ func TestShow_ScopesView_AuthorizationFlow(t *testing.T) {
 		"promote", "M-0001/AC-1", "met",
 		"--actor", "ai/claude", "--principal", "human/peter"); pErr != nil {
 		t.Fatalf("promote M-001/AC-1 met: %v\n%s", pErr, pOut)
-	}
-	// `done` also requires a written `## Release note`; this fixture is testing
-	// scope-ending on terminal-promote, so satisfy that precondition too.
-	msPath := filepath.Join(root, "work", "epics", "E-0001-platform", "M-0001-first-milestone.md")
-	if matches, gErr := filepath.Glob(filepath.Join(root, "work", "epics", "*", "M-0001-*.md")); gErr == nil && len(matches) == 1 {
-		msPath = matches[0]
-	}
-	msRaw, rErr := os.ReadFile(msPath)
-	if rErr != nil {
-		t.Fatalf("reading %s: %v", msPath, rErr)
-	}
-	if wErr := os.WriteFile(msPath, append(msRaw, []byte("\n## Release note\n\nNo user-visible change.\n")...), 0o600); wErr != nil {
-		t.Fatalf("writing %s: %v", msPath, wErr)
-	}
-	if pOut, pErr := testutil.RunBin(t, root, binDir, nil,
-		"edit-body", "M-0001",
-		"--actor", "ai/claude", "--principal", "human/peter"); pErr != nil {
-		t.Fatalf("edit-body M-0001: %v\n%s", pErr, pOut)
 	}
 	if pOut, pErr := testutil.RunBin(t, root, binDir, nil,
 		"promote", "M-0001", "done",

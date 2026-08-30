@@ -12,6 +12,18 @@ import (
 	"github.com/23min/aiwf/internal/check"
 )
 
+// sectionViolation builds this policy's violations from one literal, so every
+// report carries the same policy id and a line rather than three of them
+// silently emitting zero.
+func sectionViolation(rel string, line int, format string, args ...any) Violation {
+	return Violation{
+		Policy: "milestone-section-name-resolution",
+		File:   rel,
+		Line:   line,
+		Detail: fmt.Sprintf(format, args...),
+	}
+}
+
 // PolicyMilestoneSectionNameResolution asserts that every backticked
 // `## Section` name written in the shipped ritual, agent-card and template tree
 // resolves to a heading some entity template — or the wrap artefact's own
@@ -38,62 +50,46 @@ import (
 // policy already does for skills) is the stronger design and belongs with the
 // section-ownership work G-0636 tracks, not here.
 //
-// Scope is every markdown file under the authoring tree, derived rather than
-// listed. A hand-maintained surface list fails silently — add a ritual that
-// names sections and nothing reports it — and measured, the exemptions a derived
-// scan was supposed to require do not exist: the generic-prose mentions that
-// motivated a list (`wf-doc-lint` describing a `## Contents` pattern in consumer
-// docs, the `aiwf-check` skill writing `## Section` as a placeholder) both live
-// outside this tree and were never in scope to begin with.
+// Scope is every markdown file under the ritual authoring tree, derived rather
+// than listed: a hand-maintained surface list fails silently, since adding a
+// ritual that names sections reports nothing.
+//
+// The tree itself is still a chosen boundary, and other shipped trees do carry
+// section names — the `aiwf-add` skill describes the entity templates at length,
+// and the `aiwf-check` skill writes `## Section` as a placeholder while
+// explaining a finding code. Widening to those would report the placeholder,
+// which is a generic mention rather than a claim about an artefact, and
+// exempting it is the per-subject cost this scoping avoids. So a rename can
+// still leave a stale mention outside this tree, unreported. Resolving that
+// needs a reference that names which artefact it means, which is the
+// section-ownership work G-0636 tracks.
+//
+// One more limit worth knowing: mentions are matched per line, so a backtick
+// span wrapped across a line break is invisible to this policy.
 func PolicyMilestoneSectionNameResolution(root string) ([]Violation, error) {
 	surfaces, err := sectionSurfaces(root)
 	if err != nil {
-		return []Violation{{
-			Policy: "milestone-section-name-resolution",
-			File:   filepath.ToSlash(sectionRitualsDir),
-			Detail: fmt.Sprintf("the authoring tree is unwalkable, so no surface's section names are checked: %v", err),
-		}}, nil
+		return []Violation{sectionViolation(filepath.ToSlash(sectionRitualsDir), 0, "the authoring tree is unwalkable, so no surface's section names are checked: %v", err)}, nil
 	}
 
-	universe, wrapRitual, err := sectionNameUniverse(root)
+	universe, err := sectionNameUniverse(root)
 	if err != nil {
-		return []Violation{{
-			Policy: "milestone-section-name-resolution",
-			File:   filepath.ToSlash(filepath.Join(sectionRitualsDir, "templates")),
-			Detail: fmt.Sprintf("the section-name universe is unreadable, so no surface's claim about a spec section can be checked against it: %v", err),
-		}}, nil
+		return []Violation{sectionViolation(filepath.ToSlash(filepath.Join(sectionRitualsDir, "templates")), 0, "the section-name universe is unreadable, so no surface's claim about a spec section can be checked against it: %v", err)}, nil
 	}
 
 	var vs []Violation
-	for _, name := range unscaffoldedSectionsWithoutACreationSite(wrapRitual) {
-		vs = append(vs, Violation{
-			Policy: "milestone-section-name-resolution",
-			File:   filepath.ToSlash(filepath.Join(sectionRitualsDir, "skills", "aiwfx-wrap-epic", "SKILL.md")),
-			Detail: fmt.Sprintf("%q is listed as a wrap-artefact section created outside the scaffold, but the wrap ritual never creates it; an entry with no creation site is an exemption that silently suppresses real findings — remove it, or add the step that creates the section", "## "+name),
-		})
-	}
-
 	for _, rel := range surfaces {
 		full := filepath.Join(root, filepath.FromSlash(sectionRitualsDir), filepath.FromSlash(rel))
 		data, err := os.ReadFile(full) //nolint:gosec // path is a compile-time constant joined to the repo root
 		if err != nil {
-			vs = append(vs, Violation{
-				Policy: "milestone-section-name-resolution",
-				File:   filepath.ToSlash(filepath.Join(sectionRitualsDir, rel)),
-				Detail: fmt.Sprintf("declared surface is unreadable, so the section names it writes go unchecked: %v", err),
-			})
+			vs = append(vs, sectionViolation(filepath.ToSlash(filepath.Join(sectionRitualsDir, rel)), 0, "declared surface is unreadable, so the section names it writes go unchecked: %v", err))
 			continue
 		}
 		for _, m := range mentionedSectionNames(string(data)) {
 			if universe[m.name] {
 				continue
 			}
-			vs = append(vs, Violation{
-				Policy: "milestone-section-name-resolution",
-				File:   filepath.ToSlash(filepath.Join(sectionRitualsDir, rel)),
-				Line:   m.line,
-				Detail: fmt.Sprintf("this surface tells an author to use section %q, which no shipped template heading and no wrap-artefact section carries — so the instruction names a section that does not exist; rename it to the section the artefact ships, or add the section to the artefact.", "## "+m.name),
-			})
+			vs = append(vs, sectionViolation(filepath.ToSlash(filepath.Join(sectionRitualsDir, rel)), m.line, "this surface tells an author to use section %q, which no shipped template heading and no wrap-artefact section carries — so the instruction names a section that does not exist; rename it to the section the artefact ships, or add the section to the artefact.", "## "+m.name))
 		}
 	}
 	return vs, nil
@@ -130,25 +126,15 @@ func sectionSurfaces(root string) ([]string, error) {
 	return out, nil
 }
 
-// wrapArtefactUnscaffoldedSections names wrap.md sections that the ritual
-// creates outside its step-1 scaffold, so parsing the scaffold alone does not
-// find them. `## Doc findings` is appended by the doc-lint sweep step.
-//
-// Every entry must have a creation site in the wrap ritual, and the policy
-// checks that rather than trusting it — otherwise the slice is an exemption
-// list, and adding a name to it silently widens the universe so real findings
-// stop being reported.
-var wrapArtefactUnscaffoldedSections = []string{"Doc findings"}
-
 // sectionNameUniverse is every section name a declared surface may legitimately
 // write: the headings of every shipped entity template, plus the sections of the
 // wrap artefact, which is not a template but is scaffolded verbatim inside the
 // wrap ritual.
-func sectionNameUniverse(root string) (universe map[string]bool, wrapRitual string, err error) {
+func sectionNameUniverse(root string) (universe map[string]bool, err error) {
 	dir := filepath.Join(root, filepath.FromSlash(sectionRitualsDir), "templates")
 	entries, err := os.ReadDir(dir)
 	if err != nil {
-		return nil, "", fmt.Errorf("reading templates dir: %w", err)
+		return nil, fmt.Errorf("reading templates dir: %w", err)
 	}
 
 	universe = map[string]bool{}
@@ -158,7 +144,7 @@ func sectionNameUniverse(root string) (universe map[string]bool, wrapRitual stri
 		}
 		data, readErr := os.ReadFile(filepath.Join(dir, e.Name())) //nolint:gosec // dir is a compile-time constant joined to the repo root
 		if readErr != nil {
-			return nil, "", fmt.Errorf("reading template %s: %w", e.Name(), readErr)
+			return nil, fmt.Errorf("reading template %s: %w", e.Name(), readErr)
 		}
 		for _, h := range topLevelHeadings(string(data)) {
 			universe[h] = true
@@ -168,33 +154,12 @@ func sectionNameUniverse(root string) (universe map[string]bool, wrapRitual stri
 	wrapSkill := filepath.Join(root, filepath.FromSlash(sectionRitualsDir), "skills", "aiwfx-wrap-epic", "SKILL.md")
 	data, err := os.ReadFile(wrapSkill) //nolint:gosec // path is a compile-time constant joined to the repo root
 	if err != nil {
-		return nil, "", fmt.Errorf("reading wrap ritual: %w", err)
+		return nil, fmt.Errorf("reading wrap ritual: %w", err)
 	}
-	wrapRitual = string(data)
 	for _, h := range topLevelHeadings(scaffoldBlock(string(data))) {
 		universe[h] = true
 	}
-	for _, h := range wrapArtefactUnscaffoldedSections {
-		universe[h] = true
-	}
-	return universe, wrapRitual, nil
-}
-
-// unscaffoldedSectionsWithoutACreationSite returns the entries of
-// wrapArtefactUnscaffoldedSections the wrap ritual never names. An entry with no
-// creation site is an exemption rather than a derived fact: it suppresses real
-// findings for a section no artefact carries.
-//
-// It takes the ritual body the universe read already produced, so there is no
-// second read and no error path that only a vanished file could reach.
-func unscaffoldedSectionsWithoutACreationSite(wrapRitual string) []string {
-	var missing []string
-	for _, h := range wrapArtefactUnscaffoldedSections {
-		if !strings.Contains(wrapRitual, "`## "+h+"`") && !strings.Contains(wrapRitual, "\n## "+h+"\n") {
-			missing = append(missing, h)
-		}
-	}
-	return missing
+	return universe, nil
 }
 
 // scaffoldBlock returns the body of the ```markdown fenced block in body that
@@ -249,8 +214,9 @@ var sectionMentionRe = regexp.MustCompile("`(## [A-Za-z][^`]*)`")
 
 // sectionSpanSplit separates the names inside one backtick span. A single span
 // legitimately lists several sections ("`## Goal / ## Scope`"); read whole it
-// yields one name matching nothing and checks neither real one.
-var sectionSpanSplit = regexp.MustCompile(`\s*/\s*(?:##\s+)?`)
+// yields one name matching nothing and checks neither real one. The `##` is
+// required, so a heading whose own name contains a slash stays intact.
+var sectionSpanSplit = regexp.MustCompile(`\s*/\s*##\s+`)
 
 type sectionMention struct {
 	name string

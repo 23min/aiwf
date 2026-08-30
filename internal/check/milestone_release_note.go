@@ -24,7 +24,7 @@ const ReleaseNoteSectionHeading = "Release note"
 // keys by.
 var releaseNoteSectionSlug = entity.SectionSlug(ReleaseNoteSectionHeading)
 
-// milestoneDoneEmptyReleaseNote fires (error) when a non-archived milestone at
+// milestoneDoneEmptyReleaseNote fires (warning) when a non-archived milestone at
 // `done` has no `## Release note` an author filled in — the section absent, or
 // present and carrying nothing but whitespace, headings, or the template's own
 // guidance comment.
@@ -35,23 +35,21 @@ var releaseNoteSectionSlug = entity.SectionSlug(ReleaseNoteSectionHeading)
 // reaches a release described by nobody who did the work — measured on a real
 // release that shipped three such changes undocumented.
 //
-// The rule governs two surfaces from one definition, because `promote` runs the
-// projection findings as preconditions and gates on error severity
-// (`verb.Promote` -> `check.HasErrors`): it reports standing state in
-// `aiwf check`, and it refuses the `done` promote that would produce that state.
-// Error severity is what makes the second surface real — at warning it would
-// report only after the fact, and the milestone wrap pushes before it promotes.
+// It reports and does not block. `aiwf check` exits non-zero on error severity
+// alone, and `promote` gates its projection findings the same way, so this rule
+// reaches neither the push nor the `done` transition. That is deliberate: at
+// error severity it would demand a section the kernel's own scaffold does not
+// write — `entity.RequiredSections` for a milestone is Goal and Acceptance
+// criteria — so a milestone created through `aiwf add` could not reach `done`
+// at all, and `--force` does not relax a projection finding.
 //
-// A milestone with nothing user-facing is not blocked, it is asked for four
-// words: the template names "no user-visible change" as a valid note. That is
-// the escape, rather than a scope that lets an unwritten note through.
+// Absence counts, rather than only an empty section that is present. Scoping to
+// present-and-empty would make deleting the heading an escape, and it would buy
+// nothing: the archive gate below already spares every milestone written before
+// the section existed, measured at 281 archived and 0 live.
 //
 // Archive-scoped per ADR-0004: an archived milestone is historical state, not
 // active drift, and every milestone reaching `done` is swept there eventually.
-// The live window this rule governs is the promote itself and the span before
-// the sweep. That gate is also why the rule costs nothing to adopt: every
-// milestone already at `done` in this repo is archived, so the rule reports on
-// none of them.
 func milestoneDoneEmptyReleaseNote(t *tree.Tree) []Finding {
 	var findings []Finding
 	for _, e := range t.Entities {
@@ -79,14 +77,14 @@ func milestoneDoneEmptyReleaseNote(t *tree.Tree) []Finding {
 		sections := entity.ParseBodySections(stripHTMLComments(body))
 		// An absent section counts as empty: scoping to present-and-empty would
 		// make deleting the heading an escape from the rule.
-		if !isAllWhitespaceOrHeadings([]byte(sections[releaseNoteSectionSlug]), false) {
+		if !isAllWhitespaceOrHeadings([]byte(sections[releaseNoteSectionSlug]), true) {
 			continue
 		}
 		findings = append(findings, Finding{
 			Code:     CodeMilestoneDoneEmptyReleaseNote,
-			Severity: SeverityError,
-			Message: fmt.Sprintf("milestone %s is done without a `## Release note` an author wrote; the epic wrap composes its changelog entry from these notes, so this milestone's change reaches the release described by nobody who did the work — write the user-visible delta, or the words \"no user-visible change\" when there is none",
-				e.ID),
+			Severity: SeverityWarning,
+			Message: fmt.Sprintf("milestone %s is done without a `## %s` an author wrote; the epic wrap composes its changelog entry from these notes, so this milestone's change reaches the release described by nobody who did the work — write the user-visible delta, or the words \"no user-visible change\" when there is none",
+				e.ID, ReleaseNoteSectionHeading),
 			Path:     e.Path,
 			EntityID: e.ID,
 			Field:    "release_note",

@@ -42,12 +42,11 @@ undocumented, two of them on `docs(` commits — a prefix that means "nothing
 user-visible" in most repos and the opposite here, since guidance and rituals
 ship as product (G-0529).
 
-Adding a section is not a single-file edit. The template carries sixteen `##`
-sections, and ten files across the ritual, template and agent-card trees name
-some `##` section in backticked form — a mix of milestone-spec and epic-spec
-names, which is why telling the two apart is an edge AC-1 has to handle.
-Nothing today checks that a name one surface uses matches a heading the template
-ships.
+Adding a section is not a single-file edit. Files across the ritual, template
+and agent-card trees name `##` sections in backticked form — a mix of
+milestone-spec, epic-spec and wrap-artefact names — and nothing today checks
+that a name one surface uses matches a heading the artefact it names actually
+carries.
 
 ## Acceptance criteria
 
@@ -85,22 +84,29 @@ for it.
 
 ### AC-3 — A milestone reaching done with an empty Release note is reported
 
-`aiwf check` reports a milestone at `status: done` whose `## Release note`
-section is present and empty. `promote` runs the projection findings as
-preconditions, so the same rule refuses a `done` promote that would produce
-that state — one rule, both surfaces.
+`aiwf check` reports, at warning severity, a non-archived milestone at
+`status: done` with no `## Release note` an author wrote — the section absent,
+or present and carrying nothing but whitespace, headings, or the template's
+guidance comment.
 
-Present-and-empty rather than absent-or-empty, which is what measurement
-forces: 281 milestones are already `done` and not one carries the section, so
-an absent-or-empty rule reports 281 findings the day it lands and gets turned
-off rather than acted on. A spec scaffolded from the template carries the
-heading, so present-and-empty selects exactly the milestones the section
-applies to and reports nothing today. `entity-body-empty` is scoped the same
-way, for the same reason.
+It reports and does not block. `aiwf check` exits non-zero on error severity
+alone, and `promote` gates its projection findings the same way, so the rule
+reaches neither the push nor the `done` transition.
 
-The residual is that deleting the heading evades the rule. That is the hole
-G-0571 reports generally, and the obligation to reconcile this rule with the
-required-sections machinery is recorded there.
+Warning rather than error, decided against the measured cost of the alternative.
+At error the rule demands a section the kernel's own scaffold does not write:
+`entity.RequiredSections` for a milestone is Goal and Acceptance criteria, so a
+milestone created through `aiwf add` could not reach `done` at all, and `--force`
+does not relax a projection finding. Error severity also required six test
+fixtures across four packages to seed a release note before promoting, and it
+put a precondition on the milestone-to-done transition that the legal-workflow
+table does not declare. Reverting to warning retired all of that; the fixtures
+are back to their original shape, measured green.
+
+Absence counts, rather than only an empty section that is present. Scoping to
+present-and-empty would make deleting the heading an escape, and it would buy
+nothing: the archive gate already spares every milestone written before the
+section existed, measured at 281 archived and 0 live.
 
 The rule is standalone: its own finding keyed to this section, not the first
 consumer of `internal/entity/required_sections.go`. That file declares a
@@ -108,9 +114,6 @@ per-kind required set nothing enforces, and enforcing it would begin reporting
 every entity missing a section its kind requires — G-0571 measures that at 119
 findings over 60 live entities. The blast radius belongs to that gap, not to
 this milestone.
-
-The baseline is therefore zero rather than something to escalate away from, so
-the rule lands at its real severity immediately.
 
 ## Constraints
 
@@ -179,11 +182,11 @@ it from milestone titles and merge SHAs, and `aiwfx-wrap-milestone` puts the
 note in front of the independent reviewer, since it is the one spec section that
 travels verbatim into the changelog.
 
-`aiwf check` gains `milestone-done-empty-release-note` (warning): a milestone at
-`done` whose `## Release note` is present and empty. Because `promote` runs the
-projection findings as preconditions, the same rule refuses the `done` promote
-that would produce that state. Specs written before the section existed carry no
-such heading and are out of scope, so no existing milestone is reported.
+`aiwf check` gains `milestone-done-empty-release-note` (warning): a non-archived
+milestone at `done` with no `## Release note` an author wrote. It reports without
+blocking — `aiwf check` and `promote` both gate on error severity — because at
+error it would demand a section the kernel's own scaffold does not write. Every
+milestone already at `done` is archived, so the rule reports on none of them.
 
 A new policy check resolves every milestone-spec and wrap-artefact section name
 the shipped rituals, agent cards and templates mention against the headings
@@ -202,16 +205,28 @@ Template ships `## Release note`; the milestone wrap reviews it at step 2 and th
 
 ### AC-3 — A done milestone with an empty Release note is reported
 
-`milestone-done-empty-release-note` (warning) reports it in `aiwf check` and refuses the `done` promote that would create it · commit a6cbd3814 · tests 12/12
+`milestone-done-empty-release-note` (warning) reports a done milestone whose release note nobody wrote; absence counts, so deleting the heading is not an escape · commit a6cbd3814, corrected in ec3d2a7d2 and the round that followed · tests 13/13
 
 ## Decisions made during implementation
 
-- (none)
+- **The release-note rule reports without blocking.** It ships at warning
+  severity, so it reaches neither the push nor the `done` transition. Error was
+  tried and reverted: it demands a section `entity.RequiredSections` does not
+  write, so a milestone created through `aiwf add` cannot reach `done` and
+  `--force` does not relax a projection finding. The consequence for the rest of
+  this epic is that nothing mechanically stops an undescribed change from
+  shipping — the `[Unreleased]` completeness check planned later is where that
+  guarantee has to come from, not here.
+- **The epic wrap reads each milestone's `## Release note` directly.** The epic
+  spec left open whether the wrap reads the notes or the notes accumulate
+  somewhere it copies from. Reading directly needs no new artefact and no second
+  place for the text to drift; the cost is that the wrap must open each wrapped
+  milestone's spec, which it already does for `## Milestones delivered`.
 
 ## Validation
 
-Run on the milestone branch at `f63fe1da1`, in the devcontainer (Linux; `go test`
-runs unwrapped there, so no signing wrapper is involved).
+Run on the milestone branch in the devcontainer (Linux; `go test` runs unwrapped
+there, so no signing wrapper is involved).
 
 - `AIWF_COVERAGE_BASE=main make ci` — exit 0. Race suite, the diff-scoped
   coverage audit against `main`, the profile-driven gates, and the 29-step
@@ -226,14 +241,16 @@ runs unwrapped there, so no signing wrapper is involved).
   as before the rule existed. Two independent reasons it reports nothing: 281
   milestones are `done` and none carries the section, and 0 milestones are
   `done` and not archived.
-- Statement coverage on both new files: 100%. The manual branch walk added two
-  arms statement coverage cannot see — the `IsDir` arm of a short-circuited skip
-  condition, and a post-load read failure.
-- Mutation probe: 6 mutants per unit, 12 total, all killed, each file restored
-  byte-identical to its pre-probe hash. One mutant survived on first run and was
-  the useful result — it showed the archive-skip test asserting nothing, because
-  its fixture used a per-milestone `archive/` subdirectory the loader does not
-  recognize, so no milestone loaded at all.
+- Severity, measured rather than reasoned: `aiwf check` exits non-zero only via
+  `check.HasErrors`, which matches error severity alone, and `promote` gates its
+  projection findings the same way. A warning therefore reaches neither the push
+  nor the transition.
+- Statement coverage on both new files: 100%.
+- Mutation probe, final round: 7 mutants across the two units, all killed, each
+  file restored byte-identical to its pre-probe hash. Every one of the seven was
+  a mutant that survived an earlier round — the kind guard, the heading-vs-empty
+  flag, the severity, the two skip-condition arms, the span split, and the
+  scaffold-fence marker.
 
 ## Deferrals
 
@@ -241,4 +258,43 @@ runs unwrapped there, so no signing wrapper is involved).
 
 ## Reviewer notes
 
-- (none)
+Two review rounds ran, each a fresh-context pass over the full change-set; the
+second was sliced across the production units and the fixture blast radius. Both
+rounds returned REQUEST-CHANGES, and the findings that mattered were claims this
+spec made that measurement contradicted.
+
+The first round found that the rule did not do what three surfaces said it did.
+It was written as a warning while its code comment, this spec's AC-3 body, and
+this milestone's own `## Release note` all said it refused the `done` promote —
+which `promote` gates on error severity, so it never did. No test covered the
+claim. The same round found the scope argument void: the 281 `done` milestones
+cited to justify reporting only a present-and-empty section are all archived,
+and the rule already skips archived, so the narrower scope bought nothing and
+left deleting the heading as an escape.
+
+The second round found the correction had introduced its own contradictions. A
+release note containing only a sub-heading escaped the rule while both the code
+comment and the shipped `aiwf-check` skill said headings count as unwritten; the
+flag deciding it passed the whole suite in either position. The guard meant to
+stop the wrap-artefact exemption list from growing was circular — it accepted an
+entry on the strength of a backticked mention, which is exactly what creates the
+need to exempt one. The operator message and hint spelled the section name
+independently of the constant the rule reads, so a coherent rename left them
+lying. The span splitter fired on any slash, so a heading named "Client/server
+split" would have become two names that resolve nowhere. And the claim that the
+derived surface scan needs no exemptions held only inside one chosen directory:
+the `aiwf-add` skill names those sections at length and is not walked.
+
+The escalation to error was reverted on the evidence those rounds produced. It
+demanded a section the kernel's own scaffold does not write, so a milestone
+created through `aiwf add` could not reach `done`; it required six fixtures
+across four packages to seed a note before promoting; and it put an undeclared
+precondition on a transition the legal-workflow table declares legal. All three
+retired with the severity. The exemption list retired too, by scaffolding the
+section it existed to excuse.
+
+What is deliberately left: a rename can still strand a mention in a shipped tree
+this policy does not walk, and a backtick span wrapped across a line is invisible
+to it. Both are stated in the policy's doc comment rather than implied away, and
+resolving them needs a reference that names which artefact it means — the
+section-ownership work G-0636 tracks.

@@ -64,6 +64,9 @@ func TestMilestoneDoneEmptyReleaseNote(t *testing.T) {
 		{"done with only the scaffold comment fires", "done", scaffoldOnly, true},
 		{"done with an empty section fires", "done", "## Goal\n\nx\n\n## Release note\n", true},
 		{"done with no such section fires", "done", noSection, true},
+		// A heading is not a written note. The flag deciding this is a bare
+		// bool at the call site, so without a case here either reading passes.
+		{"done with only a sub-heading fires", "done", "## Goal\n\nx\n\n## Release note\n\n### TBD\n", true},
 		{"done with a written note is clean", "done", releaseNoteFilled, false},
 		// One case for the status gate, not one per non-done status: every
 		// non-done status leaves through the same arm, so the rest would be
@@ -89,8 +92,8 @@ func TestMilestoneDoneEmptyReleaseNote(t *testing.T) {
 			if f.Code != CodeMilestoneDoneEmptyReleaseNote {
 				t.Errorf("Code = %q, want %q", f.Code, CodeMilestoneDoneEmptyReleaseNote)
 			}
-			if f.Severity != SeverityError {
-				t.Errorf("Severity = %v, want error — the promote precondition gates on error severity", f.Severity)
+			if f.Severity != SeverityWarning {
+				t.Errorf("Severity = %v, want warning — this rule reports, it does not block the promote or the push", f.Severity)
 			}
 			if f.Path == "" {
 				t.Error("Path is empty; the finding must name the file to look at")
@@ -169,5 +172,25 @@ func TestMilestoneDoneEmptyReleaseNote_SkipsUnreadableBody(t *testing.T) {
 				t.Fatalf("want no finding once the body is unreadable, got %+v", fs)
 			}
 		})
+	}
+}
+
+// TestMilestoneDoneEmptyReleaseNote_SkipsNonMilestones pins the kind guard. An
+// epic reaches `done` too, and it has no release note to write — without this
+// the guard's arm reads as covered because the `continue` runs, while no fixture
+// puts a non-milestone at `done`.
+func TestMilestoneDoneEmptyReleaseNote_SkipsNonMilestones(t *testing.T) {
+	t.Parallel()
+	root := t.TempDir()
+	dir := filepath.Join(root, "work", "epics", "E-0001-subject")
+	if err := os.MkdirAll(dir, 0o755); err != nil {
+		t.Fatalf("mkdir: %v", err)
+	}
+	epic := "---\nid: E-0001\ntitle: Subject\nstatus: done\n---\n\n## Goal\n\nx\n"
+	if err := os.WriteFile(filepath.Join(dir, "epic.md"), []byte(epic), 0o600); err != nil {
+		t.Fatalf("write epic: %v", err)
+	}
+	if fs := milestoneDoneEmptyReleaseNote(loadReleaseNoteTree(t, root)); len(fs) != 0 {
+		t.Fatalf("a done epic carries no release note obligation; got %+v", fs)
 	}
 }

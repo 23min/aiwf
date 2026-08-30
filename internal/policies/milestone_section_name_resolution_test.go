@@ -32,7 +32,7 @@ func sectionFixtureRoot(t *testing.T, overrides map[string]string) string {
 		"templates/milestone-spec.md": "# T\n\n## Goal\n\n## Release note\n",
 		"templates/epic-spec.md":      "# T\n\n## Goal\n",
 		"skills/aiwfx-wrap-epic/SKILL.md": "# wrap\n\n```markdown\n# Epic wrap\n\n" +
-			"## Changelog entry\n\n### Added\n\n## Summary\n```\n\nSee `## Changelog entry`. Append the report under a `## Doc findings` section.\n",
+			"## Changelog entry\n\n### Added\n\n## Summary\n```\n\nSee `## Changelog entry`.\n",
 		"skills/aiwfx-start-milestone/SKILL.md": "Fill `## Goal`.\n",
 		"skills/aiwfx-wrap-milestone/SKILL.md":  "Fill `## Release note`.\n",
 		"agents/builder.md":                     "Maintain `## Goal`.\n",
@@ -77,14 +77,6 @@ func TestMilestoneSectionNameResolution_Fires(t *testing.T) {
 			wantDetail: "## Invented Section",
 		},
 		{
-			// The surface set is derived, so a file that is absent is simply not
-			// walked. Nothing to report, and nothing silently unscanned either.
-			name: "an absent file is not a surface",
-			overrides: map[string]string{
-				"agents/reviewer.md": "",
-			},
-		},
-		{
 			// One backtick span may list several sections. Read whole it yields
 			// one name matching nothing and checks neither real one.
 			name: "each name in a multi-name span is resolved separately",
@@ -93,13 +85,12 @@ func TestMilestoneSectionNameResolution_Fires(t *testing.T) {
 			},
 		},
 		{
-			// The constant must be derived fact, not an exemption list: an entry
-			// the ritual never creates silently widens the universe.
-			name: "an unscaffolded-section entry with no creation site is reported",
+			// Only `/ ##` separates two names; a slash inside one does not.
+			name: "a section name containing a slash is not split",
 			overrides: map[string]string{
-				"skills/aiwfx-wrap-epic/SKILL.md": "# wrap\n\n```markdown\n# Epic wrap\n\n## Changelog entry\n\n## Summary\n```\n\nSee `## Changelog entry`.\n",
+				"templates/milestone-spec.md": "# T\n\n## Goal\n\n## Release note\n\n## Client/server split\n",
+				"agents/builder.md":           "Fill `## Client/server split`.\n",
 			},
-			wantDetail: "an exemption that silently suppresses real findings",
 		},
 		{
 			name: "a bad name inside a multi-name span is still caught",
@@ -114,7 +105,7 @@ func TestMilestoneSectionNameResolution_Fires(t *testing.T) {
 			name: "an earlier markdown example does not displace the scaffold",
 			overrides: map[string]string{
 				"skills/aiwfx-wrap-epic/SKILL.md": "# wrap\n\n```markdown\n## Unrelated Example\n```\n\n" +
-					"```markdown\n# Epic wrap\n\n## Changelog entry\n\n## Summary\n```\n\nSee `## Changelog entry`, `## Summary` and `## Doc findings`.\n",
+					"```markdown\n# Epic wrap\n\n## Changelog entry\n\n## Summary\n```\n\nSee `## Changelog entry` and `## Summary`.\n",
 			},
 		},
 		{
@@ -135,7 +126,7 @@ func TestMilestoneSectionNameResolution_Fires(t *testing.T) {
 		{
 			name: "a wrap ritual with no scaffold fence contributes no artefact sections",
 			overrides: map[string]string{
-				"skills/aiwfx-wrap-epic/SKILL.md": "# wrap\n\nNo fence here. See `## Summary` and `## Doc findings`.\n",
+				"skills/aiwfx-wrap-epic/SKILL.md": "# wrap\n\nNo fence here. See `## Summary`.\n",
 			},
 			wantDetail: "## Summary",
 		},
@@ -144,14 +135,14 @@ func TestMilestoneSectionNameResolution_Fires(t *testing.T) {
 			// rather than being read to end-of-file as if it were.
 			name: "an unterminated non-scaffold fence yields no sections",
 			overrides: map[string]string{
-				"skills/aiwfx-wrap-epic/SKILL.md": "# wrap\n\n```markdown\n## Unrelated Example\n\nSee `## Summary` and `## Doc findings`.\n",
+				"skills/aiwfx-wrap-epic/SKILL.md": "# wrap\n\n```markdown\n## Unrelated Example\n\nSee `## Summary`.\n",
 			},
 			wantDetail: "## Summary",
 		},
 		{
 			name: "an unterminated scaffold fence still yields its sections",
 			overrides: map[string]string{
-				"skills/aiwfx-wrap-epic/SKILL.md": "# wrap\n\n```markdown\n# Epic wrap\n\n## Summary\n\nSee `## Summary` and `## Doc findings`.\n",
+				"skills/aiwfx-wrap-epic/SKILL.md": "# wrap\n\n```markdown\n# Epic wrap\n\n## Summary\n\nSee `## Summary`.\n",
 			},
 		},
 		{
@@ -161,16 +152,6 @@ func TestMilestoneSectionNameResolution_Fires(t *testing.T) {
 				"agents/builder.md":           "Maintain `## AC-1 — x`.\n",
 			},
 			wantDetail: "## AC-1 — x",
-		},
-		{
-			// Exercises the IsDir arm of the skip condition, which the
-			// non-markdown case short-circuits past.
-			name: "a subdirectory of the templates directory is skipped",
-			overrides: map[string]string{
-				"templates/sub/nested.md": "## Nested Only\n",
-				"agents/builder.md":       "Maintain `## Nested Only`.\n",
-			},
-			wantDetail: "## Nested Only",
 		},
 		{
 			name: "non-markdown entries in the templates directory are skipped",
@@ -235,31 +216,6 @@ func TestMilestoneSectionNameResolution_ReportsTheLine(t *testing.T) {
 	}
 	if want := "internal/skills/embedded-rituals/plugins/aiwf-extensions/agents/builder.md"; vs[0].File != want {
 		t.Errorf("violation File = %q, want %q", vs[0].File, want)
-	}
-}
-
-// TestMilestoneSectionNameResolution_UnscaffoldedWrapSectionsResolve pins that
-// a wrap.md section the ritual creates outside its step-1 scaffold still
-// resolves — `## Doc findings` is appended by the doc-lint sweep, so parsing
-// the scaffold alone would report it.
-func TestMilestoneSectionNameResolution_UnscaffoldedWrapSectionsResolve(t *testing.T) {
-	t.Parallel()
-	// Ranging over an empty slice would assert nothing, so the length is
-	// checked before the loop rather than trusted.
-	if len(wrapArtefactUnscaffoldedSections) == 0 {
-		t.Fatal("no unscaffolded wrap sections declared; this test would assert nothing")
-	}
-	for _, name := range wrapArtefactUnscaffoldedSections {
-		root := sectionFixtureRoot(t, map[string]string{
-			"agents/builder.md": "Append the report under `## " + name + "`.\n",
-		})
-		vs, err := PolicyMilestoneSectionNameResolution(root)
-		if err != nil {
-			t.Fatalf("policy returned error: %v", err)
-		}
-		if len(vs) != 0 {
-			t.Errorf("wrap section %q should resolve, got %+v", name, vs)
-		}
 	}
 }
 
@@ -387,5 +343,45 @@ func TestMilestoneSectionNameResolution_UnreadableSurfaceIsReported(t *testing.T
 	}
 	if !strings.Contains(vs[0].Detail, "surface is unreadable") {
 		t.Errorf("Detail = %q, want it to name the unreadable surface", vs[0].Detail)
+	}
+}
+
+// TestMilestoneSectionNameResolution_DirectoryNamedMarkdownIsSkipped reaches the
+// IsDir arm of the templates skip condition. A subdirectory with an ordinary
+// name is rejected by the `.md` suffix test first, so only a directory *named*
+// `*.md` decides on IsDir — without this the arm reads as covered while nothing
+// exercises it.
+func TestMilestoneSectionNameResolution_DirectoryNamedMarkdownIsSkipped(t *testing.T) {
+	t.Parallel()
+	root := sectionFixtureRoot(t, nil)
+	trap := filepath.Join(root, filepath.FromSlash(sectionRitualsDir), "templates", "trap.md")
+	if err := os.MkdirAll(trap, 0o755); err != nil {
+		t.Fatalf("mkdir: %v", err)
+	}
+	vs, err := PolicyMilestoneSectionNameResolution(root)
+	if err != nil {
+		t.Fatalf("policy returned error: %v", err)
+	}
+	if len(vs) != 0 {
+		t.Fatalf("a directory named *.md must be skipped, not read; got %+v", vs)
+	}
+}
+
+// TestMilestoneSectionNameResolution_NonMarkdownSurfaceIsNotScanned pins the
+// suffix arm of the surface walk: a non-markdown file naming a section that
+// resolves nowhere must not be reported, because it is not a surface.
+func TestMilestoneSectionNameResolution_NonMarkdownSurfaceIsNotScanned(t *testing.T) {
+	t.Parallel()
+	root := sectionFixtureRoot(t, nil)
+	notes := filepath.Join(root, filepath.FromSlash(sectionRitualsDir), "agents", "notes.txt")
+	if err := os.WriteFile(notes, []byte("Fill `## Invented Section`.\n"), 0o600); err != nil {
+		t.Fatalf("write: %v", err)
+	}
+	vs, err := PolicyMilestoneSectionNameResolution(root)
+	if err != nil {
+		t.Fatalf("policy returned error: %v", err)
+	}
+	if len(vs) != 0 {
+		t.Fatalf("a non-markdown file is not a surface; got %+v", vs)
 	}
 }

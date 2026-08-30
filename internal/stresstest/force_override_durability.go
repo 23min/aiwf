@@ -281,13 +281,6 @@ func (s *ForceOverrideDurabilityScenario) runCherryPickCarryover(dir string) (fo
 	if err := runGit(dir, "checkout", "-q", "branch-a"); err != nil { //coverage:ignore defensive: checking out a branch this scenario's own Setup just cut has no realistic failure mode
 		return false, false, false, fmt.Errorf("checking out branch-a: %w", err)
 	}
-	// `done` requires a written `## Release note`, and --force does not relax a
-	// projection finding — it relaxes FSM-transition legality only. This
-	// scenario is about the durability of the force trailer, so satisfy that
-	// precondition rather than let it decide the outcome.
-	if noteErr := writeReleaseNote(s.aiwfBin, dir, s.milestoneID); noteErr != nil { //coverage:ignore defensive: the milestone file this scenario's own Setup just created is present and writable
-		return false, false, false, fmt.Errorf("seeding the milestone release note: %w", noteErr)
-	}
 	forceEnv, forceErr := runAiwfJSON(s.aiwfBin, dir, "promote", s.milestoneID, "done", "--force", "--reason", "legitimate override on branch-a")
 	if forceErr != nil { //coverage:ignore defensive: covered by the same launch-failure class other scenarios pin at runAiwfJSON's own source
 		return false, false, false, fmt.Errorf("force-promoting the milestone on branch-a: %w", forceErr)
@@ -406,29 +399,4 @@ func classifyForceOverrideDurability(preAckFlagged, postAckFlagged, postRebaseFl
 		violations = append(violations, Violation{Message: "the cherry-picked commit's aiwf-force/aiwf-actor trailers did not match the original — the scenario's premise about cherry-pick's trailer-preservation did not hold"})
 	}
 	return violations
-}
-
-// writeReleaseNote gives a milestone the `## Release note` the kernel requires
-// before it can reach `done`, then commits it through the verb. A scenario that
-// drives a milestone to `done` has to write one exactly as a real wrap does.
-func writeReleaseNote(aiwfBin, dir, milestoneID string) error {
-	matches, err := filepath.Glob(filepath.Join(dir, "work", "epics", "*", milestoneID+"-*.md"))
-	if err != nil { //coverage:ignore defensive: the pattern is a compile-time constant, so Glob cannot report a bad pattern
-		return fmt.Errorf("locating %s under %s: %w", milestoneID, dir, err)
-	}
-	if len(matches) != 1 { //coverage:ignore defensive: this scenario's own Setup created exactly one milestone
-		return fmt.Errorf("locating %s under %s: want exactly 1 match, got %d", milestoneID, dir, len(matches))
-	}
-	raw, err := os.ReadFile(matches[0])
-	if err != nil { //coverage:ignore defensive: the file the glob just matched is readable
-		return fmt.Errorf("reading %s: %w", matches[0], err)
-	}
-	body := append(append([]byte{}, raw...), []byte("\n## Release note\n\nNo user-visible change.\n")...)
-	if err := os.WriteFile(matches[0], body, 0o600); err != nil { //coverage:ignore defensive: the temp repo this scenario owns is writable
-		return fmt.Errorf("writing %s: %w", matches[0], err)
-	}
-	if _, err := runAiwfJSON(aiwfBin, dir, "edit-body", milestoneID); err != nil { //coverage:ignore defensive: covered by the same launch-failure class other scenarios pin at runAiwfJSON's own source
-		return fmt.Errorf("committing the release note: %w", err)
-	}
-	return nil
 }
