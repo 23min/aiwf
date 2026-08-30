@@ -16,6 +16,22 @@ section in this file.
 
 ## [Unreleased]
 
+### Changed — the revising rule covers correcting a claim, not only adding or cutting one
+
+The always-on guidance's *"On revising, re-derive before you rewrite"* rule named two
+edit shapes: one that adds or restates a claim, which re-opens the sources that claim
+cites, and one that cuts, which asks what depended on the removed text. It now names a
+third. An edit that **corrects** a false claim first searches the tree for that claim's
+distinctive wording, because the copies you can list are the ones already fixed and the
+ones that outlive the correction are the ones you had forgotten were written. Recording
+a correction as complete is itself a claim which only that search settles; written
+without one it marks every surviving copy as handled, so the next reader stops looking.
+
+How to write each fix — delete the false claim and state what is so, rather than adding
+a paragraph saying the old claim was wrong — moves here from the state-the-conclusion
+rule, which stated it as a separate case a reader could meet without ever learning to
+search first. The two halves are one procedure and now read as one.
+
 ### Changed — G-0650: the wrap-milestone review brief asks whether the implementation could be smaller
 
 The independent reviewer dispatched at `aiwfx-wrap-milestone` step 2 now answers two

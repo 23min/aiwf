@@ -104,14 +104,10 @@ lives in the `wf-codebase-health` skill.
   can still *encounter* — a legacy on-disk format, a supported older release,
   an external contract you don't control — which is current truth about the
   input space and is written in the present tense as such.
-  The easiest case to miss is a **correction**: on finding a claim in the
-  body false, delete it and state what is so — never add a paragraph saying
-  the old claim was wrong. `aiwf edit-body --reason` carries that provenance
-  into the commit, where `aiwf history` renders it. For any sentence that
-  reaches backwards, ask: *would a reader who never saw the earlier version
-  need this?* Keep "files written by older releases store the date as a
-  string, so the parser accepts both"; drop "we moved this before the
-  migration; it used to run after."
+  For any sentence that reaches backwards, ask: *would a reader who never saw
+  the earlier version need this?* Keep "files written by older releases store
+  the date as a string, so the parser accepts both"; drop "we moved this before
+  the migration; it used to run after."
 - **Keep the reasoning; derive the facts.** Before writing a fact into prose,
   ask whether a check, a field, or a git trailer already holds it — if one
   does, the prose is a second copy, and the copy nothing re-derives.
@@ -139,11 +135,20 @@ lives in the `wf-codebase-health` skill.
   of the document for what the claim now contradicts. An edit that *cuts* asks
   what depended on the text removed: the harder search, since what you want no
   longer names itself, and what it leaves behind is a conclusion still stated
-  with its support gone. Re-opening is not enough for an **attribution**: writing
-  that a record settles something means locating the exact sentence that carries it,
-  since re-reading confirms a claim's direction and not its scope. With none, the
-  claim is wrong, not unsupported. No check reaches any of this; it is discipline at
-  the moment of writing, and the cost of skipping it is paid by whoever reads next.
+  with its support gone. An edit that *corrects* searches before it fixes: grep
+  the claim's distinctive wording tree-wide first, because the copies you can
+  list are the ones already fixed, and the ones outliving the correction are the
+  ones you forgot were written. Delete each false claim and state what is so —
+  never a paragraph saying the old claim was wrong; `aiwf edit-body --reason`
+  carries that provenance into the commit. Recording the correction as complete
+  is itself a claim only that search settles: written without one it does worse
+  than silence, marking every surviving copy as handled so the next reader stops
+  looking. Re-opening is not enough for an **attribution**: writing that a
+  record settles something means locating the exact sentence that carries it,
+  since re-reading confirms a claim's direction and not its scope. With none,
+  the claim is wrong, not unsupported. No check reaches any of this; it is
+  discipline at the moment of writing, and the cost of skipping it is paid by
+  whoever reads next.
 - **Never write a fake or narrow id-shaped token in committed prose** — in an
   **entity file**, cite the real id at canonical width; a placeholder, a letter
   suffix, a number naming no entity, or too few digits all fail `body-prose-id`,
