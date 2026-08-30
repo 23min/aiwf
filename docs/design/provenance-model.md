@@ -225,7 +225,7 @@ aiwf-verb: authorize
 aiwf-entity: <id>                 # the scope-entity
 aiwf-actor: <role>/<id>           # always human/...; verb refuses non-human
 aiwf-to: <agent role>/<id>        # the agent being authorized; reuses aiwf-to:
-aiwf-scope: opened                # or paused / resumed; absent on --end
+aiwf-scope: opened                # or paused / resumed; absent on --end, as is aiwf-to:
 aiwf-scope-ends: <auth-sha>       # only on --end; names the scope being ended
 aiwf-reason: <text>               # required on --pause / --resume / --end; optional on --to
 aiwf-force: <reason>              # only if the human used --force to override an end
@@ -242,7 +242,7 @@ The kernel already uses `aiwf-to:` to record the *target state* of a `promote` e
 - **`--to <agent>`**: opens a new scope. Verb refuses if `<id>` is in a terminal status (you cannot authorize work on a `done` epic). Verb refuses if `<actor>` is not `human/...` (only humans authorize).
 - **`--pause "<reason>"`**: pauses the *most-recently-opened active scope* for `<id>`. If none active, refuses with `provenance-no-active-scope-to-pause`. Reason required, non-empty.
 - **`--resume "<reason>"`**: resumes the *most-recently-paused scope* for `<id>`. If none paused, refuses with `provenance-no-paused-scope-to-resume`. Reason required, non-empty.
-- **`--end [--scope <auth-sha>] --reason "<text>"`**: ends one scope on `<id>` without changing the entity's status (ADR-0047) — the way a human withdraws a delegation from work that is still going. `--scope` names the target by authorize-commit SHA or any unambiguous prefix; omitted, it resolves to the entity's sole non-ended scope, and refuses listing the candidates when there is more than one. Reason required, non-empty: an end moves no status, so its commit is the only artefact recording that the delegation was withdrawn.
+- **`--end [--scope <auth-sha>] --reason "<text>"`**: ends one scope on `<id>` without changing the entity's status (ADR-0047) — the way a human withdraws a delegation from work that is still going. `--scope` names the target by authorize-commit SHA or an unambiguous prefix of at least four characters — the floor git holds an abbreviated revision to, and for the same reason: a shorter prefix that is unique by accident is not a name the operator meant, and this act has no inverse. Omitted, it resolves to the entity's sole non-ended scope, and refuses listing the candidates when there is more than one. Reason required, non-empty: an end moves no status, so its commit is the only artefact recording that the delegation was withdrawn.
 
 Unlike pause and resume, which re-derive their target from the FSM, `--end` names the scope it ends. Ending is terminal, so a target picked wrongly is not recoverable the way a wrong pause is — a resume undoes that, and nothing undoes an end.
 

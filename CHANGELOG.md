@@ -24,8 +24,10 @@ there was no way to record that a human ended a delegation while the entity kept
 living.
 
 `--end` ends one scope and leaves the entity's status alone. `--scope <auth-sha>`
-names which, by full SHA or any unambiguous prefix — the seven characters
-`aiwf show <id>` prints are enough. Omit it and the verb targets the entity's sole
+names which, by full SHA or an unambiguous prefix of four or more characters —
+the seven `aiwf show <id>` prints are enough. Four is the floor git holds an
+abbreviated revision to: a shorter prefix that is unique by accident is not a
+name you meant, and an end has no inverse. Omit it and the verb targets the entity's sole
 non-ended scope, refusing and listing the candidates when there is more than one:
 ending is terminal, so a wrong guess is not recoverable the way a wrong `--pause`
 is. `--reason` is required, because an end moves no status and its commit is the

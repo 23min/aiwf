@@ -29,7 +29,7 @@ aiwf authorize <id> --end --scope <auth-sha> --reason "..."   # end one named sc
 
 `--branch <ref>` binds a fresh scope to the ritual branch the work happens on, recording an `aiwf-branch:` trailer. It is meaningful only with `--to`; the other modes act on a scope whose binding is already recorded. Naming a branch that does not exist yet is accepted from the trunk or from a ritual-shape checkout, which is what lets a ritual open the scope before cutting the branch.
 
-`--scope <auth-sha>` names which scope `--end` retires, as the full authorize-commit SHA or any unambiguous prefix of one. `aiwf show <id>` prints each scope's SHA, and tab-completion offers the non-ended ones. Omit it when the entity has exactly one non-ended scope.
+`--scope <auth-sha>` names which scope `--end` retires, as the full authorize-commit SHA or an unambiguous prefix of at least four characters — the floor git holds abbreviated revisions to, since a shorter prefix that happens to be unique is not a name you meant and an end cannot be undone. `aiwf show <id>` prints each scope's SHA at seven, and tab-completion offers the non-ended ones. Omit it when the entity has exactly one non-ended scope.
 
 The verb **requires a human actor**. `aiwf authorize` invoked by an agent refuses with a usage error; only humans can grant authority.
 

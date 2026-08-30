@@ -273,9 +273,10 @@ type AuthorizeOptions struct {
 	Force      bool
 	Scopes     []*scope.Scope
 	// ScopeSHA (ADR-0047) names which scope AuthorizeEnd ends, as the
-	// authorize-commit SHA or any unambiguous prefix of one. Empty
-	// means "the entity's sole non-ended scope", which refuses when
-	// the count is not exactly one. Ignored by every other mode.
+	// authorize-commit SHA or an unambiguous prefix of at least
+	// minScopePrefix characters. Empty means "the entity's sole
+	// non-ended scope", which refuses when the count is not exactly
+	// one. Ignored by every other mode.
 	//
 	// A prefix is accepted because `aiwf show` prints scopes at seven
 	// characters, so the surface an operator reads the value from

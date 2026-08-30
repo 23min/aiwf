@@ -335,7 +335,7 @@ Flags for 'authorize':
   --pause "<reason>"             pause the most-recently-opened active scope on <id>
   --resume "<reason>"            resume the most-recently-paused scope on <id>
   --end --reason "..."           end a non-ended scope on <id> without changing the entity's status; records aiwf-scope-ends:
-  --scope <auth-sha>             which scope --end targets (full SHA or any unambiguous prefix); omit for the sole non-ended scope
+  --scope <auth-sha>             which scope --end targets (full SHA, or an unambiguous prefix of 4+ chars); omit for the sole non-ended scope
   --branch <ref>                 bind the scope to a ritual branch; records an aiwf-branch: trailer
 
 Flags for 'import':
