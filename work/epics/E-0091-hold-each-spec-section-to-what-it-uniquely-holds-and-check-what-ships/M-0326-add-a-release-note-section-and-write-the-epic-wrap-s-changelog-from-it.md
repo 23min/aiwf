@@ -6,7 +6,7 @@ parent: E-0091
 tdd: required
 acs:
     - id: AC-1
-      title: Every milestone-spec section a ritual names resolves to one the template ships
+      title: A section name a ritual writes resolves to a heading some artefact carries
       status: met
       tdd_phase: done
     - id: AC-2
@@ -50,7 +50,7 @@ carries.
 
 ## Acceptance criteria
 
-### AC-1 — Every milestone-spec section a ritual names resolves to one the template ships
+### AC-1 — A section name a ritual writes resolves to a heading some artefact carries
 
 A check resolves each backticked `## Section` name mentioned in the ritual
 authoring tree against the headings the shipped templates and the wrap
@@ -198,7 +198,7 @@ section-ownership work G-0636 tracks.
 
 ## Work log
 
-### AC-1 — Section names resolve against the artefacts that carry them
+### AC-1 — A section name a ritual writes resolves to a heading some artefact carries
 
 `PolicyMilestoneSectionNameResolution` reports a shipped surface naming a section no template heading or wrap-artefact section carries · commit ff39bb5b2, largely rewritten in ec3d2a7d2 and 1526a1124 · tests 15/15
 
