@@ -15,7 +15,7 @@ acs:
       tdd_phase: done
     - id: AC-3
       title: A milestone reaching done with an empty Release note is reported
-      status: open
+      status: met
       tdd_phase: done
 ---
 
