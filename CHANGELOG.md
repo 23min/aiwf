@@ -50,6 +50,19 @@ fired before; only which scopes it covers changes, so the single invocation that
 behaves differently is a terminal promote or cancel of an entity carrying a paused
 scope.
 
+### Changed — G-0650: the wrap-milestone review brief asks whether the implementation could be smaller
+
+The independent reviewer dispatched at `aiwfx-wrap-milestone` step 2 now answers two
+further questions about the change's measured shape. **Compression** asks it to write
+the largest logic bucket again in half the lines, apply that rewrite, run the gates,
+and report what broke — or name the specific constraint that stops it. **Over-guarding**
+asks it to name, for each guard the change adds, a caller that can produce the state the
+guard catches, and to treat an unreachability annotation as a claim to check rather than
+an answer; that question defaults to keeping the guard, the opposite way to compression.
+Both trials run in an isolated worktree, never the shared checkout the wrap commit is
+staged from. None of the three existing questions reaches an oversized but
+non-duplicative unit, so one passed all three.
+
 ### Fixed — G-0641: five exec-bit test writes in `internal/policies` route through the ETXTBSY-safe helper
 
 Test-internal only; no user-facing change. Five fixtures wrote an executable
