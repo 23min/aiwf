@@ -16,6 +16,8 @@ section in this file.
 
 ## [Unreleased]
 
+## [0.34.0] — 2026-08-30
+
 ### Changed — E-0090: closing an epic is a human's act
 
 Every edge into a terminal epic status — `active → done`, `active → cancelled`,
@@ -68,6 +70,7 @@ Both ends now cover every non-ended scope. The side effect fires exactly where i
 fired before; only which scopes it covers changes, so the single invocation that
 behaves differently is a terminal promote or cancel of an entity carrying a paused
 scope.
+
 ### Changed — the revising rule covers correcting a claim, not only adding or cutting one
 
 The always-on guidance's *"On revising, re-derive before you rewrite"* rule named two
@@ -84,6 +87,21 @@ a paragraph saying the old claim was wrong — moves here from the state-the-con
 rule, which stated it as a separate case a reader could meet without ever learning to
 search first. The two halves are one procedure and now read as one.
 
+### Changed — the always-on guidance names when a rule is already pinned
+
+The guidance said an acceptance criterion needs a test that fails when its claim
+breaks. It never said when a rule is *already* pinned, so the standing default was to
+keep adding inputs — and a rubric that only fires when someone loads it is the wrong
+instrument for a default. It now states the rule where the default is set: **a test
+pins a rule, not an input** — one test per rule you decided, however many inputs could
+exercise it, so nine spellings of a malformed address are one rule and eight guesses.
+
+Test-first is named as no exception, because without that clause the rule reads as
+contradicting a milestone's `tdd: required`: a test written before the code states a
+decision, not a forecast. Coverage is named as the arbiter, so the distinction is
+checkable rather than a matter of taste — an uncovered branch is a rule not yet
+pinned; a covered branch reached with a new input is enumeration.
+
 ### Changed — G-0650: the wrap-milestone review brief asks whether the implementation could be smaller
 
 The independent reviewer dispatched at `aiwfx-wrap-milestone` step 2 now answers two
@@ -96,6 +114,39 @@ an answer; that question defaults to keeping the guard, the opposite way to comp
 Both trials run in an isolated worktree, never the shared checkout the wrap commit is
 staged from. None of the three existing questions reaches an oversized but
 non-duplicative unit, so one passed all three.
+
+### Added — G-0647: a milestone records what it closes at start, in a section a command can read
+
+Wrap reconstructed which gaps a milestone claimed to fix by searching the spec's free
+prose — at the point of least context, in a form nothing could query. The
+milestone-spec template now carries a `## Closes` section, written at start while the
+reason for starting is still in front of you, and the wrap rituals read it as their
+worklist. Body sections are already parsed into a slug-keyed map, so the list is
+reachable via `aiwf show <id> --format json` with no new code.
+
+`aiwfx-wrap-milestone` reads the section first and keeps its prose sweep as the
+residue check — for an opportunistic fix no start-time list could anticipate, and for
+a spec predating the section; anything the sweep turns up is added to `## Closes` so
+the record matches what happened. `aiwfx-wrap-epic`'s gap-closure backstop reads each
+child milestone's section the same way, falling back to prose for a milestone that has
+none.
+
+List a gap only when the work is expected to resolve it — one it merely touches or
+punts belongs under `## Deferrals` — and delete the section when the milestone closes
+nothing.
+
+### Added — G-0628: the `aiwf-promote` skill says to close against what the resolver satisfies
+
+The terminal-status notice `aiwf promote` prints looks outward, at the live records
+that name the entity being closed. Nothing looked inward, at the body of the record
+being closed — so a record carrying both a defect and the open question that defect
+raised could close on evidence for one of them and bury the other, with the status
+reading terminal and the unanswered half sitting inside a record nobody reopens.
+
+The skill now says to re-read the record's own body before closing, and where the
+resolver answers only part of it, to split the remainder into a record of its own
+first and close against what actually landed. Guidance only — no verb behaviour
+changes.
 
 ### Fixed — G-0641: five exec-bit test writes in `internal/policies` route through the ETXTBSY-safe helper
 
