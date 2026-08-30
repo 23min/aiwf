@@ -16,6 +16,7 @@ acs:
     - id: AC-3
       title: A milestone reaching done with an empty Release note is reported
       status: open
+      tdd_phase: red
 ---
 
 ## Goal
