@@ -51,9 +51,11 @@ opposite here, since guidance and rituals ship as product (G-0529).
 
 - Give `aiwf history` sight of a commit carrying an entity trailer alone, and a
   chokepoint that catches a missing entity trailer while it is still cheap.
-- Retire `## Work log` once its unique fact is derivable, and put `## Release
-  note` in its place: the milestone's user-visible delta, which is also the
-  input the epic wrap's changelog entry has never had.
+- Add `## Release note` to the milestone spec: the milestone's user-visible
+  delta, which is also the input the epic wrap's changelog entry has never had.
+- Retire `## Work log` once its unique fact is derivable elsewhere. Adding the
+  note does not wait on that — the two sections hold different facts, so they
+  coexist until the retirement is safe.
 - Give every milestone-spec section rule one owner, chosen by where the rule
   binds, and make the surfaces that restate it point at that owner instead.
 - Settle the `## Validation` timing contradiction as a side effect of naming
@@ -118,16 +120,16 @@ opposite here, since guidance and rituals ship as product (G-0529).
 
 | Question | Blocking? | Resolution path |
 |---|---|---|
-| How does `aiwf history` label a row for a commit with no verb to name? | yes, for the first milestone | Decided in that milestone; a recorded decision if the choice has consequences for other trailer consumers. |
+| How does `aiwf history` label a row for a commit with no verb to name? | yes, for the history milestone | Decided in that milestone; a recorded decision if the choice has consequences for other trailer consumers. |
 | Is `## Validation` filled during implementation or at wrap? | yes, for the spec sweep | Follows from naming its owner. Two shipped surfaces say in-flight, two say at wrap; the rituals that drive the work say at wrap. |
-| Does the epic wrap read each milestone's `## Release note`, or do the notes accumulate somewhere the wrap copies from? | no | Settled when the changelog milestone is planned; both shapes satisfy the criterion. |
+| Does the epic wrap read each milestone's `## Release note`, or do the notes accumulate somewhere the wrap copies from? | yes, for the release-note milestone | Settled there; both shapes satisfy the criterion. |
 | Which surfaces count as "consumer-visible" for the changelog check? | no | G-0529 names finding codes, verbs, config keys and exit codes; the v0.34.0 evidence requires the embedded trees too. Enumerated in that milestone. |
 
 ## Risks
 
 | Risk | Impact | Mitigation |
 |---|---|---|
-| Retiring `## Work log` loses the AC-to-commit link if the history fix lands incomplete | high | Sequence the history work first; the retirement milestone depends on it and does not start until the link is answerable without the spec. |
+| Retiring `## Work log` loses the AC-to-commit link if the history fix lands incomplete | high | Sequence the history work ahead of the retirement; the retirement milestone depends on it and does not start until the link is answerable without the spec. |
 | The changelog check fires on correct trees and gets disabled | med | Land it at warning severity against a measured baseline; escalate only once the baseline is clean. |
 | The spec sweep and the section-enforcement rule disagree about the section set | med | One milestone owns both, or the enforcement milestone depends on the sweep. |
 
@@ -136,10 +138,12 @@ opposite here, since guidance and rituals ship as product (G-0529).
 <!-- Sequenced in `aiwfx-plan-milestones`; the ordering below is the dependency
      shape this epic assumes, not an allocation. -->
 
+- `## Release note` joins the milestone spec and feeds the epic wrap's changelog
+  entry · depends on: —
 - The history projection sees entity-trailered commits, and a chokepoint catches
   a missing trailer while it is cheap · depends on: —
-- `## Work log` retires and `## Release note` replaces it, wired to the epic
-  wrap's changelog entry · depends on: the history milestone
+- `## Work log` retires, its unique fact derivable without it · depends on: the
+  history milestone
 - Every milestone-spec section rule gets one owner; `## Validation` resolves;
   required sections are enforced · depends on: the retirement milestone
 - A release's `[Unreleased]` is checked against what shipped · depends on: —
