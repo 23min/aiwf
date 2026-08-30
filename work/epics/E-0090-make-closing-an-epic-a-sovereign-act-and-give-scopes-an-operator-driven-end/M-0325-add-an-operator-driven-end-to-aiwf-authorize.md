@@ -1,7 +1,7 @@
 ---
 id: M-0325
 title: Add an operator-driven end to aiwf authorize
-status: in_progress
+status: done
 parent: E-0090
 depends_on:
     - M-0323
