@@ -116,7 +116,11 @@ Predicate widened from `== StateActive` to `!= StateEnded`; the function is rena
 
 ### Supporting commits
 
-`b0476f25a` records the mode in `docs/design/provenance-model.md` (normative, and it described a three-mode verb) and in `CHANGELOG.md`. `33d4e0db2` backfills three `Run`-level tests the diff-scoped coverage gate named.
+`b0476f25a` records the mode in `docs/design/provenance-model.md` (normative, and it described a three-mode verb) and in `CHANGELOG.md`. `33d4e0db2` backfills three `Run`-level tests the diff-scoped coverage gate named. `c2645e229` merges `main` so `G-0651` resolves from this tree rather than only across refs.
+
+### Review round
+
+`0465da2f6` applies the independent review's findings; `58afdc7a7` pins the rendering change one of them produced. Between them they alter behaviour no AC anticipated, which is why they are recorded here rather than folded into an AC above: `--scope` gained a four-character floor and now refuses an explicitly-passed empty value, the success and NoOp messages name the agent, and `aiwf history` renders a distinct ended-chip on an `aiwf authorize --end` row. That last one is the milestone's own doing — an `aiwf-scope-ends:` trailer riding an `authorize` commit is a shape that did not exist before this mode, and on it the old chip claimed the entity had ended.
 
 ## Decisions made during implementation
 
@@ -124,12 +128,12 @@ Predicate widened from `== StateActive` to `!= StateEnded`; the function is rena
 
 ## Validation
 
-Run on the milestone branch at `33d4e0db2`, in the devcontainer (linux/amd64, go 1.25):
+Run on the milestone branch at `58afdc7a7`, in the devcontainer (linux/amd64, go 1.25):
 
 - `AIWF_COVERAGE_BASE=epic/E-0090-… make ci` — green. Covers `go vet`, the full `golangci-lint` set, `go test -race` with coverage, the diff-scoped coverage gate, the firing-fixture meta-gate, and `aiwf doctor --self-check` (29 steps).
 - `aiwf check` — 0 errors, 4 warnings: the unpushed-branch provenance skip, the G-0646 archive sweep pair, and `epic-active-no-drafted-milestones`. The last is new and expected — M-0325 was the epic's final `draft` milestone, so the warning is E-0090 reporting it is ready to wrap.
 
-An earlier `make ci` on the same branch failed `TestPolicy_BranchCoverageAudit` on three lines of `internal/cli/authorize/authorize.go`; `33d4e0db2` is the fix.
+The diff-scoped coverage gate failed twice on this branch and was the only thing that caught either: three lines of `internal/cli/authorize/authorize.go` reached solely through integration subprocesses, fixed in `33d4e0db2`, and the new `aiwf history` chip branch, fixed in `58afdc7a7`. A third `make ci` run failed `TestBinary_ArchiveKernelMigration_LeavesCheckClean`, which copies the live tree into a detached repo where `G-0651` did not resolve; `c2645e229` is that fix.
 
 ## Deferrals
 
@@ -143,7 +147,7 @@ An earlier `make ci` on the same branch failed `TestPolicy_BranchCoverageAudit` 
 
 **Two unreachable branches carry `//coverage:ignore` rather than a test.** `authorizeEnd`'s `CheckTrailerCoherence` error return: every coherence rule keys on a trailer the end mode never emits, and `Authorize` has already required a `human/` actor, so no input reaches it. The `LoadEntityScopes` error returns in `loadEndableScopeAuthSHAsForEntity` and `completeScopeFlag`: the loader short-circuits to `(nil, nil)` when `HasCommits` is false, so a repo-less or empty root never errors, and an error means `git log` failed after `HasCommits` succeeded on the same root. Both calls stay in place so the checks still run if their inputs grow.
 
-**`internal/verb` now imports `internal/entityview`** for `ShortHash`. A downward edge (tier 2 → tier 4) the layering policy permits. The alternative was a third local copy of a seven-character truncation, next to the two that exist; routing through the call `aiwf show` renders with also makes the "same abbreviation the operator read" claim true by construction rather than by two literals agreeing.
+**`internal/verb` and `internal/cli/authorize` both import `internal/entityview`** for `ShortHash`. A downward edge (tier 2 → tier 4) the layering policy permits. The alternative was a third local copy of a seven-character truncation, next to the two that exist; routing through the call `aiwf show` renders with also makes the "same abbreviation the operator read" claim true by construction rather than by two literals agreeing. The CLI half of that was written as the inline copy and corrected at review — which is the finding worth keeping, because the argument for routing through was already written down in this section while the code did the opposite one package over, and its test compared two literals under a comment claiming otherwise.
 
 **A `--help` rendering defect was introduced and fixed inside AC-3.** Only running the binary caught it. Worth repeating at the next render-touching milestone: the surface a test asserts on and the surface an operator reads are not the same artefact.
 
