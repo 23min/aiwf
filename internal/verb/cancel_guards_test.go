@@ -8,6 +8,39 @@ import (
 	"github.com/23min/aiwf/internal/verb"
 )
 
+// TestCancel_SovereignEpicEdge_RefusesNonHumanActor is M-0324/AC-2 at
+// the verb layer. The seam-level proof — that the refusal lands before
+// any commit — lives in internal/cli/integration, but it drives the
+// binary as a subprocess and so contributes nothing to this package's
+// coverage; this is what exercises the refusal branch itself.
+//
+// It also pins the ordering the call site depends on. The gate runs
+// ahead of the cascade guards, so a non-human actor meets the
+// authority refusal even with a non-terminal child present — which is
+// the arrangement that spares them disposing of every child only to be
+// refused anyway. Staging the child is what makes that observable:
+// were the order reversed, this returns the cascade code instead.
+func TestCancel_SovereignEpicEdge_RefusesNonHumanActor(t *testing.T) {
+	t.Parallel()
+	r := newRunner(t)
+	r.must(verb.Add(r.ctx, r.tree(), entity.KindEpic, "Agent disposal", testActor, verb.AddOptions{}))
+	r.must(verb.Add(r.ctx, r.tree(), entity.KindMilestone, "Child", testActor, verb.AddOptions{EpicID: "E-0001", TDD: "none"}))
+
+	res, err := verb.Cancel(r.ctx, r.tree(), "E-0001", "ai/claude", "", false)
+	if err == nil {
+		t.Fatalf("Cancel(E-0001) by a non-human actor succeeded (res=%+v); want refusal", res)
+	}
+	if !strings.Contains(err.Error(), "sovereign act requires a human/ actor") {
+		t.Fatalf("refusal did not come from the sovereign gate; got %v", err)
+	}
+	if !strings.Contains(err.Error(), "aiwf cancel") {
+		t.Errorf("refusal must name the verb the operator ran; got %v", err)
+	}
+	if res != nil {
+		t.Errorf("refusal returned a Result (%+v); the verb must produce no plan to apply", res)
+	}
+}
+
 // TestCancel_EpicWithNonTerminalChildMilestone_Refuses (M-0139/AC-1):
 // cancelling an epic that still owns a non-terminal (draft) child
 // milestone must refuse with the structured

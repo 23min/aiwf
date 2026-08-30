@@ -23,16 +23,18 @@ type SovereignActShape struct {
 // as sovereign-act-shape. The list is consulted by:
 //
 //   - `requireHumanActorForSovereignAct` (internal/verb/
-//     promote_sovereign_act.go) — runtime verb gate, refuses non-
-//     human actors at promote time.
+//     promote_sovereign_act.go) — runtime verb gate, refuses a non-
+//     human actor before anything is written. Called from both
+//     `Promote` and `Cancel`, since a transition is named by the
+//     state it reaches rather than by the verb that reaches it.
 //   - `forcedUntraileredFindings` (internal/check/
 //     fsm_history_consistent.go, M-0130/AC-3) — historical audit,
 //     emits the `fsm-history-consistent/forced-untrailered` subcode
 //     when a sovereign-act-shape commit lacks the `aiwf-force`
 //     trailer.
-//   - `auditUnforcedEpicActivate` (internal/policies/
+//   - `auditUnforcedSovereignActPromote` (internal/policies/
 //     aiwf_promote_epic_active_audit.go) — static CI/script audit,
-//     builds one regex per entry via `entity.SovereignActShapes()` so
+//     derives its patterns from `entity.SovereignActShapes()` so
 //     adding a new entry here automatically widens the audit's reach.
 //
 // D-0008 promises a closed-set invariant: every entry here must be a
@@ -46,6 +48,24 @@ var sovereignActShapes = []SovereignActShape{
 	// planning time" — they remain open candidates pending their
 	// own authorizing ADRs.
 	{KindEpic, StatusProposed, StatusActive},
+	// epic active → done. Authorized by ADR-0047, which rules every
+	// edge into a terminal epic status sovereign, arguing from
+	// irreversibility rather than effort: `done` has no outgoing
+	// edges, and the kernel answers an unwanted terminal status with
+	// a new entity rather than a transition back. Milestones share
+	// the terminal shape and are deliberately excluded — an epic is
+	// the unit a scope is opened on, a milestone is work inside a
+	// scope someone already holds.
+	{KindEpic, StatusActive, StatusDone},
+	// epic → cancelled, from either state it is reachable from. Same
+	// authorization (ADR-0047), which declines to treat cancelling a
+	// proposed epic as the lesser act: discarding a plan that never
+	// became work invites that reading, but `cancelled` is terminal
+	// whatever state it is reached from, so the two are equally
+	// unrecoverable. Both are reached by `aiwf cancel` rather than by
+	// promote, which is why that verb consults this set too.
+	{KindEpic, StatusActive, StatusCancelled},
+	{KindEpic, StatusProposed, StatusCancelled},
 }
 
 // IsSovereignActShape reports whether (k, from, to) names a transition

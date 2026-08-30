@@ -49,6 +49,7 @@ var triggerPhraseExemptions = map[string]string{
 // earned by deriving it, not by the subject matter.
 var derivedExpectationExemptions = map[string]string{
 	"TestPolicy_SkillBodyIDRowMatchesEmittedSeverity": "derives which findings table to expect from the severity the rule actually emits, so the check fails whether the skill's table or the rule's severity moves",
+	"TestPolicy_AuthorizeSkillDocumentsItsOwnSurface": "derives the expected flag set from the Cobra tree, so the check fails whether a flag is added to the verb or dropped from the skill; the needle is a flag name the CLI already commits to, not a phrasing",
 }
 
 // shippedProseAssertionExempt reports whether a test function is allowlisted.

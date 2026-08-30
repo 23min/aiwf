@@ -193,7 +193,10 @@ var branchRefPattern = regexp.MustCompile(`^[A-Za-z0-9._/-]+$`)
 // scopeEvents is the closed set of values aiwf-scope may carry on
 // authorize commits. opened/paused/resumed map to the scope FSM
 // transitions; there is no "ended" — scope termination is recorded
-// separately by aiwf-scope-ends on the terminal-promote commit.
+// separately, by aiwf-scope-ends naming the scope's auth-sha. That
+// trailer rides whichever commit ends the scope: a promote or cancel
+// taking the entity terminal, or an `aiwf authorize --end`. Keeping
+// termination on one key means the two routes replay identically.
 var scopeEvents = map[string]struct{}{
 	"opened":  {},
 	"paused":  {},

@@ -71,10 +71,10 @@ New trailers, layered on the existing set:
 | `aiwf-principal:` | Accountability-bearer. The person whose judgment authorizes this. | Required when `aiwf-actor:` starts with `ai/`. Forbidden when `aiwf-actor:` starts with `human/`. |
 | `aiwf-on-behalf-of:` | The principal whose authorized scope this commit is acting under. Equal to or attributable-to a principal of an `aiwf-verb: authorize` commit. | Only inside an authorized scope. Required-with `aiwf-authorized-by:`. |
 | `aiwf-authorized-by:` | Git SHA of the `aiwf-verb: authorize` commit that opened the scope. | Only inside an authorized scope. Required-with `aiwf-on-behalf-of:`. |
-| `aiwf-scope:` | Scope state event marker on the authorize verb itself. Closed-set: `opened \| paused \| resumed`. (No `ended` — see "Scope termination.") | Only on `aiwf-verb: authorize` commits. |
+| `aiwf-scope:` | Scope state event marker on the authorize verb itself. Closed-set: `opened \| paused \| resumed`. (No `ended` — termination is recorded by `aiwf-scope-ends:` alone, whichever route ends the scope.) | Only on `aiwf-verb: authorize` commits. |
 | `aiwf-branch:` | Ritual branch the scope is bound to (ADR-0010, M-0102). The kernel finding `isolation-escape` (M-0106) reads this value when checking whether an AI-actor commit drifted off the recorded branch. | Optional on `aiwf-verb: authorize` commits; emitted only when the operator passes `--branch <name>` (backward-compatible no-op when absent). |
-| `aiwf-scope-ends:` | Lists the SHAs of authorize commits whose scope this commit is auto-ending. Repeatable (one trailer per ended scope). | On any commit that promotes the scope-entity of one or more active scopes to a terminal status. |
-| `aiwf-reason:` | Free-text rationale for verbs that require one. Non-empty after trim. | Required on `aiwf authorize --pause` and `--resume`; optional on `aiwf authorize --to`. Distinct from `aiwf-force:` (sovereign override) and `aiwf-audit-only:` (G24 backfill rationale) — each reason-bearing trailer carries its own semantic. |
+| `aiwf-scope-ends:` | Lists the SHAs of authorize commits whose scope this commit ends. Repeatable (one trailer per ended scope). | On any commit taking the scope-entity of one or more non-ended scopes to a terminal status, and on an `aiwf authorize --end` commit, which ends one named scope and leaves the entity alone. |
+| `aiwf-reason:` | Free-text rationale for verbs that require one. Non-empty after trim. | Required on `aiwf authorize --pause`, `--resume` and `--end`; optional on `aiwf authorize --to`. Distinct from `aiwf-force:` (sovereign override) and `aiwf-audit-only:` (G24 backfill rationale) — each reason-bearing trailer carries its own semantic. |
 
 The pre-I2.5 trailers (`aiwf-verb`, `aiwf-entity`, `aiwf-actor`, `aiwf-to`, `aiwf-force`, `aiwf-prior-entity`, `aiwf-tests`) keep their existing semantics. `aiwf-actor:` specifically retains its meaning: **whoever ran the verb**, consistent with current PoC behavior.
 
@@ -149,13 +149,13 @@ authorize commit lands → state: active
 active ──pause──→ paused ──resume──→ active ──...
    ↓                              ↓
 ended ←──── (auto: scope-entity reaches terminal)
-                 (or: future revoke verb — G22)
+                 (or: aiwf authorize <id> --end)
 ```
 
 Legal transitions:
 - `active → paused` via `aiwf authorize <id> --pause "<reason>"`
 - `paused → active` via `aiwf authorize <id> --resume "<reason>"`
-- `active → ended` and `paused → ended`: auto, when the scope-entity reaches a terminal status (entity FSM says `done` or `cancelled`); recorded by an `aiwf-scope-ends:` trailer on the terminal-promote commit
+- `active → ended` and `paused → ended`, by either of two routes, both recorded by an `aiwf-scope-ends: <auth-sha>` trailer: automatically, when the scope-entity reaches a terminal status (entity FSM says `done` or `cancelled`), one trailer per non-ended scope on the closing commit; or deliberately, via `aiwf authorize <id> --end`, which ends one named scope and leaves the entity's status untouched
 - `ended` is terminal. Un-canceling a scope-entity does not resurrect a previously-ended scope; the human must issue a new authorization (Q3.5: strict end-on-terminal).
 
 Scope state at any commit is computed by walking from the authorize commit forward through history, applying transitions in commit order. The scope's "frontmatter" is its trailer set on the original authorize commit; transitions are themselves commits with trailers. This means **`aiwf history <auth-sha>` works on scopes the same way it works on entities** — no new storage primitive.
@@ -215,6 +215,7 @@ If multiple active scopes match the same verb (rare but possible — overlapping
 aiwf authorize <id> --to <agent> [--reason "<text>"]
 aiwf authorize <id> --pause "<reason>"
 aiwf authorize <id> --resume "<reason>"
+aiwf authorize <id> --end [--scope <auth-sha>] --reason "<text>"
 ```
 
 Read-only on file content (no entity is modified); however, the verb writes a commit, so it goes through the existing `Apply` orchestrator and lock (G4) like other mutating verbs. Trailers on the authorize commit:
@@ -224,10 +225,13 @@ aiwf-verb: authorize
 aiwf-entity: <id>                 # the scope-entity
 aiwf-actor: <role>/<id>           # always human/...; verb refuses non-human
 aiwf-to: <agent role>/<id>        # the agent being authorized; reuses aiwf-to:
-aiwf-scope: opened                # or paused / resumed
-aiwf-reason: <text>               # required on --pause / --resume; optional on --to
+aiwf-scope: opened                # or paused / resumed; absent on --end, as is aiwf-to:
+aiwf-scope-ends: <auth-sha>       # only on --end; names the scope being ended
+aiwf-reason: <text>               # required on --pause / --resume / --end; optional on --to
 aiwf-force: <reason>              # only if the human used --force to override an end
 ```
+
+`--end` writes `aiwf-scope-ends:` rather than a fourth `aiwf-scope:` value, which is the same trailer the automatic end at terminal-promote emits — so the replay needs no case for it, and one fact is recorded by one key. The two ends stay distinguishable by the commit each rides: an operator end carries `aiwf-verb: authorize`, an automatic one the `promote` or `cancel` whose status change triggered it.
 
 ### Why `aiwf-to:` for the agent
 
@@ -238,8 +242,15 @@ The kernel already uses `aiwf-to:` to record the *target state* of a `promote` e
 - **`--to <agent>`**: opens a new scope. Verb refuses if `<id>` is in a terminal status (you cannot authorize work on a `done` epic). Verb refuses if `<actor>` is not `human/...` (only humans authorize).
 - **`--pause "<reason>"`**: pauses the *most-recently-opened active scope* for `<id>`. If none active, refuses with `provenance-no-active-scope-to-pause`. Reason required, non-empty.
 - **`--resume "<reason>"`**: resumes the *most-recently-paused scope* for `<id>`. If none paused, refuses with `provenance-no-paused-scope-to-resume`. Reason required, non-empty.
+- **`--end [--scope <auth-sha>] --reason "<text>"`**: ends one scope on `<id>` without changing the entity's status (ADR-0047) — the way a human withdraws a delegation from work that is still going. `--scope` names the target by authorize-commit SHA or an unambiguous prefix of at least four characters — the floor git holds an abbreviated revision to, and for the same reason: a shorter prefix that is unique by accident is not a name the operator meant, and this act has no inverse. Omitted, it resolves to the entity's sole non-ended scope, and refuses listing the candidates when there is more than one. Reason required, non-empty: an end moves no status, so its commit is the only artefact recording that the delegation was withdrawn.
 
-Each invocation produces exactly one commit, preserving the one-commit-per-verb rule.
+Unlike pause and resume, which re-derive their target from the FSM, `--end` names the scope it ends. Ending is terminal, so a target picked wrongly is not recoverable the way a wrong pause is — a resume undoes that, and nothing undoes an end.
+
+Each invocation produces exactly one commit, preserving the one-commit-per-verb rule — or none, when the request already holds: `--scope` naming an already-ended scope converges at exit 0 without a commit, while a `--scope` matching no scope refuses. Resolution precedes convergence, so those two are distinguishable.
+
+### Ending covers paused scopes
+
+Both ends — the operator's and the automatic one at terminal promote or cancel — target every scope in `active` *or* `paused` state. `paused → ended` is legal in the scope FSM, and once the entity is terminal no verb will act on it again, so a paused scope there can never be resumed: leaving it paused strands a delegation in a state its own FSM offers an exit from.
 
 ### Scope id
 
@@ -392,7 +403,7 @@ If an LLM tried the same with `--force`, the verb refuses with `provenance-force
 
 Documented as known-incomplete; deferred from I2.5 by design:
 
-- **G22 — provenance model extension surface.** Future verbs and flags: `aiwf revoke <auth-sha> --reason "..."` (explicit revocation); time-bound scopes (`--until <date>`); verb-set restrictions (`--verbs add,promote`); pattern scopes (`--pattern "M-007/*"`); sub-agent delegation (whether an agent can authorize a sub-agent — the policy question reserved by Q3.6b's deferred mutually-exclusive pair).
+- **G22 — provenance model extension surface.** Future verbs and flags: time-bound scopes (`--until <date>`); verb-set restrictions (`--verbs add,promote`); pattern scopes (`--pattern "M-007/*"`); sub-agent delegation (whether an agent can authorize a sub-agent — the policy question reserved by Q3.6b's deferred mutually-exclusive pair).
 - **G23 — delegated `--force` via `aiwf authorize --allow-force`.** A future flag on `aiwf authorize` letting the agent invoke `--force` within scope, while still writing the human as `aiwf-principal:`. YAGNI for the PoC; revisit if real friction shows up.
 - **Bulk-import per-entity attribution.** When `aiwf import` ingests data with per-row author info, the importer should write per-entity `aiwf-actor:` pairs instead of one collapsed trailer. Bundled into G22.
 

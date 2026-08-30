@@ -41,18 +41,10 @@ func Rules() []Rule {
 // per-rule exclusion. Only the code-oriented AC-5 drift arms union
 // Rules() and GlobalRules().
 //
-// Today the global rules are:
-//   - scope-reach (D-0006): an authorized agent's verb is refused when
-//     the target is out of scope.
-//   - branch-context-required (E-0030 / M-0103 / ADR-0010): aiwf
-//     authorize refuses opening a scope on an ai/* agent when no ritual
-//     branch context is in play — neither --branch was supplied nor is
-//     the current checkout a recognized ritual shape. The precondition
-//     names "target-agent-role" (the role part of --to <role>/<id>) and
-//     "ritual-branch-context-present" (true when either signal is set).
-//   - branch-not-found (E-0030 / M-0103): aiwf authorize refuses when
-//     --branch <name> was supplied but no local branch by that name
-//     resolves under refs/heads/.
+// Each entry carries its own comment naming what it refuses and the
+// record that authorizes it; the cells are the enumeration, so no
+// index of them is kept here to drift out of step with the slice
+// below.
 //
 // The two M-0103 entries are scaffold-quality: they pin the codes into
 // the bidirectional drift net so M-0123/AC-5's legality-codes-referenced
@@ -114,6 +106,36 @@ func GlobalRules() []Rule {
 			RejectionLayer:    RejectionLayerVerbTime,
 			BlockingStrict:    true,
 			Sources:           RuleSource{Decision: "ADR-0010"},
+		},
+		// ADR-0047: a transition the kernel treats as a sovereign act is
+		// refused for any actor that is not human/, before anything is
+		// written. Cross-cutting rather than per-cell because the closed
+		// set spans several (Kind, FromState, Verb) coordinates and is
+		// reached by more than one verb — promote for the opening and
+		// completion edges, cancel for the two cancelled ones.
+		//
+		// The subject names the kernel's closed set rather than
+		// enumerating today's entries, so this cell cannot drift out of
+		// step with entity.SovereignActShapes() as that set widens. The
+		// membership itself lives in one place, in the entity package,
+		// and is not copied here.
+		//
+		// ExpectedErrorCode is empty because the refusal carries no
+		// finding code — it is a bare verb error, which is also why it
+		// exits as a usage error rather than as the legality refusal it
+		// is. G-0649 tracks that; until it resolves, this rule stays
+		// outside the two code-oriented drift arms, which skip any rule
+		// with an empty code.
+		{
+			Preconditions: []Predicate{
+				{Subject: "sovereign-act-shape", Op: "==", Value: "true"},
+				{Subject: "actor-role", Op: "!=", Value: "human"},
+				{Subject: "force", Op: "==", Value: "false"},
+			},
+			Outcome:        OutcomeIllegal,
+			RejectionLayer: RejectionLayerVerbTime,
+			BlockingStrict: true,
+			Sources:        RuleSource{Decision: "ADR-0047"},
 		},
 	}
 }

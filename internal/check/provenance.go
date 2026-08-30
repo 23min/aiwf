@@ -725,9 +725,9 @@ var wrapBundleVerbs = map[string]bool{
 //   - the scope was terminated by a known end-commit (endedBy
 //     supplies it);
 //   - the end-commit's aiwf-verb is `promote` (the canonical
-//     terminating step; a scope ended by `revoke` or another verb
-//     does NOT enable the window — those terminations were
-//     deliberate operator acts outside the wrap path);
+//     terminating step; a scope ended by `aiwf authorize --end` or
+//     another verb does NOT enable the window — those terminations
+//     were deliberate operator acts outside the wrap path);
 //   - the end-commit's aiwf-entity matches this commit's aiwf-entity
 //     (after composite-root rollup, rename-chain walk, and prior_ids
 //     resolution — same lineage of equivalence the out-of-scope rule

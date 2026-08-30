@@ -16,6 +16,58 @@ section in this file.
 
 ## [Unreleased]
 
+### Changed — E-0090: closing an epic is a human's act
+
+Every edge into a terminal epic status — `active → done`, `active → cancelled`,
+`proposed → cancelled` — now requires a `human/` actor, joining the activation edge
+that was already gated. A non-human actor is refused at the verb, before anything is
+written, and `aiwf cancel` consults the same closed set `aiwf promote` does, so both
+spellings of a terminal edge are gated alike. Sovereignty here tracks irreversibility
+rather than effort: cancelling a *proposed* epic discards a plan that never became
+work, but `cancelled` is terminal whichever state it is reached from.
+
+This changes an invocation that used to succeed. `aiwf promote <epic> done` run by an
+agent exited 0 before; it is now refused, and the remedy is for a human to run it —
+not `--force`, which a non-human actor cannot wield either. One historical commit in
+this repo's own log qualified and was ratified.
+
+Closes G-0646. See ADR-0047.
+
+### Added — `aiwf authorize <id> --end`: retire a scope without closing its entity
+
+An authorization scope had one exit: the terminal promote or cancel of the entity
+it was opened on. Withdrawing a delegation therefore meant closing the work, and
+there was no way to record that a human ended a delegation while the entity kept
+living.
+
+`--end` ends one scope and leaves the entity's status alone. `--scope <auth-sha>`
+names which, by full SHA or an unambiguous prefix of four or more characters —
+the seven `aiwf show <id>` prints are enough. Four is the floor git holds an
+abbreviated revision to: a shorter prefix that is unique by accident is not a
+name you meant, and an end has no inverse. Omit it and the verb targets the entity's sole
+non-ended scope, refusing and listing the candidates when there is more than one:
+ending is terminal, so a wrong guess is not recoverable the way a wrong `--pause`
+is. `--reason` is required, because an end moves no status and its commit is the
+only artefact that records why the delegation was withdrawn.
+
+The commit carries the same `aiwf-scope-ends: <auth-sha>` the automatic end
+already writes, so scope replay is unchanged; an operator end stays
+distinguishable in history by riding an `aiwf-verb: authorize` commit rather than
+a `promote` or `cancel`. Re-ending an already-ended scope converges at exit 0
+without a commit; a `--scope` that matches nothing is refused. See ADR-0047.
+
+### Fixed — a paused scope is now ended when its entity closes, instead of stranded
+
+The automatic scope-end at terminal promote or cancel selected scopes in `active`
+state only. A scope left `paused` on an entity that then closed stayed paused
+permanently: no verb acts on a terminal entity, so nothing could resume it, and
+nothing else emitted its `aiwf-scope-ends:` trailer — while the scope FSM has
+permitted `paused → ended` all along.
+
+Both ends now cover every non-ended scope. The side effect fires exactly where it
+fired before; only which scopes it covers changes, so the single invocation that
+behaves differently is a terminal promote or cancel of an entity carrying a paused
+scope.
 ### Changed — the revising rule covers correcting a claim, not only adding or cutting one
 
 The always-on guidance's *"On revising, re-derive before you rewrite"* rule named two

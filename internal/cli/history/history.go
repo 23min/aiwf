@@ -181,9 +181,16 @@ func RenderActor(e entityview.HistoryEvent) string {
 // row. For `aiwf authorize` rows, a `[<scope> <event>]` chip names
 // the lifecycle event (`opened` / `paused` / `resumed`). For
 // scope-authorized rows, a `[<scope-entity> <auth-short>]` chip
-// names the authorizing scope. For terminal-promote rows that ended
-// one or more scopes, one `[<scope-entity> ended]` chip per ended
-// scope.
+// names the authorizing scope. For any row carrying `aiwf-scope-ends:`,
+// one chip per ended scope.
+//
+// That last chip is spelled two ways because the row it sits on decides
+// what the reader can safely infer. A promote or cancel that ends a
+// scope also took the entity terminal, so `[<scope-entity> ended]` is
+// true of both. An `aiwf authorize --end` row ends the scope and leaves
+// the entity running, where naming the entity would assert a closure
+// that did not happen — so those rows carry `[scope: <auth-short>
+// ended]`, matching the `[scope: opened]` family already on that row.
 //
 // scopeEntities maps full auth-SHA to scope-entity id. showAuth
 // flips on the full SHA inline (the --show-authorization flag).
@@ -207,6 +214,10 @@ func RenderScopeChips(e entityview.HistoryEvent, scopeEntities map[string]string
 		chips = append(chips, fmt.Sprintf("[%s %s]", scopeEntity, sha))
 	}
 	for _, sha := range e.ScopeEnds {
+		if e.Verb == "authorize" {
+			chips = append(chips, fmt.Sprintf("[scope: %s ended]", entityview.ShortHash(sha)))
+			continue
+		}
 		scopeEntity := scopeEntities[sha]
 		if scopeEntity == "" {
 			scopeEntity = entityview.ShortHash(sha)

@@ -168,7 +168,7 @@ func Promote(ctx context.Context, t *tree.Tree, id string, newStatus entity.Stat
 		// enforces human-only via the existing provenance coherence
 		// rule, so non-human + --force already fails at the coherence
 		// chokepoint).
-		if err := requireHumanActorForSovereignAct(e.Kind, e.Status, newStatus, actor); err != nil {
+		if err := requireHumanActorForSovereignAct("promote", e.Kind, e.Status, newStatus, actor); err != nil {
 			return nil, err
 		}
 		// G-0269: an epic proposed → active or milestone → in_progress

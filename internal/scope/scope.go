@@ -178,8 +178,8 @@ func LoadScope(authSHA string, history []Commit) (*Scope, error) {
 //     on the same entity (rare).
 //
 //   - any commit carrying aiwf-scope-ends: <authSHA>: ends this
-//     scope (auto-end on terminal-promote, or — once G22 lands — an
-//     explicit revoke).
+//     scope — the automatic end a closing promote or cancel writes, or
+//     an operator's `aiwf authorize <id> --end`.
 func classifyTransition(authSHA string, c Commit) (next State, reason string, ended bool) {
 	idx := indexTrailers(c.Trailers)
 

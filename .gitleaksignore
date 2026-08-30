@@ -75,3 +75,12 @@ f93728893a6caf2d13b2e437af1cc529512cb666:work/epics/E-0021-open-work-synthesis-r
 f93728893a6caf2d13b2e437af1cc529512cb666:work/gaps/G-0064-kernel-repo-dogfooding-closed-partial-g-038-without-installing-the-ritual-plugins-aiwf-extensions-wf-rituals-operator-side-surface-incomplete-here-despite-framework-design-assuming-rituals-are-present.md:path-leak-darwin-home:17
 fa2d43057d274ec0c6ed9da2e354bf2b97b8c4c7:work/gaps/G-0135-hook-path-hardcoded-at-install-time-breaks-across-gopath-environments.md:path-leak-darwin-home:10
 fa2d43057d274ec0c6ed9da2e354bf2b97b8c4c7:work/gaps/G-0135-hook-path-hardcoded-at-install-time-breaks-across-gopath-environments.md:path-leak-darwin-home:8
+
+# M-0325: two 40-char hex git object ids in a history-chip test fixture,
+# read as a key by the generic-api-key entropy heuristic. Neither is a
+# secret — one was a real SHA copied from a throwaway review fixture,
+# which is also why it carried enough entropy to fire. HEAD carries
+# obviously-fictional values instead; these two fingerprints cover the
+# commit that already recorded the originals.
+58afdc7a755438d10fde90206288c7a5c0b6f5b4:internal/cli/history/history_scope_chip_test.go:generic-api-key:23
+58afdc7a755438d10fde90206288c7a5c0b6f5b4:internal/cli/history/history_scope_chip_test.go:generic-api-key:69

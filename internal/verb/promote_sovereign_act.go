@@ -29,7 +29,13 @@ import (
 // from a non-human actor. So the two routes into a sovereign act are
 // each closed — this helper covers the unforced one, the apply seam
 // covers the forced one (ADR-0040).
-func requireHumanActorForSovereignAct(kind entity.Kind, from, to entity.Status, actor string) error {
+// verbName is the verb the operator actually invoked, and it is a
+// parameter rather than a constant because more than one verb reaches
+// a sovereign edge: ADR-0047 puts both epic cancel edges in the closed
+// set, and `aiwf cancel` is how a human spells them. A message naming
+// promote there would send the reader to a different command than the
+// one that refused them.
+func requireHumanActorForSovereignAct(verbName string, kind entity.Kind, from, to entity.Status, actor string) error {
 	if !entity.IsSovereignActShape(kind, from, to) {
 		return nil
 	}
@@ -41,5 +47,10 @@ func requireHumanActorForSovereignAct(kind entity.Kind, from, to entity.Status, 
 	// guard at verb.Apply rejects a force trailer from a non-human
 	// actor, and this message is reachable only for a non-human actor,
 	// so that advice would be wrong every time it was shown.
-	return fmt.Errorf("aiwf promote %s %s: sovereign act requires a human/ actor (got %q); have a human run the verb", kind, to, actor)
+	//
+	// Both states are named, not just the destination: with several
+	// edges into a terminal epic status now sovereign, the destination
+	// alone does not identify which edge was refused.
+	return fmt.Errorf("aiwf %s %s %s → %s: sovereign act requires a human/ actor (got %q); have a human run the verb",
+		verbName, kind, from, to, actor)
 }

@@ -1,8 +1,10 @@
 ---
 id: G-0646
 title: Closing an epic is not a sovereign act, and the gate reaches only promote
-status: open
+status: addressed
 priority: medium
+addressed_by_commit:
+    - 811f208d9
 ---
 ## What's missing
 

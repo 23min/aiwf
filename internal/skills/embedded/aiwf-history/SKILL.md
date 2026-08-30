@@ -28,7 +28,7 @@ DATE  ACTOR  VERB  TO  DETAIL  COMMIT  [chips...]
 
 - **ACTOR**: when a `principal` is present and differs from the actor (the agent-acts-for-human pattern), the column renders `principal via agent`. Direct human acts show the actor verbatim.
 - **TO**: target status/phase from `aiwf-to:` (`→ active`, `→ green`); dash when absent.
-- **chips**: compact lifecycle markers appended after the SHA — `[scope: opened]` on `aiwf authorize` rows, `[<scope-entity> <auth-short>]` on scope-authorized agent verbs, `[<scope-entity> ended]` per scope ended by a terminal-promote.
+- **chips**: compact lifecycle markers appended after the SHA — `[scope: opened]` on `aiwf authorize` rows, `[<scope-entity> <auth-short>]` on scope-authorized agent verbs, `[<scope-entity> ended]` per scope a closing promote or cancel ended, and `[scope: <auth-short> ended]` on an `aiwf authorize --end` row, where the scope ends but the entity keeps running.
 - Sub-lines (indented): `[forced: <reason>]`, `[audit-only: <reason>]`, `[reason: <text>]` for the corresponding trailers, then any commit body prose.
 
 ## Composite ids and prefix matching
