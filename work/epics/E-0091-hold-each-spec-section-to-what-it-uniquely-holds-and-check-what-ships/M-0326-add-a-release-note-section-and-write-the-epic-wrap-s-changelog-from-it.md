@@ -12,6 +12,7 @@ acs:
     - id: AC-2
       title: The epic wrap composes its changelog entry from milestone Release notes
       status: open
+      tdd_phase: red
     - id: AC-3
       title: A milestone reaching done with an empty Release note is reported
       status: open
