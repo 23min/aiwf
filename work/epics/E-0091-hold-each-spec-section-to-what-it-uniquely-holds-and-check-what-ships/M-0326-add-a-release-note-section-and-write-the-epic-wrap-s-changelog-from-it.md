@@ -11,6 +11,9 @@ acs:
     - id: AC-2
       title: The epic wrap composes its changelog entry from milestone Release notes
       status: open
+    - id: AC-3
+      title: A milestone reaching done with an empty Release note is reported
+      status: open
 ---
 
 ## Goal
@@ -20,4 +23,6 @@ acs:
 ### AC-1 — Every milestone-spec section a ritual names resolves to one the template ships
 
 ### AC-2 — The epic wrap composes its changelog entry from milestone Release notes
+
+### AC-3 — A milestone reaching done with an empty Release note is reported
 
