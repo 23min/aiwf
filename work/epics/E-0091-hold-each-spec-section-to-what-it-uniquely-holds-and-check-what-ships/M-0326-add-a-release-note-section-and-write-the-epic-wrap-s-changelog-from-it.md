@@ -170,6 +170,26 @@ the rule lands at its real severity immediately.
 
 ---
 
+## Release note
+
+Milestone specs now carry a `## Release note` section: the user-visible delta of
+that milestone's work, written at its wrap by whoever did it. `aiwfx-wrap-epic`
+composes the epic's changelog entry from those notes rather than reconstructing
+it from milestone titles and merge SHAs, and `aiwfx-wrap-milestone` puts the
+note in front of the independent reviewer, since it is the one spec section that
+travels verbatim into the changelog.
+
+`aiwf check` gains `milestone-done-empty-release-note` (warning): a milestone at
+`done` whose `## Release note` is present and empty. Because `promote` runs the
+projection findings as preconditions, the same rule refuses the `done` promote
+that would produce that state. Specs written before the section existed carry no
+such heading and are out of scope, so no existing milestone is reported.
+
+A new policy check resolves every milestone-spec and wrap-artefact section name
+the shipped rituals, agent cards and templates mention against the headings
+those artefacts actually carry, so renaming a section on either side is caught
+rather than left to drift.
+
 ## Work log
 
 ### AC-1 — Section names resolve against the artefacts that carry them
@@ -179,6 +199,10 @@ the rule lands at its real severity immediately.
 ### AC-2 — Release note ships, and the epic wrap composes from it
 
 Template ships `## Release note`; the milestone wrap reviews it at step 2 and the epic wrap composes its changelog entry from these notes · commit e2bb40351 · tests 15/15 via AC-1's check, which went red on all three surfaces before the section existed
+
+### AC-3 — A done milestone with an empty Release note is reported
+
+`milestone-done-empty-release-note` (warning) reports it in `aiwf check` and refuses the `done` promote that would create it · commit a6cbd3814 · tests 12/12
 
 ## Decisions made during implementation
 
