@@ -36,8 +36,8 @@ func TestHistoryEventToRow_RendersTheAbsentTrailerMarker(t *testing.T) {
 			wantVerb: "promote", wantA: "human/peter",
 		},
 		{
-			// The templates used to compose this themselves; a principal
-			// with no actor produced "human/peter via " with nothing after.
+			// An empty agent side must not print a dangling separator, and
+			// the principal is provenance the commit does carry.
 			name:     "a principal without an actor renders alone",
 			event:    entityview.HistoryEvent{Verb: "promote", Principal: "human/peter"},
 			wantVerb: "promote", wantA: "human/peter",
