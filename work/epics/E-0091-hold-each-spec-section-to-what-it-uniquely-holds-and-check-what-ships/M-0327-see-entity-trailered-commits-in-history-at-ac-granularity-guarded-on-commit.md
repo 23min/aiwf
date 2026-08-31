@@ -201,6 +201,24 @@ commit-msg hook does ship: `aiwf init` installs it, and it runs wherever an
 
 ## Work log
 
+### AC-1 — The projection admits a commit by its parsed entity trailer
+
+Both drop sites read the entity trailer git returned, and an absent verb or actor
+renders `-` · commit 8a321fb · full suite green, diff-scoped coverage gate green,
+six mutation probes all killed
+
+Measured against this repo on 2026-08-31, the same query either side of the
+change: `aiwf history M-0326` gained the nine implementation commits it had been
+omitting, and `aiwf history M-0327/AC-1` lists `8a321fb` — the commit that made
+the change — where the v0.34.0 binary lists only the paperwork.
+
+`RenderActor` keeps an arm for a principal recorded without an actor. No commit
+in this repo's 10,801 has that shape and no verb writes it, so the branch is
+reachable only from a hand-written commit. It stays because rendering `-` over a
+principal the commit does record would discard provenance from an audit view,
+which is the defect class this milestone exists to close; removing it costs no
+crash, so the usual keep-the-guard asymmetry is not what decides it.
+
 ## Decisions made during implementation
 
 - (none)
