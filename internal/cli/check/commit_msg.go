@@ -73,7 +73,7 @@ func runCommitMsg(path, root string, registeredVerbs map[string]struct{}, stderr
 	// Cause before symptom: a hidden block makes the trailers invisible to
 	// every check below it, so reporting one of those first states something
 	// untrue about the message in front of the operator.
-	if code := checkHiddenTrailerBlock(msg, stderr); code != cliutil.ExitOK {
+	if code := checkHiddenTrailerBlock(msg, block, stderr); code != cliutil.ExitOK {
 		return code
 	}
 
@@ -213,11 +213,18 @@ var trailerLine = regexp.MustCompile(`^[A-Za-z][A-Za-z0-9-]*:\s`)
 // sees a correct-looking message, which is why this is caught where it is
 // written rather than reported afterwards.
 //
-// The signature is a whole paragraph of trailer-shaped lines carrying at least
-// one aiwf key, sitting before the final paragraph. A message that merely
-// mentions a trailer key inside prose is not that, and is left alone — which is
-// the case the parser indirection exists for.
-func checkHiddenTrailerBlock(msg []byte, stderr io.Writer) int {
+// Two questions decide it, and only the first is answered here. Is this
+// paragraph a block at all — the shape question, below. And did git read it —
+// which is not re-derived, because re-implementing that heuristic is what
+// extractTrailerBlock exists to avoid: the keys git returned for the whole
+// message are compared against the keys the paragraph carries, and a block
+// whose keys git returned is a block git read, wherever it sits.
+//
+// That comparison is what keeps the guard silent on an editor buffer. Git hands
+// a commit-msg hook the raw buffer with its `#` template intact and strips the
+// comments afterwards, so the last paragraph is often git's own instructions
+// while the trailers git actually parsed sit above them.
+func checkHiddenTrailerBlock(msg, block []byte, stderr io.Writer) int {
 	_, body, found := bytes.Cut(msg, []byte("\n"))
 	if !found {
 		return cliutil.ExitOK
@@ -226,11 +233,18 @@ func checkHiddenTrailerBlock(msg []byte, stderr io.Writer) int {
 	if len(paras) < 2 {
 		return cliutil.ExitOK
 	}
-	// The final paragraph is the one git reads; every earlier one is prose as
-	// far as the parser is concerned.
+	parsed := map[string]bool{}
+	for _, tr := range gitops.ParseTrailers(string(block)) {
+		if strings.HasPrefix(tr.Key, "aiwf-") {
+			parsed[tr.Key] = true
+		}
+	}
 	for _, para := range paras[:len(paras)-1] {
 		keys, ok := aiwfTrailerParagraph(para)
 		if !ok {
+			continue
+		}
+		if allParsed(keys, parsed) {
 			continue
 		}
 		_, _ = fmt.Fprintf(stderr,
@@ -245,17 +259,34 @@ func checkHiddenTrailerBlock(msg []byte, stderr io.Writer) int {
 	return cliutil.ExitOK
 }
 
-// splitParagraphs splits on blank lines and drops empty runs.
+// splitParagraphs breaks s on any all-whitespace line, which is where git
+// breaks it — a line of spaces separates two paragraphs as surely as an empty
+// one, and treating only the empty case as a separator leaves a block joined to
+// the text below it and so never examined.
+//
+// A CRLF message needs no separate handling: a lone carriage return is an
+// all-whitespace line and separates paragraphs like any other, and a trailing
+// one is trimmed wherever a value is compared.
+//
+// Lines are otherwise kept verbatim: leading spaces or tabs are the indentation
+// that distinguishes an indented prose line from a trailer-shaped one.
 func splitParagraphs(s string) []string {
 	var out []string
-	for _, p := range strings.Split(strings.ReplaceAll(s, "\r\n", "\n"), "\n\n") {
-		// Newlines only: leading spaces or tabs are the indentation that
-		// distinguishes an indented prose line from a trailer-shaped one.
-		p = strings.Trim(p, "\n")
-		if strings.TrimSpace(p) != "" {
-			out = append(out, p)
+	var cur []string
+	flush := func() {
+		if len(cur) > 0 {
+			out = append(out, strings.Join(cur, "\n"))
+			cur = nil
 		}
 	}
+	for _, line := range strings.Split(s, "\n") {
+		if strings.TrimSpace(line) == "" {
+			flush()
+			continue
+		}
+		cur = append(cur, line)
+	}
+	flush()
 	return out
 }
 
@@ -370,4 +401,16 @@ func stagedRitualEdits(root string) ([]string, error) {
 		}
 	}
 	return hits, nil
+}
+
+// allParsed reports whether git's own parse of the message returned every aiwf
+// key this paragraph carries. Where it did, git read the paragraph and nothing
+// is hidden, whatever sits after it.
+func allParsed(keys []string, parsed map[string]bool) bool {
+	for _, k := range keys {
+		if !parsed[k] {
+			return false
+		}
+	}
+	return true
 }

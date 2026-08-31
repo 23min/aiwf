@@ -109,6 +109,48 @@ func TestRunCommitMsg_RefusesATrailerBlockGitWillNotRead(t *testing.T) {
 			cliutil.ExitOK,
 		},
 		{
+			// Git hands a commit-msg hook the raw editor buffer and strips
+			// its `#` template afterwards, so the last paragraph is often
+			// git's own instructions while the trailers git parsed sit above
+			// them. Refusing here would block every interactive commit.
+			"the editor buffer, comments still present",
+			"subj\n\naiwf-verb: promote\naiwf-entity: M-0001\naiwf-actor: human/peter\n\n# Please enter the commit message for your changes.\n# Lines starting with '#' will be ignored.\n",
+			cliutil.ExitOK,
+		},
+		{
+			// A conflicted merge ends the same way.
+			"a conflicted merge message",
+			"Merge branch 'x'\n\naiwf-verb: wrap-milestone\naiwf-entity: M-0001\n\n# Conflicts:\n#\tSTATUS.md\n",
+			cliutil.ExitOK,
+		},
+		{
+			// Git breaks paragraphs on any all-whitespace line, so a line of
+			// spaces hides a block as surely as an empty one.
+			"a whitespace-only separator still hides a block",
+			"docs: thing\n\naiwf-verb: notaverb\naiwf-entity: M-0001\n   \nCo-Authored-By: X <x@y.z>\n",
+			cliutil.ExitFindings,
+		},
+		{
+			// CRLF: without normalising, the message never splits into
+			// paragraphs and the guard never fires at all.
+			"a CRLF message still splits into paragraphs",
+			"docs: thing\r\n\r\naiwf-verb: notaverb\r\naiwf-entity: M-0001\r\n\r\nCo-Authored-By: X <x@y.z>\r\n",
+			cliutil.ExitFindings,
+		},
+		{
+			// Every line must be trailer-shaped: a paragraph of prose that
+			// happens to end in trailer lines is prose.
+			"prose lines above trailer lines in one paragraph",
+			"docs: thing\n\nWe did X and Y.\naiwf-verb: promote\naiwf-entity: M-0001\n\nCo-Authored-By: X <x@y.z>\n",
+			cliutil.ExitOK,
+		},
+		{
+			// prior-entity admits on its own, as the query greps it.
+			"a lone prior-entity trailer naming an entity",
+			"chore: renumbered\n\naiwf-prior-entity: M-0001\n\nCo-Authored-By: X <x@y.z>\n",
+			cliutil.ExitFindings,
+		},
+		{
 			"no aiwf trailers anywhere",
 			"chore(x): a subject\n\nSome rationale.\n\nCo-Authored-By: A <a@example.com>\n",
 			cliutil.ExitOK,
