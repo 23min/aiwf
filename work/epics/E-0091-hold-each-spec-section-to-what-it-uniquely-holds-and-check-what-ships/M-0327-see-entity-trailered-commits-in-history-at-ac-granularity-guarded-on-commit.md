@@ -16,7 +16,7 @@ acs:
     - id: AC-3
       title: A staged shipped-surface edit without a parseable entity trailer is refused
       status: open
-      tdd_phase: green
+      tdd_phase: done
 ---
 
 ## Goal
