@@ -121,18 +121,18 @@ changed to make it possible now?>
      Reconstructing it later from milestone titles is what leaves a shipped
      change undescribed.
 
-     Not the commit index, which `## Work log` holds, and not the epic's
-     summary, which the epic wrap writes. One short paragraph, or one line per
+     Not the account of how it was built, which `## Work log` holds, and not
+     the epic's summary, which the epic wrap writes. One short paragraph, or one line per
      user-facing change. "No user-visible change" is a valid note; empty is
      not. -->
 
 ## Work log
 
 <!-- The narrative an AC's history cannot hold: what a detour cost, why an
-     approach was abandoned, what a commit does not say about itself. The link
-     from an AC to its implementation commit is answerable from that AC's own
-     history once the commit carries the AC in its entity trailer, so it need
-     not be copied here.
+     approach was abandoned, what a commit does not say about itself. The AC's
+     own history answers which commit implemented it, once that commit carries
+     the AC in its entity trailer, so the SHA below is a locator beside the
+     account rather than the record of the link.
      One entry per AC (preferred) or per meaningful unit of work. Append-only;
      never rewrite earlier entries.
        Header:     "AC-<N> — <short title>" or "<short title>" if not AC-scoped.
