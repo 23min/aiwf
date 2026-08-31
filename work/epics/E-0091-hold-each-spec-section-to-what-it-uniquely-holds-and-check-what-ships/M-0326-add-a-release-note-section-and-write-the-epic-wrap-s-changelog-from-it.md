@@ -99,10 +99,10 @@ Warning rather than error, decided against the measured cost of the alternative.
 At error the rule demands a section the kernel's own scaffold does not write:
 `entity.RequiredSections` for a milestone is Goal and Acceptance criteria, so a
 milestone created through `aiwf add` could not reach `done` at all, and `--force`
-does not relax a projection finding. Error severity also required six test
-fixtures across four packages to seed a release note before promoting, and it
-put a precondition on the milestone-to-done transition that the legal-workflow
-table does not declare. Reverting to warning retired all of that; the fixtures
+does not relax a projection finding. Error severity also required fixtures
+across four packages to seed a release note before promoting, and it put a
+precondition on the milestone-to-done transition that the legal-workflow table
+does not declare. Reverting to warning retired all of that; the fixtures
 are back to their original shape, measured green.
 
 Absence counts, rather than only an empty section that is present. Scoping to
@@ -209,7 +209,7 @@ section-ownership work G-0636 tracks.
 
 ### AC-1 — A section name a ritual writes resolves to a heading some artefact carries
 
-`PolicyMilestoneSectionNameResolution` reports a shipped surface naming a section no template heading or wrap-artefact section carries · commit ff39bb5b2, largely rewritten in ec3d2a7d2, 1526a1124 and b1c3b1ba6 · tests: the `MilestoneSectionNameResolution`, `ReleaseNoteHeadingResolves` and `SectionSurfaces` cases in `internal/policies`
+`PolicyMilestoneSectionNameResolution` reports a shipped surface naming a section no template heading or wrap-artefact section carries · commit ff39bb5b2, largely rewritten in ec3d2a7d2, 1526a1124, b1c3b1ba6 and ed5937524 · tests: the `MilestoneSectionNameResolution`, `ReleaseNoteHeadingResolves` and `SectionSurfaces` cases in `internal/policies`
 
 ### AC-2 — Release note ships, and the epic wrap composes from it
 
@@ -282,77 +282,38 @@ there, so no signing wrapper is involved).
 
 ## Reviewer notes
 
-Each review round was a fresh-context pass over the full change-set; the later
-ones were sliced across the production units, the fixture blast radius, and the
-prose. Every round returned REQUEST-CHANGES, and the findings that mattered
-were claims this spec made that measurement contradicted.
+Independent review rounds ran until one found no defect that was not already
+pinned, recorded or tracked; each was a fresh-context pass over the full
+change-set, the later ones sliced across the production units, the fixture blast
+radius and the prose. Every round before the last returned REQUEST-CHANGES.
 
-The first round found that the rule did not do what three surfaces said it did.
-It was written as a warning while its code comment, this spec's AC-3 body, and
-this milestone's own `## Release note` all said it refused the `done` promote —
-which `promote` gates on error severity, so it never did. No test covered the
-claim. The same round found the scope argument void: the 281 `done` milestones
-cited to justify reporting only a present-and-empty section are all archived,
-and the rule already skips archived, so the narrower scope bought nothing and
-left deleting the heading as an escape.
+**The severity choice is the milestone's main trade-off.** The rule ships at
+warning, so nothing blocks. Error was tried and reverted: it demands a section
+`entity.RequiredSections` does not write, so a milestone created through
+`aiwf add` could not reach `done`, and `--force` does not relax a projection
+finding. It also required fixtures across four packages to seed a note before
+promoting, and put a precondition on a transition the legal-workflow table
+declares legal without declaring it there. The consequence to carry forward is
+that nothing mechanically stops an undescribed change from shipping; that
+guarantee has to come from the `[Unreleased]` completeness check G-0529 tracks.
 
-The second round found the correction had introduced its own contradictions. A
-release note containing only a sub-heading escaped the rule while both the code
-comment and the shipped `aiwf-check` skill said headings count as unwritten; the
-flag deciding it passed the whole suite in either position. The guard meant to
-stop the wrap-artefact exemption list from growing was circular — it accepted an
-entry on the strength of a backticked mention, which is exactly what creates the
-need to exempt one. The operator message and hint spelled the section name
-independently of the constant the rule reads, so a coherent rename left them
-lying. The span splitter fired on any slash, so a heading named "Client/server
-split" would have become two names that resolve nowhere. And the claim that the
-derived surface scan needs no exemptions held only inside one chosen directory:
-the `aiwf-add` skill names those sections at length and is not walked.
+**The surface set is derived, not declared.** A hand-maintained list fails
+silently — add a ritual that names sections and nothing reports it. The
+exemption list that a declared set would have needed was retired instead by
+scaffolding the section it existed to excuse.
 
-The escalation to error was reverted on the evidence those rounds produced. It
-demanded a section the kernel's own scaffold does not write, so a milestone
-created through `aiwf add` could not reach `done`; it required six fixtures
-across four packages to seed a note before promoting; and it put an undeclared
-precondition on a transition the legal-workflow table declares legal. All three
-retired with the severity. The exemption list retired too, by scaffolding the
-section it existed to excuse.
+**Three limitations ship deliberately, each stated in the policy's doc comment
+rather than implied away.** The universe is the union across every shipped
+template, so a rename of a heading another template also carries is not caught.
+A mention in a shipped tree this policy does not walk is out of reach. A backtick
+span wrapped across a line is invisible to it. All three want a reference that
+names which artefact it means, which is the section-ownership work G-0636 tracks.
 
-A third round found the same class once more and in the same place: the `## Release note` claimed the section
-check catches a rename on either side. It does not. The universe is the union
-across every shipped template, so a heading another template also carries stays
-resolvable after the milestone template renames it — `## Goal` and
-`## Validation` both, and `## Validation` is the section G-0636 exists to settle.
-The policy's own doc comment stated the weaker true claim while the spec stated
-the stronger false one. That round also found the coverage figure overstated, a
-mutation count that a surviving status-boundary mutant contradicted, and the
-reviewer agent card still listing the sections a reviewer reads without the one
-this milestone added.
-
-A fourth round found the defect the first three had all walked past: deleting
-the rule's single line in `check.Run` passed every test in the repository. Every
-test called the rule directly, and the verb-side test asserted only that the
-promote was not blocked — which is equally true when the rule never runs. It
-also found three surviving mutants and a guard policy comparing more strictly
-than the rule it guards, which would have reported a drift that was not one and
-named the wrong side to fix.
-
-A fifth round found three more surviving mutants — the scaffold marker matched
-anywhere in a fence rather than at its opening, and two unpinned trims — plus a
-sentence this spec's own fourth-round correction had left ungrammatical and
-false, and commit citations naming a commit that touched none of the files the
-entry describes. The code survived twenty-three mutants across that round with
-twenty killed before these three.
-
-The shape of the five rounds is worth recording: the blocking defects moved from
-behaviour to claims about behaviour. Rounds one and two found the rule doing
-something other than advertised. Rounds three through five found the code sound
-and the prose describing it wrong, repeatedly in the section designed to travel
-into a changelog, and repeatedly because a correction fixed the copy in front of
-it without searching for the others.
-
-What is deliberately left, and stated in the policy's doc comment rather than
-implied away: the union masks a rename of a heading another template carries; a
-mention in a shipped tree this policy does not walk is unreachable to it; and a
-backtick span wrapped across a line is invisible to it. All three want a
-reference that names which artefact it means, which is the section-ownership
-work G-0636 tracks.
+**What the rounds kept finding is worth one sentence, because it is the
+milestone's own subject.** The blocking defects moved from behaviour to claims
+about behaviour: the code settled, and the prose describing it kept being wrong
+in the section designed to travel into a changelog — each time because a
+correction fixed the copy in front of it without searching for the others. The
+tests were not immune: two cases named for distinct scaffold behaviours asserted
+a condition that held under either reading, and statement coverage reported the
+functions they covered at 100%.
