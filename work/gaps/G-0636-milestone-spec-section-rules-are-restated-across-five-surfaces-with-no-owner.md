@@ -31,24 +31,26 @@ The same surfaces also restate what a section *holds*. The `## Work log` entry
 shape is stated three times and differently: `aiwfx-start-milestone:130` as a
 heading plus `<one-line outcome> · commit <SHA> · tests <N/M>`;
 `aiwfx-wrap-milestone` step 4 as "one entry per AC with the final outcome and
-commit SHA"; and `templates/milestone-spec.md`'s `## Work log` comment, which adds an
-"[o]ptional prose paragraph for non-obvious context: what changed, file:line
-references, why a detour was needed".
+commit SHA"; and `templates/milestone-spec.md`'s `## Work log` comment, which
+states the same first line and then routes everything else away — design
+reasoning to the code, anything else to its own section.
 
-None of the three says where anything *else* goes, and that optional paragraph
-is an open invitation, so the Work log becomes the default sink for whatever an
-agent judges worth saying. Reported from a consumer milestone (7 ACs,
+That last one is the settled case. The two surfaces above it still state the
+shape independently, so a change to it has three places to reach. Reported from
+a consumer milestone (7 ACs,
 commit-per-AC): the section reached 3,111 words against a stated shape of about
 100, was 62% of the finished spec, restated content already carried by module
 docstrings and contract bodies, and grew monotonically across the session
 because each entry was written against the previous one rather than against the
 stated shape.
 
-The template also contradicts itself on the one routing rule that does exist.
-`:119-122` has phase transitions "visible here too (red/green/refactor/done)"
-and simultaneously forbids duplicating the timeline; `aiwfx-start-milestone:130`
-forbids it flatly. A routing rule stated twice has already drifted the way the
-timing claim did.
+The template used to contradict itself on the one routing rule that does exist,
+carrying the phase timeline as something visible in the Work log while also
+forbidding its duplication. That is a state a reader can still encounter in a
+spec scaffolded before the correction: the template now routes the timeline to
+`aiwf history` alone, and `aiwfx-start-milestone` forbids duplicating it flatly.
+A routing rule stated twice had already drifted the way the timing claim did,
+which is the pattern this gap is about rather than an outstanding instance.
 
 The direction that would fix this is already established. `db843cead`
 (*"point templates at the vocabulary instead of restating it"*) and `7ad6dffdc`
