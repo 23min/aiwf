@@ -30,10 +30,12 @@ stated shape of about fifteen. It is the largest section, not the thinnest.
 
 Its owner is also only half right. `aiwf history` holds the phase timeline, the
 promotes and — where the `aiwf-tests` trailer is written — the test counts. It
-does **not** hold the link from an AC to the commit that implemented it: history
-needs an entity trailer plus a verb or actor, and an implementation commit
-normally carries none. That link is the one fact the section uniquely holds, and
-retiring the section depends on the kernel being able to supply it.
+does **not** hold the link from an AC to the commit that implemented it. That was
+the one fact the section uniquely held, and it no longer is: `aiwf history`
+selects on the entity trailer alone, and the per-AC commit instruction writes the
+criterion's id into it, so the link is answerable without the spec. What remains
+unheld elsewhere is the narrative — what a detour cost, why an approach was
+abandoned — which is what a retirement has to decide about.
 
 `## References` has the weakest claim of the four, and it is worth stating so the
 row is not read as equivalent to its neighbours. The other three each name an
