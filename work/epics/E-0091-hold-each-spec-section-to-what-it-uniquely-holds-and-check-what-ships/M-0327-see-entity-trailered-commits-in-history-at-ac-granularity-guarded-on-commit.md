@@ -8,6 +8,7 @@ acs:
     - id: AC-1
       title: aiwf history lists a commit whose only aiwf trailer names the entity
       status: open
+      tdd_phase: red
     - id: AC-2
       title: An AC's implementation commit is reachable from that AC's history
       status: open
