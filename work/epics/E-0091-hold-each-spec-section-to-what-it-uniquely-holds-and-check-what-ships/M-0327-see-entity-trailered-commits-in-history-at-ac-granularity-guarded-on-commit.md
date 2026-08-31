@@ -264,71 +264,15 @@ implemented it.
 
 ### AC-1 — The projection admits a commit by its parsed entity trailer
 
-Both drop sites read the entity trailer git returned, and an absent verb or actor
-renders `-` on every surface that shows one — `aiwf history`, `aiwf show`, and
-the rendered site · commits 8a321fb, d7a6598 · full suite green, diff-scoped
-coverage gate green
-
-Measured against this repo on 2026-08-31, the same query either side of the
-change: `aiwf history M-0326` gained the nine implementation commits it had been
-omitting, and `aiwf history M-0327/AC-1` lists `8a321fb` — the commit that made
-the change — where the v0.34.0 binary lists only the paperwork.
-
-`RenderActor` keeps an arm for a principal recorded without an actor. No commit
-in this branch's history has that shape and no verb writes it, so the branch is
-reachable only from a hand-written commit. It stays for a reason stronger than
-the one first recorded: the alternative renderings are both wrong, since
-dropping the principal discards provenance the commit carries, and the template
-form it replaced emitted `principal via ` with nothing after it. Removing it
-costs no crash, so the usual keep-the-guard asymmetry is not what decides it.
+Both drop sites read the entity trailer git returned; an absent verb or actor renders `-` on every surface that shows one · commits 8a321fb, d7a6598, 02ad406 · check-fast and coverage gate green
 
 ### AC-2 — A subject claiming an AC carries that AC's trailer
 
-`aiwf check --commit-msg` refuses the mismatch, and the ritual's per-AC commit
-instruction writes the trailer · commit 2fc6a80 · `make check-fast` exit 0,
-coverage gate exit 0, five mutation probes killed
-
-The guard runs before the empty-trailer-block early return, so a subject claiming
-an AC while carrying no trailers at all is caught rather than passed. A probe
-moving it after that return stays green on every other case and red only on this
-one, which is what pins the ordering.
-
-No aiwf verb can reach this hook: `CommitVerbChange` writes through
-`commit-tree` and `update-ref`, which fire no hooks, and it says so where it
-fires `post-commit` explicitly to restore the parity that plumbing costs. The
-subjects are safe independently — every verb subject has the shape
-`aiwf <verb> <id> …` with no parenthesised scope, checked against the
-constructors in `internal/verb/` rather than inferred from history. The subjects
-git itself composes are the ones that needed exempting.
+`aiwf check --commit-msg` refuses the mismatch; the per-AC commit instruction writes the trailer · commit 2fc6a80 · check-fast and coverage gate green
 
 ### AC-3 — A hidden trailer block or an unowned ritual edit is refused at commit time
 
-`checkHiddenTrailerBlock` and `checkShippedSurfaceOwner` in `commit_msg.go`,
-reached through `aiwf check --commit-msg` · commit fc5501d · `make check-fast`
-exit 0, coverage gate exit 0, seven mutation probes with one survivor found and
-closed
-
-Measured either side of the change, against the two shapes that motivated it: a
-message carrying the trailer block of a real wrap commit split from its
-`Co-Authored-By:` line, and the same shape carrying a fabricated `aiwf-verb`
-value. Both exited 0 before and exit 1 after. The second is the sharper result —
-the split block was carrying a value the closed set refuses straight past the
-check that exists to refuse it.
-
-The shipped-surface guard needs no repo detection. It fires on a staged path
-under the ritual authoring tree, and a consumer repo has none, so the path
-predicate is the scope — which is simpler than the mechanism this milestone
-expected to have to build, and is why the guard ships without an opt-out.
-
-The vacuity survivor was the empty-value case: dropping the check that an
-`aiwf-entity` trailer carries a value left every test green, so the guard was
-satisfiable by typing the key alone. A case now covers it and the mutant dies.
-
-The coverage gate named `internal/cli/check/check.go:49` — the `--commit-msg`
-flag had no test through the Cobra dispatcher at all. `check_commit_msg_seam_test.go`
-closes the flag-wiring half. It does not pin that `--root` reaches the guard
-reading the index: its roots are empty temp dirs, where that guard returns early
-either way.
+Both guards reached through `aiwf check --commit-msg`; a block is hidden when git's own parse does not return its trailers · commits fc5501d, b1c020b, a0c99a0, 1b4d7a1, c02e431 · check-fast and coverage gate green
 
 ## Decisions made during implementation
 
@@ -356,6 +300,17 @@ superseded here:
   it clears when the next one is planned.
 - `go build ./...` — green.
 
+Two observations either side of the change, re-runnable against this repo:
+
+- `aiwf history M-0326` gained the nine implementation commits it had been
+  omitting, and `aiwf history M-0327/AC-1` lists the commit that made the
+  change, where the v0.34.0 binary lists only the paperwork.
+- A message carrying a real wrap commit's trailer block split from its
+  `Co-Authored-By:` line, and the same shape carrying a fabricated `aiwf-verb`
+  value, both exited 0 before and exit 1 after. The second is the sharper
+  result: the split block carried a value the closed set refuses straight past
+  the check that exists to refuse it.
+
 Mutation probes were run against the changed logic throughout, reverted by
 capture-and-restore and verified byte-identical afterwards. Seven survivors were
 found across four review rounds and all seven are now killed or removed: an
@@ -376,11 +331,12 @@ finds is for that review to record.
 
 ## Reviewer notes
 
-Three independent reviewers over the full change-set — the history-projection
-slice, the commit-msg guard slice, and a claims audit — each returned
-request-changes. The code they found sound; almost every finding was a claim
-about it. Seven code defects and twelve prose defects were fixed on this branch
-before the deciding pass.
+Independent review ran repeatedly over the full change-set — sliced by concern
+at first, then whole — and every round returned request-changes. The reviewers
+consistently found the behaviour sound and the claims about it wrong, and each
+corrective round introduced defects of its own until the last. Every finding was
+fixed on this branch; those worth a later reader's attention are below, and the
+ones left open are in `## Deferrals`.
 
 The code defects worth a later reader's attention, because each names a shape a
 future change could reintroduce:
@@ -396,6 +352,13 @@ future change could reintroduce:
   by key alone, each of which waved through a genuinely hidden block. A key
   matches while its value differs, which is exactly how a fabricated verb rides
   past the check that exists to refuse it.
+- No aiwf verb reaches this hook. `CommitVerbChange` writes through
+  `commit-tree` and `update-ref`, which fire no hooks — it says so where it
+  fires `post-commit` explicitly to restore the parity that plumbing costs. The
+  subjects are independently safe, every verb subject having the shape
+  `aiwf <verb> <id> …` with no parenthesised scope, checked against the
+  constructors rather than inferred from history. A future move back to the
+  `git commit` porcelain would make that second fact the only one holding.
 - Guards report cause before symptom. A hidden block makes the trailers
   invisible to every check below it, so reporting one of those first states
   something untrue about the message in front of the operator.
