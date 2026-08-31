@@ -97,7 +97,7 @@ func TestRunCommitMsg_SubjectNamingAnACRequiresTheMatchingEntityTrailer(t *testi
 		t.Run(tc.name, func(t *testing.T) {
 			t.Parallel()
 			var buf bytes.Buffer
-			code := runCommitMsg(writeMsg(t, tc.msg), "", verbs, &buf)
+			code := runCommitMsg(writeMsg(t, tc.msg), t.TempDir(), verbs, &buf)
 			if code != tc.want {
 				t.Errorf("code = %d, want %d; stderr = %q", code, tc.want, buf.String())
 			}

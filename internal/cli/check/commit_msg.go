@@ -70,11 +70,14 @@ func runCommitMsg(path, root string, registeredVerbs map[string]struct{}, stderr
 		_, _ = fmt.Fprintf(stderr, "aiwf check: extracting trailers from %q: %v\n", path, err)
 		return cliutil.ExitInternal
 	}
-	if code := checkACScopedSubject(msg, block, stderr); code != cliutil.ExitOK {
+	// Cause before symptom: a hidden block makes the trailers invisible to
+	// every check below it, so reporting one of those first states something
+	// untrue about the message in front of the operator.
+	if code := checkHiddenTrailerBlock(msg, stderr); code != cliutil.ExitOK {
 		return code
 	}
 
-	if code := checkHiddenTrailerBlock(msg, stderr); code != cliutil.ExitOK {
+	if code := checkACScopedSubject(msg, block, stderr); code != cliutil.ExitOK {
 		return code
 	}
 
@@ -152,7 +155,18 @@ var acScopedSubject = regexp.MustCompile(`\(([A-Za-z]-\d+/AC-\d+)\)\s*$`)
 // for an acceptance criterion met by an observation rather than by code.
 func checkACScopedSubject(msg, block []byte, stderr io.Writer) int {
 	subject, _, _ := bytes.Cut(msg, []byte("\n"))
-	m := acScopedSubject.FindSubmatch(bytes.TrimSpace(subject))
+	trimmed := bytes.TrimSpace(subject)
+	// git composes an autosquash subject by copying the target's, so the
+	// scope in it is the target commit's claim, not this one's. Refusing
+	// here would break `git commit --fixup` + `rebase --autosquash`, and the
+	// remediation — dropping the scope — destroys the exact-subject match
+	// autosquash needs to pair them.
+	for _, prefix := range [][]byte{[]byte("fixup! "), []byte("squash! "), []byte("amend! ")} {
+		if bytes.HasPrefix(trimmed, prefix) {
+			return cliutil.ExitOK
+		}
+	}
+	m := acScopedSubject.FindSubmatch(trimmed)
 	if m == nil {
 		return cliutil.ExitOK
 	}
@@ -212,8 +226,13 @@ func checkHiddenTrailerBlock(msg []byte, stderr io.Writer) int {
 	if len(paras) < 2 {
 		return cliutil.ExitOK
 	}
-	// The final paragraph is the one git reads; every earlier one is prose as
-	// far as the parser is concerned.
+	// A block earlier than the last is only *hidden* if the last one carries
+	// no aiwf key. Where it does, git read the trailers and nothing is lost —
+	// the earlier lines are prose that happens to look like trailers, which is
+	// the case the parser indirection exists to tolerate.
+	if _, final := aiwfTrailerParagraph(paras[len(paras)-1]); final {
+		return cliutil.ExitOK
+	}
 	for _, para := range paras[:len(paras)-1] {
 		keys, ok := aiwfTrailerParagraph(para)
 		if !ok {
@@ -235,6 +254,9 @@ func checkHiddenTrailerBlock(msg []byte, stderr io.Writer) int {
 func splitParagraphs(s string) []string {
 	var out []string
 	for _, p := range strings.Split(strings.ReplaceAll(s, "\r\n", "\n"), "\n\n") {
+		// Newlines only: leading spaces or tabs are the indentation that
+		// distinguishes an indented prose line from a trailer-shaped one.
+		p = strings.Trim(p, "\n")
 		if strings.TrimSpace(p) != "" {
 			out = append(out, p)
 		}
@@ -246,7 +268,10 @@ func splitParagraphs(s string) []string {
 // at least one carries an aiwf key, returning those keys.
 func aiwfTrailerParagraph(para string) ([]string, bool) {
 	var keys []string
-	for _, line := range strings.Split(strings.TrimSpace(para), "\n") {
+	// TrimRight, not TrimSpace: stripping the paragraph's leading whitespace
+	// would un-indent its first line, so an indented prose line would read as
+	// trailer-shaped when the rest of its block does not.
+	for _, line := range strings.Split(strings.TrimRight(para, " \t\n"), "\n") {
 		if !trailerLine.MatchString(line) {
 			return nil, false
 		}
@@ -283,7 +308,7 @@ func checkShippedSurfaceOwner(root string, block []byte, stderr io.Writer) int {
 	}
 	_, _ = fmt.Fprintf(stderr,
 		"aiwf check: commit-msg refuses a shipped-ritual edit that names no entity: %s\n"+
-			"  A SKILL.md here materializes into consumer repos, so the edit needs an owner.\n"+
+			"  Everything here materializes into consumer repos, so the edit needs an owner.\n"+
 			"  Add: --trailer \"aiwf-entity: <id>\" naming the epic, milestone, gap or decision it belongs to.\n"+
 			"  No aiwf-verb is wanted — no aiwf verb commits source.\n",
 		strings.Join(staged, ", "))
@@ -291,7 +316,9 @@ func checkShippedSurfaceOwner(root string, block []byte, stderr io.Writer) int {
 }
 
 // ritualAuthoringDir is the embedded-ritual authoring tree whose edits ship to
-// consumers. It matches the path the CI-tier backstop watches.
+// consumers. Every file under it materializes into a consumer's `.claude/` —
+// skills, entity templates, agent cards — so the predicate is the directory,
+// wider than the CI-tier backstop's `SKILL.md`-only scan.
 const ritualAuthoringDir = "internal/skills/embedded-rituals/"
 
 // stagedRitualEdits lists staged paths under the ritual authoring tree.

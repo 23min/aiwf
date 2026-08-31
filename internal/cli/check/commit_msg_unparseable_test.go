@@ -58,6 +58,18 @@ func TestRunCommitMsg_RefusesATrailerBlockGitWillNotRead(t *testing.T) {
 			cliutil.ExitOK,
 		},
 		{
+			// The real trailers are in the final paragraph, so git read them
+			// and nothing is hidden — the earlier lines are prose.
+			"prose that is trailer-shaped, with the real block last",
+			"docs(x): explain\n\naiwf-entity: is the key we now require here.\n\naiwf-verb: promote\naiwf-entity: M-0001\n",
+			cliutil.ExitOK,
+		},
+		{
+			"a single indented prose line above the real block",
+			"docs(x): explain\n\n    aiwf-entity: M-0001\n\naiwf-verb: promote\naiwf-entity: M-0001\n",
+			cliutil.ExitOK,
+		},
+		{
 			"no aiwf trailers anywhere",
 			"chore(x): a subject\n\nSome rationale.\n\nCo-Authored-By: A <a@example.com>\n",
 			cliutil.ExitOK,
@@ -75,7 +87,7 @@ func TestRunCommitMsg_RefusesATrailerBlockGitWillNotRead(t *testing.T) {
 		t.Run(tc.name, func(t *testing.T) {
 			t.Parallel()
 			var buf bytes.Buffer
-			code := runCommitMsg(writeMsg(t, tc.msg), "", verbs, &buf)
+			code := runCommitMsg(writeMsg(t, tc.msg), t.TempDir(), verbs, &buf)
 			if code != tc.want {
 				t.Errorf("code = %d, want %d; stderr = %q", code, tc.want, buf.String())
 			}
@@ -207,5 +219,45 @@ func TestRunCommitMsg_ShippedSurfaceGuardIgnoresAnUnreadableIndex(t *testing.T) 
 		map[string]struct{}{"promote": {}}, &buf)
 	if code != cliutil.ExitOK {
 		t.Errorf("code = %d, want %d; stderr = %q", code, cliutil.ExitOK, buf.String())
+	}
+}
+
+// TestRunCommitMsg_LeavesGitComposedAutosquashSubjectsAlone pins that the AC
+// guard does not judge a subject git wrote. `git commit --fixup` copies the
+// target commit's subject verbatim, so the scope in it is that commit's claim;
+// refusing here would break `rebase --autosquash`, whose pairing depends on the
+// subject matching exactly.
+func TestRunCommitMsg_LeavesGitComposedAutosquashSubjectsAlone(t *testing.T) {
+	t.Parallel()
+	for _, prefix := range []string{"fixup! ", "squash! ", "amend! "} {
+		t.Run(strings.TrimSpace(prefix), func(t *testing.T) {
+			t.Parallel()
+			var buf bytes.Buffer
+			msg := prefix + "feat(x): the thing (M-0001/AC-1)\n"
+			if code := runCommitMsg(writeMsg(t, msg), t.TempDir(), map[string]struct{}{"promote": {}}, &buf); code != cliutil.ExitOK {
+				t.Errorf("%q: code = %d, want %d; stderr = %q", prefix, code, cliutil.ExitOK, buf.String())
+			}
+		})
+	}
+}
+
+// TestRunCommitMsg_ReportsTheHiddenBlockBeforeItsSymptoms pins the guard order.
+// A message carrying both faults has one cause: the block git cannot read. The
+// AC guard sees no entity trailer and would report that the subject's claim is
+// unbacked — untrue of the message the operator is looking at, and its
+// remediation produces a second refusal.
+func TestRunCommitMsg_ReportsTheHiddenBlockBeforeItsSymptoms(t *testing.T) {
+	t.Parallel()
+	var buf bytes.Buffer
+	msg := "feat(x): the thing (M-0001/AC-1)\n\naiwf-entity: M-0001/AC-1\n\nCo-Authored-By: A <a@example.com>\n"
+	code := runCommitMsg(writeMsg(t, msg), t.TempDir(), map[string]struct{}{"promote": {}}, &buf)
+	if code != cliutil.ExitFindings {
+		t.Fatalf("code = %d, want %d", code, cliutil.ExitFindings)
+	}
+	if !strings.Contains(buf.String(), "last paragraph") {
+		t.Errorf("reported a symptom, not the cause; stderr = %q", buf.String())
+	}
+	if strings.Contains(buf.String(), "carrying no aiwf-entity trailer") {
+		t.Errorf("reported the subject as unbacked when its trailer is present but hidden; stderr = %q", buf.String())
 	}
 }
