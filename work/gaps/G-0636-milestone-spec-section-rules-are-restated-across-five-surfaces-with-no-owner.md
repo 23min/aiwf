@@ -11,7 +11,7 @@ surfaces. None of them owns the fact, and two of them already disagree.
 
 `agents/builder.md:16` lists `## Validation` among "the milestone spec's
 in-flight sections", maintained during implementation, and `:42` repeats it.
-`templates/milestone-spec.md:127` says of that same section: *"Pasted at
+`templates/milestone-spec.md`'s own comment on that section says *"Pasted at
 wrap."* Both materialize into consumer repos through `aiwf init` /
 `aiwf update`. Nothing reconciles them, and no check notices.
 
@@ -31,7 +31,7 @@ The same surfaces also restate what a section *holds*. The `## Work log` entry
 shape is stated three times and differently: `aiwfx-start-milestone:130` as a
 heading plus `<one-line outcome> · commit <SHA> · tests <N/M>`;
 `aiwfx-wrap-milestone` step 4 as "one entry per AC with the final outcome and
-commit SHA"; and `templates/milestone-spec.md:112-122`, which adds an
+commit SHA"; and `templates/milestone-spec.md`'s `## Work log` comment, which adds an
 "[o]ptional prose paragraph for non-obvious context: what changed, file:line
 references, why a detour was needed".
 
