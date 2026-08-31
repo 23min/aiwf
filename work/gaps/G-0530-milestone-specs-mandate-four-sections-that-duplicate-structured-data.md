@@ -33,9 +33,14 @@ promotes and — where the `aiwf-tests` trailer is written — the test counts. 
 does **not** hold the link from an AC to the commit that implemented it. That was
 the one fact the section uniquely held, and it no longer is: `aiwf history`
 selects on the entity trailer alone, and the per-AC commit instruction writes the
-criterion's id into it, so the link is answerable without the spec. What remains
-unheld elsewhere is the narrative — what a detour cost, why an approach was
-abandoned — which is what a retirement has to decide about.
+criterion's id into it, so the link is answerable without the spec.
+
+Nothing unique is left. The template assigns the rest by name — a trade-off or a
+rejected approach to `## Reviewer notes`, a decision to `## Decisions made during
+implementation`, design reasoning to the code it explains — and states that
+anything else has its own section. So the retirement no longer has to find a new
+home for a fact this section alone holds; it has to confirm that the assignment
+already made is the one the surfaces follow.
 
 `## References` has the weakest claim of the four, and it is worth stating so the
 row is not read as equivalent to its neighbours. The other three each name an
