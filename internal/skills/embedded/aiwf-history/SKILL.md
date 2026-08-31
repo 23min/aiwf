@@ -59,5 +59,5 @@ After two reallocates, all queries against the old id, intermediate id, and curr
 ## Don't
 
 - Don't try to reconstruct history from filesystem timestamps — `git log` is authoritative.
-- Don't expect prose-body changes to show up. Only frontmatter mutations through aiwf verbs are queryable here.
+- Don't expect a commit carrying no aiwf trailer at all to show up, however relevant it looks — selection is by trailer, never by path or subject.
 - Don't ignore a `[forced: ...]` or `[audit-only: ...]` chip — they signal a sovereign override and rarely come without context worth surfacing to the user.

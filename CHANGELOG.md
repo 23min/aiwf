@@ -22,10 +22,11 @@ section in this file.
 invitations to write more: the template offered an *"optional prose paragraph for
 non-obvious context"*, and `aiwfx-start-milestone` called the section *"the audit trail
 of mid-flight context"*. Both are gone. Both surfaces now name what the section uniquely
-holds — the index from each acceptance criterion to the commit that implemented it.
-`aiwf history` lists commits carrying kernel trailers, and an implementation commit
-normally carries none, so that link has nowhere else to live. The template also no
-longer both invites phase transitions and forbids duplicating them, one sentence apart.
+holds — the narrative an acceptance criterion's history cannot carry: what a detour
+cost, why an approach was abandoned. The link from a criterion to its implementation
+commit is answerable from `aiwf history` once that commit names the criterion in its
+entity trailer. The template also no longer both invites phase transitions and forbids
+duplicating them, one sentence apart.
 
 ## [0.34.0] — 2026-08-30
 

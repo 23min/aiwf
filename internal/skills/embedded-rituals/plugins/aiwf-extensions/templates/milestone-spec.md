@@ -128,10 +128,11 @@ changed to make it possible now?>
 
 ## Work log
 
-<!-- The index from each AC to the commit that implemented it. `aiwf history`
-     lists commits carrying kernel trailers; an implementation commit reaches it
-     only when it carries them too, which it normally does not — so this is where
-     that link lives.
+<!-- The narrative an AC's history cannot hold: what a detour cost, why an
+     approach was abandoned, what a commit does not say about itself. The link
+     from an AC to its implementation commit is answerable from that AC's own
+     history once the commit carries the AC in its entity trailer, so it need
+     not be copied here.
      One entry per AC (preferred) or per meaningful unit of work. Append-only;
      never rewrite earlier entries.
        Header:     "AC-<N> — <short title>" or "<short title>" if not AC-scoped.
