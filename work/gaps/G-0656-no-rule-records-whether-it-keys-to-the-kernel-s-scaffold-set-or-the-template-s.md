@@ -1,6 +1,6 @@
 ---
 id: G-0656
-title: Two authorities declare a milestone spec's sections and they disagree
+title: No rule records whether it keys to the kernel's scaffold set or the template's
 status: open
 ---
 ## What's missing
