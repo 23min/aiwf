@@ -10,7 +10,7 @@ acs:
       status: met
       tdd_phase: done
     - id: AC-2
-      title: An AC's implementation commit is reachable from that AC's history
+      title: A commit whose subject names an AC carries that AC's entity trailer
       status: open
     - id: AC-3
       title: A staged shipped-surface edit without a parseable entity trailer is refused
@@ -87,7 +87,7 @@ supplies a slice in which git's parser *did* return the entity trailer, so it
 pins the proxy rather than the case; its fixture becomes the trailer-free slice
 the real false positive produces.
 
-### AC-2 — An AC's implementation commit is reachable from that AC's history
+### AC-2 — A commit whose subject names an AC carries that AC's entity trailer
 
 An implementation commit carrying `aiwf-entity: M-NNNN/AC-N` and no other aiwf
 trailer appears in `aiwf history M-NNNN/AC-N`, and in the bare milestone query
