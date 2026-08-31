@@ -226,13 +226,8 @@ func checkHiddenTrailerBlock(msg []byte, stderr io.Writer) int {
 	if len(paras) < 2 {
 		return cliutil.ExitOK
 	}
-	// A block earlier than the last is only *hidden* if the last one carries
-	// no aiwf key. Where it does, git read the trailers and nothing is lost —
-	// the earlier lines are prose that happens to look like trailers, which is
-	// the case the parser indirection exists to tolerate.
-	if _, final := aiwfTrailerParagraph(paras[len(paras)-1]); final {
-		return cliutil.ExitOK
-	}
+	// The final paragraph is the one git reads; every earlier one is prose as
+	// far as the parser is concerned.
 	for _, para := range paras[:len(paras)-1] {
 		keys, ok := aiwfTrailerParagraph(para)
 		if !ok {
@@ -264,10 +259,24 @@ func splitParagraphs(s string) []string {
 	return out
 }
 
-// aiwfTrailerParagraph reports whether every line of para is trailer-shaped and
-// at least one carries an aiwf key, returning those keys.
+// aiwfTrailerParagraph reports whether para is an aiwf trailer block — every
+// line trailer-shaped, carrying aiwf keys — and returns those keys.
+//
+// Two keys make a block on their own. One does not, in general: a single
+// trailer-shaped line cannot be told from prose that opens with a key and a
+// colon, since the text is identical and git's parser returns nothing for
+// either. Refusing every such line would reject ordinary English with no
+// recourse, which is how a check comes to be disabled.
+//
+// The exception is a lone entity trailer whose value names an entity. That is
+// the shape a shipped-surface edit carries — the entity trailer alone, because
+// no aiwf verb commits source — so it is the block most likely to be written
+// from here on, and a value like `M-0001/AC-1` is not a sentence. Prose keeps
+// its licence: `aiwf-entity: is the key we now require` names no entity and is
+// left alone.
 func aiwfTrailerParagraph(para string) ([]string, bool) {
 	var keys []string
+	var lone string
 	// TrimRight, not TrimSpace: stripping the paragraph's leading whitespace
 	// would un-indent its first line, so an indented prose line would read as
 	// trailer-shaped when the rest of its block does not.
@@ -275,11 +284,35 @@ func aiwfTrailerParagraph(para string) ([]string, bool) {
 		if !trailerLine.MatchString(line) {
 			return nil, false
 		}
-		if key, _, ok := strings.Cut(line, ":"); ok && strings.HasPrefix(key, "aiwf-") {
-			keys = append(keys, key)
+		key, value, ok := strings.Cut(line, ":")
+		if !ok || !strings.HasPrefix(key, "aiwf-") {
+			continue
+		}
+		keys = append(keys, key)
+		if key == gitops.TrailerEntity || key == gitops.TrailerPriorEntity {
+			lone = strings.TrimSpace(value)
 		}
 	}
-	return keys, len(keys) > 0
+	switch {
+	case len(keys) >= 2:
+		return keys, true
+	case len(keys) == 1 && namesAnEntity(lone):
+		return keys, true
+	default:
+		return nil, false
+	}
+}
+
+// namesAnEntity reports whether v is an entity id rather than prose. Composite
+// ids roll up to their parent first, so `M-NNNN/AC-N` is recognized by the
+// milestone grammar that owns it.
+func namesAnEntity(v string) bool {
+	if v == "" {
+		return false
+	}
+	root := entity.CompositeRoot(v)
+	k, ok := entity.KindFromID(root)
+	return ok && entity.ValidateID(k, root) == nil
 }
 
 // checkShippedSurfaceOwner refuses a staged edit to the ritual authoring tree

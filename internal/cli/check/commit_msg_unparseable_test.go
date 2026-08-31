@@ -58,15 +58,54 @@ func TestRunCommitMsg_RefusesATrailerBlockGitWillNotRead(t *testing.T) {
 			cliutil.ExitOK,
 		},
 		{
-			// The real trailers are in the final paragraph, so git read them
-			// and nothing is hidden — the earlier lines are prose.
-			"prose that is trailer-shaped, with the real block last",
-			"docs(x): explain\n\naiwf-entity: is the key we now require here.\n\naiwf-verb: promote\naiwf-entity: M-0001\n",
+			// One trailer-shaped line is prose, not a block. It cannot be
+			// told from a hidden single trailer by text or by what git
+			// parsed, and refusing it would reject ordinary English that
+			// opens with a key and a colon.
+			"a single trailer-shaped prose line",
+			"docs(x): explain\n\naiwf-entity: is the key we now require here.\n\nCo-Authored-By: A <a@example.com>\n",
 			cliutil.ExitOK,
 		},
 		{
-			"a single indented prose line above the real block",
-			"docs(x): explain\n\n    aiwf-entity: M-0001\n\naiwf-verb: promote\naiwf-entity: M-0001\n",
+			// Two aiwf keys is a block wherever it sits, including where the
+			// final paragraph carries an aiwf key of its own — git read that
+			// one, not this, so these trailers are still lost.
+			"a hidden block below a final paragraph that also carries an aiwf key",
+			"feat(x): a thing\n\naiwf-entity: M-0001\naiwf-verb: frobnicate\n\nCo-Authored-By: A <a@example.com>\naiwf-entity: M-0001\n",
+			cliutil.ExitFindings,
+		},
+		{
+			// The shape a shipped-surface edit carries: the entity trailer
+			// alone, because no aiwf verb commits source. One line, but its
+			// value names an entity, so it is a block and it is hidden.
+			"a lone entity trailer whose value names an entity",
+			"docs(rituals): reword a step\n\naiwf-entity: M-0001\n\nCo-Authored-By: A <a@example.com>\n",
+			cliutil.ExitFindings,
+		},
+		{
+			"a lone composite entity trailer, likewise",
+			"feat(x): a thing\n\naiwf-entity: M-0001/AC-1\n\nCo-Authored-By: A <a@example.com>\n",
+			cliutil.ExitFindings,
+		},
+		{
+			// One aiwf line whose value is not an id is prose, whatever key
+			// it opens with.
+			"a lone entity trailer whose value is a sentence",
+			"docs(x): explain\n\naiwf-entity: is the key we now require here.\n\nCo-Authored-By: A <a@example.com>\n",
+			cliutil.ExitOK,
+		},
+		{
+			// A lone non-entity aiwf line stays prose: no value grammar
+			// separates a verb name from an ordinary word.
+			"a lone verb trailer is not enough to be a block",
+			"docs(x): explain\n\naiwf-verb: promote\n\nCo-Authored-By: A <a@example.com>\n",
+			cliutil.ExitOK,
+		},
+		{
+			// Indentation is what separates a prose line from a trailer, so
+			// the paragraph's leading whitespace must survive the trim.
+			"an indented first line keeps the paragraph out of block shape",
+			"docs(x): explain\n\n    aiwf-entity: M-0001\naiwf-verb: promote\n\nCo-Authored-By: A <a@example.com>\n",
 			cliutil.ExitOK,
 		},
 		{
@@ -249,7 +288,7 @@ func TestRunCommitMsg_LeavesGitComposedAutosquashSubjectsAlone(t *testing.T) {
 func TestRunCommitMsg_ReportsTheHiddenBlockBeforeItsSymptoms(t *testing.T) {
 	t.Parallel()
 	var buf bytes.Buffer
-	msg := "feat(x): the thing (M-0001/AC-1)\n\naiwf-entity: M-0001/AC-1\n\nCo-Authored-By: A <a@example.com>\n"
+	msg := "feat(x): the thing (M-0001/AC-1)\n\naiwf-entity: M-0001/AC-1\naiwf-actor: human/peter\n\nCo-Authored-By: A <a@example.com>\n"
 	code := runCommitMsg(writeMsg(t, msg), t.TempDir(), map[string]struct{}{"promote": {}}, &buf)
 	if code != cliutil.ExitFindings {
 		t.Fatalf("code = %d, want %d", code, cliutil.ExitFindings)

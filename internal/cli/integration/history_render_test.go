@@ -4,6 +4,8 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/23min/aiwf/internal/cli"
+	"github.com/23min/aiwf/internal/cli/cliutil"
 	"github.com/23min/aiwf/internal/cli/cliutil/testutil"
 	"github.com/23min/aiwf/internal/cli/history"
 	"github.com/23min/aiwf/internal/entityview"
@@ -244,4 +246,41 @@ func TestRenderAbsentTrailerColumns(t *testing.T) {
 			}
 		}
 	})
+}
+
+// TestRun_HistoryRendersTheAbsentVerbMarker pins history.go's own row, which
+// TestRenderAbsentTrailerColumns does not: that test calls the helpers
+// directly, so the call site can revert with it green.
+func TestRun_HistoryRendersTheAbsentVerbMarker(t *testing.T) {
+	t.Parallel()
+	root := setupCLITestRepo(t)
+	if rc := cli.Execute([]string{"init", "--root", root, "--actor", "human/test", "--skip-hook"}); rc != cliutil.ExitOK {
+		t.Fatalf("init: %d", rc)
+	}
+	if rc := cli.Execute([]string{"add", "epic", "--title", "Foundations", "--actor", "human/test", "--root", root}); rc != cliutil.ExitOK {
+		t.Fatalf("add epic: %d", rc)
+	}
+	if out, err := testutil.RunGit(root, "commit", "--allow-empty", "-m",
+		"fix(x): correct a shipped surface\n\naiwf-entity: E-0001\n"); err != nil {
+		t.Fatalf("git commit: %v\n%s", err, out)
+	}
+	out := string(testutil.CaptureStdout(t, func() {
+		if rc := cli.Execute([]string{"history", "--root", root, "E-0001"}); rc != cliutil.ExitOK {
+			t.Fatalf("history: %d", rc)
+		}
+	}))
+	for _, line := range strings.Split(out, "\n") {
+		if !strings.Contains(line, "fix(x): correct a shipped surface") {
+			continue
+		}
+		// Fields, not Contains: the timestamp carries hyphens. history prints
+		// date, actor, verb, to, detail — all three trailer columns render the
+		// marker for an event carrying none of them.
+		f := strings.Fields(line)
+		if len(f) < 4 || f[1] != "-" || f[2] != "-" || f[3] != "-" {
+			t.Errorf("absent-trailer columns not marked; fields = %q", f[:min(5, len(f))])
+		}
+		return
+	}
+	t.Fatalf("history did not list the entity-only commit:\n%s", out)
 }
