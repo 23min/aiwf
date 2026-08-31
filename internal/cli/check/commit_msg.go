@@ -9,9 +9,12 @@ import (
 	"io/fs"
 	"os"
 	"os/exec"
+	"regexp"
 	"sort"
+	"strings"
 
 	"github.com/23min/aiwf/internal/cli/cliutil"
+	"github.com/23min/aiwf/internal/entity"
 	"github.com/23min/aiwf/internal/gitops"
 	"github.com/23min/aiwf/internal/skills"
 )
@@ -56,6 +59,10 @@ func runCommitMsg(path string, registeredVerbs map[string]struct{}, stderr io.Wr
 		_, _ = fmt.Fprintf(stderr, "aiwf check: extracting trailers from %q: %v\n", path, err)
 		return cliutil.ExitInternal
 	}
+	if code := checkACScopedSubject(msg, block, stderr); code != cliutil.ExitOK {
+		return code
+	}
+
 	if len(block) == 0 {
 		return cliutil.ExitOK
 	}
@@ -104,4 +111,56 @@ func extractTrailerBlock(ctx context.Context, msg []byte) ([]byte, error) {
 		return nil, fmt.Errorf("git interpret-trailers --parse: %w\n%s", err, stderr.String())
 	}
 	return stdout.Bytes(), nil
+}
+
+// acScopedSubject matches the trailing `(M-NNNN/AC-N)` scope the per-AC commit
+// convention puts on an implementation commit's subject. The id shape is
+// deliberately loose on width — Canonicalize settles narrow against canonical —
+// and anchored at end of line so a scope mentioned mid-sentence is not a claim.
+var acScopedSubject = regexp.MustCompile(`\(([A-Za-z]-\d+/AC-\d+)\)\s*$`)
+
+// checkACScopedSubject refuses a commit whose subject claims to implement an
+// acceptance criterion while its aiwf-entity trailer names something else, or
+// nothing.
+//
+// The subject is the commit's own claim; the trailer is what makes the claim
+// reachable, because `aiwf history <id>/AC-N` selects by trailer and never reads
+// a subject. Without the trailer the link from a criterion to the commit that
+// implemented it exists only in the milestone spec's prose.
+//
+// A subject naming no AC has made no claim and is not judged, which is what
+// keeps the rule silent for a project that does not scope subjects by AC, and
+// for an acceptance criterion met by an observation rather than by code.
+func checkACScopedSubject(msg, block []byte, stderr io.Writer) int {
+	subject, _, _ := bytes.Cut(msg, []byte("\n"))
+	m := acScopedSubject.FindSubmatch(bytes.TrimSpace(subject))
+	if m == nil {
+		return cliutil.ExitOK
+	}
+	claimed := entity.Canonicalize(string(m[1]))
+
+	var carried string
+	for _, tr := range gitops.ParseTrailers(string(block)) {
+		if tr.Key == gitops.TrailerEntity {
+			carried = strings.TrimSpace(tr.Value)
+		}
+	}
+	if entity.Canonicalize(carried) == claimed {
+		return cliutil.ExitOK
+	}
+
+	got := carried
+	if got == "" {
+		got = "no aiwf-entity trailer"
+	} else {
+		got = "aiwf-entity: " + got
+	}
+	_, _ = fmt.Fprintf(stderr,
+		"aiwf check: commit-msg refuses a subject claiming %s while carrying %s\n"+
+			"  The subject says this commit implements %s; the trailer is what makes it\n"+
+			"  reachable from that criterion — `aiwf history` selects by trailer, never by subject.\n"+
+			"  Add: --trailer \"aiwf-entity: %s\"\n"+
+			"  Or drop the (%s) scope from the subject if this commit does not implement it.\n",
+		claimed, got, claimed, claimed, claimed)
+	return cliutil.ExitFindings
 }
