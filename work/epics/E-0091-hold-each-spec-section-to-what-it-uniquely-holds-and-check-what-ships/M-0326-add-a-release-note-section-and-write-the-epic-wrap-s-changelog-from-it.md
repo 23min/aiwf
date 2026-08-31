@@ -1,7 +1,7 @@
 ---
 id: M-0326
 title: Add a Release note section and write the epic wrap's changelog from it
-status: in_progress
+status: done
 parent: E-0091
 tdd: required
 acs:
