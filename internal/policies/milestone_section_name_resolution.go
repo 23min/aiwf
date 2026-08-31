@@ -181,12 +181,12 @@ func scaffoldBlock(body string) string {
 		}
 		block, remainder, closed := strings.Cut(after, "\n```")
 		if !closed {
-			if strings.Contains(after, scaffoldMarker) {
+			if opensWithScaffoldMarker(after) {
 				return after
 			}
 			return ""
 		}
-		if strings.Contains(block, scaffoldMarker) {
+		if opensWithScaffoldMarker(block) {
 			return block
 		}
 		rest = remainder
@@ -196,6 +196,21 @@ func scaffoldBlock(body string) string {
 // scaffoldMarker is the heading the wrap artefact's scaffold opens with. It
 // identifies that block among any other markdown examples the ritual carries.
 const scaffoldMarker = "# Epic wrap"
+
+// opensWithScaffoldMarker reports whether block's first non-blank line is the
+// scaffold's opening heading. Matching the marker anywhere in the block would
+// select a fence that merely discusses the artefact — which is what a ritual
+// explaining its own output writes — and every real artefact section would then
+// resolve nowhere.
+func opensWithScaffoldMarker(block string) bool {
+	for _, line := range strings.Split(block, "\n") {
+		if strings.TrimSpace(line) == "" {
+			continue
+		}
+		return strings.HasPrefix(strings.TrimSpace(line), scaffoldMarker)
+	}
+	return false
+}
 
 // topLevelHeadings returns the text of every `## ` heading in body, ignoring
 // deeper levels.

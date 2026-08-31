@@ -13,10 +13,13 @@ import (
 // every backticked `## Section` name written in the surfaces that instruct an
 // author about milestone-spec and wrap-artefact sections resolves to a heading
 // some shipped template — or the wrap artefact's own scaffold — actually
-// carries. A rename on either side of that relationship reddens this test,
-// which is the evidence shape D-0070 leaves available over a shipped surface:
-// prose is compared against the artefact it names, never asserted for its own
-// wording.
+// carries. A name matching no artefact at all reddens this test, which is the
+// evidence shape D-0070 leaves available over a shipped surface: prose is
+// compared against the artefact it names, never asserted for its own wording.
+//
+// It does not redden on a rename of a heading another template also carries —
+// the universe is their union, and the limit is stated in the policy's doc
+// comment.
 func TestPolicy_MilestoneSectionNameResolution(t *testing.T) {
 	t.Parallel()
 	runPolicy(t, PolicyMilestoneSectionNameResolution)
@@ -37,7 +40,11 @@ func sectionFixtureRoot(t *testing.T, overrides map[string]string) string {
 		"skills/aiwfx-start-milestone/SKILL.md": "Fill `## Goal`.\n",
 		"skills/aiwfx-wrap-milestone/SKILL.md":  "Fill `## Release note`.\n",
 		"agents/builder.md":                     "Maintain `## Goal`.\n",
-		"agents/reviewer.md":                    "Read `## Summary`.\n",
+		// DFS order and full-path lexical order diverge only across a directory
+		// boundary; without this pair the sort is untestable.
+		"agents/x-y.md":      "See `## Goal`.\n",
+		"agents/x/z.md":      "See `## Goal`.\n",
+		"agents/reviewer.md": "Read `## Summary`.\n",
 	}
 	maps.Copy(base, overrides)
 
@@ -94,11 +101,37 @@ func TestMilestoneSectionNameResolution_Fires(t *testing.T) {
 			},
 		},
 		{
+			// The mention side trims too: a backtick span may carry trailing
+			// space, and the heading it names cannot.
+			name: "a mention's trailing whitespace is trimmed",
+			overrides: map[string]string{
+				"agents/builder.md": "Fill `## Goal `.\n",
+			},
+		},
+		{
 			name: "a bad name inside a multi-name span is still caught",
 			overrides: map[string]string{
 				"agents/builder.md": "Fill `## Goal / ## Invented Section`.\n",
 			},
 			wantDetail: "## Invented Section",
+		},
+		{
+			// An empty fence has no opening line to match, so it is not the
+			// scaffold and contributes nothing.
+			name: "an empty markdown fence is not the scaffold",
+			overrides: map[string]string{
+				"skills/aiwfx-wrap-epic/SKILL.md": "# wrap\n\n```markdown\n\n```\n\nSee `## Summary`.\n",
+			},
+			wantDetail: "## Summary",
+		},
+		{
+			// A fence that merely discusses the artefact mentions the marker in
+			// prose. Selecting it would resolve every real section nowhere.
+			name: "an earlier fence mentioning the marker does not displace the scaffold",
+			overrides: map[string]string{
+				"skills/aiwfx-wrap-epic/SKILL.md": "# wrap\n\n```markdown\nTalking about the `# Epic wrap` artefact.\n```\n\n" +
+					"```markdown\n# Epic wrap\n\n## Changelog entry\n\n## Summary\n```\n\nSee `## Changelog entry` and `## Summary`.\n",
+			},
 		},
 		{
 			// An unrelated markdown example earlier in the ritual must not be
