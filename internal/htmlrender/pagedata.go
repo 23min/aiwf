@@ -271,10 +271,9 @@ type TestMetricsView struct {
 }
 
 // HistoryRow is one event in the Commits tab and in epic-page
-// "Recent activity" sections. Verb is the trailer value; Detail is
-// the commit subject; Force, AuditOnly, OnBehalfOf, Scope, ScopeEnds
-// surface the I2.5 provenance shape; Tests is the parsed metrics
-// when present.
+// "Recent activity" sections. Detail is the commit subject; Force,
+// AuditOnly, Scope, ScopeEnds surface the I2.5 provenance shape;
+// Tests is the parsed metrics when present.
 type HistoryRow struct {
 	Date   string
 	Commit string

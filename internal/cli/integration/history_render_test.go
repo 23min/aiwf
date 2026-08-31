@@ -251,8 +251,9 @@ func TestRenderAbsentTrailerColumns(t *testing.T) {
 // TestRun_HistoryRendersTheAbsentVerbMarker pins history.go's own row, which
 // TestRenderAbsentTrailerColumns does not: that test calls the helpers
 // directly, so the call site can revert with it green.
+// Serial: CaptureStdout replaces os.Stdout, a process-level fd shared by every
+// goroutine (see setup_test.go's skip-list).
 func TestRun_HistoryRendersTheAbsentVerbMarker(t *testing.T) {
-	t.Parallel()
 	root := setupCLITestRepo(t)
 	if rc := cli.Execute([]string{"init", "--root", root, "--actor", "human/test", "--skip-hook"}); rc != cliutil.ExitOK {
 		t.Fatalf("init: %d", rc)

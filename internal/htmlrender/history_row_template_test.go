@@ -39,16 +39,25 @@ func TestHistoryRowTemplates_RenderTheResolvedColumns(t *testing.T) {
 		{"entity.tmpl", EntityData{Entity: &EntityRef{ID: "G-0001", Title: "x"}, History: rows}},
 		{"epic.tmpl", EpicData{Epic: &EntityRef{ID: "E-0001", Title: "x"}, History: rows}},
 		{"milestone.tmpl", MilestoneData{Milestone: &EntityRef{ID: "M-0001", Title: "x"}, Commits: rows}},
+		// The Provenance tab renders the same rows through a second pair of
+		// spans, which the Commits tab above does not reach.
+		{"milestone.tmpl/provenance", MilestoneData{
+			Milestone:  &EntityRef{ID: "M-0001", Title: "x"},
+			Provenance: ProvenanceData{Timeline: rows},
+		}},
 		{"status.tmpl", StatusData{RecentActivity: rows}},
 	} {
 		t.Run(tc.tmpl, func(t *testing.T) {
 			t.Parallel()
+			name, _, _ := strings.Cut(tc.tmpl, "/")
 			var buf bytes.Buffer
-			if err := tmpls.ExecuteTemplate(&buf, tc.tmpl, tc.data); err != nil {
+			if err := tmpls.ExecuteTemplate(&buf, name, tc.data); err != nil {
 				t.Fatalf("executing %s with history rows: %v", tc.tmpl, err)
 			}
 			out := buf.String()
-			for _, want := range []string{"<td>-</td>", "human/peter via ai/claude"} {
+			// `>-<` matches the marker in either carrier — a table cell or
+			// the Provenance tab's spans.
+			for _, want := range []string{">-<", "human/peter via ai/claude"} {
 				if !strings.Contains(out, want) {
 					t.Errorf("%s output missing %q", tc.tmpl, want)
 				}
