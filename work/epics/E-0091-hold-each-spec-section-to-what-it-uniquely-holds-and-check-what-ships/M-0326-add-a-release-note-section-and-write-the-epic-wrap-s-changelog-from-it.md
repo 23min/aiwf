@@ -209,7 +209,7 @@ section-ownership work G-0636 tracks.
 
 ### AC-1 — A section name a ritual writes resolves to a heading some artefact carries
 
-`PolicyMilestoneSectionNameResolution` reports a shipped surface naming a section no template heading or wrap-artefact section carries · commit ff39bb5b2, largely rewritten in ec3d2a7d2, 1526a1124 and dfa55e2bb · tests: the `MilestoneSectionNameResolution`, `ReleaseNoteHeadingResolves` and `SectionSurfaces` cases in `internal/policies`
+`PolicyMilestoneSectionNameResolution` reports a shipped surface naming a section no template heading or wrap-artefact section carries · commit ff39bb5b2, largely rewritten in ec3d2a7d2, 1526a1124 and b1c3b1ba6 · tests: the `MilestoneSectionNameResolution`, `ReleaseNoteHeadingResolves` and `SectionSurfaces` cases in `internal/policies`
 
 ### AC-2 — Release note ships, and the epic wrap composes from it
 
@@ -217,7 +217,7 @@ Template ships `## Release note`; the milestone wrap reviews it at step 2 and th
 
 ### AC-3 — A done milestone with an empty Release note is reported
 
-`milestone-done-empty-release-note` (warning) reports a done milestone whose release note nobody wrote; absence counts, so deleting the heading is not an escape · commit a6cbd3814, corrected in ec3d2a7d2 and the round that followed · tests: the `MilestoneDoneEmptyReleaseNote` cases in `internal/check`, including the one driving `check.Run`
+`milestone-done-empty-release-note` (warning) reports a done milestone whose release note nobody wrote; absence counts, so deleting the heading is not an escape · commit a6cbd3814, corrected in ec3d2a7d2, 1526a1124, dfa55e2bb and b1c3b1ba6 · tests: the `MilestoneDoneEmptyReleaseNote` cases in `internal/check`, including the one driving `check.Run`
 
 ## Decisions made during implementation
 
@@ -275,15 +275,17 @@ there, so no signing wrapper is involved).
 
 ## Deferrals
 
-- (none)
+- G-0656 — nothing records whether a rule keys to the kernel's scaffold section
+  set or the ritual template's. Opened here: reverting this milestone's rule to
+  warning sidesteps that collision rather than resolving it, and the same trap
+  is live for four of the six entity kinds.
 
 ## Reviewer notes
 
 Each review round was a fresh-context pass over the full change-set; the later
 ones were sliced across the production units, the fixture blast radius, and the
-prose. Both
-rounds returned REQUEST-CHANGES, and the findings that mattered were claims this
-spec made that measurement contradicted.
+prose. Every round returned REQUEST-CHANGES, and the findings that mattered
+were claims this spec made that measurement contradicted.
 
 The first round found that the rule did not do what three surfaces said it did.
 It was written as a warning while its code comment, this spec's AC-3 body, and
@@ -315,8 +317,7 @@ precondition on a transition the legal-workflow table declares legal. All three
 retired with the severity. The exemption list retired too, by scaffolding the
 section it existed to excuse.
 
-A third round, run over the full change-set after those fixes, found the same
-class once more and in the same place: the `## Release note` claimed the section
+A third round found the same class once more and in the same place: the `## Release note` claimed the section
 check catches a rename on either side. It does not. The universe is the union
 across every shipped template, so a heading another template also carries stays
 resolvable after the milestone template renames it — `## Goal` and
@@ -326,6 +327,28 @@ the stronger false one. That round also found the coverage figure overstated, a
 mutation count that a surviving status-boundary mutant contradicted, and the
 reviewer agent card still listing the sections a reviewer reads without the one
 this milestone added.
+
+A fourth round found the defect the first three had all walked past: deleting
+the rule's single line in `check.Run` passed every test in the repository. Every
+test called the rule directly, and the verb-side test asserted only that the
+promote was not blocked — which is equally true when the rule never runs. It
+also found three surviving mutants and a guard policy comparing more strictly
+than the rule it guards, which would have reported a drift that was not one and
+named the wrong side to fix.
+
+A fifth round found three more surviving mutants — the scaffold marker matched
+anywhere in a fence rather than at its opening, and two unpinned trims — plus a
+sentence this spec's own fourth-round correction had left ungrammatical and
+false, and commit citations naming a commit that touched none of the files the
+entry describes. The code survived twenty-three mutants across that round with
+twenty killed before these three.
+
+The shape of the five rounds is worth recording: the blocking defects moved from
+behaviour to claims about behaviour. Rounds one and two found the rule doing
+something other than advertised. Rounds three through five found the code sound
+and the prose describing it wrong, repeatedly in the section designed to travel
+into a changelog, and repeatedly because a correction fixed the copy in front of
+it without searching for the others.
 
 What is deliberately left, and stated in the policy's doc comment rather than
 implied away: the union masks a rename of a heading another template carries; a
