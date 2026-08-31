@@ -7,7 +7,7 @@ tdd: required
 acs:
     - id: AC-1
       title: aiwf history lists a commit whose only aiwf trailer names the entity
-      status: open
+      status: met
       tdd_phase: done
     - id: AC-2
       title: An AC's implementation commit is reachable from that AC's history
