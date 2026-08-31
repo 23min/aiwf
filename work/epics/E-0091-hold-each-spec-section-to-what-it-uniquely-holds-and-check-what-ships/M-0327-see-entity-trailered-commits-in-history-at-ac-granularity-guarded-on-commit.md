@@ -40,20 +40,19 @@ a proxy for "git's trailer parser found a real trailer", and it fails on the cas
 D-0071 created: a shipped-surface edit proves its provenance with `aiwf-entity`
 alone, so it satisfies the backstop and renders nowhere.
 
-Measured 2026-08-31 over 10,801 commits across all refs: 8,430 carry an
-`aiwf-entity:` trailer and 54 carry it alone — 26 naming a milestone, 26 a gap,
-2 a decision. M-0326's own nine implementation commits are among them, so
-`aiwf history M-0326` lists every add, promote and body edit and none of the work.
+Measured at `d7a6598`, walking this branch's history rather than all refs:
+10,814 commits, of which 8,445 carry an `aiwf-entity:` trailer and 59 carry it
+alone — 31 naming a milestone, 26 a gap, 2 a decision. M-0326's own nine
+implementation commits were among them, so `aiwf history M-0326` listed every
+add, promote and body edit and none of the work.
 
-Every one of those 54 names a bare entity id. Of the 3,695 commits carrying a
-composite `M-NNNN/AC-N` trailer, all carry a verb — they are `aiwf add ac` and
-`aiwf promote` paperwork, without exception. No implementation commit carries the
-composite trailer, because nothing asks it to: `aiwfx-start-milestone` step 6
-specifies the subject `feat(<scope>): <summary> (M-NNNN/AC-N)` and no trailers,
-and that skill states the consequence itself — an implementation commit normally
-carries no kernel trailer, which is why the `## Work log` is the only index from
-an AC to its commit. Retiring that section (G-0530) needs the index to exist
-somewhere else first.
+The AC-level link is thinner still. 3,700 commits carry a composite
+`M-NNNN/AC-N` trailer, and all but 23 were written by `aiwf add ac` or
+`aiwf promote` — 20 carry an implementation verb from before the closed set was
+policed, 3 carry none. So the shape exists and was never systematic, which is
+what nothing asking for it produces: `aiwfx-start-milestone` step 6 specified the
+subject `feat(<scope>): <summary> (M-NNNN/AC-N)` and no trailers. Retiring
+`## Work log` (G-0530) needs that index to exist without the spec.
 
 At the composition end, nothing catches a missing trailer while it is cheap. The
 backstop is commit-scoped by design, so a forgotten `aiwf-entity` surfaces at the
@@ -75,19 +74,19 @@ positive is about. That false positive is real and stays excluded: `--grep`
 matches a wrapped body line beginning `aiwf-entity: <id>`, git's parser finds no
 trailer there, and the commit is still dropped.
 
-A row for such a commit has no verb and no actor to print. `RenderTo` already
-renders an absent trailer as `-` in the same table, which is the convention to
-reach for; what the two empty columns become is settled in-milestone, and no
-verb-shaped label is minted for the JSON field, where the honest value is empty.
+A row for such a commit has no verb and no actor to print. Both render `-`, the marker
+`RenderTo` already uses for an absent target status in the same table. No
+verb-shaped label is minted: the column would name something no aiwf verb did,
+and the JSON field keeps the honest empty string.
 
 Flipping the filter and running `go test ./...` on 2026-08-31 failed exactly
 three tests, all in `internal/entityview/eventfromcommit_test.go`. Two hand the
 constructor a trailer slice carrying no entity key at all — a shape no grepped
-commit has — and are fixture gaps. The third,
-`TestEventFromCommit_ProseMentionSkipped`, is named for the false positive but
-supplies a slice in which git's parser *did* return the entity trailer, so it
-pins the proxy rather than the case; its fixture becomes the trailer-free slice
-the real false positive produces.
+commit has — and are fixture gaps. The third was named for the false
+positive but supplied a slice in which git's parser *did* return the entity
+trailer, so it pinned the proxy rather than the case. It is retired; the
+admit-rule table covers both directions, including the trailer-free slice a real
+false positive produces.
 
 ### AC-2 — A commit whose subject names an AC carries that AC's entity trailer
 
@@ -99,7 +98,8 @@ criterion; the trailer is what makes the claim reachable from the criterion.
 The link this creates is the one fact a `## Work log` holds that no other record
 does, and the retirement milestone (G-0530) depends on it existing without the
 spec. AC-1 made such a commit renderable; nothing yet makes it written. Measured
-2026-08-31 over 10,801 commits: 368 name an AC in the subject and 20 carry the
+at `d7a6598` with the predicate the rule itself applies — the scope anchored at
+the end of the subject — 369 commits name an AC that way and 22 carry the
 matching composite trailer. A commit-msg rule judges only new commits, so the
 remainder is not a baseline to clear.
 
@@ -110,18 +110,20 @@ stays silent where it is not — a consumer writing no AC-scoped subjects never
 meets it. It invents no obligation for an AC that produces no commit at all,
 which an AC met by an observation legitimately does not.
 
-`aiwfx-start-milestone` step 6 gains the trailer on its per-AC commit
-instruction, and the anti-pattern describing an implementation commit as
-carrying no kernel trailer stops being true and is rewritten. The `aiwf-history`
-skill's stated limitation that history shows only verb-driven events is likewise
-false after AC-1 and is rewritten here. All three are shipped prose, held at
-review under D-0070; what is asserted mechanically is the refusal.
+`aiwfx-start-milestone` step 6 carries the trailer on its per-AC commit
+instruction, its anti-patterns name what the `## Work log` holds that an AC's
+history cannot, and the `aiwf-history` skill states what selection by trailer
+does and does not reach. The milestone-spec template and the changelog's
+unreleased entry say the same. All are shipped prose, held at review under
+D-0070; what is asserted mechanically is the refusal.
 
 ### AC-3 — A hidden trailer block or an unowned ritual edit is refused at commit time
 
-`aiwf check --commit-msg` refuses when the staged change touches a surface the
-skill-edit backstop watches and git's parser returns no `aiwf-entity` trailer for
-the message. The hook already has the message and can ask git for the staged
+`aiwf check --commit-msg` refuses when the staged change touches the ritual
+authoring tree and git's parser returns no `aiwf-entity` trailer for the message.
+The predicate is the directory — every file under it materializes into a
+consumer's `.claude/`, entity templates and agent cards as much as skills — which
+is wider than the CI-tier backstop's `SKILL.md`-only scan. The hook already has the message and can ask git for the staged
 paths, and it already extracts the trailer block through git's own heuristic.
 
 Presence is all it can enforce. Resolving the named id against the tree needs a
@@ -131,14 +133,28 @@ different questions and both are worth asking.
 Parseable, not merely present, is the operative word, and it closes a second hole
 in the same seam. Git reads trailers only from a message's last paragraph, so a
 blank line between the aiwf block and a trailing `Co-Authored-By:` line hides the
-whole block. Measured 2026-08-31: a message carrying `aiwf-verb: feat` written as
-one paragraph is refused with exit 1 naming the value; split by that blank line,
-the same message exits 0. A fabricated verb is exactly what `trailer-verb-unknown`
-exists to refuse and what G-0150 closed, so the guard covers any message whose
-aiwf trailer lines git did not parse, not only a shipped-surface edit.
+whole block. Before this milestone a message carrying `aiwf-verb: feat` written
+as one paragraph was refused with exit 1 naming the value, while the same message
+split by that blank line exited 0 — a fabricated verb is exactly what
+`trailer-verb-unknown` exists to refuse and what G-0150 closed. So the guard
+covers any message whose aiwf block git did not read, not only a shipped-surface
+edit.
 
-The two halves scope differently, and the difference is the first thing to settle
-in-milestone. The parseability guard needs no scoping: a message whose aiwf
+Hidden is narrower than trailer-shaped. A block earlier than the last is hidden
+only where the final paragraph carries no aiwf key; where it does, git read the
+trailers and the earlier lines are prose that happens to look like them. Without
+that conjunct the guard refuses ordinary English beginning `aiwf-entity: `, which
+is the case the parser indirection exists to tolerate. The guard runs before the
+other two, because a hidden block makes the trailers invisible to them and
+reporting one of their findings first states something untrue about the message
+in front of the operator.
+
+A subject git composed is not a claim its author made. `git commit --fixup` and
+`--squash` copy the target commit's subject verbatim, so an AC scope in one
+belongs to that commit; refusing here would break `rebase --autosquash`, whose
+pairing depends on the subject matching exactly.
+
+The two halves scope differently. The parseability guard needs no scoping: a message whose aiwf
 trailer lines git cannot read is broken in any repo, because `aiwf history` there
 will not see them either. The shipped-surface half watches a path that exists
 only in this repo, and no mechanism for that is available to copy —
@@ -174,16 +190,21 @@ commit-msg hook does ship: `aiwf init` installs it, and it runs wherever an
 - `internal/cli/history/history.go` — the text row for a verb-less event
 - `internal/cli/check/commit_msg.go` — the composition-time guard
 - `internal/skills/embedded-rituals/plugins/aiwf-extensions/skills/aiwfx-start-milestone/SKILL.md`
-- `internal/skills/embedded/aiwf-history/SKILL.md` — its stated limitation that
-  history shows only verb-driven events
+- `internal/skills/embedded/aiwf-history/SKILL.md` — what selection by trailer reaches
+- `internal/skills/embedded-rituals/plugins/aiwf-extensions/templates/milestone-spec.md`
+- `internal/cli/check/check.go`, `internal/cli/show/show.go`,
+  `internal/initrepo/initrepo.go` and its hook golden
+- `internal/cli/render/resolver.go` and the history rows in
+  `internal/htmlrender/embedded/*.tmpl`
+- `CHANGELOG.md` — the unreleased entry's account of the same link
 
 ## Out of scope
 
-- Rewriting or re-trailering commits already landed. G-0657 records 50 commits
-  whose trailer block git cannot parse, spanning 2026-04-28 to 2026-06-29 and not
-  growing; AC-3 closes the path that admits the shape, and the landed population
-  stays as written, under the same reasoning that leaves terminal Work logs
-  untouched.
+- Rewriting or re-trailering commits already landed. G-0657 records the commits
+  whose trailer block git cannot read — 51 under the predicate this milestone
+  ships, spanning 2026-04-28 to 2026-06-29 and not growing since. AC-3 closes the
+  path that admits the shape; the landed population stays as written, under the
+  same reasoning that leaves terminal Work logs untouched.
 - Retiring `## Work log`. This milestone makes its unique fact derivable
   elsewhere; the retirement is its own milestone and depends on this one.
 - Any other change to what `aiwf history` renders. `aiwf show`'s dropped terminal
@@ -236,8 +257,9 @@ implemented it.
 ### AC-1 — The projection admits a commit by its parsed entity trailer
 
 Both drop sites read the entity trailer git returned, and an absent verb or actor
-renders `-` · commit 8a321fb · full suite green, diff-scoped coverage gate green,
-six mutation probes all killed
+renders `-` on every surface that shows one — `aiwf history`, `aiwf show`, and
+the rendered site · commits 8a321fb, d7a6598 · full suite green, diff-scoped
+coverage gate green
 
 Measured against this repo on 2026-08-31, the same query either side of the
 change: `aiwf history M-0326` gained the nine implementation commits it had been
@@ -245,11 +267,12 @@ omitting, and `aiwf history M-0327/AC-1` lists `8a321fb` — the commit that mad
 the change — where the v0.34.0 binary lists only the paperwork.
 
 `RenderActor` keeps an arm for a principal recorded without an actor. No commit
-in this repo's 10,801 has that shape and no verb writes it, so the branch is
-reachable only from a hand-written commit. It stays because rendering `-` over a
-principal the commit does record would discard provenance from an audit view,
-which is the defect class this milestone exists to close; removing it costs no
-crash, so the usual keep-the-guard asymmetry is not what decides it.
+in this branch's history has that shape and no verb writes it, so the branch is
+reachable only from a hand-written commit. It stays for a reason stronger than
+the one first recorded: the alternative renderings are both wrong, since
+dropping the principal discards provenance the commit carries, and the template
+form it replaced emitted `principal via ` with nothing after it. Removing it
+costs no crash, so the usual keep-the-guard asymmetry is not what decides it.
 
 ### AC-2 — A subject claiming an AC carries that AC's trailer
 
@@ -262,11 +285,13 @@ an AC while carrying no trailers at all is caught rather than passed. A probe
 moving it after that return stays green on every other case and red only on this
 one, which is what pins the ordering.
 
-aiwf's own verbs commit through `git commit`, so this hook judges them too. Every
-verb subject has the shape `aiwf <verb> <id> …` with no parenthesised scope, so
-the anchored regex cannot match one. That was checked against the subject
-constructors in `internal/verb/`, not inferred from history: a verb whose own
-commits the hook refused would be unrunnable.
+No aiwf verb can reach this hook: `CommitVerbChange` writes through
+`commit-tree` and `update-ref`, which fire no hooks, and it says so where it
+fires `post-commit` explicitly to restore the parity that plumbing costs. The
+subjects are safe independently — every verb subject has the shape
+`aiwf <verb> <id> …` with no parenthesised scope, checked against the
+constructors in `internal/verb/` rather than inferred from history. The subjects
+git itself composes are the ones that needed exempting.
 
 ### AC-3 — A hidden trailer block or an unowned ritual edit is refused at commit time
 
@@ -292,9 +317,10 @@ The vacuity survivor was the empty-value case: dropping the check that an
 satisfiable by typing the key alone. A case now covers it and the mutant dies.
 
 The coverage gate named `internal/cli/check/check.go:49` — the `--commit-msg`
-flag had no test through the Cobra dispatcher at all, so nothing proved the flag
-was wired or that `--root` reached the guard reading the index. The signature
-change exposed it; `check_commit_msg_seam_test.go` closes it.
+flag had no test through the Cobra dispatcher at all. `check_commit_msg_seam_test.go`
+closes the flag-wiring half. It does not pin that `--root` reaches the guard
+reading the index: its roots are empty temp dirs, where that guard returns early
+either way.
 
 ## Decisions made during implementation
 
@@ -311,9 +337,11 @@ signing wrapper needed):
 - `AIWF_COVERAGE_BASE=<ac-base> make coverage-gate` — exit 0 for each AC, after
   the AC-3 run named three uncovered changed lines that were closed with tests
   rather than annotations.
-- `aiwf check` — 0 errors. Two warnings, both predating this milestone:
-  `epic-active-no-drafted-milestones` and
-  `provenance-untrailered-scope-undefined`.
+- `aiwf check` — 0 errors, two warnings.
+  `provenance-untrailered-scope-undefined` predates this milestone.
+  `epic-active-no-drafted-milestones` began firing at this milestone's own
+  `draft -> in_progress` promote, which left the epic with no drafted milestone;
+  it clears when the next one is planned.
 - `go build ./...` — green.
 
 Mutation probes were run per AC against the changed logic, reverted by
@@ -329,4 +357,50 @@ five for AC-2, all killed; seven for AC-3, one survivor found and closed.
 
 ## Reviewer notes
 
-- (none)
+Three independent reviewers over the full change-set — the history-projection
+slice, the commit-msg guard slice, and a claims audit — each returned
+request-changes. The code they found sound; almost every finding was a claim
+about it. Seven code defects and twelve prose defects were fixed on this branch
+before the deciding pass.
+
+The code defects worth a later reader's attention, because each names a shape a
+future change could reintroduce:
+
+- A subject git composes is not a claim its author made. `--fixup` and `--squash`
+  copy the target's subject, so the AC guard exempts them; without that,
+  `rebase --autosquash` cannot pair the commits it creates.
+- A trailer-shaped paragraph is not a hidden block unless the final paragraph
+  carries no aiwf key. The first form of the guard refused ordinary English
+  beginning `aiwf-entity: `.
+- Guards report cause before symptom. A hidden block makes the trailers
+  invisible to every check below it, so reporting one of those first states
+  something untrue about the message in front of the operator.
+- The absent-trailer marker now has one home. It was written twice and applied to
+  two of the three surfaces that render these events; the rendered site kept
+  blank cells and a `principal via ` with nothing after it.
+
+Judgments recorded so the next reviewer meets a decision:
+
+- `RenderActor`'s principal-without-actor arm stays. No verb writes that pair,
+  but both alternatives are wrong — dropping the principal discards provenance
+  the commit carries, and the template form it replaced emitted a dangling
+  separator.
+- The shipped-surface guard's predicate is the ritual directory, not `SKILL.md`.
+  Templates and agent cards materialize into a consumer's `.claude/` exactly as
+  skills do, so the wider predicate is the correct one and the descriptions that
+  said otherwise were the defect.
+- The guard costs a `git diff --cached` per commit in every consumer repo while
+  being able to fire only here. That is a real asymmetry, accepted because the
+  earlier catch replaces an amend or a rebase; it is the first thing to
+  reconsider if the hook's cost is ever measured as a problem.
+
+Left open as G-0658: the `--root` threading is pinned only as far as flag wiring,
+since the seam test's roots are empty temp dirs where the guard returns early
+whatever root it is given.
+
+Fixed in passing rather than filed: `internal/cli/render`'s differential carried
+a fixture whose comment called a commit a prose mention when git parses its
+trailer perfectly well. It was a real event before this milestone and dropped
+only because the projection discarded it, so admitting it silently removed the
+false-positive coverage the differential claimed. A real mention — the id-shaped
+line with a paragraph after it — now sits beside it.
