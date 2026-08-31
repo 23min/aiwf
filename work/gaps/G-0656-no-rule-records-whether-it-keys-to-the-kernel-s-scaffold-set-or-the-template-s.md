@@ -3,54 +3,75 @@ id: G-0656
 title: No rule records whether it keys to the kernel's scaffold set or the template's
 status: open
 ---
+
 ## What's missing
 
-Two surfaces declare what sections a milestone spec has, in two languages, and
-they disagree. Nothing reconciles them and no check notices.
+Two surfaces describe a spec's sections, at different layers, and nothing
+records which one a new rule should read.
 
-`internal/entity/required_sections.go` names two for the milestone kind, `Goal`
-and `Acceptance criteria`. `templates/milestone-spec.md` — materialized into
-every consumer repo by `aiwf init` / `aiwf update` — ships a much larger set,
-and it is the one authors and rituals actually fill. Measured 2026-08-30: the
-kernel declares 2, the template carries 17 `##` headings.
+`internal/entity/required_sections.go` holds the kernel set. Its own doc comment
+is explicit about what that set is: *"'Required' names what the scaffold writes,
+not a guarantee anything verifies."* It is the load-bearing minimum `aiwf add`
+emits, and `entity-body-empty` reports one of those headings present and empty.
+
+The shipped entity templates under the rituals are a superset, and they are the
+vocabulary authors and rituals actually use. That layering is deliberate. What is
+missing is any record of which layer a rule may key to, and what it inherits by
+choosing one.
+
+Measured 2026-08-31, kernel set against shipped template headings:
+
+| kind | kernel | template | delta |
+|---|---|---|---|
+| contract | 2 | 2 | 0 |
+| gap | 2 | 2 | 0 |
+| decision | 3 | 4 | +1 |
+| adr | 3 | 5 | +2 |
+| epic | 3 | 11 | +8 |
+| milestone | 2 | 17 | +15 |
+
+Four of six diverge. The two that agree do so by coincidence of their current
+contents, not by any mechanism.
 
 ## Why it matters
 
-The disagreement decides whether a milestone can close.
+A rule keyed to the template's vocabulary demands a section the kernel never
+writes, and that is not hypothetical. M-0326 added a rule reporting a milestone
+reaching `done` with no release-note section. Landed briefly at error severity it
+became a `promote` precondition, and a milestone created through `aiwf add` could
+then not reach `done` at all: the kernel writes `## Goal` and
+`## Acceptance criteria`, the section is not among them, and `--force` does not
+relax a projection finding. It was reverted to warning, which sidesteps the
+collision rather than resolving it.
 
-M-0326 added a check that reads the *template's* authority: it reports a
-milestone reaching `done` with no release-note section. That rule was briefly
-landed at error severity, which makes it a `promote` precondition, and a
-milestone created through `aiwf add` could then not reach `done` at all — the
-kernel demanded a section its own declaration does not list, `aiwf template
-milestone` does not write it, and `--force` does not relax a projection finding.
-The rule was reverted to warning, which sidesteps the collision without
-resolving it.
+The reverse trap is the same size. A rule keyed to the kernel set cannot see the
+sections consumers actually fill — for a milestone that is most of the spec.
 
-Any future rule inherits the same trap from whichever authority it reads. One
-keyed to the kernel set cannot see the sections the template ships and consumers
-fill; one keyed to the template demands sections `aiwf add` never writes. The
-choice is currently made per rule, by whichever file its author happened to
-open.
+Nothing in either surface says which layer is appropriate for which kind of rule,
+so the choice is made per rule by whichever file its author happened to open.
 
 ## Direction
 
-Name one authority and derive the other from it.
+Write down the rule for choosing, and put it where a rule's author will meet it.
 
-Which one is open. The kernel set has the mechanical consumers — it is what
-`aiwf add` writes and what `entity-body-empty` reads — while the template set is
-the vocabulary in actual use. Growing the kernel to match the template is the
-blast radius G-0571 measures. Deriving the kernel from the template means kernel
-code reading a materialized markdown file, which inverts the layering the repo
-holds elsewhere. Neither is free, which is why this is filed rather than fixed
-in passing.
+The kernel set is the right target for anything the kernel guarantees, because it
+is what `aiwf add` writes; the template set is the right target for anything held
+at review, because it is what authors fill. What is not yet decided is what a rule
+does when it wants a section only the template ships — accept that it can only
+warn, or extend the scaffold so the kernel writes it too.
+
+Extending the scaffold is not free: it changes what every new entity of that kind
+carries, and for milestone it would grow a two-entry set toward seventeen. G-0571
+measures the enforcement half of that blast radius at 119 findings over 60 live
+entities.
 
 ## References
 
 - G-0571 — nothing enforces that an entity body carries its kind's required
-  sections. The enforcement half of the same problem, and it already carries an
-  inherited obligation from M-0326.
-- G-0636 — milestone-spec section rules are restated across five surfaces with
-  no owner. The prose half.
-- M-0326 — added the consumer that surfaced this, and reverted its severity
-  rather than resolving it.
+  sections. The enforcement half, and it carries an inherited obligation from
+  M-0326.
+- G-0636 — milestone-spec section rules are restated across five surfaces with no
+  owner. The prose half.
+- M-0326 — added the rule that surfaced this, and reverted its severity rather
+  than resolving it.
+- D-0082 — records the changelog-input reversal that milestone made.
