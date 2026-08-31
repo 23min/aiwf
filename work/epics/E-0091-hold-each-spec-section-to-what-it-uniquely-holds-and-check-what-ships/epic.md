@@ -140,8 +140,9 @@ opposite here, since guidance and rituals ship as product (G-0529).
 
 - `M-0326` — `## Release note` joins the milestone spec and feeds the epic wrap's
   changelog entry · depends on: —
-- The history projection sees entity-trailered commits, and a chokepoint catches
-  a missing trailer while it is cheap · depends on: —
+- `M-0327` — the history projection sees entity-trailered commits, at AC
+  granularity, and a chokepoint catches an unparseable trailer while it is cheap
+  · depends on: —
 - `## Work log` retires, its unique fact derivable without it · depends on: the
   history milestone
 - Every milestone-spec section rule gets one owner; `## Validation` resolves;
@@ -157,5 +158,7 @@ opposite here, since guidance and rituals ship as product (G-0529).
 - G-0571 — nothing enforces that an entity body carries its kind's required sections
 - G-0529 — CHANGELOG completeness rests on recall at epic wrap and is never checked
 - G-0613 — the wrap changelog category set omits Removed, which practice uses
+- G-0657 — commits whose trailer block is split from `Co-Authored-By:` are
+  invisible to git's parser, so neither history nor the verb check sees them
 - D-0070 — prose-content assertions over shipped surfaces are retired
 - D-0071 — no aiwf verb commits source, so no verb value names a shipped-surface edit
