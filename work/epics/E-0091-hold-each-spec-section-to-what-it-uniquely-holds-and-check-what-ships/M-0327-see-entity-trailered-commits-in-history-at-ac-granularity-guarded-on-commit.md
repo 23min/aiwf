@@ -12,7 +12,7 @@ acs:
     - id: AC-2
       title: A commit whose subject names an AC carries that AC's entity trailer
       status: open
-      tdd_phase: red
+      tdd_phase: green
     - id: AC-3
       title: A staged shipped-surface edit without a parseable entity trailer is refused
       status: open
