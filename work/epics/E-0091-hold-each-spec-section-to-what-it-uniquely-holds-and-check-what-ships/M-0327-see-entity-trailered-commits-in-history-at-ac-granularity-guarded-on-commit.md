@@ -231,6 +231,23 @@ principal the commit does record would discard provenance from an audit view,
 which is the defect class this milestone exists to close; removing it costs no
 crash, so the usual keep-the-guard asymmetry is not what decides it.
 
+### AC-2 — A subject claiming an AC carries that AC's trailer
+
+`aiwf check --commit-msg` refuses the mismatch, and the ritual's per-AC commit
+instruction writes the trailer · commit 2fc6a80 · `make check-fast` exit 0,
+coverage gate exit 0, five mutation probes killed
+
+The guard runs before the empty-trailer-block early return, so a subject claiming
+an AC while carrying no trailers at all is caught rather than passed. A probe
+moving it after that return stays green on every other case and red only on this
+one, which is what pins the ordering.
+
+aiwf's own verbs commit through `git commit`, so this hook judges them too. Every
+verb subject has the shape `aiwf <verb> <id> …` with no parenthesised scope, so
+the anchored regex cannot match one. That was checked against the subject
+constructors in `internal/verb/`, not inferred from history: a verb whose own
+commits the hook refused would be unrunnable.
+
 ## Decisions made during implementation
 
 - (none)
