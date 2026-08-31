@@ -113,7 +113,7 @@ Pass an explicit path as the verb's second argument for a sibling-directory plac
 
 ### 6. Implementation — iterate via `wf-tdd-cycle`
 
-AC progress lives inside the milestone spec itself (frontmatter `acs[]` plus body `## Work log` section); `templates/milestone-spec.md` carries the full set of sections (Work log, Decisions made during implementation, Validation, Deferrals, Reviewer notes).
+AC progress lives inside the milestone spec itself (frontmatter `acs[]` plus body `## Work log` section); `templates/milestone-spec.md` carries the full set of sections (Release note, Work log, Decisions made during implementation, Validation, Deferrals, Reviewer notes).
 
 For each AC, in sequence:
 

@@ -81,6 +81,10 @@ Two to four sentences on what shipped and why. Reference the goal from the epic 
 
 - G-NNNN — <slug>             (gap that survives the epic)
 
+## Doc findings
+
+<Filled by the doc-lint sweep at step 3; "clean" when it reports nothing.>
+
 ## Handoff
 
 What is ready for the next epic; what is deliberately left open.
@@ -88,7 +92,7 @@ What is ready for the next epic; what is deliberately left open.
 
 Use **reference-phrasing for any list-derived count** ("every ADR listed in *ADRs ratified*" rather than "all 4 ADRs"). Avoids drift.
 
-**`## Changelog entry` is authored once — here.** Everything beneath that heading, the `###` category line included, is copied verbatim into `CHANGELOG.md` at step 6; nothing is re-authored there. It sits directly beneath `## Milestones delivered` so that list is in front of you while you write, and beside `## Summary`, which covers the same epic for a reader who has seen the epic spec.
+**`## Changelog entry` is composed here, from each wrapped milestone's `## Release note`.** Those notes were written at each milestone's wrap, by whoever did the work, while the change was in front of them — so this step edits them into one entry rather than recalling the epic from its milestone titles. A milestone whose note is empty is the one to go back to, not to summarise from its title. Everything beneath the heading, the `###` category line included, is copied verbatim into `CHANGELOG.md` at step 6; nothing is re-authored there. It sits directly beneath `## Milestones delivered` so that list is in front of you while you write, and beside `## Summary`, which covers the same epic for a reader who has seen the epic spec.
 
 Because that one section travels, keep its references inside it. The reference-phrasing rule above still applies — but a phrase reaching *out* of the section, like "every milestone listed in *Milestones delivered*", resolves here and dangles in `CHANGELOG.md`, where no such section exists. Name the milestones, or name `wrap.md` itself.
 
