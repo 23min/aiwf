@@ -210,7 +210,26 @@ commit-msg hook does ship: `aiwf init` installs it, and it runs wherever an
 
 ## Release note
 
-<!-- The user-visible delta of this milestone. Written at wrap. -->
+`aiwf history <id>` now lists a commit whose only aiwf trailer names the entity —
+the implementation commits and shipped-surface edits that no verb wrote, which it
+previously discarded. A row for one carries `-` where a verb and actor would be,
+matching the marker an absent target status already uses.
+
+The `commit-msg` hook gained three refusals, each catching at composition what
+was previously found at a later gate or not at all:
+
+- a subject naming an `(M-NNNN/AC-N)` scope whose `aiwf-entity` trailer names
+  something else, or nothing — the link that makes an implementation commit
+  findable from the criterion it implements;
+- an aiwf trailer block git will not read, because a blank line leaves it out of
+  the message's final paragraph. Such a block is invisible to `aiwf history` and
+  carries an unrecognized `aiwf-verb` value straight past the check that exists
+  to refuse it;
+- a staged edit to the shipped ritual tree whose message names no entity.
+
+The per-AC commit instruction in `aiwfx-start-milestone` now writes the
+`aiwf-entity` trailer, so an acceptance criterion's history shows the commit that
+implemented it.
 
 ## Work log
 
@@ -283,9 +302,30 @@ change exposed it; `check_commit_msg_seam_test.go` closes it.
 
 ## Validation
 
+Run on the milestone branch at `a221dfb`, in the devcontainer (Linux, no
+signing wrapper needed):
+
+- `make check-fast` — exit 0. `go vet` across the default, `stress` and
+  `testpins` tag sets; `golangci-lint run` reporting 0 issues; `go test
+  -parallel 8 ./...` with no failures.
+- `AIWF_COVERAGE_BASE=<ac-base> make coverage-gate` — exit 0 for each AC, after
+  the AC-3 run named three uncovered changed lines that were closed with tests
+  rather than annotations.
+- `aiwf check` — 0 errors. Two warnings, both predating this milestone:
+  `epic-active-no-drafted-milestones` and
+  `provenance-untrailered-scope-undefined`.
+- `go build ./...` — green.
+
+Mutation probes were run per AC against the changed logic, reverted by
+capture-and-restore and verified byte-identical afterwards: six for AC-1 and
+five for AC-2, all killed; seven for AC-3, one survivor found and closed.
+
 ## Deferrals
 
-- (none)
+- G-0657 — the commits already carrying a trailer block git cannot parse. AC-3
+  closes the path that admits the shape; the landed population is historical
+  record and is not rewritten, on the same reasoning the epic applies to the
+  Work logs of terminal milestones.
 
 ## Reviewer notes
 
