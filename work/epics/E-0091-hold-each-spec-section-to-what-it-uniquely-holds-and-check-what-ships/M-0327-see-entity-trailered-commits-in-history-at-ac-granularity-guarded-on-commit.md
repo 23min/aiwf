@@ -353,12 +353,15 @@ superseded here:
 - `go build ./...` — green.
 
 Mutation probes were run against the changed logic throughout, reverted by
-capture-and-restore and verified byte-identical afterwards. Three survivors were
-found across the milestone and all three are now killed: an entity trailer whose
-value is only whitespace, the verb column in `aiwf show`, and — after the
-corrective round moved the display rules — the two call sites feeding the
-rendered site. The deciding review found the first two; its own re-probe of the
-final tree reports none surviving.
+capture-and-restore and verified byte-identical afterwards. Seven survivors were
+found across four review rounds and all seven are now killed or removed: an
+entity trailer whose value is only whitespace; the verb column in `aiwf show`;
+the two call sites feeding the rendered site; the prior-entity arm of the
+block test; the all-lines trailer gate; and the four page templates, which the
+move of the display rules had made load-bearing in the opposite direction. An
+eighth, a CRLF normalisation, proved equivalent once paragraphs split on any
+all-whitespace line, and was deleted rather than pinned. What the next review
+finds is for that review to record.
 
 ## Deferrals
 
