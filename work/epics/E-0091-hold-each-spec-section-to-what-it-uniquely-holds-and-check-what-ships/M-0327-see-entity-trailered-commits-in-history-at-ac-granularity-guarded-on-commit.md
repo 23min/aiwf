@@ -89,20 +89,31 @@ the real false positive produces.
 
 ### AC-2 — A commit whose subject names an AC carries that AC's entity trailer
 
-An implementation commit carrying `aiwf-entity: M-NNNN/AC-N` and no other aiwf
-trailer appears in `aiwf history M-NNNN/AC-N`, and in the bare milestone query
-that already folds in its ACs.
+`aiwf check --commit-msg` refuses a message whose subject names an
+`(M-NNNN/AC-N)` scope while its `aiwf-entity` trailer names something else, or
+nothing. The subject is the commit's own claim to have implemented that
+criterion; the trailer is what makes the claim reachable from the criterion.
 
-The evidence is that relationship, driven through `ReadHistory` against a fixture
-commit — not an assertion about what any ritual says. `aiwfx-start-milestone`
-step 6 gains the trailer on its per-AC commit instruction, and the sentence in
-that skill's anti-patterns describing an implementation commit as trailerless
-stops being true and is rewritten. Both are shipped prose, held at review under
-D-0070.
+The link this creates is the one fact a `## Work log` holds that no other record
+does, and the retirement milestone (G-0530) depends on it existing without the
+spec. AC-1 made such a commit renderable; nothing yet makes it written. Measured
+2026-08-31 over 10,801 commits: 368 name an AC in the subject and 20 carry the
+matching composite trailer. A commit-msg rule judges only new commits, so the
+remainder is not a baseline to clear.
 
-The composite id needs no new tolerance: `ReadHistoryChain` already greps
-`^aiwf-entity: <id>/AC-[0-9]+$` for a bare milestone query and the exact
-composite for a direct one. What is missing is a commit that carries it.
+The rule is universal rather than aiwf-scoped, which is what distinguishes it
+from AC-3's other half. The subject convention ships with
+`aiwfx-start-milestone`, so the rule binds wherever that ritual is followed and
+stays silent where it is not — a consumer writing no AC-scoped subjects never
+meets it. It invents no obligation for an AC that produces no commit at all,
+which an AC met by an observation legitimately does not.
+
+`aiwfx-start-milestone` step 6 gains the trailer on its per-AC commit
+instruction, and the anti-pattern describing an implementation commit as
+carrying no kernel trailer stops being true and is rewritten. The `aiwf-history`
+skill's stated limitation that history shows only verb-driven events is likewise
+false after AC-1 and is rewritten here. All three are shipped prose, held at
+review under D-0070; what is asserted mechanically is the refusal.
 
 ### AC-3 — A staged shipped-surface edit without a parseable entity trailer is refused
 
