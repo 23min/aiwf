@@ -115,7 +115,7 @@ which an AC met by an observation legitimately does not.
 instruction, its anti-patterns name what the `## Work log` holds that an AC's
 history cannot, and the `aiwf-history` skill states what selection by trailer
 does and does not reach. The milestone-spec template and the changelog's
-unreleased entry say the same. All are shipped prose, held at review under
+unreleased entry describe the section the same way. All are shipped prose, held at review under
 D-0070; what is asserted mechanically is the refusal.
 
 ### AC-3 — A hidden trailer block or an unowned ritual edit is refused at commit time
@@ -208,9 +208,10 @@ commit-msg hook does ship: `aiwf init` installs it, and it runs wherever an
 
 - Rewriting or re-trailering commits already landed. G-0657 records the commits
   whose trailer block git cannot read — 50 under the predicate this milestone
-  ships, spanning 2026-04-28 to 2026-06-29 and not growing since. The gap's own
-  body counts more, because the predicate it states is looser than the one that
-  ships and catches prose mentions too. AC-3 closes the
+  ships, spanning 2026-04-28 to 2026-06-29 and not growing since. The gap records
+  the same 50 under a predicate that is looser than the shipped one and actually
+  yields 53, catching a prose mention as well, so its figure is wrong rather
+  than merely broader. AC-3 closes the
   path that admits the shape; the landed population stays as written, under the
   same reasoning that leaves terminal Work logs untouched.
 - Retiring `## Work log`. This milestone makes its unique fact derivable
