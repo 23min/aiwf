@@ -47,9 +47,10 @@ implementation commits were among them, so `aiwf history M-0326` listed every
 add, promote and body edit and none of the work.
 
 The AC-level link is thinner still. 3,700 commits carry a composite
-`M-NNNN/AC-N` trailer, and all but 23 were written by `aiwf add ac` or
-`aiwf promote` — 20 carry an implementation verb from before the closed set was
-policed, 3 carry none. So the shape exists and was never systematic, which is
+`M-NNNN/AC-N` trailer, and all but 23 were written by an aiwf verb — `promote`
+and `add` account for most, with `retitle`, `cancel`, `rename` and `edit-body`
+behind them. Of the 23, 20 carry a verb value the closed set does not recognize,
+from before it was policed, and 3 carry no verb at all. So the shape exists and was never systematic, which is
 what nothing asking for it produces: `aiwfx-start-milestone` step 6 specified the
 subject `feat(<scope>): <summary> (M-NNNN/AC-N)` and no trailers. Retiring
 `## Work log` (G-0530) needs that index to exist without the spec.
@@ -140,14 +141,19 @@ split by that blank line exited 0 — a fabricated verb is exactly what
 covers any message whose aiwf block git did not read, not only a shipped-surface
 edit.
 
-Hidden is narrower than trailer-shaped. A block earlier than the last is hidden
-only where the final paragraph carries no aiwf key; where it does, git read the
-trailers and the earlier lines are prose that happens to look like them. Without
-that conjunct the guard refuses ordinary English beginning `aiwf-entity: `, which
-is the case the parser indirection exists to tolerate. The guard runs before the
-other two, because a hidden block makes the trailers invisible to them and
-reporting one of their findings first states something untrue about the message
-in front of the operator.
+Hidden is narrower than trailer-shaped, and what separates them is how many aiwf
+lines the paragraph carries. Two make a block. One does not in general, because
+a single trailer-shaped line is textually identical to prose opening with a key
+and a colon, and git's parser returns nothing for either — refusing every such
+line rejects ordinary English with no recourse, which is how a check comes to be
+disabled. The exception is a lone entity trailer whose value names an entity:
+that is the shape a shipped-surface edit carries, since no aiwf verb commits
+source, so it is the block most likely to be written from here on, and an id is
+not a sentence.
+
+The guard runs before the other two, because a hidden block makes the trailers
+invisible to them and reporting one of their findings first states something
+untrue about the message in front of the operator.
 
 A subject git composed is not a claim its author made. `git commit --fixup` and
 `--squash` copy the target commit's subject verbatim, so an AC scope in one
@@ -328,8 +334,10 @@ either way.
 
 ## Validation
 
-Run on the milestone branch at `a221dfb`, in the devcontainer (Linux, no
-signing wrapper needed):
+Run on the milestone branch after the corrective round, in the devcontainer
+(Linux, no signing wrapper needed). The figures below are the state that ships;
+the per-AC runs recorded in `## Work log` predate the corrections and are
+superseded here:
 
 - `make check-fast` — exit 0. `go vet` across the default, `stress` and
   `testpins` tag sets; `golangci-lint run` reporting 0 issues; `go test
@@ -344,9 +352,13 @@ signing wrapper needed):
   it clears when the next one is planned.
 - `go build ./...` — green.
 
-Mutation probes were run per AC against the changed logic, reverted by
-capture-and-restore and verified byte-identical afterwards: six for AC-1 and
-five for AC-2, all killed; seven for AC-3, one survivor found and closed.
+Mutation probes were run against the changed logic throughout, reverted by
+capture-and-restore and verified byte-identical afterwards. Three survivors were
+found across the milestone and all three are now killed: an entity trailer whose
+value is only whitespace, the verb column in `aiwf show`, and — after the
+corrective round moved the display rules — the two call sites feeding the
+rendered site. The deciding review found the first two; its own re-probe of the
+final tree reports none surviving.
 
 ## Deferrals
 
@@ -369,9 +381,13 @@ future change could reintroduce:
 - A subject git composes is not a claim its author made. `--fixup` and `--squash`
   copy the target's subject, so the AC guard exempts them; without that,
   `rebase --autosquash` cannot pair the commits it creates.
-- A trailer-shaped paragraph is not a hidden block unless the final paragraph
-  carries no aiwf key. The first form of the guard refused ordinary English
-  beginning `aiwf-entity: `.
+- What makes a trailer-shaped paragraph a block is how many aiwf lines it
+  carries, not where it sits. A first attempt keyed on the final paragraph
+  instead: it tolerated prose only when a real block sat last, so it still
+  refused ordinary English ending in a `Co-Authored-By:` paragraph, and it
+  waved through a genuinely hidden block whenever the last paragraph happened
+  to carry an aiwf key — reopening the hole the guard exists to close. The
+  deciding review caught both.
 - Guards report cause before symptom. A hidden block makes the trailers
   invisible to every check below it, so reporting one of those first states
   something untrue about the message in front of the operator.
