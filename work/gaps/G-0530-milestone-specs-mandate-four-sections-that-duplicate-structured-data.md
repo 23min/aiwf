@@ -35,12 +35,20 @@ the one fact the section uniquely held, and it no longer is: `aiwf history`
 selects on the entity trailer alone, and the per-AC commit instruction writes the
 criterion's id into it, so the link is answerable without the spec.
 
-Nothing unique is left. The template assigns the rest by name — a trade-off or a
-rejected approach to `## Reviewer notes`, a decision to `## Decisions made during
-implementation`, design reasoning to the code it explains — and states that
-anything else has its own section. So the retirement no longer has to find a new
-home for a fact this section alone holds; it has to confirm that the assignment
-already made is the one the surfaces follow.
+The template assigns the rest by name — a trade-off or a rejected approach to
+`## Reviewer notes`, a decision to `## Decisions made during implementation`,
+design reasoning to the code it explains — and states that anything else has its
+own section. So the retirement no longer has to rehome the link.
+
+One item in the prescribed entry line is still unheld, and it is not the link:
+the per-AC test counts. `aiwf history` carries them only where an `aiwf-tests`
+trailer was written, which `aiwf promote --tests` writes and
+`tdd.require_test_metrics` does not require by default. Measured at HEAD, 311 of
+10,834 commits carry one, and none of the AC promotes on the milestone that
+closed this gap's dependency do. So the retirement decides between two things:
+make the trailer the record, or drop the counts from the entry. It no longer has
+to invent a home for the link, and it must not delete the counts assuming one
+exists.
 
 `## References` has the weakest claim of the four, and it is worth stating so the
 row is not read as equivalent to its neighbours. The other three each name an
