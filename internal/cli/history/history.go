@@ -124,7 +124,7 @@ func Run(id, root, format string, pretty, showAuth bool, correlationID string) (
 		for i := range events {
 			e := &events[i]
 			cliutil.Printf("%s  %-16s  %-10s  %-12s  %s  %s%s\n",
-				e.Date, RenderActor(*e), e.Verb, RenderTo(e.To), e.Detail, e.Commit,
+				e.Date, RenderActor(*e), RenderVerb(e.Verb), RenderTo(e.To), e.Detail, e.Commit,
 				RenderScopeChips(*e, scopeEntities, showAuth))
 			if e.Force != "" {
 				cliutil.Printf("    [forced: %s]\n", e.Force)
@@ -165,12 +165,33 @@ func RenderTo(to string) string {
 	return "→ " + to
 }
 
+// RenderVerb formats the verb column. Empty renders as "-", the marker
+// RenderTo already uses for an absent trailer in the same table: an event can
+// carry the entity trailer alone, and no verb committed it. A synthesized
+// label is not the alternative — the column would name something no aiwf verb
+// did, and the JSON `verb` field would carry a token outside the closed set.
+func RenderVerb(verb string) string {
+	if verb == "" {
+		return "-"
+	}
+	return verb
+}
+
 // RenderActor formats the actor column. When a non-human principal
 // is present and differs from the actor (the agent-acts-for-human
 // case from I2.5), the column reads `principal via agent` so the
 // human is visually attributed first. Direct human acts (no
-// principal) render the actor verbatim.
+// principal) render the actor verbatim. An event carrying neither
+// renders "-", matching RenderTo's marker for an absent trailer.
 func RenderActor(e entityview.HistoryEvent) string {
+	if e.Actor == "" {
+		// No verb ran, so "who ran the verb" is undefined. A principal
+		// without an actor has no agent to name, so it renders alone.
+		if e.Principal != "" {
+			return e.Principal
+		}
+		return "-"
+	}
 	if e.Principal == "" || e.Principal == e.Actor {
 		return e.Actor
 	}

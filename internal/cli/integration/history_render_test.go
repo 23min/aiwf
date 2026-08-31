@@ -202,3 +202,46 @@ func TestRenderHistory_AuthorizationFlow(t *testing.T) {
 		t.Errorf("--show-authorization still renders the abbreviated chip; got:\n%s", mout2)
 	}
 }
+
+// TestRenderAbsentTrailerColumns pins one rule across the row: a trailer git's
+// parser did not return renders as `-`, the marker RenderTo already uses for an
+// absent target status in the same table.
+//
+// The rule matters because an event can now carry neither verb nor actor — a
+// shipped-surface edit whose whole provenance is the entity trailer. Left
+// blank, its row shows two empty columns and reads as a rendering fault rather
+// than as an absent fact. A verb-shaped label is not the alternative: the
+// column would then name something no aiwf verb did.
+func TestRenderAbsentTrailerColumns(t *testing.T) {
+	t.Parallel()
+
+	t.Run("verb", func(t *testing.T) {
+		t.Parallel()
+		for _, tt := range []struct{ in, want string }{
+			{"promote", "promote"},
+			{"", "-"},
+		} {
+			if got := history.RenderVerb(tt.in); got != tt.want {
+				t.Errorf("RenderVerb(%q) = %q, want %q", tt.in, got, tt.want)
+			}
+		}
+	})
+
+	t.Run("actor", func(t *testing.T) {
+		t.Parallel()
+		for _, tt := range []struct {
+			name string
+			e    entityview.HistoryEvent
+			want string
+		}{
+			{"absent", entityview.HistoryEvent{}, "-"},
+			// A principal with no actor is not a shape any verb writes; it
+			// must not render as " via " with an empty side.
+			{"principal without actor", entityview.HistoryEvent{Principal: "human/peter"}, "human/peter"},
+		} {
+			if got := history.RenderActor(tt.e); got != tt.want {
+				t.Errorf("%s: RenderActor = %q, want %q", tt.name, got, tt.want)
+			}
+		}
+	})
+}
