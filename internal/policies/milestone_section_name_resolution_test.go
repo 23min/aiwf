@@ -116,13 +116,15 @@ func TestMilestoneSectionNameResolution_Fires(t *testing.T) {
 			wantDetail: "## Invented Section",
 		},
 		{
-			// An empty fence has no opening line to match, so it is not the
-			// scaffold and contributes nothing.
-			name: "an empty markdown fence is not the scaffold",
+			// A blank fence has no opening line to match. Asserting only that
+			// some name is unresolved would hold whichever fence were picked;
+			// what must hold is that the search continued to the real scaffold.
+			name: "a blank fence before the scaffold does not displace it",
 			overrides: map[string]string{
-				"skills/aiwfx-wrap-epic/SKILL.md": "# wrap\n\n```markdown\n\n```\n\nSee `## Summary`.\n",
+				"skills/aiwfx-wrap-epic/SKILL.md": "# wrap\n\n```markdown\n\n```\n\n" +
+					"```markdown\n# Epic wrap\n\n## Changelog entry\n\n## Summary\n```\n\n" +
+					"See `## Changelog entry` and `## Summary`.\n",
 			},
-			wantDetail: "## Summary",
 		},
 		{
 			// A fence that merely discusses the artefact mentions the marker in
@@ -165,13 +167,16 @@ func TestMilestoneSectionNameResolution_Fires(t *testing.T) {
 			wantDetail: "## Summary",
 		},
 		{
-			// An unterminated fence that is not the scaffold contributes nothing,
-			// rather than being read to end-of-file as if it were.
+			// An unterminated fence that is not the scaffold contributes nothing.
+			// The name asserted is the one that fence would have supplied, so
+			// the case fails if it is read to end-of-file as the scaffold —
+			// asserting an unrelated unresolved name would hold either way.
 			name: "an unterminated non-scaffold fence yields no sections",
 			overrides: map[string]string{
-				"skills/aiwfx-wrap-epic/SKILL.md": "# wrap\n\n```markdown\n## Unrelated Example\n\nSee `## Summary`.\n",
+				"skills/aiwfx-wrap-epic/SKILL.md": "# wrap\n\n```markdown\n## Unrelated Example\n",
+				"agents/builder.md":               "See `## Unrelated Example`.\n",
 			},
-			wantDetail: "## Summary",
+			wantDetail: "## Unrelated Example",
 		},
 		{
 			name: "an unterminated scaffold fence still yields its sections",
