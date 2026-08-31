@@ -57,6 +57,11 @@ func entityOnlyRepo(t *testing.T) (root string, shas map[string]string) {
 	// prose with a paragraph after it, so `--grep` matches and git's trailer
 	// parser returns nothing.
 	commit("proseMention", "docs: discuss the trailer\n\naiwf-entity: E-0001\n\nThe line above is prose, not a trailer block.\n")
+	// A grep match on a prose line whose real trailer block carries the key
+	// with no value. Git renders that cell as whitespace rather than empty,
+	// so the drop test must trim before comparing or the prose match is
+	// admitted as an event.
+	commit("blankValue", "docs: discuss the trailer\n\naiwf-entity: E-0001\n\naiwf-entity:\n")
 	return root, shas
 }
 
@@ -82,6 +87,9 @@ func TestReadHistory_ListsACommitCarryingTheEntityTrailerAlone(t *testing.T) {
 	// removed rather than corrected.
 	if got[entityview.ShortHash(shas["proseMention"])] {
 		t.Errorf("the prose-mention commit is present in ReadHistory(E-0001); the false-positive guard is gone")
+	}
+	if got[entityview.ShortHash(shas["blankValue"])] {
+		t.Errorf("a commit whose parsed entity trailer carries only whitespace is present; the value is not being trimmed before the drop test")
 	}
 }
 

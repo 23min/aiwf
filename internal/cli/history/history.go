@@ -165,38 +165,13 @@ func RenderTo(to string) string {
 	return "→ " + to
 }
 
-// RenderVerb formats the verb column. Empty renders as "-", the marker
-// RenderTo already uses for an absent trailer in the same table: an event can
-// carry the entity trailer alone, and no verb committed it. A synthesized
-// label is not the alternative — the column would name something no aiwf verb
-// did, and the JSON `verb` field would carry a token outside the closed set.
-func RenderVerb(verb string) string {
-	if verb == "" {
-		return "-"
-	}
-	return verb
-}
-
-// RenderActor formats the actor column. When a non-human principal
-// is present and differs from the actor (the agent-acts-for-human
-// case from I2.5), the column reads `principal via agent` so the
-// human is visually attributed first. Direct human acts (no
-// principal) render the actor verbatim. An event carrying neither
-// renders "-", matching RenderTo's marker for an absent trailer.
-func RenderActor(e entityview.HistoryEvent) string {
-	if e.Actor == "" {
-		// No verb ran, so "who ran the verb" is undefined. A principal
-		// without an actor has no agent to name, so it renders alone.
-		if e.Principal != "" {
-			return e.Principal
-		}
-		return "-"
-	}
-	if e.Principal == "" || e.Principal == e.Actor {
-		return e.Actor
-	}
-	return e.Principal + " via " + e.Actor
-}
+// RenderVerb and RenderActor are re-exported from entityview, which owns the
+// display rules for a HistoryEvent's trailer-backed columns so `aiwf history`,
+// `aiwf show` and the HTML site cannot disagree about them.
+var (
+	RenderVerb  = entityview.RenderVerb
+	RenderActor = entityview.RenderActor
+)
 
 // RenderScopeChips assembles the trailing chip block for one history
 // row. For `aiwf authorize` rows, a `[<scope> <event>]` chip names

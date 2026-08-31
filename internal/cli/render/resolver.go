@@ -650,10 +650,10 @@ func historyEventToRow(e *entityview.HistoryEvent) htmlrender.HistoryRow {
 	row := htmlrender.HistoryRow{
 		Date:         dateOnlyOrEmpty(e.Date),
 		Commit:       e.Commit,
-		Actor:        e.Actor,
+		Actor:        entityview.RenderActor(*e),
 		Principal:    e.Principal,
 		OnBehalfOf:   e.OnBehalfOf,
-		Verb:         e.Verb,
+		Verb:         entityview.RenderVerb(e.Verb),
 		Detail:       e.Detail,
 		To:           e.To,
 		Force:        e.Force != "",
