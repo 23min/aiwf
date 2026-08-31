@@ -34,7 +34,7 @@ This gates milestone *closure*, not the per-commit work: the implementation comm
 
 **Point the review at the spec's evidence, not only at the code.** Before dispatching, bring `## Work log`, `## Release note`, `## Validation` and `## Deferrals` up to date and commit them with `aiwf edit-body M-NNNN`, so the reviewer reads them from the tree and the spec is not left dirty across step 2's corrective commits. Then name all four in the brief: a section met as part of a diff gets skimmed as source, and these are claims — the archived spec is what a later reader consults for what this milestone established, and no gate checks prose.
 
-`## Release note` is the one that leaves the repository. The epic wrap composes its changelog entry from these notes and copies that entry verbatim into the changelog, so this review is the only independent read it gets before it becomes public release notes. Brief the reviewer to check it against what the diff actually changed, in the terms a consumer would notice.
+`## Release note` is the input to the text that leaves the repository. The epic wrap composes its changelog entry from these notes and copies that entry verbatim into the changelog, so this is the only independent read the note itself gets. Brief the reviewer to check it against what the diff actually changed, in the terms a consumer would notice.
 
 Dispatch a **fresh-context reviewer** (a subagent with no authorship attachment) over the milestone's full change-set (`git diff <base>..HEAD`), briefed adversarially per `wf-review-code` §"Independence" (enumerate the load-bearing claims, instruct *verify by measuring not reasoning*, name the risk areas). Run two lenses:
 

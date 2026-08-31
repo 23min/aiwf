@@ -4,6 +4,7 @@ import (
 	"maps"
 	"os"
 	"path/filepath"
+	"sort"
 	"strings"
 	"testing"
 )
@@ -383,5 +384,56 @@ func TestMilestoneSectionNameResolution_NonMarkdownSurfaceIsNotScanned(t *testin
 	}
 	if len(vs) != 0 {
 		t.Fatalf("a non-markdown file is not a surface; got %+v", vs)
+	}
+}
+
+// TestMilestoneSectionNameResolution_HeadingWhitespaceIsTrimmed pins the trim in
+// topLevelHeadings. A template heading with trailing whitespace would otherwise
+// enter the universe carrying it, and every mention of that section — which
+// cannot carry the whitespace, being written inside backticks — would stop
+// resolving.
+func TestMilestoneSectionNameResolution_HeadingWhitespaceIsTrimmed(t *testing.T) {
+	t.Parallel()
+	root := sectionFixtureRoot(t, map[string]string{
+		"templates/milestone-spec.md": "# T\n\n## Goal\n\n## Release note   \n",
+	})
+	vs, err := PolicyMilestoneSectionNameResolution(root)
+	if err != nil {
+		t.Fatalf("policy returned error: %v", err)
+	}
+	if len(vs) != 0 {
+		t.Fatalf("a heading's trailing whitespace must not break resolution; got %+v", vs)
+	}
+}
+
+// TestSectionSurfaces_IsOrdered pins the sort. Violation order follows surface
+// order, so an unsorted walk makes the report order depend on directory
+// iteration and turns any future golden comparison flaky.
+func TestSectionSurfaces_IsOrdered(t *testing.T) {
+	t.Parallel()
+	got, err := sectionSurfaces(sectionFixtureRoot(t, nil))
+	if err != nil {
+		t.Fatalf("sectionSurfaces: %v", err)
+	}
+	if !sort.StringsAreSorted(got) {
+		t.Errorf("surfaces are not sorted: %v", got)
+	}
+}
+
+// TestReleaseNoteHeadingResolves_MatchesTheRulesOwnComparison pins that this
+// policy compares the way the rule does. The rule resolves the section by slug,
+// so a template heading differing only in case is not a drift — reporting it
+// would send the operator to rename a constant that already matches.
+func TestReleaseNoteHeadingResolves_MatchesTheRulesOwnComparison(t *testing.T) {
+	t.Parallel()
+	root := sectionFixtureRoot(t, map[string]string{
+		"templates/milestone-spec.md": "# T\n\n## Goal\n\n## Release Note\n",
+	})
+	vs, err := PolicyReleaseNoteHeadingResolves(root)
+	if err != nil {
+		t.Fatalf("policy returned error: %v", err)
+	}
+	if len(vs) != 0 {
+		t.Fatalf("a case difference resolves under the rule's own slug match; got %+v", vs)
 	}
 }

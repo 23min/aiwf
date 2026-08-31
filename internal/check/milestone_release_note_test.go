@@ -196,3 +196,23 @@ func TestMilestoneDoneEmptyReleaseNote_SkipsNonMilestones(t *testing.T) {
 		t.Fatalf("a done epic carries no release note obligation; got %+v", fs)
 	}
 }
+
+// TestMilestoneDoneEmptyReleaseNote_ReachesCheckRun pins the seam, not the
+// layer. Every other test here calls the rule directly, and the verb-side test
+// asserts only that the promote is not blocked — which is equally true when the
+// rule never runs at all. Without this, deleting the rule's one line in Run
+// silently disables the feature and the whole suite stays green.
+func TestMilestoneDoneEmptyReleaseNote_ReachesCheckRun(t *testing.T) {
+	t.Parallel()
+	root := writeReleaseNoteFixture(t, "done", noSection)
+	var found bool
+	for _, f := range Run(loadReleaseNoteTree(t, root), nil) {
+		if f.Code == CodeMilestoneDoneEmptyReleaseNote {
+			found = true
+		}
+	}
+	if !found {
+		t.Fatalf("%s is not reported through Run; the rule is wired nowhere the operator reaches",
+			CodeMilestoneDoneEmptyReleaseNote)
+	}
+}

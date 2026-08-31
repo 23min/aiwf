@@ -10,11 +10,12 @@ import (
 	"strings"
 
 	"github.com/23min/aiwf/internal/check"
+	"github.com/23min/aiwf/internal/entity"
 )
 
-// sectionViolation builds this policy's violations from one literal, so every
-// report carries the same policy id and a line rather than three of them
-// silently emitting zero.
+// sectionViolation builds this policy's violations from one literal, so the
+// firing-fixture inventory sees a single policy id and every report carries a
+// line.
 func sectionViolation(rel string, line int, format string, args ...any) Violation {
 	return Violation{
 		Policy: "milestone-section-name-resolution",
@@ -229,7 +230,7 @@ func mentionedSectionNames(body string) []sectionMention {
 	var out []sectionMention
 	for i, line := range strings.Split(body, "\n") {
 		for _, m := range sectionMentionRe.FindAllStringSubmatch(line, -1) {
-			span := strings.TrimPrefix(strings.TrimSpace(m[1]), "## ")
+			span := strings.TrimPrefix(m[1], "## ")
 			for _, name := range sectionSpanSplit.Split(span, -1) {
 				if name = strings.TrimSpace(name); name != "" {
 					out = append(out, sectionMention{name: name, line: i + 1})
@@ -265,8 +266,12 @@ func PolicyReleaseNoteHeadingResolves(root string) ([]Violation, error) {
 			Detail: fmt.Sprintf("the milestone template is unreadable, so the section the release-note rule reads cannot be resolved against it: %v", err),
 		}}, nil
 	}
+	// Compare by slug, because that is how the rule resolves the section: an
+	// exact comparison would report a template heading differing only in case or
+	// punctuation as a drift the rule does not actually suffer.
+	want := entity.SectionSlug(check.ReleaseNoteSectionHeading)
 	for _, h := range topLevelHeadings(string(data)) {
-		if h == check.ReleaseNoteSectionHeading {
+		if entity.SectionSlug(h) == want {
 			return nil, nil
 		}
 	}

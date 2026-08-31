@@ -24,9 +24,9 @@ acs:
 Give the milestone spec a `## Release note` — the user-visible delta of that
 milestone's work — and make the epic wrap's changelog entry read from those
 notes instead of from milestone titles and merge SHAs. Ship a check that
-resolves every milestone-spec section name a shipped surface mentions against
-the headings the template actually carries, so the new section stays consistent
-across the surfaces that name it.
+resolves the backticked section names written in the ritual authoring tree
+against the headings the shipped templates and the wrap artefact carry, so a
+surface naming a section no artefact has is reported.
 
 ## Context
 
@@ -59,8 +59,10 @@ file and the line.
 
 The evidence is a relationship between two artefacts rather than an assertion
 about either one's prose, which is what D-0070 leaves available over a shipped
-surface: renaming a heading in the template reddens it, and so does a ritual
-naming a section that does not exist.
+surface. What it catches is a name matching no artefact at all. It does not
+catch renaming a heading that another template also carries, since the universe
+is their union — the limit is stated in the policy's doc comment and belongs to
+the section-ownership work G-0636 tracks.
 
 One edge to settle in implementation: epic-spec section names live in the same
 trees, so the check must not resolve an epic-spec name against the milestone
@@ -141,8 +143,11 @@ this milestone.
 - `internal/skills/embedded-rituals/plugins/aiwf-extensions/templates/milestone-spec.md`
 - `internal/skills/embedded-rituals/plugins/aiwf-extensions/skills/aiwfx-wrap-milestone/SKILL.md`
 - `internal/skills/embedded-rituals/plugins/aiwf-extensions/skills/aiwfx-wrap-epic/SKILL.md`
+- `internal/skills/embedded-rituals/plugins/aiwf-extensions/skills/aiwfx-start-milestone/SKILL.md`
+- `internal/skills/embedded-rituals/plugins/aiwf-extensions/agents/reviewer.md`
+- `internal/skills/embedded/aiwf-check/SKILL.md`
 - `internal/policies/` — AC-1's resolution check
-- `internal/check/` — AC-3's finding rule
+- `internal/check/` — AC-3's finding rule, and its wiring into `check.Run`
 
 ## Out of scope
 
@@ -170,13 +175,16 @@ this milestone.
 - G-0613 — the wrap changelog category set omits Removed, which practice uses
 - D-0070 — prose-content assertions over shipped surfaces are retired
 - D-0031 — CHANGELOG entries are copied from the wrap artefact, not independently authored
+- D-0082 — milestones contribute release notes, amending one of D-0031's rejected alternatives
 
 ---
 
 ## Release note
 
-Milestone specs now carry a `## Release note` section: the user-visible delta of
-that milestone's work, written at its wrap by whoever did it. `aiwfx-wrap-epic`
+The shipped milestone-spec template now carries a `## Release note` section: the
+user-visible delta of that milestone's work, written at its wrap by whoever did
+it. The kernel's own scaffold still writes only `## Goal` and
+`## Acceptance criteria`, which G-0656 records. `aiwfx-wrap-epic`
 composes the epic's changelog entry from those notes rather than reconstructing
 it from milestone titles and merge SHAs, and `aiwfx-wrap-milestone` puts the
 note in front of the independent reviewer, since it is the input to the one
@@ -185,8 +193,9 @@ section that reaches the changelog verbatim.
 `aiwf check` gains `milestone-done-empty-release-note` (warning): a non-archived
 milestone at `done` with no `## Release note` an author wrote. It reports without
 blocking — `aiwf check` and `promote` both gate on error severity — because at
-error it would demand a section the kernel's own scaffold does not write. Every
-milestone already at `done` is archived, so the rule reports on none of them.
+error it would demand a section the kernel's own scaffold does not write. The archive gate keeps it
+off milestones written before the section existed, once the sweep has moved
+them.
 
 A new policy check resolves the backticked section names written in the ritual
 authoring tree against the headings the shipped templates and the wrap
@@ -200,15 +209,15 @@ section-ownership work G-0636 tracks.
 
 ### AC-1 — A section name a ritual writes resolves to a heading some artefact carries
 
-`PolicyMilestoneSectionNameResolution` reports a shipped surface naming a section no template heading or wrap-artefact section carries · commit ff39bb5b2, largely rewritten in ec3d2a7d2 and 1526a1124 · tests 15/15
+`PolicyMilestoneSectionNameResolution` reports a shipped surface naming a section no template heading or wrap-artefact section carries · commit ff39bb5b2, largely rewritten in ec3d2a7d2, 1526a1124 and dfa55e2bb · tests: the `MilestoneSectionNameResolution`, `ReleaseNoteHeadingResolves` and `SectionSurfaces` cases in `internal/policies`
 
 ### AC-2 — Release note ships, and the epic wrap composes from it
 
-Template ships `## Release note`; the milestone wrap reviews it at step 2 and the epic wrap composes its changelog entry from these notes · commit e2bb40351 · tests 15/15 via AC-1's check, which went red on both rituals naming the section before the template carried it
+Template ships `## Release note`; the milestone wrap reviews it at step 2 and the epic wrap composes its changelog entry from these notes · commit e2bb40351 · tests: AC-1's check, which went red on both rituals naming the section before the template carried it
 
 ### AC-3 — A done milestone with an empty Release note is reported
 
-`milestone-done-empty-release-note` (warning) reports a done milestone whose release note nobody wrote; absence counts, so deleting the heading is not an escape · commit a6cbd3814, corrected in ec3d2a7d2 and the round that followed · tests 13/13
+`milestone-done-empty-release-note` (warning) reports a done milestone whose release note nobody wrote; absence counts, so deleting the heading is not an escape · commit a6cbd3814, corrected in ec3d2a7d2 and the round that followed · tests: the `MilestoneDoneEmptyReleaseNote` cases in `internal/check`, including the one driving `check.Run`
 
 ## Decisions made during implementation
 
@@ -220,6 +229,13 @@ Template ships `## Release note`; the milestone wrap reviews it at step 2 and th
   this epic is that nothing mechanically stops an undescribed change from
   shipping — the `[Unreleased]` completeness check planned later is where that
   guarantee has to come from, not here.
+- **D-0031's rejected alternative was revisited, and D-0082 records it.** That
+  decision considered having each milestone contribute a note for the epic wrap
+  to fold in, and rejected it as buying nothing the wrap artefact did not
+  already give for free in the same sitting. The v0.34.0 evidence in `## Context`
+  measures that premise false. D-0031's core holding survives untouched — the
+  changelog still has one producer, the epic wrap — so D-0082 amends rather than
+  supersedes it.
 - **The epic wrap reads each milestone's `## Release note` directly.** The epic
   spec left open whether the wrap reads the notes or the notes accumulate
   somewhere it copies from. Reading directly needs no new artefact and no second
@@ -263,8 +279,9 @@ there, so no signing wrapper is involved).
 
 ## Reviewer notes
 
-Two review rounds ran, each a fresh-context pass over the full change-set; the
-second was sliced across the production units and the fixture blast radius. Both
+Each review round was a fresh-context pass over the full change-set; the later
+ones were sliced across the production units, the fixture blast radius, and the
+prose. Both
 rounds returned REQUEST-CHANGES, and the findings that mattered were claims this
 spec made that measurement contradicted.
 

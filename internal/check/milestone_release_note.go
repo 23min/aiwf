@@ -44,8 +44,8 @@ var releaseNoteSectionSlug = entity.SectionSlug(ReleaseNoteSectionHeading)
 //
 // Absence counts, rather than only an empty section that is present. Scoping to
 // present-and-empty would make deleting the heading an escape, and it would buy
-// nothing: the archive gate below already spares every milestone written before
-// the section existed, and every milestone already at `done` is archived.
+// nothing: the archive gate below already spares a milestone written before the
+// section existed, once the sweep has moved it.
 //
 // Archive-scoped per ADR-0004: an archived milestone is historical state, not
 // active drift, and every milestone reaching `done` is swept there eventually.
