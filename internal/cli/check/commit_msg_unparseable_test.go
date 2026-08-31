@@ -67,11 +67,27 @@ func TestRunCommitMsg_RefusesATrailerBlockGitWillNotRead(t *testing.T) {
 			cliutil.ExitOK,
 		},
 		{
-			// Two aiwf keys is a block wherever it sits, including where the
-			// final paragraph carries an aiwf key of its own — git read that
-			// one, not this, so these trailers are still lost.
-			"a hidden block below a final paragraph that also carries an aiwf key",
-			"feat(x): a thing\n\naiwf-entity: M-0001\naiwf-verb: frobnicate\n\nCo-Authored-By: A <a@example.com>\naiwf-entity: M-0001\n",
+			// The subset case, which a key-only comparison waves through: every
+			// key here also appears in the final paragraph, so only the values
+			// distinguish them — and `frobnicate` is what rides past the
+			// verb check when they are not compared.
+			"a hidden block whose keys all appear in the parsed block",
+			"feat(x): a thing\n\naiwf-entity: M-0001\naiwf-verb: frobnicate\n\nCo-Authored-By: A <a@example.com>\naiwf-entity: M-0001\naiwf-verb: promote\n",
+			cliutil.ExitFindings,
+		},
+		{
+			// The same trailers git actually read, sitting above a paragraph
+			// of somebody else's convention: nothing is hidden, so nothing is
+			// refused. This is the case the pair comparison must not catch.
+			"a block git read, above a non-aiwf final paragraph",
+			"feat(x): a thing\n\naiwf-entity: M-0001\naiwf-verb: promote\n\n# Please enter the commit message for your changes.\n",
+			cliutil.ExitOK,
+		},
+		{
+			// Git accepts a colon with no space after it, so a block written
+			// that way is lost exactly as one written with it.
+			"a block written without a space after the colon",
+			"subj\n\naiwf-verb:bogus\naiwf-entity:M-0001\n\nCo-Authored-By: X <x@y.z>\n",
 			cliutil.ExitFindings,
 		},
 		{
@@ -131,8 +147,8 @@ func TestRunCommitMsg_RefusesATrailerBlockGitWillNotRead(t *testing.T) {
 			cliutil.ExitFindings,
 		},
 		{
-			// CRLF: without normalising, the message never splits into
-			// paragraphs and the guard never fires at all.
+			// A lone carriage return is an all-whitespace line, so a CRLF
+			// message splits into paragraphs like any other.
 			"a CRLF message still splits into paragraphs",
 			"docs: thing\r\n\r\naiwf-verb: notaverb\r\naiwf-entity: M-0001\r\n\r\nCo-Authored-By: X <x@y.z>\r\n",
 			cliutil.ExitFindings,

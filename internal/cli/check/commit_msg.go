@@ -199,8 +199,9 @@ func checkACScopedSubject(msg, block []byte, stderr io.Writer) int {
 }
 
 // trailerLine matches a line of the `Key: value` shape git's trailer parser
-// recognizes.
-var trailerLine = regexp.MustCompile(`^[A-Za-z][A-Za-z0-9-]*:\s`)
+// recognizes. The space after the colon is optional because git treats it so,
+// and a block written without it is lost exactly as one written with it.
+var trailerLine = regexp.MustCompile(`^[A-Za-z][A-Za-z0-9-]*:`)
 
 // checkHiddenTrailerBlock refuses a message carrying an aiwf trailer block git
 // will not read.
@@ -236,16 +237,20 @@ func checkHiddenTrailerBlock(msg, block []byte, stderr io.Writer) int {
 	parsed := map[string]bool{}
 	for _, tr := range gitops.ParseTrailers(string(block)) {
 		if strings.HasPrefix(tr.Key, "aiwf-") {
-			parsed[tr.Key] = true
+			parsed[tr.Key+":"+strings.TrimSpace(tr.Value)] = true
 		}
 	}
 	for _, para := range paras[:len(paras)-1] {
-		keys, ok := aiwfTrailerParagraph(para)
+		pairs, ok := aiwfTrailerParagraph(para)
 		if !ok {
 			continue
 		}
-		if allParsed(keys, parsed) {
+		if allParsed(pairs, parsed) {
 			continue
+		}
+		keys := make([]string, 0, len(pairs))
+		for _, kv := range pairs {
+			keys = append(keys, kv.key)
 		}
 		_, _ = fmt.Fprintf(stderr,
 			"aiwf check: commit-msg refuses an aiwf trailer block git will not read: %s\n"+
@@ -305,13 +310,13 @@ func splitParagraphs(s string) []string {
 // from here on, and a value like `M-0001/AC-1` is not a sentence. Prose keeps
 // its licence: `aiwf-entity: is the key we now require` names no entity and is
 // left alone.
-func aiwfTrailerParagraph(para string) ([]string, bool) {
-	var keys []string
+func aiwfTrailerParagraph(para string) ([]aiwfTrailer, bool) {
+	var keys []aiwfTrailer
 	var lone string
-	// TrimRight, not TrimSpace: stripping the paragraph's leading whitespace
-	// would un-indent its first line, so an indented prose line would read as
-	// trailer-shaped when the rest of its block does not.
-	for _, line := range strings.Split(strings.TrimRight(para, " \t\n"), "\n") {
+	// Lines are taken verbatim: leading spaces or tabs are the indentation that
+	// distinguishes an indented prose line from a trailer-shaped one, and
+	// splitParagraphs already dropped the whitespace-only lines around it.
+	for _, line := range strings.Split(para, "\n") {
 		if !trailerLine.MatchString(line) {
 			return nil, false
 		}
@@ -319,7 +324,7 @@ func aiwfTrailerParagraph(para string) ([]string, bool) {
 		if !ok || !strings.HasPrefix(key, "aiwf-") {
 			continue
 		}
-		keys = append(keys, key)
+		keys = append(keys, aiwfTrailer{key: key, value: strings.TrimSpace(value)})
 		if key == gitops.TrailerEntity || key == gitops.TrailerPriorEntity {
 			lone = strings.TrimSpace(value)
 		}
@@ -403,14 +408,24 @@ func stagedRitualEdits(root string) ([]string, error) {
 	return hits, nil
 }
 
-// allParsed reports whether git's own parse of the message returned every aiwf
-// key this paragraph carries. Where it did, git read the paragraph and nothing
-// is hidden, whatever sits after it.
-func allParsed(keys []string, parsed map[string]bool) bool {
-	for _, k := range keys {
-		if !parsed[k] {
+// allParsed reports whether git's own parse returned every aiwf trailer this
+// paragraph carries, matched on key AND value. Where it did, these exact
+// trailers reached git and nothing is hidden, wherever the paragraph sits.
+//
+// The value is half the test. A key alone is a proxy for "did git read this",
+// and it is wrong in the direction that loses data: a hidden `aiwf-verb:
+// frobnicate` above a parsed `aiwf-verb: promote` shares the key, so a key
+// comparison waves it through and the fabricated value rides past the check
+// that exists to refuse it. Values are trimmed because git's parse normalises
+// the whitespace after the colon.
+func allParsed(pairs []aiwfTrailer, parsed map[string]bool) bool {
+	for _, kv := range pairs {
+		if !parsed[kv.key+":"+kv.value] {
 			return false
 		}
 	}
 	return true
 }
+
+// aiwfTrailer is one aiwf trailer line as written, value trimmed.
+type aiwfTrailer struct{ key, value string }
