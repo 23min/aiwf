@@ -207,8 +207,10 @@ commit-msg hook does ship: `aiwf init` installs it, and it runs wherever an
 ## Out of scope
 
 - Rewriting or re-trailering commits already landed. G-0657 records the commits
-  whose trailer block git cannot read — 51 under the predicate this milestone
-  ships, spanning 2026-04-28 to 2026-06-29 and not growing since. AC-3 closes the
+  whose trailer block git cannot read — 50 under the predicate this milestone
+  ships, spanning 2026-04-28 to 2026-06-29 and not growing since. The gap's own
+  body counts more, because the predicate it states is looser than the one that
+  ships and catches prose mentions too. AC-3 closes the
   path that admits the shape; the landed population stays as written, under the
   same reasoning that leaves terminal Work logs untouched.
 - Retiring `## Work log`. This milestone makes its unique fact derivable
@@ -384,13 +386,14 @@ future change could reintroduce:
 - A subject git composes is not a claim its author made. `--fixup` and `--squash`
   copy the target's subject, so the AC guard exempts them; without that,
   `rebase --autosquash` cannot pair the commits it creates.
-- What makes a trailer-shaped paragraph a block is how many aiwf lines it
-  carries, not where it sits. A first attempt keyed on the final paragraph
-  instead: it tolerated prose only when a real block sat last, so it still
-  refused ordinary English ending in a `Co-Authored-By:` paragraph, and it
-  waved through a genuinely hidden block whenever the last paragraph happened
-  to carry an aiwf key — reopening the hole the guard exists to close. The
-  deciding review caught both.
+- Two questions decide a hidden block, and conflating them cost three rounds.
+  *Is this paragraph a block* is a shape question, answered by how many aiwf
+  lines it carries. *Did git read it* is not re-derived at all — the paragraph's
+  trailers are compared against what git's own parser returned, by key **and**
+  value. Every earlier attempt proxied that second question: by position, then
+  by key alone, each of which waved through a genuinely hidden block. A key
+  matches while its value differs, which is exactly how a fabricated verb rides
+  past the check that exists to refuse it.
 - Guards report cause before symptom. A hidden block makes the trailers
   invisible to every check below it, so reporting one of those first states
   something untrue about the message in front of the operator.
