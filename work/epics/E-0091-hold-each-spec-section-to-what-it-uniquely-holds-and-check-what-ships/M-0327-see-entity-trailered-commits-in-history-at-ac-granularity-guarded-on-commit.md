@@ -249,6 +249,34 @@ the anchored regex cannot match one. That was checked against the subject
 constructors in `internal/verb/`, not inferred from history: a verb whose own
 commits the hook refused would be unrunnable.
 
+### AC-3 — A hidden trailer block and an unowned ritual edit are both refused
+
+`checkHiddenTrailerBlock` and `checkShippedSurfaceOwner` in `commit_msg.go`,
+reached through `aiwf check --commit-msg` · commit fc5501d · `make check-fast`
+exit 0, coverage gate exit 0, seven mutation probes with one survivor found and
+closed
+
+Measured either side of the change, against the two shapes that motivated it: a
+message carrying the trailer block of a real wrap commit split from its
+`Co-Authored-By:` line, and the same shape carrying a fabricated `aiwf-verb`
+value. Both exited 0 before and exit 1 after. The second is the sharper result —
+the split block was carrying a value the closed set refuses straight past the
+check that exists to refuse it.
+
+The shipped-surface guard needs no repo detection. It fires on a staged path
+under the ritual authoring tree, and a consumer repo has none, so the path
+predicate is the scope — which is simpler than the mechanism this milestone
+expected to have to build, and is why the guard ships without an opt-out.
+
+The vacuity survivor was the empty-value case: dropping the check that an
+`aiwf-entity` trailer carries a value left every test green, so the guard was
+satisfiable by typing the key alone. A case now covers it and the mutant dies.
+
+The coverage gate named `internal/cli/check/check.go:49` — the `--commit-msg`
+flag had no test through the Cobra dispatcher at all, so nothing proved the flag
+was wired or that `--root` reached the guard reading the index. The signature
+change exposed it; `check_commit_msg_seam_test.go` closes it.
+
 ## Decisions made during implementation
 
 - (none)
