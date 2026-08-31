@@ -1268,7 +1268,7 @@ A human is the only actor who may put an epic into a terminal status, on every e
 | M-0324 | Refuse a non-human actor on every terminal epic edge | done |
 | M-0325 | Add an operator-driven end to aiwf authorize | done |
 
-## E-0091 — Hold each spec section to what it uniquely holds, and check what ships (proposed)
+## E-0091 — Hold each spec section to what it uniquely holds, and check what ships (active)
 
 ### Goal
 
@@ -1279,5 +1279,5 @@ uniquely holds, and a release's notes rest on whoever cut it remembering.
 
 | Milestone | Title | Status |
 |---|---|---|
-| M-0326 | Add a Release note section and write the epic wrap's changelog from it | draft |
+| M-0326 | Add a Release note section and write the epic wrap's changelog from it | in_progress |
 
