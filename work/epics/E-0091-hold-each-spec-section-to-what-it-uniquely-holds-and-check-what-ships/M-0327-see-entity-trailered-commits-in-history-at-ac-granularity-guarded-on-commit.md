@@ -14,7 +14,7 @@ acs:
       status: met
       tdd_phase: done
     - id: AC-3
-      title: A staged shipped-surface edit without a parseable entity trailer is refused
+      title: A hidden trailer block or an unowned ritual edit is refused at commit time
       status: met
       tdd_phase: done
 ---
@@ -117,7 +117,7 @@ skill's stated limitation that history shows only verb-driven events is likewise
 false after AC-1 and is rewritten here. All three are shipped prose, held at
 review under D-0070; what is asserted mechanically is the refusal.
 
-### AC-3 — A staged shipped-surface edit without a parseable entity trailer is refused
+### AC-3 — A hidden trailer block or an unowned ritual edit is refused at commit time
 
 `aiwf check --commit-msg` refuses when the staged change touches a surface the
 skill-edit backstop watches and git's parser returns no `aiwf-entity` trailer for
@@ -249,7 +249,7 @@ the anchored regex cannot match one. That was checked against the subject
 constructors in `internal/verb/`, not inferred from history: a verb whose own
 commits the hook refused would be unrunnable.
 
-### AC-3 — A hidden trailer block and an unowned ritual edit are both refused
+### AC-3 — A hidden trailer block or an unowned ritual edit is refused at commit time
 
 `checkHiddenTrailerBlock` and `checkShippedSurfaceOwner` in `commit_msg.go`,
 reached through `aiwf check --commit-msg` · commit fc5501d · `make check-fast`
