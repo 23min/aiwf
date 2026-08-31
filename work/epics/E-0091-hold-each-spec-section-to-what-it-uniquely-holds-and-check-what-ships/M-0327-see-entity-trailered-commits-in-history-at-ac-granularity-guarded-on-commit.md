@@ -332,7 +332,9 @@ either way.
 
 ## Decisions made during implementation
 
-- (none)
+- D-0083 — ship the commit-msg shipped-surface guard unscoped. The subprocess it
+  costs runs in every consumer repo and can only ever fire in this one; the
+  reasoning, the two alternatives, and what would reopen it are recorded there.
 
 ## Validation
 
@@ -411,10 +413,8 @@ Judgments recorded so the next reviewer meets a decision:
   Templates and agent cards materialize into a consumer's `.claude/` exactly as
   skills do, so the wider predicate is the correct one and the descriptions that
   said otherwise were the defect.
-- The guard costs a `git diff --cached` per commit in every consumer repo while
-  being able to fire only here. That is a real asymmetry, accepted because the
-  earlier catch replaces an amend or a rebase; it is the first thing to
-  reconsider if the hook's cost is ever measured as a problem.
+- The guard's cost in consumer repos, where it can never fire, is settled in
+  D-0083 rather than here.
 
 Left open as G-0658: the `--root` threading is pinned only as far as flag wiring,
 since the seam test's roots are empty temp dirs where the guard returns early
