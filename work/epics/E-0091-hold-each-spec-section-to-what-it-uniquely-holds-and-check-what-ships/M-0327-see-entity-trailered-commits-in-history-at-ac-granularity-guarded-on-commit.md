@@ -11,6 +11,9 @@ acs:
     - id: AC-2
       title: An AC's implementation commit is reachable from that AC's history
       status: open
+    - id: AC-3
+      title: A staged shipped-surface edit without a parseable entity trailer is refused
+      status: open
 ---
 
 ## Goal
@@ -20,4 +23,6 @@ acs:
 ### AC-1 — aiwf history lists a commit whose only aiwf trailer names the entity
 
 ### AC-2 — An AC's implementation commit is reachable from that AC's history
+
+### AC-3 — A staged shipped-surface edit without a parseable entity trailer is refused
 
