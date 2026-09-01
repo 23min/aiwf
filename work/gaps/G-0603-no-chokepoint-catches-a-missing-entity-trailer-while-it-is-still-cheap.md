@@ -1,8 +1,10 @@
 ---
 id: G-0603
 title: No chokepoint catches a missing entity trailer while it is still cheap
-status: open
+status: addressed
 discovered_in: M-0312
+addressed_by_commit:
+    - fc5501d
 ---
 ## What's missing
 
