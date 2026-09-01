@@ -1,7 +1,7 @@
 ---
 id: M-0327
 title: See entity-trailered commits in history, at AC granularity, guarded on commit
-status: in_progress
+status: done
 parent: E-0091
 tdd: required
 acs:
