@@ -28,12 +28,12 @@ subsections. Re-measured 2026-08-30: 175 populated Work logs, 122 of them
 carrying prose beyond the stated one-line entry, median 283 words against a
 stated shape of about fifteen. It is the largest section, not the thinnest.
 
-Its owner is also only half right. `aiwf history` holds the phase timeline, the
-promotes and — where the `aiwf-tests` trailer is written — the test counts. It
-does **not** hold the link from an AC to the commit that implemented it. That was
-the one fact the section uniquely held, and it no longer is: `aiwf history`
-selects on the entity trailer alone, and the per-AC commit instruction writes the
-criterion's id into it, so the link is answerable without the spec.
+Its owner covers more than it did. `aiwf history` holds the phase timeline, the
+promotes, and — where the `aiwf-tests` trailer is written — the test counts. It
+now also holds the link from an AC to the commit that implemented it, wherever
+that commit carries the criterion's id: the projection selects on the entity
+trailer alone, and the per-AC commit instruction writes the composite id into
+it. That link was the one fact this section uniquely held.
 
 The template assigns the rest by name — a trade-off or a rejected approach to
 `## Reviewer notes`, a decision to `## Decisions made during implementation`,
@@ -43,10 +43,11 @@ own section. So the retirement no longer has to rehome the link.
 One item in the prescribed entry line is still unheld, and it is not the link:
 the per-AC test counts. `aiwf history` carries them only where an `aiwf-tests`
 trailer was written, which `aiwf promote --tests` writes and
-`tdd.require_test_metrics` does not require by default. Measured at HEAD, 311 of
-10,834 commits carry one, and none of the AC promotes on the milestone that
-closed this gap's dependency do. So the retirement decides between two things:
-make the trailer the record, or drop the counts from the entry. It no longer has
+`tdd.require_test_metrics` does not require by default. Measured 2026-08-31
+over this branch's history, 311 commits carry one, and none of the AC promotes
+on the milestone that closed this gap's dependency do. So the retirement decides
+between two things: make the trailer the record, or drop the counts from the
+entry. It no longer has
 to invent a home for the link, and it must not delete the counts assuming one
 exists.
 
