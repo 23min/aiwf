@@ -1280,5 +1280,5 @@ uniquely holds, and a release's notes rest on whoever cut it remembering.
 | Milestone | Title | Status |
 |---|---|---|
 | M-0326 | Add a Release note section and write the epic wrap's changelog from it | done |
-| M-0327 | See entity-trailered commits in history, at AC granularity, guarded on commit | in_progress |
+| M-0327 | See entity-trailered commits in history, at AC granularity, guarded on commit | done |
 
