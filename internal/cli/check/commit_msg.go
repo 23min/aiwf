@@ -9,22 +9,36 @@ import (
 	"io/fs"
 	"os"
 	"os/exec"
+	"regexp"
 	"sort"
+	"strings"
 
 	"github.com/23min/aiwf/internal/cli/cliutil"
+	"github.com/23min/aiwf/internal/entity"
 	"github.com/23min/aiwf/internal/gitops"
 	"github.com/23min/aiwf/internal/skills"
 )
 
-// runCommitMsg validates aiwf-verb trailers in a commit-message
-// file against the running binary's Cobra verb tree ∪ the
-// ritualVerbs allowlist. Used by the `.git/hooks/commit-msg` hook
-// installed by aiwf init/update. Closes G-0218's primary chokepoint.
+// runCommitMsg refuses a commit message at composition time, on four
+// grounds, all of which cost a second here and an amend or a rebase once
+// the commit exists. Used by the `.git/hooks/commit-msg` hook installed
+// by aiwf init/update.
+//
+//   - an aiwf-verb value outside the running binary's Cobra verb tree ∪
+//     the ritualVerbs allowlist;
+//   - a subject claiming an acceptance criterion whose aiwf-entity
+//     trailer names something else, or nothing;
+//   - an aiwf trailer block git will not read, because a blank line
+//     leaves it out of the message's final paragraph;
+//   - a staged edit to the ritual authoring tree that names no entity.
+//
+// root is the repo whose index the last of those reads; empty means the
+// process working directory, which is where git runs a hook.
 //
 // Exit codes: ExitOK pass; ExitFindings refused value(s); ExitUsage
 // bad path / missing file; ExitInternal permission or IO error,
 // ritualVerbs derivation failure.
-func runCommitMsg(path string, registeredVerbs map[string]struct{}, stderr io.Writer) int {
+func runCommitMsg(path, root string, registeredVerbs map[string]struct{}, stderr io.Writer) int {
 	if path == "" {
 		_, _ = fmt.Fprintln(stderr, "aiwf check: --commit-msg requires a path")
 		return cliutil.ExitUsage
@@ -56,6 +70,21 @@ func runCommitMsg(path string, registeredVerbs map[string]struct{}, stderr io.Wr
 		_, _ = fmt.Fprintf(stderr, "aiwf check: extracting trailers from %q: %v\n", path, err)
 		return cliutil.ExitInternal
 	}
+	// Cause before symptom: a hidden block makes the trailers invisible to
+	// every check below it, so reporting one of those first states something
+	// untrue about the message in front of the operator.
+	if code := checkHiddenTrailerBlock(msg, block, stderr); code != cliutil.ExitOK {
+		return code
+	}
+
+	if code := checkACScopedSubject(msg, block, stderr); code != cliutil.ExitOK {
+		return code
+	}
+
+	if code := checkShippedSurfaceOwner(root, block, stderr); code != cliutil.ExitOK {
+		return code
+	}
+
 	if len(block) == 0 {
 		return cliutil.ExitOK
 	}
@@ -105,3 +134,314 @@ func extractTrailerBlock(ctx context.Context, msg []byte) ([]byte, error) {
 	}
 	return stdout.Bytes(), nil
 }
+
+// acScopedSubject matches the trailing `(M-NNNN/AC-N)` scope the per-AC commit
+// convention puts on an implementation commit's subject. The id shape is
+// deliberately loose on width — Canonicalize settles narrow against canonical —
+// and anchored at end of line so a scope mentioned mid-sentence is not a claim.
+var acScopedSubject = regexp.MustCompile(`\(([A-Za-z]-\d+/AC-\d+)\)\s*$`)
+
+// checkACScopedSubject refuses a commit whose subject claims to implement an
+// acceptance criterion while its aiwf-entity trailer names something else, or
+// nothing.
+//
+// The subject is the commit's own claim; the trailer is what makes the claim
+// reachable, because `aiwf history <id>/AC-N` selects by trailer and never reads
+// a subject. Without the trailer the link from a criterion to the commit that
+// implemented it exists only in the milestone spec's prose.
+//
+// A subject naming no AC has made no claim and is not judged, which is what
+// keeps the rule silent for a project that does not scope subjects by AC, and
+// for an acceptance criterion met by an observation rather than by code.
+func checkACScopedSubject(msg, block []byte, stderr io.Writer) int {
+	subject, _, _ := bytes.Cut(msg, []byte("\n"))
+	trimmed := bytes.TrimSpace(subject)
+	// git composes an autosquash subject by copying the target's, so the
+	// scope in it is the target commit's claim, not this one's. Refusing
+	// here would break `git commit --fixup` + `rebase --autosquash`, and the
+	// remediation — dropping the scope — destroys the exact-subject match
+	// autosquash needs to pair them.
+	for _, prefix := range [][]byte{[]byte("fixup! "), []byte("squash! "), []byte("amend! ")} {
+		if bytes.HasPrefix(trimmed, prefix) {
+			return cliutil.ExitOK
+		}
+	}
+	m := acScopedSubject.FindSubmatch(trimmed)
+	if m == nil {
+		return cliutil.ExitOK
+	}
+	claimed := entity.Canonicalize(string(m[1]))
+
+	var carried string
+	for _, tr := range gitops.ParseTrailers(string(block)) {
+		if tr.Key == gitops.TrailerEntity {
+			carried = strings.TrimSpace(tr.Value)
+		}
+	}
+	if entity.Canonicalize(carried) == claimed {
+		return cliutil.ExitOK
+	}
+
+	got := carried
+	if got == "" {
+		got = "no aiwf-entity trailer"
+	} else {
+		got = "aiwf-entity: " + got
+	}
+	_, _ = fmt.Fprintf(stderr,
+		"aiwf check: commit-msg refuses a subject claiming %s while carrying %s\n"+
+			"  The subject says this commit implements %s; the trailer is what makes it\n"+
+			"  reachable from that criterion — `aiwf history` selects by trailer, never by subject.\n"+
+			"  Add: --trailer \"aiwf-entity: %s\"\n"+
+			"  Or drop the (%s) scope from the subject if this commit does not implement it.\n",
+		claimed, got, claimed, claimed, claimed)
+	return cliutil.ExitFindings
+}
+
+// trailerLine matches a line of the `Key: value` shape git's trailer parser
+// recognizes. The space after the colon is optional because git treats it so,
+// and a block written without it is lost exactly as one written with it.
+var trailerLine = regexp.MustCompile(`^[A-Za-z][A-Za-z0-9-]*:`)
+
+// checkHiddenTrailerBlock refuses a message carrying an aiwf trailer block git
+// will not read.
+//
+// Git takes trailers from a message's last paragraph only. A blank line between
+// the aiwf block and a trailing line of somebody else's convention — a
+// `Co-Authored-By:`, typically — leaves the aiwf block as ordinary body prose:
+// `aiwf history` never sees the commit, and the verb-value check above has
+// nothing to judge, so a value outside the closed set rides through. The author
+// sees a correct-looking message, which is why this is caught where it is
+// written rather than reported afterwards.
+//
+// Two questions decide it, and only the first is answered here. Is this
+// paragraph a block at all — the shape question, below. And did git read it —
+// which is not re-derived, because re-implementing that heuristic is what
+// extractTrailerBlock exists to avoid: the keys git returned for the whole
+// message are compared against the keys the paragraph carries, and a block
+// whose keys git returned is a block git read, wherever it sits.
+//
+// That comparison is what keeps the guard silent on an editor buffer. Git hands
+// a commit-msg hook the raw buffer with its `#` template intact and strips the
+// comments afterwards, so the last paragraph is often git's own instructions
+// while the trailers git actually parsed sit above them.
+func checkHiddenTrailerBlock(msg, block []byte, stderr io.Writer) int {
+	_, body, found := bytes.Cut(msg, []byte("\n"))
+	if !found {
+		return cliutil.ExitOK
+	}
+	paras := splitParagraphs(string(body))
+	if len(paras) < 2 {
+		return cliutil.ExitOK
+	}
+	parsed := map[string]bool{}
+	for _, tr := range gitops.ParseTrailers(string(block)) {
+		if strings.HasPrefix(tr.Key, "aiwf-") {
+			parsed[tr.Key+":"+strings.TrimSpace(tr.Value)] = true
+		}
+	}
+	for _, para := range paras[:len(paras)-1] {
+		pairs, ok := aiwfTrailerParagraph(para)
+		if !ok {
+			continue
+		}
+		if allParsed(pairs, parsed) {
+			continue
+		}
+		keys := make([]string, 0, len(pairs))
+		for _, kv := range pairs {
+			keys = append(keys, kv.key)
+		}
+		_, _ = fmt.Fprintf(stderr,
+			"aiwf check: commit-msg refuses an aiwf trailer block git will not read: %s\n"+
+				"  Git takes trailers from the last paragraph only, and a blank line above the\n"+
+				"  final one leaves this block as body prose — invisible to `aiwf history` and to\n"+
+				"  the trailer-value check.\n"+
+				"  Move these into the final paragraph (no blank line before it): %s\n",
+			strings.Join(keys, ", "), strings.Join(keys, ", "))
+		return cliutil.ExitFindings
+	}
+	return cliutil.ExitOK
+}
+
+// splitParagraphs breaks s on any all-whitespace line, which is where git
+// breaks it — a line of spaces separates two paragraphs as surely as an empty
+// one, and treating only the empty case as a separator leaves a block joined to
+// the text below it and so never examined.
+//
+// A CRLF message needs no separate handling: a lone carriage return is an
+// all-whitespace line and separates paragraphs like any other, and a trailing
+// one is trimmed wherever a value is compared.
+//
+// Lines are otherwise kept verbatim: leading spaces or tabs are the indentation
+// that distinguishes an indented prose line from a trailer-shaped one.
+func splitParagraphs(s string) []string {
+	var out []string
+	var cur []string
+	flush := func() {
+		if len(cur) > 0 {
+			out = append(out, strings.Join(cur, "\n"))
+			cur = nil
+		}
+	}
+	for _, line := range strings.Split(s, "\n") {
+		if strings.TrimSpace(line) == "" {
+			flush()
+			continue
+		}
+		cur = append(cur, line)
+	}
+	flush()
+	return out
+}
+
+// aiwfTrailerParagraph reports whether para is an aiwf trailer block — every
+// line trailer-shaped, carrying aiwf keys — and returns those keys.
+//
+// Two keys make a block on their own. One does not, in general: a single
+// trailer-shaped line cannot be told from prose that opens with a key and a
+// colon, since the text is identical and git's parser returns nothing for
+// either. Refusing every such line would reject ordinary English with no
+// recourse, which is how a check comes to be disabled.
+//
+// The exception is a lone entity trailer whose value names an entity. That is
+// the shape a shipped-surface edit carries — the entity trailer alone, because
+// no aiwf verb commits source — so it is the block most likely to be written
+// from here on, and a value like `M-0001/AC-1` is not a sentence. Prose keeps
+// its licence: `aiwf-entity: is the key we now require` names no entity and is
+// left alone.
+func aiwfTrailerParagraph(para string) ([]aiwfTrailer, bool) {
+	var keys []aiwfTrailer
+	var lone string
+	// Lines are taken verbatim: leading spaces or tabs are the indentation that
+	// distinguishes an indented prose line from a trailer-shaped one, and
+	// splitParagraphs already dropped the whitespace-only lines around it.
+	for _, line := range strings.Split(para, "\n") {
+		if !trailerLine.MatchString(line) {
+			return nil, false
+		}
+		key, value, ok := strings.Cut(line, ":")
+		if !ok || !strings.HasPrefix(key, "aiwf-") {
+			continue
+		}
+		keys = append(keys, aiwfTrailer{key: key, value: strings.TrimSpace(value)})
+		if key == gitops.TrailerEntity || key == gitops.TrailerPriorEntity {
+			lone = strings.TrimSpace(value)
+		}
+	}
+	switch {
+	case len(keys) >= 2:
+		return keys, true
+	case len(keys) == 1 && namesAnEntity(lone):
+		return keys, true
+	default:
+		return nil, false
+	}
+}
+
+// namesAnEntity reports whether v is an entity id rather than prose. Composite
+// ids roll up to their parent first, so `M-NNNN/AC-N` is recognized by the
+// milestone grammar that owns it.
+func namesAnEntity(v string) bool {
+	if v == "" {
+		return false
+	}
+	root := entity.CompositeRoot(v)
+	k, ok := entity.KindFromID(root)
+	return ok && entity.ValidateID(k, root) == nil
+}
+
+// checkShippedSurfaceOwner refuses a staged edit to the ritual authoring tree
+// whose message names no entity.
+//
+// A SKILL.md there materializes into consumer repos, so the edit reaches
+// consumers directly and something must own it. The CI backstop judges commits,
+// which means a forgotten trailer is found once the commit exists and the repair
+// is an amend or a rebase; refusing at composition costs a second instead.
+//
+// No repo detection is needed. The rule fires on a staged path under the
+// authoring tree, and a consumer repo has none, so the path predicate is the
+// scope. Presence is all it asks: resolving the id against the tree needs a load
+// the hook does not do, and the CI backstop keeps that half.
+//
+// What it asks an owner for is authorship, so a merge is exempt: the commits
+// being merged own the content, and the CI backstop reads no diff for a merge
+// either, which leaves merge-introduced content unowned on both paths (G-0602).
+func checkShippedSurfaceOwner(root string, block []byte, stderr io.Writer) int {
+	if mergeInProgress(root) {
+		return cliutil.ExitOK
+	}
+	staged, err := stagedRitualEdits(root)
+	if err != nil || len(staged) == 0 {
+		// A repo the hook cannot read the index of is not a fault to state
+		// here; the CI backstop still judges the commit afterwards.
+		return cliutil.ExitOK
+	}
+	for _, tr := range gitops.ParseTrailers(string(block)) {
+		if tr.Key == gitops.TrailerEntity && strings.TrimSpace(tr.Value) != "" {
+			return cliutil.ExitOK
+		}
+	}
+	_, _ = fmt.Fprintf(stderr,
+		"aiwf check: commit-msg refuses a shipped-ritual edit that names no entity: %s\n"+
+			"  Everything here materializes into consumer repos, so the edit needs an owner.\n"+
+			"  Add: --trailer \"aiwf-entity: <id>\" naming the epic, milestone, gap or decision it belongs to.\n"+
+			"  No aiwf-verb is wanted — no aiwf verb commits source.\n",
+		strings.Join(staged, ", "))
+	return cliutil.ExitFindings
+}
+
+// ritualAuthoringDir is the embedded-ritual authoring tree whose edits ship to
+// consumers. Every file under it materializes into a consumer's `.claude/` —
+// skills, entity templates, agent cards — so the predicate is the directory,
+// wider than the CI-tier backstop's `SKILL.md`-only scan.
+const ritualAuthoringDir = "internal/skills/embedded-rituals/"
+
+// mergeInProgress reports whether the commit being composed concludes a merge.
+// During one `git diff --cached` lists every path the merge brings in, none of
+// which this commit authors.
+func mergeInProgress(root string) bool {
+	cmd := exec.Command("git", "rev-parse", "-q", "--verify", "MERGE_HEAD")
+	cmd.Dir = root
+	return cmd.Run() == nil
+}
+
+// stagedRitualEdits lists staged paths under the ritual authoring tree.
+func stagedRitualEdits(root string) ([]string, error) {
+	cmd := exec.Command("git", "diff", "--cached", "--name-only")
+	cmd.Dir = root
+	out, err := cmd.Output()
+	if err != nil {
+		return nil, err
+	}
+	var hits []string
+	for _, line := range strings.Split(string(out), "\n") {
+		line = strings.TrimSpace(line)
+		if line != "" && strings.HasPrefix(line, ritualAuthoringDir) {
+			hits = append(hits, line)
+		}
+	}
+	return hits, nil
+}
+
+// allParsed reports whether git's own parse returned every aiwf trailer this
+// paragraph carries, matched on key AND value. Where it did, these exact
+// trailers reached git and nothing is hidden, wherever the paragraph sits.
+//
+// The value is half the test. A key alone is a proxy for "did git read this",
+// and it is wrong in the direction that loses data: a hidden `aiwf-verb:
+// frobnicate` above a parsed `aiwf-verb: promote` shares the key, so a key
+// comparison waves it through and the fabricated value rides past the check
+// that exists to refuse it. Values are trimmed because git's parse normalises
+// the whitespace after the colon.
+func allParsed(pairs []aiwfTrailer, parsed map[string]bool) bool {
+	for _, kv := range pairs {
+		if !parsed[kv.key+":"+kv.value] {
+			return false
+		}
+	}
+	return true
+}
+
+// aiwfTrailer is one aiwf trailer line as written, value trimmed.
+type aiwfTrailer struct{ key, value string }

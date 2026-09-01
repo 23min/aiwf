@@ -121,17 +121,19 @@ changed to make it possible now?>
      Reconstructing it later from milestone titles is what leaves a shipped
      change undescribed.
 
-     Not the commit index, which `## Work log` holds, and not the epic's
-     summary, which the epic wrap writes. One short paragraph, or one line per
+     Not the account of how it was built, which `## Work log` holds, and not
+     the epic's summary, which the epic wrap writes. One short paragraph, or one line per
      user-facing change. "No user-visible change" is a valid note; empty is
      not. -->
 
 ## Work log
 
-<!-- The index from each AC to the commit that implemented it. `aiwf history`
-     lists commits carrying kernel trailers; an implementation commit reaches it
-     only when it carries them too, which it normally does not — so this is where
-     that link lives.
+<!-- One line per AC recording what it produced. The AC's own history answers
+     which commit implemented it, once that commit carries the AC in its entity
+     trailer, so the SHA here is a locator beside the outcome rather than the
+     record of the link. Reasoning that outlives the entry — a rejected
+     approach, a trade argued out — belongs in the section that owns it, not
+     here.
      One entry per AC (preferred) or per meaningful unit of work. Append-only;
      never rewrite earlier entries.
        Header:     "AC-<N> — <short title>" or "<short title>" if not AC-scoped.

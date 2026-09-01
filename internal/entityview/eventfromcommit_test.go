@@ -14,6 +14,7 @@ func TestEventFromCommit_FullPromote(t *testing.T) {
 	body := "feat(x): a subject\n\nsome prose reason\n\naiwf-verb: promote\naiwf-actor: human/peter\n"
 	trailers := []gitops.Trailer{
 		{Key: gitops.TrailerVerb, Value: "promote"},
+		{Key: gitops.TrailerEntity, Value: "M-0001"},
 		{Key: gitops.TrailerActor, Value: "human/peter"},
 		{Key: gitops.TrailerTo, Value: "done"},
 		{Key: gitops.TrailerForce, Value: "legacy migration"},
@@ -49,17 +50,6 @@ func TestEventFromCommit_FullPromote(t *testing.T) {
 	}
 }
 
-// TestEventFromCommit_ProseMentionSkipped pins the G30 skip: a commit
-// with an aiwf-entity trailer but neither aiwf-verb nor aiwf-actor is a
-// grep false-positive, not a real event — ok=false.
-func TestEventFromCommit_ProseMentionSkipped(t *testing.T) {
-	t.Parallel()
-	trailers := []gitops.Trailer{{Key: gitops.TrailerEntity, Value: "M-0001"}}
-	if ev, ok := EventFromCommit("sha", "2026-07-03T00:00:00Z", "prose mentioning M-0001", "body", trailers); ok {
-		t.Errorf("EventFromCommit ok=true for a prose-mention commit; want false (got %+v)", ev)
-	}
-}
-
 // TestEventFromCommit_ScopeEndsAndNoBody covers two edge arms together:
 // repeating aiwf-scope-ends collect into the slice in order, and a
 // subject-only message (no blank line) yields an empty body.
@@ -67,6 +57,7 @@ func TestEventFromCommit_ScopeEndsAndNoBody(t *testing.T) {
 	t.Parallel()
 	trailers := []gitops.Trailer{
 		{Key: gitops.TrailerVerb, Value: "promote"},
+		{Key: gitops.TrailerEntity, Value: "M-0001"},
 		{Key: gitops.TrailerActor, Value: "human/peter"},
 		{Key: gitops.TrailerScopeEnds, Value: "authA"},
 		{Key: gitops.TrailerScopeEnds, Value: "  "}, // blank value → skipped

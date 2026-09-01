@@ -33,12 +33,12 @@ opened this epic, and the section has no downstream consumer — the epic wrap
 that writes the changelog reads milestone titles and merge SHAs, never a Work
 log.
 
-It cannot simply be deleted, because one fact in it is real and unheld
+It could not simply be deleted, because one fact in it was real and unheld
 elsewhere: the link from an acceptance criterion to the commit that implemented
-it. `aiwf history` discards commits carrying an entity trailer with neither verb
-nor actor — 44 such commits, including ones the `skill-edit-provenance-backstop`
-rule mandates be written that way (G-0601). Until that projection sees them, the
-Work log is the only index there is.
+it. `aiwf history` discarded commits carrying an entity trailer with neither verb
+nor actor, including ones the `skill-edit-provenance-backstop` rule mandates be
+written that way (G-0601). M-0327 made the projection see them and made the
+commit carry the criterion's id, so the index now exists outside the spec.
 
 At the far end, nothing verifies that what shipped is described. `[Unreleased]`
 is written at a patch's wrap and an epic's wrap and nowhere else, and the only

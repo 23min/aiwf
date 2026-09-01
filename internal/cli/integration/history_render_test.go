@@ -4,6 +4,8 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/23min/aiwf/internal/cli"
+	"github.com/23min/aiwf/internal/cli/cliutil"
 	"github.com/23min/aiwf/internal/cli/cliutil/testutil"
 	"github.com/23min/aiwf/internal/cli/history"
 	"github.com/23min/aiwf/internal/entityview"
@@ -201,4 +203,85 @@ func TestRenderHistory_AuthorizationFlow(t *testing.T) {
 	if strings.Contains(mout2, "[E-0001 "+fullSHA[:7]+"]") {
 		t.Errorf("--show-authorization still renders the abbreviated chip; got:\n%s", mout2)
 	}
+}
+
+// TestRenderAbsentTrailerColumns pins one rule across the row: a trailer git's
+// parser did not return renders as `-`, the marker RenderTo already uses for an
+// absent target status in the same table.
+//
+// The rule matters because an event can now carry neither verb nor actor — a
+// shipped-surface edit whose whole provenance is the entity trailer. Left
+// blank, its row shows two empty columns and reads as a rendering fault rather
+// than as an absent fact. A verb-shaped label is not the alternative: the
+// column would then name something no aiwf verb did.
+func TestRenderAbsentTrailerColumns(t *testing.T) {
+	t.Parallel()
+
+	t.Run("verb", func(t *testing.T) {
+		t.Parallel()
+		for _, tt := range []struct{ in, want string }{
+			{"promote", "promote"},
+			{"", "-"},
+		} {
+			if got := history.RenderVerb(tt.in); got != tt.want {
+				t.Errorf("RenderVerb(%q) = %q, want %q", tt.in, got, tt.want)
+			}
+		}
+	})
+
+	t.Run("actor", func(t *testing.T) {
+		t.Parallel()
+		for _, tt := range []struct {
+			name string
+			e    entityview.HistoryEvent
+			want string
+		}{
+			{"absent", entityview.HistoryEvent{}, "-"},
+			// A principal with no actor is not a shape any verb writes; it
+			// must not render as " via " with an empty side.
+			{"principal without actor", entityview.HistoryEvent{Principal: "human/peter"}, "human/peter"},
+		} {
+			if got := history.RenderActor(tt.e); got != tt.want {
+				t.Errorf("%s: RenderActor = %q, want %q", tt.name, got, tt.want)
+			}
+		}
+	})
+}
+
+// TestRun_HistoryRendersTheAbsentVerbMarker pins history.go's own row, which
+// TestRenderAbsentTrailerColumns does not: that test calls the helpers
+// directly, so the call site can revert with it green.
+// Serial: CaptureStdout replaces os.Stdout, a process-level fd shared by every
+// goroutine (see setup_test.go's skip-list).
+func TestRun_HistoryRendersTheAbsentVerbMarker(t *testing.T) {
+	root := setupCLITestRepo(t)
+	if rc := cli.Execute([]string{"init", "--root", root, "--actor", "human/test", "--skip-hook"}); rc != cliutil.ExitOK {
+		t.Fatalf("init: %d", rc)
+	}
+	if rc := cli.Execute([]string{"add", "epic", "--title", "Foundations", "--actor", "human/test", "--root", root}); rc != cliutil.ExitOK {
+		t.Fatalf("add epic: %d", rc)
+	}
+	if out, err := testutil.RunGit(root, "commit", "--allow-empty", "-m",
+		"fix(x): correct a shipped surface\n\naiwf-entity: E-0001\n"); err != nil {
+		t.Fatalf("git commit: %v\n%s", err, out)
+	}
+	out := string(testutil.CaptureStdout(t, func() {
+		if rc := cli.Execute([]string{"history", "--root", root, "E-0001"}); rc != cliutil.ExitOK {
+			t.Fatalf("history: %d", rc)
+		}
+	}))
+	for _, line := range strings.Split(out, "\n") {
+		if !strings.Contains(line, "fix(x): correct a shipped surface") {
+			continue
+		}
+		// Fields, not Contains: the timestamp carries hyphens. history prints
+		// date, actor, verb, to, detail — all three trailer columns render the
+		// marker for an event carrying none of them.
+		f := strings.Fields(line)
+		if len(f) < 4 || f[1] != "-" || f[2] != "-" || f[3] != "-" {
+			t.Errorf("absent-trailer columns not marked; fields = %q", f[:min(5, len(f))])
+		}
+		return
+	}
+	t.Fatalf("history did not list the entity-only commit:\n%s", out)
 }

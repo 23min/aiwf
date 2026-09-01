@@ -14,7 +14,7 @@ func TestRunCommitMsg_PassThroughKernelVerb(t *testing.T) {
 	t.Parallel()
 	path := writeMsg(t, "feat(check): add the thing\n\nLong-form rationale.\n\naiwf-verb: promote\naiwf-entity: M-0001\n")
 	var buf bytes.Buffer
-	code := runCommitMsg(path, map[string]struct{}{"promote": {}, "add": {}}, &buf)
+	code := runCommitMsg(path, t.TempDir(), map[string]struct{}{"promote": {}, "add": {}}, &buf)
 	if code != cliutil.ExitOK {
 		t.Errorf("kernel verb: code=%d want %d; stderr=%q", code, cliutil.ExitOK, buf.String())
 	}
@@ -25,7 +25,7 @@ func TestRunCommitMsg_PassThroughRitualVerb(t *testing.T) {
 	t.Parallel()
 	path := writeMsg(t, "chore(epic): wrap E-0030\n\naiwf-verb: wrap-epic\naiwf-entity: E-0030\n")
 	var buf bytes.Buffer
-	code := runCommitMsg(path, map[string]struct{}{"promote": {}, "add": {}}, &buf)
+	code := runCommitMsg(path, t.TempDir(), map[string]struct{}{"promote": {}, "add": {}}, &buf)
 	if code != cliutil.ExitOK {
 		t.Errorf("ritual verb: code=%d want %d; stderr=%q", code, cliutil.ExitOK, buf.String())
 	}
@@ -35,7 +35,7 @@ func TestRunCommitMsg_NoTrailer(t *testing.T) {
 	t.Parallel()
 	path := writeMsg(t, "chore: refactor the thing\n\nSome rationale.\n")
 	var buf bytes.Buffer
-	code := runCommitMsg(path, map[string]struct{}{"promote": {}}, &buf)
+	code := runCommitMsg(path, t.TempDir(), map[string]struct{}{"promote": {}}, &buf)
 	if code != cliutil.ExitOK {
 		t.Errorf("no aiwf-verb: code=%d want %d; stderr=%q", code, cliutil.ExitOK, buf.String())
 	}
@@ -48,7 +48,7 @@ func TestRunCommitMsg_RefusesFabricated(t *testing.T) {
 	t.Parallel()
 	path := writeMsg(t, "chore(epic): merge milestone\n\naiwf-verb: merge\naiwf-entity: M-0160\n")
 	var buf bytes.Buffer
-	code := runCommitMsg(path, map[string]struct{}{"promote": {}, "wrap-epic": {}}, &buf)
+	code := runCommitMsg(path, t.TempDir(), map[string]struct{}{"promote": {}, "wrap-epic": {}}, &buf)
 	if code == cliutil.ExitOK {
 		t.Errorf("fabricated trailer: code=%d want non-zero", code)
 	}
@@ -66,7 +66,7 @@ func TestRunCommitMsg_RefusesMultipleFabricated(t *testing.T) {
 	t.Parallel()
 	path := writeMsg(t, "wip\n\naiwf-verb: implement\naiwf-verb: bogus\n")
 	var buf bytes.Buffer
-	code := runCommitMsg(path, map[string]struct{}{"promote": {}}, &buf)
+	code := runCommitMsg(path, t.TempDir(), map[string]struct{}{"promote": {}}, &buf)
 	if code == cliutil.ExitOK {
 		t.Errorf("multi-fabricated: code=%d want non-zero", code)
 	}
@@ -84,7 +84,7 @@ func TestRunCommitMsg_RefusesMixedRegisteredAndFabricated(t *testing.T) {
 	t.Parallel()
 	path := writeMsg(t, "wip\n\naiwf-verb: promote\naiwf-verb: bogus\n")
 	var buf bytes.Buffer
-	code := runCommitMsg(path, map[string]struct{}{"promote": {}}, &buf)
+	code := runCommitMsg(path, t.TempDir(), map[string]struct{}{"promote": {}}, &buf)
 	if code == cliutil.ExitOK {
 		t.Errorf("mixed registered+fabricated: code=%d want non-zero; stderr=%q", code, buf.String())
 	}
@@ -102,7 +102,7 @@ func TestRunCommitMsg_RefusesEmptyValue(t *testing.T) {
 	t.Parallel()
 	path := writeMsg(t, "wip\n\naiwf-verb: \n")
 	var buf bytes.Buffer
-	code := runCommitMsg(path, map[string]struct{}{"promote": {}}, &buf)
+	code := runCommitMsg(path, t.TempDir(), map[string]struct{}{"promote": {}}, &buf)
 	if code == cliutil.ExitOK {
 		t.Errorf("empty value: code=%d want non-zero; stderr=%q", code, buf.String())
 	}
@@ -120,7 +120,7 @@ func TestRunCommitMsg_IgnoresMiscasedKey(t *testing.T) {
 	t.Parallel()
 	path := writeMsg(t, "wip\n\nAiwf-Verb: bogus\n")
 	var buf bytes.Buffer
-	code := runCommitMsg(path, map[string]struct{}{"promote": {}}, &buf)
+	code := runCommitMsg(path, t.TempDir(), map[string]struct{}{"promote": {}}, &buf)
 	if code != cliutil.ExitOK {
 		t.Errorf("miscased key: code=%d want ExitOK (case-sensitivity is the kernel-wide contract); stderr=%q", code, buf.String())
 	}
@@ -136,7 +136,7 @@ func TestRunCommitMsg_NonUTF8(t *testing.T) {
 		t.Fatalf("write: %v", err)
 	}
 	var buf bytes.Buffer
-	code := runCommitMsg(path, map[string]struct{}{"promote": {}}, &buf)
+	code := runCommitMsg(path, t.TempDir(), map[string]struct{}{"promote": {}}, &buf)
 	if code != cliutil.ExitOK {
 		t.Errorf("non-utf8: code=%d want ExitOK; stderr=%q", code, buf.String())
 	}
@@ -145,7 +145,7 @@ func TestRunCommitMsg_NonUTF8(t *testing.T) {
 func TestRunCommitMsg_EmptyPath(t *testing.T) {
 	t.Parallel()
 	var buf bytes.Buffer
-	code := runCommitMsg("", map[string]struct{}{"promote": {}}, &buf)
+	code := runCommitMsg("", t.TempDir(), map[string]struct{}{"promote": {}}, &buf)
 	if code != cliutil.ExitUsage {
 		t.Errorf("empty path: code=%d want %d", code, cliutil.ExitUsage)
 	}
@@ -154,7 +154,7 @@ func TestRunCommitMsg_EmptyPath(t *testing.T) {
 func TestRunCommitMsg_MissingFile(t *testing.T) {
 	t.Parallel()
 	var buf bytes.Buffer
-	code := runCommitMsg(filepath.Join(t.TempDir(), "no-such"), map[string]struct{}{"promote": {}}, &buf)
+	code := runCommitMsg(filepath.Join(t.TempDir(), "no-such"), t.TempDir(), map[string]struct{}{"promote": {}}, &buf)
 	if code != cliutil.ExitUsage {
 		t.Errorf("missing file: code=%d want %d", code, cliutil.ExitUsage)
 	}
@@ -181,7 +181,7 @@ func TestRunCommitMsg_BodyProseIsNotTrailerBlock(t *testing.T) {
 		"aiwf-verb: promote\n"+
 		"aiwf-entity: G-0218\n")
 	var buf bytes.Buffer
-	code := runCommitMsg(path, map[string]struct{}{"promote": {}}, &buf)
+	code := runCommitMsg(path, t.TempDir(), map[string]struct{}{"promote": {}}, &buf)
 	if code != cliutil.ExitOK {
 		t.Errorf("body-prose with example-trailers + real trailer block: code=%d want %d (the prose lines must not be parsed as trailers); stderr=%q", code, cliutil.ExitOK, buf.String())
 	}

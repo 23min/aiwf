@@ -121,10 +121,15 @@ func buildTrapRepo(t *testing.T) trapRepo {
 		"aiwf-verb: promote\naiwf-entity: E-0001\naiwf-actor: human/peter\naiwf-to: done\n" +
 		"aiwf-force: legacy migration\naiwf-audit-only: backfill\n" +
 		"aiwf-principal: human/peter\naiwf-on-behalf-of: human/peter\naiwf-reason: manual recovery\n")
-	// Prose-mention (G30): an aiwf-entity trailer with NO aiwf-verb/aiwf-actor.
-	// ReadHistoryChain skips it (verb+actor empty) and so must the single pass
-	// (EventFromCommit returns ok=false) — it belongs to no bucket.
+	// An entity trailer with no verb and no actor: git's parser returns it, so
+	// it is a real event and belongs to E-0001's bucket on both sides.
 	commit("chore: touch up notes\n\naiwf-entity: E-0001\n")
+	// The prose-mention false positive (G30): the id-shaped line sits in body
+	// prose with a paragraph after it, so `--grep` matches while git's trailer
+	// parser returns nothing. ReadHistoryChain drops it and so must the single
+	// pass — it belongs to no bucket. Without the trailing paragraph this is a
+	// trailer, not a mention, and the differential covers nothing.
+	commit("docs: discuss the trailer\n\naiwf-entity: E-0001\n\nThe line above is prose, not a trailer block.\n")
 
 	// (2) Active direct-scope opener E-0002 + E-0003 worked under it.
 	commit("add E-0002\n\naiwf-verb: add\naiwf-entity: E-0002\naiwf-actor: human/peter\n")
