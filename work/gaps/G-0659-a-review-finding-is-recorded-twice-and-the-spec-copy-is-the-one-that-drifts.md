@@ -18,7 +18,7 @@ it under `## Reviewer notes` if the reader needs the reasoning, and nowhere if
 the check speaks for itself". The second clause is the correct default and reads
 as the exception.
 
-Measured on M-0327, whose review ran eight rounds: `## Reviewer notes` held 602
+Measured on M-0327, whose review ran ten rounds: `## Reviewer notes` held 602
 words, of which six of seven bullets restated a rule already pinned by a test
 that dies under mutation. The corrective commit bodies carry 886 words saying
 what was wrong and why. The acceptance criteria show the same shape at
