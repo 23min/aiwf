@@ -1,8 +1,10 @@
 ---
 id: G-0601
 title: aiwf history hides skill edits owned by an entity trailer alone
-status: open
+status: addressed
 discovered_in: M-0312
+addressed_by_commit:
+    - 8a321fb
 ---
 ## What's missing
 
