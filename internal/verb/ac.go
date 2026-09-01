@@ -194,7 +194,12 @@ func promoteAC(ctx context.Context, t *tree.Tree, compositeID string, newStatus 
 	// entity-level Promote uses, and firing regardless of force for the same
 	// reason: a sovereign override has no transition to re-apply. A composite
 	// promote carries no resolver flags (Promote refuses them for composite
-	// ids), so a bare status comparison is the whole condition here.
+	// ids), so a bare status comparison is the whole condition here. The phase
+	// reset below does not widen it: an AC already at `open` has nothing
+	// arriving, and `open` carrying a phase is the ordinary state between a
+	// finished cycle and the `met` promote — indistinguishable from one a
+	// pre-reset demote left behind, so the verb must not try to tell them
+	// apart.
 	// Gated on IsAllowedACStatus for the same reason Promote's guard is: an
 	// AC hand-edited to a status the FSM does not know is not a state to
 	// converge on.
@@ -211,6 +216,18 @@ func promoteAC(ctx context.Context, t *tree.Tree, compositeID string, newStatus 
 	}
 	modified, err := withACMutation(parent, ac.ID, func(updated *entity.AcceptanceCriterion) {
 		updated.Status = newStatus
+		//coverage:ignore the status inequality is unreachable — the
+		// same-state guard above returns before any redundant promote gets
+		// here. It is kept because that guard is the only thing making it so,
+		// and a guard widened to compare the phase would silently turn this
+		// reset destructive against the ordinary open+done state.
+		if ac.Status != newStatus && newStatus == entity.StatusOpen {
+			// Arriving at `open` starts the cycle over (G-0569). Empty, not
+			// `red`: `red` claims a failing test exists, which arriving here
+			// does not establish. Keyed on arrival rather than on the
+			// met -> open edge, so `deferred -> open` cannot carry one across.
+			updated.TDDPhase = ""
+		}
 	})
 	if err != nil {
 		return nil, err
