@@ -363,7 +363,14 @@ func namesAnEntity(v string) bool {
 // authoring tree, and a consumer repo has none, so the path predicate is the
 // scope. Presence is all it asks: resolving the id against the tree needs a load
 // the hook does not do, and the CI backstop keeps that half.
+//
+// What it asks an owner for is authorship, so a merge is exempt: the commits
+// being merged own the content, and the CI backstop reads no diff for a merge
+// either, which leaves merge-introduced content unowned on both paths (G-0602).
 func checkShippedSurfaceOwner(root string, block []byte, stderr io.Writer) int {
+	if mergeInProgress(root) {
+		return cliutil.ExitOK
+	}
 	staged, err := stagedRitualEdits(root)
 	if err != nil || len(staged) == 0 {
 		// A repo the hook cannot read the index of is not a fault to state
@@ -389,6 +396,15 @@ func checkShippedSurfaceOwner(root string, block []byte, stderr io.Writer) int {
 // skills, entity templates, agent cards — so the predicate is the directory,
 // wider than the CI-tier backstop's `SKILL.md`-only scan.
 const ritualAuthoringDir = "internal/skills/embedded-rituals/"
+
+// mergeInProgress reports whether the commit being composed concludes a merge.
+// During one `git diff --cached` lists every path the merge brings in, none of
+// which this commit authors.
+func mergeInProgress(root string) bool {
+	cmd := exec.Command("git", "rev-parse", "-q", "--verify", "MERGE_HEAD")
+	cmd.Dir = root
+	return cmd.Run() == nil
+}
 
 // stagedRitualEdits lists staged paths under the ritual authoring tree.
 func stagedRitualEdits(root string) ([]string, error) {

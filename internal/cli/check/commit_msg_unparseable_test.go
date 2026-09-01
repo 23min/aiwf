@@ -358,3 +358,56 @@ func TestRunCommitMsg_ReportsTheHiddenBlockBeforeItsSymptoms(t *testing.T) {
 		t.Errorf("reported the subject as unbacked when its trailer is present but hidden; stderr = %q", buf.String())
 	}
 }
+
+// mergeInProgressRepo makes a repo standing mid-merge, the merge bringing in
+// paths under the ritual authoring tree, and returns its root.
+func mergeInProgressRepo(t *testing.T, paths ...string) string {
+	t.Helper()
+	root := stagedRepo(t)
+	run := func(a ...string) {
+		t.Helper()
+		if out, err := testutil.RunGit(root, a...); err != nil {
+			t.Fatalf("git %v: %v\n%s", a, err, out)
+		}
+	}
+	if err := os.WriteFile(filepath.Join(root, "README.md"), []byte("base\n"), 0o600); err != nil {
+		t.Fatalf("write: %v", err)
+	}
+	run("add", "README.md")
+	run("commit", "-qm", "chore: base")
+	run("checkout", "-qb", "side")
+	for _, rel := range paths {
+		full := filepath.Join(root, filepath.FromSlash(rel))
+		if err := os.MkdirAll(filepath.Dir(full), 0o755); err != nil {
+			t.Fatalf("mkdir: %v", err)
+		}
+		if err := os.WriteFile(full, []byte("# a shipped surface\n"), 0o600); err != nil {
+			t.Fatalf("write: %v", err)
+		}
+		run("add", rel)
+	}
+	run("commit", "-qm", "docs(rituals): reword a step", "--trailer", "aiwf-entity: M-0001")
+	run("checkout", "-q", "main")
+	// --no-ff --no-commit is the wrap ritual's own sequence: it leaves the
+	// merge staged so the following commit carries a deliberate message.
+	run("merge", "--no-ff", "--no-commit", "side")
+	return root
+}
+
+// TestRunCommitMsg_ShippedSurfaceGuardLeavesAMergeAlone pins that the guard
+// judges authorship rather than the index. During a merge `git diff --cached`
+// lists every path the merge brings in, but the commits being merged already
+// own that content — which is why the CI backstop reads no diff for a merge
+// commit either (G-0602). A merge message names no entity by convention, so
+// refusing here would block any wrap whose branch touched the ritual tree.
+func TestRunCommitMsg_ShippedSurfaceGuardLeavesAMergeAlone(t *testing.T) {
+	t.Parallel()
+
+	root := mergeInProgressRepo(t, "internal/skills/embedded-rituals/plugins/p/skills/s/SKILL.md")
+	var buf bytes.Buffer
+	code := runCommitMsg(writeMsg(t, "Merge side: add a skill\n"), root,
+		map[string]struct{}{"promote": {}}, &buf)
+	if code != cliutil.ExitOK {
+		t.Errorf("code = %d, want %d; stderr = %q", code, cliutil.ExitOK, buf.String())
+	}
+}
