@@ -50,6 +50,17 @@ warning is the one who will not heed it. Removing the state is what removes the
 failure: a verdict vocabulary with no clear-by-reading value in it, and a
 separate word for what a command settled.
 
+The distinction that separates a sound clearance from an unsound one has a
+second consequence, and it splits the repair in two. Where no command was run,
+the vocabulary change is the whole of it. Where one was run and it cannot fail,
+the reviewer complies with the rule and still reports a clearance, so the word
+is not what is wrong. G-0660 is that shape: the wrap ritual's compression
+question requires the cut applied and the gates run, and the gates it names have
+no failing state for a deleted test or a removed guard. Renaming the verdict
+there leaves the reviewer running the same command. The repair is to route the
+site to an instrument that can fail — and this gap already names one, in
+`wf-vacuity`'s mutation probe, as a verdict a command earns.
+
 Not a chore. Deciding which sites are legitimate takes judgment at each one, so
 the change wants its own branch and its own review rather than riding along with
 other work.
