@@ -22,10 +22,19 @@ Measured on M-0327, whose review ran eight rounds: `## Reviewer notes` held 602
 words, of which six of seven bullets restated a rule already pinned by a test
 that dies under mutation. The corrective commit bodies carry 886 words saying
 what was wrong and why. The acceptance criteria show the same shape at
-sub-entity granularity — AC-3 grew from 314 words at its `met` promote to 538,
-every increment landing on a review round, while AC-1 grew by two words. The
-prior milestone in the same epic reproduces it: two of its three ACs grew 22%
-after `met`.
+sub-entity granularity, and it is repo-wide rather than local to this milestone.
+Of 225 criteria already substantial when promoted `met`, 41 grew afterwards;
+across those, 3,749 words were added against 1,377 removed, and 8 removed
+essentially nothing at all. Under a third of the growth lands after `met` — the
+rest arrives between `add` and `met`, so a rule keyed on the `met` promote would
+watch the smaller half.
+
+Where the added words belong is the sharper defect. The largest case adds 265 to
+M-0313/AC-1, describing what that criterion's check does not recognize: a
+`cmp.Diff`, a regexp match, a comparison against a literal with no call in it.
+`internal/policies/shipped_prose_assertion.go` runs to 903 lines and documents
+none of them. The knowledge is real, and it is filed where the archive will take
+it while the file a reader opens stays silent.
 
 The growth is self-reinforcing. Each added paragraph is more surface for the next
 round to find a false claim in, and every round of this milestone's review found
