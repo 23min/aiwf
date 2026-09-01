@@ -16,6 +16,22 @@ section in this file.
 
 ## [Unreleased]
 
+### Fixed — an acceptance criterion reopened for rework starts its TDD cycle over
+
+`aiwf promote <id>/AC-N open` now clears the AC's `tdd_phase`. The phase FSM is
+linear and terminal, so a carried-over `done` satisfied the `acs-tdd-audit` rule
+"met requires `tdd_phase: done`" in advance: an AC demoted for rework could be
+re-promoted to `met` with no force and no second red-green cycle, riding the
+first cycle's evidence. The reset keys on arrival at `open`, so `deferred → open`
+is covered as well as `met → open`, and it resets to the pre-cycle empty phase
+rather than to `red`, which would claim a failing test that arriving at `open`
+does not establish (G-0569).
+
+A redundant `open` promote still converges to a no-op and leaves the phase alone:
+an AC sitting at `open` with a finished phase is the ordinary state between a
+cycle ending and the `met` promote, indistinguishable from one an older binary
+left behind, so the verb does not try to repair it.
+
 ### Changed — the milestone Work log says what it is for, and stops inviting prose
 
 `## Work log` carried no statement of its purpose in any binding surface, and two
