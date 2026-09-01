@@ -1,7 +1,7 @@
 ---
 id: D-0084
 title: Record a review finding where it resists, not in the milestone spec
-status: proposed
+status: accepted
 ---
 > **Date:** 2026-09-01 · **Decided by:** human/peter
 
