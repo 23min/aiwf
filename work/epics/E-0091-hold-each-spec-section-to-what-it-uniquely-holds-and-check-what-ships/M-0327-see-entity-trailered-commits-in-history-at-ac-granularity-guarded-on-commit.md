@@ -332,61 +332,22 @@ finds is for that review to record.
 
 ## Reviewer notes
 
-Independent review ran repeatedly over the full change-set — sliced by concern
-at first, then whole — and every round returned request-changes. The reviewers
-consistently found the behaviour sound and the claims about it wrong, and each
-corrective round introduced defects of its own until the last. Every finding was
-fixed on this branch; those worth a later reader's attention are below, and the
-ones left open are in `## Deferrals`.
+Independent review ran repeatedly over the full change-set and every round
+returned request-changes. The behaviour was found sound throughout; almost every
+finding was a claim about it, and corrective rounds kept introducing claim
+defects of their own. Each finding's record is the check that pins it and the
+commit body that says why it changed — not repeated here.
 
-The code defects worth a later reader's attention, because each names a shape a
-future change could reintroduce:
+What held under attack, so a later round need not re-spend it: the commit-msg
+guard was driven over every commit message in this history, sixteen synthetic
+edge shapes and an end-to-end hook run, with no false positive and no skip that
+loses a trailer git could not read; a sweep of every changed production file
+killed all but one mutant, and that one is G-0658.
 
-- A subject git composes is not a claim its author made. `--fixup` and `--squash`
-  copy the target's subject, so the AC guard exempts them; without that,
-  `rebase --autosquash` cannot pair the commits it creates.
-- Two questions decide a hidden block, and conflating them cost three rounds.
-  *Is this paragraph a block* is a shape question, answered by how many aiwf
-  lines it carries. *Did git read it* is not re-derived at all — the paragraph's
-  trailers are compared against what git's own parser returned, by key **and**
-  value. Every earlier attempt proxied that second question: by position, then
-  by key alone, each of which waved through a genuinely hidden block. A key
-  matches while its value differs, which is exactly how a fabricated verb rides
-  past the check that exists to refuse it.
-- No aiwf verb reaches this hook. `CommitVerbChange` writes through
-  `commit-tree` and `update-ref`, which fire no hooks — it says so where it
-  fires `post-commit` explicitly to restore the parity that plumbing costs. The
-  subjects are independently safe, every verb subject having the shape
-  `aiwf <verb> <id> …` with no parenthesised scope, checked against the
-  constructors rather than inferred from history. A future move back to the
-  `git commit` porcelain would make that second fact the only one holding.
-- Guards report cause before symptom. A hidden block makes the trailers
-  invisible to every check below it, so reporting one of those first states
-  something untrue about the message in front of the operator.
-- The absent-trailer marker now has one home. It was written twice and applied to
-  two of the three surfaces that render these events; the rendered site kept
-  blank cells and a `principal via ` with nothing after it.
+One fact nothing pins: no aiwf verb reaches this hook, because `CommitVerbChange`
+writes through `commit-tree` and `update-ref`, which fire no hooks. The subject
+shapes are independently safe, but a move back to the `git commit` porcelain
+would leave that the only thing holding.
 
-Judgments recorded so the next reviewer meets a decision:
-
-- `RenderActor`'s principal-without-actor arm stays. No verb writes that pair,
-  but both alternatives are wrong — dropping the principal discards provenance
-  the commit carries, and the template form it replaced emitted a dangling
-  separator.
-- The shipped-surface guard's predicate is the ritual directory, not `SKILL.md`.
-  Templates and agent cards materialize into a consumer's `.claude/` exactly as
-  skills do, so the wider predicate is the correct one and the descriptions that
-  said otherwise were the defect.
-- The guard's cost in consumer repos, where it can never fire, is settled in
-  D-0083 rather than here.
-
-Left open as G-0658: the `--root` threading is pinned only as far as flag wiring,
-since the seam test's roots are empty temp dirs where the guard returns early
-whatever root it is given.
-
-Fixed in passing rather than filed: `internal/cli/render`'s differential carried
-a fixture whose comment called a commit a prose mention when git parses its
-trailer perfectly well. It was a real event before this milestone and dropped
-only because the projection discarded it, so admitting it silently removed the
-false-positive coverage the differential claimed. A real mention — the id-shaped
-line with a paragraph after it — now sits beside it.
+The guard's cost in consumer repos, where it can never fire, is settled in
+D-0083.
