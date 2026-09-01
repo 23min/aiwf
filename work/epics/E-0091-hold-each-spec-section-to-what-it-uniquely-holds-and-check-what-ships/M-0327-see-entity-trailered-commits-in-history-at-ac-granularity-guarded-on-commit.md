@@ -273,7 +273,7 @@ Both drop sites read the entity trailer git returned; an absent verb or actor re
 
 ### AC-3 — A hidden trailer block or an unowned ritual edit is refused at commit time
 
-Both guards reached through `aiwf check --commit-msg`; a block is hidden when git's own parse does not return its trailers · commits fc5501d, b1c020b, a0c99a0, 1b4d7a1, c02e431 · check-fast and coverage gate green
+Both guards reached through `aiwf check --commit-msg`; a block is hidden when git's own parse does not return its trailers · commits fc5501d, b1c020b, a0c99a0, 1b4d7a1, c02e431, 88e623d1 · check-fast and coverage gate green
 
 ## Decisions made during implementation
 
@@ -329,22 +329,39 @@ finds is for that review to record.
   closes the path that admits the shape; the landed population is historical
   record and is not rewritten, on the same reasoning the epic applies to the
   Work logs of terminal milestones.
+- G-0658 — nothing pins that the repository root reaches the guard that reads the
+  index, so it could stop seeing staged paths with no test noticing.
+- G-0659 — a review finding is recorded twice and the spec copy is the one that
+  drifts. Recorded rather than acted on: the routing it asks for binds at the
+  moment of writing, which is not a surface this milestone touches.
+- G-0602 — the commit-msg guard exempts a merge outright, so a conflict resolved
+  inside a shipped skill is unowned on both halves of the provenance gate rather
+  than only at the backstop. Closing the commit-time half alone would leave the
+  other open, so the two want deciding together.
 
 ## Reviewer notes
 
-Independent review ran repeatedly over the full change-set and every round
-returned request-changes. Almost every finding was a claim about the behaviour,
-not the behaviour, and corrective rounds kept introducing claim defects of their
-own; the exception is the merge exemption, a behaviour defect the last round
-found. Each finding's record is the check that pins it and the commit body that
-says why it changed — not repeated here.
+Independent review ran repeatedly over the full change-set. Almost every
+finding was a claim about the behaviour, not the behaviour, and corrective rounds
+kept introducing claim defects of their own; the exception is the merge
+exemption, a behaviour defect the deciding pass found. Each finding's record is
+the check that pins it and the commit body that says why it changed — not
+repeated here.
+
+That deciding pass returned one blocking finding, and its fix was confirmed by a
+review scoped to the fix rather than by a fresh pass over the whole change-set.
+The two together cover the change-set — the full pass saw everything but the fix,
+the scoped one saw only it — but no single fresh reader has read the change-set
+as it now stands.
 
 What held under attack, so a later round need not re-spend it: fifteen mutation
 probes spanning the render call sites, both template column families, both
-history drop sites and every commit-msg guard each went red; the coverage gate
-reports no uncovered changed statement and the diff adds no ignore directive;
-every measured figure here re-derives from the tree; the deleted provenance
-fields have no remaining reader.
+history drop sites and every commit-msg guard each went red; a merge in progress
+is the only git state that exempts the shipped-surface guard, measured against
+nine adjacent states that stage content without being one; the coverage gate reports no uncovered changed
+statement and the diff adds no ignore directive; every measured figure here
+re-derives from the tree; the deleted provenance fields have no remaining
+reader.
 
 One fact nothing pins: no aiwf verb reaches this hook, because `CommitVerbChange`
 writes through `commit-tree` and `update-ref`, which fire no hooks. The subject
