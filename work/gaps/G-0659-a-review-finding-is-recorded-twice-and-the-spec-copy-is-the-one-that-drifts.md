@@ -31,6 +31,21 @@ The growth is self-reinforcing. Each added paragraph is more surface for the nex
 round to find a false claim in, and every round of this milestone's review found
 claim defects in prose written by the round before.
 
+The same shape appears in code comments, unbounded. Measured across `internal/`
+at HEAD: 4,513 production comment blocks, of which 1,027 exceed eight lines and
+account for 17,426 lines; the longest is 115. 85% of those sit against a
+declaration, where Go's own convention puts a symbol's contract; 158 float inside
+function bodies, where nothing distinguishes an explanation from an argument.
+M-0327 added 177 comment lines to production Go, 119 of them in blocks of ten or
+more.
+
+Nor is drift the dominant failure. Of sixteen claims of this milestone's that
+review overturned, three were true when written and went stale; thirteen were
+never true. The first class needs a re-derivation trigger when a rule changes.
+The second needs something at the moment of writing, and nothing distinguishes
+them today — both are repaired the same way, so the authoring failure is
+recorded as maintenance and never addressed as itself.
+
 ## Why it matters
 
 The third copy is the one nothing re-derives, so it is the one that drifts — and
