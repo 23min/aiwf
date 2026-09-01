@@ -333,16 +333,18 @@ finds is for that review to record.
 ## Reviewer notes
 
 Independent review ran repeatedly over the full change-set and every round
-returned request-changes. The behaviour was found sound throughout; almost every
-finding was a claim about it, and corrective rounds kept introducing claim
-defects of their own. Each finding's record is the check that pins it and the
-commit body that says why it changed — not repeated here.
+returned request-changes. Almost every finding was a claim about the behaviour,
+not the behaviour, and corrective rounds kept introducing claim defects of their
+own; the exception is the merge exemption, a behaviour defect the last round
+found. Each finding's record is the check that pins it and the commit body that
+says why it changed — not repeated here.
 
-What held under attack, so a later round need not re-spend it: the commit-msg
-guard was driven over every commit message in this history, sixteen synthetic
-edge shapes and an end-to-end hook run, with no false positive and no skip that
-loses a trailer git could not read; a sweep of every changed production file
-killed all but one mutant, and that one is G-0658.
+What held under attack, so a later round need not re-spend it: fifteen mutation
+probes spanning the render call sites, both template column families, both
+history drop sites and every commit-msg guard each went red; the coverage gate
+reports no uncovered changed statement and the diff adds no ignore directive;
+every measured figure here re-derives from the tree; the deleted provenance
+fields have no remaining reader.
 
 One fact nothing pins: no aiwf verb reaches this hook, because `CommitVerbChange`
 writes through `commit-tree` and `update-ref`, which fire no hooks. The subject
