@@ -1,7 +1,7 @@
 ---
 id: D-0084
 title: Record a review finding where it resists, not in the milestone spec
-status: proposed
+status: accepted
 ---
 > **Date:** 2026-09-01 · **Decided by:** human/peter
 
@@ -35,6 +35,12 @@ where it cannot go stale.
   about review coverage rather than about code, so it cannot drift, and each
   round's supersedes the last.
 
+- A **gate result**: the spec's `## Validation`, replaced rather than appended.
+  It describes what a command reported rather than what the code does, which is
+  why it is on this list at all — an observation of a moment, so it cannot be
+  re-derived and has to be written. A superseded run records nothing, so each
+  re-run overwrites the last instead of joining it.
+
 Prose in a living document describing what the code does is not on that list. That
 category is empty.
 
@@ -66,6 +72,13 @@ outside the code, or one rejected clause, runs one to four lines. Hitting eight
 says a different kind of writing has happened, and forces it somewhere. A ceiling
 set below natural size is raised, as this repo's own advisory line budget shows;
 one set above it is not, because raising it only hides what hitting it revealed.
+
+`## Validation` earns its entry from the same measurement: on the milestone that
+produced this decision, the single commit that cut `## Work log` by 81% grew
+`## Validation` by 37% in the same write. The cut had a mandate behind it — that
+milestone's own epic is retiring the section — and the section with no mandate
+grew while the author was pruning. All three are named in the reviewer's brief,
+so what grows here is read back into the next round.
 
 Rejected: capping doc comments by the same count. Measured, 85% of the blocks over
 eight lines in `internal/` sit against a declaration, which is where Go puts a
