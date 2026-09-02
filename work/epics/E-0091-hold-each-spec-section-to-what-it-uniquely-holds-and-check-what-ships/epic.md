@@ -56,10 +56,6 @@ opposite here, since guidance and rituals ship as product (G-0529).
 - Retire `## Work log` once its unique fact is derivable elsewhere. Adding the
   note does not wait on that — the two sections hold different facts, so they
   coexist until the retirement is safe.
-- Hold an acceptance criterion to its claim and the name of its evidence,
-  routing what a review produces out of the criterion and into the artefact that
-  resists a false claim — the check's own documentation, the spec's decisions
-  section, or a gap.
 - Give every milestone-spec section rule one owner, chosen by where the rule
   binds, and make the surfaces that restate it point at that owner instead.
 - Settle the `## Validation` timing contradiction as a side effect of naming
@@ -147,8 +143,6 @@ opposite here, since guidance and rituals ship as product (G-0529).
 - `M-0327` — the history projection sees entity-trailered commits, at AC
   granularity, and a chokepoint catches an unparseable trailer while it is cheap
   · depends on: —
-- `M-0328` — an acceptance criterion holds its claim and names its evidence, and
-  the wrap ritual stops inviting more · depends on: —
 - Every milestone-spec section rule gets one owner; `## Validation` resolves;
   required sections are enforced · depends on: —
 - `## Work log` retires, its unique fact derivable without it · depends on: the
