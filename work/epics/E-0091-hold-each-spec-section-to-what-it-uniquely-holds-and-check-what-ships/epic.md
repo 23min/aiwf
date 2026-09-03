@@ -136,24 +136,37 @@ opposite here, since guidance and rituals ship as product (G-0529).
 ## Milestones
 
 <!-- Allocated one at a time as each is started. An entry with no id is the
-     dependency shape this epic assumes, not an allocation. -->
+     dependency shape this epic assumes, not an allocation. A bullet marked
+     "patch" carries no acceptance criterion and is not a milestone: its
+     deliverable is shipped prose, whose correctness a review carries. -->
 
 - `M-0326` — `## Release note` joins the milestone spec and feeds the epic wrap's
   changelog entry · depends on: —
 - `M-0327` — the history projection sees entity-trailered commits, at AC
   granularity, and a chokepoint catches an unparseable trailer while it is cheap
   · depends on: —
-- Every milestone-spec section rule gets one owner; `## Validation` resolves;
-  required sections are enforced · depends on: —
-- `## Work log` retires, its unique fact derivable without it · depends on: the
-  history milestone and the ownership milestone
+- An entity body that omits one of its kind's required sections is reported
+  · depends on: —
 - A release's `[Unreleased]` is checked against what shipped · depends on: —
+- **patch** — every milestone-spec section rule gets one owner, and
+  `## Validation` resolves as a side effect · depends on: —
+- **patch** — what an acceptance criterion body holds gets an owner
+  · depends on: the section-ownership patch
+- **patch** — `## Work log` retires, its unique fact derivable without it
+  · depends on: the history milestone and the section-ownership patch
 
 Ownership precedes the retirement rather than following it. Retiring a section
 costs one edit per surface that names it, and five name this one while two of
 them disagree about when it is filled. Naming the owner first makes the other
 four point at it, so the retirement is one edit at the owner instead of five
 across surfaces that do not agree.
+
+The ownership work is patch-shaped because its deliverable is shipped prose. A
+prose-content assertion over a shipped surface is retired, so an acceptance
+criterion over that work has no evidence available and would be met by a proxy.
+What is separately checkable — that a section reference resolves against the
+artefact it names — is a narrower claim than ownership, and already has a policy
+covering the union case.
 
 ## References
 
