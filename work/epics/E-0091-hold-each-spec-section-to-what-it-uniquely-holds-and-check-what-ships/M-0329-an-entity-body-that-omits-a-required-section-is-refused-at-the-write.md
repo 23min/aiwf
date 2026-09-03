@@ -14,6 +14,9 @@ acs:
     - id: AC-3
       title: A blessed body that drops a required section HEAD carried is refused
       status: open
+    - id: AC-4
+      title: One absence predicate serves every rule that asks whether a section is there
+      status: open
 ---
 
 ## Goal
@@ -25,4 +28,6 @@ acs:
 ### AC-2 — The add-time gate refuses an omitted required heading, not only an empty one
 
 ### AC-3 — A blessed body that drops a required section HEAD carried is refused
+
+### AC-4 — One absence predicate serves every rule that asks whether a section is there
 
