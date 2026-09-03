@@ -8,6 +8,9 @@ acs:
     - id: AC-1
       title: edit-body --body-file refuses a body that omits a required section
       status: open
+    - id: AC-2
+      title: The add-time gate refuses an omitted required heading, not only an empty one
+      status: open
 ---
 
 ## Goal
@@ -15,4 +18,6 @@ acs:
 ## Acceptance criteria
 
 ### AC-1 — edit-body --body-file refuses a body that omits a required section
+
+### AC-2 — The add-time gate refuses an omitted required heading, not only an empty one
 
