@@ -11,6 +11,9 @@ acs:
     - id: AC-2
       title: The add-time gate refuses an omitted required heading, not only an empty one
       status: open
+    - id: AC-3
+      title: A blessed body that drops a required section HEAD carried is refused
+      status: open
 ---
 
 ## Goal
@@ -20,4 +23,6 @@ acs:
 ### AC-1 — edit-body --body-file refuses a body that omits a required section
 
 ### AC-2 — The add-time gate refuses an omitted required heading, not only an empty one
+
+### AC-3 — A blessed body that drops a required section HEAD carried is refused
 
