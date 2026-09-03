@@ -8,6 +8,7 @@ acs:
     - id: AC-1
       title: edit-body --body-file refuses a body that omits a required section
       status: open
+      tdd_phase: red
     - id: AC-2
       title: The add-time gate refuses an omitted required heading, not only an empty one
       status: open
