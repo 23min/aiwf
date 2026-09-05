@@ -51,10 +51,6 @@ const CodeEntityBodyEmpty = "entity-body-empty"
 // before the emptiness check (M-066/AC-4).
 var htmlCommentPattern = regexp.MustCompile(`(?s)<!--.*?-->`)
 
-// h2Heading matches a `## <name>` line. Captured group is the
-// heading text (trimmed by the caller).
-var h2Heading = regexp.MustCompile(`^##\s+(.+?)\s*$`)
-
 // h3ACHeading matches a `### AC-N — <title>` line (separator may be
 // em-dash, hyphen, or colon — same permissive shape as
 // acsBodyCoherence's locator). Capture: AC id integer.
@@ -91,26 +87,36 @@ func ApplyTDDStrict(findings []Finding, strict bool) {
 	}
 }
 
-// AbsentRequiredSections returns the sections k requires that body does not
-// carry at all, in the kind's canonical order.
+// SectionsAbsent returns the headings in want that body carries no `##`
+// heading for, in the order given. It is the one answer to "is this section
+// there", and every rule asking that question routes through it.
 //
 // Absence and emptiness are separate failures with separate remedies, and
 // EmptyRequiredSections reports only the second: a heading that is not there
-// has no content to judge, so it skips one. This answers the other half, and
-// every rule asking whether a required section is there routes through it.
-func AbsentRequiredSections(k entity.Kind, body []byte) []string {
-	sections := entity.RequiredSections(k)
-	if len(sections) == 0 {
+// has no content to judge, so it skips one. This answers the other half.
+//
+// It reads entity.ParseBodySections, the parser `aiwf show`, the renderer and
+// the AC rules already share, so a body's sections are one set rather than one
+// set per caller. Comments are stripped first: a heading inside the template's
+// own guidance comment is not a section an author wrote.
+func SectionsAbsent(body []byte, want []string) []string {
+	if len(want) == 0 {
 		return nil
 	}
-	present := scanH2Sections(stripHTMLComments(body))
+	present := entity.ParseBodySections(stripHTMLComments(body))
 	var absent []string
-	for _, name := range sections {
-		if _, found := present[name]; !found {
+	for _, name := range want {
+		if _, found := present[entity.SectionSlug(name)]; !found {
 			absent = append(absent, name)
 		}
 	}
 	return absent
+}
+
+// AbsentRequiredSections returns the sections k requires that body does not
+// carry at all, in the kind's canonical order.
+func AbsentRequiredSections(k entity.Kind, body []byte) []string {
+	return SectionsAbsent(body, entity.RequiredSections(k))
 }
 
 // EmptyRequiredSections returns the names of kind's load-bearing
@@ -130,15 +136,14 @@ func EmptyRequiredSections(k entity.Kind, body []byte) []string {
 	if len(sections) == 0 {
 		return nil
 	}
-	stripped := stripHTMLComments(body)
-	present := scanH2Sections(stripped)
+	present := entity.ParseBodySections(stripHTMLComments(body))
 	var empty []string
 	for _, name := range sections {
-		content, found := present[name]
+		content, found := present[entity.SectionSlug(name)]
 		if !found {
 			continue
 		}
-		if isAllWhitespaceOrHeadings(content, false) {
+		if isAllWhitespaceOrHeadings([]byte(content), false) {
 			empty = append(empty, name)
 		}
 	}
@@ -258,41 +263,6 @@ func entityBodyEmpty(t *tree.Tree) []Finding {
 // not satisfy the non-empty requirement.
 func stripHTMLComments(body []byte) []byte {
 	return htmlCommentPattern.ReplaceAll(body, nil)
-}
-
-// scanH2Sections walks body bytes line by line and returns a map of
-// section heading → content bytes between that heading and the next
-// `## ` heading (or EOF). Sub-headings (`###`, `####`, …) are
-// included verbatim in the content; the caller decides how to count
-// them.
-func scanH2Sections(body []byte) map[string][]byte {
-	out := map[string][]byte{}
-	scanner := bufio.NewScanner(bytes.NewReader(body))
-	scanner.Buffer(make([]byte, 64*1024), 1024*1024)
-	var (
-		currentName    string
-		currentContent []byte
-	)
-	flush := func() {
-		if currentName != "" {
-			out[currentName] = currentContent
-		}
-	}
-	for scanner.Scan() {
-		line := strings.TrimRight(scanner.Text(), "\r")
-		if m := h2Heading.FindStringSubmatch(line); m != nil {
-			flush()
-			currentName = strings.TrimSpace(m[1])
-			currentContent = nil
-			continue
-		}
-		if currentName == "" {
-			continue
-		}
-		currentContent = append(currentContent, []byte(line+"\n")...)
-	}
-	flush()
-	return out
 }
 
 // scanACBodies walks body bytes line by line and returns a map of
