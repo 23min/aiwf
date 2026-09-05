@@ -202,6 +202,13 @@ coverage gate green
 
 ## Validation
 
+Run on the milestone branch at AC-4's close, against base
+`epic/E-0091-hold-each-spec-section-to-what-it-uniquely-holds-and-check-what-ships`:
+
+    make ci                exit 0   (vet, lint 0 issues, race suite, coverage gate, self-check 29 steps)
+    make stress-tests      exit 0   (internal/stresstest, cmd/stresstest)
+    aiwf check             exit 0   5 findings, 0 errors
+
 Verdict parity for the parser swap was measured before it landed, over every
 entity body in this tree: `EmptyRequiredSections` against the same function
 rewritten onto `entity.ParseBodySections`, 7,284 (file, kind) pairs across 1,272
