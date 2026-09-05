@@ -40,7 +40,7 @@ func TestProbeShowFound_RealBinary(t *testing.T) {
 	bin := sharedTestBinary(t)
 	dir := newVerbSequenceTestRepo(t)
 
-	addEnv, err := runAiwfJSON(bin, dir, "add", "gap", "--title", "t", "--body", "b")
+	addEnv, err := runAiwfJSON(bin, dir, "add", "gap", "--title", "t", "--body", sectionedBody("gap", "b"))
 	if err != nil {
 		t.Fatalf("add gap: %v", err)
 	}

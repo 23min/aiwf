@@ -71,7 +71,7 @@ func (s *ConcurrentIDAllocationScenario) launchActor(dir string, i int) rawActor
 	args := []string{
 		"add", string(s.kind),
 		"--title", fmt.Sprintf("concurrent actor %d", i),
-		"--body", "concurrent id-allocation stress actor",
+		"--body", sectionedBody(string(s.kind), "concurrent id-allocation stress actor"),
 		"--format=json",
 	}
 	cmd := exec.Command(s.aiwfBin, args...) //nolint:gosec // s.aiwfBin is a path this package's own BuildBinary just produced, not attacker-controlled input

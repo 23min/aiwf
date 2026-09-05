@@ -100,7 +100,7 @@ func (s *ReachabilityIsolationScenario) Run(dir string) error {
 		return fmt.Errorf("baseline check in worktree A: %w", err)
 	}
 
-	addEnv, err := runAiwfJSON(s.aiwfBin, wtB, "add", string(s.kind), "--title", "sibling entity", "--body", "reachability isolation stress actor")
+	addEnv, err := runAiwfJSON(s.aiwfBin, wtB, "add", string(s.kind), "--title", "sibling entity", "--body", sectionedBody(string(s.kind), "reachability isolation stress actor"))
 	if err != nil { //coverage:ignore defensive: same launch-failure class pinned at its source by TestReachabilityIsolationScenario_RealBinary_ErrorsWhenBinaryMissing
 		return fmt.Errorf("adding the sibling entity in worktree B: %w", err)
 	}

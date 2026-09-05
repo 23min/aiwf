@@ -84,7 +84,7 @@ func (s *ArchiveDuringActiveScopeScenario) Setup(dir string) error {
 		return fmt.Errorf("reading the base branch: %w", err)
 	}
 
-	epicEnv, err := runAiwfJSON(s.aiwfBin, dir, "add", "epic", "--title", "parentep", "--body", "parent epic for the archive-during-active-scope scenario")
+	epicEnv, err := runAiwfJSON(s.aiwfBin, dir, "add", "epic", "--title", "parentep", "--body", sectionedBody("epic", "parent epic for the archive-during-active-scope scenario"))
 	if err != nil { //coverage:ignore defensive: covered by the same launch-failure class other scenarios pin at runAiwfJSON's own source
 		return fmt.Errorf("seeding the parent epic: %w", err)
 	}
@@ -99,7 +99,7 @@ func (s *ArchiveDuringActiveScopeScenario) Setup(dir string) error {
 		return fmt.Errorf("activating the parent epic: aiwf did not report ok (status=%s, error=%+v)", promEnv.Status, promEnv.Error)
 	}
 
-	msEnv, err := runAiwfJSON(s.aiwfBin, dir, "add", "milestone", "--epic", s.epicID, "--tdd", "none", "--title", "childms", "--body", "child milestone for the archive-during-active-scope scenario")
+	msEnv, err := runAiwfJSON(s.aiwfBin, dir, "add", "milestone", "--epic", s.epicID, "--tdd", "none", "--title", "childms", "--body", sectionedBody("milestone", "child milestone for the archive-during-active-scope scenario"))
 	if err != nil { //coverage:ignore defensive: see the parent epic add above
 		return fmt.Errorf("seeding the child milestone: %w", err)
 	}

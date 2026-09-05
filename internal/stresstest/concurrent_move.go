@@ -70,7 +70,7 @@ func (s *ConcurrentMoveScenario) Setup(dir string) error {
 		return err
 	}
 
-	sourceEnv, err := runAiwfJSON(s.aiwfBin, dir, "add", "epic", "--title", "move-race source", "--body", "source epic for the concurrent-move stress scenario")
+	sourceEnv, err := runAiwfJSON(s.aiwfBin, dir, "add", "epic", "--title", "move-race source", "--body", sectionedBody("epic", "source epic for the concurrent-move stress scenario"))
 	if err != nil { //coverage:ignore defensive: covered by the same launch-failure class other scenarios pin at runAiwfJSON's own source
 		return fmt.Errorf("seeding the source epic: %w", err)
 	}
@@ -79,7 +79,7 @@ func (s *ConcurrentMoveScenario) Setup(dir string) error {
 	}
 	s.sourceEpic = sourceEnv.Metadata.EntityID
 
-	targetEnv, err := runAiwfJSON(s.aiwfBin, dir, "add", "epic", "--title", "move-race target", "--body", "target epic for the concurrent-move stress scenario")
+	targetEnv, err := runAiwfJSON(s.aiwfBin, dir, "add", "epic", "--title", "move-race target", "--body", sectionedBody("epic", "target epic for the concurrent-move stress scenario"))
 	if err != nil { //coverage:ignore defensive: see the source epic add above
 		return fmt.Errorf("seeding the target epic: %w", err)
 	}
@@ -91,7 +91,7 @@ func (s *ConcurrentMoveScenario) Setup(dir string) error {
 	s.milestoneIDs = make([]string, s.n)
 	for i := 0; i < s.n; i++ {
 		msEnv, err := runAiwfJSON(s.aiwfBin, dir, "add", "milestone", "--epic", s.sourceEpic, "--tdd", "none",
-			"--title", fmt.Sprintf("move-race milestone %d", i), "--body", "seeded for the concurrent-move stress scenario")
+			"--title", fmt.Sprintf("move-race milestone %d", i), "--body", sectionedBody("milestone", "seeded for the concurrent-move stress scenario"))
 		if err != nil { //coverage:ignore defensive: see the source epic add above
 			return fmt.Errorf("seeding milestone %d: %w", i, err)
 		}
