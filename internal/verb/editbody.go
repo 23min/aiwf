@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"slices"
 
 	"github.com/23min/aiwf/internal/check"
 	"github.com/23min/aiwf/internal/entity"
@@ -116,12 +117,14 @@ func editBodyExplicit(ctx context.Context, t *tree.Tree, e *entity.Entity, body 
 
 	// A required section the body omits entirely is invisible to
 	// entity-body-empty, which judges only one present and empty, so without
-	// this the section is lost with nothing red (G-0571). It sits after the
-	// same-state check above: a body identical to the one HEAD carries
-	// converges first, which keeps an entity that already omits a section
-	// editable.
-	if absent := check.AbsentRequiredSections(e.Kind, body); len(absent) > 0 {
-		return nil, fmt.Errorf("%s: body omits required section(s) %s — add the heading, or edit a body that carries it", e.ID, quotedHeadings(absent))
+	// this the section is lost with nothing red (G-0571).
+	headBody, err := bodyAtHEAD(ctx, t.Root, e.Path)
+	if err != nil {
+		//coverage:ignore defensive: bodyAtHEAD's own error arm is unreachable for the reasons annotated at its source, so this propagation is too
+		return nil, err
+	}
+	if dropped := sectionsDroppedSince(e.Kind, headBody, body); len(dropped) > 0 {
+		return nil, errSectionsDropped(e.ID, dropped)
 	}
 
 	// G-0184 verb-time scan: vet the new body bytes for malformed or
@@ -208,6 +211,58 @@ func explicitBodySettled(ctx context.Context, t *tree.Tree, e *entity.Entity, co
 	return bytes.Equal(content, diskBytes), nil
 }
 
+// sectionsDroppedSince returns the sections kind k requires that head
+// carries and next does not, in the kind's canonical order. Both of
+// edit-body's modes ask it, so the same edit is judged the same way
+// whether it arrives as supplied bytes or as a working-copy edit.
+//
+// What it asks is whether this write makes the body worse, not whether
+// the result is complete. Completeness is `aiwf add`'s to demand,
+// because a new entity has no history to be held to; an edit does, and
+// an operator changing one section should not be refused over an
+// omission they did not introduce. Demanding it here would instead lock
+// every entity already missing a section against its own edit verb,
+// which offers no --force to get back out.
+//
+// A nil head — an entity with no committed version — carries nothing to
+// drop, so no write regresses against it.
+func sectionsDroppedSince(k entity.Kind, head, next []byte) []string {
+	nextAbsent := check.AbsentRequiredSections(k, next)
+	if len(nextAbsent) == 0 {
+		return nil
+	}
+	headAbsent := check.AbsentRequiredSections(k, head)
+	var dropped []string
+	for _, name := range nextAbsent {
+		if !slices.Contains(headAbsent, name) {
+			dropped = append(dropped, name)
+		}
+	}
+	return dropped
+}
+
+// errSectionsDropped is the refusal both edit-body modes raise when a
+// write would remove a required section the committed body carries.
+func errSectionsDropped(id string, dropped []string) error {
+	return fmt.Errorf("%s: this write drops required section(s) %s the committed body carries — restore the heading before committing", id, quotedHeadings(dropped))
+}
+
+// bodyAtHEAD returns the body of the committed version of relPath.
+//
+// A path with no committed version, and one committed without a
+// frontmatter delimiter, both yield nil: entity.Split returns a nil
+// body when it cannot find the delimiter, and a nil body is what
+// sectionsDroppedSince reads as carrying nothing to drop.
+func bodyAtHEAD(ctx context.Context, root, relPath string) ([]byte, error) {
+	headBytes, err := gitops.ReadFromHEAD(ctx, root, filepath.ToSlash(relPath))
+	if err != nil {
+		//coverage:ignore defensive: ReadFromHEAD maps a missing path to (nil, nil); a non-nil error needs git absent or a broken workdir, matching the same arm in editBodyBless
+		return nil, fmt.Errorf("reading HEAD version of %s: %w", relPath, err)
+	}
+	_, body, _ := entity.Split(headBytes)
+	return body, nil
+}
+
 // editBodyBless covers the M-060 path: the user already edited the
 // entity file in their editor. The verb commits whatever changed
 // against HEAD, refusing if the diff is empty or if the frontmatter
@@ -239,7 +294,7 @@ func editBodyBless(ctx context.Context, t *tree.Tree, e *entity.Entity, actor, r
 	if !ok {
 		return nil, fmt.Errorf("%s working copy lacks a frontmatter delimiter; cannot bless without an anchor", e.Path)
 	}
-	headFM, _, ok := entity.Split(headBytes)
+	headFM, headBody, ok := entity.Split(headBytes)
 	if !ok {
 		return nil, fmt.Errorf("%s HEAD version lacks a frontmatter delimiter; the file was committed without one — fix the HEAD version with a structured-state verb first", e.Path)
 	}
@@ -248,6 +303,9 @@ func editBodyBless(ctx context.Context, t *tree.Tree, e *entity.Entity, actor, r
 	}
 	if err := validateUserBodyBytes(workingBody); err != nil {
 		return nil, fmt.Errorf("on-disk body of %s: %w", e.Path, err)
+	}
+	if dropped := sectionsDroppedSince(e.Kind, headBody, workingBody); len(dropped) > 0 {
+		return nil, errSectionsDropped(e.ID, dropped)
 	}
 
 	// Projection check uses *e (no in-memory frontmatter mutation —

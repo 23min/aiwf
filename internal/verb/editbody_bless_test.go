@@ -34,7 +34,7 @@ func TestEditBody_Bless_RoundTrip(t *testing.T) {
 	if !ok {
 		t.Fatal("test setup: epic file lacks frontmatter")
 	}
-	edited := append(append([]byte("---\n"), fm...), []byte("---\n\n## Goal\n\nUser-edited prose, in place.\n")...)
+	edited := append(append([]byte("---\n"), fm...), append([]byte("---\n\n"), entity.BodyWithSectionText(entity.KindEpic, "User-edited prose, in place.")...)...)
 	if writeErr := os.WriteFile(epicPath, edited, 0o644); writeErr != nil {
 		t.Fatal(writeErr)
 	}
@@ -164,7 +164,7 @@ func TestEditBody_Bless_PreservesYAMLFormatting(t *testing.T) {
 	if !ok {
 		t.Fatal("test setup: gap file lacks frontmatter")
 	}
-	edited := append(append([]byte("---\n"), fm...), []byte("---\n\nNew body prose.\n")...)
+	edited := append(append([]byte("---\n"), fm...), append([]byte("---\n\n"), entity.BodyWithSectionText(entity.KindGap, "New body prose.")...)...)
 	if writeErr := os.WriteFile(gapPath, edited, 0o644); writeErr != nil {
 		t.Fatal(writeErr)
 	}
