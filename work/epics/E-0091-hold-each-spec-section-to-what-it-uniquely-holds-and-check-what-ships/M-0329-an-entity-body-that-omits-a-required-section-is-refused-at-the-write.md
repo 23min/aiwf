@@ -135,9 +135,15 @@ missing it, committed by each.
 `check.EmptyRequiredSections` skips one. Two answers to one question live in the
 same package, and the guards this milestone adds would be a third.
 
+Measured, the split runs one layer deeper than the rules: the two functions read
+different parsers. On `##\tGoal` the write-time guards report the section
+present and the release-note rule reports it absent — one body, two answers,
+from functions sitting eight lines apart.
+
 Evidence: the release-note rule and the write-time guards resolved to the same
-predicate, asserted by a check that fails if a second definition of section
-absence is reachable from either.
+predicate, asserted two ways — the rules driven over the heading spellings the
+parsers disagreed on and required to answer alike, and a ban that fails when a
+package deciding section presence carries a heading scan of its own.
 
 ## Decisions made during implementation
 
@@ -187,14 +193,31 @@ Both modes now route through one rule and one refusal, and the test asserts they
 agree rather than checking each alone · commit d43ddbb · make ci, the
 stress-tagged lane, and the coverage gate green
 
+### AC-4 — One absence predicate serves every rule that asks whether a section is there
+
+`check.SectionsAbsent` is the one answer; the check package's own heading scanner
+is deleted rather than left with a single caller, and a ban keeps a second from
+being written · commit cf22a95 · make ci, the stress-tagged lane, and the
+coverage gate green
+
 ## Validation
+
+Verdict parity for the parser swap was measured before it landed, over every
+entity body in this tree: `EmptyRequiredSections` against the same function
+rewritten onto `entity.ParseBodySections`, 7,284 (file, kind) pairs across 1,272
+files, zero differences. `aiwf check --format=json` on this tree reports the same
+five findings before and after.
 
 ## Deferrals
 
-- G-0666 — a body line over 1 MB makes the section scanner report that section
-  as empty. Pre-existing and error severity, so the pre-push hook already blocks
-  on a body that is not empty; the guards this milestone adds refuse the write on
-  the same input, naming a heading the file carries. The fix is a choice between
-  three shapes across five call sites, which is why it is not taken here.
+- G-0666 — a section whose content carries one line of 65,536 bytes or more is
+  reported empty, because the classifier deciding that reads through a scanner
+  at bufio's default buffer and never consults `scanner.Err()`. Pre-existing and
+  error severity, so the pre-push hook blocks on a section that is full. AC-4
+  closed the heading half of the same class by retiring the capped scanner that
+  decided which sections a body carries; three siblings still raise their
+  ceiling rather than remove it, and what they need to agree on — whether a body
+  they cannot finish reading is judged silently at all — is a decision, not a
+  patch.
 
 ## Reviewer notes
