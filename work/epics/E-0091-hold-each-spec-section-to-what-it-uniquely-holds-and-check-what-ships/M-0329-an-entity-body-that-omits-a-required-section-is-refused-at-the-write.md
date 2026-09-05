@@ -132,6 +132,16 @@ absence is reachable from either.
 
 ## Decisions made during implementation
 
+- Absence is refused for every kind; emptiness stays born-complete-only. The two
+  halves of the add-time gate are scoped differently because the workflows they
+  must leave alone differ. A draft epic is meant to land with its headings empty
+  and be filled in, so emptiness keeps the born-complete scope it has. No kind is
+  meant to land without its headings at all — the scaffold writes every one, so
+  absence is reachable only from an explicit `--body`/`--body-file`. Scoping it
+  the narrower way would leave `aiwf add` accepting bytes `aiwf edit-body`
+  refuses, which is the asymmetry this milestone exists to remove. Measured cost:
+  18 of the 51 fixture fixes were the draft-bearing kinds.
+
 - The `milestone-done-empty-release-note` rule stays separate rather than folding
   into the general mechanism. Its trigger is a status — it reports only a `done`
   milestone — and the required-section table has no status axis. Folding it in
@@ -147,8 +157,20 @@ Refused with the missing section named; the guard sits after same-state
 convergence, so an entity already omitting one stays editable · commit 1386448 ·
 check-fast and coverage gate green
 
+### AC-2 — The add-time gate refuses an omitted required heading, not only an empty one
+
+Both halves now run at the gate, scoped as the decision above records, and the
+absent-section refusal no longer promises the check will block · commit 4d2a589 ·
+make ci, the stress-tagged lane, and the coverage gate green
+
 ## Validation
 
 ## Deferrals
+
+- G-0666 — a body line over 1 MB makes the section scanner report that section
+  as empty. Pre-existing and error severity, so the pre-push hook already blocks
+  on a body that is not empty; the guards this milestone adds refuse the write on
+  the same input, naming a heading the file carries. The fix is a choice between
+  three shapes across five call sites, which is why it is not taken here.
 
 ## Reviewer notes
