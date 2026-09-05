@@ -1,6 +1,6 @@
 ---
 id: G-0666
-title: A body line over 1 MB makes the section scanner report that section as empty
+title: A body line over 64 KB makes a full section report as empty
 status: open
 discovered_in: M-0329
 ---
