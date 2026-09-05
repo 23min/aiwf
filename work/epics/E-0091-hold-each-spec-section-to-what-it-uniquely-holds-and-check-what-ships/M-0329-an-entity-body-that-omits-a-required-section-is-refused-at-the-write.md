@@ -140,6 +140,12 @@ absence is reachable from either.
 
 ## Work log
 
+### AC-1 — edit-body --body-file refuses a body that omits a required section
+
+Refused with the missing section named; the guard sits after same-state
+convergence, so an entity already omitting one stays editable · commit 1386448 ·
+check-fast and coverage gate green
+
 ## Validation
 
 ## Deferrals
