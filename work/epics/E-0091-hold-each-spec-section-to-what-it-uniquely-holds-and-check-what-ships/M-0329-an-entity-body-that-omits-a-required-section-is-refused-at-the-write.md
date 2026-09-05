@@ -12,7 +12,7 @@ acs:
     - id: AC-2
       title: The add-time gate refuses an omitted required heading, not only an empty one
       status: open
-      tdd_phase: green
+      tdd_phase: done
     - id: AC-3
       title: A blessed body that drops a required section HEAD carried is refused
       status: open
