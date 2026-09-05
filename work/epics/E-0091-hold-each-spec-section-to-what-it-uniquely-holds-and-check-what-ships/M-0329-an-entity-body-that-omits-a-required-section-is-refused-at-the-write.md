@@ -6,7 +6,7 @@ parent: E-0091
 tdd: required
 acs:
     - id: AC-1
-      title: edit-body --body-file refuses a body that omits a required section
+      title: edit-body --body-file refuses a body that drops a required section HEAD carries
       status: met
       tdd_phase: done
     - id: AC-2
@@ -72,7 +72,7 @@ below.
 
 ## Acceptance criteria
 
-### AC-1 — edit-body --body-file refuses a body that omits a required section
+### AC-1 — edit-body --body-file refuses a body that drops a required section HEAD carries
 
 The refusal names the missing section. Naming it is what the test asserts, not
 merely a non-zero exit: an unresolvable id and a working copy with drifted
@@ -152,7 +152,7 @@ absence is reachable from either.
 
 ## Work log
 
-### AC-1 — edit-body --body-file refuses a body that omits a required section
+### AC-1 — edit-body --body-file refuses a body that drops a required section HEAD carries
 
 Refused with the missing section named; the guard sits after same-state
 convergence, so an entity already omitting one stays editable · commit 1386448 ·
