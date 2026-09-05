@@ -20,6 +20,7 @@ acs:
     - id: AC-4
       title: One absence predicate serves every rule that asks whether a section is there
       status: open
+      tdd_phase: red
 ---
 
 ## Goal
