@@ -51,8 +51,12 @@ They concentrate in the born-complete kinds, which have no reachable scaffold.
 
 Refusal at the write, at all three seams that produce a body: `aiwf add
 --body-file`, `aiwf edit-body --body-file`, and `aiwf edit-body` in bless mode.
-Bless mode refuses a *regression* only — a body dropping a section HEAD carried —
-so an entity that already omits one stays editable.
+
+`aiwf add` demands a complete body, because a new entity has no history to be
+held to. Both of `aiwf edit-body`'s modes refuse a *regression* only — a write
+dropping a section HEAD carries — so an entity already omitting one stays
+editable, and an operator changing one section is not refused over an omission
+they did not introduce.
 
 One predicate answers "is this section absent", and every rule asking that
 question routes through it.
@@ -79,13 +83,14 @@ merely a non-zero exit: an unresolvable id and a working copy with drifted
 frontmatter both refuse on this path already, so an exit-code assertion passes
 with the guard absent.
 
-The claim covers a body offered for the first time. Re-supplying a body identical
-to the one HEAD carries converges to a no-op whether or not it omits a section,
-which is the state every already-omitting entity is in.
+The comparison is against the committed body, not against completeness. A body
+that omits a section HEAD also omits is committed — the state 55 entities in this
+tree are in, and the verb offers no `--force` to get back out of a refusal.
 
-Evidence: an epic body carrying `## Goal` and `## Scope` and no `## Out of
-scope`, driven through this path, refused with the section named; today the same
-input commits and `aiwf check` reports zero errors.
+Evidence: an epic whose committed body carries all three required sections,
+handed a body carrying `## Goal` and `## Scope` and no `## Out of scope` through
+this path, refused with the section named; today the same input commits and
+`aiwf check` reports zero errors.
 
 ### AC-2 — The add-time gate refuses an omitted required heading, not only an empty one
 
@@ -106,9 +111,10 @@ actually reports.
 
 ### AC-3 — A blessed body that drops a required section HEAD carried is refused
 
-Scoped to a regression. A working copy lacking a section HEAD also lacked is
-committed as before — that half is what the test pins, and it is what keeps the
-55 already-omitting entities editable by whoever next touches one.
+One rule, asked at both of the verb's seams. The two modes take different inputs
+— bytes handed to the verb, and a working copy it reads — but produce the same
+write, so an answer that differs by mode means the same edit to the same entity
+is refused or committed depending on which flag the operator reached for.
 
 The verb offers no `--force`, so an operator who cannot satisfy the refusal has
 only a sovereign acknowledgement. Refusing on a regression makes that tolerable:
@@ -117,9 +123,10 @@ the edit in hand is the cause.
 Bless mode already refuses on body content — `body-prose-id` runs there under the
 same write block — so this adds a precondition of a kind the verb already has.
 
-Evidence: a HEAD body carrying every required section, a working copy dropping
-one, refused; a HEAD body already missing one, a working copy still missing it,
-committed.
+Evidence: both halves driven through both modes and asserted to agree — a
+committed body carrying every required section against an edit dropping one,
+refused by each; a committed body already missing one against an edit still
+missing it, committed by each.
 
 ### AC-4 — One absence predicate serves every rule that asks whether a section is there
 
@@ -132,6 +139,15 @@ predicate, asserted by a check that fails if a second definition of section
 absence is reachable from either.
 
 ## Decisions made during implementation
+
+- Completeness is demanded at `aiwf add` and non-regression at `aiwf edit-body`,
+  rather than one rule at all three seams. A new entity has no committed body to
+  be judged against, so completeness is the only question there; an edit has one,
+  and holding it to completeness would refuse an operator over an omission they
+  did not introduce. Measured on a gap already omitting `## Why it matters`: with
+  the paths scoped differently, `--body-file` refused an edit that kept the
+  omission while bless mode committed it — one verb, two answers, for the same
+  edit to the same entity.
 
 - Absence is refused for every kind; emptiness stays born-complete-only. The two
   halves of the add-time gate are scoped differently because the workflows they
@@ -154,15 +170,21 @@ absence is reachable from either.
 
 ### AC-1 — edit-body --body-file refuses a body that drops a required section HEAD carries
 
-Refused with the missing section named; the guard sits after same-state
-convergence, so an entity already omitting one stays editable · commit 1386448 ·
-check-fast and coverage gate green
+Refused with the missing section named; the comparison against the committed body
+that keeps an already-omitting entity editable arrived with AC-3 · commit 1386448
+· check-fast and coverage gate green
 
 ### AC-2 — The add-time gate refuses an omitted required heading, not only an empty one
 
 Both halves now run at the gate, scoped as the decision above records, and the
 absent-section refusal no longer promises the check will block · commit 4d2a589 ·
 make ci, the stress-tagged lane, and the coverage gate green
+
+### AC-3 — A blessed body that drops a required section HEAD carried is refused
+
+Both modes now route through one rule and one refusal, and the test asserts they
+agree rather than checking each alone · commit d43ddbb · make ci, the
+stress-tagged lane, and the coverage gate green
 
 ## Validation
 
