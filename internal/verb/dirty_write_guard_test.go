@@ -317,7 +317,7 @@ func TestApply_ExplicitWriteThenRouteStillCommits(t *testing.T) {
 	r.must(verb.Add(r.ctx, r.tree(), entity.KindEpic, "Foundations", testActor, verb.AddOptions{}))
 	path, _ := epicBodyOnDisk(t, r.root)
 
-	const wanted = "## Goal\n\nWritten to disk first, then routed through the verb.\n"
+	const wanted = "## Goal\n\nWritten to disk first, then routed through the verb.\n" + "\n\n## Scope\n\nFixture scope.\n\n## Out of scope\n\nFixture non-goals.\n"
 	writeBodyOnDisk(t, path, wanted)
 
 	res, err := verb.EditBody(r.ctx, r.tree(), "E-0001", []byte(wanted), testActor, "")

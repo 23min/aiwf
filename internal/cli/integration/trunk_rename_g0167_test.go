@@ -240,7 +240,8 @@ enrichment to drop the cumulative diff below 50%.
 // render time so the const stays a clean raw string and the renderer
 // supplies the backticks (required by G-0184 body-prose-id since the
 // referenced ids don't exist in the test's tree).
-var longEnrichedBodyAC2 = bt(longEnrichedBodyAC2Template)
+var longEnrichedBodyAC2 = bt(longEnrichedBodyAC2Template) +
+	"\n\n## What's missing\n\nEnrichment fixture.\n\n## Why it matters\n\nEnrichment fixture.\n"
 
 // bt rewrites [BT...BT] placeholders into backtick-quoted spans.
 // Trivial helper kept local; the only caller is longEnrichedBodyAC2.

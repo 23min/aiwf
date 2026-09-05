@@ -31,7 +31,7 @@ func writeLooseEpicOnly(t *testing.T, root, dir, id, title string) {
 	if err := os.MkdirAll(full, 0o750); err != nil {
 		t.Fatalf("mkdir %s: %v", dir, err)
 	}
-	body := "---\nid: " + id + "\ntitle: " + title + "\nstatus: proposed\n---\n## Goal\n\nFixture prose for test setup; not the subject under test.\n\n## Scope\n\nFixture prose for test setup; not the subject under test.\n"
+	body := "---\nid: " + id + "\ntitle: " + title + "\nstatus: proposed\n---\n## Goal\n\nFixture prose for test setup; not the subject under test.\n\n## Scope\n\nFixture prose for test setup; not the subject under test.\n\n## Out of scope\n\nFixture prose for test setup; not the subject under test.\n"
 	if err := os.WriteFile(filepath.Join(full, "epic.md"), []byte(body), 0o600); err != nil {
 		t.Fatalf("write %s: %v", dir, err)
 	}
@@ -100,7 +100,7 @@ func TestEditBody_ExplicitUncommittedMatchingContent_StillCommits(t *testing.T) 
 	if !ok {
 		t.Fatalf("epic file has no frontmatter:\n%s", raw)
 	}
-	const wanted = "## Goal\n\nUncommitted edit already on disk.\n"
+	const wanted = "## Goal\n\nUncommitted edit already on disk.\n\n## Scope\n\nFixture scope.\n\n## Out of scope\n\nFixture non-goals.\n"
 	staged := append(append([]byte("---\n"), fm...), append([]byte("---\n"), wanted...)...)
 	if writeErr := os.WriteFile(path, staged, 0o600); writeErr != nil {
 		t.Fatalf("writing the uncommitted body: %v", writeErr)

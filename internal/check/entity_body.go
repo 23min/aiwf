@@ -91,6 +91,28 @@ func ApplyTDDStrict(findings []Finding, strict bool) {
 	}
 }
 
+// AbsentRequiredSections returns the sections k requires that body does not
+// carry at all, in the kind's canonical order.
+//
+// Absence and emptiness are separate failures with separate remedies, and
+// EmptyRequiredSections reports only the second: a heading that is not there
+// has no content to judge, so it skips one. This answers the other half, and
+// every rule asking whether a required section is there routes through it.
+func AbsentRequiredSections(k entity.Kind, body []byte) []string {
+	sections := entity.RequiredSections(k)
+	if len(sections) == 0 {
+		return nil
+	}
+	present := scanH2Sections(stripHTMLComments(body))
+	var absent []string
+	for _, name := range sections {
+		if _, found := present[name]; !found {
+			absent = append(absent, name)
+		}
+	}
+	return absent
+}
+
 // EmptyRequiredSections returns the names of kind's load-bearing
 // top-level body sections (per entity.RequiredSections) that ARE
 // PRESENT in body but empty per isAllWhitespaceOrHeadings. A section

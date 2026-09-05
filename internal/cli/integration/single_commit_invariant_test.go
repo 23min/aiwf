@@ -9,6 +9,7 @@ import (
 
 	"github.com/23min/aiwf/internal/cli"
 	"github.com/23min/aiwf/internal/cli/cliutil"
+	"github.com/23min/aiwf/internal/entity"
 )
 
 // M-069 AC-2 — Single-commit-per-verb invariant asserted per
@@ -72,7 +73,7 @@ func TestSingleCommitPerMutatingVerb_Invariant(t *testing.T) {
 	// A body-file for the edit-body step. Written once up front so the
 	// step itself just runs the verb.
 	bodyFile := filepath.Join(root, "fixtures-edit-body.md")
-	if err := os.WriteFile(bodyFile, []byte("## Goal\n\nReplaced via single-commit invariant test.\n"), 0o644); err != nil {
+	if err := os.WriteFile(bodyFile, entity.BodyWithSectionText(entity.KindMilestone, "Replaced via single-commit invariant test."), 0o644); err != nil {
 		t.Fatalf("write body file: %v", err)
 	}
 

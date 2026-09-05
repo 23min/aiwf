@@ -281,14 +281,20 @@ func requireNonEmptyBornCompleteBody(id string, kind entity.Kind, body []byte, o
 	if opts.Force {
 		return true, nil
 	}
-	headings := make([]string, len(empty))
-	for i, name := range empty {
-		headings[i] = "`## " + name + "`"
-	}
 	return false, fmt.Errorf(
 		"%s: empty load-bearing body section(s) %s; %s %s is referenceable the instant this commit lands, so its body must carry meaning at creation — pass --body \"...\" or --body-file <path> with real prose, or --force --reason \"...\" to create anyway (aiwf check will still flag it at error severity and the pre-push hook will still block until it's filled in)",
-		id, strings.Join(headings, ", "), articleFor(kind), kind,
+		id, quotedHeadings(empty), articleFor(kind), kind,
 	)
+}
+
+// quotedHeadings renders section names as the `## Name` form every
+// operator-facing message about a body section uses, comma-separated.
+func quotedHeadings(names []string) string {
+	out := make([]string, len(names))
+	for i, name := range names {
+		out[i] = "`## " + name + "`"
+	}
+	return strings.Join(out, ", ")
 }
 
 // articleFor returns "an" for a kind spoken letter-by-letter with a

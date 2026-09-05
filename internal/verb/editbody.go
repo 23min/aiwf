@@ -114,6 +114,16 @@ func editBodyExplicit(ctx context.Context, t *tree.Tree, e *entity.Entity, body 
 		return findings(fs), nil
 	}
 
+	// A required section the body omits entirely is invisible to
+	// entity-body-empty, which judges only one present and empty, so without
+	// this the section is lost with nothing red (G-0571). It sits after the
+	// same-state check above: a body identical to the one HEAD carries
+	// converges first, which keeps an entity that already omits a section
+	// editable.
+	if absent := check.AbsentRequiredSections(e.Kind, body); len(absent) > 0 {
+		return nil, fmt.Errorf("%s: body omits required section(s) %s — add the heading, or edit a body that carries it", e.ID, quotedHeadings(absent))
+	}
+
 	// G-0184 verb-time scan: vet the new body bytes for malformed or
 	// unallocated id-shaped tokens. Catches operator-supplied content
 	// (--body-file / stdin) before the commit lands.

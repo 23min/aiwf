@@ -1590,3 +1590,35 @@ func TestEmptyRequiredSections(t *testing.T) {
 		})
 	}
 }
+
+// TestAbsentRequiredSections pins the predicate every rule asking whether a
+// required section is present routes through: it reports the headings a kind
+// requires and the body does not carry, and reports nothing for a kind that
+// declares no required set.
+func TestAbsentRequiredSections(t *testing.T) {
+	t.Parallel()
+
+	cases := []struct {
+		name string
+		kind entity.Kind
+		body string
+		want []string
+	}{
+		{"epic missing one", entity.KindEpic, "## Goal\n\ng\n\n## Scope\n\ns\n", []string{"Out of scope"}},
+		{"epic carrying all", entity.KindEpic, "## Goal\n\ng\n\n## Scope\n\ns\n\n## Out of scope\n\no\n", nil},
+		{"present but empty is not absent", entity.KindEpic, "## Goal\n\n## Scope\n\n## Out of scope\n", nil},
+		{"body with no headings at all", entity.KindGap, "prose and nothing else\n", []string{"What's missing", "Why it matters"}},
+		// A kind outside the required-sections table requires nothing, so
+		// nothing can be absent from it.
+		{"kind with no required set", entity.Kind("widget"), "", nil},
+	}
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			t.Parallel()
+			got := AbsentRequiredSections(tc.kind, []byte(tc.body))
+			if diff := cmp.Diff(tc.want, got); diff != "" {
+				t.Errorf("AbsentRequiredSections mismatch (-want +got):\n%s", diff)
+			}
+		})
+	}
+}
