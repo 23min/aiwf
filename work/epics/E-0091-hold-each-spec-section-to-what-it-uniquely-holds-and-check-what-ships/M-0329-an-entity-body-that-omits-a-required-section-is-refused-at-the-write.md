@@ -50,8 +50,9 @@ They concentrate in the born-complete kinds, which have no reachable scaffold.
 
 ## Scope
 
-Refusal at the write, at all three seams that produce a body: `aiwf add
---body-file`, `aiwf edit-body --body-file`, and `aiwf edit-body` in bless mode.
+Refusal at the write, at three of the four seams that produce a body: `aiwf add`
+(`--body` and `--body-file`), `aiwf edit-body --body-file`, and `aiwf edit-body`
+in bless mode.
 
 `aiwf add` demands a complete body, because a new entity has no history to be
 held to. Both of `aiwf edit-body`'s modes refuse a *regression* only — a write
@@ -63,6 +64,13 @@ One predicate answers "is this section absent", and every rule asking that
 question routes through it.
 
 ## Out of scope
+
+`aiwf import`, the fourth seam. It supplies caller-authored body bytes from a
+manifest and is left ungated because the verb is deprecated — measured, the same
+body `aiwf add` refuses lands through `import` at exit 0. The deprecation is
+recorded on no surface, and two shipped skills still instruct a consumer to use
+it, which is G-0667; until that resolves, this exclusion rests on a decision a
+reader cannot verify from the tree.
 
 A tree-wide `aiwf check` rule. At error severity it raises the 109 findings
 E-0081 already declined; at warning severity it raises them against the four
