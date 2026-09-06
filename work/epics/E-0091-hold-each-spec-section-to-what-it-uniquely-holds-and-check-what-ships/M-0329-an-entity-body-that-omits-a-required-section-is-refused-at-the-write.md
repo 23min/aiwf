@@ -81,7 +81,7 @@ That is a blast-radius decision, not a claim that the omissions are historical.
 Measured: none of the 55 is terminal — 30 open gaps, 24 accepted decisions, and
 one proposed epic. They are live records carrying live debt, and a write-time
 rule leaves every one of them standing. What closes them is a tree-side rule with
-a baseline, which ADR-0043 and E-0084 own; this milestone reaches the write seams
+a baseline, which ADR-0048 and E-0084 own; this milestone reaches the write seams
 and no further.
 
 Promoting `## Release note` into the kernel required set. That rule triggers on a
@@ -169,7 +169,9 @@ test, comparing two callers that read the same parser, did not notice.
 ## Decisions made during implementation
 
 - Completeness is demanded at `aiwf add` and non-regression at `aiwf edit-body`,
-  rather than one rule at all three seams. A new entity has no committed body to
+  rather than one rule at all three seams. Ratified as ADR-0048, which supersedes
+  ADR-0043 on that clause alone — the placement, the definition of a violation,
+  the split from emptiness, and the unbuilt push seam all carry forward. A new entity has no committed body to
   be judged against, so completeness is the only question there; an edit has one,
   and holding it to completeness would refuse an operator over an omission they
   did not introduce. Measured on a gap already omitting `## Why it matters`: with
