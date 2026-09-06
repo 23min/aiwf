@@ -67,9 +67,14 @@ question routes through it.
 A tree-wide `aiwf check` rule. At error severity it raises the 109 findings
 E-0081 already declined; at warning severity it raises them against the four
 warnings this tree carries today, and a warning nobody can act on trains a reader
-to skip the output. The measurement above is the record instead. The same
-reasoning the epic applies to the Work logs of terminal milestones applies here:
-the historical record stays as written.
+to skip the output.
+
+That is a blast-radius decision, not a claim that the omissions are historical.
+Measured: none of the 55 is terminal — 30 open gaps, 24 accepted decisions, and
+one proposed epic. They are live records carrying live debt, and a write-time
+rule leaves every one of them standing. What closes them is a tree-side rule with
+a baseline, which ADR-0043 and E-0084 own; this milestone reaches the write seams
+and no further.
 
 Promoting `## Release note` into the kernel required set. That rule triggers on a
 status and `requiredSectionsByKind` has no status axis; see the decision recorded
@@ -181,6 +186,27 @@ test, comparing two callers that read the same parser, did not notice.
   milestones lack the heading and none of those 6 is `done`. What it does share is
   the absence predicate, which AC-4 unifies.
 
+## Release note
+
+`aiwf add` and `aiwf edit-body` now refuse a body that is missing a section its
+kind requires. The two verbs ask different questions, because a create and an
+edit are in different positions:
+
+- **`aiwf add`** requires a complete body — every `## <Section>` the kind
+  declares — for every kind. A new entity has no history to be judged against,
+  and the scaffold writes every heading, so only an explicit `--body` or
+  `--body-file` can drop one. `--force --reason` still bypasses it, and now
+  stamps its trailer on epic and milestone too, where it was previously inert.
+- **`aiwf edit-body`** refuses only a write that *drops* a section the committed
+  body carries, in both bless and `--body-file` mode. An entity whose body
+  already omits a section stays editable, so an author changing one section is
+  never refused over an omission they did not introduce. There is no `--force`
+  here; record a deliberate removal with `aiwf acknowledge illegal`.
+
+Both refusals name the section they missed. `aiwf check` is unchanged — it still
+reports a required section that is present and empty, and still says nothing
+about one that is absent, so a tree carrying that debt is unaffected.
+
 ## Work log
 
 ### AC-1 — edit-body --body-file refuses a body that drops a required section HEAD carries
@@ -219,9 +245,11 @@ Run on the milestone branch at AC-4's close, against base
 
 Verdict parity for the parser swap was measured before it landed, over every
 entity body in this tree: `EmptyRequiredSections` against the same function
-rewritten onto `entity.ParseBodySections`, 7,284 (file, kind) pairs across 1,272
-files, zero differences. `aiwf check --format=json` on this tree reports the same
-five findings before and after.
+rewritten onto `entity.ParseBodySections`, 7,284 (file, kind) pairs, zero
+differences. A reviewer re-derived it independently over a superset — 18,126
+pairs — with a negative control confirming the harness fires on `##\t` and on an
+H1 mid-section. `aiwf check --format=json` on this tree reports the same five
+findings before and after.
 
 ## Deferrals
 
