@@ -23,11 +23,16 @@ func TestPolicySectionAbsenceSinglePredicate_ThisRepoIsClean(t *testing.T) {
 // policy over a tree carrying the shape it bans, so its silence on the
 // live tree means the scan is absent rather than the policy inert.
 //
-// The rows are the two constructs a heading scan is written from — a
-// prefix test and an anchored regexp — plus the classifier the policy
-// exempts by name, which is the boundary between the two: a function
-// judging the content of a section already found asks nothing about
-// which sections exist.
+// Each row is one classification rule, not one spelling. Six ways a scan
+// gets written and five things that are not one: a pattern asking which
+// acceptance criteria a body carries, a heading rendered into a message,
+// a classifier testing a heading of any level, and the one function
+// exempt by name for using the heading as a terminator.
+//
+// The tolerant rows matter most. A scan accepting `##` without a space,
+// or a regexp carrying `(?m)` for a whole-body match, is looser than the
+// parser — which is the drift direction this exists to catch, and the
+// spelling a new author reaches for first.
 func TestPolicySectionAbsenceSinglePredicate_FiresOnASecondScan(t *testing.T) {
 	t.Parallel()
 	cases := []struct {
@@ -46,13 +51,33 @@ func TestPolicySectionAbsenceSinglePredicate_FiresOnASecondScan(t *testing.T) {
 			want: 1,
 		},
 		{
+			name: "a prefix test more tolerant than the parser",
+			src:  "package check\n\nimport \"strings\"\n\nfunc hasGoal(line string) bool {\n\treturn strings.HasPrefix(line, \"##\")\n}\n",
+			want: 1,
+		},
+		{
+			name: "a search through the whole body",
+			src:  "package check\n\nimport \"strings\"\n\nfunc sections(b string) []string {\n\treturn strings.Split(b, \"\\n## \")\n}\n",
+			want: 1,
+		},
+		{
+			name: "a literal extracted to a constant",
+			src:  "package check\n\nimport \"strings\"\n\nconst h2 = \"## \"\n\nfunc hasGoal(line string) bool {\n\treturn strings.HasPrefix(line, h2)\n}\n",
+			want: 1,
+		},
+		{
 			name: "a regexp anchored on the heading",
 			src:  "package check\n\nimport \"regexp\"\n\nvar h2 = regexp.MustCompile(`^##\\s+(.+)$`)\n",
 			want: 1,
 		},
 		{
+			name: "the same regexp written for a whole body",
+			src:  "package check\n\nimport \"regexp\"\n\nvar h2 = regexp.MustCompile(`(?m)^## (.+)$`)\n",
+			want: 1,
+		},
+		{
 			name: "the AC-heading pattern, which asks a different question",
-			src:  "package check\n\nimport \"regexp\"\n\nvar h3 = regexp.MustCompile(`^###\\s+AC-(\\d+)`)\n",
+			src:  "package check\n\nimport \"regexp\"\n\nvar h3 = regexp.MustCompile(`(?m)^###\\s+AC-(\\d+)`)\n",
 			want: 0,
 		},
 		{
@@ -61,8 +86,13 @@ func TestPolicySectionAbsenceSinglePredicate_FiresOnASecondScan(t *testing.T) {
 			want: 0,
 		},
 		{
-			name: "the exempt content classifier",
-			src:  "package check\n\nimport \"strings\"\n\nfunc isAllWhitespaceOrHeadings(line string) bool {\n\treturn strings.HasPrefix(line, \"## \")\n}\n",
+			name: "a classifier testing a heading of any level",
+			src:  "package check\n\nimport \"strings\"\n\nfunc isHeading(line string) bool {\n\treturn strings.HasPrefix(line, \"#\")\n}\n",
+			want: 0,
+		},
+		{
+			name: "the exempt AC-body terminator",
+			src:  "package check\n\nimport \"strings\"\n\nfunc scanACBodies(line string) bool {\n\treturn strings.HasPrefix(line, \"## \")\n}\n",
 			want: 0,
 		},
 	}

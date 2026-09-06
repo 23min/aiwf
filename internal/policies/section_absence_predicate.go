@@ -6,6 +6,7 @@ import (
 	"go/token"
 	"os"
 	"path/filepath"
+	"regexp"
 	"strconv"
 	"strings"
 )
@@ -27,21 +28,25 @@ var sectionScanPackages = []string{
 var sectionParserFile = "internal/entity/body.go"
 
 // sectionScanExempt names the functions whose `##` test asks something
-// other than which sections a body has, each of which reads a section
-// the caller has already located:
+// other than which sections a body has. scanACBodies uses the heading as
+// a terminator, bounding where one AC's body stops, so the prescribed
+// remedy — ask the parser which sections there are — does not serve it.
 //
-//   - isAllWhitespaceOrHeadings classifies content as written or not.
-//   - scanACBodies uses the heading as a terminator, bounding where one
-//     AC's body stops.
+// One entry, and it earns its place: deleting it makes the policy fire.
+// An entry that changes no verdict is worse than absent, because it
+// still excuses the function it names if that function is ever rewritten
+// into a real scan.
 var sectionScanExempt = map[string]bool{
-	"isAllWhitespaceOrHeadings": true,
-	"scanACBodies":              true,
+	"scanACBodies": true,
 }
 
-// prefixTests are the calls a hand-rolled heading scan is written from.
-var prefixTests = map[string]bool{
-	"HasPrefix": true, "TrimPrefix": true, "CutPrefix": true,
-}
+// prefixTests match a line against the start of a heading; searchTests
+// look for one anywhere in a body. A hand-rolled heading scan is written
+// from one family or the other.
+var (
+	prefixTests = map[string]bool{"HasPrefix": true, "TrimPrefix": true, "CutPrefix": true}
+	searchTests = map[string]bool{"Contains": true, "Index": true, "Split": true, "SplitSeq": true, "SplitN": true, "Cut": true}
+)
 
 // PolicySectionAbsenceSinglePredicate asserts that no package deciding
 // whether an entity-body section is present carries a heading scan of
@@ -84,14 +89,41 @@ func PolicySectionAbsenceSinglePredicate(root string) ([]Violation, error) {
 				return nil, err
 			}
 			rel := filepath.ToSlash(filepath.Join(pkg, de.Name()))
-			vs = append(vs, headingScansIn(f, fset, rel)...)
+			vs = append(vs, headingScansIn(f, fset, rel, stringConsts(f))...)
 		}
 	}
 	return vs, nil
 }
 
+// stringConsts maps a file's package-level string constants and
+// variables to their values, so a scan built from an extracted literal
+// is classified by what the literal says rather than by its name.
+func stringConsts(f *ast.File) map[string]string {
+	out := map[string]string{}
+	for _, decl := range f.Decls {
+		gen, ok := decl.(*ast.GenDecl)
+		if !ok || (gen.Tok != token.CONST && gen.Tok != token.VAR) {
+			continue
+		}
+		for _, spec := range gen.Specs {
+			vs, ok := spec.(*ast.ValueSpec)
+			if !ok { //coverage:ignore unreachable: go/ast produces only ValueSpec under a const or var GenDecl, and gen.Tok is filtered to those above
+				continue
+			}
+			for i, name := range vs.Names {
+				if i < len(vs.Values) {
+					if lit := stringLiteral(vs.Values[i], nil); lit != "" {
+						out[name.Name] = lit
+					}
+				}
+			}
+		}
+	}
+	return out
+}
+
 // headingScansIn reports every heading scan in one parsed file.
-func headingScansIn(f *ast.File, fset *token.FileSet, rel string) []Violation {
+func headingScansIn(f *ast.File, fset *token.FileSet, rel string, consts map[string]string) []Violation {
 	var vs []Violation
 	for _, decl := range f.Decls {
 		fn, isFunc := decl.(*ast.FuncDecl)
@@ -100,7 +132,7 @@ func headingScansIn(f *ast.File, fset *token.FileSet, rel string) []Violation {
 		}
 		ast.Inspect(decl, func(n ast.Node) bool {
 			call, ok := n.(*ast.CallExpr)
-			if !ok || !isHeadingScanCall(call) {
+			if !ok || !isHeadingScanCall(call, consts) {
 				return true
 			}
 			vs = append(vs, Violation{
@@ -115,9 +147,9 @@ func headingScansIn(f *ast.File, fset *token.FileSet, rel string) []Violation {
 	return vs
 }
 
-// isHeadingScanCall reports whether call tests a line against a `## `
+// isHeadingScanCall reports whether call tests a line against a `##`
 // heading or compiles a regexp anchored on one.
-func isHeadingScanCall(call *ast.CallExpr) bool {
+func isHeadingScanCall(call *ast.CallExpr, consts map[string]string) bool {
 	sel, ok := call.Fun.(*ast.SelectorExpr)
 	if !ok {
 		return false
@@ -126,26 +158,52 @@ func isHeadingScanCall(call *ast.CallExpr) bool {
 	if !isIdent {
 		return false
 	}
+	strFunc := pkg.Name == "strings" || pkg.Name == "bytes"
 	for _, arg := range call.Args {
-		lit := stringLiteral(arg)
+		lit := stringLiteral(arg, consts)
 		if lit == "" {
 			continue
 		}
-		if prefixTests[sel.Sel.Name] && (pkg.Name == "strings" || pkg.Name == "bytes") && strings.HasPrefix(lit, "## ") {
+		// A bare `##` counts: a scan more tolerant than the parser is the
+		// drift this exists to catch, not a lesser case of it.
+		if strFunc && prefixTests[sel.Sel.Name] && strings.HasPrefix(lit, "##") {
 			return true
 		}
-		if pkg.Name == "regexp" && strings.HasPrefix(lit, "^##") && !strings.HasPrefix(lit, "^###") {
+		if strFunc && searchTests[sel.Sel.Name] && strings.Contains(lit, "##") {
+			return true
+		}
+		if pkg.Name == "regexp" && isHeadingPattern(lit) {
 			return true
 		}
 	}
 	return false
 }
 
+// isHeadingPattern reports whether a regexp source is anchored on a `##`
+// heading. Leading inline flag groups are stripped first: `(?m)` is how a
+// whole-body scan is written, and it is the spelling this project's own
+// AC-heading pattern already uses.
+//
+// `^###` is a different question — which acceptance criteria a milestone
+// body carries, not which sections.
+func isHeadingPattern(pattern string) bool {
+	anchored := leadingInlineFlags.ReplaceAllString(pattern, "")
+	return strings.HasPrefix(anchored, "^##") && !strings.HasPrefix(anchored, "^###")
+}
+
+// leadingInlineFlags matches the inline flag groups a regexp source may
+// open with, so the anchor after them is what gets classified.
+var leadingInlineFlags = regexp.MustCompile(`^(?:\(\?[^)]*\))+`)
+
 // stringLiteral unwraps arg to its string value, seeing through the
-// []byte(...) conversion a bytes.HasPrefix call wraps its literal in.
-func stringLiteral(arg ast.Expr) string {
+// []byte(...) conversion a bytes.HasPrefix call wraps its literal in and
+// through a name bound to a string constant in the same file.
+func stringLiteral(arg ast.Expr, consts map[string]string) string {
 	if conv, ok := arg.(*ast.CallExpr); ok && len(conv.Args) == 1 {
 		arg = conv.Args[0]
+	}
+	if ident, ok := arg.(*ast.Ident); ok {
+		return consts[ident.Name]
 	}
 	lit, ok := arg.(*ast.BasicLit)
 	if !ok || lit.Kind != token.STRING {
