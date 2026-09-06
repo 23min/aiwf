@@ -228,3 +228,85 @@ five findings before and after.
   patch.
 
 ## Reviewer notes
+
+Three independent fresh-context lenses ran over the full change-set before the
+milestone closed: code-quality, design, and the wrap's shape measurements. Two
+returned request-changes. The corrective round they ask for is unfinished — what
+follows is the worklist, not a closing summary.
+
+### Findings that block
+
+- **The seam census is wrong.** `## Scope` claims all three body-producing seams;
+  there are four. `aiwf import` supplies caller-authored body bytes and is
+  ungated — measured, identical bytes refused by `aiwf add` and accepted by
+  `aiwf import` at exit 0 with no `--force` and no record. The verb is
+  deprecated, which is the reason to exclude it, but no surface says so.
+- **Ten surfaces describe behaviour the code no longer has.** A worked example in
+  the shipped `aiwf-add` skill is refused by the gate it documents; `--force` is
+  documented as inert on epic and milestone and now stamps a trailer;
+  `aiwf edit-body`'s new hard refusal appears in no `--help` or skill; and two
+  normative design docs plus the doc comment on the file that defines the section
+  set still assert that nothing enforces membership.
+- **AC-4's evidence is thinner than the criterion states.** The `absent` term
+  added to the release-note rule is dead logic: an absent section yields empty
+  content, which the emptiness classifier already reports, so the term changes no
+  verdict — measured by deleting it, package green. The agreement test compares
+  two callers that both read the shared parser; re-introducing a second scanner
+  inside `EmptyRequiredSections` leaves it passing. Only the ban covers the
+  function that actually swapped parsers.
+- **The ban catches two heading-scan spellings out of eleven.** `(?m)^## ` evades
+  it, and that idiom is already the sitting model inside a package the ban scans.
+  One of its two by-name exemptions carves out nothing — measured by deleting the
+  entry: still zero violations — so it is a dead entry that would silently excuse
+  that function if it were ever rewritten into a real scan.
+- **Three tests pin nothing.** Two rows of the agreement test are byte-identical,
+  and the second's name describes a whitespace its input does not carry. The
+  `cross-worktree-id-race` row of the seeding test survives both mutations of the
+  property it claims, because that scenario's Setup runs only `git`. The
+  AC-1-era single-mode refusal test is subsumed by the cross-mode test that
+  replaced it.
+
+### Claims of this milestone that review overturned
+
+- `## Out of scope` justified declining a tree-wide rule by the epic's reasoning
+  about terminal milestones. Measured: none of the 55 entities is terminal — 30
+  open gaps, 24 accepted decisions, 1 proposed epic. The conclusion may hold; the
+  argument recorded for it does not.
+- The `mid-write-kill` comment states G-0666 as a 1 MB ceiling in the section
+  scanner. It is 64 KB, in the emptiness classifier. The gap body was corrected
+  and the correction did not reach this copy.
+- `## Validation` reports 7,284 pairs across 1,272 files, which do not reconcile.
+  A second reviewer re-derived the same zero over a superset — 18,126 pairs —
+  with a negative control that fires, so the finding is stronger than stated.
+
+### The governing decisions this milestone was planned without
+
+ADR-0043 is accepted and decides this design: membership enforced at the write
+seams and nowhere else, a scan called by every body-supplying verb refusing for
+every kind, and a second seam on the push that it calls the authority. E-0084 is
+proposed, carries the same goal, and names closing G-0571 — which this milestone
+also claims. Neither was consulted when this milestone was planned or when its
+edit-seam rule was chosen.
+
+Two substantive divergences. This milestone refuses a *regression* at the edit
+seams where ADR-0043 refuses *incompleteness*; and it builds no push seam, so no
+surface can answer which entities are incomplete. ADR-0043's argument for
+completeness rests on a remedy it describes as free — keep the heading, leave it
+empty — which is measurably not free for the born-complete kinds carrying 54 of
+the 55 omissions: adding the empty heading converts a silent omission into an
+error-severity finding that blocks the push.
+
+### Attacked and survived — ground the next round can skip
+
+- The add gate across all six kinds, via `--body-file` omitting one section and
+  via a headless body: refused every time, every missing heading named.
+- `--force`'s `bypassed` accounting in three states: a trailer only where a real
+  refusal was overridden, none for a no-op.
+- Both `edit-body` modes agreeing on drop-versus-keep, driven through the CLI on
+  an epic and a milestone: identical message, identical exit.
+- Both `//coverage:ignore` annotations, checked against git's own exit codes
+  rather than read: accurate.
+- All three arms of the add-time gate, each with a caller named that reaches it.
+- The six prose templates, which all still satisfy the gate the rituals now hit.
+- AC-4's parity claim, re-derived independently over a superset with a working
+  negative control.
