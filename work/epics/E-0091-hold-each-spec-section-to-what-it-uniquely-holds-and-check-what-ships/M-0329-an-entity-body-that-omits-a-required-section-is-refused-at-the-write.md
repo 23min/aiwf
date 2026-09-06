@@ -140,10 +140,18 @@ different parsers. On `##\tGoal` the write-time guards report the section
 present and the release-note rule reports it absent — one body, two answers,
 from functions sitting eight lines apart.
 
-Evidence: the release-note rule and the write-time guards resolved to the same
-predicate, asserted two ways — the rules driven over the heading spellings the
-parsers disagreed on and required to answer alike, and a ban that fails when a
-package deciding section presence carries a heading scan of its own.
+The unification is that all three read one parser, not that all three call one
+helper. The release-note rule needs no absence test of its own: a heading that is
+not there produces no key, and the empty string the lookup yields is what its
+emptiness classifier already reports as unwritten.
+
+Evidence: all three surfaces driven over the heading spellings the parsers
+disagreed on and required to answer alike, each on a body shaped so its verdict
+turns on nothing but the heading; and a ban that fails when a package deciding
+section presence carries a heading scan of its own. The agreement test is
+mutation-verified — re-introducing a tolerant scanner inside
+`EmptyRequiredSections` fails it on `##\t`, which the earlier version of this
+test, comparing two callers that read the same parser, did not notice.
 
 ## Decisions made during implementation
 
