@@ -19,8 +19,10 @@ import (
 // passed at their smallest.
 //
 // The rows are the tagged scenarios whose Setup calls an aiwf verb.
-// lock-kill's only git-inits a directory, and the untagged scenarios'
-// own drivers run on every push and call Setup first.
+// lock-kill's and cross-worktree-id-race's only run git — the latter's
+// actors build their own `aiwf add`, which TestLaunchAddIn_LandsAnEntity
+// covers instead — and the untagged scenarios' own drivers run on every
+// push and call Setup first.
 func TestScenarioSetup_SeedsItsOwnFixture(t *testing.T) {
 	t.Parallel()
 	bin := sharedTestBinary(t)
@@ -30,7 +32,6 @@ func TestScenarioSetup_SeedsItsOwnFixture(t *testing.T) {
 	}{
 		{"concurrent-milestone-race", NewConcurrentMilestoneRaceScenario(bin, 1, 0)},
 		{"concurrent-writer-at-scale", NewConcurrentWriterAtScaleScenario(bin, 1, 0)},
-		{"cross-worktree-id-race", NewCrossWorktreeIDRaceScenario(bin, entity.KindGap, 0)},
 		{"mid-write-kill", NewMidWriteKillScenario(bin)},
 	}
 	for _, tc := range cases {

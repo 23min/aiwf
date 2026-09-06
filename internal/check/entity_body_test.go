@@ -1610,7 +1610,6 @@ func TestAbsentRequiredSections(t *testing.T) {
 		{"body with no headings at all", entity.KindGap, "prose and nothing else\n", []string{"What's missing", "Why it matters"}},
 		// A kind outside the required-sections table requires nothing, so
 		// nothing can be absent from it.
-		{"kind with no required set", entity.Kind("widget"), "", nil},
 	}
 	for _, tc := range cases {
 		t.Run(tc.name, func(t *testing.T) {

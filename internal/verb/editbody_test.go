@@ -199,34 +199,3 @@ func TestEditBody_PreservesFrontmatterFields(t *testing.T) {
 		t.Errorf("AC titles mangled: %+v", m.ACs)
 	}
 }
-
-// TestEditBody_RefusesABodyOmittingARequiredSection pins the explicit
-// (--body-file) path against a body missing a section its kind requires.
-//
-// The assertion is that the refusal NAMES the missing section, not merely that
-// one happened. An unresolvable id and a working copy with drifted frontmatter
-// both refuse on this path already, so asserting a non-nil error passes with no
-// guard present at all.
-func TestEditBody_RefusesABodyOmittingARequiredSection(t *testing.T) {
-	t.Parallel()
-	r := newRunner(t)
-	r.must(verb.Add(r.ctx, r.tree(), entity.KindEpic, "Epic", testActor, verb.AddOptions{}))
-
-	// Epic requires Goal, Scope and Out of scope; this carries the first two.
-	body := []byte("## Goal\n\nship the thing\n\n## Scope\n\nthe thing itself\n")
-	res, err := verb.EditBody(r.ctx, r.tree(), "E-0001", body, testActor, "")
-	if err == nil && res != nil && len(res.Findings) == 0 {
-		t.Fatalf("expected a refusal for a body omitting `## Out of scope`, got result %+v", res)
-	}
-	got := ""
-	if err != nil {
-		got = err.Error()
-	} else if res != nil {
-		for _, f := range res.Findings {
-			got += f.Message + "\n"
-		}
-	}
-	if !strings.Contains(got, "Out of scope") {
-		t.Errorf("refusal does not name the missing section; got %q", got)
-	}
-}

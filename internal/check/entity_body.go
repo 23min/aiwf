@@ -100,9 +100,6 @@ func ApplyTDDStrict(findings []Finding, strict bool) {
 // set per caller. Comments are stripped first: a heading inside the template's
 // own guidance comment is not a section an author wrote.
 func SectionsAbsent(body []byte, want []string) []string {
-	if len(want) == 0 {
-		return nil
-	}
 	present := entity.ParseBodySections(stripHTMLComments(body))
 	var absent []string
 	for _, name := range want {
