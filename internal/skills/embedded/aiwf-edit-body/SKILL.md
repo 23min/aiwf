@@ -42,6 +42,7 @@ Reach for `--body-file` only when the body content is produced *outside* the wor
 - **No diff**: refuses with "no changes to commit" rather than producing an empty commit.
 - **Frontmatter changed**: refuses and points at `aiwf promote` / `aiwf rename` / `aiwf cancel` / `aiwf reallocate`. Both modes are body-only by design; structured-state edits go through their own verbs.
 - **New entity (no HEAD version)**: refuses with a pointer to `aiwf add --body-file` for create-time body content.
+- **A required section dropped**: refuses when the write would remove a `## <Section>` the committed body carries, naming it. Both modes apply this, so the same edit is judged the same way whichever route it takes. The rule is non-regression, not completeness — an entity whose committed body already omits a section stays editable, so an author changing one section is never refused over an omission they did not introduce. There is no `--force`; if the removal is deliberate, commit it directly and record the exception with `aiwf acknowledge illegal <sha> --for-entity <id> --reason "..."`.
 - **YAML formatting preserved**: bless mode commits the working-copy bytes verbatim — key order, comments, and whitespace from the user's edit are not re-canonicalized through the loader. (Explicit mode does re-serialize through `entity.Serialize`, which canonicalizes.)
 
 ### AC body sub-sections
