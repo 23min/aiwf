@@ -6,23 +6,31 @@ import (
 	"github.com/23min/aiwf/internal/entity"
 )
 
-// TestSectionAbsence_OneAnswerForEveryRuleThatAsks pins M-0329/AC-4:
-// the rules asking whether a body carries a section resolve to one
-// predicate, so they cannot answer differently about the same heading.
+// TestSectionPresence_EverySurfaceAnswersAlike pins M-0329/AC-4: every
+// rule that asks whether a body carries a section resolves to one
+// parser, so none of them can answer differently about the same body.
 //
-// Two rules ask it and they used to ask it two ways. The write-time
-// guards scanned with a regexp tolerant of any whitespace after `##`;
-// milestone-done-empty-release-note read entity.ParseBodySections,
-// which matches the literal `"## "` and nothing else. Measured on
-// `##\tGoal`: the guards reported the section present, the parser
-// reported it absent — the same body, two answers.
+// Three surfaces ask it, and each is made to reveal its own answer by a
+// body shaped so that its verdict turns on nothing else:
 //
-// The heading spellings are the axis because they are where the two
-// scanners diverged. Each row asks both surfaces about one spelling and
-// requires a single verdict; the assertion is agreement, not a
-// hardcoded expectation, so a future parser change moves both together
-// or fails here.
-func TestSectionAbsence_OneAnswerForEveryRuleThatAsks(t *testing.T) {
+//   - AbsentRequiredSections reports the section, or does not.
+//   - EmptyRequiredSections judges content, so it can only report a
+//     section it found — on a body whose section is present and empty,
+//     reporting it means it saw the heading.
+//   - milestone-done-empty-release-note fires on absent and on empty
+//     alike, so it reveals nothing on an empty section — on one carrying
+//     real prose, staying silent means it saw the heading.
+//
+// The spellings are the axis because they are where two parsers
+// diverged: the write-time guards once matched a regexp tolerant of any
+// whitespace after `##`, while the check rules matched the literal
+// `"## "`. Measured on `##\tGoal`, the guards reported the section
+// present and the parser reported it absent.
+//
+// The assertion is agreement, never a hardcoded expectation. Which
+// spellings the shared parser accepts is its business; that every rule
+// gets the same answer is this milestone's.
+func TestSectionPresence_EverySurfaceAnswersAlike(t *testing.T) {
 	t.Parallel()
 	cases := []struct {
 		name    string
@@ -31,27 +39,27 @@ func TestSectionAbsence_OneAnswerForEveryRuleThatAsks(t *testing.T) {
 		{"canonical", "## "},
 		{"tab after the hashes", "##\t"},
 		{"two spaces after the hashes", "##  "},
-		{"trailing whitespace", "## "},
+		{"no space after the hashes", "##"},
 	}
 	for _, tc := range cases {
 		t.Run(tc.name, func(t *testing.T) {
 			t.Parallel()
-			// One body, two questions about it. The milestone's own
-			// required set carries `Goal`, and the release-note rule
-			// asks about `Release note`, so the body spells both the
-			// same way and each surface is asked about its own.
-			body := []byte(tc.heading + "Goal\n\nprose\n\n" +
-				tc.heading + "Acceptance criteria\n\nprose\n\n" +
-				tc.heading + ReleaseNoteSectionHeading + "\n\nThe verb now accepts a flag.\n")
 
-			guardSaysAbsent := len(AbsentRequiredSections(entity.KindMilestone, body)) > 0
+			// `Goal` present and empty; the rest of the kind's set filled,
+			// so nothing but this heading decides either verdict.
+			emptyGoal := []byte(tc.heading + "Goal\n\n\n\n" + tc.heading + "Acceptance criteria\n\nprose\n")
+			guardSees := len(AbsentRequiredSections(entity.KindMilestone, emptyGoal)) == 0
+			emptinessSees := len(EmptyRequiredSections(entity.KindMilestone, emptyGoal)) > 0
 
-			root := writeReleaseNoteFixture(t, "done", string(body))
-			ruleSaysAbsent := len(milestoneDoneEmptyReleaseNote(loadReleaseNoteTree(t, root))) > 0
+			// `Release note` carrying real prose: the rule is silent only
+			// if it found the heading and read what is under it.
+			writtenNote := tc.heading + "Goal\n\nprose\n\n" + tc.heading + ReleaseNoteSectionHeading + "\n\nThe verb now accepts a flag.\n"
+			root := writeReleaseNoteFixture(t, "done", writtenNote)
+			ruleSees := len(milestoneDoneEmptyReleaseNote(loadReleaseNoteTree(t, root))) == 0
 
-			if guardSaysAbsent != ruleSaysAbsent {
-				t.Errorf("the two rules disagree about %q: the write-time guard reports the section absent: %v; milestone-done-empty-release-note reports it unwritten: %v",
-					tc.heading, guardSaysAbsent, ruleSaysAbsent)
+			if guardSees != emptinessSees || guardSees != ruleSees {
+				t.Errorf("the rules disagree about whether %q is a heading — write-time guard sees it: %v; entity-body-empty sees it: %v; milestone-done-empty-release-note sees it: %v",
+					tc.heading, guardSees, emptinessSees, ruleSees)
 			}
 		})
 	}

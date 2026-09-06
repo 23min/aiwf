@@ -71,15 +71,16 @@ func milestoneDoneEmptyReleaseNote(t *tree.Tree) []Finding {
 		if !ok {
 			continue
 		}
-		// Absence and emptiness are asked separately and reported as one
-		// finding. An absent section counts as unwritten: scoping to
-		// present-and-empty would make deleting the heading an escape from the
-		// rule. Comments are stripped for the second question so a spec
-		// carrying only the template's guidance comment reads as the empty
-		// section it is; SectionsAbsent strips them for the first.
-		absent := len(SectionsAbsent(body, []string{ReleaseNoteSectionHeading})) > 0
+		// An absent section counts as unwritten, and needs no separate test to
+		// do so: a heading that is not there produces no key, and the empty
+		// string this lookup yields is what isAllWhitespaceOrHeadings already
+		// reports as unwritten. Scoping to present-and-empty would make
+		// deleting the heading an escape from the rule.
+		//
+		// Comments are stripped first so a spec carrying only the template's
+		// guidance comment reads as the empty section it is.
 		sections := entity.ParseBodySections(stripHTMLComments(body))
-		if !absent && !isAllWhitespaceOrHeadings([]byte(sections[releaseNoteSectionSlug]), true) {
+		if !isAllWhitespaceOrHeadings([]byte(sections[releaseNoteSectionSlug]), true) {
 			continue
 		}
 		findings = append(findings, Finding{
