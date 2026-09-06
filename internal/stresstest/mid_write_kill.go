@@ -44,8 +44,8 @@ import (
 const midWriteBodySize = 10_000_000
 
 // midWriteFillerLine is the length of one line of midWriteBodySize's
-// filler. Any value under the section scanner's 1 MB token ceiling
-// serves; this one keeps the line count modest.
+// filler. Any value under the 65,536-byte scanner default the emptiness
+// classifier runs at serves; this one keeps the line count modest.
 const midWriteFillerLine = 10_000
 
 // defaultMidWriteHangGuard bounds one attempt so a wedged subprocess
@@ -112,11 +112,12 @@ func (s *MidWriteKillScenario) Setup(dir string) error {
 	// its kind requires, and midWriteBodySize bytes is what makes the
 	// write window wide enough to interrupt.
 	//
-	// The filler is broken into lines because the kernel's section
-	// scanner reads a body line by line through a bufio.Scanner whose
-	// token ceiling is 1 MB, and a heading after a longer line is not
-	// seen (G-0666). What this scenario needs is the total size, which
-	// the line breaks leave untouched.
+	// The filler is broken into lines because the classifier deciding
+	// whether a section carries content reads it through a bufio.Scanner
+	// at the default buffer, so a line of 65,536 bytes or more reads as
+	// no content at all and the gate refuses the body as empty (G-0666).
+	// What this scenario needs is the total size, which the line breaks
+	// leave untouched.
 	body := []byte("## What's missing\n\n")
 	for written := 0; written < midWriteBodySize; written += midWriteFillerLine {
 		body = append(body, bytes.Repeat([]byte("x"), midWriteFillerLine)...)
