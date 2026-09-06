@@ -1,7 +1,7 @@
 ---
 id: ADR-0048
 title: A create must be complete; an edit must not regress
-status: proposed
+status: accepted
 ---
 ## Context
 
