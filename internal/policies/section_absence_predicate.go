@@ -11,11 +11,15 @@ import (
 	"strings"
 )
 
-// sectionScanPackages are the packages that decide, about an entity
-// body, whether a section is there. Nothing else in the module reads an
-// entity body for its `##` headings: the roadmap renderer and the
-// policy suite scan ROADMAP.md and CLAUDE.md, which are documents no
-// entity rule judges.
+// sectionScanPackages are the packages whose `##` scans decide whether a
+// verb refuses or a rule reports. They are what this ban covers.
+//
+// They are not the only code reading an entity body for headings:
+// internal/roadmap's extractSection reads an epic file to render its
+// `## Goal`, and disagrees with the parser on a heading spelled with two
+// spaces. That decides render output rather than a refusal, so it is out
+// of scope here — but the module does not have one section scanner, it
+// has two, and the second is unbanned.
 var sectionScanPackages = []string{
 	filepath.Join("internal", "check"),
 	filepath.Join("internal", "verb"),
@@ -45,7 +49,11 @@ var sectionScanExempt = map[string]bool{
 // from one family or the other.
 var (
 	prefixTests = map[string]bool{"HasPrefix": true, "TrimPrefix": true, "CutPrefix": true}
-	searchTests = map[string]bool{"Contains": true, "Index": true, "Split": true, "SplitSeq": true, "SplitN": true, "Cut": true}
+	searchTests = map[string]bool{
+		"Contains": true, "Index": true, "LastIndex": true, "Count": true,
+		"Split": true, "SplitSeq": true, "SplitN": true, "SplitAfter": true, "Cut": true,
+		"Equal": true, "EqualFold": true,
+	}
 )
 
 // PolicySectionAbsenceSinglePredicate asserts that no package deciding
@@ -166,10 +174,7 @@ func isHeadingScanCall(call *ast.CallExpr, consts map[string]string) bool {
 		}
 		// A bare `##` counts: a scan more tolerant than the parser is the
 		// drift this exists to catch, not a lesser case of it.
-		if strFunc && prefixTests[sel.Sel.Name] && strings.HasPrefix(lit, "##") {
-			return true
-		}
-		if strFunc && searchTests[sel.Sel.Name] && strings.Contains(lit, "##") {
+		if strFunc && (prefixTests[sel.Sel.Name] || searchTests[sel.Sel.Name]) && isHeadingLiteral(lit, prefixTests[sel.Sel.Name]) {
 			return true
 		}
 		if pkg.Name == "regexp" && isHeadingPattern(lit) {
@@ -179,21 +184,34 @@ func isHeadingScanCall(call *ast.CallExpr, consts map[string]string) bool {
 	return false
 }
 
-// isHeadingPattern reports whether a regexp source is anchored on a `##`
-// heading. Leading inline flag groups are stripped first: `(?m)` is how a
-// whole-body scan is written, and it is the spelling this project's own
-// AC-heading pattern already uses.
+// isHeadingLiteral reports whether a string a call tests a line against
+// names a `##` section heading. A prefix test must open with it; a search
+// need only contain it.
 //
-// `^###` is a different question — which acceptance criteria a milestone
-// body carries, not which sections.
+// `###` is a different question — which acceptance criteria a milestone
+// body carries, not which sections — and it is exempt in whichever of the
+// two spellings an author reaches for, here and in isHeadingPattern.
+func isHeadingLiteral(lit string, prefix bool) bool {
+	if prefix {
+		return strings.HasPrefix(lit, "##") && !strings.HasPrefix(lit, "###")
+	}
+	return strings.Contains(lit, "##") && !strings.Contains(lit, "###")
+}
+
+// isHeadingPattern reports whether a regexp source is anchored on a `##`
+// heading, after stripping what stands between `^` and the hashes: inline
+// flag groups, and leading-whitespace tolerance. Both are how a scan gets
+// written that is looser than the parser, which is the drift this catches
+// rather than a lesser case of it.
 func isHeadingPattern(pattern string) bool {
-	anchored := leadingInlineFlags.ReplaceAllString(pattern, "")
+	anchored := patternPreamble.ReplaceAllString(pattern, "^")
 	return strings.HasPrefix(anchored, "^##") && !strings.HasPrefix(anchored, "^###")
 }
 
-// leadingInlineFlags matches the inline flag groups a regexp source may
-// open with, so the anchor after them is what gets classified.
-var leadingInlineFlags = regexp.MustCompile(`^(?:\(\?[^)]*\))+`)
+// patternPreamble matches a regexp source's opening inline flag groups
+// and its caret together with any leading-whitespace tolerance after it,
+// replacing the lot with a bare caret.
+var patternPreamble = regexp.MustCompile(`^(?:\(\?[^)]*\))*\^(?:\\s\*|\\s\+|[ \t]\*|[ \t]\+|\[ \\t\]\*)?`)
 
 // stringLiteral unwraps arg to its string value, seeing through the
 // []byte(...) conversion a bytes.HasPrefix call wraps its literal in and

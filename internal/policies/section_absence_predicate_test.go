@@ -23,16 +23,18 @@ func TestPolicySectionAbsenceSinglePredicate_ThisRepoIsClean(t *testing.T) {
 // policy over a tree carrying the shape it bans, so its silence on the
 // live tree means the scan is absent rather than the policy inert.
 //
-// Each row is one classification rule, not one spelling. Six ways a scan
-// gets written and five things that are not one: a pattern asking which
-// acceptance criteria a body carries, a heading rendered into a message,
-// a classifier testing a heading of any level, and the one function
-// exempt by name for using the heading as a terminator.
+// Each row is one classification rule, not one spelling — a way a scan
+// gets written, or a construct that is not one.
 //
-// The tolerant rows matter most. A scan accepting `##` without a space,
-// or a regexp carrying `(?m)` for a whole-body match, is looser than the
-// parser — which is the drift direction this exists to catch, and the
-// spelling a new author reaches for first.
+// The tolerant rows matter most. A scan accepting `##` without a space, a
+// regexp carrying `(?m)` for a whole-body match, or one tolerating leading
+// whitespace, is looser than the parser — which is the drift direction
+// this exists to catch, and the spelling a new author reaches for first.
+//
+// The `###` rows are the boundary. That question — which acceptance
+// criteria a body carries — is exempt in whichever spelling an author
+// reaches for, and a rule exempt as a regexp but caught as a prefix test
+// would send them to a remedy that cannot answer it.
 func TestPolicySectionAbsenceSinglePredicate_FiresOnASecondScan(t *testing.T) {
 	t.Parallel()
 	cases := []struct {
@@ -76,13 +78,23 @@ func TestPolicySectionAbsenceSinglePredicate_FiresOnASecondScan(t *testing.T) {
 			want: 1,
 		},
 		{
-			name: "the AC-heading pattern, which asks a different question",
-			src:  "package check\n\nimport \"regexp\"\n\nvar h3 = regexp.MustCompile(`(?m)^###\\s+AC-(\\d+)`)\n",
+			name: "a regexp tolerant of leading whitespace",
+			src:  "package check\n\nimport \"regexp\"\n\nvar h2 = regexp.MustCompile(`(?m)^\\s*##\\s+(.+)$`)\n",
+			want: 1,
+		},
+		{
+			name: "a whole line compared against one heading",
+			src:  "package check\n\nimport \"bytes\"\n\nfunc isGoal(line []byte) bool {\n\treturn bytes.Equal(line, []byte(\"## Goal\"))\n}\n",
+			want: 1,
+		},
+		{
+			name: "the AC-heading question written as a prefix test",
+			src:  "package check\n\nimport \"strings\"\n\nfunc nested(line string) bool {\n\treturn strings.HasPrefix(line, \"### \")\n}\n",
 			want: 0,
 		},
 		{
-			name: "a heading rendered into a message",
-			src:  "package check\n\nfunc quoted(name string) string {\n\treturn \"## \" + name\n}\n",
+			name: "the AC-heading pattern, which asks a different question",
+			src:  "package check\n\nimport \"regexp\"\n\nvar h3 = regexp.MustCompile(`(?m)^###\\s+AC-(\\d+)`)\n",
 			want: 0,
 		},
 		{
