@@ -32,8 +32,12 @@ reports a required section present and empty and skips one absent outright, and
 
 ## Closes
 
-- G-0571 — no surface enforces that an entity body carries its kind's required
-  sections.
+Nothing. G-0571 names the hole this milestone narrows, but closing it is
+E-0084's: that epic's scope carries the push seam and the prose retirement, and
+its success criteria name the gap. This milestone delivers E-0084's first
+scope item early, from a different epic, and leaves the gap open — a write-time
+rule reads only bytes it is writing, so the 55 entities already missing a section
+are untouched by it.
 
 ## Context
 
