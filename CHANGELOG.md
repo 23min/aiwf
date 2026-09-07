@@ -16,6 +16,36 @@ section in this file.
 
 ## [Unreleased]
 
+### Changed — G-0636: each milestone-spec section rule has one owner
+
+When a milestone-spec section is filled, and what it holds, was stated
+independently in the template, both milestone rituals, and two agent cards.
+`builder.md` listed `## Validation` among the sections a builder maintains during
+implementation, while the template said it was pasted at wrap; nothing reconciled
+them, so a spec was filled differently depending on which surface an agent had
+loaded. The template also contradicted itself, carrying a blanket claim that
+every section below it is populated continuously through implementation over
+two per-section comments saying otherwise.
+
+Each section now has one owner, chosen by where it is first written — four of the
+seven are written by both rituals, so "where" alone would not decide them.
+`aiwfx-start-milestone` owns `## Closes`, `## Work log`, `## Decisions made
+during implementation` and `## Deferrals` and states what each holds;
+`aiwfx-wrap-milestone` owns `## Release note`, `## Validation` and
+`## Reviewer notes`. The template carries every heading and names the owning
+ritual rather than restating its rules; the agent cards name the sections they
+touch and state no rule about them. `## Validation` resolves as pasted at wrap,
+which is what both rituals drove — the contrary instruction in `builder.md` was
+live, and is overruled rather than reconciled.
+
+The assignment is written in the template and in each ritual, so a reader inside
+any one of them is self-sufficient, and a policy compares the three. It reports a
+section with no owner, one the map claims that the template no longer carries, one
+claimed by both rituals, an owner naming a ritual that ships no skill, a ritual
+copy that assigns a section differently or omits it, a map line naming a ritual
+without assigning anything, and a wrap-owned section named in the builder agent
+card. Whether a rule's prose is restated remains a review obligation.
+
 ### Fixed — an acceptance criterion reopened for rework starts its TDD cycle over
 
 `aiwf promote <id>/AC-N open` now clears the AC's `tdd_phase`. The phase FSM is
