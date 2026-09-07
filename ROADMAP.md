@@ -1282,5 +1282,5 @@ uniquely holds, and a release's notes rest on whoever cut it remembering.
 | M-0326 | Add a Release note section and write the epic wrap's changelog from it | done |
 | M-0327 | See entity-trailered commits in history, at AC granularity, guarded on commit | done |
 | M-0328 | An acceptance criterion holds its claim and names its evidence | cancelled |
-| M-0329 | An entity body that omits a required section is refused at the write | in_progress |
+| M-0329 | An entity body that omits a required section is refused at the write | done |
 
