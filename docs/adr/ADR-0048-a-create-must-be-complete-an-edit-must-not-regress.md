@@ -86,5 +86,13 @@ ADR-0043 gives: a body can reach a commit without passing any verb.
 - `--force` at `aiwf add` now applies to every kind, where under the previous
   born-complete-only gate it was inert on epic and milestone. It is a sovereign
   act whose scope widened.
+- **The two decisions above compose into a permanent exemption.** A body forced
+  past the absence half lands incomplete; the edit seams then compare against
+  that committed body and find the section already gone, so no verb ever asks it
+  to converge, and no check rule reports an absent section. `--force` at a create
+  is therefore not "create anyway" but "create anyway, and stay exempt". Forcing
+  past the *emptiness* half carries no such consequence, because
+  `entity-body-empty` still reports the section afterwards — which is the reason
+  to leave a heading in and empty rather than drop it.
 - A body-writing verb that does not call the scan is unenforced at seam one, and
   nothing forces the call. `aiwf import` is the live instance, deliberately.
