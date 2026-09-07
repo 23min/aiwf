@@ -12,9 +12,16 @@ because nothing enforced it.
 ## Scope
 
 - A scan over the bytes a verb is about to write, wired into every body-supplying
-  verb, refusing at error severity for every kind.
+  verb, refusing at error severity for every kind. **Delivered by M-0329** for
+  `aiwf add` and both modes of `aiwf edit-body`, under ADR-0048's split: a create
+  must be complete, an edit must not regress. `aiwf import` is the fourth such
+  verb and is left ungated on its deprecation, which no surface records (G-0667)
+  — if that resolves the other way, gating it returns here.
 - A gate on the push, riding the commit range the provenance audit already resolves,
-  scoped to entities whose body content this push changed.
+  scoped to entities whose body content this push changed. **Unbuilt**, and the
+  reason it is still needed is unchanged: a body can reach a commit without
+  passing any verb, and the wrap-milestone ritual's plain `git commit` is that
+  path today.
 - Deleting the prose that states the section set once a refusal carries it. The
   enforcement is what makes the deletion safe; landing it without the deletion leaves
   the second copy in place and spends the epic for nothing.
@@ -22,11 +29,18 @@ because nothing enforced it.
 
 ## Out of scope
 
-- The existing violations. 217 gap bodies and 27 decision bodies omit a required
-  section; enforcing across the tree would raise 119 findings over 60 live entities,
-  118 at error severity. Both seams read only bytes being written, so these are never
-  in scope — that is the mechanism, not a grandfather clause. Paying the debt is a
+- The existing violations. Measured 2026-09-07 through the loader: 55 live
+  entities omit at least one required section, 109 omissions between them, of
+  which 54 entities and 108 omissions sit on the born-complete kinds where the
+  severity would be error. Counting archived entities too, 397 bodies carry 698
+  omissions. Both seams read only bytes being written, so these are never in
+  scope — that is the mechanism, not a grandfather clause. Paying the debt is a
   migration and needs its own evidence.
+
+  Non-regression at the edit seams makes that permanent rather than merely
+  current: an entity missing a section keeps it missing through every subsequent
+  edit. Nothing converges the tree until this epic's push seam lands, or a
+  tree-side rule with a baseline replaces it.
 - Emptiness. Whether a section that is present carries content is ADR-0042's subject
   and E-0083's work: enforced at the readiness transition, not at a write.
 - Whether the milestone template's four structured-data sections should exist at all
@@ -77,8 +91,11 @@ rather than by policy. This epic implements it.
 
 ## Success criteria
 
-- [ ] Every body-supplying verb refuses a body omitting a required section, and a test
-      per verb fails if the call is removed.
+- [ ] Every body-supplying verb refuses a write that would leave a required section
+      missing — a create judged against completeness, an edit against the committed
+      body (ADR-0048) — and a test per verb fails if the call is removed. M-0329
+      satisfies this for `aiwf add` and `aiwf edit-body`; `aiwf import` is
+      excluded on its deprecation, so the criterion closes when G-0667 does.
 - [ ] A body reaching a commit without passing any verb is refused at the push, proven
       against the path that does this today rather than a synthetic one.
 - [ ] `aiwf check` on this tree reports the same findings before and after the epic.
@@ -116,13 +133,21 @@ Each states the section set, and each is deletable only once a refusal carries i
 
 ## Milestones
 
-- the verb seam: the scan, wired into every body-supplying verb, with a per-verb test
+- ~~the verb seam: the scan, wired into every body-supplying verb, with a per-verb
+  test~~ — delivered by M-0329 under E-0091, less `aiwf import`
 - the push seam: the gate on the provenance range, scoped to body-changed entities
-- the deletion: retire the prose the enforcement makes redundant, and close G-0571
+- the deletion: retire the prose the enforcement makes redundant, and close G-0571.
+  M-0329 corrected the passages that had become false; what remains here is
+  retiring the ones the enforcement makes redundant, which is a different act
 
 ## References
 
-- ADR-0043 — the decision this epic implements
+- ADR-0048 — the decision this epic implements, superseding ADR-0043 on what the
+  verb seam asks; the placement, the definition of a violation, and the push seam
+  carry forward unchanged
+- M-0329 — delivered the verb seam for `aiwf add` and `aiwf edit-body`
+- G-0667 — `aiwf import`'s unrecorded deprecation, which the first success
+  criterion now depends on
 - ADR-0042 — the adjacent decision, emptiness at the readiness transition
 - E-0083 — the epic implementing ADR-0042; the finding-code question is shared
 - G-0571 — the hole this closes, and the source of the 119-finding measurement
