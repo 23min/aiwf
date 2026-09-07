@@ -14,10 +14,13 @@ inherits the same blind spot.
 The scaffold does not cover the hole. For the born-complete kinds — adr, gap,
 decision, contract — `aiwf add` refuses its own scaffold, because every scaffolded
 heading is empty, so `--body` or `--body-file` is the only path to creating one and
-that content replaces the scaffold wholesale. `aiwf edit-body` consults nothing at
-all. Measured: an epic created with the full scaffold, then given a body via
-`aiwf edit-body --body-file` that omits `## Out of scope`, loses the section and
-`aiwf check` reports zero errors.
+that content replaces the scaffold wholesale.
+
+M-0329 closed the write half. `aiwf add` refuses a body omitting a required
+section for every kind, and both `aiwf edit-body` modes refuse a write that drops
+one the committed body carries (ADR-0048). What stays open is everything a write
+seam cannot see: the bodies already committed without a section, a body reaching
+a commit without passing a verb, and `aiwf import`.
 
 ## Why it matters
 
@@ -26,18 +29,20 @@ skill, the root help banner, the prose templates, and the design docs — and no
 mechanism makes it true. An operator reading any of them is entitled to believe
 a missing section would be caught.
 
-The consequence is already in the tree: 35 non-terminal gaps and 24 non-terminal
-decisions are missing at least one section their kind requires, and the checks are
-silent on every one. They concentrate in the born-complete kinds because those have
-no reachable scaffold at all, but the hole is not theirs alone — an active epic in
-this tree is missing `## Out of scope`, and epic is a kind whose scaffold does write
-every required section. `aiwf edit-body` is how a body loses one afterwards.
+The consequence is already in the tree, and a write-time refusal does not reach
+it. Measured 2026-09-07 through the loader: 55 live entities omit at least one
+required section, 109 omissions between them — 30 open gaps, 24 accepted
+decisions, and one proposed epic — and no check reports any of them. They
+concentrate in the born-complete kinds, which have no reachable scaffold, but the
+hole is not theirs alone: the epic scaffold writes every required section, so
+that one lost it after creation.
 
-Closing it tree-wide would raise 119 findings over 60 live entities — 118 of them
-at error severity, plus one warning on an active epic missing `## Out of scope` —
-which is why E-0081 declined to. The narrower option is a create-time refusal on
-`aiwf add --body-file` and `aiwf edit-body --body-file`, which fires only on new
-content and would raise none.
+Closing it tree-wide would raise those 109 findings, 108 at error severity, which
+is why E-0081 declined. Non-regression at the edit seams also means none of them
+converges: an entity missing a section keeps it missing through every subsequent
+edit. What would close them is a tree-side rule reading bodies it is not writing —
+E-0084's push seam, or a rule with a baseline ledger — and that is where this gap
+closes.
 
 The gate at `internal/verb/add.go` sharpens the point. Handed a body whose required
 section is present and empty, it refuses and tells the operator `aiwf check` will
