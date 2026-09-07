@@ -110,7 +110,9 @@ opposite here, since guidance and rituals ship as product (G-0529).
 - [ ] Every section rule named in G-0636's surface inventory is stated once, and
       each restating surface points at the owner instead.
 - [ ] `## Validation` has one answer about when it is filled.
-- [ ] An entity body missing a section its kind requires is reported.
+- [ ] An entity body missing a section its kind requires is refused at the write.
+      Reporting one across the tree is ADR-0048's declined option and E-0084's
+      push seam; this epic reaches the write and no further.
 - [ ] A release whose `[Unreleased]` omits a shipped delta is reported before
       the tag, including a delta that lands only in the embedded guidance or
       ritual trees.
@@ -145,7 +147,8 @@ opposite here, since guidance and rituals ship as product (G-0529).
 - `M-0327` — the history projection sees entity-trailered commits, at AC
   granularity, and a chokepoint catches an unparseable trailer while it is cheap
   · depends on: —
-- An entity body that omits one of its kind's required sections is reported
+- `M-0329` — an entity body that omits one of its kind's required sections is
+  refused at the write, at `aiwf add` and both `aiwf edit-body` modes
   · depends on: —
 - A release's `[Unreleased]` is checked against what shipped · depends on: —
 - **patch** — every milestone-spec section rule gets one owner, and
