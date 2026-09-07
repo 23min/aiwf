@@ -27,8 +27,11 @@ blocks on it. Those kinds carry 54 of the 55 live entities that omit a required
 section — 30 open gaps and 24 accepted decisions — so for almost every entity
 holding this debt the remedy converts silence into a blocking finding, and the
 real instruction is not "add the heading" but "add the heading and write the
-section". `aiwf edit-body` offers no `--force`, so an author changing one
-paragraph of such an entity has no way past it.
+section". `aiwf edit-body` offers no `--force` — and adding one would not
+rescue completeness here, because `--force` is sovereign and human-only. An AI
+actor would be hard-blocked from editing any of those 54 entities at all, with no
+override available to it. That is the argument against completeness at an edit;
+the absence of the flag today is only its cheaper form.
 
 Completeness at a create carries no such cost. A new entity has no committed body
 to be judged against, and the scaffold writes every heading, so a body missing
