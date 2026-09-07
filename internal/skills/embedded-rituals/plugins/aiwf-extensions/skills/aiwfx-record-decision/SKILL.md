@@ -125,7 +125,7 @@ aiwf edit-body ADR-NNNN --body-file <draft>
 
 ### 8. Mirror the id back to the caller's context
 
-If invoked from `aiwfx-start-milestone` mid-flight: add the new id under `## Decisions made during implementation` in the milestone spec.
+If invoked from `aiwfx-start-milestone` mid-flight: add the new id under `## Decisions made during implementation` in the milestone spec, as that ritual's step 6 directs.
 If from `aiwfx-wrap-epic`'s ADR harvest: add to `## ADRs ratified` or `## Decisions captured` in `wrap.md`.
 If from `wf-review-code`: list it under "Track for later" in the review report.
 
@@ -156,7 +156,7 @@ repo file the reader does not have.
 ## Anti-patterns
 
 - *Capturing implementation details as decisions.* "We named the variable foo" is not a decision; "we chose to model auth as a service rather than a library" is.
-- *Writing a long prose decision under the milestone spec's `## Decisions made during implementation`.* Those should live in an ADR or D-NNNN. The spec section just points at the id.
+- *Writing a long prose decision under the milestone spec's `## Decisions made during implementation`.* Those live in an ADR or D-NNNN; `aiwfx-start-milestone` states what that section carries.
 - *Skipping the supersession edit.* A supersession is two-sided: the new entry says what it supersedes; the old entry's status flips to `superseded` and gets a `superseded_by:` pointer. Both edits.
 - *Writing the decision but never promoting it past `proposed`.* If it's in force, promote to `accepted`. Otherwise it never feels "decided."
 

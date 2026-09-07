@@ -24,13 +24,8 @@ acs: []                  # filled by `aiwf add ac`, never by hand
 
 ## Closes
 
-<!-- Gaps this milestone sets out to close, one id per line, recorded now rather
-     than reconstructed at wrap. List a gap only when this work is expected to
-     resolve it: a gap the work merely touches, or punts, belongs under
-     `## Deferrals`. `aiwfx-wrap-milestone` reads this section and closes each id
-     listed; one the work advanced without finishing gets its claim corrected
-     there instead. Delete the section when the milestone closes nothing.
-     One line per gap: the id, then what this milestone resolves in it. -->
+<!-- Filled at milestone start, not while authoring this spec.
+     `aiwfx-start-milestone` states what belongs here and what does not. -->
 
 - (none)
 
@@ -104,43 +99,22 @@ changed to make it possible now?>
 
 ---
 
-<!-- The sections below are populated continuously through implementation and
-     finalized at `aiwfx-wrap-milestone`. aiwf does not validate their contents
-     (prose is human-owned), but `aiwfx-start-milestone` / `aiwfx-wrap-milestone`
-     rely on the structure. -->
+<!-- The sections below are filled after this spec is authored, each by the
+     ritual that owns it. That ritual states when the section is written and what
+     it holds; nothing is restated here.
+
+       `aiwfx-start-milestone` — `## Closes` (above), `## Work log`,
+                                 `## Decisions made during implementation`,
+                                 `## Deferrals`
+       `aiwfx-wrap-milestone`  — `## Release note`, `## Validation`,
+                                 `## Reviewer notes`
+
+     Their prose is human-owned; the `aiwf-check` skill's finding table lists the
+     rules that read it. -->
 
 ## Release note
 
-<!-- The user-visible delta of this milestone, written for someone reading
-     release notes who will never see this spec: what a consumer can now do, or
-     what changed under them.
-
-     The epic wrap composes the epic's changelog entry from these notes, and
-     that entry is copied verbatim into the changelog — so this is the last
-     point at which the change is described by someone who did the work.
-     Reconstructing it later from milestone titles is what leaves a shipped
-     change undescribed.
-
-     Not the account of how it was built, which `## Work log` holds, and not
-     the epic's summary, which the epic wrap writes. One short paragraph, or one line per
-     user-facing change. "No user-visible change" is a valid note; empty is
-     not. -->
-
 ## Work log
-
-<!-- One line per AC recording what it produced. The AC's own history answers
-     which commit implemented it, once that commit carries the AC in its entity
-     trailer, so the SHA here is a locator beside the outcome rather than the
-     record of the link. Reasoning that outlives the entry — a rejected
-     approach, a trade argued out — belongs in the section that owns it, not
-     here.
-     One entry per AC (preferred) or per meaningful unit of work. Append-only;
-     never rewrite earlier entries.
-       Header:     "AC-<N> — <short title>" or "<short title>" if not AC-scoped.
-       First line: <one-line outcome> · commit <SHA> · tests <N/M>
-     That line is the entry. The phase timeline lives in
-     `aiwf history <milestone-id>/AC-<N>`. Design reasoning belongs in the code it
-     explains; anything else has its own section. -->
 
 ### AC-1 — <short title>
 
@@ -148,34 +122,14 @@ changed to make it possible now?>
 
 ## Decisions made during implementation
 
-<!-- Decisions that came up mid-work that were NOT pre-locked above in `## Design
-     notes`. For each: what was decided, why, and a link to the ADR or decision id
-     that captures the durable reasoning (use `aiwfx-record-decision`).
-     If no new decisions arose, say "None — all decisions are pre-locked above." -->
-
 - (none)
 
 ## Validation
 
-<!-- Pasted at wrap. Test-suite results, build output, any project-specific lint
-     or type-check. -->
-
 ## Deferrals
-
-<!-- Work this milestone deliberately punted. Apply the cheap-fix test first: a
-     change that is small, lands in a file this milestone already touches, and is
-     covered by a test you are already writing gets made now rather than filed.
-     Each deferral that survives the test must be opened as a gap entity
-     (`aiwf add gap --title "..." --discovered-in <milestone-id>`) and the
-     resulting gap id mirrored here, so the deferral survives. -->
 
 - (none)
 
 ## Reviewer notes
-
-<!-- Trade-offs, deliberate omissions, places where the obvious approach was
-     rejected, and the deciding review's own outcome. Filled at wrap, after
-     that review — so the review whose outcome it records cannot have read it.
-     A later reviewer reads it first. -->
 
 - (none)
