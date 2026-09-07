@@ -53,8 +53,9 @@ because nothing enforced it.
 
 `entity.RequiredSections` has been the single definition of each kind's body sections
 since E-0081, and every surface stating the set now derives from it or is tested
-against it. Nothing enforces it. `RequiredSections`' own doc comment says so outright:
-*"'Required' names what the scaffold writes, not a guarantee anything verifies."*
+against it. Until M-0329 nothing enforced it, and `RequiredSections`' own doc comment
+said so. The write seams enforce it now; what remains unenforced is a body reaching a
+commit without passing a verb, and every body already committed without one.
 
 `entity-body-empty` reports a section that is present and empty; one absent outright is
 skipped by design, and the `aiwf add` born-complete gate consults the same helper, so
@@ -111,8 +112,9 @@ Each states the section set, and each is deletable only once a refusal carries i
 
 - the `aiwf-add` skill's per-kind body-section table
 - the body-sections table in `docs/design/design-decisions.md`
-- `RequiredSections`' own "not a guarantee anything verifies" caveat, which the
-  enforcement makes false
+- ~~`RequiredSections`' own "not a guarantee anything verifies" caveat~~ — deleted
+  by M-0329, along with the same claim in two normative design docs and the
+  `entity-body-empty` rule's own comment
 
 ## Open questions
 
@@ -150,6 +152,7 @@ Each states the section set, and each is deletable only once a refusal carries i
   criterion now depends on
 - ADR-0042 — the adjacent decision, emptiness at the readiness transition
 - E-0083 — the epic implementing ADR-0042; the finding-code question is shared
-- G-0571 — the hole this closes, and the source of the 119-finding measurement
+- G-0571 — the hole this closes; its own body still carries the superseded
+  counts and a claim M-0329 falsified
 - E-0081 — gave the section set one owner and deliberately excluded enforcement
 - G-0530 — the adjacent, out-of-scope question of section membership
