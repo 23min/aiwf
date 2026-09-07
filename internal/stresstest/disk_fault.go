@@ -41,7 +41,7 @@ func (s *DiskFaultScenario) Setup(dir string) error {
 	if err := gitInitAndConfig(dir); err != nil { //coverage:ignore defensive: gitInitAndConfig's own internal branch already carries this rationale
 		return err
 	}
-	addEnv, err := runAiwfJSON(s.aiwfBin, dir, "add", "gap", "--title", "diskfault", "--body", "seed for the disk-fault scenario")
+	addEnv, err := runAiwfJSON(s.aiwfBin, dir, "add", "gap", "--title", "diskfault", "--body", sectionedBody("gap", "seed for the disk-fault scenario"))
 	if err != nil { //coverage:ignore defensive: covered by the same launch-failure class other scenarios pin at runAiwfJSON's own source
 		return fmt.Errorf("seeding gap: %w", err)
 	}

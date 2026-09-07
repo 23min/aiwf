@@ -32,6 +32,16 @@ func NewCmd(correlationID string) *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "edit-body <id>",
 		Short: "Replace the entity's markdown body (frontmatter untouched)",
+		Long: `Replace the entity's markdown body. Frontmatter is untouched — title, status,
+slug, and id are the structured-state verbs' domain (aiwf promote / rename /
+cancel / reallocate), and both modes refuse when the working copy's frontmatter
+differs from the committed one.
+
+A write that would drop a ` + "`## <Section>`" + ` the committed body carries is refused,
+naming the section. Both modes apply it, so the same edit is judged the same way
+whichever route it takes. The rule is non-regression rather than completeness: an
+entity whose committed body already omits a section stays editable. There is no
+--force; record a deliberate removal with aiwf acknowledge illegal.`,
 		Example: `  # Bless current working-copy edits to the entity body
   aiwf edit-body M-007
 

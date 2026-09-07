@@ -43,6 +43,11 @@ import (
 // on, not a matter of winning a microsecond-scale race.
 const midWriteBodySize = 10_000_000
 
+// midWriteFillerLine is the length of one line of midWriteBodySize's
+// filler. Any value under the 65,536-byte scanner default the emptiness
+// classifier runs at serves; this one keeps the line count modest.
+const midWriteFillerLine = 10_000
+
 // defaultMidWriteHangGuard bounds one attempt so a wedged subprocess
 // cannot hang the harness. It is not a budget for how long the write
 // may take: the observation ends when the promote writes or exits,
@@ -102,7 +107,24 @@ func NewMidWriteKillScenario(aiwfBin string) *MidWriteKillScenario {
 // repos, each seeded with one identically-bodied gap entity.
 func (s *MidWriteKillScenario) Setup(dir string) error {
 	bodyPath := filepath.Join(dir, "body.txt")
-	if err := os.WriteFile(bodyPath, bytes.Repeat([]byte("x"), midWriteBodySize), 0o644); err != nil { //coverage:ignore defensive: writing a fresh file under this scenario's own os.MkdirTemp dir has no realistic failure mode short of filesystem sabotage
+	// The gap's required headings wrap the filler rather than standing
+	// in for part of it: `aiwf add` refuses a body omitting a section
+	// its kind requires, and midWriteBodySize bytes is what makes the
+	// write window wide enough to interrupt.
+	//
+	// The filler is broken into lines because the classifier deciding
+	// whether a section carries content reads it through a bufio.Scanner
+	// at the default buffer, so a line of 65,536 bytes or more reads as
+	// no content at all and the gate refuses the body as empty (G-0666).
+	// What this scenario needs is the total size, which the line breaks
+	// leave untouched.
+	body := []byte("## What's missing\n\n")
+	for written := 0; written < midWriteBodySize; written += midWriteFillerLine {
+		body = append(body, bytes.Repeat([]byte("x"), midWriteFillerLine)...)
+		body = append(body, '\n')
+	}
+	body = append(body, "\n## Why it matters\n\nWriting a body this size is what this scenario interrupts.\n"...)
+	if err := os.WriteFile(bodyPath, body, 0o644); err != nil { //coverage:ignore defensive: writing a fresh file under this scenario's own os.MkdirTemp dir has no realistic failure mode short of filesystem sabotage
 		return fmt.Errorf("writing seed body: %w", err)
 	}
 	for _, repo := range []string{"control", "target"} {

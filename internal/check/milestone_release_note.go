@@ -71,11 +71,15 @@ func milestoneDoneEmptyReleaseNote(t *tree.Tree) []Finding {
 		if !ok {
 			continue
 		}
+		// An absent section counts as unwritten, and needs no separate test to
+		// do so: a heading that is not there produces no key, and the empty
+		// string this lookup yields is what isAllWhitespaceOrHeadings already
+		// reports as unwritten. Scoping to present-and-empty would make
+		// deleting the heading an escape from the rule.
+		//
 		// Comments are stripped first so a spec carrying only the template's
 		// guidance comment reads as the empty section it is.
 		sections := entity.ParseBodySections(stripHTMLComments(body))
-		// An absent section counts as empty: scoping to present-and-empty would
-		// make deleting the heading an escape from the rule.
 		if !isAllWhitespaceOrHeadings([]byte(sections[releaseNoteSectionSlug]), true) {
 			continue
 		}

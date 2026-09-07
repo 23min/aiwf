@@ -11,6 +11,7 @@ import (
 
 	"github.com/23min/aiwf/internal/cli"
 	"github.com/23min/aiwf/internal/cli/cliutil"
+	"github.com/23min/aiwf/internal/entity"
 	"github.com/23min/aiwf/internal/gitops"
 )
 
@@ -87,7 +88,7 @@ func TestTrailerShapePerMutatingVerb(t *testing.T) {
 	}
 
 	bodyFile := filepath.Join(root, "fixtures-edit-body.md")
-	if err := os.WriteFile(bodyFile, []byte("## Goal\n\nReplaced via trailer-shape test.\n"), 0o644); err != nil {
+	if err := os.WriteFile(bodyFile, entity.BodyWithSectionText(entity.KindMilestone, "Replaced via trailer-shape test."), 0o644); err != nil {
 		t.Fatalf("write body file: %v", err)
 	}
 

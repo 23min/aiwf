@@ -99,7 +99,7 @@ func (s *ForceOverrideDurabilityScenario) Setup(dir string) error {
 		return err
 	}
 
-	ackEnv, err := runAiwfJSON(s.aiwfBin, dir, "add", "epic", "--title", "acktarget", "--body", "epic for the ack-revocation-by-rebase scenario")
+	ackEnv, err := runAiwfJSON(s.aiwfBin, dir, "add", "epic", "--title", "acktarget", "--body", sectionedBody("epic", "epic for the ack-revocation-by-rebase scenario"))
 	if err != nil { //coverage:ignore defensive: covered by the same launch-failure class other scenarios pin at runAiwfJSON's own source
 		return fmt.Errorf("seeding the ack-target epic: %w", err)
 	}
@@ -121,7 +121,7 @@ func (s *ForceOverrideDurabilityScenario) Setup(dir string) error {
 	s.ackEpicPath = filepath.Join(dir, "work", "epics", ackEpicID+"-acktarget", "epic.md")
 	s.ackEpicID = ackEpicID
 
-	forceEnv, err := runAiwfJSON(s.aiwfBin, dir, "add", "epic", "--title", "forceparent", "--body", "epic for the force-override cherry-pick scenario")
+	forceEnv, err := runAiwfJSON(s.aiwfBin, dir, "add", "epic", "--title", "forceparent", "--body", sectionedBody("epic", "epic for the force-override cherry-pick scenario"))
 	if err != nil { //coverage:ignore defensive: see the ack-target epic add above
 		return fmt.Errorf("seeding the force-parent epic: %w", err)
 	}
@@ -136,7 +136,7 @@ func (s *ForceOverrideDurabilityScenario) Setup(dir string) error {
 		return fmt.Errorf("activating the force-parent epic: aiwf did not report ok (status=%s, error=%+v)", promEnv.Status, promEnv.Error)
 	}
 
-	msEnv, err := runAiwfJSON(s.aiwfBin, dir, "add", "milestone", "--epic", forceEpicID, "--tdd", "none", "--title", "forcetarget", "--body", "milestone for the force-override cherry-pick scenario")
+	msEnv, err := runAiwfJSON(s.aiwfBin, dir, "add", "milestone", "--epic", forceEpicID, "--tdd", "none", "--title", "forcetarget", "--body", sectionedBody("milestone", "milestone for the force-override cherry-pick scenario"))
 	if err != nil { //coverage:ignore defensive: see the ack-target epic add above
 		return fmt.Errorf("seeding the force-target milestone: %w", err)
 	}

@@ -195,7 +195,7 @@ func TestTrunkRenameScenarios_AC2_G0167TrailerDrivenRescue(t *testing.T) {
 // cumulative origin/main..HEAD diff drops below 50% similarity,
 // which is the failure mode G-0167 rescues.
 const seedBodyAC2 = `
-## Problem
+## What's missing
 
 Initial seed body for a gap that will later get retitled and
 enriched. The seed prose establishes the diagnostic surface in
@@ -240,14 +240,15 @@ enrichment to drop the cumulative diff below 50%.
 // render time so the const stays a clean raw string and the renderer
 // supplies the backticks (required by G-0184 body-prose-id since the
 // referenced ids don't exist in the test's tree).
-var longEnrichedBodyAC2 = bt(longEnrichedBodyAC2Template)
+var longEnrichedBodyAC2 = bt(longEnrichedBodyAC2Template) +
+	"\n\n## What's missing\n\nEnrichment fixture.\n\n## Why it matters\n\nEnrichment fixture.\n"
 
 // bt rewrites [BT...BT] placeholders into backtick-quoted spans.
 // Trivial helper kept local; the only caller is longEnrichedBodyAC2.
 func bt(s string) string { return strings.ReplaceAll(strings.ReplaceAll(s, "[BT", "`"), "BT]", "`") }
 
 const longEnrichedBodyAC2Template = `
-## Problem
+## What's missing
 
 The original gap stub was a placeholder; the elaboration here
 reframes the diagnostic surface in substantially more detail.

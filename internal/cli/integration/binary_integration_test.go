@@ -9,6 +9,7 @@ import (
 	"testing"
 
 	"github.com/23min/aiwf/internal/cli/cliutil/testutil"
+	"github.com/23min/aiwf/internal/entity"
 )
 
 // Binary integration tests close G27's bug class: they build the
@@ -220,7 +221,7 @@ func TestBinary_MutatingVerbs_Subprocess(t *testing.T) {
 	// concrete to commit. Bless mode would error here because nothing
 	// in the working copy has changed.
 	bodyFile := filepath.Join(repo, "fixtures-edit-body.md")
-	if err := os.WriteFile(bodyFile, []byte("## Goal\n\nReplaced via subprocess test.\n"), 0o644); err != nil {
+	if err := os.WriteFile(bodyFile, entity.BodyWithSectionText(entity.KindMilestone, "Replaced via subprocess test."), 0o644); err != nil {
 		t.Fatalf("write body file: %v", err)
 	}
 	runVerb("edit-body",
