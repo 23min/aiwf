@@ -102,17 +102,17 @@ opposite here, since guidance and rituals ship as product (G-0529).
 
 ## Success criteria
 
-- [ ] `aiwf history <id>` lists a commit carrying an entity trailer and nothing
+- [x] `aiwf history <id>` lists a commit carrying an entity trailer and nothing
       else, and the commit that implemented a gap appears in that gap's history.
 - [ ] A milestone spec no longer carries `## Work log`, and the link from an
       acceptance criterion to its implementation commit is answerable without
       reading the spec.
-- [ ] A milestone spec carries `## Release note`, and the epic wrap's changelog
+- [x] A milestone spec carries `## Release note`, and the epic wrap's changelog
       entry is written from those notes rather than from milestone titles alone.
 - [x] Every section rule named in G-0636's surface inventory is stated once, and
       each restating surface points at the owner instead.
 - [x] `## Validation` has one answer about when it is filled.
-- [ ] An entity body missing a section its kind requires is refused at the write.
+- [x] An entity body missing a section its kind requires is refused at the write.
       Reporting one across the tree is ADR-0048's declined option and E-0084's
       push seam; this epic reaches the write and no further.
 - [ ] A release whose `[Unreleased]` omits a shipped delta is reported before
@@ -125,7 +125,7 @@ opposite here, since guidance and rituals ship as product (G-0529).
 | Question | Blocking? | Resolution path |
 |---|---|---|
 | How does `aiwf history` label a row for a commit with no verb to name? | yes, for the history milestone | Decided in that milestone; a recorded decision if the choice has consequences for other trailer consumers. |
-| Is `## Validation` filled during implementation or at wrap? | yes, for the spec sweep | Follows from naming its owner. Two shipped surfaces say in-flight, two say at wrap; the rituals that drive the work say at wrap. |
+| Is `## Validation` filled during implementation or at wrap? | resolved | At wrap. D-0085 named `aiwfx-wrap-milestone` its owner, which settled the timing as a side effect; the `builder.md` instruction saying otherwise was live and is overruled. |
 | Does the epic wrap read each milestone's `## Release note`, or do the notes accumulate somewhere the wrap copies from? | yes, for the release-note milestone | Settled there; both shapes satisfy the criterion. |
 | Which surfaces count as "consumer-visible" for the changelog check? | no | G-0529 names finding codes, verbs, config keys and exit codes; the v0.34.0 evidence requires the embedded trees too. Enumerated in that milestone. |
 
