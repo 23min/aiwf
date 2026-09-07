@@ -16,12 +16,14 @@ uniquely holds, and a release's notes rest on whoever cut it remembering.
 Three forces meet in the same five shipped surfaces, and each has been measured
 rather than inferred.
 
-The milestone spec's sections have no owner. The same rule — when a section is
-filled, and what it holds — is stated independently in the template, both
-milestone rituals, and two agent cards, and two of them already disagree about
+The milestone spec's sections had no owner. The same rule — when a section is
+filled, and what it holds — was stated independently in the template, both
+milestone rituals, and two agent cards, two of which disagreed about
 `## Validation` (G-0636). The template is a weaker owner than it looks: its
-per-section comments are consumed at scaffold time and reach 1 of 325 specs, so
-a rule that binds during implementation cannot live there.
+per-section comments are consumed at scaffold time and survive into almost no
+finished spec, so a rule that binds during implementation cannot live there.
+D-0085 settles the assignment; each section is owned by the surface where it is
+first written.
 
 `## Work log` is where that costs most. It was designed when frontmatter did not
 exist and a checkbox list was the only way to see progress; `acs[]`, the TDD
@@ -107,9 +109,9 @@ opposite here, since guidance and rituals ship as product (G-0529).
       reading the spec.
 - [ ] A milestone spec carries `## Release note`, and the epic wrap's changelog
       entry is written from those notes rather than from milestone titles alone.
-- [ ] Every section rule named in G-0636's surface inventory is stated once, and
+- [x] Every section rule named in G-0636's surface inventory is stated once, and
       each restating surface points at the owner instead.
-- [ ] `## Validation` has one answer about when it is filled.
+- [x] `## Validation` has one answer about when it is filled.
 - [ ] An entity body missing a section its kind requires is refused at the write.
       Reporting one across the tree is ADR-0048's declined option and E-0084's
       push seam; this epic reaches the write and no further.
@@ -151,8 +153,8 @@ opposite here, since guidance and rituals ship as product (G-0529).
   refused at the write, at `aiwf add` and both `aiwf edit-body` modes
   · depends on: —
 - A release's `[Unreleased]` is checked against what shipped · depends on: —
-- **patch** — every milestone-spec section rule gets one owner, and
-  `## Validation` resolves as a side effect · depends on: —
+- **patch** (done, G-0636) — every milestone-spec section rule gets one owner,
+  and `## Validation` resolves as a side effect · depends on: —
 - **patch** — what an acceptance criterion body holds gets an owner
   · depends on: the section-ownership patch
 - **patch** — `## Work log` retires, its unique fact derivable without it
