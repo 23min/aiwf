@@ -250,20 +250,24 @@ coverage gate green
 
 ## Validation
 
-Run on the milestone branch at AC-4's close, against base
+Run on the final tree, against base
 `epic/E-0091-hold-each-spec-section-to-what-it-uniquely-holds-and-check-what-ships`:
 
     make ci                exit 0   (vet, lint 0 issues, race suite, coverage gate, self-check 29 steps)
     make stress-tests      exit 0   (internal/stresstest, cmd/stresstest)
-    aiwf check             exit 0   5 findings, 0 errors
+    aiwf check             exit 0   6 findings, 0 errors
+
+The six are all warnings and none is this milestone's subject: two archive-sweep
+advisories raised by superseding ADR-0043, an epic with no drafted milestones, and
+an undefined provenance range.
 
 Verdict parity for the parser swap was measured before it landed, over every
 entity body in this tree: `EmptyRequiredSections` against the same function
 rewritten onto `entity.ParseBodySections`, 7,284 (file, kind) pairs, zero
 differences. A reviewer re-derived it independently over a superset — 18,126
 pairs — with a negative control confirming the harness fires on `##\t` and on an
-H1 mid-section. `aiwf check --format=json` on this tree reports the same five
-findings before and after.
+H1 mid-section. `aiwf check --format=json` on this tree reports the same findings
+before and after.
 
 ## Deferrals
 
@@ -279,84 +283,67 @@ findings before and after.
 
 ## Reviewer notes
 
-Three independent fresh-context lenses ran over the full change-set before the
-milestone closed: code-quality, design, and the wrap's shape measurements. Two
-returned request-changes. The corrective round they ask for is unfinished — what
-follows is the worklist, not a closing summary.
+Two rounds of independent fresh-context review ran over the full change-set, each
+three lenses wide: code-quality, design, and the wrap's shape measurements. Both
+rounds returned request-changes; both are closed. The deciding round found nothing
+wrong in the shipped code path — every blocking finding was in the record, and the
+mechanism survived 14 cross-mode input classes, an independent re-derivation of
+every census figure, and a 20-spelling attack on the ban.
 
-### Findings that block
+### Decided against
 
-- **The seam census is wrong.** `## Scope` claims all three body-producing seams;
-  there are four. `aiwf import` supplies caller-authored body bytes and is
-  ungated — measured, identical bytes refused by `aiwf add` and accepted by
-  `aiwf import` at exit 0 with no `--force` and no record. The verb is
-  deprecated, which is the reason to exclude it, but no surface says so.
-- **Ten surfaces describe behaviour the code no longer has.** A worked example in
-  the shipped `aiwf-add` skill is refused by the gate it documents; `--force` is
-  documented as inert on epic and milestone and now stamps a trailer;
-  `aiwf edit-body`'s new hard refusal appears in no `--help` or skill; and two
-  normative design docs plus the doc comment on the file that defines the section
-  set still assert that nothing enforces membership.
-- **AC-4's evidence is thinner than the criterion states.** The `absent` term
-  added to the release-note rule is dead logic: an absent section yields empty
-  content, which the emptiness classifier already reports, so the term changes no
-  verdict — measured by deleting it, package green. The agreement test compares
-  two callers that both read the shared parser; re-introducing a second scanner
-  inside `EmptyRequiredSections` leaves it passing. Only the ban covers the
-  function that actually swapped parsers.
-- **The ban catches two heading-scan spellings out of eleven.** `(?m)^## ` evades
-  it, and that idiom is already the sitting model inside a package the ban scans.
-  One of its two by-name exemptions carves out nothing — measured by deleting the
-  entry: still zero violations — so it is a dead entry that would silently excuse
-  that function if it were ever rewritten into a real scan.
-- **Three tests pin nothing.** Two rows of the agreement test are byte-identical,
-  and the second's name describes a whitespace its input does not carry. The
-  `cross-worktree-id-race` row of the seeding test survives both mutations of the
-  property it claims, because that scenario's Setup runs only `git`. The
-  AC-1-era single-mode refusal test is subsumed by the cross-mode test that
-  replaced it.
+- **A tree-wide rule**, at either severity. The reasoning is in `## Out of scope`;
+  what belongs here is that review pressed it twice and the answer held on
+  blast radius, not on the omissions being historical — they are not, and the
+  first version of that argument borrowed a premise this set does not satisfy.
+- **Completeness at the edit seams**, which ADR-0043 had ratified. A reviewer
+  argued the honest version of that case: adding `--force` to `aiwf edit-body`
+  would let completeness apply everywhere and converge the tree, and reasoning
+  from "the flag does not exist" to "so the rule must be weaker" is circular.
+  The answer that survives is one ADR-0048 should carry and does not: `--force`
+  is sovereign and human-only, so completeness at an edit would hard-block an AI
+  actor from touching any of the 54 incomplete born-complete entities.
+- **Unifying the two seams onto one call**, passing the required set as the
+  create's baseline so `sectionsDroppedSince` serves both. It would collapse two
+  rules into a parameter. Declined here because the two refusals need different
+  messages and the create's is load-bearing for the operator, but it is the
+  better shape if a third seam ever arrives.
 
-### Claims of this milestone that review overturned
+### Known and left
 
-- `## Out of scope` justified declining a tree-wide rule by the epic's reasoning
-  about terminal milestones. Measured: none of the 55 entities is terminal — 30
-  open gaps, 24 accepted decisions, 1 proposed epic. The conclusion may hold; the
-  argument recorded for it does not.
-- The `mid-write-kill` comment states G-0666 as a 1 MB ceiling in the section
-  scanner. It is 64 KB, in the emptiness classifier. The gap body was corrected
-  and the correction did not reach this copy.
-- `## Validation` reports 7,284 pairs across 1,272 files, which do not reconcile.
-  A second reviewer re-derived the same zero over a superset — 18,126 pairs —
-  with a negative control that fires, so the finding is stronger than stated.
-
-### The governing decisions this milestone was planned without
-
-ADR-0043 is accepted and decides this design: membership enforced at the write
-seams and nowhere else, a scan called by every body-supplying verb refusing for
-every kind, and a second seam on the push that it calls the authority. E-0084 is
-proposed, carries the same goal, and names closing G-0571 — which this milestone
-also claims. Neither was consulted when this milestone was planned or when its
-edit-seam rule was chosen.
-
-Two substantive divergences. This milestone refuses a *regression* at the edit
-seams where ADR-0043 refuses *incompleteness*; and it builds no push seam, so no
-surface can answer which entities are incomplete. ADR-0043's argument for
-completeness rests on a remedy it describes as free — keep the heading, leave it
-empty — which is measurably not free for the born-complete kinds carrying 54 of
-the 55 omissions: adding the empty heading converts a silent omission into an
-error-severity finding that blocks the push.
+- `aiwf import` is a fourth body-producing seam, ungated on its deprecation
+  (G-0667). Until that is recorded somewhere, the exclusion rests on a decision
+  the tree does not carry.
+- An entity absent from HEAD takes the nil-baseline path, so `aiwf edit-body
+  --body-file` will commit a body `aiwf add` would refuse. Reachable by
+  `git reset --mixed` after a create. Pinned in neither direction.
+- A `## <Section>` inside a fenced code block satisfies every seam. Uniform
+  across all of them, so not a divergence — but the gate is stated as requiring
+  a complete body, and this is a way past it.
+- The ban has no owner and no retirement trigger, and its by-name exemption map
+  costs per subject. One entry, and deleting it makes the policy fire.
+- The `prefixTests`/`searchTests` split is pinned by no test: collapsing both
+  into one map with a single containment test passes every row. It is defensible
+  on false-positive grounds, and that argument is written down nowhere.
 
 ### Attacked and survived — ground the next round can skip
 
-- The add gate across all six kinds, via `--body-file` omitting one section and
-  via a headless body: refused every time, every missing heading named.
+Both rounds recorded these; the second reviewer read the list and skipped it,
+which is what it is for.
+
+- The add gate across all six kinds, via `--body`, `--body-file`, stdin, an empty
+  file and headless prose: refused every time, every missing heading named.
 - `--force`'s `bypassed` accounting in three states: a trailer only where a real
   refusal was overridden, none for a no-op.
-- Both `edit-body` modes agreeing on drop-versus-keep, driven through the CLI on
-  an epic and a milestone: identical message, identical exit.
-- Both `//coverage:ignore` annotations, checked against git's own exit codes
-  rather than read: accurate.
-- All three arms of the add-time gate, each with a caller named that reaches it.
-- The six prose templates, which all still satisfy the gate the rituals now hit.
-- AC-4's parity claim, re-derived independently over a superset with a working
-  negative control.
+- Cross-mode agreement over 14 input classes, driven through the CLI: identical
+  verdict and identical message on every one.
+- Same-state convergence: NoOp, exit 0, zero commits, and a dirty working copy
+  correctly does *not* converge.
+- Every `//coverage:ignore` in the change-set, checked against git's own exit
+  codes and the `go/ast` contract rather than read.
+- All six guards, each with a caller named that reaches it. None proven dead.
+- The six prose templates, which still satisfy the gate the rituals now hit.
+- Composition with `retitle`, `reallocate`, `move` and the archive sweep: none
+  can drop a required heading.
+- ADR-0048's load-bearing measurement and the 55/109 census, both re-derived
+  independently with a separate parser.
