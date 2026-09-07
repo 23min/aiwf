@@ -1,7 +1,7 @@
 ---
 id: M-0329
 title: An entity body that omits a required section is refused at the write
-status: in_progress
+status: done
 parent: E-0091
 tdd: required
 acs:
