@@ -31,12 +31,12 @@ const ownershipTemplate = "# T\n\n" + // 1
 	"<!-- `aiwfx-start-milestone` states what belongs in `## Not a heading`. -->\n\n" + // 7
 	"---\n\n" + // 9
 	"<!-- Owners:\n" + // 11
-	"       `aiwfx-start-milestone` — `## Closes` (above), `## Work log`,\n" + // 12
+	"       `aiwfx-start-milestone` — `## Closes` (above), `## Field notes`,\n" + // 12
 	"                                 `## Deferrals`\n" + // 13
 	"       `aiwfx-wrap-milestone`  — `## Release note`, `## Validation`\n\n" + // 14
 	"     Prose after the map is not an assignment. -->\n\n" + // 16
 	"## Release note\n\n" + // 18
-	"## Work log\n\n" + // 20
+	"## Field notes\n\n" + // 20
 	"## Deferrals\n\n" + // 22
 	"## Validation\n" // 24
 
@@ -44,7 +44,7 @@ const ownershipTemplate = "# T\n\n" + // 1
 // Its owner lines sit on lines 5 and 6.
 const ownershipRitual = "# R\n\n" + // 1
 	"Owners:\n\n" + // 3
-	"- `aiwfx-start-milestone` — `## Closes`, `## Work log`, `## Deferrals`\n" + // 5
+	"- `aiwfx-start-milestone` — `## Closes`, `## Field notes`, `## Deferrals`\n" + // 5
 	"- `aiwfx-wrap-milestone` — `## Release note`, `## Validation`\n\n" + // 6
 	"Prose below the map.\n" // 8
 
@@ -53,14 +53,14 @@ const ownershipRitual = "# R\n\n" + // 1
 // different, assignment — which is what tells a card check reading the map apart
 // from one recognising a section by name.
 var ownershipInvertedAssignment = strings.NewReplacer(
-	"`aiwfx-start-milestone` — `## Closes` (above), `## Work log`,\n"+
+	"`aiwfx-start-milestone` — `## Closes` (above), `## Field notes`,\n"+
 		"                                 `## Deferrals`",
-	"`aiwfx-start-milestone` — `## Closes` (above), `## Work log`,\n"+
+	"`aiwfx-start-milestone` — `## Closes` (above), `## Field notes`,\n"+
 		"                                 `## Validation`",
 	"`aiwfx-wrap-milestone`  — `## Release note`, `## Validation`",
 	"`aiwfx-wrap-milestone`  — `## Release note`, `## Deferrals`",
-	"`aiwfx-start-milestone` — `## Closes`, `## Work log`, `## Deferrals`",
-	"`aiwfx-start-milestone` — `## Closes`, `## Work log`, `## Validation`",
+	"`aiwfx-start-milestone` — `## Closes`, `## Field notes`, `## Deferrals`",
+	"`aiwfx-start-milestone` — `## Closes`, `## Field notes`, `## Validation`",
 	"`aiwfx-wrap-milestone` — `## Release note`, `## Validation`",
 	"`aiwfx-wrap-milestone` — `## Release note`, `## Deferrals`",
 )
@@ -76,7 +76,7 @@ func ownershipFixtureRoot(t *testing.T, overrides map[string]string) string {
 		"templates/milestone-spec.md":           ownershipTemplate,
 		"skills/aiwfx-start-milestone/SKILL.md": ownershipRitual,
 		"skills/aiwfx-wrap-milestone/SKILL.md":  ownershipRitual,
-		"agents/builder.md":                     "# Builder\n\n- Responsibilities.\n- Fill `## Work log`.\n",
+		"agents/builder.md":                     "# Builder\n\n- Responsibilities.\n- Fill `## Field notes`.\n",
 	}
 	maps.Copy(base, overrides)
 
@@ -186,8 +186,8 @@ func TestPolicyMilestoneSectionOwnership_Fires(t *testing.T) {
 			name: "a ritual gives a section a different owner",
 			overrides: map[string]string{
 				"skills/aiwfx-start-milestone/SKILL.md": strings.Replace(ownershipRitual,
-					"- `aiwfx-start-milestone` — `## Closes`, `## Work log`, `## Deferrals`",
-					"- `aiwfx-start-milestone` — `## Closes`, `## Work log`, `## Deferrals`, `## Validation`", 1),
+					"- `aiwfx-start-milestone` — `## Closes`, `## Field notes`, `## Deferrals`",
+					"- `aiwfx-start-milestone` — `## Closes`, `## Field notes`, `## Deferrals`, `## Validation`", 1),
 			},
 			want: ownershipStartRel + `:5 — this ritual assigns "## Validation" to "aiwfx-start-milestone" while the milestone template's map assigns it to "aiwfx-wrap-milestone"`,
 		},
@@ -231,9 +231,9 @@ func TestPolicyMilestoneSectionOwnership_Fires(t *testing.T) {
 			overrides: map[string]string{
 				"templates/milestone-spec.md": strings.Replace(ownershipTemplate,
 					"`aiwfx-wrap-milestone`  — `## Release note`, `## Validation`",
-					"`aiwfx-wrap-milestone`  — `## Release note`, `## Validation`, `## Work log`", 1),
+					"`aiwfx-wrap-milestone`  — `## Release note`, `## Validation`, `## Field notes`", 1),
 			},
-			want: ownershipTemplateRel + `:14 — section "## Work log" is claimed by both "aiwfx-start-milestone" and "aiwfx-wrap-milestone"`,
+			want: ownershipTemplateRel + `:14 — section "## Field notes" is claimed by both "aiwfx-start-milestone" and "aiwfx-wrap-milestone"`,
 		},
 		{
 			name:      "the map names a ritual that ships no skill",
@@ -303,9 +303,9 @@ func TestPolicyMilestoneSectionOwnership_MapEndsAtProse(t *testing.T) {
 func TestPolicyMilestoneSectionOwnership_OwnerNamedTwiceKeepsBothLines(t *testing.T) {
 	t.Parallel()
 	tmpl := strings.Replace(ownershipTemplate,
-		"       `aiwfx-start-milestone` — `## Closes` (above), `## Work log`,\n"+
+		"       `aiwfx-start-milestone` — `## Closes` (above), `## Field notes`,\n"+
 			"                                 `## Deferrals`\n",
-		"       `aiwfx-start-milestone` — `## Closes` (above), `## Work log`\n"+
+		"       `aiwfx-start-milestone` — `## Closes` (above), `## Field notes`\n"+
 			"       `aiwfx-start-milestone` — `## Deferrals`\n", 1)
 	if got := ownershipReports(t, map[string]string{"templates/milestone-spec.md": tmpl}); len(got) != 0 {
 		t.Errorf("a ritual named on two owner lines lost one line's sections: %v", got)
@@ -337,7 +337,7 @@ func TestPolicyMilestoneSectionOwnership_ProseAboveTheMapOpensNothing(t *testing
 // and can disagree with it in silence.
 func TestPolicyMilestoneSectionOwnership_SecondMapReports(t *testing.T) {
 	t.Parallel()
-	second := "- `aiwfx-start-milestone` — `## Validation`\n- `aiwfx-wrap-milestone` — `## Work log`\n"
+	second := "- `aiwfx-start-milestone` — `## Validation`\n- `aiwfx-wrap-milestone` — `## Field notes`\n"
 	ritual := ownershipRitual + "\n" + second
 	got := ownershipReports(t, map[string]string{"skills/aiwfx-wrap-milestone/SKILL.md": ritual})
 	requireReport(t, got, ownershipWrapRel+":10 — the ownership map appears more than once in this surface")
@@ -384,7 +384,7 @@ func TestMilestoneSectionOwnership_LiveSurfacesCatchTheirDefects(t *testing.T) {
 	t.Run("builder card claiming a wrap-owned section", func(t *testing.T) {
 		t.Parallel()
 		o := maps.Clone(live)
-		o["agents/builder.md"] = "# Builder\n\n- Maintain the spec's in-flight sections — `## Work log`, `## Validation`.\n"
+		o["agents/builder.md"] = "# Builder\n\n- Maintain the spec's in-flight sections — `## Validation`.\n"
 		requireReport(t, ownershipReports(t, o), ownershipBuilderRel+`:3 — the builder card names "## Validation"`)
 	})
 

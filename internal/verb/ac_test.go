@@ -129,7 +129,7 @@ func TestAddAC_AppendsBodyContentWhenNoPlaceholder(t *testing.T) {
 // TestAddAC_InsertsHeadingInsideAcceptanceCriteriaSection_WhenLaterSectionsExist
 // is the G-0364 regression: when the milestone body carries sections
 // after `## Acceptance criteria` (the ritual milestone template's
-// Constraints/Design notes/…/Work log), a new AC with no existing
+// Constraints/Design notes/…), a new AC with no existing
 // placeholder heading must land inside the Acceptance-criteria section
 // — not at absolute body-end, past those later sections, where
 // `entity-body-empty` cannot see it.
@@ -147,7 +147,7 @@ func TestAddAC_InsertsHeadingInsideAcceptanceCriteriaSection_WhenLaterSectionsEx
 	}
 	// Simulate the rich milestone-spec.md template: sections after
 	// Acceptance criteria, no AC placeholder headings at all.
-	richened := string(raw) + "\n## Constraints\n\n- none\n\n## Work log\n\n## Reviewer notes\n\n- (none)\n"
+	richened := string(raw) + "\n## Constraints\n\n- none\n\n## Design notes\n\n## Reviewer notes\n\n- (none)\n"
 	if writeErr := os.WriteFile(abs, []byte(richened), 0o644); writeErr != nil {
 		t.Fatal(writeErr)
 	}

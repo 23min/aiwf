@@ -59,7 +59,7 @@ func PolicyEmbeddedRitualsNoRetiredTrackingDoc(root string) ([]Violation, error)
 					Policy: "embedded-rituals-no-retired-tracking-doc",
 					File:   rel,
 					Line:   i + 1,
-					Detail: "embedded ritual content must not reference the retired `work/tracking/` directory (G-0245); point at the milestone spec's frontmatter `acs[]` / `## Work log` / `## Decisions made during implementation` instead",
+					Detail: "embedded ritual content must not reference the retired `work/tracking/` directory (G-0245); point at the milestone spec's frontmatter `acs[]`, `aiwf history`, or the spec's `## Decisions made during implementation` section instead",
 				})
 				continue
 			}

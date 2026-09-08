@@ -13,7 +13,6 @@ import (
 // asserts this commit implemented that criterion, and only the matching
 // `aiwf-entity` trailer makes the assertion reachable from the criterion.
 //
-// The rule is what an AC's history has instead of a milestone's `## Work log`.
 // It binds by convention rather than by repo: a subject that names no AC never
 // meets it, so a project not following the scoped-subject convention is
 // unaffected, and an AC met by an observation rather than by code owes nothing.

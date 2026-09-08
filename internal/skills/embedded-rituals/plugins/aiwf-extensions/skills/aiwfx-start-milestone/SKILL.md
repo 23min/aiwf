@@ -113,12 +113,12 @@ Pass an explicit path as the verb's second argument for a sibling-directory plac
 
 ### 6. Implementation — iterate via `wf-tdd-cycle`
 
-AC progress lives inside the milestone spec itself (frontmatter `acs[]` plus body `## Work log` section). The sections a spec gains after it is authored divide between this ritual and the wrap, each stating when its own are written and what they hold:
+AC progress lives in the milestone spec's frontmatter `acs[]`; what each criterion produced lives in `aiwf history M-NNNN/AC-<N>`, which the commit below makes reachable. The sections a spec gains after it is authored divide between this ritual and the wrap, each stating when its own are written and what they hold:
 
-- `aiwfx-start-milestone` — `## Closes`, `## Work log`, `## Decisions made during implementation`, `## Deferrals`
+- `aiwfx-start-milestone` — `## Closes`, `## Decisions made during implementation`, `## Deferrals`
 - `aiwfx-wrap-milestone` — `## Release note`, `## Validation`, `## Reviewer notes`
 
-This ritual's four are covered below; `## Closes` at step 1, the rest here. The template carries every heading and restates neither set.
+`## Closes` is covered at step 1, the rest here. The template carries every heading and restates neither set.
 
 For each AC, in sequence:
 
@@ -138,8 +138,7 @@ For each AC, in sequence:
     --trailer "aiwf-entity: M-NNNN/AC-<N>"
   ```
 
-  The subject names the criterion; the trailer is what makes the commit reachable from it, because `aiwf history M-NNNN/AC-<N>` selects by trailer and never reads a subject. A subject carrying the scope without the matching trailer is refused at commit-msg. No `aiwf-verb` is added — no aiwf verb commits source, and the closed set carries no value for it. Every commit is the human's gate; wait for explicit approval.
-- **Append a `## Work log` entry.** One per AC, or per meaningful unit of work where the work is not AC-scoped; append-only, never rewriting an earlier entry. The heading is `### AC-<N> — <short title>`, or `### <short title>` when not AC-scoped, and the entry is the one line beneath it: `<one-line outcome> · commit <SHA> · tests <N/M>`. That line is the whole entry. The SHA is a locator beside the outcome rather than the record of the link — `aiwf history M-NNNN/AC-<N>` answers which commit implemented the criterion, from the entity trailer above, and the phase timeline lives there too, so neither is repeated here. Reasoning that outlives the entry belongs to the section that owns it: a trade-off or a rejected approach to `## Reviewer notes`, a decision to `## Decisions made during implementation`, design reasoning to the code it explains.
+  The subject names the criterion; the trailer is what makes the commit reachable from it, because `aiwf history M-NNNN/AC-<N>` selects by trailer and never reads a subject. Work on the milestone that no criterion covers carries `aiwf-entity: M-NNNN` and an unscoped subject instead, which reaches the milestone's own history. A subject carrying the scope without the matching trailer is refused at commit-msg. No `aiwf-verb` is added — no aiwf verb commits source, and the closed set carries no value for it. Every commit is the human's gate; wait for explicit approval.
 - At this AC boundary, if the user asks for a handoff or context is getting long before the next AC, invoke `aiwfx-handoff` to emit a paste-ready `/compact` prime block. Emission here is on-demand — every-AC is noise.
 
 If a decision surfaces mid-implementation that wasn't pre-locked in the spec's `## Design notes`, invoke `aiwfx-record-decision` to capture it. Mirror it under the spec's `## Decisions made during implementation` section as the id and one line naming what it settles; the reasoning lives in the record the id names, never a second time here. Where no new decision arose, the section says so rather than standing empty — "None — all decisions are pre-locked above."
@@ -184,7 +183,6 @@ The implementation is already committed, per-AC, from step 6 — there is nothin
 - *Improvising the parent epic branch when it doesn't exist.* The previous version of this skill silently fell through to `git checkout -b epic/E-NNNN-<slug> origin/main # if missing`. That masks the precondition failure (the parent epic wasn't activated) and produces a parent branch with no `aiwf promote E-NNNN active` commit on it. Stop and run `aiwfx-start-epic` instead.
 - *Bundling the promote and authorize commits.* One verb = one commit. The promote (step 3) and authorize (step 4) each land on the parent epic branch in their own commit.
 - *Cutting the milestone branch before the sovereign acts.* The kernel's preflight refuses authorize-on-milestone-branch with `branch-context-required` at the verb layer; the `isolation-escape` kernel finding catches the same shape post-hoc at `aiwf check` (warning severity). Branch cut belongs at step 5, after the trailers have landed on the parent.
-- *Skipping the Work log section, or growing it past the entry shape step 6 states.* Both leave the same spec: one with no summary of what each AC produced, one where the summary is buried in prose another section owns.
 - *Hand-editing `acs[]` in frontmatter.* Use `aiwf add ac` / `aiwf promote M-NNNN/AC-<N>` / `aiwf rename M-NNNN/AC-<N>` instead — the verbs preserve position-stability and the body-coherence pairing.
 - *Mixing milestones.* One milestone per branch. Don't fold "while I was here" work into the diff.
 - *Skipping the branch-coverage audit.* "I'll catch it in review" doesn't catch it.

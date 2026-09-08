@@ -48,7 +48,7 @@ JSON envelope (`--format=json --pretty`) carries the same blocks plus a `body` m
 | Kind | Body keys |
 |---|---|
 | epic | `goal`, `scope`, `out_of_scope`, plus any extra `## <Section>` headings the author added |
-| milestone | `goal`, `acceptance_criteria`, plus any extra `## <Section>` headings the author added — the shipped `milestone-spec.md` template adds `context`, `constraints`, `design_notes`, `surfaces_touched`, `out_of_scope`, `dependencies`, `coverage_notes`, `references`, `work_log`, `decisions_made_during_implementation`, `validation`, `deferrals`, and `reviewer_notes` when kept |
+| milestone | `goal`, `acceptance_criteria`, plus any extra `## <Section>` headings the author added — the shipped `milestone-spec.md` template adds `closes`, `context`, `constraints`, `design_notes`, `surfaces_touched`, `out_of_scope`, `dependencies`, `coverage_notes`, `references`, `release_note`, `decisions_made_during_implementation`, `validation`, `deferrals`, and `reviewer_notes` when kept |
 | ac | the body under `### AC-N — <title>` (single string under the AC's id key) |
 | gap | `what_s_missing`, `why_it_matters`, plus author-added sections |
 | adr | `context`, `decision`, `consequences`, plus any extra `## <Section>` headings the author added — the shipped `adr.md` template adds `validation` and `references` when kept |
@@ -72,8 +72,8 @@ aiwf show G-NNNN --history=0
 # Full audit — JSON envelope, no history cap
 aiwf show E-NNNN --format=json --pretty --history=-1 | jq '.result.findings'
 
-# Compare a milestone's AC list against its work_log
-aiwf show M-NNNN --format=json --pretty | jq '.result.acs[].title, .result.body.work_log'
+# Compare a milestone's AC list against its release note
+aiwf show M-NNNN --format=json --pretty | jq '.result.acs[].title, .result.body.release_note'
 
 # Just one AC on a milestone — composite id
 aiwf show M-NNNN/AC-N
