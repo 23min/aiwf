@@ -1,8 +1,10 @@
 ---
 id: G-0665
 title: No surface owns what an acceptance criterion body holds
-status: open
+status: addressed
 discovered_in: E-0091
+addressed_by_commit:
+    - db514ab28213dd5bd30f2136d2289c3de9179abd
 ---
 ## What's missing
 
