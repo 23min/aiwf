@@ -27,7 +27,7 @@ If the spec doesn't exist or isn't ready, use `aiwfx-plan-milestones` first. If 
   aiwf add ac M-NNNN --title "<observable behavior>"
   ```
 
-  Each invocation appends one AC and scaffolds the body heading; `aiwf check` surfaces drift between frontmatter and body, and the `milestone-draft-incomplete-acs` warning already flagged the empty contract at plan time. This on-the-spot creation is the exception — the default is that plan time already produced the ACs.
+  Each invocation appends one AC and scaffolds the body heading; `aiwf check` surfaces drift between frontmatter and body, and the `milestone-draft-incomplete-acs` warning already flagged the empty contract at plan time. What the title claims and what the body holds is stated in `aiwf-add` §"What to write per kind". This on-the-spot creation is the exception — the default is that plan time already produced the ACs.
 
 - Confirm the milestone's `tdd:` policy is intentional. `tdd: required` makes the audit `met requires phase: done` an error (blocks pre-push); `tdd: advisory` makes it a warning; `tdd: none` or absent skips it. If the user wants TDD discipline tracked mechanically, set `tdd: required` in the spec's frontmatter before starting.
 - **Parent epic branch must exist locally and be the operator's current checkout.** The state-announcement commits at steps 3 and 4 land on the parent epic branch BEFORE the milestone branch is cut at step 5. If the parent epic branch does not exist locally, the parent epic has not been activated yet — stop and run `aiwfx-start-epic E-NNNN` first; do NOT improvise by creating the branch here. If the parent epic branch exists but is not currently checked out, switch to it before continuing (`git checkout epic/E-NNNN-<slug>`).

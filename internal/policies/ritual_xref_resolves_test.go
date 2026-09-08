@@ -6,13 +6,13 @@ import (
 	"testing"
 )
 
-// Cross-document reference checks over the embedded rituals: a reference in
+// Cross-document reference checks over the shipped skill trees: a reference in
 // one document resolved against its target in another. The needle comes from
 // the citing document rather than from this test, which is what puts the class
 // outside D-0070's predicate entirely — no rewording of either side satisfies
 // it falsely, and drift on either side goes red.
 //
-// Its sibling `TestEmbeddedRituals_CrossSkillCitationsResolve` covers the
+// Its sibling `TestShippedSkills_CrossSkillCitationsResolve` covers the
 // named-section form, `` `skill` §"Section" ``. This covers the numbered-step
 // form, which that walk cannot see.
 

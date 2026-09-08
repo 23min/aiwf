@@ -41,7 +41,7 @@ changed to make it possible now?>
 
 ## Acceptance criteria
 
-<!-- ACs are first-class kernel state under aiwf I2. Add each via:
+<!-- ACs are first-class kernel state. Add each via:
        aiwf add ac <milestone-id> --title "<observable behavior>"
      The verb appends the AC to frontmatter `acs:` (seeded at the pre-cycle
      empty phase regardless of tdd policy — the live red promote records the
@@ -49,13 +49,13 @@ changed to make it possible now?>
      heading below this section. Don't hand-edit `acs:` — the position-stable
      allocator and the body-coherence check both depend on the verb path.
 
-     Each AC must be observable behavior, not an implementation detail.
-       Good:  "When X occurs, the system emits Y with property Z."
-       Bad:   "X is tested." / "Refactor complete." / "Feature implemented." -->
+     What a criterion's title claims and what its body holds — including what
+     it leaves to other records — is stated in
+     `aiwf-add` §"What to write per kind". -->
 
 ### AC-1 — <observable behavior>
 
-<Prose: examples, edge cases, references to `ADR-NNNN` / `D-NNNN` / surfaces touched.>
+<Prose…>
 
 ### AC-2 — <observable behavior>
 
