@@ -16,6 +16,43 @@ section in this file.
 
 ## [Unreleased]
 
+### Removed — G-0530: the milestone spec's `## Work log` section
+
+`## Work log` was designed when a milestone spec had no frontmatter and a
+checkbox list was the only way to see progress. `acs[]`, the TDD phase ladder and
+`aiwf history` have carried that since, and the one fact the section still held
+alone — which commit implemented a given acceptance criterion — moved to
+`aiwf history M-NNNN/AC-<N>` when the history projection learned to read a
+commit's entity trailer. What was left was unbounded: prose with no downstream
+reader, in the spec's largest section.
+
+The section is gone from the milestone-spec template, from both milestone
+rituals, from `aiwfx-wrap-epic`, and from the builder and reviewer agent cards,
+which now read the work record out of `aiwf history`. A commit for milestone work
+that no criterion covers carries `aiwf-entity: M-NNNN` and an unscoped subject,
+which is what puts it in that history.
+
+The entry line's per-AC test counts go with it, and no ritual asks for them in
+their place: nothing derived them and nothing read them back. A project that
+wants them recorded already has the route — `aiwf promote --phase <p> --tests
+"pass=N fail=N skip=N"` writes an `aiwf-tests` trailer, which `aiwf history
+M-NNNN/AC-<N> --format json` and `aiwf show M-NNNN/AC-<N> --format json` carry.
+On a `tdd: required` milestone, `tdd.require_test_metrics: true` warns on an AC
+at `tdd_phase: done` whose history has none.
+
+A new policy, `embedded-no-work-log-section`, is what makes the retirement hold:
+it bans naming the section across every embedded tree aiwf ships, so a
+reintroduction reports instead of landing silently. Without it an exact revert of
+this change passed every check in the repo, and three separate single-line edits
+each restored the convention on their own. It is the mirror of the ban that
+retired the v1 tracking-doc convention, and it carries one escape — a line about
+the reader's own project, which is what the engineering skills mean when they ask
+whether a project keeps a work log alongside its diffs.
+
+Specs already carrying a Work log keep it; nothing rewrites them, and no check
+reads the section either way. `## Dependencies`, `## Surfaces touched` and
+`## References` — the other three sections G-0530 names — are untouched.
+
 ### Changed — G-0636: each milestone-spec section rule has one owner
 
 When a milestone-spec section is filled, and what it holds, was stated
@@ -27,10 +64,10 @@ loaded. The template also contradicted itself, carrying a blanket claim that
 every section below it is populated continuously through implementation over
 two per-section comments saying otherwise.
 
-Each section now has one owner, chosen by where it is first written — four of the
-seven are written by both rituals, so "where" alone would not decide them.
-`aiwfx-start-milestone` owns `## Closes`, `## Work log`, `## Decisions made
-during implementation` and `## Deferrals` and states what each holds;
+Each section now has one owner, chosen by where it is first written — most are
+written by both rituals, so "where" alone would not decide them.
+`aiwfx-start-milestone` owns `## Closes`, `## Decisions made during
+implementation` and `## Deferrals` and states what each holds;
 `aiwfx-wrap-milestone` owns `## Release note`, `## Validation` and
 `## Reviewer notes`. The template carries every heading and names the owning
 ritual rather than restating its rules; the agent cards name the sections they
@@ -61,18 +98,6 @@ A redundant `open` promote still converges to a no-op and leaves the phase alone
 an AC sitting at `open` with a finished phase is the ordinary state between a
 cycle ending and the `met` promote, indistinguishable from one an older binary
 left behind, so the verb does not try to repair it.
-
-### Changed — the milestone Work log says what it is for, and stops inviting prose
-
-`## Work log` carried no statement of its purpose in any binding surface, and two
-invitations to write more: the template offered an *"optional prose paragraph for
-non-obvious context"*, and `aiwfx-start-milestone` called the section *"the audit trail
-of mid-flight context"*. Both are gone. Both surfaces now name what the section
-holds — one line per criterion, the outcome with its commit as a locator, and
-nothing that another section owns. The link from a criterion to its implementation
-commit is answerable from `aiwf history` once that commit names the criterion in its
-entity trailer. The template also no longer both invites phase transitions and forbids
-duplicating them, one sentence apart.
 
 ## [0.34.0] — 2026-08-30
 

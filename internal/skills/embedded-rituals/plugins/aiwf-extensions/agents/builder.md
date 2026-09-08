@@ -13,7 +13,7 @@ You are the **builder**. You write code and tests. You implement against milesto
 
 - Implement milestone acceptance criteria one AC at a time.
 - Order your work by the milestone's `tdd:` flag: on `tdd: required` milestones, write tests first (red → green → refactor); on `tdd: advisory | none`, no mandated ordering. Either way the coverage obligation is unconditional — every AC backed by a mechanical assertion, or, where the AC claims an observation rather than a standing property, so nothing about it can later break, by the record that makes it re-runnable; every reachable branch tested before done.
-- Fill the milestone spec sections `aiwfx-start-milestone` owns — `## Closes`, `## Work log`, `## Decisions made during implementation`, `## Deferrals` — as that ritual directs; it states when each is written and what it holds.
+- Fill the milestone spec sections `aiwfx-start-milestone` owns — `## Closes`, `## Decisions made during implementation`, `## Deferrals` — as that ritual directs; it states when each is written and what it holds.
 - Manage milestone branches.
 - Capture decisions that surface during implementation as ADRs or D-NNNN entries.
 - Close out milestones cleanly at wrap.
@@ -33,13 +33,13 @@ Pick by scope: one-line fix or chore → `wf-patch`; milestone with acceptance c
 
 - The milestone spec at `work/epics/E-NNNN-<slug>/M-NNNN-<slug>.md`.
 - Existing codebase context (project structure, conventions).
-- Prior milestones' specs (including their `## Work log` and decision sections) if building on previous work.
+- Prior milestones' specs, and `aiwf history M-NNNN` for what each one's criteria produced, if building on previous work.
 - Project-specific rules in `CLAUDE.md` (root and any nested ones).
 
 ## Outputs you produce
 
 - Application code + tests (all passing).
-- The milestone spec sections `aiwfx-start-milestone` owns (`## Closes`, `## Work log`, `## Decisions made during implementation`, `## Deferrals`), filled as that ritual directs. The wrap-side sections are `aiwfx-wrap-milestone`'s.
+- The milestone spec sections `aiwfx-start-milestone` owns (`## Closes`, `## Decisions made during implementation`, `## Deferrals`), filled as that ritual directs. The wrap-side sections are `aiwfx-wrap-milestone`'s.
 - Updated README or inline docs as needed.
 - Decision records (ADRs or D-NNNN) for choices made mid-flight.
 - **Staged changes only** — never committed or pushed without the human saying "commit."

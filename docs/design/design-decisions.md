@@ -91,7 +91,7 @@ Timestamps (`created`, `updated`) are deliberately absent from frontmatter; `git
 | Decision | `## Question` / `## Decision` / `## Reasoning` |
 | Contract | `## Purpose` / `## Stability` |
 
-The richer milestone shape a planning ritual fills in — work log, decisions, validation, deferrals, reviewer notes — comes from the prose template under `.claude/templates/`, not from `aiwf add`. The templates are supersets of this table by design; the table lists what the verb writes.
+The richer milestone shape a planning ritual fills in — closes, release note, decisions, validation, deferrals, reviewer notes — comes from the prose template under `.claude/templates/`, not from `aiwf add`. The templates are supersets of this table by design; the table lists what the verb writes.
 
 Bodies are validated narrowly. `entity-body-empty` reports a required section that is present and empty, and the born-complete kinds (ADR, gap, decision, contract) refuse an empty body at creation, having no draft phase to fill one in later. Membership — whether the section is there at all — is held at the write seams rather than by a rule: `aiwf add` refuses a body omitting one, and `aiwf edit-body` refuses a write that drops one the committed body carries. No rule reads a body it is not writing, so a tree can still carry entities that omit a section (G-0571 measures the debt). Past that line, prose is the human's responsibility; the framework guarantees structural and referential stability of frontmatter.
 

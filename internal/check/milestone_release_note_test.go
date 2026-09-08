@@ -50,7 +50,7 @@ const scaffoldOnly = "## Goal\n\nx\n\n## Release note\n\n<!-- The user-visible d
 
 // noSection is a spec with no such heading at all. It counts as unwritten:
 // scoping to present-and-empty would make deleting the heading an escape.
-const noSection = "## Goal\n\nx\n\n## Work log\n\n### AC-1 — x\n\ndone\n"
+const noSection = "## Goal\n\nx\n\n## Design notes\n\n### AC-1 — x\n\ndone\n"
 
 func TestMilestoneDoneEmptyReleaseNote(t *testing.T) {
 	t.Parallel()

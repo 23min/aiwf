@@ -103,7 +103,7 @@ changed to make it possible now?>
      ritual that owns it. That ritual states when the section is written and what
      it holds; nothing is restated here.
 
-       `aiwfx-start-milestone` — `## Closes` (above), `## Work log`,
+       `aiwfx-start-milestone` — `## Closes` (above),
                                  `## Decisions made during implementation`,
                                  `## Deferrals`
        `aiwfx-wrap-milestone`  — `## Release note`, `## Validation`,
@@ -113,12 +113,6 @@ changed to make it possible now?>
      rules that read it. -->
 
 ## Release note
-
-## Work log
-
-### AC-1 — <short title>
-
-<one-line outcome> · commit <SHA> · tests <N/M>
 
 ## Decisions made during implementation
 
