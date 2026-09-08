@@ -16,6 +16,31 @@ section in this file.
 
 ## [Unreleased]
 
+### Changed — G-0665: what an acceptance criterion body holds has one owner
+
+The `aiwf-add` skill's *What to write per kind* now states what an acceptance
+criterion's title names, what its body carries, and what the body leaves to
+records that already hold it. The evidence it then takes to promote one stays
+`aiwf-promote`'s subject, and that skill is cited rather than repeated. The
+subsection also separates two words that had been reading as one — a title names
+*observable* behavior, while an *observational* criterion is one no test can
+reach and so is met by a record instead. Every surface that instructs a body to
+be written or grown — the milestone-spec template, both milestone rituals and
+`aiwf-edit-body` — cites the subsection rather than describing the body itself,
+so a criterion grown during a review round meets the same rule as one written
+from scratch.
+
+Every one of those citations is held by a check: one reports when a cited
+heading no longer exists, another when a surface stops citing the subsection or
+points somewhere else in the same skill. The cross-skill citation walk grew to
+cover the whole shipped skill tree rather than the rituals alone. One existing
+citation had been invisible to it for a separate reason — spaces around the `§`
+— and is now both written in the canonical form and readable in either, so the
+spelling cannot hide one again. What no check reaches is a surface that keeps its
+citation and states a second rule beside it. Prose can say the same thing in
+unlimited ways, so there is no name to ban the way the retired `## Work log`
+section had one, and that half is carried at review.
+
 ### Removed — G-0530: the milestone spec's `## Work log` section
 
 `## Work log` was designed when a milestone spec had no frontmatter and a

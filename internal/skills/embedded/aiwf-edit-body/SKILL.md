@@ -49,6 +49,8 @@ Reach for `--body-file` only when the body content is produced *outside* the wor
 
 Editing the prose under a single `### AC-N — title` heading inside a milestone body works through bless mode on the parent milestone — edit the section in $EDITOR, run `aiwf edit-body M-NNNN`. The verb commits whatever changed; no composite-id resolver needed. (Composite ids `M-NNNN/AC-N` are still refused to keep the verb's seam simple.)
 
+What that body holds, and what it leaves to other records, is stated in `aiwf-add` §"What to write per kind" — the same rule whether the body is being written for the first time or added to later. A criterion that keeps growing across review rounds is worth reading against that list before the next edit.
+
 ## What aiwf does
 
 **Bless mode** (no `--body-file`):

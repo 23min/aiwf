@@ -63,6 +63,8 @@ If the epic doesn't exist yet, use `aiwfx-plan-epic` first.
    aiwf edit-body M-NNNN                                 # fill each ### AC-N body with its contract
    ```
 
+   What the title claims, what the body holds, and what the body leaves to other records is stated in `aiwf-add` §"What to write per kind" — read it before filling the first one.
+
    Creating and body-filling the ACs here — before the merge-to-main step below — is what keeps a milestone from ever landing on main with zero ACs or empty AC bodies; the `milestone-draft-incomplete-acs` check (subcodes `zero-acs` / `empty-body`) surfaces exactly that gap on a `draft` milestone. `aiwfx-start-milestone`'s preflight then expects the ACs to already exist, treating on-the-spot creation as a recovery fallback for a hand-written spec.
 
 6. **Declare milestone dependencies via verb, not by hand-editing frontmatter.** Two writer surfaces, each producing one atomic commit with `aiwf-verb` trailers when the list actually changes — re-declaring the list already stored converges to exit 0 with no commit:

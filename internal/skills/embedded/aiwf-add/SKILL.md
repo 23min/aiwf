@@ -184,7 +184,7 @@ The load-bearing body sections per kind:
 |---|---|
 | epic | `## Goal`, `## Scope`, `## Out of scope` |
 | milestone | `## Goal`, `## Acceptance criteria` |
-| ac | The `### AC-N — <title>` body (one paragraph covering pass criteria, edge cases, and code references) |
+| ac | The `### AC-N — <title>` body — see `aiwf-add` §"What to write per kind" below |
 | gap | `## What's missing`, `## Why it matters` |
 | adr | `## Context`, `## Decision`, `## Consequences` |
 | decision | `## Question`, `## Decision`, `## Reasoning` |
@@ -203,7 +203,9 @@ Two ways to land the body content:
 
 The per-kind table above lists *which* sections must be non-empty; this subsection covers *what* to write in each. The recommendations are advisory — `aiwf check` asserts presence, not structure — but they shape the project's default; an LLM (or human) skimming this skill produces better entities by following them than by inventing a shape.
 
-**Acceptance criteria.** One paragraph (not an essay, not a one-liner) covering three things: (a) the **pass criterion** — the assertable claim, "under inputs X the system produces Y"; (b) the **edge cases** the test must cover — boundary values, malformed inputs, error paths, concurrency; (c) the **code references** — the file or function the AC will land against, or the test file that pins it. The forward references trade a little churn (paths can move) for a lot of context (a future reader doesn't have to grep for the call site).
+**Acceptance criteria.** The title names observable behavior rather than an implementation detail — "when X occurs, the system emits Y with property Z", never "X is tested", "refactor complete", or "feature implemented". It also stays a short label rather than a paragraph — `aiwf add ac` refuses a prose-shaped title outright, and `aiwf check` reports one already stored as `acs-title-prose`. *Observable* there is about the claim's shape, and is a different word from *observational*, which is about how a claim is met: a criterion naming something no test can reach is met by a record rather than an assertion, and what that record carries is in `aiwf-promote` §"Evidence for promoting an AC to `met`". The body is one paragraph (not an essay, not a one-liner) covering three things: (a) the **pass criterion** — the assertable claim, "under inputs X the system produces Y"; (b) the **edge cases** the test must cover — boundary values, malformed inputs, error paths, concurrency; (c) the **code references** — the file or function the AC will land against, or the test file that pins it. The forward references trade a little churn (paths can move) for a lot of context (a future reader doesn't have to grep for the call site).
+
+What the body leaves out, because another record already holds it: the argument for the claim, which belongs in a decision record — cite that record by id (`ADR-NNNN` / `D-NNNN`) and move on; why a change was made, which the commit that made it carries; what a review round objected to, which the check or the decision record that settled it carries; and what the implementation turned out to do, which the code and its tests carry. A criterion is stated, not defended. If a body is still growing after its criterion is written, ask which of these is being added, and put it where its own record is.
 
 ```markdown
 ### AC-3 — Validates frontmatter shape on add
@@ -263,7 +265,7 @@ If the LLM is invoked turn-by-turn by a human (HITL / tool mode), pass `--actor 
 - Don't pass `--actor` unless the user asked for a specific actor; the default (derived from git config user.email) is correct.
 - Don't omit `--principal` when invoking as a non-human actor — the verb refuses with a `provenance-trailer-incoherent` finding.
 - Don't manually edit the milestone's `acs[]` to "fix" a gap from a cancelled AC — AC ids are position-stable. After cancelling AC-2, the next `aiwf add ac` allocates AC-3, not a recycled AC-2.
-- Don't leave load-bearing body sections empty for any entity kind — the title is a label, not a spec. For `gap`/`decision`/`adr`/`contract` this is refused at creation (see *"Empty-body gate for born-complete kinds"* above); for epic/milestone/AC, a section left present and empty is surfaced by `aiwf check` as `entity-body-empty` (warning by default; error under `aiwf.yaml: tdd.strict: true`) — a heading deleted rather than left empty is refused at the write and reported by no tree-wide rule. The body is the spec — write the prose detail (description, examples, edge cases, references) before declaring the entity complete. See *"After `aiwf add <kind>`: fill in the body"* above for the per-kind shapes.
+- Don't leave load-bearing body sections empty for any entity kind — the title is a label, not a spec. For `gap`/`decision`/`adr`/`contract` this is refused at creation (see *"Empty-body gate for born-complete kinds"* above); for epic/milestone/AC, a section left present and empty is surfaced by `aiwf check` as `entity-body-empty` (warning by default; error under `aiwf.yaml: tdd.strict: true`) — a heading deleted rather than left empty is refused at the write and reported by no tree-wide rule. The body is the spec — write the prose detail before declaring the entity complete. See *"After `aiwf add <kind>`: fill in the body"* above for the per-kind shapes.
 
 ## Tree discipline — `work/` is aiwf's domain
 
