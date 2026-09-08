@@ -11,7 +11,7 @@ carry content something else already holds:
 
 | section | what already holds it |
 |---|---|
-| `## Work log` | partly `aiwf history` — see below |
+| `## Work log` | `aiwf history` — retired, see below |
 | `## Dependencies` | the `depends_on:` frontmatter field |
 | `## Surfaces touched` | the milestone's own diff |
 | `## References` | inline links |
@@ -20,13 +20,12 @@ Three of the four are thin: measured over the entity tree on 2026-08-03, median
 word counts of 14, 21 and 24 for `## Dependencies`, `## Surfaces touched` and
 `## References`.
 
-`## Work log` is the opposite, and its row needs the correction the gap-truth
-audit recorded and nobody applied. Counted with the per-AC subsections the
-template prescribes, it had a median of 226.5 words and was the spec's
-third-largest section; the 0-word median came from a method that excluded the
-subsections. Re-measured 2026-08-30: 175 populated Work logs, 122 of them
-carrying prose beyond the stated one-line entry, median 283 words against a
-stated shape of about fifteen. It is the largest section, not the thinnest.
+`## Work log` was the opposite of thin, which is why it went first. Counted with
+the per-AC subsections the template prescribed, it had a median of 226.5 words
+and was among the spec's largest sections; the 0-word median that opened this
+gap came from a method excluding those subsections. Re-measured 2026-08-30: 175
+populated Work logs, 122 carrying prose beyond the stated one-line entry, median
+283 words against a stated shape of about fifteen.
 
 Its owner covers more than it did. `aiwf history` holds the phase timeline, the
 promotes, and — where the `aiwf-tests` trailer is written — the test counts. It
@@ -40,20 +39,15 @@ The template assigns the rest by name — a trade-off or a rejected approach to
 design reasoning to the code it explains — and states that anything else has its
 own section. So the retirement no longer has to rehome the link.
 
-One item in the prescribed entry line is still unheld, and it is not the link:
-the per-AC test counts. `aiwf history` carries them only where an `aiwf-tests`
-trailer was written, which `aiwf promote --tests` writes and
-`tdd.require_test_metrics` does not require by default. Measured 2026-08-31
-over this branch's history, 311 commits carry one, and none of the AC promotes
-on the milestone that closed this gap's dependency do. So the retirement decides
-between two things: make the trailer the record, or drop the counts from the
-entry. It no longer has
-to invent a home for the link, and it must not delete the counts assuming one
-exists.
+The per-AC test counts were the one item in the prescribed entry line with no
+other owner, and the retirement resolved them by dropping rather than rehoming:
+nothing derived them and nothing read them back. Where a project wants them, the
+`aiwf-tests` trailer `aiwf promote --phase <p> --tests` writes is the route, and
+`tdd.require_test_metrics` makes it required. No ritual instructs it.
 
-`## References` has the weakest claim of the four, and it is worth stating so the
-row is not read as equivalent to its neighbours. The other three each name an
-owner outside the body — a git log, a frontmatter field, a diff. This one names
+`## References` has the weakest claim of the remaining three, and it is worth
+stating so the row is not read as equivalent to its neighbours. The other two
+name an owner outside the body — a frontmatter field, a diff. This one names
 prose elsewhere in the same file. `relates_to` would be a structured owner, but
 it is not available here: `internal/entity/entity.go` declares it under
 `KindDecision` alone, and of the 47 files in the tree carrying the field, every
@@ -75,9 +69,13 @@ they are derived and cannot drift. The milestone then keeps two prose sections
 written after the work — `## Release note` and `## Reviewer notes` — each bounded
 and each with a reader.
 
-The section's purpose is now stated in the template and in
-`aiwfx-start-milestone`, and the two texts that invited unbounded prose are gone.
-That is the interim state, not the destination.
+That destination is reached. `## Work log` is gone from the template, both
+milestone rituals, `aiwfx-wrap-epic`, the builder and reviewer agent cards,
+`wf-tdd-cycle`, and the `aiwf-check` and `aiwf-show` verb skills. The
+`embedded-no-work-log-section` policy holds it retired: measured before it
+landed, an exact revert of the removal tripped nothing in the repo, and three
+single-line edits each restored the convention silently. Milestone specs already
+carrying a Work log keep it — no check reads the section either way.
 
 ## Why it matters
 
@@ -92,8 +90,16 @@ why they are still shipped.
 
 ## Resolution shape
 
-Cut the four from `milestone-spec.md` and from the wrap ritual's step 4. Both are
-template and ritual edits; no kernel semantics change and no ADR.
+Cut each from `milestone-spec.md` and from every ritual and agent card naming
+it. These are template and ritual edits; no kernel semantics change and no ADR.
+
+`## Work log` is done, and it is the only one of the four whose replacement was
+designed. What remains is the other three, each blocked on a question this gap
+does not answer. `## Dependencies` duplicates `depends_on:`, but the frontmatter
+field is not rendered anywhere a spec reader looks. `## Surfaces touched`
+duplicates the diff, which is reachable only while the branch is. `## References`
+has the weakest claim of the three and the least available owner — see below.
+Retiring any of them wants its own measurement of what a reader loses.
 
 `## Reviewer notes` is the largest section by word count and is deliberately not
 on the list: it carries the declined-finding record that keeps a fresh reviewer
