@@ -25,15 +25,15 @@ finished spec, so a rule that binds during implementation cannot live there.
 D-0085 settles the assignment; each section is owned by the surface where it is
 first written.
 
-`## Work log` is where that costs most. It was designed when frontmatter did not
-exist and a checkbox list was the only way to see progress; `acs[]`, the TDD
-phase ladder and `aiwf history` have carried that since. What remains is
-unbounded: 175 populated Work logs, 122 carrying prose beyond the stated
-one-line entry, median 283 words against a stated shape of about fifteen
-(G-0530). Its purpose was stated in no binding surface until the patch that
-opened this epic, and the section has no downstream consumer — the epic wrap
-that writes the changelog reads milestone titles and merge SHAs, never a Work
-log.
+`## Work log` was where that cost most, and it is retired. It was designed when
+frontmatter did not exist and a checkbox list was the only way to see progress;
+`acs[]`, the TDD phase ladder and `aiwf history` have carried that since. What
+remained was unbounded: 175 populated Work logs, 122 carrying prose beyond the
+stated one-line entry, median 283 words against a stated shape of about fifteen
+(G-0530), with no downstream consumer — the epic wrap that writes the changelog
+reads milestone titles and merge SHAs, never a Work log. The
+`embedded-no-work-log-section` ban is what keeps it retired; without one, an
+exact revert of the removal tripped nothing in the repo.
 
 It could not simply be deleted, because one fact in it was real and unheld
 elsewhere: the link from an acceptance criterion to the commit that implemented
@@ -104,7 +104,7 @@ opposite here, since guidance and rituals ship as product (G-0529).
 
 - [x] `aiwf history <id>` lists a commit carrying an entity trailer and nothing
       else, and the commit that implemented a gap appears in that gap's history.
-- [ ] A milestone spec no longer carries `## Work log`, and the link from an
+- [x] A milestone spec no longer carries `## Work log`, and the link from an
       acceptance criterion to its implementation commit is answerable without
       reading the spec.
 - [x] A milestone spec carries `## Release note`, and the epic wrap's changelog
@@ -133,7 +133,7 @@ opposite here, since guidance and rituals ship as product (G-0529).
 
 | Risk | Impact | Mitigation |
 |---|---|---|
-| Retiring `## Work log` loses the AC-to-commit link if the history fix lands incomplete | high | Sequence the history work ahead of the retirement; the retirement milestone depends on it and does not start until the link is answerable without the spec. |
+| Retiring `## Work log` loses the AC-to-commit link if the history fix lands incomplete | high | Discharged. The history work landed first, and the retirement ran only once `aiwf history M-NNNN/AC-<N>` answered the link from the commit's entity trailer. |
 | The changelog check fires on correct trees and gets disabled | med | Land it at warning severity against a measured baseline; escalate only once the baseline is clean. |
 | The spec sweep and the section-enforcement rule disagree about the section set | med | One milestone owns both, or the enforcement milestone depends on the sweep. |
 
@@ -157,8 +157,8 @@ opposite here, since guidance and rituals ship as product (G-0529).
   and `## Validation` resolves as a side effect · depends on: —
 - **patch** — what an acceptance criterion body holds gets an owner
   · depends on: the section-ownership patch
-- **patch** — `## Work log` retires, its unique fact derivable without it
-  · depends on: the history milestone and the section-ownership patch
+- **patch** (done, G-0530) — `## Work log` retires, its unique fact derivable
+  without it · depends on: the history milestone and the section-ownership patch
 
 Ownership precedes the retirement rather than following it. Retiring a section
 costs one edit per surface that names it, and five name this one while two of
