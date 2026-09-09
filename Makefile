@@ -10,7 +10,7 @@
 # already fans out internally via `go test -parallel 8`.
 .NOTPARALLEL:
 
-.PHONY: help build install diag-aiwf test check-fast test-race test-pins lint fmt vet coverage test-cov coverage-gate coverage-gate-only comment-history-audit growth-report mutate-diff selfcheck ci clean install-hooks e2e e2e-install stress stress-tests
+.PHONY: help build install diag-aiwf test check-fast test-race test-pins lint fmt vet coverage test-cov coverage-gate coverage-gate-only comment-history-audit changelog-audit growth-report mutate-diff selfcheck ci clean install-hooks e2e e2e-install stress stress-tests
 
 # Version embedded into the binary via -ldflags. Format: <branch>@<short-sha>[-dirty].
 # Empty (so version.Current falls back to buildinfo) when not in a git checkout
@@ -40,6 +40,7 @@ help:
 	@echo "  coverage-gate - diff-scoped coverage audit vs origin/main (G-0067); builds its own profile"
 	@echo "  coverage-gate-only - the same gates against an existing coverage.out (what 'ci' uses)"
 	@echo "  comment-history-audit - whole-tree scan for comments narrating a superseded state"
+	@echo "  changelog-audit     - check [Unreleased] names everything shipped since the last release"
 	@echo "  growth-report - snapshot the growth metrics docs/design/growth.md tracks (read-only; GROWTH_BASELINE=<rev> for a delta)"
 	@echo "  mutate-diff - advisory diff-scoped mutation test: gremlins on internal/ packages changed vs origin/main (G-0267)"
 	@echo "  selfcheck - build and run 'aiwf doctor --self-check' end-to-end"
@@ -219,6 +220,27 @@ coverage-gate-only:
 comment-history-audit:
 	@echo "Scanning every tracked Go file for comments narrating a superseded state..."
 	go test -exec=$(TEST_EXEC) -run '^TestPolicy_CommentHistoryAttritionTree$$' -count=1 ./internal/policies/
+
+# changelog-audit checks that everything shipped since the last release
+# is named under CHANGELOG.md's [Unreleased] section (G-0529).
+#
+# It runs at the release boundary, not on every push: a milestone's delta
+# is legitimately absent from [Unreleased] until its epic wraps, so
+# asking earlier would need an in-flight-epic exemption. The release-tag
+# workflow invokes this target; nothing else does, which is why the audit
+# skips when AIWF_CHANGELOG_BASE is unset.
+#
+# `auto` means "work the base out from history" — the newest tag
+# reachable from HEAD. Pass an explicit ref to audit a past range:
+#   AIWF_CHANGELOG_BASE=v0.33.0 make changelog-audit
+#
+# -v because the audit has two outputs. An uncited entity fails the test
+# and would print either way; an untrailered shipped commit is logged
+# rather than failed (D-0087), and a logged line is invisible without it.
+changelog-audit:
+	@echo "Checking [Unreleased] against what shipped since the last release..."
+	AIWF_CHANGELOG_BASE="$(or $(AIWF_CHANGELOG_BASE),auto)" \
+	go test -exec=$(TEST_EXEC) -v -run '^TestPolicy_ChangelogCompleteness$$' -count=1 ./internal/policies/
 
 # growth-report snapshots the apparatus-growth metrics that
 # docs/design/growth.md interprets: test-to-production ratio, policy-corpus

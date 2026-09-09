@@ -41,3 +41,34 @@ jobs:
             exit 1
           fi
           echo "OK: CHANGELOG.md has a section for $version."
+
+  # The job above checks that a section for this version exists; a stub
+  # satisfies it. This one checks that the section describes what the
+  # release actually ships: every entity behind a change to the embedded
+  # trees since the last release is cited under [Unreleased] (G-0529).
+  #
+  # It is a separate job so a thin-notes failure reads as its own result
+  # rather than as "the heading check failed", and so it can take the
+  # deep checkout the base resolution needs without slowing the other.
+  changelog-names-what-shipped:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          # The audit's base is the newest tag reachable from HEAD.
+          # Actions' default checkout is shallow and fetches no tags, so
+          # a default here would resolve against history the runner does
+          # not have.
+          fetch-depth: 0
+
+      # Minor-version pin, as in gitleaks / flake-hunt / fuzz / mutate-hunt:
+      # this job only runs the audit, so a patch release picked up
+      # automatically is what we want. The exact-patch pin belongs to
+      # go.yml, whose vuln job reports against that exact version.
+      - uses: actions/setup-go@v5
+        with:
+          go-version: "1.25"
+          cache: true
+
+      - name: Verify CHANGELOG describes what shipped
+        run: make changelog-audit
