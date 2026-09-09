@@ -156,7 +156,8 @@ opposite here, since guidance and rituals ship as product (G-0529).
 - `M-0329` — an entity body that omits one of its kind's required sections is
   refused at the write, at `aiwf add` and both `aiwf edit-body` modes
   · depends on: —
-- A release's `[Unreleased]` is checked against what shipped · depends on: —
+- `M-0330` — a release's `[Unreleased]` is checked against what shipped
+  · depends on: —
 - **patch** (done, G-0636) — every milestone-spec section rule gets one owner,
   and `## Validation` resolves as a side effect · depends on: —
 - **patch** (done, G-0665) — what an acceptance criterion body holds gets an
