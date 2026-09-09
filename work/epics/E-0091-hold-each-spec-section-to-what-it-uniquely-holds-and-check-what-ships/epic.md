@@ -23,7 +23,11 @@ milestone rituals, and two agent cards, two of which disagreed about
 per-section comments are consumed at scaffold time and survive into almost no
 finished spec, so a rule that binds during implementation cannot live there.
 D-0085 settles the assignment; each section is owned by the surface where it is
-first written.
+first written. D-0086 settles the same question one level down, for what an
+acceptance criterion carries. Its answer is not D-0085's: a `### AC-N` is a
+kind's body rather than a spec section, so its rule belongs with the per-kind
+body table in the `aiwf-add` skill, which every writer reaches through the verb
+it runs — including a review round growing a body through `aiwf edit-body`.
 
 `## Work log` was where that cost most, and it is retired. It was designed when
 frontmatter did not exist and a checkbox list was the only way to see progress;
@@ -155,8 +159,8 @@ opposite here, since guidance and rituals ship as product (G-0529).
 - A release's `[Unreleased]` is checked against what shipped · depends on: —
 - **patch** (done, G-0636) — every milestone-spec section rule gets one owner,
   and `## Validation` resolves as a side effect · depends on: —
-- **patch** — what an acceptance criterion body holds gets an owner
-  · depends on: the section-ownership patch
+- **patch** (done, G-0665) — what an acceptance criterion body holds gets an
+  owner · depends on: the section-ownership patch
 - **patch** (done, G-0530) — `## Work log` retires, its unique fact derivable
   without it · depends on: the history milestone and the section-ownership patch
 
@@ -177,6 +181,7 @@ covering the union case.
 
 - G-0530 — milestone specs mandate four sections that duplicate structured data
 - G-0636 — milestone-spec section rules are restated across five surfaces with no owner
+- G-0665 — no surface owns what an acceptance criterion body holds
 - G-0601 — `aiwf history` hides skill edits owned by an entity trailer alone
 - G-0603 — no chokepoint catches a missing entity trailer while it is still cheap
 - G-0571 — nothing enforces that an entity body carries its kind's required sections
@@ -184,5 +189,6 @@ covering the union case.
 - G-0613 — the wrap changelog category set omits Removed, which practice uses
 - G-0657 — commits whose trailer block is split from `Co-Authored-By:` are
   invisible to git's parser, so neither history nor the verb check sees them
+- D-0086 — an acceptance criterion's content rule is owned by the `aiwf-add` skill
 - D-0070 — prose-content assertions over shipped surfaces are retired
 - D-0071 — no aiwf verb commits source, so no verb value names a shipped-surface edit
