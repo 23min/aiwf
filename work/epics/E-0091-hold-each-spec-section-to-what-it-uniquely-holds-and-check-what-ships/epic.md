@@ -138,7 +138,7 @@ opposite here, since guidance and rituals ship as product (G-0529).
 | Risk | Impact | Mitigation |
 |---|---|---|
 | Retiring `## Work log` loses the AC-to-commit link if the history fix lands incomplete | high | Discharged. The history work landed first, and the retirement ran only once `aiwf history M-NNNN/AC-<N>` answered the link from the commit's entity trailer. |
-| The changelog check fires on correct trees and gets disabled | med | Land it at warning severity against a measured baseline; escalate only once the baseline is clean. |
+| The changelog check fires on correct trees and gets disabled | med | Discharged. Measured, two entities owe an entry and both clear before the check can fire — this epic's at its own wrap, G-0659's as a line M-0330 writes. No window remains in which it reports a correct tree, so it lands blocking and the warning phase buys nothing. |
 | The spec sweep and the section-enforcement rule disagree about the section set | med | One milestone owns both, or the enforcement milestone depends on the sweep. |
 
 ## Milestones
