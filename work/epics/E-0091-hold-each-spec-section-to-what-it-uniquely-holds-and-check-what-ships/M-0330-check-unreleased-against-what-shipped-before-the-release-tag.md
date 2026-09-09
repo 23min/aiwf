@@ -19,7 +19,7 @@ acs:
       tdd_phase: done
     - id: AC-4
       title: The release tag workflow invokes the audit and the target it names exists
-      status: open
+      status: met
       tdd_phase: done
 ---
 ## Goal
