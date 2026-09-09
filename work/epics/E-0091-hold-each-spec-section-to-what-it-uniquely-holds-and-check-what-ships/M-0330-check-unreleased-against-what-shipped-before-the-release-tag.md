@@ -26,9 +26,21 @@ the release tag's CI job fails when something is missing.
 
 ## Closes
 
-<!-- Filled at milestone start, not while authoring this spec. -->
+- G-0529 — CHANGELOG completeness rests on recall at epic wrap and is never
+  checked.
 
-- (none)
+The gap's direction names two properties and this milestone delivers one of
+them over one surface class: a shipped delta named under `[Unreleased]` before
+a release, enumerated over the embedded trees. That is the class the v0.34.0
+omissions came from, and the gap records that its own named-surface list —
+finding codes, verbs, config keys, exit codes — would not have reached them.
+The named-surface half stays undone, and it is the half that would have caught
+the earlier thin entry, so it is a residual rather than a subsumed alternative.
+It takes its own gap at wrap.
+
+The per-epic citation property falls out of the same comparison wherever an
+epic's work touched a shipped surface. An epic that shipped only compiled
+behaviour is outside what this milestone sees, and rides the same residual.
 
 ## Context
 
