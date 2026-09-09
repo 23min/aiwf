@@ -12,6 +12,7 @@ acs:
     - id: AC-2
       title: A shipped-surface commit with no entity trailer is reported, not skipped
       status: open
+      tdd_phase: red
     - id: AC-3
       title: The base release is the newest tag reachable from HEAD
       status: open
