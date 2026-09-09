@@ -130,12 +130,14 @@ entry covers it, and the repair a failing release would imply — rewriting a
 landed commit's trailers — is not available. D-0087 carries the argument.
 
 Evidence: a range carrying one shipped-surface commit with no entity trailer and
-nothing else uncited, asserted to report that commit and exit zero. Both halves
-are asserted, because each fails a different wrong implementation: one that
-treats an absent trailer as nothing to attribute drops the report, and one that
-counts it toward the verdict turns the exit code. Measured on the current range
-the tree offers no such commit, so the fixture builds one rather than reading
-history.
+nothing else uncited, asserted to report that commit and to produce no
+release-failing finding. Both halves are asserted, because each fails a
+different wrong implementation: one that treats an absent trailer as nothing to
+attribute drops the report, and one that routes it to the blocking half instead.
+The second assertion runs through the release-gating entry point rather than the
+renderer beneath it, since a leak into the blocking half leaves the renderer
+untouched. Measured on the current range the tree offers no such commit, so the
+fixture builds one rather than reading history.
 
 ### AC-3 — The base release is the newest tag reachable from HEAD
 
