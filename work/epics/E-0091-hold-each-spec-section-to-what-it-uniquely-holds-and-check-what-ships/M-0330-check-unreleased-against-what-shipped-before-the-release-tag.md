@@ -15,7 +15,7 @@ acs:
       tdd_phase: done
     - id: AC-3
       title: The base release is the newest tag reachable from HEAD
-      status: open
+      status: met
       tdd_phase: done
     - id: AC-4
       title: The release tag workflow invokes the audit and the target it names exists
