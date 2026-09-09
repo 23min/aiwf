@@ -100,11 +100,15 @@ already attributed to the commits that made them, so counting them attributes
 one delta twice.
 
 Evidence: a fixture repo whose range carries one shipped-surface commit under an
-entity the section does not cite, asserted to report that entity and exit
-non-zero; the same range with the entity cited, asserted to report nothing at
-exit zero. The rollup runs against an archived milestone, which is the reading a
-path scan gets wrong; the narrow-width reading gets a range that turns on
-nothing else.
+entity the section does not cite, asserted to report that entity; the same range
+with the entity cited, asserted to report nothing. The rollup runs against an
+archived milestone, which is the reading a path scan gets wrong; the
+narrow-width reading gets a range that turns on nothing else.
+
+What turns that report into a failed release is the shared policy harness, which
+fails one test per violation, and the wiring that reaches the harness from the
+release tag. Neither is asserted here: the harness is pinned by every policy in
+the suite, and the wiring is AC-4's.
 
 ### AC-2 — A shipped-surface commit with no entity trailer is reported, not skipped
 
@@ -160,9 +164,15 @@ release whose notes are incomplete cannot be asserted without running the
 workflow, which the test suite does not reach. What it can assert is that the
 invocation resolves, so renaming either side reports.
 
-Evidence: the workflow file parsed, the step's command extracted, and the target
-it names looked up in the Makefile — asserted in both directions, since a test
-that only reads the workflow passes after the target is deleted.
+Three links, not two: the workflow step names a target, the target runs a test
+by name, and that test is the audit's release-gate entry point. A chain asserted
+only at its ends stays green while its middle names a test that no longer
+exists — a break that surfaces when someone cuts a release and nowhere earlier.
+
+Evidence: the recipe resolved by running make rather than by reading the
+Makefile, so renaming an intermediate target keeps it green and only the audit
+dropping out turns it red; the workflow's step asserted to invoke that target;
+and the resolved recipe asserted to name the audit's entry-point test.
 
 ## Constraints
 
@@ -234,3 +244,10 @@ that only reads the workflow passes after the target is deleted.
 ## Deferrals
 
 ## Reviewer notes
+
+- Content introduced only by a merge resolution is invisible to this audit.
+  Measured: `git log --name-only` emits no file list for a merge without an
+  explicit `--diff-merges`, and no `log.diffMerges` setting changes that, so
+  such content belongs to no non-merge commit and is attributed to nothing. It
+  is the same blind spot G-0602 tracks for the shipped-ritual provenance gate,
+  and closing it there closes it here.
