@@ -169,15 +169,24 @@ release whose notes are incomplete cannot be asserted without running the
 workflow, which the test suite does not reach. What it can assert is that the
 invocation resolves, so renaming either side reports.
 
-Three links, not two: the workflow step names a target, the target runs a test
-by name, and that test is the audit's release-gate entry point. A chain asserted
-only at its ends stays green while its middle names a test that no longer
-exists — a break that surfaces when someone cuts a release and nowhere earlier.
+Four links, not two. The workflow step names a target, the target runs a test by
+name, that test is the audit's release-gate entry point, and the job it runs in
+checks out the history the base resolution needs. A chain asserted only at its
+ends stays green while its middle names a test that no longer exists — a break
+that surfaces when someone cuts a release and nowhere earlier.
+
+The fourth link is invisible to the other three and the reason they are not
+enough. The runner's checkout is shallow by default and fetches no tags, so a
+job taking that default resolves its base against history it does not have. The
+audit then compares the release against the wrong range and reports whatever
+that range happens to contain, while every other assertion here stays green.
 
 Evidence: the recipe resolved by running make rather than by reading the
 Makefile, so renaming an intermediate target keeps it green and only the audit
 dropping out turns it red; the workflow's step asserted to invoke that target;
-and the resolved recipe asserted to name the audit's entry-point test.
+the resolved recipe asserted to name the audit's entry-point test and to pass a
+base; and the job running that step asserted to check out full history. Each
+link cut in turn, and the chain reports every time.
 
 ## Constraints
 
