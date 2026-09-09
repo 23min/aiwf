@@ -3,6 +3,7 @@ package policies
 import (
 	"fmt"
 	"os"
+	"os/exec"
 	"path/filepath"
 	"strings"
 	"testing"
@@ -709,6 +710,193 @@ func TestChangelogViolations_Errors(t *testing.T) {
 			t.Errorf("error should name what could not be loaded; got %v", err)
 		}
 	})
+}
+
+// TestResolveChangelogBase_ReachableNotNewest is AC-3's rule. The audit
+// runs on a branch in practice — the release gate fires before the merge
+// — and on trunk the newest tag and the newest reachable tag are usually
+// the same commit. A resolution that sorts the tag list instead of
+// walking history therefore passes every trunk-only test and compares a
+// branch against a release that never contained it.
+//
+// The fixture puts a *higher-versioned* tag on a branch the commit under
+// test cannot reach, so version order and reachability disagree and only
+// the reachable answer is correct.
+func TestResolveChangelogBase_ReachableNotNewest(t *testing.T) {
+	t.Parallel()
+	root, runGit, writeFile, _ := skillFixtureBase(t)
+	commitAt := datedCommitter(t, root)
+
+	runGit("tag", "v0.1.0")
+
+	// The unreachable tag is made unambiguously the newest, so that
+	// reachability is the only thing separating the right answer from
+	// the wrong one. Left to the clock, every fixture commit lands in
+	// the same second and a date-ordered resolver returns the right tag
+	// on a tie — measured, that is exactly what happens, and it makes
+	// the wrong implementation look correct. The far-future date is what
+	// removes the tie without depending on when the test runs.
+	writeFile("main.txt", "main\n")
+	runGit("add", "-A")
+	commitAt("main work", "2026-01-01T00:00:00+00:00")
+	mainHead := trimLine(runGit("rev-parse", "HEAD"))
+
+	runGit("checkout", "-b", "side", "v0.1.0")
+	writeFile("side.txt", "side\n")
+	runGit("add", "-A")
+	commitAt("side work", "2099-01-01T00:00:00+00:00")
+	runGit("tag", "v0.9.0")
+	runGit("checkout", mainHead)
+
+	got, err := resolveChangelogBase(root)
+	if err != nil {
+		t.Fatalf("resolveChangelogBase: %v", err)
+	}
+	if got != "v0.1.0" {
+		t.Errorf("resolveChangelogBase = %q, want %q — v0.9.0 is both newer and higher-versioned, and unreachable from this commit", got, "v0.1.0")
+	}
+
+	// State the property directly too, so a future resolver returning
+	// some other reachable ref is judged on reachability rather than on
+	// matching this fixture's tag name.
+	anc := exec.Command("git", "merge-base", "--is-ancestor", got, "HEAD")
+	anc.Dir = root
+	if err := anc.Run(); err != nil {
+		t.Errorf("resolved base %q is not an ancestor of HEAD: %v", got, err)
+	}
+}
+
+// datedCommitter returns a commit closure that fixes both git dates, so
+// tag ordering in a fixture is decided by the test rather than by how
+// fast it happens to run.
+func datedCommitter(t *testing.T, root string) func(msg, date string) {
+	t.Helper()
+	return func(msg, date string) {
+		t.Helper()
+		cmd := exec.Command("git", "commit", "-m", msg)
+		cmd.Dir = root
+		cmd.Env = append(os.Environ(),
+			"GIT_AUTHOR_DATE="+date,
+			"GIT_COMMITTER_DATE="+date,
+		)
+		if out, err := cmd.CombinedOutput(); err != nil {
+			t.Fatalf("git commit %q at %s: %v\n%s", msg, date, err, out)
+		}
+	}
+}
+
+// TestResolveChangelogBase_NoTagYetFallsBackToTheRootCommit covers the
+// first release, which has no predecessor to compare against. Failing
+// there would make the audit unrunnable until the first tag exists,
+// which is exactly the release that most needs its notes checked.
+func TestResolveChangelogBase_NoTagYetFallsBackToTheRootCommit(t *testing.T) {
+	t.Parallel()
+	root, runGit, writeFile, _ := skillFixtureBase(t)
+	writeFile("more.txt", "more\n")
+	runGit("add", "-A")
+	runGit("commit", "-m", "second")
+
+	got, err := resolveChangelogBase(root)
+	if err != nil {
+		t.Fatalf("resolveChangelogBase: %v", err)
+	}
+	wantRoot := trimLine(runGit("rev-list", "--max-parents=0", "HEAD"))
+	if got != wantRoot {
+		t.Errorf("resolveChangelogBase = %q, want the root commit %q", got, wantRoot)
+	}
+}
+
+// TestResolveChangelogBase_GraftedHistoryTakesTheEarliestRoot pins the
+// choice the single-root fallback cannot show. A repo built by grafting
+// two histories has more than one root reachable from HEAD, and taking
+// the wrong one silently narrows the audited range to the grafted-in
+// side — every commit before the graft would go unexamined.
+func TestResolveChangelogBase_GraftedHistoryTakesTheEarliestRoot(t *testing.T) {
+	t.Parallel()
+	root, runGit, writeFile, _ := skillFixtureBase(t)
+	commitAt := datedCommitter(t, root)
+
+	writeFile("old.txt", "old\n")
+	runGit("add", "-A")
+	commitAt("older history", "2020-01-01T00:00:00+00:00")
+	mainHead := trimLine(runGit("rev-parse", "HEAD"))
+
+	runGit("checkout", "--orphan", "grafted")
+	runGit("rm", "-rf", "--cached", ".")
+	writeFile("new.txt", "new\n")
+	runGit("add", "-A")
+	commitAt("newer unrelated history", "2030-01-01T00:00:00+00:00")
+
+	runGit("checkout", mainHead)
+	runGit("merge", "--allow-unrelated-histories", "--no-edit", "grafted")
+
+	roots := strings.Fields(runGit("rev-list", "--max-parents=0", "HEAD"))
+	if len(roots) != 2 {
+		t.Fatalf("fixture has %d roots, want 2 — the test proves nothing with one", len(roots))
+	}
+	want := roots[len(roots)-1]
+
+	got, err := resolveChangelogBase(root)
+	if err != nil {
+		t.Fatalf("resolveChangelogBase: %v", err)
+	}
+	if got != want {
+		t.Errorf("resolveChangelogBase = %q, want the earliest root %q (the other is %q)", got, want, roots[0])
+	}
+}
+
+// TestResolveChangelogBase_NoHistoryToResolveFrom covers the path where
+// neither a tag nor a root commit exists. Returning some plausible-
+// looking ref here would audit a range nobody chose; the error says the
+// base could not be worked out, which is the only honest answer.
+func TestResolveChangelogBase_NoHistoryToResolveFrom(t *testing.T) {
+	t.Parallel()
+
+	_, err := resolveChangelogBase(t.TempDir())
+	if err == nil {
+		t.Fatal("want an error resolving a base outside a repository, got nil")
+	}
+	if !strings.Contains(err.Error(), "no reachable tag") {
+		t.Errorf("error should say what it could not find; got %v", err)
+	}
+}
+
+// TestChangelogAuditFor_AutoPropagatesAResolverFailure confirms the
+// sentinel path surfaces a resolution failure rather than falling
+// through to an audit of some other range. An audit that quietly picked
+// a different base would report findings against commits the operator
+// never asked about.
+func TestChangelogAuditFor_AutoPropagatesAResolverFailure(t *testing.T) {
+	t.Parallel()
+
+	_, err := changelogAuditFor(t.TempDir(), changelogBaseAuto)
+	if err == nil {
+		t.Fatal("want an error when the base cannot be resolved, got nil")
+	}
+	if !strings.Contains(err.Error(), "no reachable tag") {
+		t.Errorf("error should carry the resolver's cause; got %v", err)
+	}
+}
+
+// TestChangelogAuditFor_AutoResolvesTheBase pins the seam: the sentinel
+// reaches the resolver rather than being handed to git as a ref named
+// "auto", which would fail rather than resolve.
+func TestChangelogAuditFor_AutoResolvesTheBase(t *testing.T) {
+	t.Parallel()
+	root, runGit, writeFile, _ := changelogFixture(t)
+	runGit("tag", "v0.1.0")
+
+	writeFile(clShippedRel, "fictional content\n")
+	runGit("add", "-A")
+	runGit("commit", "-m", "docs(fictional): a delta", "--trailer", "aiwf-entity: "+provFixtureEntityID)
+
+	audit, err := changelogAuditFor(root, changelogBaseAuto)
+	if err != nil {
+		t.Fatalf("changelogAuditFor(auto): %v", err)
+	}
+	if ids := uncitedIDs(audit); !equalStrings(ids, []string{provFixtureEntityID}) {
+		t.Errorf("auto-resolved audit reported %v, want %v", ids, []string{provFixtureEntityID})
+	}
 }
 
 // TestUnreleasedSection covers the rules that decide what counts as the

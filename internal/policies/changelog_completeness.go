@@ -176,6 +176,59 @@ func PolicyChangelogCompleteness(root string) ([]Violation, error) {
 	return changelogViolations(root, strings.TrimSpace(os.Getenv(changelogBaseEnv)))
 }
 
+// changelogBaseAuto is the AIWF_CHANGELOG_BASE value meaning "work the
+// base out from history". It is a sentinel rather than the unset
+// default, because unset has to keep meaning "do not run": the audit is
+// a release-boundary check, and a default that resolved a base would
+// turn it on for every `go test ./...` — where a milestone's delta is
+// legitimately absent from `[Unreleased]` until its epic wraps.
+//
+// An explicit ref still overrides, which is what makes a past range
+// auditable without moving a tag.
+const changelogBaseAuto = "auto"
+
+// resolveChangelogBase returns the release this commit's changes are
+// measured against: the newest tag reachable from HEAD.
+//
+// Reachability rather than recency is the whole point. `git describe`
+// walks history, so a tag on a branch HEAD cannot reach is not a
+// candidate however new it is or however high it sorts — which is the
+// case a trunk-only test never produces, since on trunk the newest tag
+// and the newest reachable tag are usually the same commit.
+//
+// With no tag at all the base is the root commit. A first release has no
+// predecessor, and failing here would leave the audit unrunnable for
+// exactly the release with the most undescribed history behind it.
+func resolveChangelogBase(root string) (string, error) {
+	describe := exec.Command("git", "describe", "--tags", "--abbrev=0")
+	describe.Dir = root
+	if out, err := describe.Output(); err == nil {
+		if tag := strings.TrimSpace(string(out)); tag != "" {
+			return tag, nil
+		}
+	}
+
+	// `--max-parents=0` can list more than one root in a repo built by
+	// grafting histories; the last is the earliest, which is the base
+	// that leaves no commit unaudited.
+	roots := exec.Command("git", "rev-list", "--max-parents=0", "HEAD")
+	roots.Dir = root
+	out, err := roots.CombinedOutput()
+	if err != nil {
+		return "", fmt.Errorf("resolving a base for %s: no reachable tag, and git rev-list failed: %w\n%s", root, err, out)
+	}
+	lines := strings.Fields(string(out))
+	if len(lines) == 0 {
+		//coverage:ignore git exits non-zero when HEAD does not resolve —
+		// measured at 128 on an unborn HEAD — and when it does resolve the
+		// walk always reaches a root, so exit 0 with no output cannot
+		// happen. The guard stays because the alternative is indexing an
+		// empty slice.
+		return "", fmt.Errorf("resolving a base for %s: no reachable tag and no root commit", root)
+	}
+	return lines[len(lines)-1], nil
+}
+
 // changelogShippedDir is the tree that materializes into consumer repos
 // via `aiwf init` / `aiwf update`. A change under it reaches every
 // consumer on upgrade, which is what makes it a release delta — and what
@@ -254,6 +307,13 @@ func changelogAuditFor(root, baseRef string) (changelogAudit, error) {
 	baseRef = strings.TrimSpace(baseRef)
 	if baseRef == "" || baseRef == zeroSHA {
 		return changelogAudit{}, nil
+	}
+	if baseRef == changelogBaseAuto {
+		resolved, err := resolveChangelogBase(root)
+		if err != nil {
+			return changelogAudit{}, err
+		}
+		baseRef = resolved
 	}
 	deltas, err := shippedDeltasInRange(root, baseRef)
 	if err != nil {
