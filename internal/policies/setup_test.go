@@ -31,6 +31,8 @@ import (
 //     drive the env-fed comment-history-attrition entry point.
 //   - TestPolicyTestExecutableWrite_Env — sets AIWF_COVERAGE_BASE to
 //     drive the env-fed test-executable-write entry point.
+//   - TestPolicyChangelogCompleteness_Env — sets AIWF_CHANGELOG_BASE to
+//     drive the env-fed changelog-completeness entry point (G-0529).
 //
 // Every other Test* function reads-only against the shared *Tree (do
 // not mutate) or uses t.TempDir for fixture work.
