@@ -58,9 +58,20 @@ ritual and wrote no line although the patch ritual mandates one with no skip.
 That trailer is what makes the property computable: a shipped-surface change
 already names the entity that owns it. It is guaranteed only for the ritual
 skill files under `internal/skills/embedded-rituals`, though — not for the verb
-skills, the templates, the agent cards or the guidance fragment. Every recent
-commit carries one by habit rather than by rule, so an audit that trusts it has
-to say when it is absent.
+skills, the templates, the agent cards or the guidance fragment. Elsewhere it is
+habit, and the habit is one release cycle old: across the three ranges that
+already shipped, the untrailered share of shipped-surface commits ran 20 of 20
+into v0.32.0, then 38 of 52, then 2 of 11, against 0 of 18 on the current range.
+An audit that trusts the trailer has to say when it is absent.
+
+Backtested over those same three ranges, the comparison reports two uncited
+entities into v0.33.0 and none into the other two. One of the two is documented:
+`[0.33.0]` carries an entry for G-0635's change that names no id. So what the
+audit proves is that nothing under the section cites the entity, which is a rule
+it imposes rather than an omission it observes — an entry describing a change
+while naming no id is indistinguishable from no entry at all. D-0087 settles
+what each finding then does: the uncited entity fails the release, the
+untrailered commit is reported and does not.
 
 The backlog is two entities and both clear before the audit can block: E-0091's
 at its own wrap, G-0659's as a changelog line this milestone writes.
@@ -69,32 +80,36 @@ at its own wrap, G-0659's as a changelog line this milestone writes.
 
 ### AC-1 — The audit reports a shipped-surface delta nothing under Unreleased cites
 
-The report names the entity that owes the entry and at least one commit behind
-it. Naming it is what the test asserts, not the exit code alone: an unreadable
-changelog and an unresolvable base ref both fail on this path already, so an
-exit-code assertion passes with the comparison absent.
+The report names the entity nothing cites and at least one commit behind it, and
+it fails the release. Naming the entity is what the test asserts, not the exit
+code alone: an unreadable changelog and an unresolvable base ref both fail on
+this path already, so an exit-code assertion passes with the comparison absent.
 
-A milestone rolls up to its parent epic, and the epic is what must be named — a
-milestone's user-visible delta lands in its epic's entry, never its own. A
-composite trailer value resolves to its milestone before that rollup. An id
-written at a legacy narrow width names the same entity as the canonical width,
-so both sides are canonicalized rather than string-matched.
+A milestone rolls up to its parent epic, and the epic is what must be cited — a
+milestone's user-visible delta lands in its epic's entry, never its own. The
+rollup resolves through the tree loader, which reaches archived entities. A path
+scan does not, and the failure is silent rather than loud: an archived
+milestone's id survives the rollup and is reported as an uncited entity in its
+own right. A composite trailer value resolves to its milestone before the
+rollup, and ids compare canonicalized, since a narrower legacy width names the
+same entity.
 
 Merge commits are excluded. Their file lists carry the merged branch's changes,
 already attributed to the commits that made them, so counting them attributes
 one delta twice.
 
 Evidence: a fixture repo whose range carries one shipped-surface commit under an
-entity the section does not name, asserted to report that entity and exit
-non-zero; the same range with the entity named, asserted to report nothing at
-exit zero. The rollup and the narrow-width readings each get a range that turns
-on nothing else.
+entity the section does not cite, asserted to report that entity and exit
+non-zero; the same range with the entity cited, asserted to report nothing at
+exit zero. The rollup runs against an archived milestone, which is the reading a
+path scan gets wrong; the narrow-width reading gets a range that turns on
+nothing else.
 
 ### AC-2 — A shipped-surface commit with no entity trailer is reported, not skipped
 
-An untrailered shipped-surface commit is reported by subject and counts toward
-the non-zero exit. Skipping it is the failure mode the audit is most likely to
-have: the comparison is driven by trailers, so a commit carrying none
+An untrailered shipped-surface commit is reported by subject, at a severity that
+does not fail the release. Skipping it is the failure mode the audit is most
+likely to have: the comparison is driven by trailers, so a commit carrying none
 contributes to neither side and passes silently.
 
 The trailer is guaranteed on one tree only. The provenance backstop covers the
@@ -103,11 +118,18 @@ guidance fragment carry a trailer by habit. An audit that trusts the trailer
 everywhere under-reports exactly where the guarantee stops, and says nothing
 while it does.
 
+It reports rather than blocks because it establishes nothing about the
+changelog: the audit cannot attribute the commit, so it cannot say whether an
+entry covers it, and the repair a failing release would imply — rewriting a
+landed commit's trailers — is not available. D-0087 carries the argument.
+
 Evidence: a range carrying one shipped-surface commit with no entity trailer and
-nothing else owing an entry, asserted to report that commit and exit non-zero —
-which fails against an implementation that treats an absent trailer as nothing
-to attribute. Measured today the tree offers no such commit, so the fixture
-builds one rather than reading history.
+nothing else uncited, asserted to report that commit and exit zero. Both halves
+are asserted, because each fails a different wrong implementation: one that
+treats an absent trailer as nothing to attribute drops the report, and one that
+counts it toward the verdict turns the exit code. Measured on the current range
+the tree offers no such commit, so the fixture builds one rather than reading
+history.
 
 ### AC-3 — The base release is the newest tag reachable from HEAD
 
@@ -162,6 +184,13 @@ that only reads the workflow passes after the target is deleted.
   a focused target.
 - D-0031 fixed the changelog category set and G-0613 questions it. Not settled
   here — that is a decision amendment, not a check.
+- The two findings carry different severities, settled in D-0087. An uncited
+  entity is a proven violation of a stated rule; an untrailered commit is a hole
+  in the audit's own evidence.
+- The rollup from milestone to parent epic goes through `tree.Load`, never a
+  path scan. The loader resolves across active and archive; a glob over
+  `work/epics/*/` does not, and an archived milestone then survives the rollup
+  and reports as an uncited entity of its own.
 
 ## Surfaces touched
 
@@ -195,6 +224,9 @@ that only reads the workflow passes after the target is deleted.
 ## Release note
 
 ## Decisions made during implementation
+
+- D-0087 — the changelog audit blocks an uncited entity and reports an
+  untrailered commit
 
 ## Validation
 
