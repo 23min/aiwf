@@ -1,7 +1,7 @@
 ---
 id: M-0330
 title: Check Unreleased against what shipped before the release tag
-status: draft
+status: in_progress
 parent: E-0091
 tdd: required
 acs:
