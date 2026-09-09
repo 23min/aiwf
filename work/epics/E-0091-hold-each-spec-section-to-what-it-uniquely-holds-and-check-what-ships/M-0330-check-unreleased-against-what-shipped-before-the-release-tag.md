@@ -4,6 +4,19 @@ title: Check Unreleased against what shipped before the release tag
 status: draft
 parent: E-0091
 tdd: required
+acs:
+    - id: AC-1
+      title: The audit reports a shipped-surface delta the Unreleased section omits
+      status: open
+    - id: AC-2
+      title: A shipped-surface commit with no entity trailer is reported, not skipped
+      status: open
+    - id: AC-3
+      title: The base release is the newest tag reachable from HEAD
+      status: open
+    - id: AC-4
+      title: The release tag workflow invokes the audit and the target it names exists
+      status: open
 ---
 ## Goal
 
@@ -41,6 +54,80 @@ The backlog is two entities and both clear before the audit can block: E-0091's
 at its own wrap, G-0659's as a changelog line this milestone writes.
 
 ## Acceptance criteria
+
+### AC-1 — The audit reports a shipped-surface delta the Unreleased section omits
+
+The report names the entity that owes the entry and at least one commit behind
+it. Naming it is what the test asserts, not the exit code alone: an unreadable
+changelog and an unresolvable base ref both fail on this path already, so an
+exit-code assertion passes with the comparison absent.
+
+A milestone rolls up to its parent epic, and the epic is what must be named — a
+milestone's user-visible delta lands in its epic's entry, never its own. A
+composite trailer value resolves to its milestone before that rollup. An id
+written at a legacy narrow width names the same entity as the canonical width,
+so both sides are canonicalized rather than string-matched.
+
+Merge commits are excluded. Their file lists carry the merged branch's changes,
+already attributed to the commits that made them, so counting them attributes
+one delta twice.
+
+Evidence: a fixture repo whose range carries one shipped-surface commit under an
+entity the section does not name, asserted to report that entity and exit
+non-zero; the same range with the entity named, asserted to report nothing at
+exit zero. The rollup and the narrow-width readings each get a range that turns
+on nothing else.
+
+### AC-2 — A shipped-surface commit with no entity trailer is reported, not skipped
+
+An untrailered shipped-surface commit is reported by subject and counts toward
+the non-zero exit. Skipping it is the failure mode the audit is most likely to
+have: the comparison is driven by trailers, so a commit carrying none
+contributes to neither side and passes silently.
+
+The trailer is guaranteed on one tree only. The provenance backstop covers the
+ritual skill files; the verb skills, the templates, the agent cards and the
+guidance fragment carry a trailer by habit. An audit that trusts the trailer
+everywhere under-reports exactly where the guarantee stops, and says nothing
+while it does.
+
+Evidence: a range carrying one shipped-surface commit with no entity trailer and
+nothing else owing an entry, asserted to report that commit and exit non-zero —
+which fails against an implementation that treats an absent trailer as nothing
+to attribute. Measured today the tree offers no such commit, so the fixture
+builds one rather than reading history.
+
+### AC-3 — The base release is the newest tag reachable from HEAD
+
+The range the audit reads starts at the newest release tag reachable from the
+commit under test. A tag on a branch that commit cannot reach is not its base,
+and choosing it compares the change against a release that never contained it.
+
+This is where a branch and trunk part. The audit runs on a branch in practice —
+the local gate runs before the merge — while on trunk the newest tag and the
+newest reachable tag are usually the same commit. A trunk-only test therefore
+passes against a resolution that reads the tag list and sorts it.
+
+Evidence: one fixture repo carrying a tag on a branch the commit under test
+cannot reach, asserted to resolve to the reachable tag instead. A repo with no
+tag at all resolves to the root commit rather than failing, since a first
+release has no predecessor.
+
+### AC-4 — The release tag workflow invokes the audit and the target it names exists
+
+The workflow that fires on a release tag runs the audit, and the target it names
+exists. Both halves, because either alone is satisfied by a broken wiring: a
+step naming a target the Makefile does not define fails only when someone cuts a
+release, and a defined target nothing invokes is a command that never runs.
+
+The claim is scoped to the wiring, not to the outcome. Whether the job fails a
+release whose notes are incomplete cannot be asserted without running the
+workflow, which the test suite does not reach. What it can assert is that the
+invocation resolves, so renaming either side reports.
+
+Evidence: the workflow file parsed, the step's command extracted, and the target
+it names looked up in the Makefile — asserted in both directions, since a test
+that only reads the workflow passes after the target is deleted.
 
 ## Constraints
 
