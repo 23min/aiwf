@@ -132,6 +132,136 @@ func TestDetectUncitedDeltas(t *testing.T) {
 	}
 }
 
+// TestDetectUncitedDeltas_Untrailered covers AC-2's rule at the pure
+// core: a commit naming no entity is collected rather than dropped, and
+// it is collected somewhere other than Uncited — the audit cannot
+// attribute it, so it cannot claim the changelog omits it.
+func TestDetectUncitedDeltas_Untrailered(t *testing.T) {
+	t.Parallel()
+
+	tests := []struct {
+		name             string
+		deltas           []changelogDelta
+		cited            func(string) bool
+		wantUncited      []string
+		wantUnattributed []string
+	}{
+		{
+			name:             "a commit with no trailer is collected as unattributable",
+			deltas:           []changelogDelta{{SHA: "aaaaaaa1", Subject: "docs(guidance): x"}},
+			cited:            citedSet(),
+			wantUncited:      []string{},
+			wantUnattributed: []string{"aaaaaaa1"},
+		},
+		{
+			name:             "a whitespace-only trailer names nothing either",
+			deltas:           []changelogDelta{{SHA: "aaaaaaa2", Subject: "docs(guidance): x", Entity: "   "}},
+			cited:            citedSet(),
+			wantUncited:      []string{},
+			wantUnattributed: []string{"aaaaaaa2"},
+		},
+		{
+			name:             "a trailered commit is attributable, cited or not",
+			deltas:           []changelogDelta{{SHA: "aaaaaaa3", Subject: "docs(guidance): x", Entity: "G-0659"}},
+			cited:            citedSet(),
+			wantUncited:      []string{"G-0659"},
+			wantUnattributed: []string{},
+		},
+		{
+			name: "the two halves are independent",
+			deltas: []changelogDelta{
+				{SHA: "aaaaaaa4", Subject: "docs(guidance): a"},
+				{SHA: "aaaaaaa5", Subject: "docs(guidance): b", Entity: "G-0659"},
+			},
+			cited:            citedSet("G-0659"),
+			wantUncited:      []string{},
+			wantUnattributed: []string{"aaaaaaa4"},
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+			got := detectUncitedDeltas(tt.deltas, ownerMap(nil), tt.cited)
+
+			if ids := uncitedIDs(got); !equalStrings(ids, tt.wantUncited) {
+				t.Errorf("uncited = %v, want %v", ids, tt.wantUncited)
+			}
+			shas := make([]string, 0, len(got.Unattributed))
+			for _, d := range got.Unattributed {
+				shas = append(shas, d.SHA)
+			}
+			if !equalStrings(shas, tt.wantUnattributed) {
+				t.Errorf("unattributed = %v, want %v", shas, tt.wantUnattributed)
+			}
+		})
+	}
+}
+
+// TestUnattributedNotes_NameTheCommitAndItsSubject pins what an operator
+// gets. The repair is to work out which entity the commit belonged to,
+// which needs the subject — an id-less list of SHAs is a list nobody
+// acts on.
+func TestUnattributedNotes_NameTheCommitAndItsSubject(t *testing.T) {
+	t.Parallel()
+
+	a := changelogAudit{Unattributed: []changelogDelta{
+		{SHA: "1234567", Subject: "docs(guidance): prime against enumeration"},
+	}}
+	notes := unattributedNotes(a)
+	if len(notes) != 1 {
+		t.Fatalf("got %d notes, want 1", len(notes))
+	}
+	for _, want := range []string{"1234567", "prime against enumeration"} {
+		if !strings.Contains(notes[0], want) {
+			t.Errorf("note does not carry %q:\n%s", want, notes[0])
+		}
+	}
+}
+
+// TestUnattributedNotes_CleanAuditSaysNothing keeps the report quiet
+// when there is nothing to say. A note emitted per run regardless would
+// train the reader to skip the section that carries the real ones.
+func TestUnattributedNotes_CleanAuditSaysNothing(t *testing.T) {
+	t.Parallel()
+	if notes := unattributedNotes(changelogAudit{}); len(notes) != 0 {
+		t.Errorf("got %d notes from a clean audit, want 0: %v", len(notes), notes)
+	}
+}
+
+// TestChangelogAudit_UntrailteredCommitReportsWithoutFailing is AC-2's
+// seam, and it asserts both halves because each fails a different wrong
+// implementation. An audit that drops the commit passes the exit-code
+// half; one that counts it toward the verdict passes the reporting half.
+// Only together do they pin "reported, not blocking" (D-0087).
+func TestChangelogAudit_UntrailteredCommitReportsWithoutFailing(t *testing.T) {
+	t.Parallel()
+	root, runGit, writeFile, base := changelogFixture(t)
+
+	writeFile(clShippedRel, "fictional content\n")
+	runGit("add", "-A")
+	runGit("commit", "-m", "docs(fictional): a delta with no provenance")
+
+	audit, err := changelogAuditFor(root, base)
+	if err != nil {
+		t.Fatalf("changelogAuditFor: %v", err)
+	}
+	if len(audit.Unattributed) != 1 {
+		t.Errorf("got %d unattributed commits, want 1 — an untrailered shipped change must not be dropped", len(audit.Unattributed))
+	}
+
+	// Through changelogViolations rather than uncitedViolations: the
+	// former is what gates a release, and an implementation that leaked
+	// the unattributed half into it would satisfy the latter untouched.
+	vs, err := changelogViolations(root, base)
+	if err != nil {
+		t.Fatalf("changelogViolations: %v", err)
+	}
+	if len(vs) != 0 {
+		t.Errorf("got %d release-failing violations, want 0 — the audit cannot attribute this commit, so it cannot say the changelog omits it: %v", len(vs), vs)
+	}
+}
+
 // TestDetectUncitedDeltas_CarriesTheCommitsBehindTheEntity pins the half
 // the id assertion cannot reach. An operator handed "E-0091 is not
 // cited" has to find what shipped under it, so the finding carries the
@@ -471,15 +601,27 @@ func TestChangelogViolations_MergeCommitContributesNothing(t *testing.T) {
 // environment; without one it skips, because the authoritative
 // invocation is the release target rather than the every-push suite.
 //
-// runPolicy turns each violation into a test failure, which is how a
-// finding reaches a non-zero exit. That conversion is shared with every
-// other policy here, so this test pins that the audit is wired into it.
+// It renders both halves of the verdict from one audit rather than
+// calling runPolicy, because the harness's shape carries only the
+// blocking half. reportViolations fails the test once per uncited
+// entity, which is how a finding reaches a non-zero exit; the
+// unattributed commits are logged, so they reach the operator without
+// stopping a release the audit cannot prove is incomplete (D-0087).
 func TestPolicy_ChangelogCompleteness(t *testing.T) {
 	t.Parallel()
-	if os.Getenv(changelogBaseEnv) == "" {
+	base := os.Getenv(changelogBaseEnv)
+	if base == "" {
 		t.Skip(changelogBaseEnv + " unset; run via `make changelog-audit` or the release-tag workflow step")
 	}
-	runPolicy(t, PolicyChangelogCompleteness)
+
+	audit, err := changelogAuditFor(repoRoot(t), base)
+	if err != nil {
+		t.Fatalf("changelog audit returned error: %v", err)
+	}
+	for _, note := range unattributedNotes(audit) {
+		t.Log("[changelog-completeness] " + note)
+	}
+	reportViolations(t, uncitedViolations(audit))
 }
 
 // TestPolicyChangelogCompleteness_Env drives the env-fed entry point so

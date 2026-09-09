@@ -33,10 +33,20 @@ type uncitedEntity struct {
 }
 
 // changelogAudit is the audit's verdict, split by what each half
-// establishes rather than by how much it matters (D-0087). Uncited is a
-// proven violation of the citation rule and fails the release.
+// establishes rather than by how much it matters (D-0087).
+//
+// Uncited is a proven violation of the citation rule and fails the
+// release: the audit read both sides and nothing names the entity.
+//
+// Unattributed is a shipped-surface commit carrying no `aiwf-entity`
+// trailer. It establishes nothing about the changelog — with no entity
+// named, the audit cannot say whether an entry covers it — so it is
+// reported rather than blocking. Dropping it instead would let the audit
+// under-report in silence, which is the failure it is least able to
+// notice about itself.
 type changelogAudit struct {
-	Uncited []uncitedEntity
+	Uncited      []uncitedEntity
+	Unattributed []changelogDelta
 }
 
 // detectUncitedDeltas is the pure core. It rolls each delta's trailer up
@@ -59,9 +69,11 @@ func detectUncitedDeltas(deltas []changelogDelta, owner func(string) string, cit
 	var order []string
 	behind := map[string][]changelogDelta{}
 
+	out := changelogAudit{}
 	for _, d := range deltas {
 		id := strings.TrimSpace(d.Entity)
 		if id == "" {
+			out.Unattributed = append(out.Unattributed, d)
 			continue
 		}
 		owed := owner(entity.Canonicalize(entity.CompositeRoot(id)))
@@ -74,11 +86,28 @@ func detectUncitedDeltas(deltas []changelogDelta, owner func(string) string, cit
 		behind[owed] = append(behind[owed], d)
 	}
 
-	out := changelogAudit{Uncited: make([]uncitedEntity, 0, len(order))}
+	out.Uncited = make([]uncitedEntity, 0, len(order))
 	for _, id := range order {
 		out.Uncited = append(out.Uncited, uncitedEntity{ID: id, Commits: behind[id]})
 	}
 	return out
+}
+
+// unattributedNotes renders the reported-but-not-blocking half, one line
+// per commit the audit could not attribute.
+//
+// The subject rides along because the repair needs it: an operator has
+// to work out which entity the commit belonged to before they can decide
+// whether an entry already covers it, and a bare list of SHAs is one
+// nobody acts on.
+func unattributedNotes(a changelogAudit) []string {
+	notes := make([]string, 0, len(a.Unattributed))
+	for _, d := range a.Unattributed {
+		notes = append(notes, fmt.Sprintf(
+			"%s changed a shipped surface but carries no aiwf-entity trailer, so this audit cannot say whether [Unreleased] covers it: %s",
+			d.SHA, d.Subject))
+	}
+	return notes
 }
 
 // uncitedViolations renders the blocking half for the policy harness.
@@ -212,31 +241,46 @@ func changelogCitedIn(section string) func(string) bool {
 	}
 }
 
-// changelogViolations is the testable IO core: it resolves the
+// changelogAuditFor is the testable IO core: it resolves the
 // shipped-surface commits between baseRef and HEAD, reads what
-// `[Unreleased]` cites, loads the tree for the rollup, and reports every
-// entity that shipped a change nothing names.
-func changelogViolations(root, baseRef string) ([]Violation, error) {
+// `[Unreleased]` cites, loads the tree for the rollup, and returns both
+// halves of the verdict.
+//
+// Callers that gate a release take the blocking half through
+// changelogViolations; the caller that reports takes both from here. One
+// computation serves both, so the two can never disagree about the range
+// they read.
+func changelogAuditFor(root, baseRef string) (changelogAudit, error) {
 	baseRef = strings.TrimSpace(baseRef)
 	if baseRef == "" || baseRef == zeroSHA {
-		return nil, nil
+		return changelogAudit{}, nil
 	}
 	deltas, err := shippedDeltasInRange(root, baseRef)
 	if err != nil {
-		return nil, err
+		return changelogAudit{}, err
 	}
 	if len(deltas) == 0 {
-		return nil, nil
+		return changelogAudit{}, nil
 	}
 	doc, err := os.ReadFile(filepath.Join(root, changelogFile))
 	if err != nil {
-		return nil, fmt.Errorf("reading %s in %s: %w", changelogFile, root, err)
+		return changelogAudit{}, fmt.Errorf("reading %s in %s: %w", changelogFile, root, err)
 	}
 	owner, err := changelogOwner(root)
 	if err != nil {
+		return changelogAudit{}, err
+	}
+	return detectUncitedDeltas(deltas, owner, changelogCitedIn(unreleasedSection(string(doc)))), nil
+}
+
+// changelogViolations is the release-gating half: the findings that fail
+// a release, in the shape the runPolicy harness drives.
+func changelogViolations(root, baseRef string) ([]Violation, error) {
+	audit, err := changelogAuditFor(root, baseRef)
+	if err != nil {
 		return nil, err
 	}
-	return uncitedViolations(detectUncitedDeltas(deltas, owner, changelogCitedIn(unreleasedSection(string(doc))))), nil
+	return uncitedViolations(audit), nil
 }
 
 // shippedDeltasInRange returns one changelogDelta per non-merge commit
