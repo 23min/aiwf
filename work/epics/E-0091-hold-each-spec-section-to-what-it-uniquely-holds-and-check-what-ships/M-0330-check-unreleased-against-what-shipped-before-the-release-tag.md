@@ -6,7 +6,7 @@ parent: E-0091
 tdd: required
 acs:
     - id: AC-1
-      title: The audit reports a shipped-surface delta the Unreleased section omits
+      title: The audit reports a shipped-surface delta nothing under Unreleased cites
       status: open
     - id: AC-2
       title: A shipped-surface commit with no entity trailer is reported, not skipped
@@ -67,7 +67,7 @@ at its own wrap, G-0659's as a changelog line this milestone writes.
 
 ## Acceptance criteria
 
-### AC-1 — The audit reports a shipped-surface delta the Unreleased section omits
+### AC-1 — The audit reports a shipped-surface delta nothing under Unreleased cites
 
 The report names the entity that owes the entry and at least one commit behind
 it. Naming it is what the test asserts, not the exit code alone: an unreadable
