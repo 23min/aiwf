@@ -7,7 +7,7 @@ tdd: required
 acs:
     - id: AC-1
       title: The audit reports a shipped-surface delta nothing under Unreleased cites
-      status: open
+      status: met
       tdd_phase: done
     - id: AC-2
       title: A shipped-surface commit with no entity trailer is reported, not skipped
