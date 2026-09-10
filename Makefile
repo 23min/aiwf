@@ -40,7 +40,7 @@ help:
 	@echo "  coverage-gate - diff-scoped coverage audit vs origin/main (G-0067); builds its own profile"
 	@echo "  coverage-gate-only - the same gates against an existing coverage.out (what 'ci' uses)"
 	@echo "  comment-history-audit - whole-tree scan for comments narrating a superseded state"
-	@echo "  changelog-audit     - check [Unreleased] names everything shipped since the last release"
+	@echo "  changelog-audit - check the release notes name everything shipped since the last release"
 	@echo "  growth-report - snapshot the growth metrics docs/design/growth.md tracks (read-only; GROWTH_BASELINE=<rev> for a delta)"
 	@echo "  mutate-diff - advisory diff-scoped mutation test: gremlins on internal/ packages changed vs origin/main (G-0267)"
 	@echo "  selfcheck - build and run 'aiwf doctor --self-check' end-to-end"

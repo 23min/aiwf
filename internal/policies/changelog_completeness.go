@@ -183,14 +183,15 @@ const changelogBaseAuto = "auto"
 
 // tagsAtHEAD returns every tag pointing at HEAD.
 //
-// All of them matter to the base, and only the release-shaped one
-// matters to the section — two different questions that would be one
-// bug if answered together. `git describe` answers with a tag on HEAD
-// whatever that tag is called, so *any* tag there empties the range and
-// has to be excluded; but only a `v*` tag means the entries have moved
-// out of `[Unreleased]`, so only that one changes which section is read.
-// Conflating them would leave the audit vacuous whenever HEAD carried a
-// tag of some other shape.
+// Every one of them matters, whatever it is called: `git describe`
+// answers with a tag on HEAD regardless of its shape, so any tag left
+// unexcluded makes the base equal to HEAD and the range empty. A `wip`
+// or `nightly` tag would silence the audit exactly as a release tag
+// would.
+//
+// Which section to read is a separate question, and it is not answered
+// from here — see changelogSectionFor, which reads the changelog's own
+// shape instead.
 func tagsAtHEAD(root string) []string {
 	cmd := exec.Command("git", "tag", "--points-at", "HEAD")
 	cmd.Dir = root
@@ -201,36 +202,77 @@ func tagsAtHEAD(root string) []string {
 	return strings.Fields(string(out))
 }
 
-// releaseTagAtHEAD returns the release tag pointing at HEAD, or the
-// empty string when HEAD carries none.
-//
-// Its presence is what tells the audit which shape it is in. Before the
-// release commit HEAD carries no release tag, and the notes under test
-// are `[Unreleased]`. On a pushed tag HEAD carries one, the entries have
-// already moved into that version's heading, and that is the section to
-// read instead.
-func releaseTagAtHEAD(root string) string {
-	var release string
-	for _, t := range tagsAtHEAD(root) {
-		if strings.HasPrefix(t, "v") {
-			// More than one release tag on one commit is a re-tagging
-			// accident rather than a shape to interpret. The last is the
-			// highest by git's own ordering, which is the release a
-			// reader would name.
-			release = t
+// topmostReleaseHeading returns the `## [X.Y.Z]` prefix of the first
+// version heading in the file — the most recent release the notes
+// describe — or the empty string when the file names no version.
+// `[Unreleased]` is not a version and is skipped.
+func topmostReleaseHeading(doc string) string {
+	inFence := false
+	for _, line := range strings.Split(doc, "\n") {
+		if isFenceLine(line) {
+			inFence = !inFence
+			continue
+		}
+		if inFence || !strings.HasPrefix(line, releaseHeadingPrefix) {
+			continue
+		}
+		end := strings.Index(line, "]")
+		if end < 0 {
+			continue
+		}
+		if heading := line[:end+1]; heading != unreleasedHeading {
+			return heading
 		}
 	}
-	return release
+	return ""
 }
 
 // changelogSectionFor returns the heading whose section holds the notes
-// under test: the version being released when HEAD carries a release
-// tag, and `[Unreleased]` otherwise.
-func changelogSectionFor(releaseTag string) string {
-	if releaseTag == "" {
+// under test.
+//
+// The answer comes from the changelog's own shape rather than from a tag
+// on HEAD, because the two disagree for the length of a release. The
+// release process lands one commit that moves every entry out of
+// `[Unreleased]` into the new version's heading, and pushes the tag
+// after. In between, a tag-keyed rule reads the `[Unreleased]` that
+// commit just emptied and reports every entity in the range as uncited —
+// measured against this repo's own v0.34.0, six false findings, all six
+// entities cited in the section it was not reading. That window is
+// exactly where the release process tells an operator to run the audit.
+//
+// Comparing the topmost version against the base answers all three
+// states with one rule: equal means no release commit has landed since
+// that base, so the notes still accumulate under `[Unreleased]`;
+// different means one has, and its heading is where the entries went,
+// whether or not the tag exists yet.
+//
+// baseVersion is empty when the base is not a release tag — a bare SHA
+// from the caller, or the root-commit fallback in a repo with no tags.
+// The comparison then has nothing to stand on: with no last-released
+// version known, a version heading in the file could equally be history
+// or the release being cut, and `[Unreleased]` is the reading that does
+// not guess.
+func changelogSectionFor(doc, baseVersion string) string {
+	top := topmostReleaseHeading(doc)
+	if top == "" || baseVersion == "" {
 		return unreleasedHeading
 	}
-	return releaseHeadingPrefix + strings.TrimPrefix(releaseTag, "v") + "]"
+	if strings.TrimSuffix(strings.TrimPrefix(top, releaseHeadingPrefix), "]") == baseVersion {
+		return unreleasedHeading
+	}
+	return top
+}
+
+// baseVersionOf returns the version the base names, or the empty string
+// when the base is not a tag in this repository.
+func baseVersionOf(root, baseRef string) string {
+	cmd := exec.Command("git", "tag", "--list", baseRef)
+	cmd.Dir = root
+	out, err := cmd.Output()
+	if err != nil || strings.TrimSpace(string(out)) != baseRef {
+		return ""
+	}
+	return strings.TrimPrefix(baseRef, "v")
 }
 
 // resolveChangelogBase returns the release this commit's changes are
@@ -429,7 +471,7 @@ func changelogAuditFor(root, baseRef string) (changelogAudit, error) {
 	if err != nil {
 		return changelogAudit{}, err
 	}
-	section := changelogSection(string(doc), changelogSectionFor(releaseTagAtHEAD(root)))
+	section := changelogSection(string(doc), changelogSectionFor(string(doc), baseVersionOf(root, baseRef)))
 	return detectUncitedDeltas(deltas, owner, changelogCitedIn(section)), nil
 }
 

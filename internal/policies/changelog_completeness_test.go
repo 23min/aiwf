@@ -2,6 +2,7 @@ package policies
 
 import (
 	"fmt"
+	"io/fs"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -854,21 +855,34 @@ func TestChangelogAudit_AtTheReleaseTag(t *testing.T) {
 		name        string
 		cites       []string
 		release     bool
+		tagged      bool
 		wantUncited []string
 	}{
 		{
 			name:        "before the release commit, an uncited delta reports",
-			release:     false,
 			wantUncited: []string{provFixtureEntityID},
+		},
+		{
+			name:        "after the release commit but before the tag, an uncited delta reports",
+			release:     true,
+			wantUncited: []string{provFixtureEntityID},
+		},
+		{
+			name:        "after the release commit but before the tag, a cited delta is silent",
+			release:     true,
+			cites:       []string{provFixtureEntityID},
+			wantUncited: []string{},
 		},
 		{
 			name:        "at the tag, an uncited delta still reports",
 			release:     true,
+			tagged:      true,
 			wantUncited: []string{provFixtureEntityID},
 		},
 		{
 			name:        "at the tag, a delta cited in the version section is silent",
 			release:     true,
+			tagged:      true,
 			cites:       []string{provFixtureEntityID},
 			wantUncited: []string{},
 		},
@@ -888,6 +902,8 @@ func TestChangelogAudit_AtTheReleaseTag(t *testing.T) {
 				writeFile("CHANGELOG.md", releaseShapedChangelog("0.2.0", tt.cites...))
 				runGit("add", "-A")
 				runGit("commit", "-m", "release(aiwf): v0.2.0")
+			}
+			if tt.tagged {
 				runGit("tag", "v0.2.0")
 			}
 
@@ -902,19 +918,19 @@ func TestChangelogAudit_AtTheReleaseTag(t *testing.T) {
 	}
 }
 
-// TestChangelogAudit_ANonReleaseTagKeepsThePreReleaseReading separates
-// the two things a tag on HEAD affects. Any tag empties the range, so
-// every one has to be excluded from the base; only a release-shaped tag
-// means the entries have moved out of `[Unreleased]`, so only that one
-// changes which section is read.
+// TestChangelogAudit_ANonReleaseTagDoesNotEmptyTheRange pins the half
+// of the tag handling the release-shape rows cannot reach. `git
+// describe` answers with a tag on HEAD whatever it is called, so a
+// `nightly-build` tag left unexcluded makes the base equal to HEAD, the
+// range empty, and the audit silent — the same vacuous pass a release
+// tag caused, arriving through a tag nobody thought of as a release.
 //
-// The delta is cited here on purpose. Uncited, the audit reports it
-// under both readings and the test proves nothing: a wrong section name
-// resolves to no section, which reads as uncited too. Cited, only the
-// correct reading is silent.
-func TestChangelogAudit_ANonReleaseTagKeepsThePreReleaseReading(t *testing.T) {
+// The delta is uncited here on purpose: under the bug the range is
+// empty and nothing is reported, so only an expected *report*
+// discriminates.
+func TestChangelogAudit_ANonReleaseTagDoesNotEmptyTheRange(t *testing.T) {
 	t.Parallel()
-	root, runGit, writeFile, _ := changelogFixture(t, provFixtureEntityID)
+	root, runGit, writeFile, _ := changelogFixture(t)
 	runGit("tag", "v0.1.0")
 
 	writeFile(clShippedRel, "fictional content\n")
@@ -926,8 +942,104 @@ func TestChangelogAudit_ANonReleaseTagKeepsThePreReleaseReading(t *testing.T) {
 	if err != nil {
 		t.Fatalf("changelogAuditFor(auto): %v", err)
 	}
-	if got := uncitedIDs(audit); len(got) != 0 {
-		t.Errorf("uncited = %v, want none — a tag that is not a release must leave [Unreleased] as the section read", got)
+	if got := uncitedIDs(audit); !equalStrings(got, []string{provFixtureEntityID}) {
+		t.Errorf("uncited = %v, want %v — a tag on HEAD must not become the base it is measured from", got, []string{provFixtureEntityID})
+	}
+}
+
+// TestShippedTree_CarriesNoGoFile pins the assumption shipsSomething
+// rests on. It excludes every `.go` path as materializer rather than
+// materialized, which loses nothing only while no Go file lives inside
+// an embedded tree. A `.go` added under one later would ship to every
+// consumer and be invisible to the audit, with no other check noticing.
+func TestShippedTree_CarriesNoGoFile(t *testing.T) {
+	t.Parallel()
+
+	dirs, err := filepath.Glob(filepath.Join(repoRoot(t), changelogShippedDir, "embedded*"))
+	if err != nil {
+		t.Fatalf("globbing the embedded trees: %v", err)
+	}
+	var trees, found []string
+	for _, d := range dirs {
+		info, statErr := os.Stat(d)
+		if statErr != nil || !info.IsDir() {
+			continue
+		}
+		trees = append(trees, filepath.Base(d))
+		walkErr := filepath.WalkDir(d, func(p string, e fs.DirEntry, err error) error {
+			if err != nil {
+				return err
+			}
+			if !e.IsDir() && strings.HasSuffix(p, ".go") {
+				found = append(found, p)
+			}
+			return nil
+		})
+		if walkErr != nil {
+			t.Fatalf("walking %s: %v", d, walkErr)
+		}
+	}
+	if len(trees) == 0 {
+		t.Fatalf("no embedded tree found under %s; this test proves nothing without one", changelogShippedDir)
+	}
+	if len(found) != 0 {
+		t.Errorf("the embedded trees %v carry Go files %v; shipsSomething excludes every .go path, so these would ship uncited and unreported",
+			trees, found)
+	}
+}
+
+// TestChangelogSectionFor covers the rule that picks which section the
+// audit reads. It is driven directly because the audit reaches only
+// three of its four answers, and the two it cannot reach are the ones
+// where a wrong answer is silent: a version section read in place of
+// `[Unreleased]` usually cites nothing either, so the verdict is the
+// same and the mistake invisible.
+func TestChangelogSectionFor(t *testing.T) {
+	t.Parallel()
+
+	const released = "# Changelog\n\n## [Unreleased]\n\n## [0.1.0] — 2026-01-01\n\n### Added — E-0001: a\n"
+	const cut = "# Changelog\n\n## [Unreleased]\n\n## [0.2.0] — 2026-02-02\n\n### Added — E-0001: a\n\n## [0.1.0] — 2026-01-01\n"
+
+	tests := []struct {
+		name        string
+		doc         string
+		baseVersion string
+		want        string
+	}{
+		{
+			name: "the topmost version is the base, so notes still accumulate under Unreleased",
+			doc:  released, baseVersion: "0.1.0", want: unreleasedHeading,
+		},
+		{
+			name: "a newer version heading means a release commit landed, so read it",
+			doc:  cut, baseVersion: "0.1.0", want: "## [0.2.0]",
+		},
+		{
+			name: "a file naming no version has only Unreleased to read",
+			doc:  "# Changelog\n\n## [Unreleased]\n\n### Added — E-0001: a\n", baseVersion: "0.1.0", want: unreleasedHeading,
+		},
+		{
+			name: "with no released version known, the comparison has nothing to stand on",
+			doc:  cut, baseVersion: "", want: unreleasedHeading,
+		},
+		{
+			name:        "a version heading quoted in a fence is not the topmost",
+			doc:         "# Changelog\n\n```\n## [9.9.9] — the shape you write\n```\n\n## [Unreleased]\n\n## [0.1.0] — 2026-01-01\n",
+			baseVersion: "0.1.0", want: unreleasedHeading,
+		},
+		{
+			name:        "a heading with no closing bracket names no version",
+			doc:         "# Changelog\n\n## [unclosed\n\n## [Unreleased]\n\n## [0.2.0] — 2026-02-02\n",
+			baseVersion: "0.1.0", want: "## [0.2.0]",
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+			if got := changelogSectionFor(tt.doc, tt.baseVersion); got != tt.want {
+				t.Errorf("changelogSectionFor = %q, want %q", got, tt.want)
+			}
+		})
 	}
 }
 

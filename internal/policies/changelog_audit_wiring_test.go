@@ -3,7 +3,10 @@ package policies
 import (
 	"fmt"
 	"os"
+	"os/exec"
 	"path/filepath"
+	"regexp"
+	"slices"
 	"strings"
 	"testing"
 
@@ -62,13 +65,39 @@ func loadReleaseWorkflow(t *testing.T) ghWorkflow {
 // the audit genuinely dropping out turns it red.
 func TestChangelogAuditWiring_TargetRunsTheEntryPoint(t *testing.T) {
 	t.Parallel()
-	recipe := makeDryRun(t, repoRoot(t), changelogAuditTarget)
+	root := repoRoot(t)
+	recipe := makeDryRun(t, root, changelogAuditTarget)
 
-	if !strings.Contains(recipe, changelogAuditEntryPoint) {
-		t.Errorf("`make %s` must run %s; recipe was:\n%s", changelogAuditTarget, changelogAuditEntryPoint, recipe)
-	}
 	if !strings.Contains(recipe, changelogBaseEnv+"=") {
 		t.Errorf("`make %s` must hand the audit a base via %s; recipe was:\n%s", changelogAuditTarget, changelogBaseEnv, recipe)
+	}
+	if !strings.Contains(recipe, " -v ") {
+		t.Errorf("`make %s` must pass -v; the unattributed half is logged rather than failed (D-0087), and a log line is invisible without it. Recipe was:\n%s",
+			changelogAuditTarget, recipe)
+	}
+
+	// The pattern the recipe actually runs, taken from the recipe rather
+	// than restated here.
+	m := regexp.MustCompile(`-run '([^']+)'`).FindStringSubmatch(recipe)
+	if m == nil {
+		t.Fatalf("`make %s` must select tests with -run '<pattern>'; recipe was:\n%s", changelogAuditTarget, recipe)
+	}
+
+	// Asking go test what that pattern selects is the whole point. A
+	// comparison against a string constant proves the recipe and the
+	// constant agree and says nothing about whether the named test
+	// exists — measured, renaming the entry point then leaves the suite
+	// green and turns this target into a zero-test pass at exit 0,
+	// which is the silent-gate failure AC-4 exists to close.
+	list := exec.Command("go", "test", "-list", m[1], "./internal/policies/")
+	list.Dir = root
+	out, err := list.CombinedOutput()
+	if err != nil {
+		t.Fatalf("go test -list %s: %v\n%s", m[1], err, out)
+	}
+	if !slices.Contains(strings.Fields(string(out)), changelogAuditEntryPoint) {
+		t.Errorf("`make %s` runs -run '%s', which selects no test named %s — the release gate would pass by running nothing.\ngo test -list said:\n%s",
+			changelogAuditTarget, m[1], changelogAuditEntryPoint, out)
 	}
 }
 
@@ -99,6 +128,10 @@ func TestChangelogAuditWiring_AuditJobChecksOutFullHistory(t *testing.T) {
 	t.Parallel()
 	wf := loadReleaseWorkflow(t)
 
+	// Every job that runs the audit is checked, not the first one a map
+	// iteration happens to yield — with two such jobs the verdict would
+	// otherwise depend on iteration order.
+	checked := 0
 	for name, job := range wf.Jobs {
 		runsAudit := false
 		for _, step := range job.Steps {
@@ -109,6 +142,7 @@ func TestChangelogAuditWiring_AuditJobChecksOutFullHistory(t *testing.T) {
 		if !runsAudit {
 			continue
 		}
+		checked++
 		depth, ok := "", false
 		for _, step := range job.Steps {
 			if !strings.HasPrefix(step.Uses, "actions/checkout") {
@@ -119,12 +153,13 @@ func TestChangelogAuditWiring_AuditJobChecksOutFullHistory(t *testing.T) {
 			}
 		}
 		if !ok || depth != "0" {
-			t.Errorf("job %q runs the audit but checks out with fetch-depth=%q (present=%v); the base is the newest reachable tag, which a shallow checkout cannot resolve",
+			t.Errorf("job %q runs the audit but checks out with fetch-depth=%q (present=%v); the base is a tag reachable from HEAD, which a shallow checkout cannot resolve",
 				name, depth, ok)
 		}
-		return
 	}
-	t.Fatalf("no job in %s runs `make %s`; nothing to check the checkout depth of", releaseWorkflowRel, changelogAuditTarget)
+	if checked == 0 {
+		t.Fatalf("no job in %s runs `make %s`; nothing to check the checkout depth of", releaseWorkflowRel, changelogAuditTarget)
+	}
 }
 
 // scalarString renders a YAML scalar however it parsed. `fetch-depth: 0`
