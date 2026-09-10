@@ -124,6 +124,16 @@ an AC sitting at `open` with a finished phase is the ordinary state between a
 cycle ending and the `met` promote, indistinguishable from one an older binary
 left behind, so the verb does not try to repair it.
 
+### Changed — G-0659: the wrap ritual no longer licenses a finding's reasoning into the spec
+
+A defect found at a milestone's wrap review, fixed there, and pinned by the
+check that lands with it needs no further record: the check is the record, and
+the commit body says why it changed. `aiwfx-wrap-milestone` said exactly that
+and then licensed the opposite in the same sentence — offering `## Reviewer
+notes` for the reasoning — so the correct default read as the exception and the
+spec accumulated a second copy of every finding. The licensing clause is gone
+and the default stands alone.
+
 ## [0.34.0] — 2026-08-30
 
 ### Changed — E-0090: closing an epic is a human's act
