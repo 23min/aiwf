@@ -149,15 +149,15 @@ fixture builds one rather than reading history.
 
 ### AC-3 — The base release is a tag reachable from the commit under test
 
-The range the audit reads starts at a release tag reachable from the commit
-under test. A tag on a branch that commit cannot reach is not its base, and
-choosing it compares the change against a release that never contained it.
+The range the audit reads starts at a tag reachable from the commit under
+test. A tag on a branch that commit cannot reach is not its base, and choosing
+it compares the change against a release that never contained it.
 
-Two refinements to this rule live in AC-5, which corrected it: a tag pointing
-at the commit under test is excluded — it would otherwise be its own base and
-the range would be empty — and `git describe` answers with the *nearest*
-reachable tag by history rather than the newest by date, which is the same
-answer on a linear trunk and the safer one where it is not.
+Two things narrow that further, both stated with the base resolution in AC-5.
+A tag pointing at the commit under test is excluded, since it would otherwise
+be its own base and the range would be empty. And `git describe` answers with
+the *nearest* reachable tag by history rather than the newest by date — the
+same answer on a linear trunk, and the safer one where the two differ.
 
 This is where a branch and trunk part. The audit runs on a branch in practice —
 the local gate runs before the merge — while on trunk the newest tag and the
@@ -207,14 +207,26 @@ before the release commit, and reaches the same verdict. The base excludes any
 tag pointing at the commit under test, and the section read becomes the version
 being released rather than `[Unreleased]`.
 
-Which section that is comes from the changelog's own shape, not from the tag.
-The release commit and the tag are two separate acts, and between them a
-tag-keyed rule reads the `[Unreleased]` the release commit just emptied and
-calls every entity in the range uncited — measured against this repo's v0.34.0,
-six false findings, every one of them cited in the section it was not reading.
-That gap is exactly where the release process tells an operator to run the
-audit. Comparing the topmost version heading against the base answers all three
-states with one rule.
+Which notes those are comes from the changelog rather than from the tag: they
+are every section stacked above the one naming the base release. The range is
+`base..HEAD`, so the notes describing it are everything written since that
+release, however many sections that spans.
+
+Reading a single section cannot serve this. A range crossing a release has its
+entries split — the released ones under their version heading, the rest still
+accumulating under `[Unreleased]` — and reading either alone reports the
+other's entities as uncited. Measured on this repo, a rule that read one
+section reported four entities whose entries sit in `[Unreleased]`, one of them
+the entry this milestone itself wrote.
+
+Taking the notes above the base also removes the tag from the question, which
+is what makes the answer the same either side of the tag push. The release
+commit moves entries under a new version heading and the tag arrives after;
+both states put those entries above the base's heading. Where no section names
+the base — an explicit SHA, or the root-commit fallback in a repo with no tags
+— the whole file is read: the audit cannot bound the notes, and reading
+everything can only make it miss a real omission, where reading too little
+invents ones.
 
 Both halves are needed, and each hides the other. Resolved to the tag at HEAD
 the range is empty, so the audit reports nothing whatever the notes say.
@@ -229,11 +241,10 @@ the target before cutting the release compares the newest reachable tag against
 `[Unreleased]`, which is what makes the target useful at the moment the notes
 are still being written.
 
-This is the claim AC-4 scoped out. That criterion is true as written — the
-workflow does invoke the target and the target does exist — and it says
-plainly that it judges the wiring rather than the outcome. What it does not
-say, and what turned out to matter, is that the outcome was reachable by a
-fixture without running the workflow at all.
+AC-4 scopes itself to the wiring and is true as written: the workflow does
+invoke the target and the target does exist. The outcome it declines to judge
+is this criterion's, and it is reachable by a fixture — the workflow need not
+run for the audit's verdict in the release shape to be asserted.
 
 Evidence: one fixture carrying the release shape this project documents —
 entries under `[Unreleased]`, a shipped delta under an entity nothing cites,
@@ -360,10 +371,14 @@ at 63c8d5ce3, after the deciding review's findings were fixed:
   which is correct: that entry is the epic wrap's to write. It reported G-0659
   too until this milestone wrote the line G-0659 was owed.
 - The audit run against this repo's real v0.34.0 tag — base resolves to
-  `v0.33.0`, the section read is `## [0.34.0]`, and nothing is reported. Five of
-  the six entities in that range are cited by id and the sixth, M-0325, clears
-  through its parent epic E-0090, so the rollup is exercised on real history
-  rather than on a fixture.
+  `v0.33.0` and no entity is reported uncited. Five of the six entities in that
+  range are cited by id and the sixth, M-0325, clears through its parent epic
+  E-0090, so the rollup is exercised on real history rather than on a fixture.
+  Two commits in that range carry no entity trailer and are reported as
+  unattributed, which fails nothing (D-0087).
+- `AIWF_CHANGELOG_BASE=v0.33.0 make changelog-audit`, the past-range form the
+  release process documents — reports E-0091 only, the same one true finding
+  the default reports.
 
 ## Deferrals
 
@@ -379,18 +394,11 @@ at 63c8d5ce3, after the deciding review's findings were fixed:
 
 ## Reviewer notes
 
-- Two independent reviewers found the same blocking defect: the release-tag job
-  as first wired could never fail. At a pushed tag `git describe` answers with
-  the tag on HEAD, so the range was empty; and the release commit empties
-  `[Unreleased]` before the tag exists, so the other half was broken too and
-  each hid the other. AC-5 is the criterion that was missing, and the fixture it
-  carries reaches the release shape without running a workflow.
-- The lesson is about AC-4's scope, not its truth. It claims the wiring and says
-  so explicitly, and the claim holds. What let the defect through is that the
-  *outcome* was treated as untestable because the workflow is unrunnable here —
-  and the outcome turned out to need no workflow at all. An AC that scopes
-  itself away from an outcome should say why the outcome cannot be reached,
-  not that the surface carrying it cannot be run.
+- An AC that scopes itself away from an outcome states why the outcome cannot
+  be reached, not that the surface carrying it cannot be run. AC-4 scoped to
+  the wiring on the grounds that the workflow is unrunnable here; the outcome
+  behind it needed no workflow, and went unasserted for four review rounds
+  while every wiring assertion stayed green. AC-5 carries it now.
 - The audit's watched tree holds both embedded content and the Go that
   materializes it. Only the first ships; the second is a kernel-surface change,
   which this audit does not cover and G-0671 tracks.
