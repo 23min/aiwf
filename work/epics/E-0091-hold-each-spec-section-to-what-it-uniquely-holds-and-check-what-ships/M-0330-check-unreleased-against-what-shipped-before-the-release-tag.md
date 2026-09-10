@@ -149,9 +149,15 @@ fixture builds one rather than reading history.
 
 ### AC-3 — The base release is the newest tag reachable from HEAD
 
-The range the audit reads starts at the newest release tag reachable from the
-commit under test. A tag on a branch that commit cannot reach is not its base,
-and choosing it compares the change against a release that never contained it.
+The range the audit reads starts at a release tag reachable from the commit
+under test. A tag on a branch that commit cannot reach is not its base, and
+choosing it compares the change against a release that never contained it.
+
+Two refinements to this rule live in AC-5, which corrected it: a tag pointing
+at the commit under test is excluded — it would otherwise be its own base and
+the range would be empty — and `git describe` answers with the *nearest*
+reachable tag by history rather than the newest by date, which is the same
+answer on a linear trunk and the safer one where it is not.
 
 This is where a branch and trunk part. The audit runs on a branch in practice —
 the local gate runs before the merge — while on trunk the newest tag and the
@@ -197,9 +203,18 @@ link cut in turn, and the chain reports every time.
 ### AC-5 — The audit reports an uncited delta in the shape a release commit presents
 
 At the pushed tag the audit reads a different pair of inputs than it does
-before the release commit, and reaches the same verdict. The base becomes the
-newest reachable tag *excluding* one pointing at HEAD, and the section read
-becomes the version being released rather than `[Unreleased]`.
+before the release commit, and reaches the same verdict. The base excludes any
+tag pointing at the commit under test, and the section read becomes the version
+being released rather than `[Unreleased]`.
+
+Which section that is comes from the changelog's own shape, not from the tag.
+The release commit and the tag are two separate acts, and between them a
+tag-keyed rule reads the `[Unreleased]` the release commit just emptied and
+calls every entity in the range uncited — measured against this repo's v0.34.0,
+six false findings, every one of them cited in the section it was not reading.
+That gap is exactly where the release process tells an operator to run the
+audit. Comparing the topmost version heading against the base answers all three
+states with one rule.
 
 Both halves are needed, and each hides the other. Resolved to the tag at HEAD
 the range is empty, so the audit reports nothing whatever the notes say.
@@ -283,11 +298,10 @@ cannot be a swap that buys the tagged shape by losing the pre-release one.
   Measured, an unborn HEAD exits 128 and a HEAD that resolves always reaches a
   root, so the branch cannot be taken. The guard stays because the alternative
   is indexing an empty slice.
-- Every criterion was mutation-probed. Each survivor was either fixed by
-  strengthening the assertion and re-probed, or recorded here as an equivalent
-  mutant: `--no-merges`, which git's own default already achieves, and the
-  not-found guard in `unreleasedSection`, where `strings.Cut` already yields the
-  empty tail the guard returns.
+- Every criterion was mutation-probed, and every probe run after a fix was
+  re-run to confirm the fix killed what it was written for. One equivalent
+  mutant is recorded rather than chased: `--no-merges`, whose exclusion git's
+  own default already achieves for a merge with no `--diff-merges`.
 
 ## References
 
@@ -306,10 +320,14 @@ entry names. A milestone's delta is cited by its parent epic, never by its own
 id. Go source under those trees is the code that materializes them rather than
 content a consumer receives, so it owes no entry.
 
-The audit reads whichever section is current where it runs. Before the release
-commit that is `[Unreleased]`; on a pushed tag the entries have already moved
-into that version's heading, so that heading is read instead, and the tag on
-HEAD is excluded from the base it measures forward from.
+The audit reads whichever section is current, working that out from the
+changelog rather than from a tag: while the topmost version heading is the
+release the base names, notes are still accumulating under `[Unreleased]`; once
+a newer one appears, the release commit has moved them there and that heading
+is read instead. Tag or no tag, so the answer is the same in the window between
+the release commit and the tag push. Any tag on the commit under test is
+excluded from the base, since otherwise it would be its own base and the range
+would be empty.
 
 The audit reports a second finding without failing on it — a shipped-surface
 commit carrying no `aiwf-entity` trailer. With no entity named it cannot tell
@@ -328,20 +346,24 @@ audit does not run at all, which is what keeps it off every push.
 ## Validation
 
 Measured 2026-09-10 on `milestone/M-0330-check-unreleased-against-what-shipped-before-the-release-tag`
-at 9b99dc2f1:
+at 63c8d5ce3, after the deciding review's findings were fixed:
 
 - `make ci` — green. Build, vet, the full golangci-lint set, `go test -race`,
   the diff-scoped coverage gate, the firing-fixture meta-gate, and the 29-step
-  `aiwf doctor --self-check`.
+  `aiwf doctor --self-check`. Total statement coverage 91.0%.
 - `aiwf check` — 0 errors, 8 warnings, none of them on this milestone. They are
   the pre-existing archive-sweep backlog plus two the branch's own shape
   produces: `epic-active-no-drafted-milestones`, since this was the last drafted
   milestone, and `provenance-untrailered-scope-undefined`, since the branch has
   no upstream.
-- Diff-scoped coverage gate against the epic branch — clean.
 - `make changelog-audit` against this tree — reports E-0091 and exits non-zero,
   which is correct: that entry is the epic wrap's to write. It reported G-0659
   too until this milestone wrote the line G-0659 was owed.
+- The audit run against this repo's real v0.34.0 tag — base resolves to
+  `v0.33.0`, the section read is `## [0.34.0]`, and nothing is reported. Five of
+  the six entities in that range are cited by id and the sixth, M-0325, clears
+  through its parent epic E-0090, so the rollup is exercised on real history
+  rather than on a fixture.
 
 ## Deferrals
 
