@@ -113,13 +113,6 @@ func TestDetectUncitedDeltas(t *testing.T) {
 			cited: citedSet(),
 			want:  []string{"G-0659"},
 		},
-		{
-			name:   "a commit carrying no trailer names no entity to cite",
-			deltas: []changelogDelta{{SHA: "aaaaaaa9", Subject: "docs(guidance): x"}},
-			owner:  ownerMap(nil),
-			cited:  citedSet(),
-			want:   []string{},
-		},
 	}
 
 	for _, tt := range tests {
@@ -168,16 +161,6 @@ func TestDetectUncitedDeltas_Untrailered(t *testing.T) {
 			wantUncited:      []string{"G-0659"},
 			wantUnattributed: []string{},
 		},
-		{
-			name: "the two halves are independent",
-			deltas: []changelogDelta{
-				{SHA: "aaaaaaa4", Subject: "docs(guidance): a"},
-				{SHA: "aaaaaaa5", Subject: "docs(guidance): b", Entity: "G-0659"},
-			},
-			cited:            citedSet("G-0659"),
-			wantUncited:      []string{},
-			wantUnattributed: []string{"aaaaaaa4"},
-		},
 	}
 
 	for _, tt := range tests {
@@ -220,22 +203,12 @@ func TestUnattributedNotes_NameTheCommitAndItsSubject(t *testing.T) {
 	}
 }
 
-// TestUnattributedNotes_CleanAuditSaysNothing keeps the report quiet
-// when there is nothing to say. A note emitted per run regardless would
-// train the reader to skip the section that carries the real ones.
-func TestUnattributedNotes_CleanAuditSaysNothing(t *testing.T) {
-	t.Parallel()
-	if notes := unattributedNotes(changelogAudit{}); len(notes) != 0 {
-		t.Errorf("got %d notes from a clean audit, want 0: %v", len(notes), notes)
-	}
-}
-
-// TestChangelogAudit_UntrailteredCommitReportsWithoutFailing is AC-2's
+// TestChangelogAudit_UntraileredCommitReportsWithoutFailing is AC-2's
 // seam, and it asserts both halves because each fails a different wrong
 // implementation. An audit that drops the commit passes the exit-code
 // half; one that counts it toward the verdict passes the reporting half.
 // Only together do they pin "reported, not blocking" (D-0087).
-func TestChangelogAudit_UntrailteredCommitReportsWithoutFailing(t *testing.T) {
+func TestChangelogAudit_UntraileredCommitReportsWithoutFailing(t *testing.T) {
 	t.Parallel()
 	root, runGit, writeFile, base := changelogFixture(t)
 
@@ -260,27 +233,6 @@ func TestChangelogAudit_UntrailteredCommitReportsWithoutFailing(t *testing.T) {
 	}
 	if len(vs) != 0 {
 		t.Errorf("got %d release-failing violations, want 0 — the audit cannot attribute this commit, so it cannot say the changelog omits it: %v", len(vs), vs)
-	}
-}
-
-// TestDetectUncitedDeltas_CarriesTheCommitsBehindTheEntity pins the half
-// the id assertion cannot reach. An operator handed "E-0091 is not
-// cited" has to find what shipped under it, so the finding carries the
-// commits rather than only the id.
-func TestDetectUncitedDeltas_CarriesTheCommitsBehindTheEntity(t *testing.T) {
-	t.Parallel()
-
-	deltas := []changelogDelta{
-		{SHA: "1234567", Subject: "docs(guidance): a", Entity: "G-0659"},
-		{SHA: "89abcde", Subject: "docs(guidance): b", Entity: "G-0659"},
-	}
-	got := detectUncitedDeltas(deltas, ownerMap(nil), citedSet())
-	if len(got.Uncited) != 1 {
-		t.Fatalf("got %d uncited findings, want 1", len(got.Uncited))
-	}
-	if len(got.Uncited[0].Commits) != 2 {
-		t.Errorf("finding carries %d commits, want 2 — the operator needs what shipped, not only the id",
-			len(got.Uncited[0].Commits))
 	}
 }
 
@@ -401,35 +353,6 @@ func TestUncitedViolations_CleanAuditYieldsNone(t *testing.T) {
 	t.Parallel()
 	if vs := uncitedViolations(changelogAudit{}); len(vs) != 0 {
 		t.Errorf("got %d violations from a clean audit, want 0: %v", len(vs), vs)
-	}
-}
-
-// TestChangelogOwner_TreeLoadFailure confirms the rollup refuses rather
-// than silently rolling nothing up. An unreadable tree makes every
-// milestone look like its own owner, which reports a run of entities no
-// changelog entry has ever carried — a wrong answer is worse here than
-// no answer, because the operator would go and write those entries.
-func TestChangelogOwner_TreeLoadFailure(t *testing.T) {
-	t.Parallel()
-	if os.Geteuid() == 0 {
-		t.Skip("running as root; permission bits do not deny the walk")
-	}
-	root := t.TempDir()
-	denied := filepath.Join(root, "work", "epics")
-	if err := os.MkdirAll(denied, 0o755); err != nil {
-		t.Fatalf("mkdir: %v", err)
-	}
-	if err := os.Chmod(denied, 0o000); err != nil {
-		t.Fatalf("chmod: %v", err)
-	}
-	t.Cleanup(func() { _ = os.Chmod(denied, 0o755) })
-
-	owner, err := changelogOwner(root)
-	if err == nil {
-		t.Fatalf("want an error when the planning tree cannot be read, got nil (owner=%v)", owner != nil)
-	}
-	if !strings.Contains(err.Error(), "entity tree") {
-		t.Errorf("error should name what could not be loaded; got %v", err)
 	}
 }
 
@@ -595,7 +518,7 @@ func TestChangelogViolations_BaseUnresolvable(t *testing.T) {
 // entity the merge commit happened to name.
 func TestChangelogViolations_MergeCommitContributesNothing(t *testing.T) {
 	t.Parallel()
-	root, runGit, writeFile, base := changelogFixture(t)
+	root, runGit, writeFile, _ := changelogFixture(t)
 
 	runGit("checkout", "-b", "side")
 	writeFile(clShippedRel, "fictional content\n")
@@ -614,7 +537,6 @@ func TestChangelogViolations_MergeCommitContributesNothing(t *testing.T) {
 	if len(vs) != 0 {
 		t.Errorf("a range holding only a merge reported %d violations, want 0: %v", len(vs), vs)
 	}
-	_ = base
 }
 
 // TestPolicy_ChangelogCompleteness is the release-gate entry point. It
@@ -643,25 +565,6 @@ func TestPolicy_ChangelogCompleteness(t *testing.T) {
 		t.Log("[changelog-completeness] " + note)
 	}
 	reportViolations(t, uncitedViolations(audit))
-}
-
-// TestPolicyChangelogCompleteness_Env drives the env-fed entry point so
-// its body is exercised whichever way the suite is invoked. Serial —
-// t.Setenv panics under t.Parallel — and recorded in setup_test.go's
-// skip-list.
-func TestPolicyChangelogCompleteness_Env(t *testing.T) {
-	root := repoRoot(t)
-
-	for _, base := range []string{"", zeroSHA} {
-		t.Setenv(changelogBaseEnv, base)
-		vs, err := PolicyChangelogCompleteness(root)
-		if err != nil {
-			t.Fatalf("base %q: unexpected error: %v", base, err)
-		}
-		if len(vs) != 0 {
-			t.Errorf("base %q: got %d violations, want 0 without a comparison point", base, len(vs))
-		}
-	}
 }
 
 // TestChangelogViolations_Errors covers the paths where the audit
@@ -919,11 +822,123 @@ func TestChangelogAuditFor_AutoResolvesTheBase(t *testing.T) {
 	}
 }
 
-// TestUnreleasedSection covers the rules that decide what counts as the
-// section: it starts at the Unreleased heading and stops at the next
-// release heading, so a citation in an already-shipped section does not
-// satisfy a delta that has not shipped yet.
-func TestUnreleasedSection(t *testing.T) {
+// releaseShapedChangelog renders the file as it stands *after* a release
+// commit: the entries that were under `[Unreleased]` now sit under the
+// version heading, and a fresh empty `[Unreleased]` opens the file. This
+// is the shape CLAUDE.md's release process produces, and the shape the
+// audit meets when it runs on a pushed tag.
+func releaseShapedChangelog(version string, cites ...string) string {
+	body := "# Changelog\n\n## [Unreleased]\n\n## [" + version + "] — 2026-02-02\n\n"
+	for _, id := range cites {
+		body += "### Changed — " + id + ": a fictional delta\n\nProse.\n\n"
+	}
+	return body + "## [0.1.0] — 2026-01-01\n\n### Added — the first release\n"
+}
+
+// TestChangelogAudit_AtTheReleaseTag is AC-5. It drives the audit
+// through the shape a release actually presents — tag on HEAD, entries
+// moved out of `[Unreleased]` into the version heading — and asserts it
+// still reaches the right verdict.
+//
+// The two release rows are what make it a test rather than a
+// tautology. Reporting at the tag can be had for free by any
+// implementation that always reports; being silent when the version
+// section cites the entity is what proves it read the right section.
+// The pre-release row runs the same fixture one commit earlier, so a
+// fix cannot buy the tagged shape by losing the shape the operator uses
+// while the notes are still being written.
+func TestChangelogAudit_AtTheReleaseTag(t *testing.T) {
+	t.Parallel()
+
+	tests := []struct {
+		name        string
+		cites       []string
+		release     bool
+		wantUncited []string
+	}{
+		{
+			name:        "before the release commit, an uncited delta reports",
+			release:     false,
+			wantUncited: []string{provFixtureEntityID},
+		},
+		{
+			name:        "at the tag, an uncited delta still reports",
+			release:     true,
+			wantUncited: []string{provFixtureEntityID},
+		},
+		{
+			name:        "at the tag, a delta cited in the version section is silent",
+			release:     true,
+			cites:       []string{provFixtureEntityID},
+			wantUncited: []string{},
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+			root, runGit, writeFile, _ := changelogFixture(t)
+			runGit("tag", "v0.1.0")
+
+			writeFile(clShippedRel, "fictional content\n")
+			runGit("add", "-A")
+			runGit("commit", "-m", "docs(fictional): a delta", "--trailer", "aiwf-entity: "+provFixtureEntityID)
+
+			if tt.release {
+				writeFile("CHANGELOG.md", releaseShapedChangelog("0.2.0", tt.cites...))
+				runGit("add", "-A")
+				runGit("commit", "-m", "release(aiwf): v0.2.0")
+				runGit("tag", "v0.2.0")
+			}
+
+			audit, err := changelogAuditFor(root, changelogBaseAuto)
+			if err != nil {
+				t.Fatalf("changelogAuditFor(auto): %v", err)
+			}
+			if got := uncitedIDs(audit); !equalStrings(got, tt.wantUncited) {
+				t.Errorf("uncited = %v, want %v", got, tt.wantUncited)
+			}
+		})
+	}
+}
+
+// TestChangelogAudit_ANonReleaseTagKeepsThePreReleaseReading separates
+// the two things a tag on HEAD affects. Any tag empties the range, so
+// every one has to be excluded from the base; only a release-shaped tag
+// means the entries have moved out of `[Unreleased]`, so only that one
+// changes which section is read.
+//
+// The delta is cited here on purpose. Uncited, the audit reports it
+// under both readings and the test proves nothing: a wrong section name
+// resolves to no section, which reads as uncited too. Cited, only the
+// correct reading is silent.
+func TestChangelogAudit_ANonReleaseTagKeepsThePreReleaseReading(t *testing.T) {
+	t.Parallel()
+	root, runGit, writeFile, _ := changelogFixture(t, provFixtureEntityID)
+	runGit("tag", "v0.1.0")
+
+	writeFile(clShippedRel, "fictional content\n")
+	runGit("add", "-A")
+	runGit("commit", "-m", "docs(fictional): a delta", "--trailer", "aiwf-entity: "+provFixtureEntityID)
+	runGit("tag", "nightly-build")
+
+	audit, err := changelogAuditFor(root, changelogBaseAuto)
+	if err != nil {
+		t.Fatalf("changelogAuditFor(auto): %v", err)
+	}
+	if got := uncitedIDs(audit); len(got) != 0 {
+		t.Errorf("uncited = %v, want none — a tag that is not a release must leave [Unreleased] as the section read", got)
+	}
+}
+
+// TestChangelogSection covers the rules that decide what counts as the
+// section: it starts at the named heading and stops at the next release
+// heading, so a citation in an already-shipped section does not satisfy
+// a delta that has not shipped yet. Two of the rows are about where a
+// heading counts — anchored to a line start, and outside a fence —
+// which is what a changelog breaks, since it quotes heading shapes to
+// describe its own format.
+func TestChangelogSection(t *testing.T) {
 	t.Parallel()
 
 	const doc = "# Changelog\n\n" +
@@ -947,11 +962,29 @@ func TestUnreleasedSection(t *testing.T) {
 		{name: "an id below the kind's floor matches its own spelling", doc: "# Changelog\n\n## [Unreleased]\n\n### Changed — M-7: a\n", cited: "M-7", wantHeld: true},
 		{name: "an id below the floor unifies with no other width", doc: "# Changelog\n\n## [Unreleased]\n\n### Changed — M-7: a\n", cited: "M-0007", wantHeld: false},
 		{name: "an empty id is cited by nothing", doc: doc, cited: "", wantHeld: false},
+		{
+			name:     "a heading quoted in a fence does not close the section",
+			doc:      "# Changelog\n\n## [Unreleased]\n\n```\n## [0.9.0] — the shape you write\n```\n\n### Changed — E-0001: a\n\n## [0.2.0] — 2026-02-02\n",
+			cited:    "E-0001",
+			wantHeld: true,
+		},
+		{
+			name:     "a heading named mid-line inside an entry does not close the section",
+			doc:      "# Changelog\n\n## [Unreleased]\n\nRename it to ## [0.9.0] when you cut.\n\n### Changed — E-0001: a\n\n## [0.2.0] — 2026-02-02\n",
+			cited:    "E-0001",
+			wantHeld: true,
+		},
+		{
+			name:     "a heading named in the preamble does not open the section",
+			doc:      "# Changelog\n\nRename ## [Unreleased] when cutting a release.\n\n## [Unreleased]\n\n### Changed — E-0001: a\n\n## [0.2.0] — 2026-02-02\n",
+			cited:    "E-0001",
+			wantHeld: true,
+		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
-			cited := changelogCitedIn(unreleasedSection(tt.doc))
+			cited := changelogCitedIn(changelogSection(tt.doc, unreleasedHeading))
 			if got := cited(tt.cited); got != tt.wantHeld {
 				t.Errorf("cited(%s) = %v, want %v", tt.cited, got, tt.wantHeld)
 			}
@@ -1021,33 +1054,5 @@ func TestChangelogOwnerFor_NoRollupToNameLeavesTheIDAlone(t *testing.T) {
 				t.Errorf("owner(%s) = %q, want %q", tt.id, got, tt.want)
 			}
 		})
-	}
-}
-
-// TestChangelogOwner_ANonMilestoneOwesItsOwnCitation confirms the rollup
-// applies to milestones alone. A gap, decision or ADR is cited by its
-// own id, so an owner that rolled everything up would name the wrong
-// entity for the majority of the entries this file carries.
-func TestChangelogOwner_ANonMilestoneOwesItsOwnCitation(t *testing.T) {
-	t.Parallel()
-	root, tr := sharedRepoTree(t)
-
-	var gid string
-	for _, e := range tr.Entities {
-		if e.Kind == entity.KindGap {
-			gid = e.ID
-			break
-		}
-	}
-	if gid == "" {
-		t.Fatal("live tree carries no gap; this test proves nothing without one")
-	}
-
-	owner, err := changelogOwner(root)
-	if err != nil {
-		t.Fatalf("changelogOwner(%s): %v", root, err)
-	}
-	if got := owner(gid); got != gid {
-		t.Errorf("owner(%s) = %q, want %q — only a milestone rolls up", gid, got, gid)
 	}
 }

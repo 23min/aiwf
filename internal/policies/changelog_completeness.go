@@ -148,33 +148,27 @@ func summarizeCommits(commits []changelogDelta) string {
 	return rendered
 }
 
-// changelogBaseEnv names the release to audit forward from. It is this
-// audit's own variable rather than the coverage gate's, because the two
-// run at different boundaries: the coverage gate asks about a branch's
-// changes at every push, and this asks what a release is about to ship.
+// changelogBaseEnv names the release to audit forward from, and its
+// presence is also what turns the audit on.
+//
+// It is this audit's own variable rather than the coverage gate's,
+// because the two run at different boundaries: the coverage gate asks
+// about a branch's changes at every push, and this asks what a release
+// is about to ship. A milestone's delta is legitimately absent from
+// `[Unreleased]` until its epic wraps, so asking at push time would need
+// an in-flight-epic exemption and asking at the release needs none.
+//
+// The audit lives here as a Go policy rather than as an `aiwf check`
+// finding because the property is an aiwf-repo development invariant:
+// the embedded trees exist only in this repo's source, so a consumer
+// running the same audit would compare an empty range against its own
+// changelog.
+//
+// Unlike the other policies in this package it has no
+// `func(root) ([]Violation, error)` entry point, because its result has
+// two halves and the runPolicy harness reads a violation slice as the
+// whole verdict. TestPolicy_ChangelogCompleteness renders both.
 const changelogBaseEnv = "AIWF_CHANGELOG_BASE"
-
-// PolicyChangelogCompleteness reports every entity that shipped a change
-// under the embedded trees since the base release without being cited
-// under `[Unreleased]` (G-0529).
-//
-// It is a Go policy test rather than an `aiwf check` finding because the
-// property is an aiwf-repo development invariant: the embedded trees
-// exist only in this repo's source, so a consumer running the same audit
-// would compare an empty range against its own changelog.
-//
-// It runs at the release boundary, not at push. A milestone's delta is
-// legitimately absent from `[Unreleased]` until its epic wraps, so
-// asking at push time would need an in-flight-epic exemption; asking at
-// the tag needs none.
-//
-// Input comes from the environment so the policy keeps the uniform
-// `func(root) ([]Violation, error)` shape the runPolicy harness drives.
-// An empty or all-zero AIWF_CHANGELOG_BASE means "no comparison point"
-// and the audit no-ops rather than auditing all of history.
-func PolicyChangelogCompleteness(root string) ([]Violation, error) {
-	return changelogViolations(root, strings.TrimSpace(os.Getenv(changelogBaseEnv)))
-}
 
 // changelogBaseAuto is the AIWF_CHANGELOG_BASE value meaning "work the
 // base out from history". It is a sentinel rather than the unset
@@ -187,20 +181,85 @@ func PolicyChangelogCompleteness(root string) ([]Violation, error) {
 // auditable without moving a tag.
 const changelogBaseAuto = "auto"
 
-// resolveChangelogBase returns the release this commit's changes are
-// measured against: the newest tag reachable from HEAD.
+// tagsAtHEAD returns every tag pointing at HEAD.
 //
-// Reachability rather than recency is the whole point. `git describe`
+// All of them matter to the base, and only the release-shaped one
+// matters to the section — two different questions that would be one
+// bug if answered together. `git describe` answers with a tag on HEAD
+// whatever that tag is called, so *any* tag there empties the range and
+// has to be excluded; but only a `v*` tag means the entries have moved
+// out of `[Unreleased]`, so only that one changes which section is read.
+// Conflating them would leave the audit vacuous whenever HEAD carried a
+// tag of some other shape.
+func tagsAtHEAD(root string) []string {
+	cmd := exec.Command("git", "tag", "--points-at", "HEAD")
+	cmd.Dir = root
+	out, err := cmd.Output()
+	if err != nil {
+		return nil
+	}
+	return strings.Fields(string(out))
+}
+
+// releaseTagAtHEAD returns the release tag pointing at HEAD, or the
+// empty string when HEAD carries none.
+//
+// Its presence is what tells the audit which shape it is in. Before the
+// release commit HEAD carries no release tag, and the notes under test
+// are `[Unreleased]`. On a pushed tag HEAD carries one, the entries have
+// already moved into that version's heading, and that is the section to
+// read instead.
+func releaseTagAtHEAD(root string) string {
+	var release string
+	for _, t := range tagsAtHEAD(root) {
+		if strings.HasPrefix(t, "v") {
+			// More than one release tag on one commit is a re-tagging
+			// accident rather than a shape to interpret. The last is the
+			// highest by git's own ordering, which is the release a
+			// reader would name.
+			release = t
+		}
+	}
+	return release
+}
+
+// changelogSectionFor returns the heading whose section holds the notes
+// under test: the version being released when HEAD carries a release
+// tag, and `[Unreleased]` otherwise.
+func changelogSectionFor(releaseTag string) string {
+	if releaseTag == "" {
+		return unreleasedHeading
+	}
+	return releaseHeadingPrefix + strings.TrimPrefix(releaseTag, "v") + "]"
+}
+
+// resolveChangelogBase returns the release this commit's changes are
+// measured against: the newest tag reachable from HEAD, excluding one
+// that points at HEAD itself.
+//
+// Excluding HEAD's own tags is what makes the audit work at the moment
+// it matters. On a pushed tag `git describe` answers with that same tag,
+// so the range would be empty and the audit would report nothing however
+// incomplete the notes are — a check that passes by construction exactly
+// where it is wired to run. Every tag on HEAD is excluded, not just the
+// release-shaped one, because `describe` does not care what a tag is
+// called.
+//
+// Reachability rather than recency is the rest of it. `git describe`
 // walks history, so a tag on a branch HEAD cannot reach is not a
-// candidate however new it is or however high it sorts — which is the
-// case a trunk-only test never produces, since on trunk the newest tag
-// and the newest reachable tag are usually the same commit.
+// candidate however new it is or however high it sorts — the case a
+// trunk-only test never produces, since on trunk the newest tag and the
+// newest reachable tag are usually the same commit.
 //
 // With no tag at all the base is the root commit. A first release has no
 // predecessor, and failing here would leave the audit unrunnable for
 // exactly the release with the most undescribed history behind it.
 func resolveChangelogBase(root string) (string, error) {
-	describe := exec.Command("git", "describe", "--tags", "--abbrev=0")
+	args := []string{"describe", "--tags", "--abbrev=0"}
+	for _, t := range tagsAtHEAD(root) {
+		args = append(args, "--exclude="+t)
+	}
+	describe := exec.Command("git", args...)
 	describe.Dir = root
 	if out, err := describe.Output(); err == nil {
 		if tag := strings.TrimSpace(string(out)); tag != "" {
@@ -253,23 +312,57 @@ const (
 	releaseHeadingPrefix = "## ["
 )
 
-// unreleasedSection returns the body of the `[Unreleased]` section: the
-// text between its heading and the next release heading, or the empty
-// string when the file carries no such section.
+// changelogSection returns the body under the named heading: the text
+// between it and the next release heading, or the empty string when the
+// file carries no such heading.
 //
-// Bounding it at the next release heading is what keeps a shipped
-// citation from satisfying an unshipped delta. Without that bound the
+// Bounding at the next release heading is what keeps a citation in one
+// release's notes from satisfying another's delta. Without the bound the
 // whole file would count, and every entity ever released would read as
 // cited — the audit would pass on any input.
-func unreleasedSection(doc string) string {
-	_, after, found := strings.Cut(doc, unreleasedHeading)
-	if !found {
+//
+// Headings count only at the start of a line and only outside a fenced
+// code block. Both matter, and a changelog is exactly the document that
+// breaks them: this file's own preamble names `[Unreleased]` in prose,
+// and its entries quote heading shapes in fences to describe the release
+// format. Unanchored, the preamble mention opens the section and the
+// prose after it is read as notes; fence-blind, a quoted heading closes
+// the section early and everything below it reads as uncited.
+func changelogSection(doc, heading string) string {
+	var body []string
+	inFence, inSection := false, false
+	for _, line := range strings.Split(doc, "\n") {
+		if isFenceLine(line) {
+			inFence = !inFence
+			if inSection {
+				body = append(body, line)
+			}
+			continue
+		}
+		if !inFence && strings.HasPrefix(line, releaseHeadingPrefix) {
+			if inSection {
+				break
+			}
+			if strings.HasPrefix(line, heading) {
+				inSection = true
+			}
+			continue
+		}
+		if inSection {
+			body = append(body, line)
+		}
+	}
+	if !inSection {
 		return ""
 	}
-	if end := strings.Index(after, "\n"+releaseHeadingPrefix); end >= 0 {
-		return after[:end]
-	}
-	return after
+	return strings.Join(body, "\n")
+}
+
+// isFenceLine reports whether the line opens or closes a fenced code
+// block, in either of Markdown's two spellings.
+func isFenceLine(line string) bool {
+	t := strings.TrimSpace(line)
+	return strings.HasPrefix(t, "```") || strings.HasPrefix(t, "~~~")
 }
 
 // changelogCitedIn returns the predicate reporting whether an id is
@@ -336,7 +429,8 @@ func changelogAuditFor(root, baseRef string) (changelogAudit, error) {
 	if err != nil {
 		return changelogAudit{}, err
 	}
-	return detectUncitedDeltas(deltas, owner, changelogCitedIn(unreleasedSection(string(doc)))), nil
+	section := changelogSection(string(doc), changelogSectionFor(releaseTagAtHEAD(root)))
+	return detectUncitedDeltas(deltas, owner, changelogCitedIn(section)), nil
 }
 
 // changelogViolations is the release-gating half: the findings that fail
