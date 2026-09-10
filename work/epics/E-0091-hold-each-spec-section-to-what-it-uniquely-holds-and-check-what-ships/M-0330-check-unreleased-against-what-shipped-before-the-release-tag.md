@@ -23,7 +23,7 @@ acs:
       tdd_phase: done
     - id: AC-5
       title: The audit reports an uncited delta in the shape a release commit presents
-      status: open
+      status: met
       tdd_phase: done
 ---
 ## Goal
