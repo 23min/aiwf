@@ -28,9 +28,11 @@ acs:
 ---
 ## Goal
 
-Make a release name everything it ships. An audit compares the shipped-surface
-commits since the last release against what the `[Unreleased]` section names, and
-the release tag's CI job fails when something is missing.
+Make a release name everything it ships. An audit compares the commits that
+changed embedded content since the last release against what the release notes
+cite, and the release tag's CI job fails when something is uncited. Which notes
+it reads depends on where it runs: `[Unreleased]` before the release commit,
+and the version's own section once that commit has moved the entries down.
 
 ## Closes
 
@@ -297,10 +299,17 @@ cannot be a swap that buys the tagged shape by losing the pre-release one.
 
 A release tag now fails when its notes do not say what it ships. The
 `changelog-check.yml` workflow gained a second job, running `make
-changelog-audit`: it compares every commit since the last release that touched
-aiwf's embedded skill, ritual, template, agent-card and guidance trees against
-what `[Unreleased]` cites, and fails the tag on a shipped change no entry
-names. A milestone's delta is cited by its parent epic, never by its own id.
+changelog-audit`: it compares every commit since the last release that changed
+aiwf's embedded skill, ritual, template, agent-card, hook and guidance content
+against what the release notes cite, and fails the tag on a shipped change no
+entry names. A milestone's delta is cited by its parent epic, never by its own
+id. Go source under those trees is the code that materializes them rather than
+content a consumer receives, so it owes no entry.
+
+The audit reads whichever section is current where it runs. Before the release
+commit that is `[Unreleased]`; on a pushed tag the entries have already moved
+into that version's heading, so that heading is read instead, and the tag on
+HEAD is excluded from the base it measures forward from.
 
 The audit reports a second finding without failing on it — a shipped-surface
 commit carrying no `aiwf-entity` trailer. With no entity named it cannot tell
@@ -341,12 +350,28 @@ at 9b99dc2f1:
   shipped only compiled behaviour. This is the residual `## Closes` names: the
   half of G-0529's direction this milestone does not deliver, and the half that
   would have caught the thin entry G-0509 records.
-- Content introduced only by a merge resolution is invisible to the audit. It
-  is the same blind spot G-0602 already tracks for the shipped-ritual
-  provenance gate, so closing it there closes it here; no separate gap.
+- G-0672 — the git range scan is duplicated between this audit and the
+  shipped-ritual provenance backstop. Recorded rather than extracted here: the
+  duplication is worth removing on its own terms, and measurably did not cause
+  either defect this milestone's review found.
 
 ## Reviewer notes
 
+- Two independent reviewers found the same blocking defect: the release-tag job
+  as first wired could never fail. At a pushed tag `git describe` answers with
+  the tag on HEAD, so the range was empty; and the release commit empties
+  `[Unreleased]` before the tag exists, so the other half was broken too and
+  each hid the other. AC-5 is the criterion that was missing, and the fixture it
+  carries reaches the release shape without running a workflow.
+- The lesson is about AC-4's scope, not its truth. It claims the wiring and says
+  so explicitly, and the claim holds. What let the defect through is that the
+  *outcome* was treated as untestable because the workflow is unrunnable here —
+  and the outcome turned out to need no workflow at all. An AC that scopes
+  itself away from an outcome should say why the outcome cannot be reached,
+  not that the surface carrying it cannot be run.
+- The audit's watched tree holds both embedded content and the Go that
+  materializes it. Only the first ships; the second is a kernel-surface change,
+  which this audit does not cover and G-0671 tracks.
 - Content introduced only by a merge resolution is invisible to this audit.
   Measured: `git log --name-only` emits no file list for a merge without an
   explicit `--diff-merges`, and no `log.diffMerges` setting changes that, so
