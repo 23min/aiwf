@@ -988,117 +988,136 @@ func TestShippedTree_CarriesNoGoFile(t *testing.T) {
 	}
 }
 
-// TestChangelogSectionFor covers the rule that picks which section the
-// audit reads. It is driven directly because the audit reaches only
-// three of its four answers, and the two it cannot reach are the ones
-// where a wrong answer is silent: a version section read in place of
-// `[Unreleased]` usually cites nothing either, so the verdict is the
-// same and the mistake invisible.
-func TestChangelogSectionFor(t *testing.T) {
+// TestChangelogAudit_ABaseSpanningAReleaseReadsEveryNoteSince is the
+// shape the documented past-range command produces, and the one a
+// topmost-heading rule gets wrong. `AIWF_CHANGELOG_BASE=<older tag>`
+// audits a range that crosses a release, so the entries covering it are
+// spread across two sections: the ones already released under their
+// version heading, and the ones still accumulating under
+// `[Unreleased]`. Reading either alone reports the other's entities as
+// uncited.
+//
+// Measured on this repo before the fix, `AIWF_CHANGELOG_BASE=v0.33.0
+// make changelog-audit` reported four entities whose entries sit in
+// `[Unreleased]` — one of them the entry this milestone itself wrote.
+func TestChangelogAudit_ABaseSpanningAReleaseReadsEveryNoteSince(t *testing.T) {
 	t.Parallel()
+	root, runGit, writeFile, _ := changelogFixture(t)
+	runGit("tag", "v0.1.0")
 
-	const released = "# Changelog\n\n## [Unreleased]\n\n## [0.1.0] — 2026-01-01\n\n### Added — E-0001: a\n"
-	const cut = "# Changelog\n\n## [Unreleased]\n\n## [0.2.0] — 2026-02-02\n\n### Added — E-0001: a\n\n## [0.1.0] — 2026-01-01\n"
+	// Released since the base, described under its version heading.
+	writeFile(clShippedRel, "first\n")
+	runGit("add", "-A")
+	runGit("commit", "-m", "docs(fictional): released delta", "--trailer", "aiwf-entity: "+provFixtureEntityID)
+	writeFile("CHANGELOG.md", "# Changelog\n\n## [Unreleased]\n\n## [0.2.0] — 2026-02-02\n\n"+
+		"### Changed — "+provFixtureEntityID+": the released one\n\nProse.\n\n"+
+		"## [0.1.0] — 2026-01-01\n\n### Added — the first release\n")
+	runGit("add", "-A")
+	runGit("commit", "-m", "release(aiwf): v0.2.0")
+	runGit("tag", "v0.2.0")
 
-	tests := []struct {
-		name        string
-		doc         string
-		baseVersion string
-		want        string
-	}{
-		{
-			name: "the topmost version is the base, so notes still accumulate under Unreleased",
-			doc:  released, baseVersion: "0.1.0", want: unreleasedHeading,
-		},
-		{
-			name: "a newer version heading means a release commit landed, so read it",
-			doc:  cut, baseVersion: "0.1.0", want: "## [0.2.0]",
-		},
-		{
-			name: "a file naming no version has only Unreleased to read",
-			doc:  "# Changelog\n\n## [Unreleased]\n\n### Added — E-0001: a\n", baseVersion: "0.1.0", want: unreleasedHeading,
-		},
-		{
-			name: "with no released version known, the comparison has nothing to stand on",
-			doc:  cut, baseVersion: "", want: unreleasedHeading,
-		},
-		{
-			name:        "a version heading quoted in a fence is not the topmost",
-			doc:         "# Changelog\n\n```\n## [9.9.9] — the shape you write\n```\n\n## [Unreleased]\n\n## [0.1.0] — 2026-01-01\n",
-			baseVersion: "0.1.0", want: unreleasedHeading,
-		},
-		{
-			name:        "a heading with no closing bracket names no version",
-			doc:         "# Changelog\n\n## [unclosed\n\n## [Unreleased]\n\n## [0.2.0] — 2026-02-02\n",
-			baseVersion: "0.1.0", want: "## [0.2.0]",
-		},
+	// Unreleased since that release, described under [Unreleased].
+	writeFile(clShippedRel+".2", "second\n")
+	runGit("add", "-A")
+	runGit("commit", "-m", "docs(fictional): unreleased delta", "--trailer", "aiwf-entity: G-0001")
+	writeFile("CHANGELOG.md", "# Changelog\n\n## [Unreleased]\n\n"+
+		"### Changed — G-0001: the unreleased one\n\nProse.\n\n"+
+		"## [0.2.0] — 2026-02-02\n\n### Changed — "+provFixtureEntityID+": the released one\n\nProse.\n\n"+
+		"## [0.1.0] — 2026-01-01\n\n### Added — the first release\n")
+	runGit("add", "-A")
+	runGit("commit", "-m", "docs(changelog): record the unreleased delta")
+
+	audit, err := changelogAuditFor(root, "v0.1.0")
+	if err != nil {
+		t.Fatalf("changelogAuditFor(v0.1.0): %v", err)
 	}
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			t.Parallel()
-			if got := changelogSectionFor(tt.doc, tt.baseVersion); got != tt.want {
-				t.Errorf("changelogSectionFor = %q, want %q", got, tt.want)
-			}
-		})
+	if got := uncitedIDs(audit); len(got) != 0 {
+		t.Errorf("uncited = %v, want none — both deltas are described, one under its version heading and one under [Unreleased]", got)
 	}
 }
 
-// TestChangelogSection covers the rules that decide what counts as the
-// section: it starts at the named heading and stops at the next release
-// heading, so a citation in an already-shipped section does not satisfy
-// a delta that has not shipped yet. Two of the rows are about where a
-// heading counts — anchored to a line start, and outside a fence —
-// which is what a changelog breaks, since it quotes heading shapes to
-// describe its own format.
-func TestChangelogSection(t *testing.T) {
+// TestChangelogRangeNotes covers the rule that decides which notes
+// cover the audited range, composed with the citation test the audit
+// applies to them — that composition is what the audit actually runs.
+//
+// The document is one file read against different bases, because the
+// rule is about where the base sits in it, not about the file's shape.
+func TestChangelogRangeNotes(t *testing.T) {
 	t.Parallel()
 
 	const doc = "# Changelog\n\n" +
-		"## [Unreleased]\n\n### Changed — E-0001: a\n\n" +
-		"## [0.2.0] — 2026-02-02\n\n### Changed — E-0002: b\n"
+		"## [Unreleased]\n\n### Changed — E-0001: unreleased\n\n" +
+		"## [0.2.0] — 2026-02-02\n\n### Changed — E-0002: released last\n\n" +
+		"## [0.1.0] — 2026-01-01\n\n### Added — E-0003: released first\n"
 
 	tests := []struct {
 		name     string
 		doc      string
+		baseRef  string
 		cited    string
 		wantHeld bool
 	}{
-		{name: "an id under Unreleased is held", doc: doc, cited: "E-0001", wantHeld: true},
-		{name: "an id under a shipped release is not", doc: doc, cited: "E-0002", wantHeld: false},
-		{name: "a file with no Unreleased section holds nothing", doc: "# Changelog\n\n## [0.1.0]\n\n### Added — E-0003: c\n", cited: "E-0003", wantHeld: false},
-		{name: "a legacy width in the entry names the same entity", doc: "# Changelog\n\n## [Unreleased]\n\n### Changed — E-01: a\n", cited: "E-0001", wantHeld: true},
-		// A milestone id is `M-\d{3,}`, so `M-7` is not a narrow id but
-		// an unrecognized one. It matches its own spelling and unifies
-		// with no width, which is what keeps a malformed trailer from
-		// being satisfied by an entry naming a real entity.
-		{name: "an id below the kind's floor matches its own spelling", doc: "# Changelog\n\n## [Unreleased]\n\n### Changed — M-7: a\n", cited: "M-7", wantHeld: true},
-		{name: "an id below the floor unifies with no other width", doc: "# Changelog\n\n## [Unreleased]\n\n### Changed — M-7: a\n", cited: "M-0007", wantHeld: false},
-		{name: "an empty id is cited by nothing", doc: doc, cited: "", wantHeld: false},
 		{
-			name:     "a heading quoted in a fence does not close the section",
-			doc:      "# Changelog\n\n## [Unreleased]\n\n```\n## [0.9.0] — the shape you write\n```\n\n### Changed — E-0001: a\n\n## [0.2.0] — 2026-02-02\n",
-			cited:    "E-0001",
-			wantHeld: true,
+			name: "an entry above the base's heading covers the range",
+			doc:  doc, baseRef: "v0.1.0", cited: "E-0001", wantHeld: true,
 		},
 		{
-			name:     "a heading named mid-line inside an entry does not close the section",
-			doc:      "# Changelog\n\n## [Unreleased]\n\nRename it to ## [0.9.0] when you cut.\n\n### Changed — E-0001: a\n\n## [0.2.0] — 2026-02-02\n",
-			cited:    "E-0001",
-			wantHeld: true,
+			name: "so does one in a release between the base and now",
+			doc:  doc, baseRef: "v0.1.0", cited: "E-0002", wantHeld: true,
 		},
 		{
-			name:     "a heading named in the preamble does not open the section",
-			doc:      "# Changelog\n\nRename ## [Unreleased] when cutting a release.\n\n## [Unreleased]\n\n### Changed — E-0001: a\n\n## [0.2.0] — 2026-02-02\n",
-			cited:    "E-0001",
-			wantHeld: true,
+			name: "an entry at or below the base's heading does not",
+			doc:  doc, baseRef: "v0.1.0", cited: "E-0003", wantHeld: false,
+		},
+		{
+			name: "a nearer base stops sooner",
+			doc:  doc, baseRef: "v0.2.0", cited: "E-0002", wantHeld: false,
+		},
+		{
+			name: "a base naming no section leaves the whole file to read",
+			doc:  doc, baseRef: "0f9a1bc", cited: "E-0003", wantHeld: true,
+		},
+		{
+			name:    "a legacy width in the entry names the same entity",
+			doc:     "# Changelog\n\n## [Unreleased]\n\n### Changed — E-01: a\n\n## [0.1.0] — 2026-01-01\n",
+			baseRef: "v0.1.0", cited: "E-0001", wantHeld: true,
+		},
+		{
+			// A milestone id is `M-\d{3,}`, so `M-7` is unrecognized
+			// rather than narrow: it matches its own spelling and
+			// unifies with no width.
+			name:    "an id below the kind's floor matches its own spelling",
+			doc:     "# Changelog\n\n## [Unreleased]\n\n### Changed — M-7: a\n\n## [0.1.0] — 2026-01-01\n",
+			baseRef: "v0.1.0", cited: "M-7", wantHeld: true,
+		},
+		{
+			name:    "an id below the floor unifies with no other width",
+			doc:     "# Changelog\n\n## [Unreleased]\n\n### Changed — M-7: a\n\n## [0.1.0] — 2026-01-01\n",
+			baseRef: "v0.1.0", cited: "M-0007", wantHeld: false,
+		},
+		{
+			name: "an empty id is cited by nothing",
+			doc:  doc, baseRef: "v0.1.0", cited: "", wantHeld: false,
+		},
+		{
+			name: "the base's heading quoted in a fence does not stop the scan",
+			doc: "# Changelog\n\n## [Unreleased]\n\n```\n## [0.1.0] — the shape you write\n```\n\n" +
+				"### Changed — E-0001: a\n\n## [0.1.0] — 2026-01-01\n",
+			baseRef: "v0.1.0", cited: "E-0001", wantHeld: true,
+		},
+		{
+			name: "the base's heading named mid-line does not stop the scan",
+			doc: "# Changelog\n\n## [Unreleased]\n\nRename it from ## [0.1.0] when you cut.\n\n" +
+				"### Changed — E-0001: a\n\n## [0.1.0] — 2026-01-01\n",
+			baseRef: "v0.1.0", cited: "E-0001", wantHeld: true,
 		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
-			cited := changelogCitedIn(changelogSection(tt.doc, unreleasedHeading))
-			if got := cited(tt.cited); got != tt.wantHeld {
-				t.Errorf("cited(%s) = %v, want %v", tt.cited, got, tt.wantHeld)
+			held := changelogCitedIn(changelogRangeNotes(tt.doc, tt.baseRef))(tt.cited)
+			if held != tt.wantHeld {
+				t.Errorf("cited(%q) with base %q = %v, want %v", tt.cited, tt.baseRef, held, tt.wantHeld)
 			}
 		})
 	}

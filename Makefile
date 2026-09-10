@@ -230,8 +230,9 @@ comment-history-audit:
 # workflow invokes this target; nothing else does, which is why the audit
 # skips when AIWF_CHANGELOG_BASE is unset.
 #
-# `auto` means "work the base out from history" — the newest tag
-# reachable from HEAD. Pass an explicit ref to audit a past range:
+# `auto` means "work the base out from history" — the nearest tag
+# reachable from the commit under test, excluding one on that commit
+# itself. Pass an explicit ref to audit a past range:
 #   AIWF_CHANGELOG_BASE=v0.33.0 make changelog-audit
 #
 # -v because the audit has two outputs. An uncited entity fails the test

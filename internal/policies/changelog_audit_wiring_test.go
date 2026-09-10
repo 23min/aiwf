@@ -76,28 +76,35 @@ func TestChangelogAuditWiring_TargetRunsTheEntryPoint(t *testing.T) {
 			changelogAuditTarget, recipe)
 	}
 
-	// The pattern the recipe actually runs, taken from the recipe rather
-	// than restated here.
-	m := regexp.MustCompile(`-run '([^']+)'`).FindStringSubmatch(recipe)
-	if m == nil {
+	// Both halves of what the recipe runs — the pattern and the package
+	// — taken from the recipe rather than restated here. Restating
+	// either is what turns this into a proxy: a constant compared to
+	// recipe text proves the two agree and says nothing about whether
+	// the named test exists where the recipe looks for it.
+	//
+	// Measured, each half is separately load-bearing. Rename the entry
+	// point and the pattern selects nothing; point the recipe at
+	// another package and the pattern selects nothing there either.
+	// Both leave the suite green and turn this target into a zero-test
+	// pass at exit 0 — the silent-gate failure AC-4 exists to close.
+	pattern := regexp.MustCompile(`-run '([^']+)'`).FindStringSubmatch(recipe)
+	if pattern == nil {
 		t.Fatalf("`make %s` must select tests with -run '<pattern>'; recipe was:\n%s", changelogAuditTarget, recipe)
 	}
+	pkg := regexp.MustCompile(`(\./[^\s']+)`).FindStringSubmatch(recipe)
+	if pkg == nil {
+		t.Fatalf("`make %s` must name the package it tests; recipe was:\n%s", changelogAuditTarget, recipe)
+	}
 
-	// Asking go test what that pattern selects is the whole point. A
-	// comparison against a string constant proves the recipe and the
-	// constant agree and says nothing about whether the named test
-	// exists — measured, renaming the entry point then leaves the suite
-	// green and turns this target into a zero-test pass at exit 0,
-	// which is the silent-gate failure AC-4 exists to close.
-	list := exec.Command("go", "test", "-list", m[1], "./internal/policies/")
+	list := exec.Command("go", "test", "-list", pattern[1], pkg[1])
 	list.Dir = root
 	out, err := list.CombinedOutput()
 	if err != nil {
-		t.Fatalf("go test -list %s: %v\n%s", m[1], err, out)
+		t.Fatalf("go test -list %s %s: %v\n%s", pattern[1], pkg[1], err, out)
 	}
 	if !slices.Contains(strings.Fields(string(out)), changelogAuditEntryPoint) {
-		t.Errorf("`make %s` runs -run '%s', which selects no test named %s — the release gate would pass by running nothing.\ngo test -list said:\n%s",
-			changelogAuditTarget, m[1], changelogAuditEntryPoint, out)
+		t.Errorf("`make %s` runs -run '%s' over %s, which selects no test named %s — the release gate would pass by running nothing.\ngo test -list said:\n%s",
+			changelogAuditTarget, pattern[1], pkg[1], changelogAuditEntryPoint, out)
 	}
 }
 
@@ -119,8 +126,8 @@ func TestChangelogAuditWiring_ReleaseWorkflowInvokesTheTarget(t *testing.T) {
 }
 
 // TestChangelogAuditWiring_AuditJobChecksOutFullHistory pins the link
-// the other two cannot see. The base is the newest tag reachable from
-// HEAD, and Actions' checkout is shallow by default with no tags — so a
+// the other two cannot see. The base is a tag reachable from the commit
+// under test, and Actions' checkout is shallow by default with no tags — so a
 // job that takes the default resolves against history it does not have,
 // and the audit compares the release against the wrong range while every
 // other assertion here stays green.

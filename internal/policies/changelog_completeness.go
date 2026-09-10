@@ -202,82 +202,9 @@ func tagsAtHEAD(root string) []string {
 	return strings.Fields(string(out))
 }
 
-// topmostReleaseHeading returns the `## [X.Y.Z]` prefix of the first
-// version heading in the file — the most recent release the notes
-// describe — or the empty string when the file names no version.
-// `[Unreleased]` is not a version and is skipped.
-func topmostReleaseHeading(doc string) string {
-	inFence := false
-	for _, line := range strings.Split(doc, "\n") {
-		if isFenceLine(line) {
-			inFence = !inFence
-			continue
-		}
-		if inFence || !strings.HasPrefix(line, releaseHeadingPrefix) {
-			continue
-		}
-		end := strings.Index(line, "]")
-		if end < 0 {
-			continue
-		}
-		if heading := line[:end+1]; heading != unreleasedHeading {
-			return heading
-		}
-	}
-	return ""
-}
-
-// changelogSectionFor returns the heading whose section holds the notes
-// under test.
-//
-// The answer comes from the changelog's own shape rather than from a tag
-// on HEAD, because the two disagree for the length of a release. The
-// release process lands one commit that moves every entry out of
-// `[Unreleased]` into the new version's heading, and pushes the tag
-// after. In between, a tag-keyed rule reads the `[Unreleased]` that
-// commit just emptied and reports every entity in the range as uncited —
-// measured against this repo's own v0.34.0, six false findings, all six
-// entities cited in the section it was not reading. That window is
-// exactly where the release process tells an operator to run the audit.
-//
-// Comparing the topmost version against the base answers all three
-// states with one rule: equal means no release commit has landed since
-// that base, so the notes still accumulate under `[Unreleased]`;
-// different means one has, and its heading is where the entries went,
-// whether or not the tag exists yet.
-//
-// baseVersion is empty when the base is not a release tag — a bare SHA
-// from the caller, or the root-commit fallback in a repo with no tags.
-// The comparison then has nothing to stand on: with no last-released
-// version known, a version heading in the file could equally be history
-// or the release being cut, and `[Unreleased]` is the reading that does
-// not guess.
-func changelogSectionFor(doc, baseVersion string) string {
-	top := topmostReleaseHeading(doc)
-	if top == "" || baseVersion == "" {
-		return unreleasedHeading
-	}
-	if strings.TrimSuffix(strings.TrimPrefix(top, releaseHeadingPrefix), "]") == baseVersion {
-		return unreleasedHeading
-	}
-	return top
-}
-
-// baseVersionOf returns the version the base names, or the empty string
-// when the base is not a tag in this repository.
-func baseVersionOf(root, baseRef string) string {
-	cmd := exec.Command("git", "tag", "--list", baseRef)
-	cmd.Dir = root
-	out, err := cmd.Output()
-	if err != nil || strings.TrimSpace(string(out)) != baseRef {
-		return ""
-	}
-	return strings.TrimPrefix(baseRef, "v")
-}
-
 // resolveChangelogBase returns the release this commit's changes are
-// measured against: the newest tag reachable from HEAD, excluding one
-// that points at HEAD itself.
+// measured against: the nearest tag reachable from the commit under
+// test, excluding any that point at that commit.
 //
 // Excluding HEAD's own tags is what makes the audit work at the moment
 // it matters. On a pushed tag `git describe` answers with that same tag,
@@ -354,50 +281,44 @@ const (
 	releaseHeadingPrefix = "## ["
 )
 
-// changelogSection returns the body under the named heading: the text
-// between it and the next release heading, or the empty string when the
-// file carries no such heading.
+// changelogRangeNotes returns the notes covering the audited range:
+// every section above the one naming the base release.
 //
-// Bounding at the next release heading is what keeps a citation in one
-// release's notes from satisfying another's delta. Without the bound the
-// whole file would count, and every entity ever released would read as
-// cited — the audit would pass on any input.
+// The range is baseRef..HEAD, so the notes describing it are everything
+// written since that release — which is exactly the sections stacked
+// above it, however many there are. A range crossing a release has its
+// entries split across two: the released ones under their version
+// heading, the rest still accumulating under `[Unreleased]`. Reading
+// either alone reports the other's entities as uncited.
 //
-// Headings count only at the start of a line and only outside a fenced
-// code block. Both matter, and a changelog is exactly the document that
-// breaks them: this file's own preamble names `[Unreleased]` in prose,
-// and its entries quote heading shapes in fences to describe the release
-// format. Unanchored, the preamble mention opens the section and the
-// prose after it is read as notes; fence-blind, a quoted heading closes
-// the section early and everything below it reads as uncited.
-func changelogSection(doc, heading string) string {
-	var body []string
-	inFence, inSection := false, false
+// This also removes the tag from the question entirely, which is what
+// makes the answer the same either side of a release tag push. The
+// release commit moves entries under a new version heading and the tag
+// arrives later; both states put those entries above the base's
+// heading, so both read them.
+//
+// When no section names the base — an explicit SHA, or the root-commit
+// fallback in a repo with no tags — the whole file is the answer. The
+// audit cannot bound the notes it should be reading, and reading
+// everything can only make it miss a real omission, where reading too
+// little invents ones: at a first release, every entry sits under a
+// version heading the base does not name.
+func changelogRangeNotes(doc, baseRef string) string {
+	stop := releaseHeadingPrefix + strings.TrimPrefix(baseRef, "v") + "]"
+	var above []string
+	inFence := false
 	for _, line := range strings.Split(doc, "\n") {
 		if isFenceLine(line) {
 			inFence = !inFence
-			if inSection {
-				body = append(body, line)
-			}
+			above = append(above, line)
 			continue
 		}
-		if !inFence && strings.HasPrefix(line, releaseHeadingPrefix) {
-			if inSection {
-				break
-			}
-			if strings.HasPrefix(line, heading) {
-				inSection = true
-			}
-			continue
+		if !inFence && strings.HasPrefix(line, stop) {
+			return strings.Join(above, "\n")
 		}
-		if inSection {
-			body = append(body, line)
-		}
+		above = append(above, line)
 	}
-	if !inSection {
-		return ""
-	}
-	return strings.Join(body, "\n")
+	return doc
 }
 
 // isFenceLine reports whether the line opens or closes a fenced code
@@ -471,8 +392,8 @@ func changelogAuditFor(root, baseRef string) (changelogAudit, error) {
 	if err != nil {
 		return changelogAudit{}, err
 	}
-	section := changelogSection(string(doc), changelogSectionFor(string(doc), baseVersionOf(root, baseRef)))
-	return detectUncitedDeltas(deltas, owner, changelogCitedIn(section)), nil
+	notes := changelogRangeNotes(string(doc), baseRef)
+	return detectUncitedDeltas(deltas, owner, changelogCitedIn(notes)), nil
 }
 
 // changelogViolations is the release-gating half: the findings that fail

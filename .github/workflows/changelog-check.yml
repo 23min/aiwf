@@ -55,7 +55,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
         with:
-          # The audit's base is the newest tag reachable from HEAD.
+          # The audit's base is a tag reachable from the tagged commit.
           # Actions' default checkout is shallow and fetches no tags, so
           # a default here would resolve against history the runner does
           # not have.
