@@ -14,7 +14,7 @@ acs:
       status: met
       tdd_phase: done
     - id: AC-3
-      title: The base release is the newest tag reachable from HEAD
+      title: The base release is a tag reachable from the commit under test
       status: met
       tdd_phase: done
     - id: AC-4
@@ -147,7 +147,7 @@ renderer beneath it, since a leak into the blocking half leaves the renderer
 untouched. Measured on the current range the tree offers no such commit, so the
 fixture builds one rather than reading history.
 
-### AC-3 — The base release is the newest tag reachable from HEAD
+### AC-3 — The base release is a tag reachable from the commit under test
 
 The range the audit reads starts at a release tag reachable from the commit
 under test. A tag on a branch that commit cannot reach is not its base, and
