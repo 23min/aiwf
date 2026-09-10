@@ -229,11 +229,17 @@ func resolveChangelogBase(root string) (string, error) {
 	return lines[len(lines)-1], nil
 }
 
-// changelogShippedDir is the tree that materializes into consumer repos
-// via `aiwf init` / `aiwf update`. A change under it reaches every
-// consumer on upgrade, which is what makes it a release delta — and what
-// makes a `docs(` prefix misleading here, since it means "nothing
-// user-visible" in most repos and the opposite in this one.
+// changelogShippedDir holds the embedded trees that materialize into
+// consumer repos via `aiwf init` / `aiwf update`. A change to their
+// bytes reaches every consumer on upgrade, which is what makes it a
+// release delta — and what makes a `docs(` prefix misleading here, since
+// it means "nothing user-visible" in most repos and the opposite in
+// this one.
+//
+// It is the whole directory rather than the `embedded*` subdirectories
+// by name, so a tree added later is watched without an edit here. The
+// Go sitting beside them is not shipped content; shipsSomething is
+// where that line is drawn, and why.
 const changelogShippedDir = "internal/skills"
 
 // changelogFile is the release notes the audit reads, and the file a
@@ -407,13 +413,25 @@ func parseShippedDeltaLog(out string) []changelogDelta {
 }
 
 // shipsSomething reports whether any of the commit's listed paths is
-// content a consumer receives. A `_test.go` file under the shipped tree
-// is the exception the pathspec cannot express: it lives there but is
-// never materialized.
+// content a consumer receives.
+//
+// Go is the exception the pathspec cannot express. The watched tree
+// holds two unlike things: the embedded directories, whose bytes are
+// materialized into a consumer's repo, and the Go that materializes
+// them. A change to the latter can change aiwf's behaviour, but that is
+// a kernel-surface delta rather than a shipped-content one — the class
+// this audit does not cover — and demanding a changelog entry for a
+// rename in the kernel's own source blocks releases over nothing a
+// consumer reads.
+//
+// Excluding Go loses no shipped content: every `go:embed` in the
+// package names a path under an `embedded*` directory, none of which
+// holds a `.go` file, so no shipped byte reaches a consumer through a
+// Go source file.
 func shipsSomething(paths []string) bool {
 	for _, p := range paths {
 		p = strings.TrimSpace(p)
-		if p == "" || strings.HasSuffix(p, "_test.go") {
+		if p == "" || strings.HasSuffix(p, ".go") {
 			continue
 		}
 		return true

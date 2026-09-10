@@ -522,26 +522,46 @@ func TestChangelogViolations_Seam(t *testing.T) {
 	}
 }
 
-// TestChangelogViolations_TestFileUnderTheShippedTreeShipsNothing pins
-// the one exclusion the pathspec cannot express. A `_test.go` file lives
-// under the shipped tree but is never materialized into a consumer repo,
-// so a commit touching only tests there owes no changelog entry — and
-// reporting one would demand an entry describing nothing a consumer can
-// observe.
-func TestChangelogViolations_TestFileUnderTheShippedTreeShipsNothing(t *testing.T) {
+// TestChangelogViolations_GoUnderTheShippedTreeShipsNothing pins the
+// exclusion the pathspec cannot express. `internal/skills` holds two
+// unlike things: the embedded trees, whose bytes materialize into a
+// consumer repo, and the Go that materializes them. Only the first is a
+// shipped surface. Every `go:embed` in the package names a path under an
+// `embedded*` directory and none of those directories holds a `.go`
+// file, so excluding Go loses no shipped content.
+//
+// Both rows matter and the narrower one alone is not enough: excluding
+// only `_test.go` leaves a change to the materializer demanding a
+// changelog entry, which is how a release gets blocked over a rename in
+// the kernel's own source. Measured over v0.20.0..HEAD, twelve commits
+// touch only Go under this tree.
+func TestChangelogViolations_GoUnderTheShippedTreeShipsNothing(t *testing.T) {
 	t.Parallel()
-	root, runGit, writeFile, base := changelogFixture(t)
 
-	writeFile(changelogShippedDir+"/fictional_test.go", "package skills\n")
-	runGit("add", "-A")
-	runGit("commit", "-m", "test(fictional): a test-only change", "--trailer", "aiwf-entity: "+provFixtureEntityID)
-
-	vs, err := changelogViolations(root, base)
-	if err != nil {
-		t.Fatalf("changelogViolations: %v", err)
+	tests := []struct {
+		name string
+		path string
+	}{
+		{name: "a test file", path: changelogShippedDir + "/fictional_test.go"},
+		{name: "the materializer itself", path: changelogShippedDir + "/fictional.go"},
 	}
-	if len(vs) != 0 {
-		t.Errorf("a test-only change under the shipped tree reported %d violations, want 0: %v", len(vs), vs)
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+			root, runGit, writeFile, base := changelogFixture(t)
+
+			writeFile(tt.path, "package skills\n")
+			runGit("add", "-A")
+			runGit("commit", "-m", "refactor(fictional): a Go-only change", "--trailer", "aiwf-entity: "+provFixtureEntityID)
+
+			vs, err := changelogViolations(root, base)
+			if err != nil {
+				t.Fatalf("changelogViolations: %v", err)
+			}
+			if len(vs) != 0 {
+				t.Errorf("a Go-only change under the shipped tree reported %d violations, want 0: %v", len(vs), vs)
+			}
+		})
 	}
 }
 
