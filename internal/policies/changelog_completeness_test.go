@@ -1036,6 +1036,38 @@ func TestChangelogAudit_ABaseSpanningAReleaseReadsEveryNoteSince(t *testing.T) {
 	}
 }
 
+// TestChangelogAudit_AFirstReleaseHasNoBaseSectionToStopAt is the state
+// the whole-file fallback exists for, and the one every section-bounded
+// rule gets wrong. A first release has no predecessor, so the base is
+// the root commit and no heading names it. Its entries are all under
+// the version being cut, and a rule that fell back to `[Unreleased]`
+// would read the section the release commit just emptied and report
+// every entity in the repo's history as uncited — on the release with
+// the most undescribed history behind it.
+func TestChangelogAudit_AFirstReleaseHasNoBaseSectionToStopAt(t *testing.T) {
+	t.Parallel()
+	root, runGit, writeFile, _ := changelogFixture(t)
+
+	writeFile(clShippedRel, "fictional content\n")
+	runGit("add", "-A")
+	runGit("commit", "-m", "docs(fictional): a delta", "--trailer", "aiwf-entity: "+provFixtureEntityID)
+
+	// The release commit, with no earlier tag anywhere in the repo.
+	writeFile("CHANGELOG.md", "# Changelog\n\n## [Unreleased]\n\n## [0.1.0] — 2026-01-01\n\n"+
+		"### Added — "+provFixtureEntityID+": the first release\n")
+	runGit("add", "-A")
+	runGit("commit", "-m", "release(aiwf): v0.1.0")
+	runGit("tag", "v0.1.0")
+
+	audit, err := changelogAuditFor(root, changelogBaseAuto)
+	if err != nil {
+		t.Fatalf("changelogAuditFor(auto): %v", err)
+	}
+	if got := uncitedIDs(audit); len(got) != 0 {
+		t.Errorf("uncited = %v, want none — the entry is under the version being cut, and no heading names the root-commit base", got)
+	}
+}
+
 // TestChangelogRangeNotes covers the rule that decides which notes
 // cover the audited range, composed with the citation test the audit
 // applies to them — that composition is what the audit actually runs.
@@ -1076,6 +1108,16 @@ func TestChangelogRangeNotes(t *testing.T) {
 		{
 			name: "a base naming no section leaves the whole file to read",
 			doc:  doc, baseRef: "0f9a1bc", cited: "E-0003", wantHeld: true,
+		},
+		{
+			// `## [0.1.01]` starts with `## [0.1.0`, so a stop key
+			// missing its closing bracket halts at the wrong release
+			// and drops every note between the two.
+			name: "a version that merely prefixes the base is not the base",
+			doc: "# Changelog\n\n## [Unreleased]\n\n" +
+				"## [0.1.01] — 2026-01-15\n\n### Changed — E-0002: b\n\n" +
+				"## [0.1.0] — 2026-01-01\n\n### Added — E-0003: c\n",
+			baseRef: "v0.1.0", cited: "E-0002", wantHeld: true,
 		},
 		{
 			name:    "a legacy width in the entry names the same entity",
