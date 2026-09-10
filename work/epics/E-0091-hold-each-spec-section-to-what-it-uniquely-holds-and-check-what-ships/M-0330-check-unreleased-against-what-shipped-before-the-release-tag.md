@@ -357,7 +357,7 @@ audit does not run at all, which is what keeps it off every push.
 ## Validation
 
 Measured 2026-09-10 on `milestone/M-0330-check-unreleased-against-what-shipped-before-the-release-tag`
-at 63c8d5ce3, after the deciding review's findings were fixed:
+at aba8ed5ca:
 
 - `make ci` — green. Build, vet, the full golangci-lint set, `go test -race`,
   the diff-scoped coverage gate, the firing-fixture meta-gate, and the 29-step
@@ -367,18 +367,18 @@ at 63c8d5ce3, after the deciding review's findings were fixed:
   produces: `epic-active-no-drafted-milestones`, since this was the last drafted
   milestone, and `provenance-untrailered-scope-undefined`, since the branch has
   no upstream.
-- `make changelog-audit` against this tree — reports E-0091 and exits non-zero,
-  which is correct: that entry is the epic wrap's to write. It reported G-0659
-  too until this milestone wrote the line G-0659 was owed.
-- The audit run against this repo's real v0.34.0 tag — base resolves to
-  `v0.33.0` and no entity is reported uncited. Five of the six entities in that
-  range are cited by id and the sixth, M-0325, clears through its parent epic
-  E-0090, so the rollup is exercised on real history rather than on a fixture.
-  Two commits in that range carry no entity trailer and are reported as
-  unattributed, which fails nothing (D-0087).
+- `make changelog-audit` — reports E-0091 and exits non-zero, which is correct:
+  that entry is the epic wrap's to write. It reported G-0659 too until this
+  milestone wrote the line G-0659 was owed.
 - `AIWF_CHANGELOG_BASE=v0.33.0 make changelog-audit`, the past-range form the
-  release process documents — reports E-0091 only, the same one true finding
-  the default reports.
+  release process documents — reports E-0091 only, the same single true
+  finding, over a range that spans a release.
+- The audit against this repo's real v0.34.0 tag — base resolves to `v0.33.0`
+  and no entity is reported uncited. Five of the six entities in that range are
+  cited by id and the sixth, M-0325, clears through its parent epic E-0090, so
+  the rollup runs on real history rather than on a fixture. Two commits there
+  carry no entity trailer and are reported as unattributed, which fails nothing
+  (D-0087).
 
 ## Deferrals
 
@@ -393,6 +393,15 @@ at 63c8d5ce3, after the deciding review's findings were fixed:
   either defect this milestone's review found.
 
 ## Reviewer notes
+
+- Four independent review rounds ran over this milestone: two in parallel on
+  the first pass, then a deciding pass, then a fourth after its findings were
+  fixed. Each of the first three found a defect introduced by the previous
+  round's fix. A fifth was declined by the human once severity had fallen from
+  "the gate can never fire" to prose, and after the one part no reviewer had
+  seen — the whole-file fallback for a base no heading names — was
+  mutation-probed directly and turned up the version-prefix collision now
+  pinned in `TestChangelogRangeNotes`.
 
 - An AC that scopes itself away from an outcome states why the outcome cannot
   be reached, not that the surface carrying it cannot be run. AC-4 scoped to
