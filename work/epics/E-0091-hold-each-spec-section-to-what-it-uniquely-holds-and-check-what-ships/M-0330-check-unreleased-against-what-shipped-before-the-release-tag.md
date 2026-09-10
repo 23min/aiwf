@@ -238,7 +238,17 @@ link cut in turn, and the chain reports every time.
 
 ## Coverage notes
 
-- (none yet)
+- No uncovered statement remains in `internal/policies/changelog_completeness.go`.
+- One `//coverage:ignore`, in `resolveChangelogBase`: the branch taken when
+  `git rev-list --max-parents=0 HEAD` exits zero having printed nothing.
+  Measured, an unborn HEAD exits 128 and a HEAD that resolves always reaches a
+  root, so the branch cannot be taken. The guard stays because the alternative
+  is indexing an empty slice.
+- Every criterion was mutation-probed. Each survivor was either fixed by
+  strengthening the assertion and re-probed, or recorded here as an equivalent
+  mutant: `--no-merges`, which git's own default already achieves, and the
+  not-found guard in `unreleasedSection`, where `strings.Cut` already yields the
+  empty tail the guard returns.
 
 ## References
 
@@ -248,6 +258,22 @@ link cut in turn, and the chain reports every time.
 
 ## Release note
 
+A release tag now fails when its notes do not say what it ships. The
+`changelog-check.yml` workflow gained a second job, running `make
+changelog-audit`: it compares every commit since the last release that touched
+aiwf's embedded skill, ritual, template, agent-card and guidance trees against
+what `[Unreleased]` cites, and fails the tag on a shipped change no entry
+names. A milestone's delta is cited by its parent epic, never by its own id.
+
+The audit reports a second finding without failing on it — a shipped-surface
+commit carrying no `aiwf-entity` trailer. With no entity named it cannot tell
+whether an entry covers that commit, so it says so rather than stopping a
+release it cannot show is incomplete.
+
+Run `make changelog-audit` before tagging rather than meeting it at the push.
+`AIWF_CHANGELOG_BASE=<ref> make changelog-audit` audits a past range; unset, the
+audit does not run at all, which is what keeps it off every push.
+
 ## Decisions made during implementation
 
 - D-0087 — the changelog audit blocks an uncited entity and reports an
@@ -255,7 +281,32 @@ link cut in turn, and the chain reports every time.
 
 ## Validation
 
+Measured 2026-09-10 on `milestone/M-0330-check-unreleased-against-what-shipped-before-the-release-tag`
+at 9b99dc2f1:
+
+- `make ci` — green. Build, vet, the full golangci-lint set, `go test -race`,
+  the diff-scoped coverage gate, the firing-fixture meta-gate, and the 29-step
+  `aiwf doctor --self-check`.
+- `aiwf check` — 0 errors, 8 warnings, none of them on this milestone. They are
+  the pre-existing archive-sweep backlog plus two the branch's own shape
+  produces: `epic-active-no-drafted-milestones`, since this was the last drafted
+  milestone, and `provenance-untrailered-scope-undefined`, since the branch has
+  no upstream.
+- Diff-scoped coverage gate against the epic branch — clean.
+- `make changelog-audit` against this tree — reports E-0091 and exits non-zero,
+  which is correct: that entry is the epic wrap's to write. It reported G-0659
+  too until this milestone wrote the line G-0659 was owed.
+
 ## Deferrals
+
+- G-0671 — the audit sees no delta in a surface the kernel enumerates (a
+  finding code, a verb, an `aiwf.yaml` key, an exit code), and no epic that
+  shipped only compiled behaviour. This is the residual `## Closes` names: the
+  half of G-0529's direction this milestone does not deliver, and the half that
+  would have caught the thin entry G-0509 records.
+- Content introduced only by a merge resolution is invisible to the audit. It
+  is the same blind spot G-0602 already tracks for the shipped-ritual
+  provenance gate, so closing it there closes it here; no separate gap.
 
 ## Reviewer notes
 
