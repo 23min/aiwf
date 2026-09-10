@@ -21,6 +21,9 @@ acs:
       title: The release tag workflow invokes the audit and the target it names exists
       status: met
       tdd_phase: done
+    - id: AC-5
+      title: The audit reports an uncited delta in the shape a release commit presents
+      status: open
 ---
 ## Goal
 
@@ -187,6 +190,39 @@ dropping out turns it red; the workflow's step asserted to invoke that target;
 the resolved recipe asserted to name the audit's entry-point test and to pass a
 base; and the job running that step asserted to check out full history. Each
 link cut in turn, and the chain reports every time.
+
+### AC-5 — The audit reports an uncited delta in the shape a release commit presents
+
+At the pushed tag the audit reads a different pair of inputs than it does
+before the release commit, and reaches the same verdict. The base becomes the
+newest reachable tag *excluding* one pointing at HEAD, and the section read
+becomes the version being released rather than `[Unreleased]`.
+
+Both halves are needed, and each hides the other. Resolved to the tag at HEAD
+the range is empty, so the audit reports nothing whatever the notes say.
+Resolved to the previous tag while still reading `[Unreleased]`, the section is
+the empty one the release commit just opened, so every entity reports uncited.
+Measured on this repo at v0.34.0: `git describe --tags --abbrev=0` returns
+v0.34.0, and `[Unreleased]` at that commit holds nothing between its heading
+and the release heading below it.
+
+The pre-release reading is unchanged and has to stay so. An operator running
+the target before cutting the release compares the newest reachable tag against
+`[Unreleased]`, which is what makes the target useful at the moment the notes
+are still being written.
+
+This is the claim AC-4 scoped out. That criterion is true as written — the
+workflow does invoke the target and the target does exist — and it says
+plainly that it judges the wiring rather than the outcome. What it does not
+say, and what turned out to matter, is that the outcome was reachable by a
+fixture without running the workflow at all.
+
+Evidence: one fixture carrying the release shape this project documents —
+entries under `[Unreleased]`, a shipped delta under an entity nothing cites,
+then a commit renaming that heading to the version and opening a fresh empty
+one, then the tag — asserted to report the uncited entity with HEAD at the tag.
+The same fixture is asserted before the release commit as well, so the fix
+cannot be a swap that buys the tagged shape by losing the pre-release one.
 
 ## Constraints
 
