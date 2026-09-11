@@ -1,7 +1,9 @@
 ---
 id: G-0613
 title: the wrap changelog category set omits Removed, which practice uses
-status: open
+status: addressed
+addressed_by_commit:
+    - edf2b2171
 ---
 ## What's missing
 
