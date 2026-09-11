@@ -119,10 +119,13 @@ opposite here, since guidance and rituals ship as product (G-0529).
 - [x] An entity body missing a section its kind requires is refused at the write.
       Reporting one across the tree is ADR-0048's declined option and E-0084's
       push seam; this epic reaches the write and no further.
-- [ ] A release whose `[Unreleased]` omits a shipped delta is reported before
+- [x] A release whose `[Unreleased]` omits a shipped delta is reported before
       the tag, including a delta that lands only in the embedded guidance or
       ritual trees.
-- [ ] Every gap listed in *References* is terminal or has its residual recorded.
+- [x] Every gap listed in *References* is terminal or has its residual recorded.
+      G-0530 and G-0571 each record in their own body what this epic closed and
+      what remains; G-0657 records that the commit-time route is shut and the
+      landed population is not rewritten.
 
 ## Open questions
 
@@ -164,6 +167,8 @@ opposite here, since guidance and rituals ship as product (G-0529).
   owner · depends on: the section-ownership patch
 - **patch** (done, G-0530) — `## Work log` retires, its unique fact derivable
   without it · depends on: the history milestone and the section-ownership patch
+- **patch** (done, G-0613) — the changelog category set widens to Keep a
+  Changelog's six · depends on: —
 
 Ownership precedes the retirement rather than following it. Retiring a section
 costs one edit per surface that names it, and five name this one while two of
@@ -193,3 +198,4 @@ covering the union case.
 - D-0086 — an acceptance criterion's content rule is owned by the `aiwf-add` skill
 - D-0070 — prose-content assertions over shipped surfaces are retired
 - D-0071 — no aiwf verb commits source, so no verb value names a shipped-surface edit
+- D-0088 — a changelog entry uses one of Keep a Changelog's six categories
