@@ -1,7 +1,7 @@
 ---
 id: D-0088
 title: A changelog entry uses one of Keep a Changelog's six categories
-status: proposed
+status: accepted
 relates_to:
     - G-0613
     - D-0031
