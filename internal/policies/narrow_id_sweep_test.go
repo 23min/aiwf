@@ -74,6 +74,7 @@ func TestPolicy_NarrowIDLiteralsAllowlisted(t *testing.T) {
 		"internal/cli/render/singlepass_test.go":                   "M-0221 AC-3 width trap: the single-pass differential exercises a narrow (E-22) and canonical (E-0022) width for the same entity, proving both bucket into one key",
 		"internal/cli/cliutil/scopes_pure_test.go":                 "M-0221 pure-primitive test: OpenersFrom canonicalizes a narrow-width (E-14) opener entity id to canonical width",
 		"internal/policies/skill_edit_provenance_backstop_test.go": "M-0312 width-tolerance row: a skill-edit commit trailer naming a narrow id (M-312) must resolve to the same entity as its canonical width",
+		"internal/policies/changelog_completeness_test.go":         "M-0330 AC-1 width-tolerance row: a shipped-surface commit trailer naming a narrow id (E-91) must test as cited when the changelog names its canonical width",
 
 		// Entity-grammar tests — the narrow ids are inputs to grammar
 		// validators (idPatterns, ParseCompositeID, KindFromID, IDFromPath).

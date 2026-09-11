@@ -31,6 +31,16 @@ func runPolicy(t *testing.T, fn func(string) ([]Violation, error)) {
 	if err != nil {
 		t.Fatalf("policy returned error: %v", err)
 	}
+	reportViolations(t, vs)
+}
+
+// reportViolations fails the test once per violation, in the one format
+// every policy's findings are read in. It is separate from runPolicy so
+// a policy whose result carries more than a violation slice — a second,
+// non-blocking half it also has to surface — renders the blocking half
+// the same way rather than growing a second format beside this one.
+func reportViolations(t *testing.T, vs []Violation) {
+	t.Helper()
 	for _, v := range vs {
 		switch {
 		case v.File != "" && v.Line > 0:
