@@ -1,7 +1,7 @@
 ---
 id: E-0091
 title: Hold each spec section to what it uniquely holds, and check what ships
-status: active
+status: done
 ---
 
 ## Goal
