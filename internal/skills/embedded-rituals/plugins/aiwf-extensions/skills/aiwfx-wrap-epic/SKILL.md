@@ -61,9 +61,9 @@ Create `work/epics/E-NNNN-<slug>/wrap.md` (staged, not yet committed):
 
 ## Changelog entry
 
-### <Added|Changed|Fixed> — E-NNNN: <one-line summary>
+### <Added|Changed|Deprecated|Removed|Fixed|Security> — E-NNNN: <one-line summary>
 
-<The user-visible delta for a release-notes reader who has never seen the epic spec: verbs added, behaviour changed, gaps closed. Pick the category the epic's dominant delta falls under; add a second `###` entry only when one category genuinely misrepresents what shipped. One bullet per milestone that shipped a distinct user-visible change; a single paragraph when one covers it. Leave a purely internal milestone out — but when the whole epic is internal, say so in one line rather than omitting the entry.>
+<The user-visible delta for a release-notes reader who has never seen the epic spec: verbs added, behaviour changed, gaps closed. Pick the category the epic's dominant delta falls under from Keep a Changelog's six above; add a second `###` entry only when one category genuinely misrepresents what shipped. A parenthetical after the category, as in `### Changed (breaking)`, is a note on that category rather than a seventh one — use it where it tells a release-notes reader something the category alone does not. One bullet per milestone that shipped a distinct user-visible change; a single paragraph when one covers it. Leave a purely internal milestone out — but when the whole epic is internal, say so in one line under `Changed` rather than omitting the entry.>
 
 ## Summary
 
