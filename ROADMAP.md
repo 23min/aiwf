@@ -1268,7 +1268,7 @@ A human is the only actor who may put an epic into a terminal status, on every e
 | M-0324 | Refuse a non-human actor on every terminal epic edge | done |
 | M-0325 | Add an operator-driven end to aiwf authorize | done |
 
-## E-0091 — Hold each spec section to what it uniquely holds, and check what ships (active)
+## E-0091 — Hold each spec section to what it uniquely holds, and check what ships (done)
 
 ### Goal
 
