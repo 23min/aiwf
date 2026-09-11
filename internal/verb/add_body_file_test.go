@@ -17,7 +17,7 @@ import (
 func TestAdd_BodyFile_Epic(t *testing.T) {
 	t.Parallel()
 	r := newRunner(t)
-	bodyText := "## Goal\n\nUser-supplied prose explaining the epic.\n"
+	bodyText := string(entity.BodyWithSectionText(entity.KindEpic, "User-supplied prose explaining the epic."))
 	r.must(verb.Add(r.ctx, r.tree(), entity.KindEpic, "Body-file epic", testActor, verb.AddOptions{
 		BodyOverride: []byte(bodyText),
 	}))
@@ -63,7 +63,7 @@ func TestAdd_BodyFile_AllKinds(t *testing.T) {
 			// no-op for kinds whose Path doesn't depend on it).
 			r.must(verb.Add(r.ctx, r.tree(), entity.KindEpic, "Parent epic", testActor, verb.AddOptions{}))
 
-			body := []byte("## " + tc.name + " body\n\nProse content for " + tc.name + ".\n")
+			body := entity.BodyWithSectionText(tc.kind, "Prose content for "+tc.name+".")
 			opts := tc.opts
 			opts.BodyOverride = body
 			r.must(verb.Add(r.ctx, r.tree(), tc.kind, tc.name+" entity", testActor, opts))
@@ -129,7 +129,7 @@ func TestAdd_BodyFile_SingleOpWrite(t *testing.T) {
 	t.Parallel()
 	r := newRunner(t)
 	res, err := verb.Add(r.ctx, r.tree(), entity.KindEpic, "Atomic body", testActor, verb.AddOptions{
-		BodyOverride: []byte("body content\n"),
+		BodyOverride: entity.BodyWithSectionText(entity.KindEpic, "body content"),
 	})
 	if err != nil {
 		t.Fatalf("Add: %v", err)
@@ -190,7 +190,7 @@ func TestAdd_BodyFile_PostAddTreeIsClean(t *testing.T) {
 	t.Parallel()
 	r := newRunner(t)
 	r.must(verb.Add(r.ctx, r.tree(), entity.KindEpic, "Clean body", testActor, verb.AddOptions{
-		BodyOverride: []byte("## Goal\n\nClean body content.\n"),
+		BodyOverride: entity.BodyWithSectionText(entity.KindEpic, "Clean body content."),
 	}))
 	if findings := check.Run(r.tree(), nil); check.HasErrors(findings) {
 		t.Errorf("post-add tree has errors with --body-file content: %+v", findings)

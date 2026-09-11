@@ -410,8 +410,16 @@ func OpenBoundScope(t *testing.T, env *ScenarioEnv, entityID, boundBranch string
 // on the bound branch HEAD currently points to.
 func AICommit(t *testing.T, env *ScenarioEnv, entityID, bodyText string) string {
 	t.Helper()
+	// The verb refuses a body omitting a section the entity's kind requires.
+	// These scenarios drive edit-body to produce a commit with particular
+	// provenance; the body's content is not their subject, so the caller's
+	// text is carried into a body that carries every required heading.
+	body := bodyText
+	if kind, ok := entity.KindFromID(entity.CompositeRoot(entityID)); ok {
+		body = string(entity.BodyWithSectionText(kind, bodyText))
+	}
 	out, err := testutil.RunBinStdin(t, env.Root, env.BinDir,
-		strings.NewReader(bodyText),
+		strings.NewReader(body),
 		"edit-body", entityID,
 		"--body-file", "-",
 		"--actor", "ai/claude",
@@ -701,8 +709,12 @@ func HumanCommit(t *testing.T, env *ScenarioEnv, entityID, bodyText string) stri
 	// initRepoFor(t, "peter@example.com") so the resolved actor
 	// is "human/peter". The human-actor path is not subject to
 	// M-0103 preflight refusal, so this works on any branch.
+	body := bodyText
+	if kind, ok := entity.KindFromID(entity.CompositeRoot(entityID)); ok {
+		body = string(entity.BodyWithSectionText(kind, bodyText))
+	}
 	out, err := testutil.RunBinStdin(t, env.Root, env.BinDir,
-		strings.NewReader(bodyText),
+		strings.NewReader(body),
 		"edit-body", entityID,
 		"--body-file", "-",
 		"--reason", "Human work commit on scoped entity (M-0159/AC-2 scenario)")

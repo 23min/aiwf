@@ -91,14 +91,14 @@ type AddOptions struct {
 	// the `set-priority` verb and the `priority-valid` check rule
 	// read — so there is no parallel value check here.
 	Priority string
-	// Force bypasses the born-complete-kind empty-body gate (G-0326):
-	// without it, `aiwf add` refuses to create a gap/decision/adr/
-	// contract whose resolved body has an empty load-bearing section
-	// (entity.IsBornComplete; see requireNonEmptyBornCompleteBody).
-	// Mirrors the sovereign-override shape of `aiwf promote --force
-	// --reason` — the CLI dispatcher requires a non-empty Reason
-	// whenever Force is set. Has no effect on kinds the gate doesn't
-	// apply to (epic, milestone) — passing it there is inert.
+	// Force bypasses the body-completeness gate: without it, `aiwf add`
+	// refuses a body omitting a section its kind requires (any kind), or
+	// a born-complete kind's body whose required section is present and
+	// empty (see requireCompleteBody). Mirrors the sovereign-override
+	// shape of `aiwf promote --force --reason` — the CLI dispatcher
+	// requires a non-empty Reason whenever Force is set. Inert where the
+	// resolved body would have passed the gate anyway, which includes
+	// every create that takes the kind's scaffold.
 	Force bool
 	// Reason is the free-form justification recorded in the create
 	// commit's `aiwf-force:` trailer and body when Force is set.
@@ -165,7 +165,7 @@ func Add(ctx context.Context, t *tree.Tree, kind entity.Kind, title, actor strin
 		return nil, err
 	}
 
-	gateBypassed, gateErr := requireNonEmptyBornCompleteBody(id, kind, body, opts)
+	gateBypassed, gateErr := requireCompleteBody(id, kind, body, opts)
 	if gateErr != nil {
 		return nil, gateErr
 	}
@@ -247,53 +247,85 @@ func Add(ctx context.Context, t *tree.Tree, kind entity.Kind, title, actor strin
 	}, nil
 }
 
-// requireNonEmptyBornCompleteBody refuses to create a born-complete
-// kind (gap, decision, adr, contract — entity.IsBornComplete; no
-// draft phase, live and referenceable the instant the create commit
-// lands) whose resolved body has any empty load-bearing section, per
-// check.EmptyRequiredSections — the same emptiness test the
-// entity-body-empty check rule applies (G-0326). Kinds with a draft
-// phase (epic, milestone) are unaffected; their placeholder-then-fill
-// workflow and the milestone/AC lifecycle-gated warning stay exactly
-// as they were.
+// requireCompleteBody refuses to create an entity whose resolved body
+// fails one of the two ways a required section can be missing, and
+// returns the sections at fault named in the refusal.
 //
-// opts.Force bypasses the gate as a sovereign override, mirroring
-// `aiwf promote --force --reason`; the CLI dispatcher is responsible
-// for requiring a non-empty opts.Reason whenever Force is set.
+// The two halves have different scopes, because the workflows they
+// have to leave alone are different.
+//
+// Absence — a required heading not in the body at all — is refused for
+// every kind carrying a required set. No kind is meant to land without
+// its headings: the scaffold that seeds every kind writes all of them,
+// so this is reachable only from an explicit --body/--body-file, and
+// `aiwf edit-body` refuses the same shape at the same severity. Left
+// unchecked here, the same bytes would be refused at one seam and
+// accepted at the other (G-0571).
+//
+// Emptiness — a required heading present with no prose under it — is
+// refused only for born-complete kinds (gap, decision, adr, contract —
+// entity.IsBornComplete; no draft phase, live and referenceable the
+// instant the create commit lands), per check.EmptyRequiredSections,
+// the same emptiness test the entity-body-empty check rule applies
+// (G-0326). Epic and milestone have a draft phase, and their
+// placeholder-then-fill workflow lands a scaffold whose headings are
+// all empty by design.
+//
+// opts.Force bypasses both as a sovereign override, mirroring `aiwf
+// promote --force --reason`; the CLI dispatcher is responsible for
+// requiring a non-empty opts.Reason whenever Force is set.
 //
 // Returns bypassed=true only when a real refusal was actually
-// overridden — kind is born-complete AND the body would otherwise
-// have failed the gate. On any other combination (kind has no gate,
-// or the body was already non-empty) bypassed is false even if
-// opts.Force is set: --force is a no-op there, and the caller uses
-// bypassed to decide whether the create commit may honestly claim a
-// sovereign override happened (the aiwf-force trailer, the commit
-// body carrying opts.Reason). A no-op --force must not fabricate that
-// provenance record.
-func requireNonEmptyBornCompleteBody(id string, kind entity.Kind, body []byte, opts AddOptions) (bypassed bool, err error) {
-	if !entity.IsBornComplete(kind) {
-		return false, nil
+// overridden — the body would otherwise have failed one of the two
+// halves. On any other combination bypassed is false even if opts.Force
+// is set: --force is a no-op there, and the caller uses bypassed to
+// decide whether the create commit may honestly claim a sovereign
+// override happened (the aiwf-force trailer, the commit body carrying
+// opts.Reason). A no-op --force must not fabricate that provenance
+// record.
+func requireCompleteBody(id string, kind entity.Kind, body []byte, opts AddOptions) (bypassed bool, err error) {
+	absent := check.AbsentRequiredSections(kind, body)
+	var empty []string
+	if entity.IsBornComplete(kind) {
+		empty = check.EmptyRequiredSections(kind, body)
 	}
-	empty := check.EmptyRequiredSections(kind, body)
-	if len(empty) == 0 {
+	if len(absent) == 0 && len(empty) == 0 {
 		return false, nil
 	}
 	if opts.Force {
 		return true, nil
 	}
-	headings := make([]string, len(empty))
-	for i, name := range empty {
-		headings[i] = "`## " + name + "`"
+	if len(absent) > 0 {
+		// No promise that `aiwf check` will block until this is fixed:
+		// entity-body-empty judges a section present and empty and skips
+		// one that is not there, so for this half the check reports
+		// nothing. Deleting the heading is exactly how an operator
+		// satisfies the emptiness refusal below, which is why the two
+		// messages must not say the same thing.
+		return false, fmt.Errorf(
+			"%s: body omits required section(s) %s — add the heading with real prose under it, or --force --reason \"...\" to create anyway",
+			id, quotedHeadings(absent),
+		)
 	}
 	return false, fmt.Errorf(
 		"%s: empty load-bearing body section(s) %s; %s %s is referenceable the instant this commit lands, so its body must carry meaning at creation — pass --body \"...\" or --body-file <path> with real prose, or --force --reason \"...\" to create anyway (aiwf check will still flag it at error severity and the pre-push hook will still block until it's filled in)",
-		id, strings.Join(headings, ", "), articleFor(kind), kind,
+		id, quotedHeadings(empty), articleFor(kind), kind,
 	)
+}
+
+// quotedHeadings renders section names as the `## Name` form every
+// operator-facing message about a body section uses, comma-separated.
+func quotedHeadings(names []string) string {
+	out := make([]string, len(names))
+	for i, name := range names {
+		out[i] = "`## " + name + "`"
+	}
+	return strings.Join(out, ", ")
 }
 
 // articleFor returns "an" for a kind spoken letter-by-letter with a
 // leading vowel sound (adr → "A-D-R"), "a" otherwise. Purely a
-// grammar nicety for requireNonEmptyBornCompleteBody's error message.
+// grammar nicety for requireCompleteBody's error message.
 func articleFor(kind entity.Kind) string {
 	if kind == entity.KindADR {
 		return "an"

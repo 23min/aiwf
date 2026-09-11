@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"slices"
 
 	"github.com/23min/aiwf/internal/check"
 	"github.com/23min/aiwf/internal/entity"
@@ -68,16 +69,26 @@ func editBodyExplicit(ctx context.Context, t *tree.Tree, e *entity.Entity, body 
 		return nil, fmt.Errorf("--body-file: %w", err)
 	}
 
+	// Three guards below ask about the committed version and the working
+	// copy, so both are read once here and passed down rather than fetched
+	// per guard — each ReadFromHEAD is a git subprocess.
+	headBytes, err := gitops.ReadFromHEAD(ctx, t.Root, filepath.ToSlash(e.Path))
+	if err != nil {
+		//coverage:ignore defensive: ReadFromHEAD maps a missing path to (nil, nil); a non-nil error needs git absent or a broken workdir, matching the same arm in editBodyBless
+		return nil, fmt.Errorf("reading HEAD version of %s: %w", e.Path, err)
+	}
+	diskBytes, err := os.ReadFile(filepath.Join(t.Root, e.Path))
+	if err != nil {
+		//coverage:ignore defensive: the loader read this same path moments ago to build e, so a failure here needs the file to vanish mid-verb
+		return nil, fmt.Errorf("reading working copy of %s: %w", e.Path, err)
+	}
+
 	// The frontmatter this write carries is re-serialized from a tree
 	// loaded off disk, so a hand-edited field would ride into the commit
 	// under `aiwf-verb: edit-body` and be attributed to a body edit
-	// (G-0463). Both modes are body-only; both refuse the same way.
-	diverged, err := workingFrontmatterDiverged(ctx, t.Root, e.Path)
-	if err != nil {
-		//coverage:ignore defensive: the loader read this same path moments ago to build e, so a failure here needs the file to vanish or git to break mid-verb
-		return nil, err
-	}
-	if diverged {
+	// (G-0463). Both modes are body-only; both refuse the same way. An
+	// entity with no committed version has nothing to diverge from.
+	if headBytes != nil && !entity.SameFrontmatterFields(headBytes, diskBytes) {
 		return nil, errFrontmatterChangedInWorkingCopy(e.ID)
 	}
 
@@ -97,12 +108,7 @@ func editBodyExplicit(ctx context.Context, t *tree.Tree, e *entity.Entity, body 
 	// Converging is sound only once the requested content is what BOTH git and
 	// the operator would see, which is why this settles nothing on its own and
 	// defers to explicitBodySettled below.
-	settled, err := explicitBodySettled(ctx, t, e, content)
-	if err != nil {
-		//coverage:ignore defensive: explicitBodySettled errors only from its own two annotated-unreachable arms (a git failure reading HEAD, or the loader's own file gone missing mid-verb), so this propagation is unreachable for the same reasons
-		return nil, err
-	}
-	if settled {
+	if explicitBodySettled(content, headBytes, diskBytes) {
 		return &Result{
 			NoOp:        true,
 			NoOpMessage: fmt.Sprintf("%s: HEAD already carries this body; nothing to commit", e.ID),
@@ -112,6 +118,14 @@ func editBodyExplicit(ctx context.Context, t *tree.Tree, e *entity.Entity, body 
 	proj := projectReplace(t, &modified, filepath.ToSlash(e.Path))
 	if fs := projectionFindings(t, proj); check.HasErrors(fs) {
 		return findings(fs), nil
+	}
+
+	// A required section the body omits entirely is invisible to
+	// entity-body-empty, which judges only one present and empty, so without
+	// this the section is lost with nothing red (G-0571).
+	_, headBody, _ := entity.Split(headBytes)
+	if dropped := sectionsDroppedSince(e.Kind, headBody, body); len(dropped) > 0 {
+		return nil, errSectionsDropped(e.ID, dropped)
 	}
 
 	// G-0184 verb-time scan: vet the new body bytes for malformed or
@@ -139,28 +153,9 @@ func errFrontmatterChangedInWorkingCopy(id string) error {
 	return fmt.Errorf("%s: frontmatter changed in the working copy — `aiwf edit-body` is body-only by design; use `aiwf promote` / `aiwf rename` / `aiwf cancel` / `aiwf reallocate` for structured-state edits", id)
 }
 
-// workingFrontmatterDiverged reports whether the working copy at relPath
-// carries frontmatter differing from HEAD's. An entity with no committed
-// version has nothing to diverge from, so it reports false and explicit
-// mode keeps working for a file that exists only in the working tree.
-func workingFrontmatterDiverged(ctx context.Context, root, relPath string) (bool, error) {
-	headBytes, err := gitops.ReadFromHEAD(ctx, root, filepath.ToSlash(relPath))
-	if err != nil { //coverage:ignore defensive: ReadFromHEAD maps a missing path to (nil, nil); a non-nil error needs git absent or a broken workdir, matching the same arm in editBodyBless
-		return false, fmt.Errorf("reading HEAD version of %s: %w", relPath, err)
-	}
-	if headBytes == nil {
-		return false, nil
-	}
-	diskBytes, err := os.ReadFile(filepath.Join(root, relPath))
-	if err != nil { //coverage:ignore defensive: the loader read this same path to build the entity moments earlier
-		return false, fmt.Errorf("reading working copy of %s: %w", relPath, err)
-	}
-	return !entity.SameFrontmatterFields(headBytes, diskBytes), nil
-}
-
 // explicitBodySettled reports whether writing content would change nothing an
-// operator or git can observe: the committed bytes at HEAD and the bytes on
-// disk both already equal it.
+// operator or git can observe: the committed bytes and the bytes on disk both
+// already equal it.
 //
 // Both comparisons are load-bearing, and either one alone is wrong in a way
 // that loses work:
@@ -178,24 +173,47 @@ func workingFrontmatterDiverged(ctx context.Context, root, relPath string) (bool
 // because entity.Serialize re-canonicalizes frontmatter: a byte-identical body
 // over non-canonical frontmatter still has a real write to make.
 //
-// An entity with no committed version yet (headBytes nil) is never settled, so
+// An entity with no committed version yet (head nil) is never settled, so
 // explicit mode keeps working for a file that exists only in the working tree —
 // which is exactly the case bless mode refuses and redirects here.
-func explicitBodySettled(ctx context.Context, t *tree.Tree, e *entity.Entity, content []byte) (bool, error) {
-	headBytes, err := gitops.ReadFromHEAD(ctx, t.Root, filepath.ToSlash(e.Path))
-	if err != nil {
-		//coverage:ignore defensive: ReadFromHEAD maps a missing path to (nil, nil); a non-nil error needs git absent or a broken workdir, matching the same arm in editBodyBless
-		return false, fmt.Errorf("reading HEAD version of %s: %w", e.Path, err)
+func explicitBodySettled(content, head, disk []byte) bool {
+	return head != nil && bytes.Equal(content, head) && bytes.Equal(content, disk)
+}
+
+// sectionsDroppedSince returns the sections kind k requires that head
+// carries and next does not, in the kind's canonical order. Both of
+// edit-body's modes ask it, so the same edit is judged the same way
+// whether it arrives as supplied bytes or as a working-copy edit.
+//
+// What it asks is whether this write makes the body worse, not whether
+// the result is complete. Completeness is `aiwf add`'s to demand,
+// because a new entity has no history to be held to; an edit does, and
+// an operator changing one section should not be refused over an
+// omission they did not introduce. Demanding it here would instead lock
+// every entity already missing a section against its own edit verb,
+// which offers no --force to get back out.
+//
+// A nil head — an entity with no committed version — carries nothing to
+// drop, so no write regresses against it.
+func sectionsDroppedSince(k entity.Kind, head, next []byte) []string {
+	nextAbsent := check.AbsentRequiredSections(k, next)
+	if len(nextAbsent) == 0 {
+		return nil
 	}
-	if headBytes == nil || !bytes.Equal(content, headBytes) {
-		return false, nil
+	headAbsent := check.AbsentRequiredSections(k, head)
+	var dropped []string
+	for _, name := range nextAbsent {
+		if !slices.Contains(headAbsent, name) {
+			dropped = append(dropped, name)
+		}
 	}
-	diskBytes, err := os.ReadFile(filepath.Join(t.Root, e.Path))
-	if err != nil {
-		//coverage:ignore defensive: the loader just read this same path to build e, so it is present and readable by the time this runs
-		return false, fmt.Errorf("reading working copy of %s: %w", e.Path, err)
-	}
-	return bytes.Equal(content, diskBytes), nil
+	return dropped
+}
+
+// errSectionsDropped is the refusal both edit-body modes raise when a
+// write would remove a required section the committed body carries.
+func errSectionsDropped(id string, dropped []string) error {
+	return fmt.Errorf("%s: this write drops required section(s) %s the committed body carries — restore the heading before committing", id, quotedHeadings(dropped))
 }
 
 // editBodyBless covers the M-060 path: the user already edited the
@@ -229,7 +247,7 @@ func editBodyBless(ctx context.Context, t *tree.Tree, e *entity.Entity, actor, r
 	if !ok {
 		return nil, fmt.Errorf("%s working copy lacks a frontmatter delimiter; cannot bless without an anchor", e.Path)
 	}
-	headFM, _, ok := entity.Split(headBytes)
+	headFM, headBody, ok := entity.Split(headBytes)
 	if !ok {
 		return nil, fmt.Errorf("%s HEAD version lacks a frontmatter delimiter; the file was committed without one — fix the HEAD version with a structured-state verb first", e.Path)
 	}
@@ -238,6 +256,9 @@ func editBodyBless(ctx context.Context, t *tree.Tree, e *entity.Entity, actor, r
 	}
 	if err := validateUserBodyBytes(workingBody); err != nil {
 		return nil, fmt.Errorf("on-disk body of %s: %w", e.Path, err)
+	}
+	if dropped := sectionsDroppedSince(e.Kind, headBody, workingBody); len(dropped) > 0 {
+		return nil, errSectionsDropped(e.ID, dropped)
 	}
 
 	// Projection check uses *e (no in-memory frontmatter mutation —

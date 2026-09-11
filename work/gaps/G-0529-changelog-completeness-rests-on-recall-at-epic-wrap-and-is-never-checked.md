@@ -1,9 +1,11 @@
 ---
 id: G-0529
 title: CHANGELOG completeness rests on recall at epic wrap and is never checked
-status: open
+status: addressed
 priority: medium
 discovered_in: E-0078
+addressed_by_commit:
+    - c972f4874
 ---
 ## Problem
 

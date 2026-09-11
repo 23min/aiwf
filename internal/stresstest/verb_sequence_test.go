@@ -52,7 +52,7 @@ func TestVerbSequenceScenario_RealBinary_LegalTransitionSucceedsWithOneCommit(t 
 	dir := newVerbSequenceTestRepo(t)
 	s := &VerbSequenceScenario{aiwfBin: bin}
 
-	addEnv, err := runAiwfJSON(s.aiwfBin, dir, "add", "adr", "--title", "t", "--body", "b")
+	addEnv, err := runAiwfJSON(s.aiwfBin, dir, "add", "adr", "--title", "t", "--body", sectionedBody("adr", "b"))
 	if err != nil {
 		t.Fatalf("add adr: %v", err)
 	}
@@ -102,7 +102,7 @@ func TestVerbSequenceScenario_RealBinary_SameStatusIsANoOpWithNoCommit(t *testin
 	dir := newVerbSequenceTestRepo(t)
 	s := &VerbSequenceScenario{aiwfBin: bin}
 
-	addEnv, err := runAiwfJSON(s.aiwfBin, dir, "add", "adr", "--title", "t", "--body", "b")
+	addEnv, err := runAiwfJSON(s.aiwfBin, dir, "add", "adr", "--title", "t", "--body", sectionedBody("adr", "b"))
 	if err != nil {
 		t.Fatalf("add adr: %v", err)
 	}
@@ -152,7 +152,7 @@ func TestVerbSequenceScenario_RealBinary_IllegalTransitionRefusedAsFSMIllegal(t 
 	dir := newVerbSequenceTestRepo(t)
 	s := &VerbSequenceScenario{aiwfBin: bin}
 
-	addEnv, err := runAiwfJSON(s.aiwfBin, dir, "add", "adr", "--title", "t", "--body", "b")
+	addEnv, err := runAiwfJSON(s.aiwfBin, dir, "add", "adr", "--title", "t", "--body", sectionedBody("adr", "b"))
 	if err != nil {
 		t.Fatalf("add adr: %v", err)
 	}
@@ -195,7 +195,7 @@ func TestVerbSequenceScenario_RealBinary_LegalTransitionRefusedByOrthogonalBusin
 	dir := newVerbSequenceTestRepo(t)
 	s := &VerbSequenceScenario{aiwfBin: bin}
 
-	addEnv, err := runAiwfJSON(s.aiwfBin, dir, "add", "gap", "--title", "t", "--body", "b")
+	addEnv, err := runAiwfJSON(s.aiwfBin, dir, "add", "gap", "--title", "t", "--body", sectionedBody("gap", "b"))
 	if err != nil {
 		t.Fatalf("add gap: %v", err)
 	}
@@ -321,7 +321,7 @@ func TestVerbSequenceScenario_RealBinary_StepRenameSucceeds(t *testing.T) {
 	dir := newVerbSequenceTestRepo(t)
 	s := &VerbSequenceScenario{aiwfBin: bin}
 
-	addEnv, err := runAiwfJSON(s.aiwfBin, dir, "add", "adr", "--title", "t", "--body", "b")
+	addEnv, err := runAiwfJSON(s.aiwfBin, dir, "add", "adr", "--title", "t", "--body", sectionedBody("adr", "b"))
 	if err != nil {
 		t.Fatalf("add adr: %v", err)
 	}
@@ -348,7 +348,7 @@ func TestVerbSequenceScenario_RealBinary_StepRetitleSucceeds(t *testing.T) {
 	dir := newVerbSequenceTestRepo(t)
 	s := &VerbSequenceScenario{aiwfBin: bin}
 
-	addEnv, err := runAiwfJSON(s.aiwfBin, dir, "add", "adr", "--title", "t", "--body", "b")
+	addEnv, err := runAiwfJSON(s.aiwfBin, dir, "add", "adr", "--title", "t", "--body", sectionedBody("adr", "b"))
 	if err != nil {
 		t.Fatalf("add adr: %v", err)
 	}
@@ -397,7 +397,7 @@ func TestVerbSequenceScenario_RealBinary_StepArchiveSweepsATerminalEntity(t *tes
 	dir := newVerbSequenceTestRepo(t)
 	s := &VerbSequenceScenario{aiwfBin: bin}
 
-	addEnv, err := runAiwfJSON(s.aiwfBin, dir, "add", "adr", "--title", "t", "--body", "b")
+	addEnv, err := runAiwfJSON(s.aiwfBin, dir, "add", "adr", "--title", "t", "--body", sectionedBody("adr", "b"))
 	if err != nil {
 		t.Fatalf("add adr: %v", err)
 	}
@@ -436,17 +436,17 @@ func TestVerbSequenceScenario_RealBinary_StepMoveRelocatesAndAlternates(t *testi
 	dir := newVerbSequenceTestRepo(t)
 	s := &VerbSequenceScenario{aiwfBin: bin}
 
-	epicAEnv, err := runAiwfJSON(s.aiwfBin, dir, "add", "epic", "--title", "epic a", "--body", "b")
+	epicAEnv, err := runAiwfJSON(s.aiwfBin, dir, "add", "epic", "--title", "epic a", "--body", sectionedBody("epic", "b"))
 	if err != nil {
 		t.Fatalf("add epic a: %v", err)
 	}
 	epicA := epicAEnv.Metadata.EntityID
-	epicBEnv, err := runAiwfJSON(s.aiwfBin, dir, "add", "epic", "--title", "epic b", "--body", "b")
+	epicBEnv, err := runAiwfJSON(s.aiwfBin, dir, "add", "epic", "--title", "epic b", "--body", sectionedBody("epic", "b"))
 	if err != nil {
 		t.Fatalf("add epic b: %v", err)
 	}
 	epicB := epicBEnv.Metadata.EntityID
-	msEnv, err := runAiwfJSON(s.aiwfBin, dir, "add", "milestone", "--epic", epicA, "--tdd", "none", "--title", "m", "--body", "b")
+	msEnv, err := runAiwfJSON(s.aiwfBin, dir, "add", "milestone", "--epic", epicA, "--tdd", "none", "--title", "m", "--body", sectionedBody("milestone", "b"))
 	if err != nil {
 		t.Fatalf("add milestone: %v", err)
 	}
@@ -494,11 +494,11 @@ func TestVerbSequenceScenario_RealBinary_StepTDDFlipsPolicy(t *testing.T) {
 	dir := newVerbSequenceTestRepo(t)
 	s := &VerbSequenceScenario{aiwfBin: bin, rng: rand.New(rand.NewPCG(1, 1))}
 
-	epicEnv, err := runAiwfJSON(s.aiwfBin, dir, "add", "epic", "--title", "epic a", "--body", "b")
+	epicEnv, err := runAiwfJSON(s.aiwfBin, dir, "add", "epic", "--title", "epic a", "--body", sectionedBody("epic", "b"))
 	if err != nil {
 		t.Fatalf("add epic: %v", err)
 	}
-	msEnv, err := runAiwfJSON(s.aiwfBin, dir, "add", "milestone", "--epic", epicEnv.Metadata.EntityID, "--tdd", "none", "--title", "m", "--body", "b")
+	msEnv, err := runAiwfJSON(s.aiwfBin, dir, "add", "milestone", "--epic", epicEnv.Metadata.EntityID, "--tdd", "none", "--title", "m", "--body", sectionedBody("milestone", "b"))
 	if err != nil {
 		t.Fatalf("add milestone: %v", err)
 	}
@@ -543,17 +543,17 @@ func TestVerbSequenceScenario_RealBinary_WalkDispatchesEveryOperation(t *testing
 	bin := sharedTestBinary(t)
 	dir := newVerbSequenceTestRepo(t)
 
-	epicAEnv, err := runAiwfJSON(bin, dir, "add", "epic", "--title", "epic a", "--body", "b")
+	epicAEnv, err := runAiwfJSON(bin, dir, "add", "epic", "--title", "epic a", "--body", sectionedBody("epic", "b"))
 	if err != nil {
 		t.Fatalf("add epic a: %v", err)
 	}
 	epicA := epicAEnv.Metadata.EntityID
-	epicBEnv, err := runAiwfJSON(bin, dir, "add", "epic", "--title", "epic b", "--body", "b")
+	epicBEnv, err := runAiwfJSON(bin, dir, "add", "epic", "--title", "epic b", "--body", sectionedBody("epic", "b"))
 	if err != nil {
 		t.Fatalf("add epic b: %v", err)
 	}
 	epicB := epicBEnv.Metadata.EntityID
-	msEnv, err := runAiwfJSON(bin, dir, "add", "milestone", "--epic", epicA, "--tdd", "none", "--title", "m", "--body", "b")
+	msEnv, err := runAiwfJSON(bin, dir, "add", "milestone", "--epic", epicA, "--tdd", "none", "--title", "m", "--body", sectionedBody("milestone", "b"))
 	if err != nil {
 		t.Fatalf("add milestone: %v", err)
 	}

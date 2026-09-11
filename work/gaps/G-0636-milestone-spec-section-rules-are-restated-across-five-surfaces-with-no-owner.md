@@ -1,7 +1,9 @@
 ---
 id: G-0636
 title: Milestone-spec section rules are restated across five surfaces with no owner
-status: open
+status: addressed
+addressed_by_commit:
+    - 94a97fa8694bfb0aff78271612830f2dcb0e90f8
 ---
 ## What's missing
 

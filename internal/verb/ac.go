@@ -524,7 +524,7 @@ func acHeadingExists(body []byte, acID string) bool {
 // This keeps the new heading inside entity_body.go's scanH2Sections
 // window for that section. Appending at absolute body-end put it past
 // any sections a template places after Acceptance criteria (Constraints,
-// Work log, …), which made entity-body-empty fire on a populated AC
+// Design notes, …), which made entity-body-empty fire on a populated AC
 // section forever (G-0364).
 //
 // Falls back to a plain body-end append when body has no recognizable

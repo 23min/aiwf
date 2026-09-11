@@ -193,7 +193,7 @@ func launchAddIn(aiwfBin, dir string, kind entity.Kind, title string) rawAddResu
 	cmd := exec.Command(aiwfBin, //nolint:gosec // aiwfBin is a path this package's own BuildBinary just produced, not attacker-controlled input
 		"add", string(kind),
 		"--title", title,
-		"--body", "cross-worktree id-race stress actor",
+		"--body", sectionedBody(string(kind), "cross-worktree id-race stress actor"),
 		"--format=json",
 	)
 	cmd.Dir = dir

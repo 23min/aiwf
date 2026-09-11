@@ -24,7 +24,7 @@ If the milestone isn't actually done — failing tests, unmet ACs, broken build 
 - Run the project's build. **Green.**
 - Run the project's full lint gate — the same linter set CI runs on push (e.g. a `make ci` target), not a subset like `go vet` alone. **Clean.** Unpushed branches accumulate lint debt invisibly; the wrap is the cheap moment to catch it.
 - **Read the spec's `## Closes` section first.** It lists the gaps this milestone recorded at start as the ones it sets out to resolve, and it is the worklist. Being a named heading, it is addressable rather than only readable — `aiwf show M-NNNN --format json` carries body sections keyed by heading slug.
-- Then sweep the body (Goal/Context prose, AC descriptions, `## References`) for a gap this work fixed that never reached that list — an opportunistic fix, or a milestone started before the section existed. The sweep is the residue, not the primary source; anything it turns up is added to `## Closes` so the record matches what happened. Distinguish both from a gap merely referenced for background, or one the spec *discovered* here and is deliberately leaving open (that one belongs in `## Deferrals`, step 4, not here — promoting it would be wrong). For each gap to close, confirm the implementing AC and its commit SHA from the `## Work log`. These become the `aiwf promote G-NNNN addressed --by-commit <sha>` calls in step 13.
+- Then sweep the body (Goal/Context prose, AC descriptions, `## References`) for a gap this work fixed that never reached that list — an opportunistic fix, or a milestone started before the section existed. The sweep is the residue, not the primary source; anything it turns up is added to `## Closes` so the record matches what happened. Distinguish both from a gap this work merely touched, which `aiwfx-start-milestone` step 1 keeps out of the section in the first place. For each gap to close, confirm the implementing AC and its commit SHA from `aiwf history M-NNNN/AC-<N>`. These become the `aiwf promote G-NNNN addressed --by-commit <sha>` calls in step 13. A gap this work advanced without finishing is not among them: correct its claim to say what landed and what remains, rather than closing it to clear the list — the `aiwf-promote` skill states how to close against what the resolver actually satisfied.
 
 If anything is red, stop and report. Wrap does not paper over failure.
 
@@ -32,7 +32,9 @@ If anything is red, stop and report. Wrap does not paper over failure.
 
 This gates milestone *closure*, not the per-commit work: the implementation commits are already in, but the milestone is not yet wrapped, so there is still a chance to fix things *inside* the milestone. Findings become corrective commits on the milestone branch — before any AC flips to `met` and before the commit gate (step 7). The review feeds the human gate; it does not replace it.
 
-**Point the review at the spec's evidence, not only at the code.** Before dispatching, bring `## Work log`, `## Validation` and `## Deferrals` up to date and commit them with `aiwf edit-body M-NNNN`, so the reviewer reads them from the tree and the spec is not left dirty across step 2's corrective commits. Then name all three in the brief: a section met as part of a diff gets skimmed as source, and these are claims — the archived spec is what a later reader consults for what this milestone established, and no gate checks prose.
+**Point the review at the spec's evidence, not only at the code.** Before dispatching, bring `## Release note`, `## Validation` and `## Deferrals` up to date and commit them with `aiwf edit-body M-NNNN`, so the reviewer reads them from the tree and the spec is not left dirty across step 2's corrective commits. Then name all three in the brief: a section met as part of a diff gets skimmed as source, and these are claims — the archived spec is what a later reader consults for what this milestone established, and no gate checks prose.
+
+`## Release note` is the input to the text that leaves the repository. The epic wrap composes its changelog entry from these notes and copies that entry verbatim into the changelog, so this is the only independent read the note itself gets. Brief the reviewer to check it against what the diff actually changed, in the terms a consumer would notice.
 
 Dispatch a **fresh-context reviewer** (a subagent with no authorship attachment) over the milestone's full change-set (`git diff <base>..HEAD`), briefed adversarially per `wf-review-code` §"Independence" (enumerate the load-bearing claims, instruct *verify by measuring not reasoning*, name the risk areas). Run two lenses:
 
@@ -79,14 +81,21 @@ If the report is clean, note "doc-lint: clean" and continue. If findings:
 
 ### 4. Finalize the milestone spec's wrap-side sections
 
-`## Work log`, `## Validation` and `## Deferrals` went through the review at step 2. Confirm each still reads true after any corrective commits, and update it where one changed the answer.
+The sections a spec gains after it is authored divide between this ritual and the start, each stating when its own are written and what they hold:
+
+- `aiwfx-start-milestone` — `## Closes`, `## Decisions made during implementation`, `## Deferrals`
+- `aiwfx-wrap-milestone` — `## Release note`, `## Validation`, `## Reviewer notes`
+
+This ritual's three are covered below. The start's are confirmed here, not re-specified.
+
+`## Release note`, `## Validation` and `## Deferrals` went through the review at step 2. Confirm each still reads true after any corrective commits, and update it where one changed the answer.
 
 Anything you add or change in the spec from here lands after the deciding review. Unless something sends you back through that review, no independent reader sees it — and the outcome you record in `## Reviewer notes` cannot be read by the review it records, whatever else happens. Write accordingly: nothing downstream will catch a claim made here.
 
-- `## Work log` — confirm one entry per AC with the final outcome and commit SHA. The phase timeline is in `aiwf history M-NNNN/AC-<N>`; don't duplicate dates here.
+- `## Release note` — this milestone's user-visible delta, written for someone reading release notes who will never see this spec: what a consumer can now do, or what changed under them. One short paragraph, or one line per user-facing change. Not the account of how it was built, and not the epic's summary, which the epic wrap writes. Confirm it still describes what a consumer will observe after any corrective commits from step 2. A milestone that changed nothing user-facing writes that in those words; the section is never left blank. `aiwf check` reports a blank one once the milestone is `done`, which is a report rather than a gate — nothing downstream refuses it.
 - `## Decisions made during implementation` — confirm every mid-flight decision is captured (each should already have an `ADR-NNNN` or `D-NNNN` from `aiwfx-record-decision` invocations during work).
-- `## Validation` — confirm the step 1 gate results you committed at step 2 still hold; re-paste them if a corrective commit changed the answer.
-- `## Deferrals` — confirm the list covers every piece of work this milestone deliberately punted. Before opening a gap for one, apply the **cheap-fix test**: if the change is small, lands in a file this milestone already touches, and is covered by a test you are already writing, **make it now as a corrective commit on the milestone branch** — the same route step 2's review fixes take, so it lands before the wrap commit rather than dirtying it — then record it under `## Reviewer notes`. If it touched source or tests, re-run step 1's gates. Re-enter step 2's scoped confirmation whenever the fix touched source, tests, or one of the evidence sections that review read, committing a changed section with `aiwf edit-body M-NNNN` first as step 2 did, so the re-dispatched reviewer's diff carries it and the spec is not left dirty for the verbs that follow. What lands after the deciding review is unread, whether it is code or a claim about it. A gap is for work that needs its own branch, its own review, or a decision you are not ready to make. For each deferral that survives the test, **open a gap entity** so it survives:
+- `## Validation` — the step 1 gate results, pasted at wrap: test-suite output, the build, and any project-specific lint or type-check. Nothing during implementation writes it. Confirm the results you committed at step 2 still hold; re-paste them if a corrective commit changed the answer.
+- `## Deferrals` — confirm the list covers every piece of work this milestone deliberately punted. Apply `aiwfx-start-milestone`'s **cheap-fix test** before opening a gap for one, as during implementation; what differs at wrap is where the fix lands: **make it now as a corrective commit on the milestone branch** — the same route step 2's review fixes take, so it lands before the wrap commit rather than dirtying it — then record it under `## Reviewer notes`. If it touched source or tests, re-run step 1's gates. Re-enter step 2's scoped confirmation whenever the fix touched source, tests, or one of the evidence sections that review read, committing a changed section with `aiwf edit-body M-NNNN` first as step 2 did, so the re-dispatched reviewer's diff carries it and the spec is not left dirty for the verbs that follow. What lands after the deciding review is unread, whether it is code or a claim about it. A gap is for work that needs its own branch, its own review, or a decision you are not ready to make. For each deferral that survives the test, **open a gap entity** so it survives:
 
   ```bash
   aiwf add gap --title "<deferred-work>" --discovered-in M-NNNN
@@ -124,7 +133,7 @@ Draft a conventional commit message: `feat(<scope>): <one-line summary> (M-NNNN)
 Show the user:
 - `git diff --staged --stat`
 - The proposed commit message.
-- A summary of what landed: AC count green, doc-lint summary, deferrals opened (with gap ids), and a pointer to the per-AC implementation commits already on the branch (their SHAs are in the Work log — this commit adds no source or test files, only the wrap-side spec prose).
+- A summary of what landed: AC count green, doc-lint summary, deferrals opened (with gap ids), and a pointer to the per-AC implementation commits already on the branch (`aiwf history M-NNNN/AC-<N>` lists each — this commit adds no source or test files, only the wrap-side spec prose).
 
 **Stop and wait for explicit "commit" approval.**
 
@@ -243,8 +252,6 @@ The trailer keys are exact — `aiwf-verb`, `aiwf-entity`, `aiwf-actor`. Variant
 
 **Why an `aiwf-verb` trailer on a `git merge` commit.** The merge IS a kernel-meaningful structural transition (the milestone's work joins the epic's history); `aiwf-verb: wrap-milestone` records the *ritual* that produced it, not the underlying git operation. **Do NOT** write `aiwf-verb: merge` — `merge` is neither a Cobra verb nor an allowlisted ritual value; the `commit-msg` git hook materialized by `aiwf init` / `aiwf update` (the primary chokepoint) refuses the commit at message-composition time with a named-value error pointing at the canonical `aiwf-verb: wrap-milestone` shape. Historical commits authored before the hook landed are still surfaced by the `trailer-verb-unknown` rule at pre-push, with two cleanup paths (`aiwf acknowledge illegal <sha>` or push the warning forward, since amend is blocked by the trunk-aware push model).
 
-Record the resulting merge commit SHA wherever the project tracks merge history (the milestone's `## Work log` section is the natural place).
-
 ### 13. Promote the milestone to `done`
 
 If step 1 identified any gap this milestone's own body explicitly claims to fix, close each one first — before the milestone's own promote-to-`done` step below, which ends a delegated milestone's authorize scope. A verb-driven commit produced after that point risks an ended-scope `aiwf-authorized-by:` trailer on push (the same hazard `aiwfx-wrap-epic`'s promote-last ordering exists to avoid, applied here to the reverse ordering problem: gap closure must come *before* the scope-ending act, not after it):
@@ -328,8 +335,8 @@ After the declared-sequence gate, finish up. The origin-branch delete is an **ou
 - 🛑 **The terminal local sequence — local merge, promote-done (including any gap tracker closure it triggers), roadmap regen, local cleanup — runs under one declared-sequence gate (step 10)**, enumerated verbatim and subset-approvable. Push and any origin-branch delete are outward and excluded; they keep their own gates.
 - All ACs must be green before wrap proceeds. Wrap does not bury failure.
 - Branch-coverage hard rule applies — re-run the audit if any code changed since `aiwfx-start-milestone`'s readiness check.
-- Deferrals that survive the cheap-fix test must be captured as gaps. Don't leave deferred work as a `## Deferrals` bullet that nothing else points at — and don't file a gap for a change you could have made inline while you were already in the file.
-- A gap this milestone's own body claims to fix must be closed at wrap (step 13) — `aiwf promote G-NNNN addressed --by-commit <sha>`, before the milestone's own promote-done. Don't leave the tracker silently overstating what's still open.
+- Deferrals are captured as `aiwfx-start-milestone` step 6 requires — the cheap-fix test decides, and what survives it becomes a gap entity.
+- A gap this milestone's own body claims to fix is settled at wrap (step 13) — closed with `aiwf promote G-NNNN addressed --by-commit <sha>` before the milestone's own promote-done, or, where the work advanced it without finishing it, its claim corrected to say what landed. Don't leave the tracker silently overstating what's still open, and don't close a partly-addressed gap to clear the list.
 
 ## Anti-patterns
 

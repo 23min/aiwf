@@ -135,7 +135,7 @@
 <td>{{.Date}}</td>
 <td>{{.Verb}}{{if .To}} → {{.To}}{{end}}</td>
 <td>{{.Detail}}</td>
-<td>{{if .Principal}}{{.Principal}} via {{end}}{{.Actor}}</td>
+<td>{{.Actor}}</td>
 </tr>
 {{- end}}
 </tbody>
@@ -175,7 +175,7 @@
 <li>
 <span class="date">{{.Date}}</span>
 <span class="verb">{{.Verb}}{{if .To}} → {{.To}}{{end}}</span>
-<span class="actor">{{if .Principal}}{{.Principal}} via {{end}}{{.Actor}}</span>
+<span class="actor">{{.Actor}}</span>
 {{- if .AuthorizedBy}} <span class="scope-chip">scope <code>{{slice .AuthorizedBy 0 8}}</code></span>{{end}}
 {{- if .Force}} <span class="force">forced{{if .ForceReason}}: {{.ForceReason}}{{end}}</span>{{end}}
 {{- if .AuditOnly}} <span class="audit">audit-only{{if .AuditReason}}: {{.AuditReason}}{{end}}</span>{{end}}

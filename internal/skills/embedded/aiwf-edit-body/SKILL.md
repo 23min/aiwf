@@ -42,11 +42,14 @@ Reach for `--body-file` only when the body content is produced *outside* the wor
 - **No diff**: refuses with "no changes to commit" rather than producing an empty commit.
 - **Frontmatter changed**: refuses and points at `aiwf promote` / `aiwf rename` / `aiwf cancel` / `aiwf reallocate`. Both modes are body-only by design; structured-state edits go through their own verbs.
 - **New entity (no HEAD version)**: refuses with a pointer to `aiwf add --body-file` for create-time body content.
+- **A required section dropped**: refuses when the write would remove a `## <Section>` the committed body carries, naming it. Both modes apply this, so the same edit is judged the same way whichever route it takes. The rule is non-regression, not completeness — an entity whose committed body already omits a section stays editable, so an author changing one section is never refused over an omission they did not introduce. There is no `--force`; if the removal is deliberate, commit it directly and record the exception with `aiwf acknowledge illegal <sha> --for-entity <id> --reason "..."`.
 - **YAML formatting preserved**: bless mode commits the working-copy bytes verbatim — key order, comments, and whitespace from the user's edit are not re-canonicalized through the loader. (Explicit mode does re-serialize through `entity.Serialize`, which canonicalizes.)
 
 ### AC body sub-sections
 
 Editing the prose under a single `### AC-N — title` heading inside a milestone body works through bless mode on the parent milestone — edit the section in $EDITOR, run `aiwf edit-body M-NNNN`. The verb commits whatever changed; no composite-id resolver needed. (Composite ids `M-NNNN/AC-N` are still refused to keep the verb's seam simple.)
+
+What that body holds, and what it leaves to other records, is stated in `aiwf-add` §"What to write per kind" — the same rule whether the body is being written for the first time or added to later. A criterion that keeps growing across review rounds is worth reading against that list before the next edit.
 
 ## What aiwf does
 

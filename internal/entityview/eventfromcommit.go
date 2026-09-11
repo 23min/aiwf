@@ -22,9 +22,18 @@ import (
 // parsed trailer block.
 //
 // Returns ok=false for the prose-mention false-positive ReadHistoryChain
-// also drops (G30): a commit whose aiwf-entity trailer matched a grep but
-// which carries neither aiwf-verb nor aiwf-actor is not a real entity
-// event. Callers skip such commits rather than bucket a blank row.
+// also drops (G30): `--grep` matches a body line that begins
+// `aiwf-entity: <id>` as readily as a real trailer, and what tells the two
+// apart is git's own trailer parser, which returns a value for one and
+// nothing for the other. So admission reads the parsed entity trailer —
+// either aiwf-entity or aiwf-prior-entity, since the query greps both and a
+// reallocate's lineage event carries only the latter. Callers skip a commit
+// git cannot attribute to an entity rather than bucket a blank row.
+//
+// A commit carrying that trailer and nothing else is an event: a
+// shipped-surface edit proves its provenance with aiwf-entity alone
+// (D-0071), so there is no verb to name what it did and no separate actor
+// where no verb ran.
 func EventFromCommit(sha, authorDate, subject, body string, trailers []gitops.Trailer) (HistoryEvent, bool) {
 	// Single-value trailers collapse to a last-value map (matching git's
 	// per-key extraction for the one-occurrence aiwf trailers); aiwf-scope-ends
@@ -44,7 +53,8 @@ func EventFromCommit(sha, authorDate, subject, body string, trailers []gitops.Tr
 
 	verb := strings.TrimSpace(idx[gitops.TrailerVerb])
 	actor := strings.TrimSpace(idx[gitops.TrailerActor])
-	if verb == "" && actor == "" {
+	if strings.TrimSpace(idx[gitops.TrailerEntity]) == "" &&
+		strings.TrimSpace(idx[gitops.TrailerPriorEntity]) == "" {
 		return HistoryEvent{}, false
 	}
 

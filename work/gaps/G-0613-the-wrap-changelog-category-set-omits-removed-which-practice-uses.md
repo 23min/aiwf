@@ -1,50 +1,52 @@
 ---
 id: G-0613
 title: the wrap changelog category set omits Removed, which practice uses
-status: open
+status: addressed
+addressed_by_commit:
+    - edf2b2171
 ---
 ## What's missing
 
-D-0031 fixed the wrap changelog entry's heading shape at three Keep-a-Changelog
-categories — Added, Changed, Fixed — and the `wrap.md` template now ships that
-closed set. This repo's own `CHANGELOG.md` already exceeds it: released sections
-carry `### Changed (breaking)`, a category the set does not name.
+Two shipped surfaces name the category set a changelog entry is written under,
+and both name three of Keep a Changelog's six: the `wrap.md` scaffold in
+`aiwfx-wrap-epic`, and step 4 of `wf-patch`.
 
-An epic that retires a verb or a flag has no listed category to write under. The
-author either picks a wrong one, or invents a heading the next reader cannot
-predict.
+An epic or a patch that retires a verb, a flag, or a section has no listed
+category to write under. The author either picks a wrong one, or invents a
+heading the next reader cannot predict.
+
+This repo's own `CHANGELOG.md` already exceeds the three. Released sections
+carry `### Changed (breaking)` and `### Security`, one carries `### Internal`,
+and the section awaiting release carries `### Removed` — written by the patch
+that retired the milestone spec's `## Work log`.
 
 ## Why it matters
 
 The cost is small per instance and permanent: a closed set on a shipped surface
-is followed by consumers who have no way to know it was narrowed by a decision
-rather than by the upstream convention. Keep a Changelog itself defines six
-categories; shipping three without saying why reads as the whole vocabulary.
+is followed by consumers who have no way to know it was narrowed rather than
+transcribed. Keep a Changelog itself defines six categories; shipping three
+without saying why reads as the whole vocabulary.
 
 ## Direction
 
-This is a D-0031 amendment, not a review correction — the decision named three
-categories deliberately and is `accepted`, so widening the set means revisiting
-it rather than editing the template underneath it.
+Settled in D-0088: the six, with a parenthetical after the category — `Changed
+(breaking)`, `Changed (internal)` — read as a note on that category rather than
+a seventh one. Work with no user-visible delta goes under `Changed`. Both
+surfaces carry it.
 
-The question to settle: is the three-category set a real constraint (an epic's
-delta should be summarisable under one of three) or an incomplete transcription
-of Keep a Changelog? If the former, the template should say so, and `Removed`
-work should be expressed as `Changed`. If the latter, widen the set, and decide
-separately whether `Changed (breaking)` is a category of its own or a convention
-within `Changed`.
+D-0031 is not amended and stays `accepted`. It settled where the changelog prose
+is authored, and named the headings once, parenthetically, as "the
+Keep-a-Changelog heading shape already in use today" — a description of practice
+at the time rather than a closed set, and its Reasoning and Consequences do not
+mention categories at all. The three-heading list in the shipped surfaces is a
+transcription of that illustration, which is the second of the two readings this
+gap posed.
 
-The wrap ritual is now the only surface naming a category set, so whichever way
-this settles, it settles in one place.
+No check pins the set. D-0070 retires prose-content assertions over shipped
+surfaces, so this is held at review like the rest of what those rituals
+instruct.
 
 ## References
 
-D-0031 fixed the three-category set. Found while reviewing the patch that closed
-G-0368, which shipped that set into the `wrap.md` template.
-
-The gap originally cited a second surface — `aiwfx-release`'s release-section
-template, which offered four categories including `Removed`. The patch closing
-G-0611 and G-0612 deleted that template, so the release ritual now names no
-category set at all. That removed the two-rituals-disagree framing without
-touching the question above, which stands on this repo's own `Changed (breaking)`
-usage.
+D-0088 settles the set. Found while reviewing the patch that closed G-0368,
+which shipped the three-category list into the `wrap.md` scaffold.

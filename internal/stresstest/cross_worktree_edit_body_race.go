@@ -77,7 +77,7 @@ func (s *CrossWorktreeEditBodyRaceScenario) Setup(dir string) error {
 	if err := gitInitAndConfig(mainDir); err != nil { //coverage:ignore defensive: gitInitAndConfig's own internal branch already carries this rationale
 		return err
 	}
-	addEnv, err := runAiwfJSON(s.aiwfBin, mainDir, "add", "gap", "--title", "race", "--body", "original body before the cross-worktree edit race")
+	addEnv, err := runAiwfJSON(s.aiwfBin, mainDir, "add", "gap", "--title", "race", "--body", sectionedBody("gap", "original body before the cross-worktree edit race"))
 	if err != nil { //coverage:ignore defensive: covered by the same launch-failure class other scenarios pin at runAiwfJSON's own source
 		return fmt.Errorf("seeding the shared entity: %w", err)
 	}
@@ -101,6 +101,16 @@ const (
 	draftBText = "operator B's independent edit to the shared entity"
 )
 
+// draftBody carries an operator's distinctive line into a body holding the
+// sections a gap requires, which edit-body refuses to write without. Only the
+// first section differs between the two operators, so the merge conflicts
+// there and the distinctive line stays one contiguous string for the classify
+// step to find.
+func draftBody(text string) string {
+	return "## What's missing\n\n" + text +
+		"\n\n## Why it matters\n\nboth operators agree it matters; only the line above differs\n"
+}
+
 // Run drives operator A's edit-body call against their own worktree
 // (and, unless skipOperatorBEdit is set, operator B's too), then
 // merges actor-b into actor-a's worktree and classifies however that
@@ -110,7 +120,7 @@ func (s *CrossWorktreeEditBodyRaceScenario) Run(dir string) error {
 	wtB := filepath.Join(dir, "wt-b")
 
 	draftAPath := filepath.Join(dir, "draft-a.txt")
-	if err := os.WriteFile(draftAPath, []byte(draftAText+"\n"), 0o644); err != nil { //coverage:ignore defensive: writing a fresh file under this scenario's own os.MkdirTemp dir has no realistic failure mode short of filesystem sabotage
+	if err := os.WriteFile(draftAPath, []byte(draftBody(draftAText)), 0o644); err != nil { //coverage:ignore defensive: writing a fresh file under this scenario's own os.MkdirTemp dir has no realistic failure mode short of filesystem sabotage
 		return fmt.Errorf("writing operator A's draft: %w", err)
 	}
 	envA, err := runAiwfJSON(s.aiwfBin, wtA, "edit-body", editBodyRaceEntityID, "--body-file", draftAPath)
@@ -121,7 +131,7 @@ func (s *CrossWorktreeEditBodyRaceScenario) Run(dir string) error {
 	envBStatus := "ok" // no B edit attempted when skipped, so nothing to fail
 	if !s.skipOperatorBEdit {
 		draftBPath := filepath.Join(dir, "draft-b.txt")
-		if writeErr := os.WriteFile(draftBPath, []byte(draftBText+"\n"), 0o644); writeErr != nil { //coverage:ignore defensive: see operator A's draft above
+		if writeErr := os.WriteFile(draftBPath, []byte(draftBody(draftBText)), 0o644); writeErr != nil { //coverage:ignore defensive: see operator A's draft above
 			return fmt.Errorf("writing operator B's draft: %w", writeErr)
 		}
 		envB, editErr := runAiwfJSON(s.aiwfBin, wtB, "edit-body", editBodyRaceEntityID, "--body-file", draftBPath)

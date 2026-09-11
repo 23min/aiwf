@@ -73,11 +73,11 @@ func (s *ParallelBranchReallocateScenario) Run(dir string) error {
 	opA := filepath.Join(dir, "operator-a")
 	opB := filepath.Join(dir, "operator-b")
 
-	envA, err := runAiwfJSON(s.aiwfBin, opA, "add", string(s.kind), "--title", operatorATitle, "--body", "parallel-branch reallocate stress operator")
+	envA, err := runAiwfJSON(s.aiwfBin, opA, "add", string(s.kind), "--title", operatorATitle, "--body", sectionedBody(string(s.kind), "parallel-branch reallocate stress operator"))
 	if err != nil { //coverage:ignore defensive: covered by the same launch-failure class other scenarios pin at runAiwfJSON's own source
 		return fmt.Errorf("operator A add: %w", err)
 	}
-	envB, err := runAiwfJSON(s.aiwfBin, opB, "add", string(s.kind), "--title", operatorBTitle, "--body", "parallel-branch reallocate stress operator")
+	envB, err := runAiwfJSON(s.aiwfBin, opB, "add", string(s.kind), "--title", operatorBTitle, "--body", sectionedBody(string(s.kind), "parallel-branch reallocate stress operator"))
 	if err != nil { //coverage:ignore defensive: see operator A above
 		return fmt.Errorf("operator B add: %w", err)
 	}

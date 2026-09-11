@@ -22,10 +22,14 @@ var requiredSectionsByKind = map[Kind][]string{
 // RequiredSections returns k's load-bearing top-level body sections in
 // canonical render order, or nil for a kind carrying no set.
 //
-// "Required" names what the scaffold writes, not a guarantee anything
-// verifies. BodyTemplate renders these into a new entity; the
-// entity-body-empty rule then reports one that is present and empty. No
-// surface reports a body that omits a heading outright (G-0571).
+// BodyTemplate renders these into a new entity, and the write seams hold
+// them: `aiwf add` refuses a body omitting one, and `aiwf edit-body`
+// refuses a write that drops one the committed body carries. The
+// entity-body-empty rule reports a section present and empty, which is a
+// separate property with a separate scope.
+//
+// No rule reads a body it is not writing, so a tree can still carry an
+// entity that omits a section — the debt G-0571 measures.
 //
 // The result is a copy. The table is package-level state read by the add
 // scaffold and by every check run, so handing out the backing array would

@@ -66,9 +66,11 @@ If the patch fixes a **defect**, it lands with the check that pins it — a regr
 
 ### 4. Add a CHANGELOG entry
 
-Add a new sub-section under `## [Unreleased]` in `CHANGELOG.md`, using a Keep-a-Changelog category as the heading: `### Added — G-NNNN: <one-line summary>`, `### Changed — G-NNNN: <one-line summary>`, or `### Fixed — G-NNNN: <one-line summary>` (when the patch closes no tracked gap, drop the `G-NNNN:` prefix and carry just the summary). The body is a short paragraph distilling the **user-visible delta**.
+Add a new sub-section under `## [Unreleased]` in `CHANGELOG.md`, headed by a Keep-a-Changelog category and the gap this patch closes: `### <category> — G-NNNN: <one-line summary>` (when the patch closes no tracked gap, drop the `G-NNNN:` prefix and carry just the summary). The body is a short paragraph distilling the **user-visible delta**.
 
-This step always runs — there is no skip. Unlike a milestone, whose change can land inside its parent epic's one entry at `aiwfx-wrap-epic` time, a patch has no parent to roll up into: its own wrap is the only chance the change is ever recorded. For a genuinely internal-only patch (a test-only fix, an internal refactor with no observable behavior change), the entry still lands, but shrinks to one line stating plainly that nothing user-facing changed — never a full skip.
+The categories are Keep a Changelog's six — `Added`, `Changed`, `Deprecated`, `Removed`, `Fixed`, `Security`. A parenthetical after the category, as in `### Changed (breaking)`, is a note on that category rather than a seventh one; use it where it tells a release-notes reader something the category alone does not.
+
+This step always runs — there is no skip. Unlike a milestone, whose change can land inside its parent epic's one entry at `aiwfx-wrap-epic` time, a patch has no parent to roll up into: its own wrap is the only chance the change is ever recorded. For a genuinely internal-only patch (a test-only fix, an internal refactor with no observable behavior change), the entry still lands under `Changed` — qualified as `### Changed (internal)` if that helps — but shrinks to one line stating plainly that nothing user-facing changed, never a full skip.
 
 Stage `CHANGELOG.md` alongside the rest of the change; it rides the same commit gate as everything else (step 8), not a separate approval.
 

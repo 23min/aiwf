@@ -24,13 +24,8 @@ acs: []                  # filled by `aiwf add ac`, never by hand
 
 ## Closes
 
-<!-- Gaps this milestone sets out to close, one id per line, recorded now rather
-     than reconstructed at wrap. List a gap only when this work is expected to
-     resolve it: a gap the work merely touches, or punts, belongs under
-     `## Deferrals`. `aiwfx-wrap-milestone` reads this section and closes each id
-     listed; one the work advanced without finishing gets its claim corrected
-     there instead. Delete the section when the milestone closes nothing.
-     One line per gap: the id, then what this milestone resolves in it. -->
+<!-- Filled at milestone start, not while authoring this spec.
+     `aiwfx-start-milestone` states what belongs here and what does not. -->
 
 - (none)
 
@@ -46,7 +41,7 @@ changed to make it possible now?>
 
 ## Acceptance criteria
 
-<!-- ACs are first-class kernel state under aiwf I2. Add each via:
+<!-- ACs are first-class kernel state. Add each via:
        aiwf add ac <milestone-id> --title "<observable behavior>"
      The verb appends the AC to frontmatter `acs:` (seeded at the pre-cycle
      empty phase regardless of tdd policy — the live red promote records the
@@ -54,13 +49,13 @@ changed to make it possible now?>
      heading below this section. Don't hand-edit `acs:` — the position-stable
      allocator and the body-coherence check both depend on the verb path.
 
-     Each AC must be observable behavior, not an implementation detail.
-       Good:  "When X occurs, the system emits Y with property Z."
-       Bad:   "X is tested." / "Refactor complete." / "Feature implemented." -->
+     What a criterion's title claims and what its body holds — including what
+     it leaves to other records — is stated in
+     `aiwf-add` §"What to write per kind". -->
 
 ### AC-1 — <observable behavior>
 
-<Prose: examples, edge cases, references to `ADR-NNNN` / `D-NNNN` / surfaces touched.>
+<Prose…>
 
 ### AC-2 — <observable behavior>
 
@@ -104,59 +99,31 @@ changed to make it possible now?>
 
 ---
 
-<!-- The sections below are populated continuously through implementation and
-     finalized at `aiwfx-wrap-milestone`. aiwf does not validate their contents
-     (prose is human-owned), but `aiwfx-start-milestone` / `aiwfx-wrap-milestone`
-     rely on the structure. -->
+<!-- The sections below are filled after this spec is authored, each by the
+     ritual that owns it. That ritual states when the section is written and what
+     it holds; nothing is restated here.
 
-## Work log
+       `aiwfx-start-milestone` — `## Closes` (above),
+                                 `## Decisions made during implementation`,
+                                 `## Deferrals`
+       `aiwfx-wrap-milestone`  — `## Release note`, `## Validation`,
+                                 `## Reviewer notes`
 
-<!-- The index from each AC to the commit that implemented it. `aiwf history`
-     lists commits carrying kernel trailers; an implementation commit reaches it
-     only when it carries them too, which it normally does not — so this is where
-     that link lives.
-     One entry per AC (preferred) or per meaningful unit of work. Append-only;
-     never rewrite earlier entries.
-       Header:     "AC-<N> — <short title>" or "<short title>" if not AC-scoped.
-       First line: <one-line outcome> · commit <SHA> · tests <N/M>
-     That line is the entry. The phase timeline lives in
-     `aiwf history <milestone-id>/AC-<N>`. Design reasoning belongs in the code it
-     explains; anything else has its own section. -->
+     Their prose is human-owned; the `aiwf-check` skill's finding table lists the
+     rules that read it. -->
 
-### AC-1 — <short title>
-
-<one-line outcome> · commit <SHA> · tests <N/M>
+## Release note
 
 ## Decisions made during implementation
-
-<!-- Decisions that came up mid-work that were NOT pre-locked above in `## Design
-     notes`. For each: what was decided, why, and a link to the ADR or decision id
-     that captures the durable reasoning (use `aiwfx-record-decision`).
-     If no new decisions arose, say "None — all decisions are pre-locked above." -->
 
 - (none)
 
 ## Validation
 
-<!-- Pasted at wrap. Test-suite results, build output, any project-specific lint
-     or type-check. -->
-
 ## Deferrals
-
-<!-- Work this milestone deliberately punted. Apply the cheap-fix test first: a
-     change that is small, lands in a file this milestone already touches, and is
-     covered by a test you are already writing gets made now rather than filed.
-     Each deferral that survives the test must be opened as a gap entity
-     (`aiwf add gap --title "..." --discovered-in <milestone-id>`) and the
-     resulting gap id mirrored here, so the deferral survives. -->
 
 - (none)
 
 ## Reviewer notes
-
-<!-- Trade-offs, deliberate omissions, places where the obvious approach was
-     rejected, and the deciding review's own outcome. Filled at wrap, after
-     that review — so the review whose outcome it records cannot have read it.
-     A later reviewer reads it first. -->
 
 - (none)

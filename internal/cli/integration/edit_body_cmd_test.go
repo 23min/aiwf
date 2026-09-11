@@ -41,7 +41,7 @@ func TestEditBody_BinaryEndToEnd(t *testing.T) {
 		t.Fatalf("aiwf add epic: %v\n%s", err, out)
 	}
 
-	bodyText := "## Goal\n\nFleshed-out goal prose written by the operator.\n\n## Scope\n\nReal scope.\n"
+	bodyText := "## Goal\n\nFleshed-out goal prose written by the operator.\n\n## Scope\n\nReal scope.\n\n## Out of scope\n\nReal non-goals.\n"
 	bodyPath := filepath.Join(root, "epic-body.md")
 	if err := os.WriteFile(bodyPath, []byte(bodyText), 0o644); err != nil {
 		t.Fatalf("write body file: %v", err)
@@ -112,7 +112,7 @@ func TestEditBody_StdinEndToEnd(t *testing.T) {
 		t.Fatalf("add gap: %v\n%s", err, out)
 	}
 
-	stdin := "## Body via stdin\n\nThis content arrived through a pipe.\n"
+	stdin := "## Body via stdin\n\nThis content arrived through a pipe.\n" + "\n\n## What's missing\n\nFixture prose.\n\n## Why it matters\n\nFixture prose.\n"
 	cmd := exec.Command(bin, "edit-body", "G-0001", "--body-file", "-")
 	cmd.Dir = root
 	cmd.Env = append(os.Environ(),

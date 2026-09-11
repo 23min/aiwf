@@ -16,6 +16,158 @@ section in this file.
 
 ## [Unreleased]
 
+### Added — E-0091: four gates that hold a spec section, an entity body, and a release's notes to what they claim
+
+A milestone spec now carries `## Release note` — the user-visible delta, written
+at the milestone's own wrap by whoever did the work — and `aiwfx-wrap-epic`
+composes the epic's changelog entry from those notes rather than reconstructing
+it from milestone titles and merge SHAs. `aiwf check` reports a `done` milestone
+whose note an author never wrote (`milestone-done-empty-release-note`, warning).
+A companion check resolves the section names written in the ritual tree against
+the headings the shipped templates actually carry, so a surface naming a section
+no artefact has is reported.
+
+`aiwf add` and `aiwf edit-body` now refuse a body missing a section its kind
+requires, and the two ask different questions because a create and an edit sit
+in different positions. `add` wants every declared section, for every kind, and
+`--force --reason` still bypasses it — now stamping its trailer on epic and
+milestone too, where it was previously inert. `edit-body` refuses only a write
+that *drops* a section the committed body carries, in both bless and
+`--body-file` mode, so an author editing one section is never refused over an
+omission they did not introduce; a deliberate removal is recorded with
+`aiwf acknowledge illegal`. Both refusals name the section they missed.
+
+The `commit-msg` hook gained three refusals, each catching at composition what
+was previously found later or not at all: a subject naming an `(M-NNNN/AC-N)`
+scope whose `aiwf-entity` trailer names something else or nothing; an aiwf
+trailer block git will not read, because a blank line leaves it out of the
+message's final paragraph, making it invisible to `aiwf history` and carrying
+any unrecognized `aiwf-verb` value straight past the check meant to refuse it;
+and a staged edit to the shipped ritual tree whose message names no entity.
+Alongside them, `aiwf history <id>` now lists a commit whose only aiwf trailer
+names the entity — the implementation commits and shipped-surface edits it used
+to discard — rendering `-` where a verb and actor would be.
+
+A release tag now fails when its notes do not say what it ships. The
+`changelog-check.yml` workflow gained a second job running `make
+changelog-audit`, which compares every commit since the last release that
+changed aiwf's embedded skill, ritual, template, agent-card, hook and guidance
+content against what the release notes cite, and fails the tag on a shipped
+change no entry names. A milestone's delta is cited by its parent epic, never by
+its own id; Go source under those trees materializes the content rather than
+being content a consumer receives, so it owes no entry. A second finding — a
+shipped-surface commit carrying no `aiwf-entity` trailer — is reported without
+failing, since with no entity named the audit cannot tell whether an entry
+covers it. Run `make changelog-audit` before tagging rather than meeting it at
+the push; `AIWF_CHANGELOG_BASE=<ref> make changelog-audit` audits a past range,
+and unset, the audit does not run at all.
+
+### Changed — G-0613: a changelog entry may use any of Keep a Changelog's six categories
+
+The rituals that write `CHANGELOG.md` named three categories — `Added`,
+`Changed`, `Fixed` — so an epic or a patch that retired something had no listed
+heading to write under, and its author either misfiled it or invented a heading
+the next reader could not predict. Both surfaces that name the set, the
+`wrap.md` scaffold in `aiwfx-wrap-epic` and step 4 of `wf-patch`, now carry
+Keep a Changelog's six: `Added`, `Changed`, `Deprecated`, `Removed`, `Fixed`,
+`Security`.
+
+A parenthetical after the category, as in `### Changed (breaking)`, is a note on
+that category rather than a seventh one. Work with no user-visible delta is
+written under `Changed`, qualified as `### Changed (internal)` where that helps.
+
+### Changed — G-0665: what an acceptance criterion body holds has one owner
+
+The `aiwf-add` skill's *What to write per kind* now states what an acceptance
+criterion's title names, what its body carries, and what the body leaves to
+records that already hold it. The evidence it then takes to promote one stays
+`aiwf-promote`'s subject, and that skill is cited rather than repeated. The
+subsection also separates two words that had been reading as one — a title names
+*observable* behavior, while an *observational* criterion is one no test can
+reach and so is met by a record instead. Every surface that instructs a body to
+be written or grown — the milestone-spec template, both milestone rituals and
+`aiwf-edit-body` — cites the subsection rather than describing the body itself,
+so a criterion grown during a review round meets the same rule as one written
+from scratch.
+
+Every one of those citations is held by a check: one reports when a cited
+heading no longer exists, another when a surface stops citing the subsection or
+points somewhere else in the same skill. The cross-skill citation walk grew to
+cover the whole shipped skill tree rather than the rituals alone. One existing
+citation had been invisible to it for a separate reason — spaces around the `§`
+— and is now both written in the canonical form and readable in either, so the
+spelling cannot hide one again. What no check reaches is a surface that keeps its
+citation and states a second rule beside it. Prose can say the same thing in
+unlimited ways, so there is no name to ban the way the retired `## Work log`
+section had one, and that half is carried at review.
+
+### Removed — G-0530: the milestone spec's `## Work log` section
+
+`## Work log` was designed when a milestone spec had no frontmatter and a
+checkbox list was the only way to see progress. `acs[]`, the TDD phase ladder and
+`aiwf history` have carried that since, and the one fact the section still held
+alone — which commit implemented a given acceptance criterion — moved to
+`aiwf history M-NNNN/AC-<N>` when the history projection learned to read a
+commit's entity trailer. What was left was unbounded: prose with no downstream
+reader, in the spec's largest section.
+
+The section is gone from the milestone-spec template, from both milestone
+rituals, from `aiwfx-wrap-epic`, and from the builder and reviewer agent cards,
+which now read the work record out of `aiwf history`. A commit for milestone work
+that no criterion covers carries `aiwf-entity: M-NNNN` and an unscoped subject,
+which is what puts it in that history.
+
+The entry line's per-AC test counts go with it, and no ritual asks for them in
+their place: nothing derived them and nothing read them back. A project that
+wants them recorded already has the route — `aiwf promote --phase <p> --tests
+"pass=N fail=N skip=N"` writes an `aiwf-tests` trailer, which `aiwf history
+M-NNNN/AC-<N> --format json` and `aiwf show M-NNNN/AC-<N> --format json` carry.
+On a `tdd: required` milestone, `tdd.require_test_metrics: true` warns on an AC
+at `tdd_phase: done` whose history has none.
+
+A new policy, `embedded-no-work-log-section`, is what makes the retirement hold:
+it bans naming the section across every embedded tree aiwf ships, so a
+reintroduction reports instead of landing silently. Without it an exact revert of
+this change passed every check in the repo, and three separate single-line edits
+each restored the convention on their own. It is the mirror of the ban that
+retired the v1 tracking-doc convention, and it carries one escape — a line about
+the reader's own project, which is what the engineering skills mean when they ask
+whether a project keeps a work log alongside its diffs.
+
+Specs already carrying a Work log keep it; nothing rewrites them, and no check
+reads the section either way. `## Dependencies`, `## Surfaces touched` and
+`## References` — the other three sections G-0530 names — are untouched.
+
+### Changed — G-0636: each milestone-spec section rule has one owner
+
+When a milestone-spec section is filled, and what it holds, was stated
+independently in the template, both milestone rituals, and two agent cards.
+`builder.md` listed `## Validation` among the sections a builder maintains during
+implementation, while the template said it was pasted at wrap; nothing reconciled
+them, so a spec was filled differently depending on which surface an agent had
+loaded. The template also contradicted itself, carrying a blanket claim that
+every section below it is populated continuously through implementation over
+two per-section comments saying otherwise.
+
+Each section now has one owner, chosen by where it is first written — most are
+written by both rituals, so "where" alone would not decide them.
+`aiwfx-start-milestone` owns `## Closes`, `## Decisions made during
+implementation` and `## Deferrals` and states what each holds;
+`aiwfx-wrap-milestone` owns `## Release note`, `## Validation` and
+`## Reviewer notes`. The template carries every heading and names the owning
+ritual rather than restating its rules; the agent cards name the sections they
+touch and state no rule about them. `## Validation` resolves as pasted at wrap,
+which is what both rituals drove — the contrary instruction in `builder.md` was
+live, and is overruled rather than reconciled.
+
+The assignment is written in the template and in each ritual, so a reader inside
+any one of them is self-sufficient, and a policy compares the three. It reports a
+section with no owner, one the map claims that the template no longer carries, one
+claimed by both rituals, an owner naming a ritual that ships no skill, a ritual
+copy that assigns a section differently or omits it, a map line naming a ritual
+without assigning anything, and a wrap-owned section named in the builder agent
+card. Whether a rule's prose is restated remains a review obligation.
+
 ### Fixed — an acceptance criterion reopened for rework starts its TDD cycle over
 
 `aiwf promote <id>/AC-N open` now clears the AC's `tdd_phase`. The phase FSM is
@@ -32,16 +184,15 @@ an AC sitting at `open` with a finished phase is the ordinary state between a
 cycle ending and the `met` promote, indistinguishable from one an older binary
 left behind, so the verb does not try to repair it.
 
-### Changed — the milestone Work log says what it is for, and stops inviting prose
+### Changed — G-0659: the wrap ritual no longer licenses a finding's reasoning into the spec
 
-`## Work log` carried no statement of its purpose in any binding surface, and two
-invitations to write more: the template offered an *"optional prose paragraph for
-non-obvious context"*, and `aiwfx-start-milestone` called the section *"the audit trail
-of mid-flight context"*. Both are gone. Both surfaces now name what the section uniquely
-holds — the index from each acceptance criterion to the commit that implemented it.
-`aiwf history` lists commits carrying kernel trailers, and an implementation commit
-normally carries none, so that link has nowhere else to live. The template also no
-longer both invites phase transitions and forbids duplicating them, one sentence apart.
+A defect found at a milestone's wrap review, fixed there, and pinned by the
+check that lands with it needs no further record: the check is the record, and
+the commit body says why it changed. `aiwfx-wrap-milestone` said exactly that
+and then licensed the opposite in the same sentence — offering `## Reviewer
+notes` for the reasoning — so the correct default read as the exception and the
+spec accumulated a second copy of every finding. The licensing clause is gone
+and the default stands alone.
 
 ## [0.34.0] — 2026-08-30
 

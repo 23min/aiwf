@@ -6,6 +6,8 @@ import (
 	"os/exec"
 	"path/filepath"
 	"strings"
+
+	"github.com/23min/aiwf/internal/entity"
 )
 
 // gitInitAndConfig git-inits dir (forcing the initial branch name to
@@ -57,7 +59,7 @@ func seedActivationEpic(aiwfBin, dir, title, body string) (string, error) {
 	if err := gitInitAndConfig(dir); err != nil { //coverage:ignore defensive: gitInitAndConfig's own internal branch already carries this rationale
 		return "", err
 	}
-	addEnv, err := runAiwfJSON(aiwfBin, dir, "add", "epic", "--title", title, "--body", body)
+	addEnv, err := runAiwfJSON(aiwfBin, dir, "add", "epic", "--title", title, "--body", sectionedBody("epic", body))
 	if err != nil { //coverage:ignore defensive: covered by the same launch-failure class other scenarios pin at runAiwfJSON's own source
 		return "", fmt.Errorf("seeding the epic: %w", err)
 	}
@@ -188,4 +190,18 @@ func headSHA(dir string) (string, error) {
 		return "", fmt.Errorf("reading HEAD: %w", err)
 	}
 	return strings.TrimSpace(string(out)), nil
+}
+
+// sectionedBody wraps one line of scenario prose in the `## <Section>`
+// headings kind requires, for the `--body` a scenario passes to `aiwf
+// add`.
+//
+// `aiwf add` refuses a body omitting a section its kind requires, so a
+// bare line of prose is refused at every seeding step. Deriving the
+// headings from the kernel table rather than spelling them per kind
+// keeps a scenario's seed valid when a kind's required set changes, and
+// keeps the text the caller cares about — several oracles search their
+// scenario's body for it — the only part that varies.
+func sectionedBody(kind, text string) string {
+	return string(entity.BodyWithSectionText(entity.Kind(kind), text))
 }

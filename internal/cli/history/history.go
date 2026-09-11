@@ -124,7 +124,7 @@ func Run(id, root, format string, pretty, showAuth bool, correlationID string) (
 		for i := range events {
 			e := &events[i]
 			cliutil.Printf("%s  %-16s  %-10s  %-12s  %s  %s%s\n",
-				e.Date, RenderActor(*e), e.Verb, RenderTo(e.To), e.Detail, e.Commit,
+				e.Date, RenderActor(*e), RenderVerb(e.Verb), RenderTo(e.To), e.Detail, e.Commit,
 				RenderScopeChips(*e, scopeEntities, showAuth))
 			if e.Force != "" {
 				cliutil.Printf("    [forced: %s]\n", e.Force)
@@ -165,17 +165,13 @@ func RenderTo(to string) string {
 	return "→ " + to
 }
 
-// RenderActor formats the actor column. When a non-human principal
-// is present and differs from the actor (the agent-acts-for-human
-// case from I2.5), the column reads `principal via agent` so the
-// human is visually attributed first. Direct human acts (no
-// principal) render the actor verbatim.
-func RenderActor(e entityview.HistoryEvent) string {
-	if e.Principal == "" || e.Principal == e.Actor {
-		return e.Actor
-	}
-	return e.Principal + " via " + e.Actor
-}
+// RenderVerb and RenderActor are re-exported from entityview, which owns the
+// display rules for a HistoryEvent's trailer-backed columns so `aiwf history`,
+// `aiwf show` and the HTML site cannot disagree about them.
+var (
+	RenderVerb  = entityview.RenderVerb
+	RenderActor = entityview.RenderActor
+)
 
 // RenderScopeChips assembles the trailing chip block for one history
 // row. For `aiwf authorize` rows, a `[<scope> <event>]` chip names

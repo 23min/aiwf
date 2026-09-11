@@ -28,10 +28,10 @@ func TestCheckListInvariant_RealBinary_NoDivergenceOnARealRepo(t *testing.T) {
 	bin := sharedTestBinary(t)
 	dir := newVerbSequenceTestRepo(t)
 
-	if _, err := runAiwfJSON(bin, dir, "add", "epic", "--title", "epic a", "--body", "b"); err != nil {
+	if _, err := runAiwfJSON(bin, dir, "add", "epic", "--title", "epic a", "--body", sectionedBody("epic", "b")); err != nil {
 		t.Fatalf("add epic: %v", err)
 	}
-	addEnv, err := runAiwfJSON(bin, dir, "add", "adr", "--title", "t", "--body", "b")
+	addEnv, err := runAiwfJSON(bin, dir, "add", "adr", "--title", "t", "--body", sectionedBody("adr", "b"))
 	if err != nil {
 		t.Fatalf("add adr: %v", err)
 	}
@@ -63,7 +63,7 @@ func TestCheckListInvariant_RealBinary_DetectsAGenuineDivergence(t *testing.T) {
 	realBin := sharedTestBinary(t)
 	dir := newVerbSequenceTestRepo(t)
 
-	if _, err := runAiwfJSON(realBin, dir, "add", "epic", "--title", "epic a", "--body", "b"); err != nil {
+	if _, err := runAiwfJSON(realBin, dir, "add", "epic", "--title", "epic a", "--body", sectionedBody("epic", "b")); err != nil {
 		t.Fatalf("add epic: %v", err)
 	}
 

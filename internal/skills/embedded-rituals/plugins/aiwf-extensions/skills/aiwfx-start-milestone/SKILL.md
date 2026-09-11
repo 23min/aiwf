@@ -20,14 +20,14 @@ If the spec doesn't exist or isn't ready, use `aiwfx-plan-milestones` first. If 
 - Read the milestone spec. Confirm every AC is concrete, and either testable or observational — an AC that claims someone ran a command beyond the tests' reach is met by the record of it, not by a test, and restating it as something testable substitutes a claim it never made. If any AC is vague, stop and ask the user to refine before starting work.
 - Read the parent epic's spec for context.
 - Read prior milestone specs in the same epic if this milestone builds on them.
-- **Record what this milestone closes, now.** When the work sets out to resolve a tracked gap, list that id under the spec's `## Closes` section while the reason for starting is still in front of you. `aiwfx-wrap-milestone` reads that section and closes each id it names; a gap named only in running prose is read by nothing, so at wrap it is reconstructed by hand or missed. List a gap only when this work is expected to resolve it — one it merely touches, or punts, belongs under `## Deferrals`. Delete the section when the milestone closes nothing.
+- **Record what this milestone closes, now.** When the work sets out to resolve a tracked gap, list that id under the spec's `## Closes` section while the reason for starting is still in front of you. `aiwfx-wrap-milestone` reads that section and closes each id it names; a gap named only in running prose is read by nothing, so at wrap it is reconstructed by hand or missed. List a gap only when this work is expected to resolve it — one it merely touches, or punts, belongs under `## Deferrals`. One line per gap: the id, then what this milestone resolves in it. Delete the section when the milestone closes nothing.
 - **ACs are expected to already exist.** `aiwfx-plan-milestones` creates and body-fills each AC at plan time, so a milestone normally reaches this preflight with `acs[]` populated and its `### AC-N — <title>` bodies filled — confirm they are present and filled (the first bullet already covers whether each is concrete). **Recovery fallback only** — a hand-written spec whose `acs[]` is empty: add them now and fill each body before proceeding, rather than deferring the contract into implementation:
 
   ```bash
   aiwf add ac M-NNNN --title "<observable behavior>"
   ```
 
-  Each invocation appends one AC and scaffolds the body heading; `aiwf check` surfaces drift between frontmatter and body, and the `milestone-draft-incomplete-acs` warning already flagged the empty contract at plan time. This on-the-spot creation is the exception — the default is that plan time already produced the ACs.
+  Each invocation appends one AC and scaffolds the body heading; `aiwf check` surfaces drift between frontmatter and body, and the `milestone-draft-incomplete-acs` warning already flagged the empty contract at plan time. What the title claims and what the body holds is stated in `aiwf-add` §"What to write per kind". This on-the-spot creation is the exception — the default is that plan time already produced the ACs.
 
 - Confirm the milestone's `tdd:` policy is intentional. `tdd: required` makes the audit `met requires phase: done` an error (blocks pre-push); `tdd: advisory` makes it a warning; `tdd: none` or absent skips it. If the user wants TDD discipline tracked mechanically, set `tdd: required` in the spec's frontmatter before starting.
 - **Parent epic branch must exist locally and be the operator's current checkout.** The state-announcement commits at steps 3 and 4 land on the parent epic branch BEFORE the milestone branch is cut at step 5. If the parent epic branch does not exist locally, the parent epic has not been activated yet — stop and run `aiwfx-start-epic E-NNNN` first; do NOT improvise by creating the branch here. If the parent epic branch exists but is not currently checked out, switch to it before continuing (`git checkout epic/E-NNNN-<slug>`).
@@ -113,7 +113,12 @@ Pass an explicit path as the verb's second argument for a sibling-directory plac
 
 ### 6. Implementation — iterate via `wf-tdd-cycle`
 
-AC progress lives inside the milestone spec itself (frontmatter `acs[]` plus body `## Work log` section); `templates/milestone-spec.md` carries the full set of sections (Work log, Decisions made during implementation, Validation, Deferrals, Reviewer notes).
+AC progress lives in the milestone spec's frontmatter `acs[]`; what each criterion produced lives in `aiwf history M-NNNN/AC-<N>`, which the commit below makes reachable. The sections a spec gains after it is authored divide between this ritual and the wrap, each stating when its own are written and what they hold:
+
+- `aiwfx-start-milestone` — `## Closes`, `## Decisions made during implementation`, `## Deferrals`
+- `aiwfx-wrap-milestone` — `## Release note`, `## Validation`, `## Reviewer notes`
+
+`## Closes` is covered at step 1, the rest here. The template carries every heading and restates neither set.
 
 For each AC, in sequence:
 
@@ -126,13 +131,19 @@ For each AC, in sequence:
 
   Under `tdd: required`, the kernel audit refuses `met` without `phase: done` — keep them in this order. The kernel records both events in `aiwf history`.
 
-- 🛑 **Commit the AC's implementation code now** — the changed source and test files, on the milestone branch — before starting the next AC. This is a real commit, not deferred to wrap: `feat(<scope>): <AC summary> (M-NNNN/AC-<N>)`. Every commit is the human's gate; wait for explicit approval. The resulting SHA is what the Work log entry below cites.
-- Append a Work log entry to the milestone spec's `## Work log` section: `### AC-<N> — <short title>` followed by `<one-line outcome> · commit <SHA> · tests <N/M>`. Don't duplicate the phase timeline — `aiwf history M-NNNN/AC-<N>` is the authoritative record.
+- 🛑 **Commit the AC's implementation code now** — the changed source and test files, on the milestone branch — before starting the next AC. This is a real commit, not deferred to wrap:
+
+  ```bash
+  git commit -m "feat(<scope>): <AC summary> (M-NNNN/AC-<N>)" \
+    --trailer "aiwf-entity: M-NNNN/AC-<N>"
+  ```
+
+  The subject names the criterion; the trailer is what makes the commit reachable from it, because `aiwf history M-NNNN/AC-<N>` selects by trailer and never reads a subject. Work on the milestone that no criterion covers carries `aiwf-entity: M-NNNN` and an unscoped subject instead, which reaches the milestone's own history. A subject carrying the scope without the matching trailer is refused at commit-msg. No `aiwf-verb` is added — no aiwf verb commits source, and the closed set carries no value for it. Every commit is the human's gate; wait for explicit approval.
 - At this AC boundary, if the user asks for a handoff or context is getting long before the next AC, invoke `aiwfx-handoff` to emit a paste-ready `/compact` prime block. Emission here is on-demand — every-AC is noise.
 
-If a decision surfaces mid-implementation that wasn't pre-locked in the spec, invoke `aiwfx-record-decision` to capture it. Mirror the decision id under the spec's `## Decisions made during implementation` section.
+If a decision surfaces mid-implementation that wasn't pre-locked in the spec's `## Design notes`, invoke `aiwfx-record-decision` to capture it. Mirror it under the spec's `## Decisions made during implementation` section as the id and one line naming what it settles; the reasoning lives in the record the id names, never a second time here. Where no new decision arose, the section says so rather than standing empty — "None — all decisions are pre-locked above."
 
-If a piece of work surfaces that's deferred, apply the **cheap-fix test** first: if the change is small, lands in a file this milestone already touches, and is covered by a test you are already writing, make it now rather than filing it. Otherwise open a gap (`aiwf add gap --title "..." --discovered-in M-NNNN`) and mirror the resulting `G-NNNN` id under the spec's `## Deferrals` section.
+`## Deferrals` holds the work this milestone deliberately punted, each item surviving as a gap entity rather than as a bullet nothing else points at. If a piece of work surfaces that's deferred, apply the **cheap-fix test** first: if the change is small, lands in a file this milestone already touches, and is covered by a test you are already writing, make it now rather than filing it. Otherwise open a gap (`aiwf add gap --title "..." --discovered-in M-NNNN`) and mirror the resulting `G-NNNN` id under the spec's `## Deferrals` section.
 
 The cheap-fix test also runs the other way. When a change made under it resolves a gap this milestone never set out to close, add that id to `## Closes` in the same breath. An opportunistic fix is exactly what a start-time list cannot anticipate, so it is recorded as it happens or not at all.
 
@@ -172,7 +183,6 @@ The implementation is already committed, per-AC, from step 6 — there is nothin
 - *Improvising the parent epic branch when it doesn't exist.* The previous version of this skill silently fell through to `git checkout -b epic/E-NNNN-<slug> origin/main # if missing`. That masks the precondition failure (the parent epic wasn't activated) and produces a parent branch with no `aiwf promote E-NNNN active` commit on it. Stop and run `aiwfx-start-epic` instead.
 - *Bundling the promote and authorize commits.* One verb = one commit. The promote (step 3) and authorize (step 4) each land on the parent epic branch in their own commit.
 - *Cutting the milestone branch before the sovereign acts.* The kernel's preflight refuses authorize-on-milestone-branch with `branch-context-required` at the verb layer; the `isolation-escape` kernel finding catches the same shape post-hoc at `aiwf check` (warning severity). Branch cut belongs at step 5, after the trailers have landed on the parent.
-- *Skipping the Work log section.* It is where the link from an AC to its implementation commit lives — `aiwf history` sees a commit only when it carries kernel trailers, and an implementation commit normally carries none. Don't reconstruct it after the fact.
 - *Hand-editing `acs[]` in frontmatter.* Use `aiwf add ac` / `aiwf promote M-NNNN/AC-<N>` / `aiwf rename M-NNNN/AC-<N>` instead — the verbs preserve position-stability and the body-coherence pairing.
 - *Mixing milestones.* One milestone per branch. Don't fold "while I was here" work into the diff.
 - *Skipping the branch-coverage audit.* "I'll catch it in review" doesn't catch it.

@@ -271,16 +271,19 @@ type TestMetricsView struct {
 }
 
 // HistoryRow is one event in the Commits tab and in epic-page
-// "Recent activity" sections. Verb is the trailer value; Detail is
-// the commit subject; Force, AuditOnly, OnBehalfOf, Scope, ScopeEnds
-// surface the I2.5 provenance shape; Tests is the parsed metrics
-// when present.
+// "Recent activity" sections. Detail is the commit subject; Force,
+// AuditOnly, Scope, ScopeEnds surface the I2.5 provenance shape;
+// Tests is the parsed metrics when present.
 type HistoryRow struct {
-	Date         string
-	Commit       string
+	Date   string
+	Commit string
+	// Actor and Verb arrive already rendered: an absent trailer is "-", and
+	// an agent acting for a principal reads "principal via agent". The rule
+	// lives beside the event type so the three surfaces that show these
+	// columns cannot disagree, which is also why no Principal field is
+	// carried here — a template that could recombine them would be a second
+	// copy of that rule.
 	Actor        string
-	Principal    string
-	OnBehalfOf   string
 	Verb         string
 	Detail       string
 	To           string

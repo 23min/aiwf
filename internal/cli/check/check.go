@@ -47,7 +47,7 @@ func NewCmd(correlationID string) *cobra.Command {
 		RunE: func(c *cobra.Command, args []string) error {
 			verbs := enumerateRegisteredVerbs(c.Root())
 			if commitMsg != "" {
-				return cliutil.WrapExitCode(runCommitMsg(commitMsg, verbs, c.ErrOrStderr()))
+				return cliutil.WrapExitCode(runCommitMsg(commitMsg, root, verbs, c.ErrOrStderr()))
 			}
 			return cliutil.WrapExitCode(Run(root, format, pretty, since, shapeOnly, fast, verbose, verbs, correlationID))
 		},

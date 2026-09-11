@@ -645,7 +645,7 @@ func renderShowText(v ShowView) {
 				detail += " [forced]"
 			}
 			cliutil.Printf("    %s  %-10s  %-12s  %s\n",
-				e.Date[:10], e.Verb, history.RenderTo(e.To), detail)
+				e.Date[:10], history.RenderVerb(e.Verb), history.RenderTo(e.To), detail)
 		}
 	}
 	cliutil.Println()

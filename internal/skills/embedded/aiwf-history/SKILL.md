@@ -52,12 +52,12 @@ After two reallocates, all queries against the old id, intermediate id, and curr
 
 ## Limitations
 
-- `aiwf history` shows only verb-driven events. Hand-edits to the markdown file won't have trailers and won't appear here. `aiwf check` flags such commits as `provenance-untrailered-entity-commit` (warning) at push time so the audit gap is visible; `aiwf <verb> --audit-only --reason "..."` is the repair path.
+- `aiwf history` shows commits carrying an `aiwf-entity:` (or `aiwf-prior-entity:`) trailer, whether or not a verb wrote them — an implementation commit naming the entity it belongs to appears alongside the verb events. Hand-edits with no trailer at all won't appear. `aiwf check` flags those as `provenance-untrailered-entity-commit` (warning) at push time so the audit gap is visible; `aiwf <verb> --audit-only --reason "..."` is the repair path.
 - Pre-I2 promote commits don't carry `aiwf-to:`; the column renders as a dash. No retroactive fill.
 - Pre-G37 reallocates (before `prior_ids` shipped) don't carry the lineage in frontmatter. Querying the old id still surfaces the rename event via the existing `aiwf-prior-entity:` trailer, but post-rename history surfaces only when querying the new id. New reallocates fill `prior_ids` automatically; legacy chains can be backfilled manually if needed.
 
 ## Don't
 
 - Don't try to reconstruct history from filesystem timestamps — `git log` is authoritative.
-- Don't expect prose-body changes to show up. Only frontmatter mutations through aiwf verbs are queryable here.
+- Don't expect a commit carrying no aiwf trailer at all to show up, however relevant it looks — selection is by trailer, never by path or subject.
 - Don't ignore a `[forced: ...]` or `[audit-only: ...]` chip — they signal a sovereign override and rarely come without context worth surfacing to the user.

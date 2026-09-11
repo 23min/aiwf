@@ -21,7 +21,7 @@ func TestEditBody_RoundTrip(t *testing.T) {
 	r := newRunner(t)
 	r.must(verb.Add(r.ctx, r.tree(), entity.KindEpic, "Foundations", testActor, verb.AddOptions{}))
 
-	newBody := "## Goal\n\nFreshly edited prose.\n\n## Scope\n\nUpdated scope.\n"
+	newBody := "## Goal\n\nFreshly edited prose.\n\n## Scope\n\nUpdated scope.\n\n## Out of scope\n\nUpdated non-goals.\n"
 	r.must(verb.EditBody(r.ctx, r.tree(), "E-0001", []byte(newBody), testActor, ""))
 
 	got, err := os.ReadFile(filepath.Join(r.root, "work", "epics", "E-0001-foundations", "epic.md"))
@@ -55,7 +55,7 @@ func TestEditBody_SingleOpWriteAndCommit(t *testing.T) {
 	r := newRunner(t)
 	r.must(verb.Add(r.ctx, r.tree(), entity.KindGap, "Test gap", testActor, verb.AddOptions{BodyOverride: bornCompleteFixtureBody(entity.KindGap)}))
 
-	res, err := verb.EditBody(r.ctx, r.tree(), "G-0001", []byte("## Body\n\nupdated\n"), testActor, "")
+	res, err := verb.EditBody(r.ctx, r.tree(), "G-0001", entity.BodyWithSectionText(entity.KindGap, "updated"), testActor, "")
 	if err != nil {
 		t.Fatalf("EditBody: %v", err)
 	}
@@ -77,7 +77,7 @@ func TestEditBody_TrailerSet(t *testing.T) {
 	t.Parallel()
 	r := newRunner(t)
 	r.must(verb.Add(r.ctx, r.tree(), entity.KindEpic, "Epic", testActor, verb.AddOptions{}))
-	r.must(verb.EditBody(r.ctx, r.tree(), "E-0001", []byte("body content\n"), testActor, ""))
+	r.must(verb.EditBody(r.ctx, r.tree(), "E-0001", entity.BodyWithSectionText(entity.KindEpic, "body content"), testActor, ""))
 
 	trailers, err := gitops.HeadTrailers(context.Background(), r.root)
 	if err != nil {
@@ -99,7 +99,7 @@ func TestEditBody_WithReason(t *testing.T) {
 	t.Parallel()
 	r := newRunner(t)
 	r.must(verb.Add(r.ctx, r.tree(), entity.KindEpic, "Epic", testActor, verb.AddOptions{}))
-	r.must(verb.EditBody(r.ctx, r.tree(), "E-0001", []byte("body\n"), testActor,
+	r.must(verb.EditBody(r.ctx, r.tree(), "E-0001", entity.BodyWithSectionText(entity.KindEpic, "body"), testActor,
 		"reframing scope after the planning review"))
 
 	body, err := gitops.HeadBody(context.Background(), r.root)
@@ -161,7 +161,7 @@ func TestEditBody_PostEditTreeIsClean(t *testing.T) {
 	t.Parallel()
 	r := newRunner(t)
 	r.must(verb.Add(r.ctx, r.tree(), entity.KindEpic, "Epic", testActor, verb.AddOptions{}))
-	r.must(verb.EditBody(r.ctx, r.tree(), "E-0001", []byte("## Goal\n\nClean body.\n"), testActor, ""))
+	r.must(verb.EditBody(r.ctx, r.tree(), "E-0001", entity.BodyWithSectionText(entity.KindEpic, "Clean body."), testActor, ""))
 
 	if findings := check.Run(r.tree(), nil); check.HasErrors(findings) {
 		t.Errorf("post-edit-body tree has errors: %+v", findings)
@@ -182,7 +182,7 @@ func TestEditBody_PreservesFrontmatterFields(t *testing.T) {
 	r.must(verb.AddAC(r.ctx, r.tree(), "M-0001", "second", testActor))
 
 	r.must(verb.EditBody(r.ctx, r.tree(), "M-0001",
-		[]byte("## Goal\n\nrewritten\n\n### AC-1 — first\n\n### AC-2 — second\n"),
+		[]byte("## Goal\n\nrewritten\n\n## Acceptance criteria\n\n### AC-1 — first\n\n### AC-2 — second\n"),
 		testActor, ""))
 
 	m := r.tree().ByID("M-0001")

@@ -560,8 +560,8 @@ func acsEmptyBodyOnStart(t *tree.Tree) []Finding {
 //     `### AC-N` heading. A duplicate of an id that is also in
 //     frontmatter is neither missing nor orphan, so without this subcode
 //     the set-collapse hid it entirely (G-0247). Scoped to the AC
-//     section so the `## Work log` convention (which repeats
-//     `### AC-N — <outcome>` headings) is not a false positive.
+//     section, since a milestone body may repeat a `### AC-N` heading
+//     under a later section.
 func acsBodyCoherence(t *tree.Tree) []Finding {
 	var findings []Finding
 	for _, e := range t.Entities {
@@ -635,9 +635,9 @@ func acsBodyCoherence(t *tree.Tree) []Finding {
 		// criteria` section is neither missing nor orphan (the id is in
 		// both body and frontmatter), so the present/absent checks above
 		// let it pass — flag the count explicitly (G-0247). Scope to the
-		// AC section: the `## Work log` convention legitimately repeats
-		// `### AC-N — <outcome>` headings, so a whole-body count would
-		// false-positive on every wrapped milestone.
+		// AC section: a milestone body may repeat a `### AC-N` heading
+		// under a later section, so a whole-body count would
+		// false-positive on it.
 		acSection := ""
 		if secs := entity.ParseBodySections(body); secs != nil {
 			acSection = secs["acceptance_criteria"]

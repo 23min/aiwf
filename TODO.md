@@ -283,10 +283,6 @@ Decisions, not sweeps:
 - **G-0493** — `edit-body`'s two modes judge frontmatter divergence by different
   rules. Three mutually-exclusive resolution routes; the `Apply` guard already
   answers the same question field-based for both modes
-- **G-0613** — the wrap changelog's category set is narrower than Keep-a-Changelog
-  and than this repo's practice, which carries `Changed (breaking)`, `Security` and
-  `Internal`. `wf-patch` names the same three-category set, so a fix lands in two
-  surfaces. The body asks for a D-0031 amendment
 
 ### 5. Write scope — what a verb may commit *(spec first)*
 

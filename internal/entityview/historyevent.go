@@ -162,6 +162,8 @@ func ReadHistoryChain(ctx context.Context, root string, chain []string) ([]Histo
 			sep+"%(trailers:key=aiwf-scope-ends,valueonly=true,unfold=true)"+
 			sep+"%(trailers:key=aiwf-reason,valueonly=true,unfold=true)"+
 			sep+"%(trailers:key=aiwf-tests,valueonly=true,unfold=true)"+
+			sep+"%(trailers:key=aiwf-entity,valueonly=true,unfold=true)"+
+			sep+"%(trailers:key=aiwf-prior-entity,valueonly=true,unfold=true)"+
 			sep+"%b\x1e",
 	)
 	cmd := exec.CommandContext(ctx, "git", args...)
@@ -176,7 +178,7 @@ func ReadHistoryChain(ctx context.Context, root string, chain []string) ([]Histo
 	}
 
 	var events []HistoryEvent
-	const fieldCount = 16
+	const fieldCount = 18
 	for _, rec := range strings.Split(string(out), recSep) {
 		rec = strings.TrimSpace(rec)
 		if rec == "" {
@@ -189,10 +191,14 @@ func ReadHistoryChain(ctx context.Context, root string, chain []string) ([]Histo
 		verb := strings.TrimSpace(parts[3])
 		actor := strings.TrimSpace(parts[4])
 		// Skip prose-mention false-positives (G30): `--grep` matched a
-		// wrapped line that starts with `aiwf-entity: <id>` but Git's
-		// trailer parser found no real aiwf-verb / aiwf-actor pair.
-		// A genuine entity event always carries both.
-		if verb == "" && actor == "" {
+		// wrapped line that starts with `aiwf-entity: <id>` while Git's
+		// trailer parser found no trailer there. The parser is the
+		// discriminator, so the test reads the keys the query greps —
+		// either alone admits, since a reallocate's lineage event carries
+		// only aiwf-prior-entity. A commit carrying the entity trailer and
+		// no verb is an event: a shipped-surface edit proves its
+		// provenance that way (D-0071).
+		if strings.TrimSpace(parts[15]) == "" && strings.TrimSpace(parts[16]) == "" {
 			continue
 		}
 		ev := HistoryEvent{
@@ -210,7 +216,7 @@ func ReadHistoryChain(ctx context.Context, root string, chain []string) ([]Histo
 			Scope:        strings.TrimSpace(parts[11]),
 			ScopeEnds:    SplitMultiValueTrailer(parts[12]),
 			Reason:       strings.TrimSpace(parts[13]),
-			Body:         StripTrailers(strings.TrimSpace(parts[15])),
+			Body:         StripTrailers(strings.TrimSpace(parts[17])),
 		}
 		if metrics, ok := gitops.ParseTestMetrics(parts[14]); ok {
 			m := metrics

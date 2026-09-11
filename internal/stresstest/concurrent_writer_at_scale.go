@@ -94,7 +94,7 @@ func (s *ConcurrentWriterAtScaleScenario) Setup(dir string) error {
 	}
 	s.gapIDs = make([]string, 0, s.n)
 	for i := 0; i < s.n; i++ {
-		env, err := runAiwfJSON(s.aiwfBin, dir, "add", "gap", "--title", fmt.Sprintf("concurrent-writer probe %d", i), "--body", "concurrent-writer-at-scale stress gap")
+		env, err := runAiwfJSON(s.aiwfBin, dir, "add", "gap", "--title", fmt.Sprintf("concurrent-writer probe %d", i), "--body", sectionedBody("gap", "concurrent-writer-at-scale stress gap"))
 		if err != nil {
 			return fmt.Errorf("seeding gap %d: %w", i, err)
 		}

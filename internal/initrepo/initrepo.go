@@ -268,11 +268,16 @@ func commitMsgHookScript() string {
 # sibling first, so consumer-written hooks compose rather than
 # collide.
 #
-# Refuses commit messages whose aiwf-verb: trailer carries a value
-# outside the closed sets the kernel knows about: the running
-# binary's Cobra verb tree (e.g. add, promote, edit-body) unioned
-# with the ritualVerbs allowlist (e.g. wrap-milestone, wrap-epic
-# — stamped by aiwfx-wrap-* skills). The trailer-verb-unknown rule
+# Refuses a commit message on four grounds: an aiwf-verb: value
+# outside the closed sets the kernel knows about (the running
+# binary's Cobra verb tree, e.g. add, promote, edit-body, unioned
+# with the ritualVerbs allowlist, e.g. wrap-milestone, wrap-epic
+# — stamped by aiwfx-wrap-* skills); a subject claiming an
+# acceptance criterion whose aiwf-entity: trailer names something
+# else; an aiwf trailer block a blank line has left outside the
+# message's final paragraph, where git will not read it; and a
+# staged edit to a shipped ritual that names no entity.
+# The trailer-verb-unknown rule
 # at push time is the post-hoc safety net.
 set -e
 repo_root="$(git rev-parse --show-toplevel)"

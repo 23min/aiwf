@@ -10,6 +10,7 @@ import (
 	"github.com/23min/aiwf/internal/cli"
 	"github.com/23min/aiwf/internal/cli/cliutil"
 	"github.com/23min/aiwf/internal/cli/cliutil/testutil"
+	"github.com/23min/aiwf/internal/entity"
 )
 
 // envelopeMetadata runs args through cli.Execute, requires ExitOK, and
@@ -512,7 +513,7 @@ func TestEditBodyMetadata_ReportsEntityID(t *testing.T) {
 	mustRun(t, "init", "--root", root, "--actor", "human/test", "--skip-hook")
 	mustRun(t, "add", "epic", "--title", "Home", "--actor", "human/test", "--root", root)
 	bodyFile := filepath.Join(t.TempDir(), "body.md")
-	if err := os.WriteFile(bodyFile, []byte("## Goal\n\nUpdated body.\n"), 0o644); err != nil {
+	if err := os.WriteFile(bodyFile, entity.BodyWithSectionText(entity.KindEpic, "Updated body."), 0o644); err != nil {
 		t.Fatal(err)
 	}
 

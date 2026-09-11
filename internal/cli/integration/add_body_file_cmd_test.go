@@ -36,7 +36,7 @@ func TestAdd_BodyFile_BinaryEndToEnd(t *testing.T) {
 		t.Fatalf("aiwf init: %v\n%s", err, out)
 	}
 
-	bodyText := "## Goal\n\nFleshed-out goal prose, not the empty template.\n\n## Scope\n\nThe scope.\n"
+	bodyText := "## Goal\n\nFleshed-out goal prose, not the empty template.\n\n## Scope\n\nThe scope.\n\n## Out of scope\n\nWhat this epic leaves alone.\n"
 	bodyPath := filepath.Join(root, "epic-body.md")
 	if err := os.WriteFile(bodyPath, []byte(bodyText), 0o644); err != nil {
 		t.Fatalf("write body file: %v", err)
@@ -91,7 +91,7 @@ func TestAdd_BodyFile_StdinEndToEnd(t *testing.T) {
 		t.Fatalf("aiwf init: %v\n%s", err, out)
 	}
 
-	bodyText := "## Goal\n\nBody from stdin pipe.\n"
+	bodyText := "## What's missing\n\nBody from stdin pipe.\n\n## Why it matters\n\nThe stdin route must land the bytes it was piped.\n"
 	cmd := exec.Command(bin, "add", "gap", "--title", "Stdin gap", "--body-file", "-")
 	cmd.Dir = root
 	cmd.Env = append(os.Environ(),

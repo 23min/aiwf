@@ -87,7 +87,7 @@ func TestRitualsNameTheOwnedSectionsWithoutMarkers(t *testing.T) {
 			}
 			for _, section := range entity.RequiredSections(instr.kind) {
 				if !strings.Contains(strings.ToLower(region), strings.ToLower(section)) {
-					t.Errorf("%s: the passage at %q instructs an author to fill a %s body but never names its %q section; a body written by following it omits that section, which no surface reports (G-0571)",
+					t.Errorf("%s: the passage at %q instructs an author to fill a %s body but never names its %q section; a body written by following it omits that section, which the write seams now refuse (G-0571)",
 						instr.path, instr.anchor, instr.kind, section)
 				}
 			}

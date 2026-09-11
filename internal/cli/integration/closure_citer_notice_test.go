@@ -120,7 +120,7 @@ func TestClosureNotice_SilentOnNonTerminalPromote(t *testing.T) {
 	// Serial by design — see the sibling test.
 	root := seedCiterFixture(t)
 	mustRun(t, "add", "adr", "--title", "A decision that stays live", "--actor", "human/test", "--root", root,
-		"--body", "## Context\n\nThe subject.\n\n## Decision\n\nKeep it.\n")
+		"--body", "## Context\n\nThe subject.\n\n## Decision\n\nKeep it.\n\n## Consequences\n\nIt stays live.\n")
 	// The ADR must itself be cited, or dropping the guard would still
 	// print nothing and this test would pass for the wrong reason.
 	mustRun(t, "add", "gap", "--title", "Rests on the live decision", "--actor", "human/test", "--root", root,

@@ -126,7 +126,7 @@ func (s *ConcurrentMilestoneRaceScenario) Setup(dir string) error {
 		return err
 	}
 
-	epicEnv, err := runAiwfJSON(s.aiwfBin, dir, "add", "epic", "--title", "milestone-race epic", "--body", "parent epic for the concurrent-milestone-race stress scenario")
+	epicEnv, err := runAiwfJSON(s.aiwfBin, dir, "add", "epic", "--title", "milestone-race epic", "--body", sectionedBody("epic", "parent epic for the concurrent-milestone-race stress scenario"))
 	if err != nil {
 		return fmt.Errorf("seeding the epic: %w", err)
 	}
@@ -135,7 +135,7 @@ func (s *ConcurrentMilestoneRaceScenario) Setup(dir string) error {
 	}
 
 	msEnv, err := runAiwfJSON(s.aiwfBin, dir, "add", "milestone", "--epic", epicEnv.Metadata.EntityID, "--tdd", "none",
-		"--title", "milestone-race milestone", "--body", "the single shared milestone this scenario races promote/cancel actors against")
+		"--title", "milestone-race milestone", "--body", sectionedBody("milestone", "the single shared milestone this scenario races promote/cancel actors against"))
 	if err != nil { //coverage:ignore defensive: covered by the same launch-failure class other scenarios pin at runAiwfJSON's own source
 		return fmt.Errorf("seeding the milestone: %w", err)
 	}

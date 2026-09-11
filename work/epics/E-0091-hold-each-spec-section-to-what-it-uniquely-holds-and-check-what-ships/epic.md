@@ -1,7 +1,7 @@
 ---
 id: E-0091
 title: Hold each spec section to what it uniquely holds, and check what ships
-status: active
+status: done
 ---
 
 ## Goal
@@ -16,29 +16,35 @@ uniquely holds, and a release's notes rest on whoever cut it remembering.
 Three forces meet in the same five shipped surfaces, and each has been measured
 rather than inferred.
 
-The milestone spec's sections have no owner. The same rule — when a section is
-filled, and what it holds — is stated independently in the template, both
-milestone rituals, and two agent cards, and two of them already disagree about
+The milestone spec's sections had no owner. The same rule — when a section is
+filled, and what it holds — was stated independently in the template, both
+milestone rituals, and two agent cards, two of which disagreed about
 `## Validation` (G-0636). The template is a weaker owner than it looks: its
-per-section comments are consumed at scaffold time and reach 1 of 325 specs, so
-a rule that binds during implementation cannot live there.
+per-section comments are consumed at scaffold time and survive into almost no
+finished spec, so a rule that binds during implementation cannot live there.
+D-0085 settles the assignment; each section is owned by the surface where it is
+first written. D-0086 settles the same question one level down, for what an
+acceptance criterion carries. Its answer is not D-0085's: a `### AC-N` is a
+kind's body rather than a spec section, so its rule belongs with the per-kind
+body table in the `aiwf-add` skill, which every writer reaches through the verb
+it runs — including a review round growing a body through `aiwf edit-body`.
 
-`## Work log` is where that costs most. It was designed when frontmatter did not
-exist and a checkbox list was the only way to see progress; `acs[]`, the TDD
-phase ladder and `aiwf history` have carried that since. What remains is
-unbounded: 175 populated Work logs, 122 carrying prose beyond the stated
-one-line entry, median 283 words against a stated shape of about fifteen
-(G-0530). Its purpose was stated in no binding surface until the patch that
-opened this epic, and the section has no downstream consumer — the epic wrap
-that writes the changelog reads milestone titles and merge SHAs, never a Work
-log.
+`## Work log` was where that cost most, and it is retired. It was designed when
+frontmatter did not exist and a checkbox list was the only way to see progress;
+`acs[]`, the TDD phase ladder and `aiwf history` have carried that since. What
+remained was unbounded: 175 populated Work logs, 122 carrying prose beyond the
+stated one-line entry, median 283 words against a stated shape of about fifteen
+(G-0530), with no downstream consumer — the epic wrap that writes the changelog
+reads milestone titles and merge SHAs, never a Work log. The
+`embedded-no-work-log-section` ban is what keeps it retired; without one, an
+exact revert of the removal tripped nothing in the repo.
 
-It cannot simply be deleted, because one fact in it is real and unheld
+It could not simply be deleted, because one fact in it was real and unheld
 elsewhere: the link from an acceptance criterion to the commit that implemented
-it. `aiwf history` discards commits carrying an entity trailer with neither verb
-nor actor — 44 such commits, including ones the `skill-edit-provenance-backstop`
-rule mandates be written that way (G-0601). Until that projection sees them, the
-Work log is the only index there is.
+it. `aiwf history` discarded commits carrying an entity trailer with neither verb
+nor actor, including ones the `skill-edit-provenance-backstop` rule mandates be
+written that way (G-0601). M-0327 made the projection see them and made the
+commit carry the criterion's id, so the index now exists outside the spec.
 
 At the far end, nothing verifies that what shipped is described. `[Unreleased]`
 is written at a patch's wrap and an epic's wrap and nowhere else, and the only
@@ -100,28 +106,33 @@ opposite here, since guidance and rituals ship as product (G-0529).
 
 ## Success criteria
 
-- [ ] `aiwf history <id>` lists a commit carrying an entity trailer and nothing
+- [x] `aiwf history <id>` lists a commit carrying an entity trailer and nothing
       else, and the commit that implemented a gap appears in that gap's history.
-- [ ] A milestone spec no longer carries `## Work log`, and the link from an
+- [x] A milestone spec no longer carries `## Work log`, and the link from an
       acceptance criterion to its implementation commit is answerable without
       reading the spec.
-- [ ] A milestone spec carries `## Release note`, and the epic wrap's changelog
+- [x] A milestone spec carries `## Release note`, and the epic wrap's changelog
       entry is written from those notes rather than from milestone titles alone.
-- [ ] Every section rule named in G-0636's surface inventory is stated once, and
+- [x] Every section rule named in G-0636's surface inventory is stated once, and
       each restating surface points at the owner instead.
-- [ ] `## Validation` has one answer about when it is filled.
-- [ ] An entity body missing a section its kind requires is reported.
-- [ ] A release whose `[Unreleased]` omits a shipped delta is reported before
+- [x] `## Validation` has one answer about when it is filled.
+- [x] An entity body missing a section its kind requires is refused at the write.
+      Reporting one across the tree is ADR-0048's declined option and E-0084's
+      push seam; this epic reaches the write and no further.
+- [x] A release whose `[Unreleased]` omits a shipped delta is reported before
       the tag, including a delta that lands only in the embedded guidance or
       ritual trees.
-- [ ] Every gap listed in *References* is terminal or has its residual recorded.
+- [x] Every gap listed in *References* is terminal or has its residual recorded.
+      G-0530 and G-0571 each record in their own body what this epic closed and
+      what remains; G-0657 records that the commit-time route is shut and the
+      landed population is not rewritten.
 
 ## Open questions
 
 | Question | Blocking? | Resolution path |
 |---|---|---|
 | How does `aiwf history` label a row for a commit with no verb to name? | yes, for the history milestone | Decided in that milestone; a recorded decision if the choice has consequences for other trailer consumers. |
-| Is `## Validation` filled during implementation or at wrap? | yes, for the spec sweep | Follows from naming its owner. Two shipped surfaces say in-flight, two say at wrap; the rituals that drive the work say at wrap. |
+| Is `## Validation` filled during implementation or at wrap? | resolved | At wrap. D-0085 named `aiwfx-wrap-milestone` its owner, which settled the timing as a side effect; the `builder.md` instruction saying otherwise was live and is overruled. |
 | Does the epic wrap read each milestone's `## Release note`, or do the notes accumulate somewhere the wrap copies from? | yes, for the release-note milestone | Settled there; both shapes satisfy the criterion. |
 | Which surfaces count as "consumer-visible" for the changelog check? | no | G-0529 names finding codes, verbs, config keys and exit codes; the v0.34.0 evidence requires the embedded trees too. Enumerated in that milestone. |
 
@@ -129,33 +140,62 @@ opposite here, since guidance and rituals ship as product (G-0529).
 
 | Risk | Impact | Mitigation |
 |---|---|---|
-| Retiring `## Work log` loses the AC-to-commit link if the history fix lands incomplete | high | Sequence the history work ahead of the retirement; the retirement milestone depends on it and does not start until the link is answerable without the spec. |
-| The changelog check fires on correct trees and gets disabled | med | Land it at warning severity against a measured baseline; escalate only once the baseline is clean. |
+| Retiring `## Work log` loses the AC-to-commit link if the history fix lands incomplete | high | Discharged. The history work landed first, and the retirement ran only once `aiwf history M-NNNN/AC-<N>` answered the link from the commit's entity trailer. |
+| The changelog check fires on correct trees and gets disabled | med | Split by finding, per D-0087. The uncited-entity half blocks: its baseline is two entities and both clear before a release. The untrailered-commit half reports without blocking, because nothing the operator controls at release time can clear it — backtested, it fires in all three shipped ranges. |
 | The spec sweep and the section-enforcement rule disagree about the section set | med | One milestone owns both, or the enforcement milestone depends on the sweep. |
 
 ## Milestones
 
 <!-- Allocated one at a time as each is started. An entry with no id is the
-     dependency shape this epic assumes, not an allocation. -->
+     dependency shape this epic assumes, not an allocation. A bullet marked
+     "patch" carries no acceptance criterion and is not a milestone: its
+     deliverable is shipped prose, whose correctness a review carries. -->
 
 - `M-0326` — `## Release note` joins the milestone spec and feeds the epic wrap's
   changelog entry · depends on: —
-- The history projection sees entity-trailered commits, and a chokepoint catches
-  a missing trailer while it is cheap · depends on: —
-- `## Work log` retires, its unique fact derivable without it · depends on: the
-  history milestone
-- Every milestone-spec section rule gets one owner; `## Validation` resolves;
-  required sections are enforced · depends on: the retirement milestone
-- A release's `[Unreleased]` is checked against what shipped · depends on: —
+- `M-0327` — the history projection sees entity-trailered commits, at AC
+  granularity, and a chokepoint catches an unparseable trailer while it is cheap
+  · depends on: —
+- `M-0329` — an entity body that omits one of its kind's required sections is
+  refused at the write, at `aiwf add` and both `aiwf edit-body` modes
+  · depends on: —
+- `M-0330` — a release's `[Unreleased]` is checked against what shipped
+  · depends on: —
+- **patch** (done, G-0636) — every milestone-spec section rule gets one owner,
+  and `## Validation` resolves as a side effect · depends on: —
+- **patch** (done, G-0665) — what an acceptance criterion body holds gets an
+  owner · depends on: the section-ownership patch
+- **patch** (done, G-0530) — `## Work log` retires, its unique fact derivable
+  without it · depends on: the history milestone and the section-ownership patch
+- **patch** (done, G-0613) — the changelog category set widens to Keep a
+  Changelog's six · depends on: —
+
+Ownership precedes the retirement rather than following it. Retiring a section
+costs one edit per surface that names it, and five name this one while two of
+them disagree about when it is filled. Naming the owner first makes the other
+four point at it, so the retirement is one edit at the owner instead of five
+across surfaces that do not agree.
+
+The ownership work is patch-shaped because its deliverable is shipped prose. A
+prose-content assertion over a shipped surface is retired, so an acceptance
+criterion over that work has no evidence available and would be met by a proxy.
+What is separately checkable — that a section reference resolves against the
+artefact it names — is a narrower claim than ownership, and already has a policy
+covering the union case.
 
 ## References
 
 - G-0530 — milestone specs mandate four sections that duplicate structured data
 - G-0636 — milestone-spec section rules are restated across five surfaces with no owner
+- G-0665 — no surface owns what an acceptance criterion body holds
 - G-0601 — `aiwf history` hides skill edits owned by an entity trailer alone
 - G-0603 — no chokepoint catches a missing entity trailer while it is still cheap
 - G-0571 — nothing enforces that an entity body carries its kind's required sections
 - G-0529 — CHANGELOG completeness rests on recall at epic wrap and is never checked
 - G-0613 — the wrap changelog category set omits Removed, which practice uses
+- G-0657 — commits whose trailer block is split from `Co-Authored-By:` are
+  invisible to git's parser, so neither history nor the verb check sees them
+- D-0086 — an acceptance criterion's content rule is owned by the `aiwf-add` skill
 - D-0070 — prose-content assertions over shipped surfaces are retired
 - D-0071 — no aiwf verb commits source, so no verb value names a shipped-surface edit
+- D-0088 — a changelog entry uses one of Keep a Changelog's six categories
