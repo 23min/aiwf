@@ -16,6 +16,52 @@ section in this file.
 
 ## [Unreleased]
 
+### Added — E-0091: four gates that hold a spec section, an entity body, and a release's notes to what they claim
+
+A milestone spec now carries `## Release note` — the user-visible delta, written
+at the milestone's own wrap by whoever did the work — and `aiwfx-wrap-epic`
+composes the epic's changelog entry from those notes rather than reconstructing
+it from milestone titles and merge SHAs. `aiwf check` reports a `done` milestone
+whose note an author never wrote (`milestone-done-empty-release-note`, warning).
+A companion check resolves the section names written in the ritual tree against
+the headings the shipped templates actually carry, so a surface naming a section
+no artefact has is reported.
+
+`aiwf add` and `aiwf edit-body` now refuse a body missing a section its kind
+requires, and the two ask different questions because a create and an edit sit
+in different positions. `add` wants every declared section, for every kind, and
+`--force --reason` still bypasses it — now stamping its trailer on epic and
+milestone too, where it was previously inert. `edit-body` refuses only a write
+that *drops* a section the committed body carries, in both bless and
+`--body-file` mode, so an author editing one section is never refused over an
+omission they did not introduce; a deliberate removal is recorded with
+`aiwf acknowledge illegal`. Both refusals name the section they missed.
+
+The `commit-msg` hook gained three refusals, each catching at composition what
+was previously found later or not at all: a subject naming an `(M-NNNN/AC-N)`
+scope whose `aiwf-entity` trailer names something else or nothing; an aiwf
+trailer block git will not read, because a blank line leaves it out of the
+message's final paragraph, making it invisible to `aiwf history` and carrying
+any unrecognized `aiwf-verb` value straight past the check meant to refuse it;
+and a staged edit to the shipped ritual tree whose message names no entity.
+Alongside them, `aiwf history <id>` now lists a commit whose only aiwf trailer
+names the entity — the implementation commits and shipped-surface edits it used
+to discard — rendering `-` where a verb and actor would be.
+
+A release tag now fails when its notes do not say what it ships. The
+`changelog-check.yml` workflow gained a second job running `make
+changelog-audit`, which compares every commit since the last release that
+changed aiwf's embedded skill, ritual, template, agent-card, hook and guidance
+content against what the release notes cite, and fails the tag on a shipped
+change no entry names. A milestone's delta is cited by its parent epic, never by
+its own id; Go source under those trees materializes the content rather than
+being content a consumer receives, so it owes no entry. A second finding — a
+shipped-surface commit carrying no `aiwf-entity` trailer — is reported without
+failing, since with no entity named the audit cannot tell whether an entry
+covers it. Run `make changelog-audit` before tagging rather than meeting it at
+the push; `AIWF_CHANGELOG_BASE=<ref> make changelog-audit` audits a past range,
+and unset, the audit does not run at all.
+
 ### Changed — G-0613: a changelog entry may use any of Keep a Changelog's six categories
 
 The rituals that write `CHANGELOG.md` named three categories — `Added`,
