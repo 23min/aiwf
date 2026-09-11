@@ -1,7 +1,7 @@
 ---
 id: D-0086
 title: An acceptance criterion's content rule is owned by the aiwf-add skill
-status: proposed
+status: accepted
 relates_to:
     - D-0085
     - G-0665
