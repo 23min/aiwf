@@ -1,7 +1,7 @@
 ---
 id: D-0087
 title: The changelog audit blocks an uncited entity and reports an untrailered commit
-status: proposed
+status: accepted
 relates_to:
     - E-0091
     - M-0330
