@@ -1,7 +1,7 @@
 ---
 id: D-0085
 title: A milestone-spec section is owned by the surface where it is first written
-status: proposed
+status: accepted
 ---
 ## Question
 
