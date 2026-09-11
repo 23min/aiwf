@@ -22,6 +22,22 @@ after which the clause was gone. Re-running `update` from a binary built at curr
 source restored it, byte-identical to the copy taken beforehand. Nothing in the
 report distinguished the two runs.
 
+Observed again 2026-09-11, in this repo, on a family carrying no stamp. A ritual
+skill under the embedded snapshot had been edited and merged; `aiwf update` was
+then run from a binary built before that merge. It printed
+
+    updated    .claude/skills/aiwf-*  (materialized from embedded skills)
+
+after which the materialized copy of that skill carried its pre-edit text.
+Rebuilding from current source and re-running restored the edited version. The
+report read `updated` both times.
+
+That occurrence is the uneven-stamping case rather than the version-comparison
+one, and it is the harder half: a ritual skill carries no version in its
+frontmatter, so a guard reading stamps back has nothing to compare and the
+revert passes it unremarked. The first occurrence would have been caught by
+comparing stamps; this one would not.
+
 The data a guard would need already exists for one family. The fragment's header
 comment stamps the version that wrote it, in the form
 `aiwf-version: <version>`. Nothing reads that stamp back. The verb skills carry no
