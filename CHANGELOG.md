@@ -16,6 +16,20 @@ section in this file.
 
 ## [Unreleased]
 
+### Changed — G-0613: a changelog entry may use any of Keep a Changelog's six categories
+
+The rituals that write `CHANGELOG.md` named three categories — `Added`,
+`Changed`, `Fixed` — so an epic or a patch that retired something had no listed
+heading to write under, and its author either misfiled it or invented a heading
+the next reader could not predict. Both surfaces that name the set, the
+`wrap.md` scaffold in `aiwfx-wrap-epic` and step 4 of `wf-patch`, now carry
+Keep a Changelog's six: `Added`, `Changed`, `Deprecated`, `Removed`, `Fixed`,
+`Security`.
+
+A parenthetical after the category, as in `### Changed (breaking)`, is a note on
+that category rather than a seventh one. Work with no user-visible delta is
+written under `Changed`, qualified as `### Changed (internal)` where that helps.
+
 ### Changed — G-0665: what an acceptance criterion body holds has one owner
 
 The `aiwf-add` skill's *What to write per kind* now states what an acceptance
