@@ -272,8 +272,8 @@ cannot be a swap that buys the tagged shape by losing the pre-release one.
   rather than adding one.
 - `make comment-history-audit` is the shape precedent: a policy that also carries
   a focused target.
-- D-0031 fixed the changelog category set and G-0613 questions it. Not settled
-  here — that is a decision amendment, not a check.
+- Which categories a changelog entry may use is a decision rather than a check,
+  so G-0613 is not settled here. D-0088 settles it.
 - The two findings carry different severities, settled in D-0087. An uncited
   entity is a proven violation of a stated rule; an untrailered commit is a hole
   in the audit's own evidence.
