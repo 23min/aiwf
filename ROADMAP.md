@@ -1178,7 +1178,10 @@ Make a body that omits a section its kind requires impossible to write, so "requ
 stops being a name and starts being a refusal — and delete the prose that exists only
 because nothing enforced it.
 
-_No milestones yet._
+| Milestone | Title | Status |
+|---|---|---|
+| M-0331 | Refuse at the push a body that reached a commit without passing a verb | draft |
+| M-0332 | Retire the prose that restates the section set | draft |
 
 ## E-0085 — Measure the spec before the code; record what the measurement changed (cancelled)
 
