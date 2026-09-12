@@ -5,7 +5,7 @@ description: Use when the user asks "what happened to <entity>" or wants the tim
 
 # aiwf-history
 
-The `aiwf history` verb answers "what happened to this entity?" by filtering `git log` for the entity's commit trailers. There is no separate event log; the git log is the time machine, made queryable by `aiwf-verb` / `aiwf-entity` / `aiwf-prior-entity` / `aiwf-to` / `aiwf-force` / `aiwf-audit-only` and the I2.5 provenance trailers (`aiwf-principal`, `aiwf-on-behalf-of`, `aiwf-authorized-by`, `aiwf-scope`, `aiwf-scope-ends`, `aiwf-reason`).
+The `aiwf history` verb answers "what happened to this entity?" by filtering `git log` for the entity's commit trailers. There is no separate event log; the git log is the time machine, made queryable by `aiwf-verb` / `aiwf-entity` / `aiwf-prior-entity` / `aiwf-to` / `aiwf-force` / `aiwf-audit-only` and the provenance trailers (`aiwf-principal`, `aiwf-on-behalf-of`, `aiwf-authorized-by`, `aiwf-scope`, `aiwf-scope-ends`, `aiwf-reason`).
 
 ## When to use
 
@@ -53,8 +53,8 @@ After two reallocates, all queries against the old id, intermediate id, and curr
 ## Limitations
 
 - `aiwf history` shows commits carrying an `aiwf-entity:` (or `aiwf-prior-entity:`) trailer, whether or not a verb wrote them — an implementation commit naming the entity it belongs to appears alongside the verb events. Hand-edits with no trailer at all won't appear. `aiwf check` flags those as `provenance-untrailered-entity-commit` (warning) at push time so the audit gap is visible; `aiwf <verb> --audit-only --reason "..."` is the repair path.
-- Pre-I2 promote commits don't carry `aiwf-to:`; the column renders as a dash. No retroactive fill.
-- Pre-G37 reallocates (before `prior_ids` shipped) don't carry the lineage in frontmatter. Querying the old id still surfaces the rename event via the existing `aiwf-prior-entity:` trailer, but post-rename history surfaces only when querying the new id. New reallocates fill `prior_ids` automatically; legacy chains can be backfilled manually if needed.
+- A promote commit written before the `aiwf-to:` trailer existed renders that column as a dash. No retroactive fill.
+- A reallocate written before `prior_ids` shipped doesn't carry the lineage in frontmatter. Querying the old id still surfaces the rename event via the existing `aiwf-prior-entity:` trailer, but post-rename history surfaces only when querying the new id. New reallocates fill `prior_ids` automatically; legacy chains can be backfilled manually if needed.
 
 ## Don't
 

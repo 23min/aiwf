@@ -208,9 +208,9 @@ Recipes ship embedded in the binary. To upstream one, contribute a markdown file
 
 ### "I already have a contract-verification setup — adopt me into aiwf"
 
-Use `aiwf import <manifest>`. The migration manifest is planned to carry entities **and** the `aiwf.yaml.contracts:` config in one atomic operation. (Manifest extension lands in I2 of the contracts plan.)
+Use `aiwf import <manifest>`. The manifest carries contract entities; it does not carry the `aiwf.yaml.contracts:` config.
 
-For the engine's current state, do migration in two phases: first land the contract entities via `aiwf import`, then run `aiwf contract recipe install` and `aiwf contract bind` for each binding.
+So migration runs in two phases: first land the contract entities via `aiwf import`, then run `aiwf contract recipe install` and `aiwf contract bind` for each binding.
 
 ### "Cancel a contract entirely"
 

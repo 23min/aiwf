@@ -62,7 +62,7 @@ An operator end and an automatic end write the same `aiwf-scope-ends:` trailer, 
 - **`--resume` with no paused scope on the entity**: nothing to resume.
 - **`--end` with no non-ended scope on the entity**: nothing to end; the verb refuses. Naming an already-ended scope with `--scope` instead converges — the target resolves and its ended state is the effect asked for — so it exits 0 and writes no commit. A `--scope` matching nothing refuses either way.
 - **`--end` with more than one non-ended scope and no `--scope`**: refuses and lists the candidates with their agents.
-- **Non-human actor**: `aiwf authorize` is human-only. Per the kernel's "force is sovereign" rule, only humans can grant authority. (G23 reserves a future `--allow-force` for delegated force; sub-agent delegation is G22.)
+- **Non-human actor**: `aiwf authorize` is human-only. Per the kernel's "force is sovereign" rule, only humans can grant authority.
 
 ## Standing checks the LLM may surface
 
