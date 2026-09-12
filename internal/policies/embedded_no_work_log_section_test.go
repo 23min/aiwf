@@ -1,9 +1,7 @@
 package policies
 
 import (
-	"os"
 	"path/filepath"
-	"slices"
 	"strconv"
 	"testing"
 )
@@ -17,7 +15,8 @@ func TestPolicy_EmbeddedNoWorkLogSection(t *testing.T) {
 
 // workLogReports runs the ban over a synthetic skills tree and renders each
 // violation as `file:line`, so a test can assert where it fired and not only
-// that it did.
+// that it did. The walk it rides is pinned in shipped_surface_ban_test.go;
+// what these tests pin is which lines this ban's own rules catch.
 func workLogReports(t *testing.T, files map[string]string) []string {
 	t.Helper()
 	root := t.TempDir()
@@ -30,7 +29,13 @@ func workLogReports(t *testing.T, files map[string]string) []string {
 	}
 	got := make([]string, 0, len(vs))
 	for _, v := range vs {
-		got = append(got, v.File+":"+strconv.Itoa(v.Line))
+		// The two bans are mirror files, so the id is exactly what a copy
+		// between them would carry over unchanged; checked on every route
+		// rather than once, since a wrong id is invisible in a location.
+		if v.Policy != "embedded-no-work-log-section" {
+			t.Errorf("violation stamped with policy id %q", v.Policy)
+		}
+		got = append(got, v.File+":"+strconv.Itoa(v.Line)+":"+ruleTag(t, workLogBans, v))
 	}
 	return got
 }
@@ -46,21 +51,25 @@ func TestEmbeddedNoWorkLogSection_ReintroductionRoutes(t *testing.T) {
 		name string
 		rel  string
 		line string
+		rule string
 	}{
 		{
 			name: "heading above the template's ownership map",
 			rel:  "internal/skills/embedded-rituals/plugins/aiwf-extensions/templates/milestone-spec.md",
 			line: "## Work log",
+			rule: "r0",
 		},
 		{
 			name: "unbackticked instruction in a milestone ritual",
 			rel:  "internal/skills/embedded-rituals/plugins/aiwf-extensions/skills/aiwfx-start-milestone/SKILL.md",
 			line: "- Append a Work log entry to the milestone spec.",
+			rule: "r1",
 		},
 		{
 			name: "backticked mention in the engineering-skill tree",
 			rel:  "internal/skills/embedded-rituals/plugins/wf-rituals/skills/wf-tdd-cycle/SKILL.md",
 			line: "Write the outcome into the spec's `## Work log`.",
+			rule: "r0",
 		},
 		{
 			// The escape is what makes this row pin the body-key rule rather
@@ -69,27 +78,31 @@ func TestEmbeddedNoWorkLogSection_ReintroductionRoutes(t *testing.T) {
 			name: "body key in a verb skill",
 			rel:  "internal/skills/embedded/aiwf-show/SKILL.md",
 			line: "If the project reads JSON: aiwf show M-NNNN --format=json | jq '.result.body.work_log'",
+			rule: "r0",
 		},
 		{
 			name: "hyphenated mention in an agent card",
 			rel:  "internal/skills/embedded-rituals/plugins/aiwf-extensions/agents/reviewer.md",
 			line: "- Specs, with their work-log sections, stay readable.",
+			rule: "r1",
 		},
 		{
 			name: "mention in the always-on guidance",
 			rel:  "internal/skills/embedded-guidance/aiwf-guidance.md",
 			line: "Keep the Work log current as you go.",
+			rule: "r1",
 		},
 		{
 			name: "instruction naming a project without the conditional",
 			rel:  "internal/skills/embedded-rituals/plugins/aiwf-extensions/skills/aiwfx-wrap-milestone/SKILL.md",
 			line: "Append a work log entry to the project's milestone spec, one per criterion.",
+			rule: "r1",
 		},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
 			t.Parallel()
 			got := workLogReports(t, map[string]string{tc.rel: "# S\n\n" + tc.line + "\n"})
-			want := tc.rel + ":3"
+			want := tc.rel + ":3:" + tc.rule
 			if len(got) != 1 || got[0] != want {
 				t.Errorf("route did not report at %s; got %v", want, got)
 			}
@@ -121,66 +134,5 @@ func TestEmbeddedNoWorkLogSection_SectionShapeIgnoresTheEscape(t *testing.T) {
 	line := "If the project uses aiwf, confirm its `## Work log` carries one entry per criterion."
 	if got := workLogReports(t, map[string]string{rel: "# S\n\n" + line + "\n"}); len(got) != 1 {
 		t.Errorf("the section shape did not fire through the consumer-project escape; got %v", got)
-	}
-}
-
-// TestEmbeddedNoWorkLogSection_ScopeIsTheEmbeddedTrees pins that the walk covers
-// every embedded tree and nothing else under internal/skills/. A sibling package
-// there is aiwf's own source rather than a surface a consumer reads, so a mention
-// in it is not a shipped instruction.
-func TestEmbeddedNoWorkLogSection_ScopeIsTheEmbeddedTrees(t *testing.T) {
-	t.Parallel()
-	got := workLogReports(t, map[string]string{
-		"internal/skills/materialize.go":                 "package skills\n\n// the ## Work log section\n",
-		"internal/skills/materialize_test.go":            "package skills\n\n// work log\n",
-		"internal/skills/testdata/golden/spec.md":        "## Work log\n",
-		"internal/skills/embedded-statusline/status.sh":  "# renders the ## Work log\n",
-		"internal/policies/embedded/x.md":                "## Work log\n",
-		"internal/skills/embedded/aiwf-history/SKILL.md": "## Work log\n",
-	})
-	want := []string{
-		"internal/skills/embedded-statusline/status.sh:1",
-		"internal/skills/embedded/aiwf-history/SKILL.md:1",
-	}
-	if len(got) != len(want) {
-		t.Fatalf("scope mismatch: got %v, want %v", got, want)
-	}
-	for _, w := range want {
-		if !slices.Contains(got, w) {
-			t.Errorf("expected a report at %s; got %v", w, got)
-		}
-	}
-}
-
-// TestEmbeddedNoWorkLogSection_MissingSkillsTreeIsAnError pins that a root with
-// no internal/skills/ reports the walk failure rather than a clean verdict. A
-// ban that passes when it read nothing is the failure mode this policy exists to
-// prevent, one level up.
-func TestEmbeddedNoWorkLogSection_MissingSkillsTreeIsAnError(t *testing.T) {
-	t.Parallel()
-	if _, err := PolicyEmbeddedNoWorkLogSection(t.TempDir()); err == nil {
-		t.Error("a root carrying no internal/skills/ tree returned no error")
-	}
-}
-
-// TestEmbeddedNoWorkLogSection_UnreadableFileIsAnError pins that a file the walk
-// cannot read fails the policy rather than passing it. A ban that reports clean
-// on the bytes it never saw is worse than no ban, because the clean verdict is
-// what stops the next reader looking.
-func TestEmbeddedNoWorkLogSection_UnreadableFileIsAnError(t *testing.T) {
-	t.Parallel()
-	root := t.TempDir()
-	rel := filepath.Join("internal", "skills", "embedded", "aiwf-show", "SKILL.md")
-	mustWrite(t, filepath.Join(root, rel), "# S\n")
-	// A dangling symlink reads as a non-directory entry the walk yields and
-	// every uid fails to open, so the arm is reachable without file modes.
-	if err := os.Remove(filepath.Join(root, rel)); err != nil {
-		t.Fatalf("remove: %v", err)
-	}
-	if err := os.Symlink(filepath.Join(root, "no-such-target"), filepath.Join(root, rel)); err != nil {
-		t.Fatalf("symlink: %v", err)
-	}
-	if _, err := PolicyEmbeddedNoWorkLogSection(root); err == nil {
-		t.Error("an unreadable shipped surface returned no error")
 	}
 }

@@ -16,6 +16,15 @@ section in this file.
 
 ## [Unreleased]
 
+### Changed (internal) — G-0669: the two embedded-tree ban policies share one walk
+
+Nothing user-facing changed. The policies banning the retired `## Work log`
+section and the retired v1 tracking-doc convention are repo-development
+chokepoints that never ship to a consumer; they now apply their rules through
+one shared scan instead of two copies of it. The tracking-doc ban reads every
+embedded tree as a result, where before it read the ritual snapshot alone, and
+gained the firing tests it had been missing.
+
 ### Added — E-0091: four gates that hold a spec section, an entity body, and a release's notes to what they claim
 
 A milestone spec now carries `## Release note` — the user-visible delta, written
