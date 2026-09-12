@@ -16,6 +16,8 @@ section in this file.
 
 ## [Unreleased]
 
+## [0.35.0] — 2026-09-12
+
 ### Changed — G-0670: shipped verb skills drop this repo's internal labels
 
 The `aiwf-history`, `aiwf-promote`, `aiwf-contract`, `aiwf-authorize` and
