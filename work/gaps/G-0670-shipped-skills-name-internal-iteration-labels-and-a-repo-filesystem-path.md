@@ -1,8 +1,10 @@
 ---
 id: G-0670
 title: Shipped skills name internal iteration labels and a repo filesystem path
-status: open
+status: addressed
 discovered_in: E-0091
+addressed_by_commit:
+    - 6555fffd67e25122de0a2fb41cff5546988e749e
 ---
 ## What's missing
 
