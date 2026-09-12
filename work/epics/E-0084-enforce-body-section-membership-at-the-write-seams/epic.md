@@ -137,10 +137,15 @@ Each states the section set, and each is deletable only once a refusal carries i
 
 - ~~the verb seam: the scan, wired into every body-supplying verb, with a per-verb
   test~~ — delivered by M-0329 under E-0091, less `aiwf import`
-- the push seam: the gate on the provenance range, scoped to body-changed entities
-- the deletion: retire the prose the enforcement makes redundant, and close G-0571.
+- M-0331 — the push seam: the gate on the provenance range, scoped to
+  body-changed entities
+- M-0332 — the deletion: retire the prose the enforcement makes redundant.
   M-0329 corrected the passages that had become false; what remains here is
   retiring the ones the enforcement makes redundant, which is a different act
+
+Neither depends on the other. What makes M-0332's passages safe to delete is the
+verb seam M-0329 already landed, not M-0331, so the two may run in either order
+or at once. G-0571 closes when both have.
 
 ## References
 
