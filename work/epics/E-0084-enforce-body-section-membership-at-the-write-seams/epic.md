@@ -1,7 +1,7 @@
 ---
 id: E-0084
 title: Enforce body-section membership at the write seams
-status: proposed
+status: active
 ---
 ## Goal
 
