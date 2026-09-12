@@ -1,8 +1,10 @@
 ---
 id: G-0669
 title: The two embedded-tree ban policies duplicate one walk and one rule shape
-status: open
+status: addressed
 discovered_in: E-0091
+addressed_by_commit:
+    - 6a6dd8c8e
 ---
 ## What's missing
 
