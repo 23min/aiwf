@@ -4,6 +4,22 @@ title: Refuse at the push a body that reached a commit without passing a verb
 status: draft
 parent: E-0084
 tdd: required
+acs:
+    - id: AC-1
+      title: A body committed without passing a verb is refused at the push
+      status: open
+    - id: AC-2
+      title: Promote, retitle and archive still succeed against an entity missing a section
+      status: open
+    - id: AC-3
+      title: The new rule leaves aiwf check's tree-wide output unchanged
+      status: open
+    - id: AC-4
+      title: A required section absent as a top-level heading is the only violation
+      status: open
+    - id: AC-5
+      title: A template edit cannot change what the gate enforces
+      status: open
 ---
 ## Goal
 
@@ -28,6 +44,54 @@ ADR-0048 places this gate and defines what a violation is; ADR-0043 established
 why the enforcement is forward-only by construction rather than by policy.
 
 ## Acceptance criteria
+
+### AC-1 — A body committed without passing a verb is refused at the push
+
+A body whose required section is missing, written into a commit by plain `git
+commit` rather than through a body-supplying verb, is refused at the push.
+
+The proof runs against the path that does this today — the wrap-milestone
+ritual's plain `git commit` of the milestone spec — rather than a synthetic
+commit constructed for the test. A synthetic one would pin the rule against an
+input nobody produces; the real path is what the gate exists for.
+
+### AC-2 — Promote, retitle and archive still succeed against an entity missing a section
+
+A status promote, a retitle, and an archive sweep each succeed against an
+entity whose body omits a required section.
+
+The gate's scope is entities whose body *content* changed in the range. An
+entity merely touched by a frontmatter write or a file move is outside it.
+Without this the gate would block ordinary work on debt that work did not
+create, and the three verbs above are where that would bite first.
+
+### AC-3 — The new rule leaves aiwf check's tree-wide output unchanged
+
+`aiwf check` reports the same findings on this tree before and after the gate
+lands.
+
+The rule does not join `check.Run`; it runs only on the push, over a commit
+range. No existing entity gains a finding, which is what keeps the tree's
+accumulated omissions out of scope by construction rather than by a
+grandfather list.
+
+### AC-4 — A required section absent as a top-level heading is the only violation
+
+A violation is exactly one thing: a required section absent as a top-level
+`##` heading.
+
+Sections beyond the declared set are legal and never reported. Order is not
+enforced. Stating the rule this narrowly is what lets an author add their own
+headings and arrange them freely while the declared set stays mandatory.
+
+### AC-5 — A template edit cannot change what the gate enforces
+
+Editing a prose template does not change what the gate enforces.
+
+The scan's only input is the section set the kernel declares — located today at
+`entity.RequiredSections`. The templates describe that set for a human reader
+and are not consulted, so the two cannot drift into disagreeing about what is
+required.
 
 ## Constraints
 
