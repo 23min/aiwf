@@ -4,6 +4,13 @@ title: Retire the prose that restates the section set
 status: draft
 parent: E-0084
 tdd: required
+acs:
+    - id: AC-1
+      title: The required section set is enumerated in exactly one place
+      status: open
+    - id: AC-2
+      title: Each surface that carried a retired table routes to the owner
+      status: open
 ---
 ## Goal
 
@@ -29,6 +36,30 @@ deletion being the point rather than a tidy-up: the enforcement without the
 deletion leaves the duplication in place.
 
 ## Acceptance criteria
+
+### AC-1 — The required section set is enumerated in exactly one place
+
+The required section set for each kind is enumerated in exactly one place.
+
+The check derives the declared set from the kernel and asserts that no other
+surface — shipped skill, normative design doc, or template — enumerates it.
+Stated this way the criterion is a relationship between two artefacts, so
+either one moving turns it red.
+
+It is deliberately not stated as "these two passages are deleted". D-0070
+retires prose-presence assertions over the shipped skill tree, and an absence
+assertion over the same tree pins a reading that a reword breaks just as
+readily. The relationship holds regardless of how the surviving prose is
+phrased.
+
+### AC-2 — Each surface that carried a retired table routes to the owner
+
+Each surface that carried a retired table routes the reader to the owner of
+the set, and the route resolves.
+
+A reader who previously learned the section set from the table must still be
+able to reach it. The citation is checked rather than assumed: a route naming
+a heading or symbol that no longer exists is reported.
 
 ## Constraints
 
