@@ -42,30 +42,34 @@ the statusline reads the session's own cwd, harness-entered worktrees get a
 tracked keep/remove prompt, and cwd-dependent caches refresh. What it did not
 weigh is that entering the worktree forecloses the ritual's later steps.
 
-A session whose launch directory is already a worktree meets the outer half of
-this without `EnterWorktree` at all, so raising it is not a matter of declining
-step 2.
+The wall is entirely a consequence of the harness call. Measured 2026-09-12 from
+the same session's launch directory — itself a worktree, entered by no tool —
+both `cd /workspaces/aiwf` and `git -C /workspaces/aiwf` succeed and report
+`main`. Declining step 2 would therefore avoid it, which is exactly what the fix
+must not do: G-0413 added that call for three reasons that still hold.
 
 ## Resolution shape
 
-Settle where the session should stand at merge time, then make one instruction
-say so.
+The fix is ordering, and it is sufficient. Move the `ExitWorktree` instruction
+out of step 14's cleanup and into step 11, where the ritual first needs the
+session outside the worktree; step 14 then removes a worktree the session has
+already left, which is the order `git worktree remove` wants anyway.
 
-The narrow fix is ordering: move the `ExitWorktree` instruction out of step 14's
-cleanup and into step 11, where the ritual first needs the session outside the
-worktree, leaving step 14 to remove a worktree the session has already left.
-Confirm first that exiting restores enough reach to run the merge — the
-launch-directory case above suggests it may not, and a fix that relocates the
-session to somewhere equally unable to merge is no fix.
+Exiting restores the reach the merge needs. Measured 2026-09-12: a session that
+had entered the patch worktree and could reach nothing outside it called
+`ExitWorktree` with `keep`, returned to its launch directory, and from there ran
+`cd` and `git -C` into the main checkout, both reporting `main`. The worktree and
+its branch survived the exit, so the work in flight is not at risk and the
+session can re-enter with `EnterWorktree(path: …)` if it needs to.
 
-If it does not, the choice is between running the merge from a worktree the
-session can reach and accepting that the operator owns the merge. The second is
-what happens today by accident; written down it becomes a step with a named
-actor rather than a wall the session discovers at the gate.
+Step 11 should say which of the two it wants, since they are no longer
+equivalent after the exit: `cd` into mainline's worktree, as the step already
+reads, or `git -C` from wherever the session landed. The `cd` keeps the plain
+commands in steps 12 to 15 working as written.
 
-Either way the same question reaches `aiwfx-start-milestone` and
-`aiwfx-start-epic`, whose wrap rituals merge into a parent branch held by
-another worktree.
+The same question reaches `aiwfx-start-milestone` and `aiwfx-start-epic`, whose
+wrap rituals merge into a parent branch held by another worktree, and whose
+start rituals chain the same call.
 
 ## Related
 
