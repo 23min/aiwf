@@ -101,7 +101,7 @@ sits inside a record nobody reopens.
 
 ## --audit-only --reason for backfilling state already reached
 
-When state was already reached via a manual `git commit` (no aiwf trailers), `aiwf promote <id> <state> --audit-only --reason "..."` records an empty-diff commit with the trailer block so `aiwf history` reflects the move. The verb refuses unless the entity is **already** at the named state — audit-only records what's true, not transitions. Mutex with `--force`. Human-only (the kernel refuses non-human actors). See `aiwf-authorize` and the G24 recovery story.
+When state was already reached via a manual `git commit` (no aiwf trailers), `aiwf promote <id> <state> --audit-only --reason "..."` records an empty-diff commit with the trailer block so `aiwf history` reflects the move. The verb refuses unless the entity is **already** at the named state — audit-only records what's true, not transitions. Mutex with `--force`. Human-only (the kernel refuses non-human actors). See `aiwf-authorize`.
 
 ## Provenance flags
 
@@ -118,7 +118,7 @@ When the scope-entity reaches a **terminal status** via `aiwf promote` or `aiwf 
 
 1. Loads the entity (or AC, for composite ids) and validates the transition.
 2. Rewrites only the changed line in frontmatter — for ACs, the entry inside `acs[]`. Everything else preserved.
-3. Commits with trailers `aiwf-verb: promote`, `aiwf-entity: <id>` (composite for ACs), `aiwf-to: <new-state>` (status or phase), `aiwf-actor: <actor>`. `aiwf-force: <reason>` is added when `--force` is set, `aiwf-audit-only: <reason>` when `--audit-only` is set, plus the I2.5 provenance trailers (`aiwf-principal`, `aiwf-on-behalf-of`, `aiwf-authorized-by`, `aiwf-scope-ends`) where applicable.
+3. Commits with trailers `aiwf-verb: promote`, `aiwf-entity: <id>` (composite for ACs), `aiwf-to: <new-state>` (status or phase), `aiwf-actor: <actor>`. `aiwf-force: <reason>` is added when `--force` is set, `aiwf-audit-only: <reason>` when `--audit-only` is set, plus the provenance trailers (`aiwf-principal`, `aiwf-on-behalf-of`, `aiwf-authorized-by`, `aiwf-scope-ends`) where applicable.
 4. When a bare id's new status is terminal, prints the still-open records whose bodies name the entity — the id, file, and line of each first mention. A composite id never triggers it. `aiwf cancel` prints the same. Nothing prints when no live record names it, or under `--format=json`.
 
 ## Don't

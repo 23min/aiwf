@@ -11,7 +11,7 @@ The hot-path read primitive over the planning tree. Reach for this whenever the 
 
 `aiwf list` walks the planning tree and emits one summary row per entity matching the supplied filters. Default semantic: only **non-terminal-status entities** appear (closed/done/cancelled/addressed/wontfix/rejected/superseded/retired are hidden). Pass `--archived` to widen.
 
-V1 filter axes:
+Filter axes:
 
 | Flag | Filter |
 |---|---|

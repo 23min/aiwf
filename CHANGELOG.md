@@ -16,6 +16,18 @@ section in this file.
 
 ## [Unreleased]
 
+### Changed — G-0670: shipped verb skills drop this repo's internal labels
+
+The `aiwf-history`, `aiwf-promote`, `aiwf-contract`, `aiwf-authorize` and
+`aiwf-list` skills no longer name aiwf's own development labels. Some named an
+iteration of this repo's plan (`I2`, `I2.5`, `V1`); the rest were gap ids
+written without their hyphen (`G22`, `G23`, `G24`, `G37`), which read as labels
+and resolve to nothing in the repo a skill materializes into. Where a label
+carried a real fact — a git log can hold promote commits predating the
+`aiwf-to:` trailer, and reallocates predating `prior_ids` — the fact survives,
+stated without the label. `aiwf-contract` now describes what `aiwf import` does
+today rather than a planned manifest extension.
+
 ### Changed (internal) — G-0669: the two embedded-tree ban policies share one walk
 
 Nothing user-facing changed. The policies banning the retired `## Work log`
