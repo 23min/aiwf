@@ -16,6 +16,10 @@ zero-padding (e.g. `G45` written for `G-0045`) is invisible to the scanner
 entirely — not merely tolerated, but never even classified as a candidate
 token, so it produces no finding at any severity.
 
+The pattern is shared, so the hole is wider than one rule. `skill-body-id`,
+`doc-id-width` and the citers scan all classify candidates through the same
+`idTokenPattern`, and each inherits the blind spot over its own corpus.
+
 Discovered 2026-07-05 in `G-0362`'s own body prose (a real reference to
 `G-0045`, written as `G45`; fixed in place via `aiwf edit-body G-0362` — see
 `aiwf history G-0362`).
