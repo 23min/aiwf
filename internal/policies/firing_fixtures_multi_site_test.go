@@ -39,14 +39,6 @@ func TestFiringFixtures_MultiSite(t *testing.T) {
 			},
 		},
 
-		// embedded-rituals: a work/tracking/ reference + a "tracking doc"
-		// mention without "v1".
-		{
-			name:   "embedded-rituals/tracking-refs",
-			policy: PolicyEmbeddedRitualsNoRetiredTrackingDoc,
-			files:  map[string]string{"internal/skills/embedded-rituals/x.md": "see work/tracking/foo here\n\nthis is a tracking doc mention\n"},
-		},
-
 		// finding-codes-have-tests: an untested code const + an untested
 		// code literal (no _test.go references either).
 		{

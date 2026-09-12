@@ -35,11 +35,15 @@ reason. Extracting the shared walk closes that by construction — the older ban
 gains whole-tree scope as a consequence of sharing the traversal, not as a
 separate change someone has to remember to make.
 
-The cost is measured rather than estimated. A reviewer wrote the extraction
-during the G-0530 review and ran the gates on it: the pair goes from 372 to 249
-lines with the whole policy suite green, and the rewritten tests kill a mutant
-the submitted ones did not.
+What the extraction buys is the shape, not fewer lines. Measured across the two
+policies and the walk they share: 114 code lines become 104, while their tests
+go from 147 to 431. Most of that growth is the tracking-doc ban's first real
+firing tests — its own test drove the live tree only, and the shared fixture
+asserting a single violation could not tell its two rules apart, so deleting
+its `work/tracking/` rule left the suite green.
 
 This is deliberately not folded into G-0530's patch. Widening a shipped
 chokepoint's scope can surface findings in trees it has never read, which is its
-own review rather than a footnote to a retirement.
+own review rather than a footnote to a retirement. Run over all five embedded
+trees before the widening landed, both rules reported nothing outside the ritual
+snapshot, so the hole is structural rather than populated.
