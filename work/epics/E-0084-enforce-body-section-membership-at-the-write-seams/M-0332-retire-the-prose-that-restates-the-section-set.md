@@ -6,7 +6,7 @@ parent: E-0084
 tdd: required
 acs:
     - id: AC-1
-      title: The required section set is enumerated in exactly one place
+      title: No surface restates the section set as a per-kind table
       status: open
     - id: AC-2
       title: Each surface that carried a retired table routes to the owner
@@ -37,7 +37,7 @@ deletion leaves the duplication in place.
 
 ## Acceptance criteria
 
-### AC-1 — The required section set is enumerated in exactly one place
+### AC-1 — No surface restates the section set as a per-kind table
 
 The required section set for each kind is enumerated in exactly one place.
 
