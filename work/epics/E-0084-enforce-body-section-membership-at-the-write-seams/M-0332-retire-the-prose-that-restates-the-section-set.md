@@ -140,6 +140,28 @@ a heading or symbol that no longer exists is reported.
 
 ## Validation
 
+Run against the milestone branch tip in the devcontainer — linux/amd64,
+go1.25.11, `aiwf` built from that tip.
+
+- `make check-fast` — `go vet` plain and under `-tags stress` and
+  `-tags testpins`; golangci-lint 0 issues; `go test -parallel 8 ./...` ok
+  across every package.
+- `make coverage-gate` — green. Covers the diff-scoped statement gate and the
+  firing-fixture meta-gate.
+- `aiwf check` — 0 errors, 12 warnings, none of them on this milestone. The
+  warnings are the standing archive backlog and the provenance audit skipping
+  itself because this worktree has no upstream configured.
+- Vacuity probes, each mutating one file in memory and restoring it
+  byte-identically afterwards. AC-1: a detector rewritten to match nothing
+  leaves the census passing and is caught only by `TestKindStatedByRow`;
+  removing the section-containment check fails both. AC-2: renaming the cited
+  symbol fails the resolve test alone, deleting the link fails the
+  section-route test alone.
+
+The first probe is the load-bearing one. The census asserts an absence, so it
+cannot distinguish a clean tree from a detector that matches nothing, and the
+pair is sufficient only together.
+
 ## Deferrals
 
 - G-0674 — the `--principal` flag's help text cites an internal iteration
