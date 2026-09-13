@@ -1,7 +1,7 @@
 ---
 id: M-0332
 title: Retire the prose that restates the section set
-status: in_progress
+status: done
 parent: E-0084
 tdd: required
 acs:
