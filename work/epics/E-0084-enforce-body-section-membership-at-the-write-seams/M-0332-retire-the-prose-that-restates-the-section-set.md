@@ -204,6 +204,10 @@ go1.25.11, `aiwf` built from that tip.
 - G-0674 — the `--principal` flag's help text cites an internal iteration
   label, found at this milestone's preflight. It lands in none of the files
   this work touches, so it takes its own change rather than an inline fix.
+- G-0675 — the scan's corpus is a hand-maintained list, so a root dropped from
+  it, or a normative doc added without it, narrows the scan with nothing said.
+  Closing it means deriving the corpus, which needs a tier-partitioned list
+  the repo does not have.
 
 ## Reviewer notes
 
@@ -215,12 +219,10 @@ go1.25.11, `aiwf` built from that tip.
   two dangling references to the deleted table were repaired in the shipped
   skill — one of which neither round found, and which surfaced only on a
   tree-wide sweep for the phrase.
-- The scan's corpus is a hand-maintained list of nine roots, and dropping one
-  the fixtures do not pin narrows the scan with nothing said. It is also a
-  third statement of the repo's documentation tiers, beside the root
-  `CLAUDE.md` and the documentation-hierarchy policy. Both problems have the
-  same fix — derive the corpus from a tier-partitioned list — and no such
-  list exists; G-0092 owns the tiering question.
+- The scan's corpus is a hand-maintained list of nine roots, and the fixtures
+  pin two of them. G-0675 records what that leaves open and why closing it
+  waits on a tier-partitioned list the repo does not have; G-0092 owns the
+  tiering question behind it.
 - The `/archive/` skip the scan first carried is gone. It guarded nothing
   measurable (no archived file under any corpus root restates a set), and it
   compared the absolute path, so a checkout under any directory named
