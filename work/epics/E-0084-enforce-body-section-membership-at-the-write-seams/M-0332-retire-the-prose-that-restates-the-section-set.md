@@ -12,7 +12,7 @@ acs:
     - id: AC-2
       title: Each surface that carried a retired table routes to the owner
       status: open
-      tdd_phase: green
+      tdd_phase: done
 ---
 ## Goal
 
