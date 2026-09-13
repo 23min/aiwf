@@ -102,7 +102,7 @@ rather than by policy. This epic implements it.
 - [ ] `aiwf check` on this tree reports the same findings before and after the epic.
 - [ ] A status promote, a retitle, and an archive sweep each succeed against an entity
       whose body omits a required section.
-- [ ] Every passage listed in *Prose retired* is deleted, and a test that would have
+- [x] Every passage listed in *Prose retired* is deleted, and a test that would have
       failed had it been merely corrected instead.
 - [ ] G-0571 is `addressed`.
 
@@ -110,8 +110,10 @@ rather than by policy. This epic implements it.
 
 Each states the section set, and each is deletable only once a refusal carries it:
 
-- the `aiwf-add` skill's per-kind body-section table
-- the body-sections table in `docs/design/design-decisions.md`
+- ~~the `aiwf-add` skill's per-kind body-section table~~ — deleted by M-0332,
+  which routes the reader to `aiwf template <kind>` instead
+- ~~the body-sections table in `docs/design/design-decisions.md`~~ — deleted by
+  M-0332, which cites the owning declaration in its place
 - ~~`RequiredSections`' own "not a guarantee anything verifies" caveat~~ — deleted
   by M-0329, along with the same claim in two normative design docs and the
   `entity-body-empty` rule's own comment
@@ -139,13 +141,13 @@ Each states the section set, and each is deletable only once a refusal carries i
   test~~ — delivered by M-0329 under E-0091, less `aiwf import`
 - M-0331 — the push seam: the gate on the provenance range, scoped to
   body-changed entities
-- M-0332 — the deletion: retire the prose the enforcement makes redundant.
-  M-0329 corrected the passages that had become false; what remains here is
-  retiring the ones the enforcement makes redundant, which is a different act
+- ~~M-0332 — the deletion: retire the prose the enforcement makes redundant~~ —
+  delivered: both tables are gone, each replaced by a route to what owns the
+  set, and a scan over the shipped and normative corpus reports any per-kind
+  section table, one corrected to agree with the kernel included
 
-Neither depends on the other. What makes M-0332's passages safe to delete is the
-verb seam M-0329 already landed, not M-0331, so the two may run in either order
-or at once. G-0571 closes when both have.
+M-0331 does not depend on M-0332 — what made those passages safe to delete is
+the verb seam M-0329 landed. G-0571 closes when M-0331 does.
 
 ## References
 
