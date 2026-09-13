@@ -179,12 +179,18 @@ func TestKindStatedByRow(t *testing.T) {
 		want entity.Kind
 	}{
 		{"a row carrying the kind's sections names that kind", statesTheSet, entity.KindGap},
-		{"a row keyed by a kind but carrying other content is not a restatement",
-			"| gap | `what_s_missing`, `why_it_matters`, plus author-added sections |", ""},
-		{"prose naming every section of a kind is not a table row",
-			"**Gaps.** `## What's missing` is the defect; `## Why it matters` is the consequence.", ""},
-		{"a row whose first cell names no kind is not a restatement",
-			"| R-AUDIT-0085 | `## What's missing` / `## Why it matters` |", ""},
+		{
+			"a row keyed by a kind but carrying other content is not a restatement",
+			"| gap | `what_s_missing`, `why_it_matters`, plus author-added sections |", "",
+		},
+		{
+			"prose naming every section of a kind is not a table row",
+			"**Gaps.** `## What's missing` is the defect; `## Why it matters` is the consequence.", "",
+		},
+		{
+			"a row whose first cell names no kind is not a restatement",
+			"| R-AUDIT-0085 | `## What's missing` / `## Why it matters` |", "",
+		},
 		{"a row too short to carry cells is not a restatement", "|", ""},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
