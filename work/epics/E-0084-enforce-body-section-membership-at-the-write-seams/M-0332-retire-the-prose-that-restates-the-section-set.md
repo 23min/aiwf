@@ -10,7 +10,7 @@ acs:
       status: met
       tdd_phase: done
     - id: AC-2
-      title: Each surface that carried a retired table routes to the owner
+      title: The design doc cites the owning symbol, and the citation resolves
       status: met
       tdd_phase: done
 ---
@@ -66,7 +66,7 @@ carry the headings as scaffold. Each derives from the kernel and is already
 pinned by its own relationship check, so neither is the free-drifting copy this
 milestone retires; this criterion adds no assertion about them.
 
-### AC-2 — Each surface that carried a retired table routes to the owner
+### AC-2 — The design doc cites the owning symbol, and the citation resolves
 
 Each surface that carried a retired table routes the reader to the owner of
 the set, and the route resolves.
