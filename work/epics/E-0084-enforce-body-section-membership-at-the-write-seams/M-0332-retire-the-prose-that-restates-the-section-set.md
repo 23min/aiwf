@@ -167,25 +167,34 @@ go1.25.11, `aiwf` built from that tip.
   `-tags testpins`; golangci-lint 0 issues; `go test -parallel 8 ./...` ok
   across every package.
 - `make coverage-gate` — green. It reads only files carried in the coverage
-  profile, which never includes a `_test.go`, so it judged nothing while this
-  change was tests alone. It became load-bearing once the scan moved into a
-  non-test file, and failed on five IO-error arms until the bespoke walker
-  was replaced by the shared markdown walk; one arm remains, annotated.
+  profile, which never holds a `_test.go`, so what it judges here is the scan
+  itself rather than the tests around it. One arm is annotated unreachable:
+  the markdown walk fails only on a mid-walk IO fault.
 - `aiwf check` — 0 errors, 12 warnings, none of them on this milestone. The
   warnings are the standing archive backlog and the provenance audit skipping
   itself because this worktree has no upstream configured.
 - Mutation probes, each editing one file in memory and restoring it
-  byte-identically afterwards. Every failure mode is caught by at least one
-  test, and which test catches which is the point — the scan reports an
-  absence, so against a clean tree it cannot tell a real absence from a scan
-  that finds nothing:
+  byte-identically afterwards. The scan reports an absence, so against a
+  clean tree it cannot tell a real absence from a scan that finds nothing.
+  Which test catches which mutation is therefore the substance:
 
-  | mutation | scan | firing fixture | roots test |
-  |---|---|---|---|
-  | a retired table re-added | fails | — | — |
-  | the scan's report path disarmed | passes | fails | — |
-  | a corpus root dropped from the list | passes | fails | — |
-  | a corpus root renamed | passes | fails | fails |
+  | mutation | scan | fixtures | detector | roots |
+  |---|---|---|---|---|
+  | a retired table re-added | fails | passes | passes | passes |
+  | the scan's report path disarmed | passes | fails | passes | passes |
+  | the detector's kind loop narrowed to one kind | passes | fails | fails | passes |
+  | a pinned corpus root dropped | passes | fails | passes | passes |
+  | a pinned corpus root renamed | passes | fails | passes | fails |
+  | an unpinned corpus root renamed | passes | passes | passes | fails |
+  | an unpinned corpus root dropped | passes | passes | passes | passes |
+
+  The last row is the limitation, stated rather than closed. The corpus holds
+  nine roots; the fixtures pin two — the design-doc tree and the shipped-skill
+  tree, the two this milestone deletes from. Dropping any of the other seven
+  narrows the scan with every test green. Pinning each would be one fixture
+  per root, which enumerates a list rather than deciding a rule; what would
+  actually close it is deriving the corpus instead of hand-maintaining it,
+  and the reviewer notes say where that leads.
 
   For AC-2, renaming the cited symbol fails the resolution check alone, and
   deleting the citation fails the section check alone.
@@ -198,19 +207,36 @@ go1.25.11, `aiwf` built from that tip.
 
 ## Reviewer notes
 
-- An independent reviewer read the full change-set before this milestone
-  closed and returned three blocking findings, each corrected here: the
-  section-set scan was rewritten as a policy so the firing-fixture and
-  statement gates reach it, AC-2 was narrowed to the surface it checks, and
-  this section and the release note were written.
-- The scan's corpus is a third statement of the repo's documentation tiers,
-  beside the root `CLAUDE.md` and the documentation-hierarchy policy. Deriving
-  them from one place needs a tier-partitioned list that does not exist;
-  G-0092 owns that.
+- Two independent review rounds read the full change-set before this
+  milestone closed. The first returned three blocking findings, the second
+  five; all eight were corrected here. The scan moved into a non-test file so
+  the firing-fixture and statement gates reach it, its detector is driven over
+  every kind rather than one, AC-2 was narrowed to the surface it checks, and
+  two dangling references to the deleted table were repaired in the shipped
+  skill — one of which neither round found, and which surfaced only on a
+  tree-wide sweep for the phrase.
+- The scan's corpus is a hand-maintained list of nine roots, and dropping one
+  the fixtures do not pin narrows the scan with nothing said. It is also a
+  third statement of the repo's documentation tiers, beside the root
+  `CLAUDE.md` and the documentation-hierarchy policy. Both problems have the
+  same fix — derive the corpus from a tier-partitioned list — and no such
+  list exists; G-0092 owns the tiering question.
+- The `/archive/` skip the scan first carried is gone. It guarded nothing
+  measurable (no archived file under any corpus root restates a set), and it
+  compared the absolute path, so a checkout under any directory named
+  `archive` — a worktree on an `archive/*` branch, for instance — silently
+  disabled the whole scan. A frozen snapshot carrying a retired table is a
+  real case for it, so if one ever appears the skip returns, comparing the
+  repo-relative path.
 - The design-doc citation check requires the tree to carry at least one
-  Go-symbol citation of that shape. That is a standing obligation with no
-  named owner; it retires when a second citation makes the guard redundant,
-  and there are two today.
+  Go-symbol citation of that shape. This is permanent and has no owner, and
+  it earns that: it is the anti-vacuity guard for the resolution check, which
+  would otherwise pass over nothing if the house shape moved and the pattern
+  stopped matching.
+- The section-scoping check cuts at the next heading of any level, so a
+  sub-heading inserted above the citation reports the section as routeless
+  while a human still reads the citation inside it. False red, never false
+  green, and the message names the section.
 - Declined: reporting a bad Go-symbol citation per citation rather than
   fatally. A citation pointing at a file that does not exist is already
   reported by the design-doc anchor rule with a clearer message, so the
