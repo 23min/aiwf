@@ -134,13 +134,17 @@ a heading or symbol that no longer exists is reported.
 
 ## Decisions made during implementation
 
-- (none)
+- None new. The corpus-wide scope of AC-1's census, and the absence of a
+  ledger of surfaces permitted to state the set, were both settled into
+  `## Design notes` before implementation began.
 
 ## Validation
 
 ## Deferrals
 
-- (none)
+- G-0674 — the `--principal` flag's help text cites an internal iteration
+  label, found at this milestone's preflight. It lands in none of the files
+  this work touches, so it takes its own change rather than an inline fix.
 
 ## Reviewer notes
 
