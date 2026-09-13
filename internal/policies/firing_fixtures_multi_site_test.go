@@ -39,6 +39,14 @@ func TestFiringFixtures_MultiSite(t *testing.T) {
 			},
 		},
 
+		// section-set-single-source: a per-kind table row restating a
+		// kind's required sections, built from the owned definition.
+		{
+			name:   "section-set-single-source/restated-table",
+			policy: PolicySectionSetSingleSource,
+			files:  map[string]string{"docs/design/x.md": gapSectionTableRow() + "\n"},
+		},
+
 		// finding-codes-have-tests: an untested code const + an untested
 		// code literal (no _test.go references either).
 		{
