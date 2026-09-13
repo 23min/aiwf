@@ -8,6 +8,7 @@ acs:
     - id: AC-1
       title: No surface restates the section set as a per-kind table
       status: open
+      tdd_phase: red
     - id: AC-2
       title: Each surface that carried a retired table routes to the owner
       status: open
