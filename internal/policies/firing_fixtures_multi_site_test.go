@@ -3,6 +3,8 @@ package policies
 import (
 	"path/filepath"
 	"testing"
+
+	"github.com/23min/aiwf/internal/entity"
 )
 
 // TestFiringFixtures_MultiSite is the G-0262 burn-down positive control
@@ -36,6 +38,21 @@ func TestFiringFixtures_MultiSite(t *testing.T) {
 			files: map[string]string{
 				"docs/design/a.md":    "# A\n\n[x](./missing.md)\n\n[y](./real.md#nope)\n",
 				"docs/design/real.md": "# Real\n\nbody\n",
+			},
+		},
+
+		// section-set-single-source: a per-kind table row restating a
+		// kind's required sections, built from the owned definition.
+		{
+			name:   "section-set-single-source/restated-table",
+			policy: PolicySectionSetSingleSource,
+			files:  map[string]string{"docs/design/x.md": sectionTableRow(entity.KindGap) + "\n"},
+		},
+		{
+			name:   "section-set-single-source/restated-table-in-shipped-skill",
+			policy: PolicySectionSetSingleSource,
+			files: map[string]string{
+				"internal/skills/embedded/aiwf-add/SKILL.md": sectionTableRow(entity.KindEpic) + "\n",
 			},
 		},
 
