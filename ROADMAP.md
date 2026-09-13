@@ -1170,7 +1170,7 @@ not.
 
 _No milestones yet._
 
-## E-0084 — Enforce body-section membership at the write seams (proposed)
+## E-0084 — Enforce body-section membership at the write seams (active)
 
 ### Goal
 
@@ -1287,4 +1287,12 @@ uniquely holds, and a release's notes rest on whoever cut it remembering.
 | M-0328 | An acceptance criterion holds its claim and names its evidence | cancelled |
 | M-0329 | An entity body that omits a required section is refused at the write | done |
 | M-0330 | Check Unreleased against what shipped before the release tag | done |
+
+## E-0092 — Shrink the always-on guidance to one home per rule under a ceiling (proposed)
+
+### Goal
+
+Cut the instruction load a session reads before its task to a fixed ceiling, enforced by a policy test, with every rule kept in exactly one home and no operating rule lost.
+
+_No milestones yet._
 
