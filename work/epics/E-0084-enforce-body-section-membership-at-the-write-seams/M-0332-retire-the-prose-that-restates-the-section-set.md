@@ -7,7 +7,7 @@ tdd: required
 acs:
     - id: AC-1
       title: No surface restates the section set as a per-kind table
-      status: open
+      status: met
       tdd_phase: done
     - id: AC-2
       title: Each surface that carried a retired table routes to the owner
