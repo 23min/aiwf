@@ -26,8 +26,8 @@ refusal carries it, so the set is stated in one place instead of three.
 `entity.RequiredSections` has been the single definition of each kind's body
 sections since E-0081, but two surfaces still enumerate that set in prose: the
 `aiwf-add` skill's per-kind body-section table, and the body-sections table in
-the tree-discipline design doc. They were safe to keep while nothing enforced
-the set, because a reader had no other way to learn it.
+`docs/design/design-decisions.md`. They were safe to keep while nothing
+enforced the set, because a reader had no other way to learn it.
 
 M-0329 changed that. The verb seam now refuses a body that omits a required
 section, so the set is discoverable by running the verb, and the prose copies
@@ -39,18 +39,30 @@ deletion leaves the duplication in place.
 
 ### AC-1 — No surface restates the section set as a per-kind table
 
-The required section set for each kind is enumerated in exactly one place.
+No shipped skill or normative design doc states a kind's required section set
+as a table row keyed by that kind.
 
-The check derives the declared set from the kernel and asserts that no other
-surface — shipped skill, normative design doc, or template — enumerates it.
-Stated this way the criterion is a relationship between two artefacts, so
-either one moving turns it red.
+The check reads each kind's sections from the kernel, scans the shipped-skill
+and normative-doc corpus for a table row whose first cell names a kind and
+whose remaining cells carry that kind's sections, and asserts it finds none.
+Both sides derive: a section added to a kind's set changes what the scan looks
+for, so neither artefact can move without the other following.
+
+The claim is scoped to the table shape because that is what states the set as
+a set. Prose advising what to write *in* a section is not a second copy of the
+membership and survives — the `aiwf-add` skill's per-kind authoring advice is
+the case in point.
 
 It is deliberately not stated as "these two passages are deleted". D-0070
-retires prose-presence assertions over the shipped skill tree, and an absence
-assertion over the same tree pins a reading that a reword breaks just as
-readily. The relationship holds regardless of how the surviving prose is
-phrased.
+retires prose-presence assertions over the shipped skill tree, and naming the
+two files would pin the inputs rather than the rule: a copy added to a third
+surface would go unreported.
+
+Two surfaces keep a statement of the set and are correct to. The `aiwf-show`
+skill's table names the JSON keys an envelope carries, and the prose templates
+carry the headings as scaffold. Each derives from the kernel and is already
+pinned by its own relationship check, so neither is the free-drifting copy this
+milestone retires; this criterion adds no assertion about them.
 
 ### AC-2 — Each surface that carried a retired table routes to the owner
 
@@ -73,15 +85,22 @@ a heading or symbol that no longer exists is reported.
 - The evidence here needs care. D-0070 retires prose- and heading-presence
   assertions over the shipped skill tree, and `aiwf-add` is in that tree, so
   "assert the table is gone" is the banned shape wearing a minus sign. What
-  survives D-0070 is the relationship check: derive the declared set from the
-  kernel and assert no other surface enumerates it. That is AC-1's shape, and
-  it is why the criterion is stated as *one place* rather than as *these two
-  passages are deleted*.
+  survives D-0070 is the relationship check: read the section names from the
+  kernel and scan for the table shape that states them. Both sides derive, so
+  a reword of the surrounding prose cannot break it and a re-added table
+  cannot evade it.
+- The scan covers the whole shipped-skill and normative-doc corpus rather than
+  the two files being edited. A test pins a rule, not an input: the rule is
+  that the set is stated once, and these two files are two of its inputs. The
+  reach costs one list of roots, so breadth is not where the cost sits.
+- No ledger of surfaces permitted to state the set. Measured, the scan finds
+  nothing once the two tables are gone, and an empty expectation needs no
+  escape hatch. One is designed if a legitimate case ever appears.
 
 ## Surfaces touched
 
 - the `aiwf-add` skill's per-kind body-section table
-- the body-sections table in the tree-discipline design doc
+- the body-sections table in `docs/design/design-decisions.md`
 
 ## Out of scope
 
