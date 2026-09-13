@@ -68,12 +68,26 @@ milestone retires; this criterion adds no assertion about them.
 
 ### AC-2 — The design doc cites the owning symbol, and the citation resolves
 
-Each surface that carried a retired table routes the reader to the owner of
-the set, and the route resolves.
+The design doc that carried a retired table names the Go declaration owning
+the required section set, and the name it writes is really declared in the
+file it links to.
 
-A reader who previously learned the section set from the table must still be
-able to reach it. The citation is checked rather than assumed: a route naming
-a heading or symbol that no longer exists is reported.
+Two checks, one per conjunct. The citation's presence is asserted inside the
+named section rather than anywhere in the document, because a citation
+elsewhere does not help a reader who arrived at that section looking for the
+sections. The resolution is asserted over every such citation under the
+design-doc tree, reading the name from the prose and the declarations from
+the Go source, so a rename on either side turns it red. That the link target
+exists is already held by the design-doc anchor rule and is not asserted a
+second time.
+
+The skill that carried the other retired table is outside this criterion. Its
+route is a command, and that the command resolves is held by the
+skill-coverage rule; that the prose still names one is a property of shipped
+prose, which D-0070 holds at review rather than by assertion, because an
+assertion there pins a reading a reword breaks and nothing catches. Narrowing
+the criterion to what is checked is the alternative to writing a check that
+reads as evidence for more than it holds.
 
 ## Constraints
 
@@ -132,6 +146,12 @@ a heading or symbol that no longer exists is reported.
 
 ## Release note
 
+The `aiwf-add` skill no longer carries a per-kind table of required body
+sections. Run `aiwf template <kind>` to see what a kind requires; `aiwf add`
+and `aiwf edit-body` already refuse a body that omits one, and the refusal
+names the missing headings. Consumers see the change on their next
+`aiwf update`.
+
 ## Decisions made during implementation
 
 - None new. The corpus-wide scope of AC-1's census, and the absence of a
@@ -146,21 +166,29 @@ go1.25.11, `aiwf` built from that tip.
 - `make check-fast` — `go vet` plain and under `-tags stress` and
   `-tags testpins`; golangci-lint 0 issues; `go test -parallel 8 ./...` ok
   across every package.
-- `make coverage-gate` — green. Covers the diff-scoped statement gate and the
-  firing-fixture meta-gate.
+- `make coverage-gate` — green. It reads only files carried in the coverage
+  profile, which never includes a `_test.go`, so it judged nothing while this
+  change was tests alone. It became load-bearing once the scan moved into a
+  non-test file, and failed on five IO-error arms until the bespoke walker
+  was replaced by the shared markdown walk; one arm remains, annotated.
 - `aiwf check` — 0 errors, 12 warnings, none of them on this milestone. The
   warnings are the standing archive backlog and the provenance audit skipping
   itself because this worktree has no upstream configured.
-- Vacuity probes, each mutating one file in memory and restoring it
-  byte-identically afterwards. AC-1: a detector rewritten to match nothing
-  leaves the census passing and is caught only by `TestKindStatedByRow`;
-  removing the section-containment check fails both. AC-2: renaming the cited
-  symbol fails the resolve test alone, deleting the link fails the
-  section-route test alone.
+- Mutation probes, each editing one file in memory and restoring it
+  byte-identically afterwards. Every failure mode is caught by at least one
+  test, and which test catches which is the point — the scan reports an
+  absence, so against a clean tree it cannot tell a real absence from a scan
+  that finds nothing:
 
-The first probe is the load-bearing one. The census asserts an absence, so it
-cannot distinguish a clean tree from a detector that matches nothing, and the
-pair is sufficient only together.
+  | mutation | scan | firing fixture | roots test |
+  |---|---|---|---|
+  | a retired table re-added | fails | — | — |
+  | the scan's report path disarmed | passes | fails | — |
+  | a corpus root dropped from the list | passes | fails | — |
+  | a corpus root renamed | passes | fails | fails |
+
+  For AC-2, renaming the cited symbol fails the resolution check alone, and
+  deleting the citation fails the section check alone.
 
 ## Deferrals
 
@@ -170,4 +198,20 @@ pair is sufficient only together.
 
 ## Reviewer notes
 
-- (none)
+- An independent reviewer read the full change-set before this milestone
+  closed and returned three blocking findings, each corrected here: the
+  section-set scan was rewritten as a policy so the firing-fixture and
+  statement gates reach it, AC-2 was narrowed to the surface it checks, and
+  this section and the release note were written.
+- The scan's corpus is a third statement of the repo's documentation tiers,
+  beside the root `CLAUDE.md` and the documentation-hierarchy policy. Deriving
+  them from one place needs a tier-partitioned list that does not exist;
+  G-0092 owns that.
+- The design-doc citation check requires the tree to carry at least one
+  Go-symbol citation of that shape. That is a standing obligation with no
+  named owner; it retires when a second citation makes the guard redundant,
+  and there are two today.
+- Declined: reporting a bad Go-symbol citation per citation rather than
+  fatally. A citation pointing at a file that does not exist is already
+  reported by the design-doc anchor rule with a clearer message, so the
+  change would improve wording in a path another check already covers.
