@@ -36,12 +36,29 @@ func TestSectionSetCorpusRootsExist(t *testing.T) {
 func TestKindStatedByRow(t *testing.T) {
 	t.Parallel()
 
+	for _, k := range entity.AllKinds() {
+		t.Run("a row carrying "+string(k)+"'s sections names that kind", func(t *testing.T) {
+			t.Parallel()
+			got, ok := kindStatedByRow(sectionTableRow(k))
+			if !ok || got != k {
+				t.Errorf("kindStatedByRow(%q) = %q/%v, want %q/true", sectionTableRow(k), got, ok, k)
+			}
+		})
+	}
+
 	for _, tc := range []struct {
 		name string
 		line string
 		want entity.Kind
 	}{
-		{"a row carrying the kind's sections names that kind", gapSectionTableRow(), entity.KindGap},
+		{
+			"a decorated kind cell names the same kind",
+			"| **Gap** | `## What's missing`, `## Why it matters` |", entity.KindGap,
+		},
+		{
+			"prose carrying pipe-separated cells is not a table row",
+			"see | gap | `## What's missing`, `## Why it matters` | inline", "",
+		},
 		{
 			"a row keyed by a kind but carrying other content is not a restatement",
 			"| gap | `what_s_missing`, `why_it_matters`, plus author-added sections |", "",
@@ -69,13 +86,13 @@ func TestKindStatedByRow(t *testing.T) {
 	}
 }
 
-// gapSectionTableRow renders a table row restating the gap kind's section
-// set, derived from the owned definition. Shared with the policy's firing
-// fixture so both drive the same shape.
-func gapSectionTableRow() string {
+// sectionTableRow renders a table row restating k's section set, derived
+// from the owned definition. Shared with the policy's firing fixtures so
+// both drive the same shape.
+func sectionTableRow(k entity.Kind) string {
 	var cells []string
-	for _, section := range entity.RequiredSections(entity.KindGap) {
+	for _, section := range entity.RequiredSections(k) {
 		cells = append(cells, "`## "+section+"`")
 	}
-	return "| gap | " + strings.Join(cells, ", ") + " |"
+	return "| " + string(k) + " | " + strings.Join(cells, ", ") + " |"
 }

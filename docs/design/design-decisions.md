@@ -82,7 +82,7 @@ Timestamps (`created`, `updated`) are deliberately absent from frontmatter; `git
 
 **Body templates** are short section stubs written by `aiwf add`. They are starting points; what the kernel validates about a filled-in body is narrow, and stated below.
 
-Which sections each kind requires is owned by [`entity.RequiredSections`](../../internal/entity/required_sections.go), and printed by `aiwf template <kind>`. No copy of the set lives here: the `aiwf add` scaffold, the write seams that enforce it, and that command all render from the one table, so a second statement of it could only drift.
+Which sections each kind requires is owned by [`entity.RequiredSections`](../../internal/entity/required_sections.go), and printed by `aiwf template <kind>`. No copy of the set lives here: the `aiwf add` scaffold and that command render from that declaration, and the write seams read it, so a second statement of the set could only drift.
 
 The richer milestone shape a planning ritual fills in — closes, release note, decisions, validation, deferrals, reviewer notes — comes from the prose template under `.claude/templates/`, not from `aiwf add`. The templates are supersets of the required set by design; `aiwf add` writes only what the set names.
 

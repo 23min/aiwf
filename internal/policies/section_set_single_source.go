@@ -62,7 +62,7 @@ func kindStatedByRow(line string) (entity.Kind, bool) {
 	if len(cells) < 3 {
 		return "", false
 	}
-	named := strings.TrimSpace(cells[1])
+	named := strings.Trim(cells[1], " `*_")
 	for _, k := range entity.AllKinds() {
 		if !strings.EqualFold(named, string(k)) {
 			continue
@@ -90,16 +90,10 @@ func PolicySectionSetSingleSource(root string) ([]Violation, error) {
 	var out []Violation
 	for _, rel := range sectionSetCorpus {
 		files, err := walkMarkdown(filepath.Join(root, rel))
-		if err != nil { //coverage:ignore walkMarkdown fails only on a mid-walk IO fault; the corpus roots are tracked directories, so reaching this needs fault injection
+		if err != nil { //coverage:ignore walkMarkdown fails only on a mid-walk IO fault; the corpus roots are tracked paths, so reaching this needs fault injection
 			return nil, err
 		}
 		for _, f := range files {
-			// An archived subtree is a frozen snapshot under ADR-0004, not
-			// a claim about the current kernel, so a table there is not a
-			// restatement to retire.
-			if strings.Contains(filepath.ToSlash(f.AbsPath), "/archive/") {
-				continue
-			}
 			for i, line := range strings.Split(string(f.Contents), "\n") {
 				k, ok := kindStatedByRow(line)
 				if !ok {
