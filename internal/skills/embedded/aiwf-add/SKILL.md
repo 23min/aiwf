@@ -178,17 +178,7 @@ aiwf milestone tdd M-NNNN --policy required --reason "AC list stabilized"
 
 `aiwf add` is step 1 of 2. The verb writes correct frontmatter and an atomic create commit; the body prose under each `## <Section>` heading is **required, not optional**, across all six top-level kinds and ACs. The kernel doesn't fail closed on missing prose at create time so the verb stays cheap, but `aiwf check` surfaces empty bodies as `entity-body-empty` findings, and any milestone or epic or AC with a hollow body is half-shipped.
 
-The load-bearing body sections per kind:
-
-| Kind | Required body sections |
-|---|---|
-| epic | `## Goal`, `## Scope`, `## Out of scope` |
-| milestone | `## Goal`, `## Acceptance criteria` |
-| ac | The `### AC-N — <title>` body — see `aiwf-add` §"What to write per kind" below |
-| gap | `## What's missing`, `## Why it matters` |
-| adr | `## Context`, `## Decision`, `## Consequences` |
-| decision | `## Question`, `## Decision`, `## Reasoning` |
-| contract | `## Purpose`, `## Stability` |
+Which sections a kind requires is printed by `aiwf template <kind>`, and the verb holds you to it: `aiwf add` refuses a body omitting one, and `aiwf edit-body` refuses a write that drops one the committed body carries. An AC is the exception with no section set of its own — its body is the `### AC-N — <title>` prose. What to write *in* each section is in §"What to write per kind" below.
 
 Two ways to land the body content:
 
