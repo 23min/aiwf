@@ -10,6 +10,9 @@ acs:
     - id: AC-1
       title: The after observation is recorded against the same rubric
       status: open
+    - id: AC-2
+      title: The growth report is re-run against the pre-epic baseline and its row logged
+      status: open
 ---
 
 ## Goal
@@ -17,4 +20,6 @@ acs:
 ## Acceptance criteria
 
 ### AC-1 — The after observation is recorded against the same rubric
+
+### AC-2 — The growth report is re-run against the pre-epic baseline and its row logged
 
