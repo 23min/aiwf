@@ -5,13 +5,14 @@ status: open
 ---
 ## What's missing
 
-A gap is the only entity kind authored with no ritual. In
-`internal/skills/embedded-rituals/plugins/aiwf-extensions/skills/`, ten rituals
-cover the other kinds: `aiwfx-plan-epic` and `aiwfx-plan-milestones` for epics and
+A gap is authored with no ritual. In
+`internal/skills/embedded-rituals/plugins/aiwf-extensions/skills/`, rituals cover
+four of the six kinds: `aiwfx-plan-epic` and `aiwfx-plan-milestones` for epics and
 milestones, `aiwfx-record-decision` for ADRs and decisions. Each reads that kind's
-template and walks the author through it. For a gap the whole path is
-`aiwf add gap` through the `aiwf-add` skill, which allocates the id, validates the
-frontmatter and commits — it never opens the template.
+template and walks the author through it. Gap and contract have none. For a gap the
+whole path is `aiwf add gap` through the `aiwf-add` skill, which validates and
+commits a body you have already written — it never prompts you to open the
+template.
 
 Nothing reads the gap's claim afterwards either. `wf-patch` dispatches an
 independent reviewer, but §6 of its `SKILL.md` scopes that reviewer to the staged
