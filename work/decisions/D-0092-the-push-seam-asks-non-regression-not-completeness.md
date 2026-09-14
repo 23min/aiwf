@@ -1,7 +1,7 @@
 ---
 id: D-0092
 title: The push seam asks non-regression, not completeness
-status: accepted
+status: superseded
 relates_to:
     - E-0084
     - M-0331
