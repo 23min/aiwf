@@ -22,10 +22,8 @@ import (
 // than relying on the bare per-kind template.
 //
 // The sections come from the kind's own set rather than being spelled
-// out here. A kind that later gains one would otherwise leave the
-// self-check creating an entity without it — and since no surface
-// reports an absent heading, the walk would keep passing while
-// producing exactly the defect a consumer runs it to rule out.
+// out here, so a kind that later gains one keeps producing a fixture
+// `aiwf add` accepts instead of one it refuses for omitting it.
 func selfCheckBody(k entity.Kind, subject string) string {
 	return string(entity.BodyWithSectionText(k, "Self-check fixture entity; not a real "+subject+"."))
 }
