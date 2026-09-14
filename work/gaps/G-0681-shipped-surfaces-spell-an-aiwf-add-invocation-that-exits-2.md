@@ -1,6 +1,6 @@
 ---
 id: G-0681
-title: aiwfx-record-decision documents an allocation the kernel refuses
+title: Shipped surfaces spell an aiwf add invocation that exits 2
 status: open
 ---
 
