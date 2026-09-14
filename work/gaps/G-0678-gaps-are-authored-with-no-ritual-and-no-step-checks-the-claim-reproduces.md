@@ -1,6 +1,6 @@
 ---
 id: G-0678
-title: A gap is the only entity kind authored with no ritual
+title: Gaps are authored with no ritual, and no step checks the claim reproduces
 status: open
 ---
 ## What's missing
