@@ -18,9 +18,11 @@ that content replaces the scaffold wholesale.
 
 M-0329 closed the write half. `aiwf add` refuses a body omitting a required
 section for every kind, and both `aiwf edit-body` modes refuse a write that drops
-one the committed body carries (ADR-0048). What stays open is everything a write
-seam cannot see: the bodies already committed without a section, a body reaching
-a commit without passing a verb, and `aiwf import`.
+one the committed body carries (ADR-0048). M-0331 closed the push: a commit that
+drops a section a body carried is refused there, whether or not a verb wrote it.
+What no seam covers is the bodies already committed without a section, which
+D-0092 leaves unconverged by decision, and `aiwf import`, excluded pending
+G-0667.
 
 ## Why it matters
 
@@ -40,15 +42,14 @@ that one lost it after creation.
 Closing it tree-wide would raise those 109 findings, 108 at error severity, which
 is why E-0081 declined. Non-regression at the edit seams also means none of them
 converges: an entity missing a section keeps it missing through every subsequent
-edit. What would close them is a tree-side rule reading bodies it is not writing —
-E-0084's push seam, or a rule with a baseline ledger — and that is where this gap
-closes.
+edit, and the push seam asks the same question (D-0092), so no seam closes them.
+Only a tree-side rule judging bodies against a baseline would, and none is built.
 
-The gate at `internal/verb/add.go` sharpens the point. Handed a body whose required
-section is present and empty, it refuses and tells the operator `aiwf check` will
-block until the section is filled — which is true. An operator can satisfy that
-refusal by deleting the heading rather than filling it, and then neither the gate
-nor the check says anything. The stricter body is the one that is harder to land.
+An emptiness refusal alone invites its own escape: an operator told to fill an
+empty required section can delete the heading instead. Each seam now closes that
+route — `aiwf add` refuses a body omitting the section, `aiwf edit-body` refuses a
+write dropping one the committed body carried, and the push refuses a commit that
+does the same.
 
 ## Inherited obligation
 
