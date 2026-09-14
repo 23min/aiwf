@@ -210,37 +210,24 @@ that commit. The check runs only when the branch has an upstream or
 ## Validation
 
 Measured 2026-09-14 in the devcontainer (linux/amd64, go1.25.11), on the
-milestone branch with its last build input at `4b0f3c754`.
+milestone branch with its last build input at `92996688b`.
 
 | Command | Expected | Observed |
 |---|---|---|
 | `make check-fast` | exit 0 | exit 0 — vet, `go test` across 71 packages, lint clean |
-| `AIWF_COVERAGE_BASE=$(git merge-base HEAD epic/E-0084-…) make coverage-gate` | exit 0 | exit 0 |
-| `aiwf check` | 0 errors | 0 errors, 13 warnings; one is `provenance-untrailered-scope-undefined`, because the milestone branch has no upstream |
-| worktree binary: `aiwf check --since <epic branch's origin tip>` over 36 real commits | 0 errors, no `entity-body-section-dropped` | 0 errors |
-| isolated clone: strip `## Why it matters` from G-0571, plain `git commit` with the wrap-milestone ritual's three trailers, then `aiwf check --since HEAD~1` | one `entity-body-section-dropped` error, exit 1 | exactly that, exit 1; the message names the commit, the section and the entity |
+| `AIWF_COVERAGE_BASE=09d2058cc make coverage-gate` | exit 0 | exit 0 |
+| `aiwf check` | 0 errors | 0 errors; 15 warnings, none from this rule |
+| worktree binary, scratch repo in the wrap ritual's shape — a milestone branch drops `## Acceptance criteria` in a commit carrying the ritual's trailers, merged `--no-ff` into an epic branch with an upstream — then `aiwf check` | an `entity-body-section-dropped` error naming the milestone-branch commit, exit 1 | exactly that, naming `7b29a4f6` rather than the merge; the run's other error is `refs-resolve`, for the fixture's missing epic file |
+| worktree binary, scratch repo: drop a section, `aiwf acknowledge illegal <sha> --reason "meant it"`, then `aiwf check --since <base>` | the finding before, exit 0 after | one error before, exit 0 after |
 
-A manual mutation probe ran against the gate, since no mutation tool is wired
-for a local diff: 12 mutants, then follow-ups for the survivors. Killed: the
-non-regression comparison, the absorbing-merge predicate in both directions,
-the parentless-commit skip, the HEAD confirmation, the delete-side and id-parse
-guards, the frontmatter split, the acknowledge exemption and the severity. Each
-implementation file was restored byte-identical and verified by comparison.
+A manual mutation probe ran 16 mutants against the walker and rule, since no
+mutation tool is wired for a local diff, restoring each file byte-identical. All
+but one fail a test. The survivor removes the check that skips an entity gone at
+HEAD: the body read after it finds no entity there and skips it anyway, and the
+check stays as the statement of the rule.
 
-Two mutants survive and are kept. Removing the create-side guard changes no output:
-a body missing at the parent reads as every section absent, so none is newly
-absent. Removing the `PathKind` check leaves the id-parse check below it refusing
-the same paths. AC-4's order case has no mutation behind it — sections are matched
-by slug through a map, so nothing can depend on order without new code.
-
-Every AC is `met` with `tdd_phase: done`. AC-2, AC-3 and AC-4 pin properties the
-AC-1 implementation already had, so their red phase rests on a mutation that
-makes each test fail rather than on a missing implementation: a gate scoped to
-touched paths fails AC-2, a gate joined to `check.Run` fails AC-3, and a scan
-accepting a nested `###` heading fails AC-4. AC-5's test changed the
-implementation: under mutation it showed the gate reading the declared set at two
-call sites that could disagree without a finding, and its commit routes both
-through one helper.
+Every AC is `met` with `tdd_phase: done`. AC-1's seam test, built on the ritual's
+merge shape, fails against a gate that reads only the first-parent line.
 
 ## Deferrals
 
