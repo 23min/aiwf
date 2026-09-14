@@ -16,6 +16,34 @@ section in this file.
 
 ## [Unreleased]
 
+### Changed — G-0677: the gap template routes misfiled content to its existing homes
+
+The template demanded a location — "a file, a symbol, or an observable behaviour a
+reader can go and look at" — and then allowed only two sections, banning the one
+authors reached for to write it. Locations now route into `## What's missing` at both
+ends, the defect's and the fix's, and so does a pasted reproduction. A section of
+your own is allowed where it records something that cannot go stale. The ban on
+proposing a fix stays, with both escapes named: an argued position is a decision, a
+sequence of steps is an epic or a milestone. The one-paragraph cap on
+`## What's missing` is gone — it contradicted the measurement the same section asks
+for.
+
+### Added — G-0678: `aiwfx-record-gap`, the gap-authoring ritual
+
+Gaps were authored with no ritual: `aiwf add gap` validates and
+commits a body you have already written, but nothing opened the kind's template and
+nothing checked that the claim reproduced. The new ritual triages whether the defect
+is a gap at all, routes each piece of what you have to the section or entity that
+already holds it, requires the claim to be reproduced — or said to be unreproducible,
+with the reason — and sends the batch through an independent reviewer that returns a
+record rather than a verdict.
+
+Rituals that instruct gap filing now hand off to it (`aiwfx-wrap-milestone`,
+`aiwfx-wrap-epic`, `aiwfx-start-milestone`, `aiwfx-plan-milestones`,
+`aiwfx-whiteboard`), and the four role-agent cards list it. A ritual that spells
+`aiwf add gap` in a paragraph that does not name the ritual now fails the policy
+suite.
+
 ## [0.35.0] — 2026-09-12
 
 ### Changed — G-0670: shipped verb skills drop this repo's internal labels

@@ -23,6 +23,7 @@ You are the **planner**. You scope and sequence work that other agents will impl
 - `aiwfx-plan-milestones` — decompose an epic into sequenced milestones; allocate each `M-NNNN`; fill each milestone spec.
 - `wf-codebase-health` — the code-health rubric; consult it when scoping work that introduces a new module, package, or boundary, so the seams are designed right before any code is written.
 - `aiwfx-record-decision` — capture decisions worth keeping (ADR or D-NNNN) whenever they surface during planning.
+- `aiwfx-record-gap` — capture a defect that surfaces during planning, without derailing the plan.
 
 ## Inputs you need
 

@@ -111,7 +111,7 @@ For each candidate, invoke `aiwfx-record-decision` and choose ADR (architectural
 
 Invoke `wf-doc-lint` against the epic's change-set (every file touched on `epic/E-NNNN-<slug>` since it diverged from the integration target).
 
-Append the report to `wrap.md` under a `## Doc findings` section. If findings include broken references or removed-feature docs, fix or open as gaps before proceeding. `wf-doc-lint` reports only — prose fixes are deliberate edits here.
+Append the report to `wrap.md` under a `## Doc findings` section. If findings include broken references or removed-feature docs, fix them, or open them as gaps — invoke `aiwfx-record-gap` once over the report's findings — before proceeding. `wf-doc-lint` reports only — prose fixes are deliberate edits here.
 
 ### 4. 🛑 Declared-sequence gate — close the epic (terminal local sequence)
 

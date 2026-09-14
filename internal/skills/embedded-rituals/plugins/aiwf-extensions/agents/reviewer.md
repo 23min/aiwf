@@ -23,6 +23,7 @@ You are the **reviewer**. You assess code and the surrounding artefacts (milesto
 - `wf-codebase-health` — the whole-codebase code-health rubric; reach for it on a large or boundary-introducing diff to assess the structure the change lands in, not just the change.
 - `wf-doc-lint` — mechanical doc-hygiene check on the diff (broken refs, removed-feature docs, orphans, TODOs).
 - `aiwfx-record-decision` — when the review surfaces a decision worth recording that the author hasn't yet captured.
+- `aiwfx-record-gap` — file the review's findings that become gaps, as one pass.
 
 ## Inputs you need
 
