@@ -1,7 +1,7 @@
 ---
 id: D-0090
 title: Absent and empty required sections get separate codes
-status: proposed
+status: accepted
 relates_to:
     - E-0083
     - E-0084
