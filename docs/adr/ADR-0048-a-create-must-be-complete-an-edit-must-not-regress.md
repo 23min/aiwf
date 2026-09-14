@@ -68,18 +68,19 @@ demand nothing at all, since a create has no baseline to regress against.
 **`aiwf import` is excluded** rather than gated, on its deprecation. Until
 G-0667 records that, the exclusion rests on a decision the tree does not carry.
 
-**Seam two — the push — is unchanged and unbuilt.** A gate riding the commit
-range the provenance audit resolves, scoped to entities whose body content the
-range changed, at error severity. It remains the authority, for the reason
-ADR-0043 gives: a body can reach a commit without passing any verb.
+**Seam two — the push — is unchanged.** A gate riding the commit range the
+provenance audit resolves, scoped to entities whose body content the range
+changed, at error severity. It remains the authority, for the reason ADR-0043
+gives: a body can reach a commit without passing any verb. Which question it
+asks of that content is left open here; D-0092 settles it.
 
 ## Consequences
 
 - The existing omissions never converge. Non-regression means an entity missing a
-  section keeps it missing through every subsequent edit, so the debt is
-  permanent rather than merely current until something reads bodies it is not
-  writing. Seam two, or a tree-side rule with a baseline, is the only thing that
-  changes that.
+  section keeps it missing through every subsequent edit, and no seam changes
+  that — D-0092 puts the push on non-regression too, for the same reason. The
+  debt is permanent rather than merely current, and only a tree-side rule
+  judging bodies against a baseline would close it.
 - No surface can answer "which entities are incomplete?". `aiwf check` is
   unchanged by design, and the write seams see only what they are writing. The
   guarantee this decision buys is *no new entity is born incomplete, and no edit
