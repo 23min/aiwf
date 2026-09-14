@@ -1,7 +1,7 @@
 ---
 id: D-0093
 title: A kind's body rules are owned by its template
-status: proposed
+status: accepted
 relates_to:
     - D-0086
     - G-0680
