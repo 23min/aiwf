@@ -19,20 +19,14 @@ per gap. A single gap is a batch of one.
 
 ## Is this a gap at all?
 
-Settle this before writing anything. A gap records a **defect** — something that
-is wrong, at a place a reader can go and look at.
+Settle this before writing anything. Open `.claude/templates/gap.md` first: it
+states what earns a gap — that it names where, and that something breaks — and it
+is where those rules are maintained. Two further tests it does not carry:
 
-- **It names where.** A file, a symbol, or an observable behaviour. If there is
-  nothing to point at, this is work you want done: write it as an epic or a
-  milestone, where a plan belongs.
-- **Something breaks.** Name what fails, who notices, what class of error it lets
-  through. "It is untidy" is not a consequence — that is a preference, and a
-  preference does not need an entity.
 - **It is one defect.** A body enumerating four concerns cannot close in any
   shape. Split it, or write the container as an epic.
-
-If the answer is an argued position on how to fix something, that is a decision —
-hand off to `aiwfx-record-decision` instead.
+- **It is not a decision.** An argued position on how to fix something is a
+  decision, not a defect — hand off to `aiwfx-record-decision` instead.
 
 ## Workflow
 
