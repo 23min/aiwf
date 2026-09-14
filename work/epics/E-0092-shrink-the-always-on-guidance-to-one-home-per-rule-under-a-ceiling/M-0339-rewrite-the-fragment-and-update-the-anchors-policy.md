@@ -13,6 +13,9 @@ acs:
     - id: AC-2
       title: No fragment rule exceeds the per-rule word cap
       status: open
+    - id: AC-3
+      title: The operating-anchors policy passes against the rewritten fragment
+      status: open
 ---
 
 ## Goal
@@ -22,4 +25,6 @@ acs:
 ### AC-1 — Each pinned anchor appears in exactly one of CLAUDE.md and the fragment
 
 ### AC-2 — No fragment rule exceeds the per-rule word cap
+
+### AC-3 — The operating-anchors policy passes against the rewritten fragment
 
