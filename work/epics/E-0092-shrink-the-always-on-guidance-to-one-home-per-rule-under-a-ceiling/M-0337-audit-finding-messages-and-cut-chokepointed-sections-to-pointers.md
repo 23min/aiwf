@@ -10,6 +10,9 @@ acs:
     - id: AC-1
       title: The audit table lists every policy and finding code a chokepointed section names
       status: open
+    - id: AC-2
+      title: Every message the audit marks as not stating the fix is corrected and pinned
+      status: open
 ---
 
 ## Goal
@@ -17,4 +20,6 @@ acs:
 ## Acceptance criteria
 
 ### AC-1 — The audit table lists every policy and finding code a chokepointed section names
+
+### AC-2 — Every message the audit marks as not stating the fix is corrected and pinned
 
