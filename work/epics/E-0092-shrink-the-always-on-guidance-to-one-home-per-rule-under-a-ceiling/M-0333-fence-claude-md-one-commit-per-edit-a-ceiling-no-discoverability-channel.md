@@ -11,6 +11,9 @@ acs:
     - id: AC-2
       title: A CLAUDE.md commit without a resolving entity trailer fails the gate
       status: open
+    - id: AC-3
+      title: A CLAUDE.md commit removing text without a disposition block fails the gate
+      status: open
 ---
 
 ## Goal
@@ -20,4 +23,6 @@ acs:
 ### AC-1 — A commit modifying CLAUDE.md with another path fails the gate
 
 ### AC-2 — A CLAUDE.md commit without a resolving entity trailer fails the gate
+
+### AC-3 — A CLAUDE.md commit removing text without a disposition block fails the gate
 
