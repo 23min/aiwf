@@ -20,6 +20,7 @@ acs:
     - id: AC-4
       title: A required section absent as a top-level heading is the only violation
       status: open
+      tdd_phase: red
     - id: AC-5
       title: A template edit cannot change what the gate enforces
       status: open
