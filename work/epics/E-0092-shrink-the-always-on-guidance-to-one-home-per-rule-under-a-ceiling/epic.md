@@ -102,13 +102,13 @@ Staged, in this order. Each stage is a milestone; the ceiling steps down after e
 
 ## Milestones
 
-- `M-NNNN` — The fence: commit-seam gate, ceiling at current size, discoverability channel and principle text · depends on: —
-- `M-NNNN` — The rubric and the baseline observation · depends on: —
-- `M-NNNN` — Re-home by directory; re-aim the pins; move the Go import; delete the dead imports · depends on: the first two
-- `M-NNNN` — Delete copies: fragment duplicates, the Go section, the id asides · depends on: the third
-- `M-NNNN` — Audit finding messages; cut chokepointed sections to pointers; ceiling to target · depends on: the fourth
-- `M-NNNN` — The after observation · depends on: the fifth
-- `M-NNNN` — Rewrite the fragment; update the anchors policy · depends on: the sixth, and on its result
+- M-0333 — The fence: commit-seam gate, ceiling at current size, discoverability channel and principle text · depends on: —
+- M-0334 — The rubric, the baseline observation, the growth metrics · depends on: —
+- M-0335 — Re-home by directory; re-aim the pins; move the Go import; delete the dead imports · depends on: M-0333, M-0334
+- M-0336 — Delete copies: fragment duplicates, the Go section, the id asides · depends on: M-0335
+- M-0337 — Audit finding messages; cut chokepointed sections to pointers; ceiling to target · depends on: M-0336
+- M-0338 — The after observation and the growth re-run · depends on: M-0337
+- M-0339 — Rewrite the fragment; update the anchors policy · depends on: M-0338, and on its result
 
 ## References
 
