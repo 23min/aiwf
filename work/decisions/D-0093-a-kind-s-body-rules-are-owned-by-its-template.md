@@ -15,7 +15,8 @@ Which surface owns what a kind's body sections should contain? D-0086 settled it
 for an acceptance criterion and named the `aiwf-add` skill, but its question was
 scoped to criteria. For the other five kinds nothing ruled, and both the skill's
 *What to write per kind* subsection and each kind's template state rules. G-0680
-measured the result: wherever the two both speak, they disagree.
+measured the result: for most kinds the two disagree, and nothing keeps the rest
+in step.
 
 ## Decision
 
