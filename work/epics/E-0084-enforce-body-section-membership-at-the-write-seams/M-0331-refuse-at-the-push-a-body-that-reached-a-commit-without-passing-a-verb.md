@@ -108,17 +108,40 @@ required.
 - ADR-0048 is the decision this implements; it supersedes ADR-0043 on what the
   verb seam asks, while the placement, the definition of a violation, and the
   push seam carry forward unchanged.
-- The finding code is unsettled. ADR-0043 leaves open whether one code serves
-  both membership and emptiness or each needs its own, and E-0083 is the epic
-  that would answer the emptiness half. Settle it with E-0083 before this
-  milestone lands, not twice afterwards.
+- The finding code is settled. D-0090 gives each property its own: this gate
+  takes a new code naming absence, and the emptiness rule extends the existing
+  `entity-body-empty` under E-0083. `entity-body-section-absent` pairs with
+  that sibling and is the proposed spelling, open to a better one at
+  implementation. A new code owes a row in the shipped `aiwf-check` findings
+  table; the discoverability policy enforces that rather than leaving it to
+  vigilance, so it needs no criterion of its own here.
+- The range reader returns every commit in the window with its trailers and
+  its touched paths, not only untrailered ones — the filtering lives in the
+  audit rule rather than the reader. So the gate must not filter by trailer
+  presence: the wrap-milestone ritual's plain `git commit` carries the
+  ritual's three trailers and still bypasses every verb seam, which is
+  precisely the path AC-1 names.
+- A path appearing in the range does not mean its body changed; the reader
+  yields paths, not hunks. Deciding *body content changed* means comparing the
+  post-frontmatter bytes at the range base against HEAD — which is also what
+  keeps a frontmatter-only promote outside the scope AC-2 protects.
+- Two questions are open and belong to the implementer, recorded as open
+  rather than guessed. Whether the scan judges each commit in the range or the
+  content at HEAD: judging at HEAD costs one read per path and does not report
+  a violation the range itself already corrected. And how a `--no-ff` merge is
+  treated: the provenance audit skips ordinary merges, and whether this gate
+  should follow turns on whether an integration branch republishes a body or
+  merely absorbs one already reported on the branch that wrote it.
 - The gate inherits the provenance audit's range resolution, which is skipped
   when no upstream is configured and no `--since` is passed. CI-on-push is the
   backstop; do not claim otherwise in the milestone's own prose.
 
 ## Surfaces touched
 
-- the provenance-audit range resolution the gate rides
+- the provenance-audit range resolution the gate rides —
+  `ResolveUntrailedRange` and `ReadUntrailedCommits` in `internal/cli/check/`
+- `internal/check/provenance.go` — where a sibling pass over the same range
+  already lives
 - `entity.RequiredSections` — read as the only input
 
 ## Out of scope
@@ -135,6 +158,7 @@ required.
 ## Dependencies
 
 - ADR-0048 — accepted; the decision this implements.
+- D-0090 — settles the finding code, which ADR-0043 and ADR-0042 both deferred.
 - M-0329 — delivered the verb seam this completes.
 
 ## Coverage notes
@@ -144,8 +168,10 @@ required.
 ## References
 
 - ADR-0048, ADR-0043, ADR-0042
+- D-0090 — one code each: this gate names absence, `entity-body-empty` keeps
+  emptiness
 - E-0081 — gave the section set one owner and deliberately excluded enforcement
-- E-0083 — shares the finding-code question
+- E-0083 — shared the finding-code question, now answered by D-0090
 - G-0571 — the hole this closes, jointly with the deletion milestone
 - G-0667 — `aiwf import`'s unrecorded deprecation
 
