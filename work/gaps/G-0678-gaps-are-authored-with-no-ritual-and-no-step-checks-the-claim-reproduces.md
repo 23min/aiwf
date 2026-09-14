@@ -1,7 +1,9 @@
 ---
 id: G-0678
 title: Gaps are authored with no ritual, and no step checks the claim reproduces
-status: open
+status: addressed
+addressed_by_commit:
+    - 29d6a6ac1
 ---
 ## What's missing
 
