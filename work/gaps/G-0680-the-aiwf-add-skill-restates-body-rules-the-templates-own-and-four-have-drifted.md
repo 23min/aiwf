@@ -1,6 +1,6 @@
 ---
 id: G-0680
-title: Templates restate body rules the aiwf-add skill owns, and four have drifted
+title: The aiwf-add skill restates body rules the templates own, and four have drifted
 status: open
 ---
 ## What's missing
