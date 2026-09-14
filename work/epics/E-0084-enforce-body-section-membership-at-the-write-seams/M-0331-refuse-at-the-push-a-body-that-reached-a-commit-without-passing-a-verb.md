@@ -15,7 +15,7 @@ acs:
       tdd_phase: done
     - id: AC-3
       title: The new rule leaves aiwf check's tree-wide output unchanged
-      status: open
+      status: met
       tdd_phase: done
     - id: AC-4
       title: A required section absent as a top-level heading is the only violation
