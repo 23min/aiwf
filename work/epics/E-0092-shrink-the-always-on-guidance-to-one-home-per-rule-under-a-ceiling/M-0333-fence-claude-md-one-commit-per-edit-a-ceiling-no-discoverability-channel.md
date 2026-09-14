@@ -14,6 +14,9 @@ acs:
     - id: AC-3
       title: A CLAUDE.md commit removing text without a disposition block fails the gate
       status: open
+    - id: AC-4
+      title: The always-on set above the ceiling fails the policy
+      status: open
 ---
 
 ## Goal
@@ -25,4 +28,6 @@ acs:
 ### AC-2 — A CLAUDE.md commit without a resolving entity trailer fails the gate
 
 ### AC-3 — A CLAUDE.md commit removing text without a disposition block fails the gate
+
+### AC-4 — The always-on set above the ceiling fails the policy
 
