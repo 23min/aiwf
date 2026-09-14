@@ -2,6 +2,8 @@
 id: ADR-0049
 title: A create must be complete; an edit or a push must not regress
 status: proposed
+supersedes:
+    - ADR-0048
 ---
 > **Date:** 2026-09-14 · **Decided by:** human/peter
 
