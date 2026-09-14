@@ -17,6 +17,9 @@ acs:
     - id: AC-4
       title: The always-on set above the ceiling fails the policy
       status: open
+    - id: AC-5
+      title: Finding codes and config fields stay discoverable without CLAUDE.md as a channel
+      status: open
 ---
 
 ## Goal
@@ -30,4 +33,6 @@ acs:
 ### AC-3 — A CLAUDE.md commit removing text without a disposition block fails the gate
 
 ### AC-4 — The always-on set above the ceiling fails the policy
+
+### AC-5 — Finding codes and config fields stay discoverable without CLAUDE.md as a channel
 
