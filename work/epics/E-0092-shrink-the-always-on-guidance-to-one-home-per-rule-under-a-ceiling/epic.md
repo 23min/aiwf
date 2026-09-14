@@ -34,12 +34,12 @@ The file grew inside ordinary work. G-0676 names the four surfaces that let it: 
 
 Staged, in this order. Each stage is a milestone; the ceiling steps down after each stage that removes text.
 
-- **The fence.** A diff-scoped policy that fails a commit modifying `CLAUDE.md` alongside any other path, or carrying no `aiwf-entity` trailer that resolves; the ceiling policy, landed at the current size; `CLAUDE.md` removed from the discoverability channel list; the discoverability principle no longer naming the file. Closes G-0676.
-- **The baseline.** The rubric, then the baseline observation of the judgment rules over a fixed task set.
+- **The fence.** A diff-scoped policy that fails a commit modifying `CLAUDE.md` alongside any other path, carrying no `aiwf-entity` trailer that resolves, or removing text without a disposition block per removed passage; the ceiling policy, landed at the current size; `CLAUDE.md` removed from the discoverability channel list; the discoverability principle no longer naming the file. Closes G-0676.
+- **The baseline.** The rubric, then the baseline observation of the judgment rules over a fixed task set; `scripts/growth-report.py` extended with always-on words and `CLAUDE.md` commits per month, and the pre-epic baseline row appended to the iteration log in `docs/design/growth.md`.
 - **Re-home by directory.** A thin root `CLAUDE.md`; nested `CLAUDE.md` files under `internal/`, `cmd/`, `docs/`, and `work/`, each loaded only when a session reads files there; every test that pins a moved passage re-aimed at the passage's new file; the `@`-imported Go module moved to `internal/CLAUDE.md`; the Python and TypeScript imports deleted.
 - **Delete copies.** Text that already loads from another home: the rules the fragment carries, the generic Go conventions section (its source is the imported `200-go.md`), and the entity-id asides, whose reasoning moves to the entity that owns it where it is not already there.
 - **Pointer cut.** An audit of every finding and policy message a `CLAUDE.md` section documents, messages that do not state the fix corrected, and the chokepointed sections compressed to one-line pointers. Closes G-0436. The ceiling reaches its target here.
-- **The after observation**, against the same rubric.
+- **The after observation**, against the same rubric, and the growth report re-run against the pre-epic baseline.
 - **The fragment.** The shipped fragment rewritten as one imperative plus one line of why per rule, `CLAUDE.md` and the fragment holding each anchor in exactly one place, the operating-anchors policy updated in the same commit. This stage runs only if the after observation shows no lost effect; otherwise it is cancelled and the epic wraps without it.
 
 ## Out of scope
@@ -64,6 +64,10 @@ Staged, in this order. Each stage is a milestone; the ceiling steps down after e
 - Language conventions that are not aiwf-specific live in the operator's dotfiles; aiwf ships none (D-0089).
 - The observation rubric is written before the baseline run and not changed after.
 - Every measured figure recorded under this epic carries the command that produced it (G-0668).
+- A commit that removes text from a `CLAUDE.md` states, per removed passage, what was removed and its disposition: copy of a named file, relocated to a named file, pointer to a named policy or code, or deleted. The fence enforces the block's presence.
+- Each milestone that removes text appends one row to the iteration log in `docs/design/growth.md` when it lands.
+- The removal manifest is rendered from the commits into the epic's wrap artefact by a recorded command; no hand-kept copy exists.
+- An effect observed after a stage lands is filed as a gap discovered in this epic, so the review joins dated observations to dated changes.
 - `CLAUDE.md` follows its own rule: the conclusion, not the drafting history.
 
 ## Success criteria
@@ -75,6 +79,8 @@ Staged, in this order. Each stage is a milestone; the ceiling steps down after e
 - [ ] `CLAUDE.md` carries no generic language convention and no rule the fragment also carries.
 - [ ] Every chokepoint pointer in `CLAUDE.md` resolves to an existing policy id or finding code.
 - [ ] The before and after observations are recorded, each with command, expectation, observation, and environment.
+- [ ] The growth report carries the pre-epic baseline and the after run, and the iteration log carries one row per milestone that removed text.
+- [ ] The wrap artefact carries the removal manifest rendered from the commits.
 - [ ] G-0676 and G-0436 are closed.
 - [ ] If the fragment stage runs: each anchor the operating-anchors policy pins appears in exactly one of `CLAUDE.md` and the fragment, and no fragment rule exceeds the per-rule word cap its milestone sets.
 
@@ -116,3 +122,4 @@ Staged, in this order. Each stage is a milestone; the ceiling steps down after e
 - G-0436 — stale paths in `CLAUDE.md`, closed by the pointer cut
 - G-0235, G-0370 — queued additions to `CLAUDE.md` and the fragment
 - G-0668 — measured figures carry their command
+- `docs/design/growth.md`, `scripts/growth-report.py` — the central measurement record and its iteration log
