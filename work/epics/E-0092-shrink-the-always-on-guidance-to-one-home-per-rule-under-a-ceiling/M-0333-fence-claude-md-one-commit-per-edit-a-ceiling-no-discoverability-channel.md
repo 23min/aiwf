@@ -8,6 +8,9 @@ acs:
     - id: AC-1
       title: A commit modifying CLAUDE.md with another path fails the gate
       status: open
+    - id: AC-2
+      title: A CLAUDE.md commit without a resolving entity trailer fails the gate
+      status: open
 ---
 
 ## Goal
@@ -15,4 +18,6 @@ acs:
 ## Acceptance criteria
 
 ### AC-1 — A commit modifying CLAUDE.md with another path fails the gate
+
+### AC-2 — A CLAUDE.md commit without a resolving entity trailer fails the gate
 
