@@ -29,7 +29,9 @@ riding the commit range the provenance audit already resolves.
 
 ## Closes
 
-- (none)
+- G-0571 — the enforcement hole. After this milestone a body cannot reach a
+  commit carrying fewer required sections than it had, whether or not a verb
+  wrote it. The bodies committed without one before it stay as they are.
 
 ## Context
 
@@ -47,13 +49,17 @@ why the enforcement is forward-only by construction rather than by policy.
 
 ### AC-1 — A body committed without passing a verb is refused at the push
 
-A body whose required section is missing, written into a commit by plain `git
-commit` rather than through a body-supplying verb, is refused at the push.
+A commit that drops a required section from an entity's body is refused at the
+push, whether or not it carries verb trailers.
 
 The proof runs against the path that does this today — the wrap-milestone
 ritual's plain `git commit` of the milestone spec — rather than a synthetic
-commit constructed for the test. A synthetic one would pin the rule against an
-input nobody produces; the real path is what the gate exists for.
+commit constructed for the test. That commit carries the ritual's three
+trailers and still passes no body-supplying verb, which is why the gate cannot
+filter on trailer presence: the range reader yields every commit in the window,
+and the filtering the provenance audit does is its own. A synthetic path would
+pin the rule against an input nobody produces; the real one is what the gate
+exists for.
 
 ### AC-2 — Promote, retitle and archive still succeed against an entity missing a section
 
@@ -115,34 +121,55 @@ required.
   implementation. A new code owes a row in the shipped `aiwf-check` findings
   table; the discoverability policy enforces that rather than leaving it to
   vigilance, so it needs no criterion of its own here.
-- The range reader returns every commit in the window with its trailers and
-  its touched paths, not only untrailered ones — the filtering lives in the
-  audit rule rather than the reader. So the gate must not filter by trailer
-  presence: the wrap-milestone ritual's plain `git commit` carries the
-  ritual's three trailers and still bypasses every verb seam, which is
-  precisely the path AC-1 names.
+- **The gate asks what the verb seams ask: an edit must not regress.** A commit
+  that drops a required section an entity's body carried is refused; one that
+  keeps an omission already there is not. Holding a push to completeness instead
+  would refuse an author over an omission they did not introduce — the cost
+  ADR-0048 measured at the edit seam and rejected, and the push has no `--force`
+  either. It would also contradict the verb it rides behind: `aiwf edit-body`
+  permits an edit that keeps an existing omission, so the push would refuse the
+  commit that verb had just made, with no way to satisfy both.
+- Creates are not judged here. `aiwf add` already holds them to completeness and
+  carries the sovereign `--force` that ADR-0048 makes a standing exemption;
+  re-judging the same body at the push would undo that override. An entity file
+  written by hand and committed without a verb is caught by
+  `provenance-untrailered-entity-commit` before this rule would see it.
 - A path appearing in the range does not mean its body changed; the reader
-  yields paths, not hunks. Deciding *body content changed* means comparing the
-  post-frontmatter bytes at the range base against HEAD — which is also what
-  keeps a frontmatter-only promote outside the scope AC-2 protects.
-- Two questions are open and belong to the implementer, recorded as open
-  rather than guessed. Whether the scan judges each commit in the range or the
-  content at HEAD: judging at HEAD costs one read per path and does not report
-  a violation the range itself already corrected. And how a `--no-ff` merge is
-  treated: the provenance audit skips ordinary merges, and whether this gate
-  should follow turns on whether an integration branch republishes a body or
-  merely absorbs one already reported on the branch that wrote it.
+  yields paths, not hunks. Deciding *body content changed* means comparing
+  post-frontmatter bytes, which is what keeps a frontmatter-only promote outside
+  the scope AC-2 protects.
+- Three things the rule must not do, each a way a range carries a body its
+  author did not write: refuse over an omission already present at the range
+  base, undo an `aiwf add --force` exemption, or re-judge a body a merge
+  absorbed from another branch. The provenance audit skips ordinary `--no-ff`
+  merges for the third reason and this gate has the same one. Whether that falls
+  out of a base-against-HEAD tree comparison or needs the commit reader's
+  `ParentSHAs` is for the tests to settle.
+- Nothing converges the bodies already committed without a section. ADR-0048's
+  Consequences names this seam as what changes that; under the rule above it
+  does not, and correcting that sentence is part of this milestone.
+- G-0571 carries an inherited obligation: whoever closes it folds the
+  `milestone-done-empty-release-note` rule into the general mechanism, or records
+  why it stays separate. It stays separate — `Release note` is not in the
+  milestone's required set, changing that set is out of scope here, and that rule
+  is tree-wide and status-conditional where this gate is range-scoped and
+  status-blind. The record belongs in that rule's own doc comment.
 - The gate inherits the provenance audit's range resolution, which is skipped
   when no upstream is configured and no `--since` is passed. CI-on-push is the
   backstop; do not claim otherwise in the milestone's own prose.
 
 ## Surfaces touched
 
-- the provenance-audit range resolution the gate rides —
-  `ResolveUntrailedRange` and `ReadUntrailedCommits` in `internal/cli/check/`
+- `ResolveUntrailedRange` in `internal/cli/check/` — the range resolution the
+  gate rides, with `ReadUntrailedCommits` beside it if the merge case needs it
 - `internal/check/provenance.go` — where a sibling pass over the same range
   already lives
-- `entity.RequiredSections` — read as the only input
+- `check.AbsentRequiredSections` — the membership scan M-0329 built for the verb
+  seams, called here rather than re-derived, which is what makes AC-5 structural
+- `internal/check/milestone_release_note.go` — the record of why that rule stays
+  separate, per G-0571's inherited obligation
+- ADR-0048 — its Consequences sentence naming this seam as what converges the
+  existing omissions
 
 ## Out of scope
 
