@@ -18,8 +18,10 @@ import (
 // rule the walker applies.
 
 const (
-	gapPath      = "work/gaps/G-0001-fixture.md"
-	gapRenamed   = "work/gaps/G-0001-renamed.md"
+	gapPath = "work/gaps/G-0001-fixture.md"
+	// gapRenamed sorts before gapPath, so git lists a rename's added path ahead
+	// of its deleted one and a delete line is the last word on the entity.
+	gapRenamed   = "work/gaps/G-0001-a-renamed.md"
 	whatsMissing = "What's missing"
 	whyItMatters = "Why it matters"
 )
