@@ -25,11 +25,11 @@ possible now?>
 
 ## Scope
 
-- <Feature or capability>
+- <Feature or capability — one bullet per major piece of work, often a milestone>
 
 ## Out of scope
 
-- <Explicitly excluded item>
+- <Explicitly excluded item — usually the most-tempting adjacent work, with a one-line "why not yet">
 
 ## Constraints
 
