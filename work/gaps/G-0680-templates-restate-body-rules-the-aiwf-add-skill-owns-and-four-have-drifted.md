@@ -6,11 +6,11 @@ status: open
 ## What's missing
 
 `internal/skills/embedded/aiwf-add/SKILL.md` §"What to write per kind" states what
-each kind's body sections should contain. D-0086 makes that subsection the owner
-of a kind's body-content rules, and requires the surfaces that cite it to state no
-rule of their own. Five of the six kind templates under
+each kind's body sections should contain. Five of the six kind templates under
 `internal/skills/embedded-rituals/plugins/aiwf-extensions/templates/` state theirs
-anyway. Nothing derives one from the other and no check compares them.
+too. D-0086 named that subsection the owner, but its question was scoped to an
+acceptance criterion; for the other kinds nothing rules, so neither copy binds.
+Nothing derives one from the other and no check compares them.
 
 Expected: where a template and the owning subsection both describe a section, they
 agree. Measured 2026-09-14 on `main` at `df0dd2c5f`:
@@ -39,7 +39,7 @@ gap.md:Keep this short — with the one exception that a measurement is worth it
 milestone-spec.md:1–2 sentences
 ```
 
-They disagree wherever both speak. Epic `## Goal` is four sentences against 1–2.
+Epic `## Goal` is four sentences against 1–2.
 ADR `## Decision` is one or two sentences against one or two paragraphs. Gap
 `## What's missing` is one paragraph against a section that also requires a pasted
 command and its output. Contract `## Purpose` is "who consumes it" against a
