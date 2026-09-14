@@ -57,13 +57,10 @@ against it. Until M-0329 nothing enforced it, and `RequiredSections`' own doc co
 said so. The write seams enforce it now; what remains unenforced is a body reaching a
 commit without passing a verb, and every body already committed without one.
 
-`entity-body-empty` reports a section that is present and empty; one absent outright is
-skipped by design, and the `aiwf add` born-complete gate consults the same helper, so
-it inherits the blind spot. The result is perverse rather than merely incomplete:
-handed a body whose required section is present and empty, the gate refuses and says
-`aiwf check` will block until it is filled — and an operator can satisfy that refusal
-by deleting the heading instead of filling it, after which nothing says anything. The
-stricter body is the one that is harder to land.
+`entity-body-empty` reports a section that is present and empty, and skips one absent
+outright by design. Emptiness refused on its own invites its own escape — an operator
+told to fill an empty required section can delete the heading instead — which is why
+membership is refused wherever a body is written rather than left to that rule.
 
 Measured: a body carrying invented top-level headings is accepted at creation for every
 kind and reported by nothing afterwards. The rate declines but has not stopped — seven
