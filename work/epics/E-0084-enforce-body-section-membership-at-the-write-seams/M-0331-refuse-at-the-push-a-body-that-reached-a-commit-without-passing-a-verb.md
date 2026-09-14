@@ -23,7 +23,7 @@ acs:
       tdd_phase: done
     - id: AC-5
       title: A template edit cannot change what the gate enforces
-      status: open
+      status: met
       tdd_phase: done
 ---
 ## Goal
