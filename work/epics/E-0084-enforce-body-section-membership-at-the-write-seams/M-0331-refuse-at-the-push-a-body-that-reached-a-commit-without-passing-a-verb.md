@@ -12,7 +12,7 @@ acs:
     - id: AC-2
       title: Promote, retitle and archive still succeed against an entity missing a section
       status: open
-      tdd_phase: green
+      tdd_phase: done
     - id: AC-3
       title: The new rule leaves aiwf check's tree-wide output unchanged
       status: open
