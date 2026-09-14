@@ -16,6 +16,9 @@ acs:
     - id: AC-3
       title: The generic Go conventions section is deleted
       status: open
+    - id: AC-4
+      title: The ceiling constant steps down to the post-deletion size
+      status: open
 ---
 
 ## Goal
@@ -27,4 +30,6 @@ acs:
 ### AC-2 — CLAUDE.md cites no gap, epic, milestone, or decision id outside a markdown link
 
 ### AC-3 — The generic Go conventions section is deleted
+
+### AC-4 — The ceiling constant steps down to the post-deletion size
 
