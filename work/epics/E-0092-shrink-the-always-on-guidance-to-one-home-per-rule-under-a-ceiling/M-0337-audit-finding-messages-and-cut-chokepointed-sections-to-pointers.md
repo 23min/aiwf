@@ -19,6 +19,9 @@ acs:
     - id: AC-4
       title: Every repo path CLAUDE.md cites exists
       status: open
+    - id: AC-5
+      title: The ceiling constant reaches its target
+      status: open
 ---
 
 ## Goal
@@ -32,4 +35,6 @@ acs:
 ### AC-3 — Every chokepoint pointer in CLAUDE.md resolves to a policy id or finding code
 
 ### AC-4 — Every repo path CLAUDE.md cites exists
+
+### AC-5 — The ceiling constant reaches its target
 
