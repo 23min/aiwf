@@ -34,9 +34,9 @@ riding the commit range the provenance audit already resolves.
 
 ## Closes
 
-- G-0571 — the enforcement hole. After this milestone a body cannot reach a
-  commit carrying fewer required sections than it had, whether or not a verb
-  wrote it. The bodies committed without one before it stay as they are.
+- G-0571 — the enforcement hole: a push that leaves a required section out of a
+  body that carried it, or out of an entity created without a verb, is refused.
+  ADR-0049 records what no seam reaches.
 
 ## Context
 
@@ -47,24 +47,25 @@ those seams entirely: a body written into a commit by plain `git commit`. That
 path is not hypothetical — the wrap-milestone ritual writes the milestone spec
 that way today.
 
-ADR-0048 places this gate and defines what a violation is; ADR-0043 established
-why the enforcement is forward-only by construction rather than by policy.
+ADR-0049 decides what this gate asks, superseding ADR-0048 on the push seam;
+ADR-0043 defines what a violation is and why the enforcement is forward-only by
+construction rather than by policy.
 
 ## Acceptance criteria
 
 ### AC-1 — A body committed without passing a verb is refused at the push
 
-A commit that drops a required section from an entity's body is refused at the
-push, whether or not it carries verb trailers.
+A push that leaves a required section out of an entity's body is refused: a
+section the entity carried when the pushed range started, or, for an entity the
+range created without `aiwf add` or `aiwf import`, any required section. Verb
+trailers on the commit make no difference.
 
-The proof runs against the path that does this today — the wrap-milestone
-ritual's plain `git commit` of the milestone spec — rather than a synthetic
-commit constructed for the test. That commit carries the ritual's three
-trailers and still passes no body-supplying verb, which is why the gate cannot
-filter on trailer presence: the range reader yields every commit in the window,
-and the filtering the provenance audit does is its own. A synthetic path would
-pin the rule against an input nobody produces; the real one is what the gate
-exists for.
+The proof runs against the history the wrap-milestone ritual produces rather than
+a synthetic commit. The spec is edited on a milestone branch by a plain
+`git commit` carrying the ritual's trailers, merged into the epic branch with
+`--no-ff`, and the epic branch is judged against its upstream. A test built on a
+commit sitting directly on the pushed branch would pin the rule against a
+history nobody produces.
 
 ### AC-2 — Promote, retitle and archive still succeed against an entity missing a section
 
@@ -116,57 +117,41 @@ required.
 
 ## Design notes
 
-- ADR-0048 is the decision this implements; it supersedes ADR-0043 on what the
-  verb seam asks, while the placement, the definition of a violation, and the
-  push seam carry forward unchanged.
-- The finding code is settled. D-0090 gives each property its own: this gate
-  takes a new code naming what it reports, and the emptiness rule extends the
-  existing `entity-body-empty` under E-0083. The code is
-  `entity-body-section-dropped`: the rule fires only where a commit removed a
-  section the body carried, and a code naming absence would read as the
-  tree-wide claim it never makes. A new code owes a row in the shipped
-  `aiwf-check` findings table; the discoverability policy enforces that rather
-  than leaving it to vigilance, so it needs no criterion of its own here.
-- D-0092 settles what the gate asks, which ADR-0048 left open: non-regression,
-  the same question the verb seams ask. A create is judged by `aiwf add` alone
-  and never here, so the sovereign `--force` that verb offers stays in force. An
-  entity file written by hand and committed without a verb is caught by
-  `provenance-untrailered-entity-commit` before this rule would see it.
-- A path appearing in the range does not mean its body changed; the reader
-  yields paths, not hunks. Deciding *body content changed* means comparing
-  post-frontmatter bytes, which is what keeps a frontmatter-only promote outside
-  the scope AC-2 protects.
-- Three things the rule must not do, each a way a range carries a body its
-  author did not write: refuse over an omission already present at the range
-  base, undo an `aiwf add --force` exemption, or re-judge a body a merge
-  absorbed from another branch. The provenance audit skips ordinary `--no-ff`
-  merges for the third reason and this gate has the same one. A base-against-HEAD
-  tree comparison cannot tell a merge from a direct edit, so the gate walks the
-  range per commit and reads the reader's `ParentSHAs` to skip the absorbing
-  ones, then confirms each candidate against HEAD — a drop a later commit in the
-  same range repaired is not what the push publishes.
-- Nothing converges the bodies already committed without a section. ADR-0048's
-  Consequences is corrected here to stop naming this seam as what would.
+- ADR-0049 is the decision this implements. It supersedes ADR-0048 on what the
+  push seam asks and keeps ADR-0043's definition of a violation; D-0092, which
+  first answered that question, is superseded by it.
+- The finding code is `entity-body-section-dropped`, under D-0090's split: this
+  gate names a section left out, and emptiness stays with `entity-body-empty`.
+  It covers an entity created without a verb as well as a removal, so its message
+  reads "leaves required section … out of" to be true of both. A new code owes a
+  row in the shipped `aiwf-check` findings table, which the discoverability
+  policy enforces.
+- The gate judges each entity by id from its starting point to HEAD, reading the
+  whole range with `git log --cc`: a side branch's commits count, and a merge
+  counts only where it resolved content itself. Reading along the first-parent
+  line commit by commit cannot see a drop merged in with `--no-ff`, loses one a
+  later rename carries, and refuses a push whose section came and went.
+- A reported section is credited to the newest write that took it out, so the
+  finding names a commit `aiwf acknowledge illegal <sha>` can exempt.
 - G-0571's inherited obligation — fold the `milestone-done-empty-release-note`
   rule into the general mechanism, or record why it stays separate — is
-  discharged as the second. The record sits in that rule's own doc comment,
-  where a reader of the rule meets it rather than having to find this spec.
-- The gate inherits the provenance audit's range resolution, which is skipped
-  when no upstream is configured and no `--since` is passed. CI-on-push is the
-  backstop; do not claim otherwise in the milestone's own prose.
+  discharged as the second, in that rule's own doc comment.
+- The gate inherits the provenance audit's range, which is skipped when no
+  upstream is configured and no `--since` is passed. No workflow runs
+  `aiwf check`, so nothing backs that up; G-0679 tracks it.
 
 ## Surfaces touched
 
-- `ResolveUntrailedRange` in `internal/cli/check/` — the range resolution the
-  gate rides, with `ReadUntrailedCommits` beside it if the merge case needs it
-- `internal/check/provenance.go` — where a sibling pass over the same range
-  already lives
-- `check.AbsentRequiredSections` — the membership scan M-0329 built for the verb
-  seams, called here rather than re-derived, which is what makes AC-5 structural
-- `internal/check/milestone_release_note.go` — the record of why that rule stays
-  separate, per G-0571's inherited obligation
-- ADR-0048 — its Consequences sentence naming this seam as what converges the
-  existing omissions
+- `internal/check/entity_body_section_dropped.go` — the walker and the rule
+- `RunProvenanceCheck` in `internal/cli/check/provenance.go` — hands the gate the
+  base of the range `ResolveUntrailedRange` resolves
+- `check.AbsentRequiredSections` — the membership scan the verb seams use, called
+  here rather than re-derived, which is what makes AC-5 structural
+- `gitops.BlobReader` — every body read, over one `git cat-file --batch`
+- `internal/check/hint.go`, the `aiwf-check` skill's findings table, and
+  `aiwf acknowledge illegal --help` — the remedy and the escape
+- `internal/check/milestone_release_note.go` — why that rule stays separate
+- ADR-0049, which supersedes ADR-0048 and D-0092
 
 ## Out of scope
 
@@ -181,7 +166,7 @@ required.
 
 ## Dependencies
 
-- ADR-0048 — accepted; the decision this implements.
+- ADR-0049 — accepted; the decision this implements.
 - D-0090 — settles the finding code, which ADR-0043 and ADR-0042 both deferred.
 - M-0329 — delivered the verb seam this completes.
 
@@ -191,31 +176,36 @@ required.
 
 ## References
 
-- ADR-0048, ADR-0043, ADR-0042
-- D-0090 — one code each: this gate names absence, `entity-body-empty` keeps
-  emptiness
+- ADR-0049, ADR-0048, ADR-0043, ADR-0042
+- D-0090 — one code each for a section left out and a section left empty
+- D-0092 — superseded by ADR-0049
 - E-0081 — gave the section set one owner and deliberately excluded enforcement
 - E-0083 — shared the finding-code question, now answered by D-0090
 - G-0571 — the hole this closes, jointly with the deletion milestone
 - G-0667 — `aiwf import`'s unrecorded deprecation
+- G-0679 — the ranges the push seam cannot judge
 
 ## Release note
 
-`aiwf check`, and so the pre-push hook, now refuses a commit that removes a
-required section — `## Goal`, `## What's missing`, and the rest of each kind's
-set — from an entity's body. It reports `entity-body-section-dropped` at error
-severity, and it catches the edits that never pass through `aiwf edit-body`: a
-body changed in an editor and committed with plain `git commit`, including a
-commit that carries aiwf trailers. A section already missing before the pushed
-commits is never reported, so ordinary work on an older, incomplete entity is
-not blocked. A removal you mean is recorded with
-`aiwf acknowledge illegal --for-entity <id>`. The check rides the same commit
-range as the rest of the provenance audit, so it runs only when the branch has
-an upstream or `--since <ref>` is passed.
+`aiwf check`, and so the pre-push hook, now refuses a push that leaves a required
+section — `## Goal`, `## What's missing`, and the rest of each kind's set — out of
+an entity's body, reporting `entity-body-section-dropped` at error severity. It
+catches edits that never passed through `aiwf edit-body`, including a plain
+`git commit` carrying aiwf trailers, and it judges the whole push: a section
+removed on a branch merged in, or in a file a later commit renamed, is reported,
+and one added and removed again within the push is not. A section already
+missing before the push is never reported. An entity created by hand rather than
+with `aiwf add` must carry every required section. Restore the heading with its
+content to clear the finding — for a gap, decision, ADR or contract an empty
+required section is itself an error — or keep a removal with
+`aiwf acknowledge illegal <sha> --reason "..."`, which exempts every finding on
+that commit. The check runs only when the branch has an upstream or
+`--since <ref>` is passed.
 
 ## Decisions made during implementation
 
-- D-0092 — the push seam asks non-regression, not completeness.
+- ADR-0049 — the push seam holds each entity to its starting point rather than
+  to the whole set; it supersedes ADR-0048 on that seam and replaces D-0092.
 
 ## Validation
 
@@ -254,8 +244,8 @@ through one helper.
 
 ## Deferrals
 
-- None. The bodies already committed without a required section are not a
-  deferral: D-0092 decides that no seam converges them.
+- G-0679 — a branch's first push, and a pull request merged on the server, are
+  judged by nothing.
 
 ## Reviewer notes
 
