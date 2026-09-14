@@ -11,6 +11,9 @@ acs:
     - id: AC-1
       title: Root CLAUDE.md imports only the shipped fragment
       status: open
+    - id: AC-2
+      title: Nested CLAUDE.md files exist under internal, cmd, docs, and work
+      status: open
 ---
 
 ## Goal
@@ -18,4 +21,6 @@ acs:
 ## Acceptance criteria
 
 ### AC-1 — Root CLAUDE.md imports only the shipped fragment
+
+### AC-2 — Nested CLAUDE.md files exist under internal, cmd, docs, and work
 
