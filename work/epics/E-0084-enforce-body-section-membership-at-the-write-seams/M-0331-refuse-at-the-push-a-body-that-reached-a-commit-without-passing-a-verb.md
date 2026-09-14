@@ -57,8 +57,8 @@ construction rather than by policy.
 
 A push that leaves a required section out of an entity's body is refused: a
 section the entity carried when the pushed range started, or, for an entity the
-range created without `aiwf add` or `aiwf import`, any required section. Verb
-trailers on the commit make no difference.
+range created other than by `aiwf import` or a forced `aiwf add`, any required
+section. A trailer on a commit that edits an entity makes no difference.
 
 The proof runs against the history the wrap-milestone ritual produces rather than
 a synthetic commit. The spec is edited on a milestone branch by a plain
@@ -72,10 +72,10 @@ history nobody produces.
 A status promote, a retitle, and an archive sweep each succeed against an
 entity whose body omits a required section.
 
-The gate's scope is entities whose body *content* changed in the range. An
-entity merely touched by a frontmatter write or a file move is outside it.
-Without this the gate would block ordinary work on debt that work did not
-create, and the three verbs above are where that would bite first.
+A write that changes only an entity's frontmatter, or moves its file, leaves the
+sections its body carries unchanged, so it can report nothing the entity did not
+already lack. Without this the gate would block ordinary work on debt that work
+did not create, and the three verbs above are where that would bite first.
 
 ### AC-3 — The new rule leaves aiwf check's tree-wide output unchanged
 
@@ -109,9 +109,9 @@ required.
 
 - The rule does not join `check.Run`. `aiwf check`'s tree-wide output is
   unchanged and no existing entity gains a finding.
-- Scope is entities whose *body content* changed in the range, never entities
-  merely touched. A touched-path scope would block ordinary work on debt it did
-  not create.
+- A finding is a section the entity carried at its starting point and lacks at
+  HEAD, never one it already lacked. Judging every touched entity for
+  completeness would block ordinary work on debt it did not create.
 - No workflow available today may become unavailable. An author who does not yet
   know a section's content keeps the heading and leaves it empty.
 
@@ -126,13 +126,23 @@ required.
   reads "leaves required section … out of" to be true of both. A new code owes a
   row in the shipped `aiwf-check` findings table, which the discoverability
   policy enforces.
-- The gate judges each entity by id from its starting point to HEAD, reading the
-  whole range with `git log --cc`: a side branch's commits count, and a merge
-  counts only where it resolved content itself. Reading along the first-parent
-  line commit by commit cannot see a drop merged in with `--no-ff`, loses one a
-  later rename carries, and refuses a push whose section came and went.
-- A reported section is credited to the newest write that took it out, so the
-  finding names a commit `aiwf acknowledge illegal <sha>` can exempt.
+- The gate judges every entity that differs between base and HEAD, by id, rather
+  than only the entities git lists a write for: a merge can adopt one parent's
+  copy of a file wholesale, and `git log --cc` lists no write for it. Reading
+  along the first-parent line commit by commit cannot see a drop merged in with
+  `--no-ff`, loses one a later rename carries, and refuses a push whose section
+  came and went.
+- A reported section is credited by comparing a commit with its own parents: the
+  newest commit whose version lacks it while every parent carried it, then a
+  merge that adopted a copy lacking it, then HEAD, so a finding always names a
+  commit `aiwf acknowledge illegal <sha>` can exempt. Comparing each write with
+  the previous one in log order instead names a clean merge whenever both sides
+  edited the file.
+- Two exemptions keep the gate off debt the pushing author did not create: a
+  section the entity already lacks on the configured trunk, and a create by
+  `aiwf import` or a forced `aiwf add`, which starts from the body it wrote. An
+  `aiwf add` trailer without `aiwf-force` is not trusted, because that verb
+  refuses to write an incomplete body unforced.
 - G-0571's inherited obligation — fold the `milestone-done-empty-release-note`
   rule into the general mechanism, or record why it stays separate — is
   discharged as the second, in that rule's own doc comment.
@@ -151,6 +161,9 @@ required.
 - `internal/check/hint.go`, the `aiwf-check` skill's findings table, and
   `aiwf acknowledge illegal --help` — the remedy and the escape
 - `internal/check/milestone_release_note.go` — why that rule stays separate
+- `docs/design/design-decisions.md`, the `aiwf-add` skill, `aiwf add --force` help
+  and the self-check's fixture comment — each said no rule reports an absent
+  section
 - ADR-0049, which supersedes ADR-0048 and D-0092
 
 ## Out of scope
@@ -192,15 +205,16 @@ section — `## Goal`, `## What's missing`, and the rest of each kind's set — 
 an entity's body, reporting `entity-body-section-dropped` at error severity. It
 catches edits that never passed through `aiwf edit-body`, including a plain
 `git commit` carrying aiwf trailers, and it judges the whole push: a section
-removed on a branch merged in, or in a file a later commit renamed, is reported,
-and one added and removed again within the push is not. A section already
-missing before the push is never reported. An entity created by hand rather than
-with `aiwf add` must carry every required section. Restore the heading with its
+removed on a branch merged in, or in a file a later commit renamed or reallocated,
+is reported, and one added and removed again within the push is not. A section
+already missing before the push, or already missing on trunk, is never reported.
+An entity the push creates must carry every required section unless
+`aiwf import` or `aiwf add --force` created it. Restore the heading with its
 content to clear the finding — for a gap, decision, ADR or contract an empty
 required section is itself an error — or keep a removal with
-`aiwf acknowledge illegal <sha> --reason "..."`, which exempts every finding on
-that commit. The check runs only when the branch has an upstream or
-`--since <ref>` is passed.
+`aiwf acknowledge illegal <sha> --reason "..."`, adding `--for-entity <id>` when
+that commit carries no aiwf trailers. The check runs only when the branch has an
+upstream or `--since <ref>` is passed.
 
 ## Decisions made during implementation
 
