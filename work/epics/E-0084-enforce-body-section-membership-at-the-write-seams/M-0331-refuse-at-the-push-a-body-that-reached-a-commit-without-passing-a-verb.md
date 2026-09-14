@@ -120,24 +120,17 @@ required.
   verb seam asks, while the placement, the definition of a violation, and the
   push seam carry forward unchanged.
 - The finding code is settled. D-0090 gives each property its own: this gate
-  takes a new code naming absence, and the emptiness rule extends the existing
-  `entity-body-empty` under E-0083. `entity-body-section-absent` pairs with
-  that sibling and is the proposed spelling, open to a better one at
-  implementation. A new code owes a row in the shipped `aiwf-check` findings
-  table; the discoverability policy enforces that rather than leaving it to
-  vigilance, so it needs no criterion of its own here.
-- **The gate asks what the verb seams ask: an edit must not regress.** A commit
-  that drops a required section an entity's body carried is refused; one that
-  keeps an omission already there is not. Holding a push to completeness instead
-  would refuse an author over an omission they did not introduce — the cost
-  ADR-0048 measured at the edit seam and rejected, and the push has no `--force`
-  either. It would also contradict the verb it rides behind: `aiwf edit-body`
-  permits an edit that keeps an existing omission, so the push would refuse the
-  commit that verb had just made, with no way to satisfy both.
-- Creates are not judged here. `aiwf add` already holds them to completeness and
-  carries the sovereign `--force` that ADR-0048 makes a standing exemption;
-  re-judging the same body at the push would undo that override. An entity file
-  written by hand and committed without a verb is caught by
+  takes a new code naming what it reports, and the emptiness rule extends the
+  existing `entity-body-empty` under E-0083. The code is
+  `entity-body-section-dropped`: the rule fires only where a commit removed a
+  section the body carried, and a code naming absence would read as the
+  tree-wide claim it never makes. A new code owes a row in the shipped
+  `aiwf-check` findings table; the discoverability policy enforces that rather
+  than leaving it to vigilance, so it needs no criterion of its own here.
+- D-0092 settles what the gate asks, which ADR-0048 left open: non-regression,
+  the same question the verb seams ask. A create is judged by `aiwf add` alone
+  and never here, so the sovereign `--force` that verb offers stays in force. An
+  entity file written by hand and committed without a verb is caught by
   `provenance-untrailered-entity-commit` before this rule would see it.
 - A path appearing in the range does not mean its body changed; the reader
   yields paths, not hunks. Deciding *body content changed* means comparing
@@ -147,18 +140,17 @@ required.
   author did not write: refuse over an omission already present at the range
   base, undo an `aiwf add --force` exemption, or re-judge a body a merge
   absorbed from another branch. The provenance audit skips ordinary `--no-ff`
-  merges for the third reason and this gate has the same one. Whether that falls
-  out of a base-against-HEAD tree comparison or needs the commit reader's
-  `ParentSHAs` is for the tests to settle.
+  merges for the third reason and this gate has the same one. A base-against-HEAD
+  tree comparison cannot tell a merge from a direct edit, so the gate walks the
+  range per commit and reads the reader's `ParentSHAs` to skip the absorbing
+  ones, then confirms each candidate against HEAD — a drop a later commit in the
+  same range repaired is not what the push publishes.
 - Nothing converges the bodies already committed without a section. ADR-0048's
-  Consequences names this seam as what changes that; under the rule above it
-  does not, and correcting that sentence is part of this milestone.
-- G-0571 carries an inherited obligation: whoever closes it folds the
-  `milestone-done-empty-release-note` rule into the general mechanism, or records
-  why it stays separate. It stays separate — `Release note` is not in the
-  milestone's required set, changing that set is out of scope here, and that rule
-  is tree-wide and status-conditional where this gate is range-scoped and
-  status-blind. The record belongs in that rule's own doc comment.
+  Consequences is corrected here to stop naming this seam as what would.
+- G-0571's inherited obligation — fold the `milestone-done-empty-release-note`
+  rule into the general mechanism, or record why it stays separate — is
+  discharged as the second. The record sits in that rule's own doc comment,
+  where a reader of the rule meets it rather than having to find this spec.
 - The gate inherits the provenance audit's range resolution, which is skipped
   when no upstream is configured and no `--since` is passed. CI-on-push is the
   backstop; do not claim otherwise in the milestone's own prose.
@@ -211,7 +203,7 @@ required.
 
 ## Decisions made during implementation
 
-- (none)
+- D-0092 — the push seam asks non-regression, not completeness.
 
 ## Validation
 
