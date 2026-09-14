@@ -9,9 +9,10 @@ discovered_in: M-0331
 `ResolveUntrailedRange` in `internal/cli/check/provenance.go` returns no range
 when the branch has no upstream and no `--since` is passed. The provenance audit
 is then skipped with a `provenance-untrailered-scope-undefined` warning, taking
-the untrailered-entity audit and the dropped-body-section gate with it. Every
-branch is in that state at its first push: `git push -u` runs the pre-push hook
-before the upstream exists.
+the untrailered-entity audit and the dropped-body-section gate with it. A branch
+started from a local ref is in that state at its first push — `git push -u` runs
+the pre-push hook before it sets the upstream — while one started from a
+remote-tracking ref already has one.
 
 No workflow under `.github/workflows/` runs `aiwf check`. CI runs
 `aiwf doctor --self-check` and nothing that judges a commit range.
