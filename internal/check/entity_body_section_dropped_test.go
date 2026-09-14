@@ -239,6 +239,89 @@ func TestWalkDroppedBodySections(t *testing.T) {
 	})
 }
 
+// TestWalkDroppedBodySections_WhatCountsAsAViolation — M-0331/AC-2 states the
+// gate's scope; this states what inside that scope is a violation. Exactly one
+// thing: a section the kind requires, not present as a top-level `## ` heading.
+// Sections beyond the declared set are legal, order carries no meaning, and a
+// required heading nested below top level is absent — `ParseBodySections`, the
+// parser `aiwf show` and the body rules already share, reads `## ` alone, so a
+// nested one yields no key on any read path.
+func TestWalkDroppedBodySections_WhatCountsAsAViolation(t *testing.T) {
+	t.Parallel()
+	ctx := context.Background()
+
+	cases := []struct {
+		name  string
+		after string
+		want  []string // sections reported, in the kind's canonical order
+	}{
+		{
+			name: "a section beyond the declared set is legal",
+			after: droppedSpecWhole + `
+## Notes
+
+An author's own heading, which no kind declares.
+`,
+		},
+		{
+			name: "order is not enforced",
+			after: `---
+id: M-0001
+title: Seed
+status: in_progress
+parent: E-0001
+---
+## Acceptance criteria
+
+### AC-1 — It ships
+
+It ships.
+
+## Goal
+
+Ship it.
+`,
+		},
+		{
+			name: "a required heading nested below top level is absent",
+			after: `---
+id: M-0001
+title: Seed
+status: in_progress
+parent: E-0001
+---
+## Goal
+
+Ship it.
+
+### Acceptance criteria
+
+### AC-1 — It ships
+
+It ships.
+`,
+			want: []string{"Acceptance criteria"},
+		},
+	}
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			t.Parallel()
+			f := newWalkerFixture(t)
+			commitAt(f, droppedSpecPath, droppedSpecWhole, "seed the spec")
+			sha, parent := commitAt(f, droppedSpecPath, tc.after, "rework the body")
+			var got []string
+			for _, d := range WalkDroppedBodySections(ctx, f.root, []UntrailedCommit{
+				{SHA: sha, ParentSHAs: []string{parent}, Paths: []string{droppedSpecPath}},
+			}) {
+				got = append(got, d.Section)
+			}
+			if diff := cmp.Diff(tc.want, got); diff != "" {
+				t.Errorf("reported sections (-want +got):\n%s", diff)
+			}
+		})
+	}
+}
+
 // TestRunEntityBodySectionDropped_AcknowledgedSHAIsExempt pins the only escape
 // this rule has. No verb on the path carries --force, so a deliberate removal
 // reaches the push as a finding and `aiwf acknowledge illegal` is what clears
