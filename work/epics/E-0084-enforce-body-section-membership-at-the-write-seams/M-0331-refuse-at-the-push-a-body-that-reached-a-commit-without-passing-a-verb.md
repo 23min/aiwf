@@ -201,15 +201,61 @@ required.
 
 ## Release note
 
+`aiwf check`, and so the pre-push hook, now refuses a commit that removes a
+required section — `## Goal`, `## What's missing`, and the rest of each kind's
+set — from an entity's body. It reports `entity-body-section-dropped` at error
+severity, and it catches the edits that never pass through `aiwf edit-body`: a
+body changed in an editor and committed with plain `git commit`, including a
+commit that carries aiwf trailers. A section already missing before the pushed
+commits is never reported, so ordinary work on an older, incomplete entity is
+not blocked. A removal you mean is recorded with
+`aiwf acknowledge illegal --for-entity <id>`. The check rides the same commit
+range as the rest of the provenance audit, so it runs only when the branch has
+an upstream or `--since <ref>` is passed.
+
 ## Decisions made during implementation
 
 - D-0092 — the push seam asks non-regression, not completeness.
 
 ## Validation
 
+Measured 2026-09-14 in the devcontainer (linux/amd64, go1.25.11), on the
+milestone branch with its last build input at `4b0f3c754`.
+
+| Command | Expected | Observed |
+|---|---|---|
+| `make check-fast` | exit 0 | exit 0 — vet, `go test` across 71 packages, lint clean |
+| `AIWF_COVERAGE_BASE=$(git merge-base HEAD epic/E-0084-…) make coverage-gate` | exit 0 | exit 0 |
+| `aiwf check` | 0 errors | 0 errors, 13 warnings; one is `provenance-untrailered-scope-undefined`, because the milestone branch has no upstream |
+| worktree binary: `aiwf check --since <epic branch's origin tip>` over 36 real commits | 0 errors, no `entity-body-section-dropped` | 0 errors |
+| isolated clone: strip `## Why it matters` from G-0571, plain `git commit` with the wrap-milestone ritual's three trailers, then `aiwf check --since HEAD~1` | one `entity-body-section-dropped` error, exit 1 | exactly that, exit 1; the message names the commit, the section and the entity |
+
+A manual mutation probe ran against the gate, since no mutation tool is wired
+for a local diff: 12 mutants, then follow-ups for the survivors. Killed: the
+non-regression comparison, the absorbing-merge predicate in both directions,
+the parentless-commit skip, the HEAD confirmation, the delete-side and id-parse
+guards, the frontmatter split, the acknowledge exemption and the severity. Each
+implementation file was restored byte-identical and verified by comparison.
+
+Two mutants survive and are kept. Removing the create-side guard changes no output:
+a body missing at the parent reads as every section absent, so none is newly
+absent. Removing the `PathKind` check leaves the id-parse check below it refusing
+the same paths. AC-4's order case has no mutation behind it — sections are matched
+by slug through a map, so nothing can depend on order without new code.
+
+Every AC is `met` with `tdd_phase: done`. AC-2, AC-3 and AC-4 pin properties the
+AC-1 implementation already had, so their red phase rests on a mutation that
+makes each test fail rather than on a missing implementation: a gate scoped to
+touched paths fails AC-2, a gate joined to `check.Run` fails AC-3, and a scan
+accepting a nested `###` heading fails AC-4. AC-5's test changed the
+implementation: under mutation it showed the gate reading the declared set at two
+call sites that could disagree without a finding, and its commit routes both
+through one helper.
+
 ## Deferrals
 
-- (none)
+- None. The bodies already committed without a required section are not a
+  deferral: D-0092 decides that no seam converges them.
 
 ## Reviewer notes
 
