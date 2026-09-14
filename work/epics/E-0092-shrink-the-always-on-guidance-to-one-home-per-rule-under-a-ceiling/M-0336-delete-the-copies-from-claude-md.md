@@ -13,6 +13,9 @@ acs:
     - id: AC-2
       title: CLAUDE.md cites no gap, epic, milestone, or decision id outside a markdown link
       status: open
+    - id: AC-3
+      title: The generic Go conventions section is deleted
+      status: open
 ---
 
 ## Goal
@@ -22,4 +25,6 @@ acs:
 ### AC-1 — CLAUDE.md carries no rule the fragment also carries
 
 ### AC-2 — CLAUDE.md cites no gap, epic, milestone, or decision id outside a markdown link
+
+### AC-3 — The generic Go conventions section is deleted
 
