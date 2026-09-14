@@ -1,7 +1,7 @@
 ---
 id: ADR-0049
 title: A create must be complete; an edit or a push must not regress
-status: proposed
+status: accepted
 supersedes:
     - ADR-0048
 ---
