@@ -3,70 +3,76 @@ id: G-0681
 title: aiwfx-record-decision documents an allocation the kernel refuses
 status: open
 ---
+
 ## What's missing
 
-`internal/skills/embedded-rituals/plugins/aiwf-extensions/skills/aiwfx-record-decision/SKILL.md`
-documents an allocation the kernel refuses. Step 2 allocates the id with
-`aiwf add adr` / `aiwf add decision` carrying only `--title`. G-0326 made adr and
-decision born-complete, so `aiwf add` refuses a body whose load-bearing sections
-are empty — which is every body that command would write.
+Shipped surfaces spell `aiwf add` invocations for the born-complete kinds that the
+verb refuses. G-0326 made adr, gap, decision and contract refuse a create whose
+load-bearing sections are empty — which is every create carrying only `--title`.
+Its fix updated the verb, the check rule and the `aiwf-add` skill, and reached no
+other documenting surface.
 
-Expected: the command step 2 names allocates the id. Measured 2026-09-14 against
-a scratch consumer repo initialized by a binary built from `main` at `df0dd2c5f`
-(`D-0001` below is that scratch repo's first id, not this tree's):
+Expected: a command a shipped surface spells, runs. Measured 2026-09-14 against a
+scratch consumer repo initialized by a binary built from `main` at `df0dd2c5f`:
 
 ```
-$ aiwf add decision --title "A decision recorded per the ritual"; echo "exit=$?"
-aiwf add: D-0001: empty load-bearing body section(s) `## Question`, `## Decision`,
-`## Reasoning`; a decision is referenceable the instant this commit lands, so its
-body must carry meaning at creation — pass --body "..." or --body-file <path> with
-real prose, or --force --reason "..." to create anyway (aiwf check will still flag
-it at error severity and the pre-push hook will still block until it's filled in)
-exit=2
-
-$ ls work/decisions/ | wc -l
-0
+$ aiwf add epic --title "A scratch epic"                         → exit 0
+$ aiwf add milestone --epic E-0001 --tdd required --title "..."  → exit 0
+$ aiwf add ac M-0001 --title "A scratch criterion"               → exit 0
+$ aiwf add adr --title "A scratch adr"                           → exit 2
+$ aiwf add decision --title "A scratch decision"                 → exit 2
+$ aiwf add gap --title "A scratch gap"                           → exit 2
+$ aiwf add contract --title "A scratch contract"                 → exit 2
 ```
 
-`aiwf add adr --title` refuses the same way, naming `## Context`, `## Decision`
-and `## Consequences`. Nothing is written and no commit lands, so the ritual stops
-at its first mechanical step.
+The four that refuse are exactly the set `entity.IsBornComplete` returns true for
+(`internal/entity/entity.go:74`). Each names its empty sections and writes nothing.
 
-The refusal names `--body-file`, but the skill binds that flag to `aiwf edit-body`
-at every mention — first at line 96 inside step 5, and again through step 7. No
-`aiwf add` invocation anywhere in the file carries a body flag, and `--body` does
-not appear at all.
+Locating the spellings:
 
-Four steps rest on the allocation succeeding and are now false with it: step 2
-("aiwf creates the file with the minimal body skeleton"), step 3 ("the minimal
-skeleton `aiwf add` just wrote"), step 5 (`--relates-to` at allocation "keeps step
-7 a body-only bless"), and step 7 ("The `aiwf add` already produced one commit").
-So do the `description:` frontmatter, which states the same three-beat sequence,
-and the Constraints bullet at the end.
+```
+$ grep -rnE 'aiwf add (adr|gap|decision|contract)[^|]*--title' --include='*.md' \
+    internal/skills/ | grep -v -- '--body' | wc -l
+14
+```
+
+That is the filter's yield, not the defect's extent — it requires `--title` on the
+same line, so it misses `aiwfx-record-decision` at lines 94, 153 and 166 and
+`aiwf-add` at 289, which spell the same refused create without it.
+
+Of the fourteen, the two in `aiwf-add` are transcripts demonstrating the refusal
+itself. The rest divide by what the spelling is doing. `aiwf-contract` at 24, 57
+and 197, `aiwf-area` at 42 and 66, and `aiwfx-record-decision` at 42 and 48
+instruct a reader to run it. The parentheticals in `aiwfx-whiteboard`,
+`aiwfx-start-milestone` and `aiwfx-wrap-milestone` gloss a ritual invocation
+instead — there the imperative is to invoke `aiwfx-record-gap`, and the spelling
+describes what that ritual runs. It describes it wrongly:
+`aiwfx-record-gap/SKILL.md:109` prescribes the create with `--body-file`.
 
 ## Why it matters
 
-A reader following the ritual hits a refusal at its first command. The recovery
-the refusal offers first — `--body-file` — is the right one, and the skill gives
-no instruction for using it at that point.
+A reader runs what a surface tells them to run, and these surfaces materialize into
+every consumer repo. The reader most exposed is an assistant with no prior about
+which flags a kind requires, meeting a refusal on the first command of a documented
+procedure.
 
-The wrong recovery is the one the ritual itself argues for. `--force --reason`
-creates the entity carrying exactly the empty-sectioned skeleton that step 2
-promises and step 3 then operates on, so it is the only route to the state the
-next step assumes. The refusal warns that `aiwf check` will flag it and the
-pre-push hook will block, but a reader who has just been told the next step fills
-that body reads the warning as transient. The trap is the ritual disagreeing with
-the warning, not the warning being absent.
+The refusal names `--force --reason` alongside the correct routes, and warns in the
+same sentence that `aiwf check` will flag the result at error severity and the
+pre-push hook will block. `aiwfx-record-decision` undercuts that warning: its step 3
+operates on the empty skeleton only `--force` produces, so a reader who has just
+been told the next step fills that body reads the warning as transient. The trap is
+the ritual disagreeing with the warning, not the warning being absent.
 
-The record is misdescribed too. The skill says the `aiwf add` scaffold and a later
-`aiwf edit-body` body fill are two commits that `aiwf history` shows. For an adr
-or a decision the body-fill commit never occurs — the body lands in the create
-commit — so a reader looking for the second commit the skill names will not find
-one.
+Two surfaces assert outcomes that cannot occur. `aiwf-area` at 42 pairs the refused
+command with `# → derives area: app-a` in the output position of a shell
+transcript. And `aiwfx-whiteboard` at 155 states the rule that every verb
+invocation in a skill body must resolve to a real command available today, on the
+same line as a spelling that exits 2.
 
 ## Related
 
-- G-0326 is the change that made these kinds born-complete. Its fix updated the
-  `aiwf-add` verb skill and did not reach this ritual.
-- G-0678 established the corrected shape for gaps, whose ritual allocates with
-  `--body-file` in one commit.
+- G-0326 is the change that made these kinds born-complete.
+- G-0560 carries this same defect class over the `docs/` tree.
+- G-0678 established the shape that runs: the create carries `--body-file`, and the
+  body lands in it.
+- M-0307 cancelled a sweep of a neighbouring citation defect across the same tree.
