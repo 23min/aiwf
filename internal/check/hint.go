@@ -200,13 +200,13 @@ var hintTable = map[string]string{
 	"entity-body-empty/decision":  "write prose for the named section in the decision body via `aiwf edit-body D-NNN`; Question/Decision/Reasoning are the load-bearing record",
 	"entity-body-empty/contract":  "write prose for the named section in the contract body via `aiwf edit-body C-NNN`; Purpose/Stability are the load-bearing record",
 
-	// M-0331 entity-body-section-dropped: the push seam refuses a commit
-	// that removed a required section the body carried. Restoring the
-	// heading is the whole remedy — the section may be left empty, because
-	// emptiness is entity-body-empty's separate property with its own
-	// separate fix. The acknowledge escape is named because no verb on this
-	// path carries --force (ADR-0048).
-	"entity-body-section-dropped": "restore the named `## <Section>` heading in the body via `aiwf edit-body <id>` — it may be left empty, since `entity-body-empty` judges the content separately; for a removal you meant, record it with `aiwf acknowledge illegal --for-entity <id>`",
+	// entity-body-section-dropped: a pushed commit left a required section
+	// out of an entity's body. The remedy restores the heading and, for the
+	// born-complete kinds, its content — an empty required section there is
+	// itself an entity-body-empty error, so a bare heading only swaps one
+	// blocking finding for another. The acknowledge escape is named because no
+	// verb on this path carries --force, and it exempts the whole commit.
+	"entity-body-section-dropped": "restore the named `## <Section>` heading, with its content, via `aiwf edit-body <id>` — for a gap, decision, ADR or contract an empty required section is itself an error; to keep a removal you meant, run `aiwf acknowledge illegal <sha> --reason \"...\"` on the commit the finding names, which exempts every finding on that commit",
 
 	// G-0268 milestone-tdd-undeclared: the milestone has no tdd: policy
 	// and absent is silently treated as tdd: none. New milestones get
