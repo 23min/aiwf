@@ -20,6 +20,9 @@ acs:
     - id: AC-5
       title: Finding codes and config fields stay discoverable without CLAUDE.md as a channel
       status: open
+    - id: AC-6
+      title: A new test asserting a phrase in a CLAUDE.md file fails the gate
+      status: open
 ---
 
 ## Goal
@@ -35,4 +38,6 @@ acs:
 ### AC-4 — The always-on set above the ceiling fails the policy
 
 ### AC-5 — Finding codes and config fields stay discoverable without CLAUDE.md as a channel
+
+### AC-6 — A new test asserting a phrase in a CLAUDE.md file fails the gate
 
