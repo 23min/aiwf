@@ -18,17 +18,18 @@ that content replaces the scaffold wholesale.
 
 M-0329 closed the write half. `aiwf add` refuses a body omitting a required
 section for every kind, and both `aiwf edit-body` modes refuse a write that drops
-one the committed body carries (ADR-0048). M-0331 closed the push: a commit that
-drops a section a body carried is refused there, whether or not a verb wrote it.
-What no seam covers is the bodies already committed without a section, which
-D-0092 leaves unconverged by decision, and `aiwf import`, excluded pending
-G-0667.
+one the committed body carries (ADR-0048). M-0331 closed the push: a push that
+leaves a required section out of a body that carried it, or out of an entity
+created without a verb, is refused there. What no seam covers is the bodies
+already committed without a section, which ADR-0049 leaves unconverged, a branch
+pushed once and merged on the server (G-0679), and `aiwf import`, excluded
+pending G-0667.
 
 ## Why it matters
 
 The set is named "required" on five surfaces — the owned table, the `aiwf-add`
 skill, the root help banner, the prose templates, and the design docs — and no
-mechanism makes it true. An operator reading any of them is entitled to believe
+mechanism made it true. An operator reading any of them is entitled to believe
 a missing section would be caught.
 
 The consequence is already in the tree, and a write-time refusal does not reach
@@ -42,7 +43,7 @@ that one lost it after creation.
 Closing it tree-wide would raise those 109 findings, 108 at error severity, which
 is why E-0081 declined. Non-regression at the edit seams also means none of them
 converges: an entity missing a section keeps it missing through every subsequent
-edit, and the push seam asks the same question (D-0092), so no seam closes them.
+edit, and the push seam asks the same question (ADR-0049), so no seam closes them.
 Only a tree-side rule judging bodies against a baseline would, and none is built.
 
 An emptiness refusal alone invites its own escape: an operator told to fill an
