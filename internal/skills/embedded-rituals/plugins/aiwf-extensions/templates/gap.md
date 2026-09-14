@@ -20,6 +20,9 @@ discovered_in:
        2. Fill the two sections below.
        3. `aiwf add gap --title "<title>" --body-file <your-file>`
 
+     The `aiwfx-record-gap` ritual walks these steps and reproduces the claim
+     before the create commit; reach for it rather than filling this by hand.
+
      `aiwf edit-body G-NNNN` is for revising the body later. Delete this comment. -->
 
 A gap records a **defect**, not a plan. Where the fix lands, and whether it is a

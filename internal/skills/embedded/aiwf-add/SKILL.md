@@ -11,6 +11,8 @@ The `aiwf add` verb creates a new entity (or acceptance criterion) and produces 
 
 The user wants to record a new piece of planning state — a new epic, a milestone under an existing epic, an ADR, a discovered gap, a decision, a contract, or an acceptance criterion (AC) under an existing milestone.
 
+For a **gap**, prefer the `aiwfx-record-gap` ritual over calling the verb directly: it triages whether the defect is a gap at all, fills the body from the kind's template, and reproduces the claim so a later reader can re-run it. This skill is what that ritual calls, and what to use when you already have the body written.
+
 ## What to run
 
 ```bash

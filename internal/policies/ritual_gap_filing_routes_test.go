@@ -23,6 +23,12 @@ import (
 // sentence that introduces the block and put the command inline, or carry it in
 // a comment on the command line.
 //
+// The population is rituals, not every shipped surface that spells the verb. A
+// ritual instructs a reader to file; the verb's own skill documents the verb,
+// spelling it six times across examples and a flag table, and owing a pointer
+// once rather than on every line. Widening this to that surface would demand the
+// ritual's name beside each example, which is the check dictating prose.
+//
 // This is a ban, not a mandate. It obliges no ritual to spell the verb, so a
 // ritual that routes in prose alone is outside the population and correct to
 // be there. That is also the limit worth stating: an instruction phrased
