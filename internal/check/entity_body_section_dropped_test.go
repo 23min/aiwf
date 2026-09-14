@@ -8,311 +8,330 @@ import (
 	"github.com/google/go-cmp/cmp"
 )
 
-// entity_body_section_dropped_test.go — M-0331/AC-1 branch coverage for the
-// push-seam membership gate. The seam test in internal/cli/check drives the
-// real reader over a real range; these drive WalkDroppedBodySections directly
-// so each rule it applies lands in coverage with its own case.
+// entity_body_section_dropped_test.go — M-0331. WalkDroppedBodySections judges
+// each entity by id, at the start of the pushed range against HEAD, and credits
+// every required section missing at HEAD that the entity carried at its starting
+// point to the commit that left it out.
 //
-// One test per rule the walker decides, not per input that could reach it.
+// The walker's answers turn on history shape — merges, renames, creates,
+// reallocations — so every test drives real commits through git. One test per
+// rule the walker applies.
 
 const (
-	droppedSpecPath = "work/epics/E-0001-seed/M-0001-seed.md"
-
-	droppedSpecWhole = `---
-id: M-0001
-title: Seed
-status: in_progress
-parent: E-0001
----
-## Goal
-
-Ship it.
-
-## Acceptance criteria
-
-### AC-1 — It ships
-
-It ships.
-`
-
-	droppedSpecPartial = `---
-id: M-0001
-title: Seed
-status: in_progress
-parent: E-0001
----
-## Goal
-
-Ship it.
-`
+	gapPath      = "work/gaps/G-0001-fixture.md"
+	gapRenamed   = "work/gaps/G-0001-renamed.md"
+	whatsMissing = "What's missing"
+	whyItMatters = "Why it matters"
 )
 
-// commitAt writes content to relPath and commits it, returning the new SHA and
-// the SHA it replaced, so a caller can hand WalkDroppedBodySections a commit
-// record without going through the reader under test elsewhere.
-func commitAt(f *walkerFixture, relPath, content, msg string) (sha, parent string) {
+// wrapTrailers is the trailer set the wrap-milestone ritual stamps on the plain
+// `git commit` that writes a spec without passing a body-supplying verb.
+var wrapTrailers = []string{"aiwf-verb: wrap-milestone", "aiwf-entity: G-0001", "aiwf-actor: human/test"}
+
+// gapFile renders a gap carrying the named top-level sections, each with prose,
+// under frontmatter for id plus any extra frontmatter lines.
+func gapFile(id, extraFrontmatter string, sections ...string) string {
+	var b strings.Builder
+	b.WriteString("---\nid: " + id + "\ntitle: Fixture\nstatus: open\n" + extraFrontmatter + "---\n")
+	for _, s := range sections {
+		b.WriteString("## " + s + "\n\nProse.\n\n")
+	}
+	return b.String()
+}
+
+func (f *walkerFixture) head() string {
 	f.t.Helper()
-	parent = strings.TrimSpace(f.run("git", "rev-parse", "HEAD"))
-	f.writeFile(relPath, content)
-	return f.commit(msg), parent
+	return strings.TrimSpace(f.run("git", "rev-parse", "HEAD"))
+}
+
+// put writes content at rel and commits it with msg and trailers.
+func (f *walkerFixture) put(rel, content, msg string, trailers ...string) string {
+	f.t.Helper()
+	f.writeFile(rel, content)
+	return f.commit(msg, trailers...)
+}
+
+func walkFrom(t *testing.T, f *walkerFixture, base string) []DroppedBodySection {
+	t.Helper()
+	return WalkDroppedBodySections(context.Background(), f.root, base)
+}
+
+func assertDropped(t *testing.T, want, got []DroppedBodySection) {
+	t.Helper()
+	if diff := cmp.Diff(want, got); diff != "" {
+		t.Errorf("dropped sections (-want +got):\n%s", diff)
+	}
 }
 
 func TestWalkDroppedBodySections(t *testing.T) {
 	t.Parallel()
-	ctx := context.Background()
 
-	// A section the body carried and the commit removed is the whole subject
-	// of the rule; every case below states an exception to it.
-	t.Run("reports a section the commit removed", func(t *testing.T) {
+	full := gapFile("G-0001", "", whatsMissing, whyItMatters)
+	partial := gapFile("G-0001", "", whatsMissing)
+
+	// The subject of the rule: a section the entity carried when the push
+	// started, missing at HEAD, credited to the commit that removed it.
+	t.Run("reports a section a commit removed", func(t *testing.T) {
 		t.Parallel()
 		f := newWalkerFixture(t)
-		commitAt(f, droppedSpecPath, droppedSpecWhole, "seed the spec")
-		sha, parent := commitAt(f, droppedSpecPath, droppedSpecPartial, "wrap")
-		got := WalkDroppedBodySections(ctx, f.root, []UntrailedCommit{
-			{SHA: sha, ParentSHAs: []string{parent}, Paths: []string{droppedSpecPath}},
-		})
-		want := []DroppedBodySection{{
-			SHA: sha, Path: droppedSpecPath, EntityID: "M-0001", Section: "Acceptance criteria",
-		}}
-		if diff := cmp.Diff(want, got); diff != "" {
-			t.Errorf("(-want +got):\n%s", diff)
-		}
+		f.put(gapPath, full, "seed")
+		base := f.head()
+		drop := f.put(gapPath, partial, "wrap", wrapTrailers...)
+		assertDropped(t, []DroppedBodySection{{SHA: drop, Path: gapPath, EntityID: "G-0001", Section: whyItMatters}}, walkFrom(t, f, base))
 	})
 
-	// An ordinary `--no-ff` merge republishes content another branch already
-	// pushed, and that branch's own push judged it.
-	t.Run("skips a merge that only absorbed the change", func(t *testing.T) {
+	// An author is never held to an omission the push did not introduce.
+	t.Run("does not report an omission present when the push started", func(t *testing.T) {
 		t.Parallel()
 		f := newWalkerFixture(t)
-		commitAt(f, droppedSpecPath, droppedSpecWhole, "seed the spec")
-		sha, parent := commitAt(f, droppedSpecPath, droppedSpecPartial, "Merge branch 'other'")
-		got := WalkDroppedBodySections(ctx, f.root, []UntrailedCommit{
-			{SHA: sha, ParentSHAs: []string{parent, "deadbeef"}, Subject: "Merge branch 'other'", Paths: []string{droppedSpecPath}},
-		})
-		if len(got) != 0 {
-			t.Errorf("merge commit judged: %+v", got)
-		}
+		f.put(gapPath, partial, "seed")
+		base := f.head()
+		f.put(gapPath, strings.Replace(partial, "Prose.", "Edited prose.", 1), "edit", wrapTrailers...)
+		assertDropped(t, nil, walkFrom(t, f, base))
 	})
 
-	// A squash carries no trailers and is the integration branch's only record
-	// of the collapsed work, so it is judged despite having two parents.
-	t.Run("judges a squash merge", func(t *testing.T) {
+	// The wrap ritual edits a spec on its milestone branch and merges it with
+	// --no-ff; the drop is still published by the push that carries the merge.
+	t.Run("reports a drop made on a branch merged with --no-ff", func(t *testing.T) {
 		t.Parallel()
 		f := newWalkerFixture(t)
-		commitAt(f, droppedSpecPath, droppedSpecWhole, "seed the spec")
-		sha, parent := commitAt(f, droppedSpecPath, droppedSpecPartial, "wrap the spec (#42)")
-		got := WalkDroppedBodySections(ctx, f.root, []UntrailedCommit{
-			{SHA: sha, ParentSHAs: []string{parent, "deadbeef"}, Subject: "wrap the spec (#42)", Paths: []string{droppedSpecPath}},
-		})
-		if len(got) != 1 {
-			t.Errorf("squash merge not judged; got %+v", got)
-		}
+		f.put(gapPath, full, "seed")
+		base := f.head()
+		f.run("git", "checkout", "-q", "-b", "side")
+		drop := f.put(gapPath, partial, "wrap", wrapTrailers...)
+		f.run("git", "checkout", "-q", "main")
+		f.run("git", "merge", "-q", "--no-ff", "--no-edit", "side")
+		assertDropped(t, []DroppedBodySection{{SHA: drop, Path: gapPath, EntityID: "G-0001", Section: whyItMatters}}, walkFrom(t, f, base))
 	})
 
-	// With no parent there is no baseline to regress from.
-	t.Run("skips a commit with no recorded parent", func(t *testing.T) {
+	// A merge that writes content of its own — a conflict resolution, or an
+	// edit folded into the merge — is the commit that removed the section.
+	t.Run("credits a drop written by a merge to that merge", func(t *testing.T) {
 		t.Parallel()
 		f := newWalkerFixture(t)
-		commitAt(f, droppedSpecPath, droppedSpecWhole, "seed the spec")
-		sha, _ := commitAt(f, droppedSpecPath, droppedSpecPartial, "wrap")
-		got := WalkDroppedBodySections(ctx, f.root, []UntrailedCommit{
-			{SHA: sha, Paths: []string{droppedSpecPath}},
-		})
-		if len(got) != 0 {
-			t.Errorf("parentless commit judged: %+v", got)
-		}
+		f.put(gapPath, full, "seed")
+		base := f.head()
+		f.run("git", "checkout", "-q", "-b", "side")
+		f.put("work/gaps/G-0002-other.md", gapFile("G-0002", "", whatsMissing, whyItMatters), "unrelated")
+		f.run("git", "checkout", "-q", "main")
+		f.run("git", "merge", "-q", "--no-ff", "--no-commit", "side")
+		merge := f.put(gapPath, partial, "merge side and drop a section")
+		assertDropped(t, []DroppedBodySection{{SHA: merge, Path: gapPath, EntityID: "G-0001", Section: whyItMatters}}, walkFrom(t, f, base))
 	})
 
-	// `aiwf add` holds a create to completeness and its --force override stays
-	// in force afterwards, so re-judging the same body here would revoke it.
-	t.Run("skips an entity the commit created", func(t *testing.T) {
+	// Identity is the id, not the path: a later retitle or archive in the same
+	// push moves the file and does not carry the drop away with it.
+	t.Run("reports a drop that a later commit renamed", func(t *testing.T) {
 		t.Parallel()
 		f := newWalkerFixture(t)
-		sha, parent := commitAt(f, droppedSpecPath, droppedSpecPartial, "create incomplete")
-		got := WalkDroppedBodySections(ctx, f.root, []UntrailedCommit{
-			{SHA: sha, ParentSHAs: []string{parent}, Paths: []string{droppedSpecPath}},
-		})
-		if len(got) != 0 {
-			t.Errorf("create judged: %+v", got)
-		}
+		f.put(gapPath, full, "seed")
+		base := f.head()
+		drop := f.put(gapPath, partial, "drop")
+		f.run("git", "mv", gapPath, gapRenamed)
+		f.commit("retitle")
+		assertDropped(t, []DroppedBodySection{{SHA: drop, Path: gapRenamed, EntityID: "G-0001", Section: whyItMatters}}, walkFrom(t, f, base))
 	})
 
-	// A path gone at the commit has no body to judge.
-	t.Run("skips an entity the commit deleted", func(t *testing.T) {
+	t.Run("reports a drop made in the commit that renamed the file", func(t *testing.T) {
 		t.Parallel()
 		f := newWalkerFixture(t)
-		commitAt(f, droppedSpecPath, droppedSpecWhole, "seed the spec")
-		parent := strings.TrimSpace(f.run("git", "rev-parse", "HEAD"))
-		f.run("git", "rm", "-q", droppedSpecPath)
-		sha := f.commit("delete the spec")
-		got := WalkDroppedBodySections(ctx, f.root, []UntrailedCommit{
-			{SHA: sha, ParentSHAs: []string{parent}, Paths: []string{droppedSpecPath}},
-		})
-		if len(got) != 0 {
-			t.Errorf("delete judged: %+v", got)
-		}
+		f.put(gapPath, full, "seed")
+		base := f.head()
+		f.run("git", "mv", gapPath, gapRenamed)
+		f.writeFile(gapRenamed, partial)
+		moved := f.commit("move and drop")
+		assertDropped(t, []DroppedBodySection{{SHA: moved, Path: gapRenamed, EntityID: "G-0001", Section: whyItMatters}}, walkFrom(t, f, base))
 	})
 
-	// The rule judges what the push publishes; refusing over an intermediate
-	// state would leave the author rewriting history to satisfy it.
-	t.Run("skips a drop a later commit in the range restored", func(t *testing.T) {
+	// Only the two ends of the push count, so a section that came and went
+	// inside it leaves the entity no worse than it started.
+	t.Run("does not report a section added and removed within the push", func(t *testing.T) {
 		t.Parallel()
 		f := newWalkerFixture(t)
-		commitAt(f, droppedSpecPath, droppedSpecWhole, "seed the spec")
-		dropSHA, dropParent := commitAt(f, droppedSpecPath, droppedSpecPartial, "drop it")
-		restoreSHA, restoreParent := commitAt(f, droppedSpecPath, droppedSpecWhole, "put it back")
-		got := WalkDroppedBodySections(ctx, f.root, []UntrailedCommit{
-			{SHA: dropSHA, ParentSHAs: []string{dropParent}, Paths: []string{droppedSpecPath}},
-			{SHA: restoreSHA, ParentSHAs: []string{restoreParent}, Paths: []string{droppedSpecPath}},
-		})
-		if len(got) != 0 {
-			t.Errorf("self-corrected drop reported: %+v", got)
-		}
+		f.put(gapPath, partial, "seed")
+		base := f.head()
+		f.put(gapPath, full, "add it")
+		f.put(gapPath, partial, "take it out again")
+		assertDropped(t, nil, walkFrom(t, f, base))
 	})
 
-	// A delete and a recreate compose to a create, which `aiwf add` holds.
-	// Without the delete arm the removing commit reads as dropping every
-	// section at once, and whichever of them the recreated body still omits
-	// survives the HEAD confirmation and is reported against the delete.
-	t.Run("skips a delete whose entity a later commit recreated incomplete", func(t *testing.T) {
+	// A section dropped, restored and dropped again is one regression, owed by
+	// the commit whose removal HEAD still carries.
+	t.Run("credits a repeated drop once, to the last removal", func(t *testing.T) {
 		t.Parallel()
 		f := newWalkerFixture(t)
-		commitAt(f, droppedSpecPath, droppedSpecWhole, "seed the spec")
-		delParent := strings.TrimSpace(f.run("git", "rev-parse", "HEAD"))
-		f.run("git", "rm", "-q", droppedSpecPath)
-		delSHA := f.commit("delete the spec")
-		addSHA, addParent := commitAt(f, droppedSpecPath, droppedSpecPartial, "recreate it")
-		got := WalkDroppedBodySections(ctx, f.root, []UntrailedCommit{
-			{SHA: delSHA, ParentSHAs: []string{delParent}, Paths: []string{droppedSpecPath}},
-			{SHA: addSHA, ParentSHAs: []string{addParent}, Paths: []string{droppedSpecPath}},
-		})
-		if len(got) != 0 {
-			t.Errorf("delete+recreate judged as a drop: %+v", got)
-		}
+		f.put(gapPath, full, "seed")
+		base := f.head()
+		f.put(gapPath, partial, "drop")
+		f.put(gapPath, full, "restore")
+		last := f.put(gapPath, partial, "drop again")
+		assertDropped(t, []DroppedBodySection{{SHA: last, Path: gapPath, EntityID: "G-0001", Section: whyItMatters}}, walkFrom(t, f, base))
 	})
 
-	// A file under work/ that carries no frontmatter is not an entity; the
-	// unexpected-tree-file rule is what reports it.
-	t.Run("skips a path carrying no entity frontmatter", func(t *testing.T) {
+	// A create that passed no body-supplying verb starts from nothing, so every
+	// required section it leaves out is reported.
+	t.Run("reports a section missing from an entity created without a verb", func(t *testing.T) {
 		t.Parallel()
 		f := newWalkerFixture(t)
-		commitAt(f, droppedSpecPath, droppedSpecWhole, "seed the spec")
-		sha, parent := commitAt(f, droppedSpecPath, "## Goal\n\nno frontmatter\n", "strip frontmatter")
-		got := WalkDroppedBodySections(ctx, f.root, []UntrailedCommit{
-			{SHA: sha, ParentSHAs: []string{parent}, Paths: []string{droppedSpecPath}},
-		})
-		if len(got) != 0 {
-			t.Errorf("frontmatter-less file judged: %+v", got)
-		}
+		base := f.head()
+		created := f.put(gapPath, partial, "hand-written gap", wrapTrailers...)
+		assertDropped(t, []DroppedBodySection{{SHA: created, Path: gapPath, EntityID: "G-0001", Section: whyItMatters}}, walkFrom(t, f, base))
 	})
 
-	// Only entity paths are in scope.
-	t.Run("skips a path that is not an entity file", func(t *testing.T) {
+	// A create made by `aiwf add` starts from the body that commit wrote, so a
+	// section removed by hand later in the same push is still a regression.
+	t.Run("reports a section removed after an aiwf add create in the same push", func(t *testing.T) {
 		t.Parallel()
 		f := newWalkerFixture(t)
-		sha, parent := commitAt(f, "README.md", "# readme\n", "touch the readme")
-		got := WalkDroppedBodySections(ctx, f.root, []UntrailedCommit{
-			{SHA: sha, ParentSHAs: []string{parent}, Paths: []string{"README.md"}},
-		})
-		if len(got) != 0 {
-			t.Errorf("non-entity path judged: %+v", got)
-		}
+		base := f.head()
+		f.put(gapPath, full, "aiwf add gap G-0001", "aiwf-verb: add", "aiwf-entity: G-0001", "aiwf-actor: human/test")
+		drop := f.put(gapPath, partial, "trim by hand")
+		assertDropped(t, []DroppedBodySection{{SHA: drop, Path: gapPath, EntityID: "G-0001", Section: whyItMatters}}, walkFrom(t, f, base))
 	})
 
-	// An epic directory carrying no id in its name is epic-shaped to PathKind
-	// and gives IDFromPath nothing to extract, so the finding would have no
-	// entity to name.
-	t.Run("skips an entity path whose id does not parse", func(t *testing.T) {
+	// A forced `aiwf add` wrote an incomplete body on purpose, and that body is
+	// its starting point — the sovereign override stays in force afterwards.
+	t.Run("does not report what a forced aiwf add create left out", func(t *testing.T) {
+		t.Parallel()
+		f := newWalkerFixture(t)
+		base := f.head()
+		f.put(gapPath, partial, "aiwf add gap G-0001",
+			"aiwf-verb: add", "aiwf-entity: G-0001", "aiwf-actor: human/test", "aiwf-force: needed now")
+		assertDropped(t, nil, walkFrom(t, f, base))
+	})
+
+	// `aiwf import` is excluded from the write seams rather than gated, and a
+	// body it wrote is likewise its own starting point.
+	t.Run("does not report what an aiwf import create left out", func(t *testing.T) {
+		t.Parallel()
+		f := newWalkerFixture(t)
+		base := f.head()
+		f.put(gapPath, partial, "aiwf import", "aiwf-verb: import", "aiwf-entity: G-0001", "aiwf-actor: human/test")
+		assertDropped(t, nil, walkFrom(t, f, base))
+	})
+
+	// `aiwf reallocate` gives an entity a new id and records the old one in
+	// prior_ids; it is the same entity, so an omission it already carried is
+	// not a create's.
+	t.Run("matches a reallocated entity to its prior id", func(t *testing.T) {
+		t.Parallel()
+		f := newWalkerFixture(t)
+		f.put(gapPath, partial, "seed")
+		base := f.head()
+		const reallocated = "work/gaps/G-0002-fixture.md"
+		f.run("git", "mv", gapPath, reallocated)
+		f.writeFile(reallocated, gapFile("G-0002", "prior_ids:\n    - G-0001\n", whatsMissing))
+		f.commit("aiwf reallocate G-0001 -> G-0002", "aiwf-verb: reallocate", "aiwf-entity: G-0002", "aiwf-actor: human/test")
+		assertDropped(t, nil, walkFrom(t, f, base))
+	})
+
+	// An entity gone at HEAD has no body the push publishes.
+	t.Run("does not report an entity the push deleted", func(t *testing.T) {
+		t.Parallel()
+		f := newWalkerFixture(t)
+		f.put(gapPath, full, "seed")
+		base := f.head()
+		f.run("git", "rm", "-q", gapPath)
+		f.commit("delete")
+		assertDropped(t, nil, walkFrom(t, f, base))
+	})
+
+	// git quotes a path carrying non-ASCII bytes unless told otherwise, and a
+	// quoted path matches no entity shape.
+	t.Run("judges an entity whose path carries non-ASCII characters", func(t *testing.T) {
+		t.Parallel()
+		f := newWalkerFixture(t)
+		const accented = "work/gaps/G-0001-café crème.md"
+		f.put(accented, full, "seed")
+		base := f.head()
+		drop := f.put(accented, partial, "drop")
+		assertDropped(t, []DroppedBodySection{{SHA: drop, Path: accented, EntityID: "G-0001", Section: whyItMatters}}, walkFrom(t, f, base))
+	})
+
+	// A file under an entity path that carries no frontmatter is not an entity;
+	// unexpected-tree-file and load-error report it.
+	t.Run("does not judge a file carrying no entity frontmatter", func(t *testing.T) {
+		t.Parallel()
+		f := newWalkerFixture(t)
+		f.put(gapPath, full, "seed")
+		base := f.head()
+		f.put(gapPath, "## What's missing\n\nno frontmatter\n", "strip frontmatter")
+		assertDropped(t, nil, walkFrom(t, f, base))
+	})
+
+	// A file that was not yet an entity when the push started has no body to
+	// start from, so the commit that made it one is held to the whole set.
+	t.Run("holds a file that became an entity during the push to the whole set", func(t *testing.T) {
+		t.Parallel()
+		f := newWalkerFixture(t)
+		f.put(gapPath, "## What's missing\n\nnot an entity yet\n", "seed")
+		base := f.head()
+		became := f.put(gapPath, partial, "give it frontmatter", wrapTrailers...)
+		assertDropped(t, []DroppedBodySection{{SHA: became, Path: gapPath, EntityID: "G-0001", Section: whyItMatters}}, walkFrom(t, f, base))
+	})
+
+	// An epic directory carrying no id in its name is epic-shaped and names no
+	// entity, so there is nothing to credit a finding to.
+	t.Run("does not judge an entity path whose id does not parse", func(t *testing.T) {
 		t.Parallel()
 		f := newWalkerFixture(t)
 		const noID = "work/epics/no-id-here/epic.md"
-		const whole = "---\nid: E-0001\n---\n## Goal\n\ng\n\n## Scope\n\ns\n\n## Out of scope\n\no\n"
-		const partial = "---\nid: E-0001\n---\n## Goal\n\ng\n\n## Scope\n\ns\n"
-		commitAt(f, noID, whole, "seed")
-		sha, parent := commitAt(f, noID, partial, "drop a section")
-		got := WalkDroppedBodySections(ctx, f.root, []UntrailedCommit{
-			{SHA: sha, ParentSHAs: []string{parent}, Paths: []string{noID}},
-		})
-		if len(got) != 0 {
-			t.Errorf("unparseable-id path judged: %+v", got)
-		}
+		f.put(noID, "---\nid: E-0001\n---\n## Goal\n\ng\n\n## Scope\n\ns\n\n## Out of scope\n\no\n", "seed")
+		base := f.head()
+		f.put(noID, "---\nid: E-0001\n---\n## Goal\n\ng\n\n## Scope\n\ns\n", "drop a section")
+		assertDropped(t, nil, walkFrom(t, f, base))
+	})
+
+	// A base that resolves to no commit gives the push no starting point; the
+	// provenance audit reports an unresolvable --since itself.
+	t.Run("returns nothing for a base that resolves to no commit", func(t *testing.T) {
+		t.Parallel()
+		f := newWalkerFixture(t)
+		f.put(gapPath, partial, "seed")
+		assertDropped(t, nil, walkFrom(t, f, "no-such-ref"))
 	})
 }
 
-// TestWalkDroppedBodySections_WhatCountsAsAViolation — M-0331/AC-2 states the
-// gate's scope; this states what inside that scope is a violation. Exactly one
-// thing: a section the kind requires, not present as a top-level `## ` heading.
-// Sections beyond the declared set are legal, order carries no meaning, and a
-// required heading nested below top level is absent — `ParseBodySections`, the
-// parser `aiwf show` and the body rules already share, reads `## ` alone, so a
-// nested one yields no key on any read path.
+// TestWalkDroppedBodySections_WhatCountsAsAViolation states what, inside the
+// gate's scope, is a violation: a section the kind requires, not present as a
+// top-level `## ` heading. Sections beyond the declared set are legal, order
+// carries no meaning, and a required heading nested below top level is absent —
+// ParseBodySections, the parser `aiwf show` and the body rules share, reads
+// `## ` alone.
 func TestWalkDroppedBodySections_WhatCountsAsAViolation(t *testing.T) {
 	t.Parallel()
-	ctx := context.Background()
+	const specPath = "work/epics/E-0001-seed/M-0001-seed.md"
+	const frontmatter = "---\nid: M-0001\ntitle: Seed\nstatus: in_progress\nparent: E-0001\n---\n"
+	const whole = frontmatter + "## Goal\n\nShip it.\n\n## Acceptance criteria\n\n### AC-1 — It ships\n\nIt ships.\n"
 
 	cases := []struct {
 		name  string
 		after string
-		want  []string // sections reported, in the kind's canonical order
+		want  []string
 	}{
 		{
-			name: "a section beyond the declared set is legal",
-			after: droppedSpecWhole + `
-## Notes
-
-An author's own heading, which no kind declares.
-`,
+			name:  "a section beyond the declared set is legal",
+			after: whole + "\n## Notes\n\nAn author's own heading.\n",
 		},
 		{
-			name: "order is not enforced",
-			after: `---
-id: M-0001
-title: Seed
-status: in_progress
-parent: E-0001
----
-## Acceptance criteria
-
-### AC-1 — It ships
-
-It ships.
-
-## Goal
-
-Ship it.
-`,
+			name:  "order is not enforced",
+			after: frontmatter + "## Acceptance criteria\n\n### AC-1 — It ships\n\nIt ships.\n\n## Goal\n\nShip it.\n",
 		},
 		{
-			name: "a required heading nested below top level is absent",
-			after: `---
-id: M-0001
-title: Seed
-status: in_progress
-parent: E-0001
----
-## Goal
-
-Ship it.
-
-### Acceptance criteria
-
-### AC-1 — It ships
-
-It ships.
-`,
-			want: []string{"Acceptance criteria"},
+			name:  "a required heading nested below top level is absent",
+			after: frontmatter + "## Goal\n\nShip it.\n\n### Acceptance criteria\n\n### AC-1 — It ships\n\nIt ships.\n",
+			want:  []string{"Acceptance criteria"},
 		},
 	}
 	for _, tc := range cases {
 		t.Run(tc.name, func(t *testing.T) {
 			t.Parallel()
 			f := newWalkerFixture(t)
-			commitAt(f, droppedSpecPath, droppedSpecWhole, "seed the spec")
-			sha, parent := commitAt(f, droppedSpecPath, tc.after, "rework the body")
+			f.put(specPath, whole, "seed the spec")
+			base := f.head()
+			f.put(specPath, tc.after, "rework the body")
 			var got []string
-			for _, d := range WalkDroppedBodySections(ctx, f.root, []UntrailedCommit{
-				{SHA: sha, ParentSHAs: []string{parent}, Paths: []string{droppedSpecPath}},
-			}) {
+			for _, d := range walkFrom(t, f, base) {
 				got = append(got, d.Section)
 			}
 			if diff := cmp.Diff(tc.want, got); diff != "" {
