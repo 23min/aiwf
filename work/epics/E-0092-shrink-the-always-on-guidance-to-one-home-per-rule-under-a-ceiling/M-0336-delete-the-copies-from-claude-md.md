@@ -5,7 +5,7 @@ status: draft
 parent: E-0092
 depends_on:
     - M-0335
-tdd: required
+tdd: advisory
 acs:
     - id: AC-1
       title: CLAUDE.md carries no rule the fragment also carries
