@@ -16,6 +16,9 @@ acs:
     - id: AC-3
       title: Every chokepoint pointer in CLAUDE.md resolves to a policy id or finding code
       status: open
+    - id: AC-4
+      title: Every repo path CLAUDE.md cites exists
+      status: open
 ---
 
 ## Goal
@@ -27,4 +30,6 @@ acs:
 ### AC-2 — Every message the audit marks as not stating the fix is corrected and pinned
 
 ### AC-3 — Every chokepoint pointer in CLAUDE.md resolves to a policy id or finding code
+
+### AC-4 — Every repo path CLAUDE.md cites exists
 
