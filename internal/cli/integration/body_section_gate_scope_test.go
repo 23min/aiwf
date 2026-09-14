@@ -25,26 +25,21 @@ import (
 // written by hand and committed with plain git, because `aiwf add` refuses to
 // create it — that refusal is the write seam, and this file exists to stand for
 // the bodies already committed before either seam landed.
-const incompleteGap = `---
-id: G-0001
-title: Something is missing
-status: open
----
-## What's missing
-
-A body section, deliberately.
-`
+func incompleteGap(status string) string {
+	return "---\nid: G-0001\ntitle: Something is missing\nstatus: " + status +
+		"\n---\n## What's missing\n\nA body section, deliberately.\n"
+}
 
 // seedIncompleteEntity writes the gap, commits it with plain git, and returns
 // the SHA — the range base, so the omission predates everything the gate judges.
-func seedIncompleteEntity(t *testing.T, root string) string {
+func seedIncompleteEntity(t *testing.T, root, status string) string {
 	t.Helper()
 	rel := "work/gaps/G-0001-something-is-missing.md"
 	abs := filepath.Join(root, rel)
 	if err := os.MkdirAll(filepath.Dir(abs), 0o755); err != nil {
 		t.Fatal(err)
 	}
-	if err := os.WriteFile(abs, []byte(incompleteGap), 0o644); err != nil {
+	if err := os.WriteFile(abs, []byte(incompleteGap(status)), 0o644); err != nil {
 		t.Fatal(err)
 	}
 	if err := osExec(t, root, "git", "add", "-A"); err != nil {
@@ -69,29 +64,38 @@ func headOf(t *testing.T, root string) string {
 
 func TestBodySectionGate_OrdinaryVerbsOnAnIncompleteEntityStillSucceed(t *testing.T) {
 	t.Parallel()
-	root := setupCLITestRepo(t)
-	base := seedIncompleteEntity(t, root)
-
-	// Each verb writes a different surface of the same incomplete entity:
-	// retitle the title and the body H1, promote the status field, archive the
-	// file's location. None of them is a body-section change.
-	for _, step := range []struct {
-		name string
-		args []string
+	// Each verb writes a different surface of an incomplete entity — retitle the
+	// title, the body H1 and the slug; promote the status field; archive the
+	// file's location — and none of them is a body-section change. Each runs in
+	// its own repository, so one verb's outcome cannot stand in for another's.
+	cases := []struct {
+		name   string
+		status string
+		args   func(root, base string) []string
 	}{
-		{"retitle", []string{"retitle", "G-0001", "Something else is missing", "--root", root, "--actor", "human/test"}},
-		{"promote", []string{"promote", "G-0001", "addressed", "--by-commit", base, "--root", root, "--actor", "human/test"}},
-		{"archive", []string{"archive", "--apply", "--root", root, "--actor", "human/test"}},
-	} {
-		if rc := cli.Execute(step.args); rc != cliutil.ExitOK {
-			t.Fatalf("%s against an entity missing a required section: rc = %d, want ExitOK", step.name, rc)
-		}
+		{"retitle", "open", func(root, _ string) []string {
+			return []string{"retitle", "G-0001", "Something else is missing", "--root", root, "--actor", "human/test"}
+		}},
+		{"promote", "open", func(root, base string) []string {
+			return []string{"promote", "G-0001", "addressed", "--by-commit", base, "--root", root, "--actor", "human/test"}
+		}},
+		{"archive", "wontfix", func(root, _ string) []string {
+			return []string{"archive", "--apply", "--root", root, "--actor", "human/test"}
+		}},
 	}
-
-	if rc := cli.Execute([]string{"check", "--root", root, "--since", base}); rc != cliutil.ExitOK {
-		t.Errorf("check after retitle+promote+archive: rc = %d, want ExitOK — "+
-			"the gate is scoped to entities whose body content the range changed, "+
-			"and none of those three changed one", rc)
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			t.Parallel()
+			root := setupCLITestRepo(t)
+			base := seedIncompleteEntity(t, root, tc.status)
+			if rc := cli.Execute(tc.args(root, base)); rc != cliutil.ExitOK {
+				t.Fatalf("%s against an entity missing a required section: rc = %d, want ExitOK", tc.name, rc)
+			}
+			if rc := cli.Execute([]string{"check", "--root", root, "--since", base}); rc != cliutil.ExitOK {
+				t.Errorf("check after %s: rc = %d, want ExitOK — the gate reports only a section the "+
+					"entity carried at the start of the range, and this one never carried it", tc.name, rc)
+			}
+		})
 	}
 }
 
@@ -101,10 +105,10 @@ func TestBodySectionGate_OrdinaryVerbsOnAnIncompleteEntityStillSucceed(t *testin
 func TestBodySectionGate_RangeIsLiveInThisFixture(t *testing.T) {
 	t.Parallel()
 	root := setupCLITestRepo(t)
-	base := seedIncompleteEntity(t, root)
+	base := seedIncompleteEntity(t, root, "open")
 
 	rel := "work/gaps/G-0001-something-is-missing.md"
-	stripped := strings.Replace(incompleteGap, "## What's missing\n\nA body section, deliberately.\n", "", 1)
+	stripped := strings.Replace(incompleteGap("open"), "## What's missing\n\nA body section, deliberately.\n", "", 1)
 	if err := os.WriteFile(filepath.Join(root, rel), []byte(stripped), 0o644); err != nil {
 		t.Fatal(err)
 	}
