@@ -48,13 +48,16 @@ Read that way D-0086 is completed rather than contradicted.
 
 ## Consequences
 
-The five per-kind paragraphs in the `aiwf-add` skill become routes; the templates
-keep their text and nothing moves. A reader who learned the rules from the skill
-must still reach them, so each route names where it points.
+The five per-kind paragraphs in the `aiwf-add` skill become routes. The templates
+keep their text, except where the skill stated a rule the template did not: epic
+`## Scope` and `## Out of scope` take theirs from the skill, so that a route is true
+for every required section of every kind. A reader who learned the rules from the
+skill must still reach them, so each route names where it points.
 
 Nothing mechanical holds this. D-0070 retires prose assertions over shipped
 surfaces, so no check can compare a template against a skill that no longer
-restates it — what the routing buys is that there is no second copy left to
-disagree. Keeping it that way is a review obligation.
+restates it. What the routing buys is that the `aiwf-add` skill holds no second
+copy; the planning and record rituals still hold theirs, tracked as G-0682. Keeping
+it that way is a review obligation.
 
 G-0680 is the work this decides.
