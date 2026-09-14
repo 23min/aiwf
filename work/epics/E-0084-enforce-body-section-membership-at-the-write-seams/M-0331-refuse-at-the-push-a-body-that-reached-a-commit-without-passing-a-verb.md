@@ -1,7 +1,7 @@
 ---
 id: M-0331
 title: Refuse at the push a body that reached a commit without passing a verb
-status: draft
+status: in_progress
 parent: E-0084
 tdd: required
 acs:
