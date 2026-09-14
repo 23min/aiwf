@@ -221,6 +221,15 @@ func RunProvenanceCheck(ctx context.Context, root string, t *tree.Tree, since st
 		return nil, uErr
 	}
 	findings = append(findings, check.RunUntrailedAudit(untrailed, ackedSHAEntities)...)
+	// M-0331: the push-seam membership gate (ADR-0048 seam two). Rides the
+	// range already read above rather than resolving its own — a body reaching
+	// a commit without passing a body-supplying verb is exactly what the
+	// untrailered audit's own range covers, and the wrap-milestone ritual's
+	// plain `git commit` is the path both exist for. The gate reads bytes
+	// rather than trailers, because that commit carries all three.
+	findings = append(findings, check.RunEntityBodySectionDropped(
+		check.WalkDroppedBodySections(ctx, root, untrailed), ackedSHAs,
+	)...)
 	// G-0150: warn on any `aiwf-verb:` trailer whose value is not in
 	// the running binary's Cobra command tree, scoped to the same
 	// `@{u}..HEAD` window as the untrailered audit. The chokepoint

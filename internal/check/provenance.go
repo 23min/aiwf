@@ -431,6 +431,21 @@ type UntrailedCommit struct {
 	ParentSHAs []string
 }
 
+// isAbsorbingMerge reports whether a commit merely absorbed content another
+// branch already published, rather than writing it. A multi-parent commit
+// whose subject is not a GitHub squash ("…(#NNN)") is an ordinary `git merge`:
+// the content traces to the feature-branch commits reachable via its second
+// parent, which carry their own trailers and were judged by that branch's own
+// push. A squash is not absorbing — GitHub strips the trailers, so the squash
+// commit is the only audit-trail event the integration branch has.
+//
+// A commit with no recorded parents is not absorbing; callers that leave
+// ParentSHAs empty get every commit judged, which is the shape the untrailered
+// audit's own tests pin.
+func isAbsorbingMerge(parentSHAs []string, subject string) bool {
+	return len(parentSHAs) > 1 && !squashMergeSubjectRE.MatchString(subject)
+}
+
 // RunUntrailedAudit returns
 // `provenance-untrailered-entity-commit` findings — one per
 // (commit, entity) pair — for every untrailered commit in the
@@ -530,7 +545,7 @@ func RunUntrailedAudit(commits []UntrailedCommit, ackedSHAEntities map[string]ma
 		// pre-G-0231 behavior — every commit is audited regardless of
 		// merge shape — so existing tests continue to pin their
 		// previous expectations without modification.
-		if len(c.ParentSHAs) > 1 && !squashMergeSubjectRE.MatchString(c.Subject) {
+		if isAbsorbingMerge(c.ParentSHAs, c.Subject) {
 			continue
 		}
 		var unresolvedPaths []string
