@@ -116,10 +116,6 @@ func WalkDroppedBodySections(ctx context.Context, root string, commits []Untrail
 			if !ok {
 				continue
 			}
-			// Every kind PathKind yields declares a non-empty set, so
-			// there is no empty-set arm to guard; SectionsAbsent over an
-			// empty want would return nothing regardless.
-			want := entity.RequiredSections(kind)
 			id, ok := entityIDFromPath(path)
 			if !ok {
 				continue
@@ -132,8 +128,13 @@ func WalkDroppedBodySections(ctx context.Context, root string, commits []Untrail
 			if !ok {
 				continue
 			}
-			absentBefore := SectionsAbsent(before, want)
-			for _, section := range SectionsAbsent(after, want) {
+			// Both comparisons and the HEAD confirmation below read the
+			// declared set through this one helper. Two spellings of the
+			// same lookup can disagree, and a disagreement here is silent:
+			// a section counted absent by one and present by the other
+			// yields no finding at all.
+			absentBefore := AbsentRequiredSections(kind, before)
+			for _, section := range AbsentRequiredSections(kind, after) {
 				if slices.Contains(absentBefore, section) {
 					continue
 				}
@@ -153,7 +154,7 @@ func WalkDroppedBodySections(ctx context.Context, root string, commits []Untrail
 		if !seen {
 			kind, _ := entity.PathKind(c.path)
 			if body, ok := bodyAtRev(ctx, root, "HEAD", c.path); ok {
-				still = SectionsAbsent(body, entity.RequiredSections(kind))
+				still = AbsentRequiredSections(kind, body)
 			}
 			absentAtHEAD[c.path] = still
 		}
