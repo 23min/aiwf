@@ -10,6 +10,9 @@ acs:
     - id: AC-1
       title: CLAUDE.md carries no rule the fragment also carries
       status: open
+    - id: AC-2
+      title: CLAUDE.md cites no gap, epic, milestone, or decision id outside a markdown link
+      status: open
 ---
 
 ## Goal
@@ -17,4 +20,6 @@ acs:
 ## Acceptance criteria
 
 ### AC-1 — CLAUDE.md carries no rule the fragment also carries
+
+### AC-2 — CLAUDE.md cites no gap, epic, milestone, or decision id outside a markdown link
 
