@@ -14,6 +14,9 @@ acs:
     - id: AC-2
       title: Nested CLAUDE.md files exist under internal, cmd, docs, and work
       status: open
+    - id: AC-3
+      title: Every pin on a moved passage is re-aimed or retired with a recorded reason
+      status: open
 ---
 
 ## Goal
@@ -23,4 +26,6 @@ acs:
 ### AC-1 — Root CLAUDE.md imports only the shipped fragment
 
 ### AC-2 — Nested CLAUDE.md files exist under internal, cmd, docs, and work
+
+### AC-3 — Every pin on a moved passage is re-aimed or retired with a recorded reason
 
