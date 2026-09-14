@@ -8,7 +8,7 @@ acs:
     - id: AC-1
       title: A body committed without passing a verb is refused at the push
       status: open
-      tdd_phase: red
+      tdd_phase: green
     - id: AC-2
       title: Promote, retitle and archive still succeed against an entity missing a section
       status: open
