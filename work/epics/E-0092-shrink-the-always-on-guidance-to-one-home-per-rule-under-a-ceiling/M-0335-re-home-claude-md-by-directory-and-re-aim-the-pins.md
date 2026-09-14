@@ -17,6 +17,9 @@ acs:
     - id: AC-3
       title: Every pin on a moved passage is re-aimed or retired with a recorded reason
       status: open
+    - id: AC-4
+      title: The ceiling constant steps down to the re-homed size
+      status: open
 ---
 
 ## Goal
@@ -28,4 +31,6 @@ acs:
 ### AC-2 — Nested CLAUDE.md files exist under internal, cmd, docs, and work
 
 ### AC-3 — Every pin on a moved passage is re-aimed or retired with a recorded reason
+
+### AC-4 — The ceiling constant steps down to the re-homed size
 
