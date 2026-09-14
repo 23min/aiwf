@@ -55,7 +55,13 @@ func (f *walkerFixture) put(rel, content, msg string, trailers ...string) string
 
 func walkFrom(t *testing.T, f *walkerFixture, base string) []DroppedBodySection {
 	t.Helper()
-	return WalkDroppedBodySections(context.Background(), f.root, base)
+	return WalkDroppedBodySections(context.Background(), f.root, base, "")
+}
+
+// walkWithTrunk runs the walker with a trunk ref whose omissions are exempt.
+func walkWithTrunk(t *testing.T, f *walkerFixture, base, trunk string) []DroppedBodySection {
+	t.Helper()
+	return WalkDroppedBodySections(context.Background(), f.root, base, trunk)
 }
 
 func assertDropped(t *testing.T, want, got []DroppedBodySection) {
@@ -170,6 +176,84 @@ func TestWalkDroppedBodySections(t *testing.T) {
 		assertDropped(t, []DroppedBodySection{{SHA: last, Path: gapPath, EntityID: "G-0001", Section: whyItMatters}}, walkFrom(t, f, base))
 	})
 
+	// A merge can adopt one parent's copy of a file wholesale — `-s ours`, or a
+	// resolution taking a stale version — and git lists no write for it. The
+	// entity still differs between the two ends, and the merge that published
+	// the older copy is the commit that left the section out.
+	t.Run("credits a merge that adopted an older copy lacking the section", func(t *testing.T) {
+		t.Parallel()
+		f := newWalkerFixture(t)
+		f.put(gapPath, partial, "an old version, before the section existed")
+		f.run("git", "branch", "stale")
+		f.put(gapPath, full, "add the section")
+		base := f.head()
+		f.run("git", "checkout", "-q", "stale")
+		f.put("work/gaps/G-0002-other.md", gapFile("G-0002", "", whatsMissing, whyItMatters), "unrelated work")
+		f.run("git", "merge", "-q", "-s", "ours", "--no-edit", "main")
+		adopted := f.head()
+		f.put("work/gaps/G-0003-later.md", gapFile("G-0003", "", whatsMissing, whyItMatters), "later work, so the merge is not HEAD")
+		assertDropped(t, []DroppedBodySection{{SHA: adopted, Path: gapPath, EntityID: "G-0001", Section: whyItMatters}}, walkFrom(t, f, base))
+	})
+
+	// A clean merge of edits from both sides writes the file too, but the
+	// section went on the side that removed it, not at the merge.
+	t.Run("credits the removal, not a clean merge that combined both sides", func(t *testing.T) {
+		t.Parallel()
+		f := newWalkerFixture(t)
+		f.put(gapPath, gapFile("G-0001", "", whatsMissing, "Notes", whyItMatters), "seed")
+		base := f.head()
+		f.run("git", "checkout", "-q", "-b", "side")
+		f.put(gapPath, strings.Replace(gapFile("G-0001", "", whatsMissing, "Notes", whyItMatters), "## What's missing\n\nProse.", "## What's missing\n\nSharper prose.", 1), "edit the other end")
+		f.run("git", "checkout", "-q", "main")
+		drop := f.put(gapPath, gapFile("G-0001", "", whatsMissing, "Notes"), "drop the section")
+		f.run("git", "merge", "-q", "--no-ff", "--no-edit", "side")
+		assertDropped(t, []DroppedBodySection{{SHA: drop, Path: gapPath, EntityID: "G-0001", Section: whyItMatters}}, walkFrom(t, f, base))
+	})
+
+	// A reallocation inside the push keeps the entity's starting point: a forced
+	// create stays exempt under its new id.
+	t.Run("keeps a forced create's starting point through a reallocation in the push", func(t *testing.T) {
+		t.Parallel()
+		f := newWalkerFixture(t)
+		base := f.head()
+		const created, reallocated = "work/gaps/G-0002-fixture.md", "work/gaps/G-0003-fixture.md"
+		f.put(created, gapFile("G-0002", "", whatsMissing), "aiwf add gap G-0002",
+			"aiwf-verb: add", "aiwf-entity: G-0002", "aiwf-actor: human/test", "aiwf-force: needed now")
+		f.run("git", "mv", created, reallocated)
+		f.writeFile(reallocated, gapFile("G-0003", "prior_ids:\n    - G-0002\n", whatsMissing))
+		f.commit("aiwf reallocate G-0002 -> G-0003", "aiwf-verb: reallocate", "aiwf-entity: G-0003", "aiwf-actor: human/test")
+		assertDropped(t, nil, walkFrom(t, f, base))
+	})
+
+	// A drop followed by a reallocation is owed by the drop, not by the commit
+	// that renumbered the entity.
+	t.Run("credits a drop, not a later reallocation that renumbered the entity", func(t *testing.T) {
+		t.Parallel()
+		f := newWalkerFixture(t)
+		f.put(gapPath, full, "seed")
+		base := f.head()
+		drop := f.put(gapPath, partial, "drop", wrapTrailers...)
+		const reallocated = "work/gaps/G-0002-fixture.md"
+		f.run("git", "mv", gapPath, reallocated)
+		f.writeFile(reallocated, gapFile("G-0002", "prior_ids:\n    - G-0001\n", whatsMissing))
+		f.commit("aiwf reallocate G-0001 -> G-0002", "aiwf-verb: reallocate", "aiwf-entity: G-0002", "aiwf-actor: human/test")
+		assertDropped(t, []DroppedBodySection{{SHA: drop, Path: reallocated, EntityID: "G-0002", Section: whyItMatters}}, walkFrom(t, f, base))
+	})
+
+	// A section trunk already lacks is not the pushing author's debt, even when
+	// merging trunk is what brings the removal into their branch.
+	t.Run("does not report a section trunk already lacks", func(t *testing.T) {
+		t.Parallel()
+		f := newWalkerFixture(t)
+		f.put(gapPath, full, "seed")
+		f.run("git", "branch", "feature")
+		f.put(gapPath, partial, "someone else drops it on trunk")
+		f.run("git", "checkout", "-q", "feature")
+		base := f.head()
+		f.run("git", "merge", "-q", "--no-ff", "--no-edit", "main")
+		assertDropped(t, nil, walkWithTrunk(t, f, base, "main"))
+	})
+
 	// A create that passed no body-supplying verb starts from nothing, so every
 	// required section it leaves out is reported.
 	t.Run("reports a section missing from an entity created without a verb", func(t *testing.T) {
@@ -177,6 +261,7 @@ func TestWalkDroppedBodySections(t *testing.T) {
 		f := newWalkerFixture(t)
 		base := f.head()
 		created := f.put(gapPath, partial, "hand-written gap", wrapTrailers...)
+		f.put("work/gaps/G-0002-later.md", gapFile("G-0002", "", whatsMissing, whyItMatters), "later work, so the create is not HEAD")
 		assertDropped(t, []DroppedBodySection{{SHA: created, Path: gapPath, EntityID: "G-0001", Section: whyItMatters}}, walkFrom(t, f, base))
 	})
 
@@ -189,6 +274,16 @@ func TestWalkDroppedBodySections(t *testing.T) {
 		f.put(gapPath, full, "aiwf add gap G-0001", "aiwf-verb: add", "aiwf-entity: G-0001", "aiwf-actor: human/test")
 		drop := f.put(gapPath, partial, "trim by hand")
 		assertDropped(t, []DroppedBodySection{{SHA: drop, Path: gapPath, EntityID: "G-0001", Section: whyItMatters}}, walkFrom(t, f, base))
+	})
+
+	// An unforced `aiwf add` refuses a body missing a section, so an incomplete
+	// create that carries its trailer without `aiwf-force` passed no verb.
+	t.Run("reports an incomplete create whose add trailer is not forced", func(t *testing.T) {
+		t.Parallel()
+		f := newWalkerFixture(t)
+		base := f.head()
+		created := f.put(gapPath, partial, "hand-written, stamped as add", "aiwf-verb: add", "aiwf-entity: G-0001", "aiwf-actor: human/test")
+		assertDropped(t, []DroppedBodySection{{SHA: created, Path: gapPath, EntityID: "G-0001", Section: whyItMatters}}, walkFrom(t, f, base))
 	})
 
 	// A forced `aiwf add` wrote an incomplete body on purpose, and that body is
@@ -225,6 +320,22 @@ func TestWalkDroppedBodySections(t *testing.T) {
 		f.writeFile(reallocated, gapFile("G-0002", "prior_ids:\n    - G-0001\n", whatsMissing))
 		f.commit("aiwf reallocate G-0001 -> G-0002", "aiwf-verb: reallocate", "aiwf-entity: G-0002", "aiwf-actor: human/test")
 		assertDropped(t, nil, walkFrom(t, f, base))
+	})
+
+	// An entity the base's line deleted and the pushed branch still carries comes
+	// back with no commit in the push creating it. It starts from nothing, and
+	// with no commit in the range having written it the finding names HEAD.
+	t.Run("holds an entity the push brings back to the whole set, naming HEAD", func(t *testing.T) {
+		t.Parallel()
+		f := newWalkerFixture(t)
+		f.put(gapPath, partial, "an entity already missing a section")
+		f.run("git", "branch", "keep")
+		f.run("git", "rm", "-q", gapPath)
+		f.commit("delete it on the base's line")
+		base := f.head()
+		f.run("git", "checkout", "-q", "keep")
+		head := f.put("work/gaps/G-0002-other.md", gapFile("G-0002", "", whatsMissing, whyItMatters), "unrelated work")
+		assertDropped(t, []DroppedBodySection{{SHA: head, Path: gapPath, EntityID: "G-0001", Section: whyItMatters}}, walkFrom(t, f, base))
 	})
 
 	// An entity gone at HEAD has no body the push publishes.

@@ -215,7 +215,7 @@ func TestPolicy_BodySectionGateReadsTheDeclarationNotTheTemplate(t *testing.T) {
 // reported, in the order it emits them.
 func gateSections(root, base string) []string {
 	var out []string
-	for _, d := range check.WalkDroppedBodySections(context.Background(), root, base) {
+	for _, d := range check.WalkDroppedBodySections(context.Background(), root, base, "") {
 		out = append(out, d.Section)
 	}
 	return out

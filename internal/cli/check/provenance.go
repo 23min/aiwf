@@ -226,7 +226,7 @@ func RunProvenanceCheck(ctx context.Context, root string, t *tree.Tree, since st
 	// read above: a drop reaching HEAD through a merge, or carried by a
 	// renamed file, is invisible to that list and is still published.
 	findings = append(findings, check.RunEntityBodySectionDropped(
-		check.WalkDroppedBodySections(ctx, root, strings.TrimSuffix(rangeArg, "..HEAD")), ackedSHAs,
+		check.WalkDroppedBodySections(ctx, root, strings.TrimSuffix(rangeArg, "..HEAD"), trunkRefOf(t)), ackedSHAs,
 	)...)
 	// G-0150: warn on any `aiwf-verb:` trailer whose value is not in
 	// the running binary's Cobra command tree, scoped to the same
@@ -256,6 +256,15 @@ func RunProvenanceCheck(ctx context.Context, root string, t *tree.Tree, since st
 	// existing trunk history isn't retroactively broken.
 	findings = append(findings, check.RunTrailerVerbUnknown(asScopeCommits(untrailed), registeredVerbs, ritualVerbs, ackedSHAs, postCutoffSHAs)...)
 	return findings, nil
+}
+
+// trunkRefOf returns the configured trunk ref the loaded tree resolved, or empty
+// when the trunk view was skipped.
+func trunkRefOf(t *tree.Tree) string {
+	if t == nil {
+		return ""
+	}
+	return t.TrunkRef
 }
 
 // asScopeCommits adapts the untrailered-audit's commit shape to the
