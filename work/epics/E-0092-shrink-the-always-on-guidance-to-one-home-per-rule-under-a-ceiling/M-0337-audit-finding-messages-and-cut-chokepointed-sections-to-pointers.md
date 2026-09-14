@@ -13,6 +13,9 @@ acs:
     - id: AC-2
       title: Every message the audit marks as not stating the fix is corrected and pinned
       status: open
+    - id: AC-3
+      title: Every chokepoint pointer in CLAUDE.md resolves to a policy id or finding code
+      status: open
 ---
 
 ## Goal
@@ -22,4 +25,6 @@ acs:
 ### AC-1 — The audit table lists every policy and finding code a chokepointed section names
 
 ### AC-2 — Every message the audit marks as not stating the fix is corrected and pinned
+
+### AC-3 — Every chokepoint pointer in CLAUDE.md resolves to a policy id or finding code
 
