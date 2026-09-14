@@ -1,7 +1,9 @@
 ---
 id: G-0677
 title: The gap template demands a location and bans the section used to write one
-status: open
+status: addressed
+addressed_by_commit:
+    - f952d05fb
 ---
 ## What's missing
 
