@@ -203,7 +203,9 @@ Two ways to land the body content:
 
 ### What to write per kind
 
-The per-kind table above lists *which* sections must be non-empty; this subsection covers *what* to write in each. The recommendations are advisory — `aiwf check` asserts presence, not structure — but they shape the project's default; an LLM (or human) skimming this skill produces better entities by following them than by inventing a shape.
+The per-kind table above lists *which* sections must be non-empty. What to write *in* each one is stated by that kind's template, beside the section it governs — `aiwf-add` §"Locating the rich body template" above names the file for each kind. Open the template for the kind you are writing; for those six kinds this skill states no rule of its own.
+
+An acceptance criterion is the exception: it is a sub-element of a milestone rather than a kind with a template file, so its rule is stated here. It is advisory — `aiwf check` asserts presence, not structure — but it shapes the project's default; following it produces a better criterion than inventing a shape.
 
 **Acceptance criteria.** The title names observable behavior rather than an implementation detail — "when X occurs, the system emits Y with property Z", never "X is tested", "refactor complete", or "feature implemented". It also stays a short label rather than a paragraph — `aiwf add ac` refuses a prose-shaped title outright, and `aiwf check` reports one already stored as `acs-title-prose`. *Observable* there is about the claim's shape, and is a different word from *observational*, which is about how a claim is met: a criterion naming something no test can reach is met by a record rather than an assertion, and what that record carries is in `aiwf-promote` §"Evidence for promoting an AC to `met`". The body is one paragraph (not an essay, not a one-liner) covering three things: (a) the **pass criterion** — the assertable claim, "under inputs X the system produces Y"; (b) the **edge cases** the test must cover — boundary values, malformed inputs, error paths, concurrency; (c) the **code references** — the file or function the AC will land against, or the test file that pins it. The forward references trade a little churn (paths can move) for a lot of context (a future reader doesn't have to grep for the call site).
 
@@ -220,33 +222,6 @@ empty), non-UTF-8 bytes (refused with `invalid encoding`), multi-line
 title (refused, single line). **Code references**: validation in
 `cmd/aiwf/add_cmd.go` (the `validateTitle` helper); regression tests
 in `cmd/aiwf/add_cmd_test.go`.
-```
-
-**Epics.** `## Goal` describes the problem the epic solves and what success looks like — one paragraph, no longer than four sentences. `## Scope` enumerates what's in (one bullet per major piece of work, often a milestone). `## Out of scope` enumerates what's deliberately not — usually the most-tempting adjacent work, with a one-line "why not yet."
-
-**Milestones.** `## Goal` describes the chunk of value this milestone ships. `## Acceptance criteria` is the heading container; the actual ACs land as `### AC-N — <title>` sub-elements with their own bodies. The rich template adds `## Context` for what exists before the work and `## Design notes` for decisions already locked — reach for those when the milestone needs them.
-
-**Gaps.** `## What's missing` is the **concrete defect** — what specifically doesn't exist or doesn't work; one paragraph naming the symptom and the affected surface. `## Why it matters` is the consequence — what fails, who notices, what bug class this enables; one paragraph naming the operational impact.
-
-**ADRs / decisions.** `## Context` (or `## Question`) frames the choice the team faces. `## Decision` records the choice in one or two sentences. `## Consequences` (or `## Reasoning`) names the trade-offs accepted — what becomes easy, what becomes harder, what we'd revisit if a constraint changed.
-
-**Contracts.** `## Purpose` names what the schema captures and who consumes it. `## Stability` names the contract's evolution posture (frozen, additive-only, breaking-allowed-with-migration), with a sentence on what triggers a version bump.
-
-```markdown
-## What's missing
-
-`aiwf add gap` accepts `--discovered-in <id>` but does not validate
-that the referenced entity exists. A mistyped id lands silently;
-only `aiwf check` catches it later, and only as a
-`refs-resolve/unresolved` warning rather than at the point of intent.
-
-## Why it matters
-
-Operators who file gaps mid-flow rely on the kernel to catch finger-
-errors at the verb boundary. A silently-accepted typo means the gap
-points at no entity at all, the audit trail loses a meaningful link,
-and the operator has to repair the gap separately later — exactly
-the failure class the verb-time projection check exists to prevent.
 ```
 
 Skip the prose and `aiwf check` reports the omission. Don't ship a half-written entity hoping the body "follows later" — the design's "prose is not parsed" principle (see `docs/archive/pocv3/acs-and-tdd-plan.md` and `docs/design/design-decisions.md`) treats body content as the spec; the title is a label, not a substitute.

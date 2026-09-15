@@ -44,6 +44,21 @@ Rituals that instruct gap filing now hand off to it (`aiwfx-wrap-milestone`,
 `aiwf add gap` in a paragraph that does not name the ritual now fails the policy
 suite.
 
+### Changed — G-0680: the `aiwf-add` skill routes body-content rules to each kind's template
+
+The skill's *What to write per kind* subsection restated what each kind's sections
+should hold, and so did the templates. Where they disagreed: an epic goal capped at
+four sentences against the template's 1–2, an ADR decision at one or two sentences
+against one or two paragraphs, a gap section capped at one paragraph by a skill that
+never mentions the reproduction the template asks for. The subsection now points at
+the template for each of the six kinds and states no rule of its own for them, so
+the rule lives in the file an author has open while writing the entity. An
+acceptance criterion is the exception and keeps its rule in the skill: it is a
+sub-element of a milestone, with no template file to hold one. Two epic-authoring
+rules the skill carried and the template did not — one bullet per major piece of
+work, and a one-line "why not yet" beside each exclusion — move into
+`epic-spec.md`, the owner.
+
 ## [0.35.0] — 2026-09-12
 
 ### Changed — G-0670: shipped verb skills drop this repo's internal labels
