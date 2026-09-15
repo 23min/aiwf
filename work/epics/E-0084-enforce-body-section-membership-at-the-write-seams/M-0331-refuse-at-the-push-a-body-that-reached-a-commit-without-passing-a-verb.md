@@ -128,7 +128,7 @@ required.
   policy enforces.
 - The gate judges every entity that differs between base and HEAD, by id, rather
   than only the entities git lists a write for: a merge can adopt one parent's
-  copy of a file wholesale, and `git log --cc` lists no write for it. Reading
+  copy of a file wholesale, and git lists no write for it. Reading
   along the first-parent line commit by commit cannot see a drop merged in with
   `--no-ff`, loses one a later rename carries, and refuses a push whose section
   came and went.
@@ -223,22 +223,24 @@ upstream or `--since <ref>` is passed.
 
 ## Validation
 
-Measured 2026-09-14 in the devcontainer (linux/amd64, go1.25.11), on the
-milestone branch with its last build input at `92996688b`.
+Measured 2026-09-14 in the devcontainer (linux/amd64, go1.25.11, git 2.54.0), on
+the milestone branch with its last build input at `0a98d1ec1`. The binary was
+built from that commit.
 
 | Command | Expected | Observed |
 |---|---|---|
 | `make check-fast` | exit 0 | exit 0 — vet, `go test` across 71 packages, lint clean |
 | `AIWF_COVERAGE_BASE=09d2058cc make coverage-gate` | exit 0 | exit 0 |
-| `aiwf check` | 0 errors | 0 errors; 15 warnings, none from this rule |
-| worktree binary, scratch repo in the wrap ritual's shape — a milestone branch drops `## Acceptance criteria` in a commit carrying the ritual's trailers, merged `--no-ff` into an epic branch with an upstream — then `aiwf check` | an `entity-body-section-dropped` error naming the milestone-branch commit, exit 1 | exactly that, naming `7b29a4f6` rather than the merge; the run's other error is `refs-resolve`, for the fixture's missing epic file |
-| worktree binary, scratch repo: drop a section, `aiwf acknowledge illegal <sha> --reason "meant it"`, then `aiwf check --since <base>` | the finding before, exit 0 after | one error before, exit 0 after |
+| `aiwf check --since 09d2058cc`, which runs the gate over this milestone's own range | 0 errors, no finding from this rule | 0 errors, 14 warnings, none from this rule |
+| scratch repo in the wrap ritual's shape: a milestone branch drops a section in a commit carrying the ritual's trailers, merged `--no-ff` into an epic branch with an upstream; `aiwf check` | one `entity-body-section-dropped` naming the milestone-branch commit, exit 1 | exactly that, naming the drop rather than the merge |
+| scratch repo: a branch with an upstream merges a `main` on which another commit dropped a section; `aiwf check`, then again with `origin/main` moved back to where the section existed | exit 0, then exit 1 | exit 0, then exit 1 naming the trunk commit |
+| scratch repo: a commit with no aiwf trailers drops a section; `aiwf acknowledge illegal <sha> --for-entity <id> --reason "..."`; `aiwf check --since <base>` | two errors before, exit 0 after | `entity-body-section-dropped` and `provenance-untrailered-entity-commit` before, exit 0 after |
 
-A manual mutation probe ran 16 mutants against the walker and rule, since no
+A manual mutation probe ran 17 mutants against the walker and rule, since no
 mutation tool is wired for a local diff, restoring each file byte-identical. All
-but one fail a test. The survivor removes the check that skips an entity gone at
-HEAD: the body read after it finds no entity there and skips it anyway, and the
-check stays as the statement of the rule.
+but one fail a test. The survivor removes the skip for an entity whose file is
+byte-identical at both ends of the range: identical files carry identical
+sections, so the skip saves reads and changes no answer.
 
 Every AC is `met` with `tdd_phase: done`. AC-1's seam test, built on the ritual's
 merge shape, fails against a gate that reads only the first-parent line.
