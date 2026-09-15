@@ -1,7 +1,9 @@
 ---
 id: G-0680
 title: The aiwf-add skill restates body rules the templates own, and four have drifted
-status: open
+status: addressed
+addressed_by_commit:
+    - 66f09e010
 ---
 ## What's missing
 
