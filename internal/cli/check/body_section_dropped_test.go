@@ -210,3 +210,30 @@ func TestRunProvenanceCheck_BodySectionDropped_KeepingAnExistingOmissionIsNotRef
 		}
 	}
 }
+
+// TestRunProvenanceCheck_BodySectionDropped_RunsWithoutALoadedTree pins that the
+// gate does not depend on a loaded tree. RunProvenanceCheck accepts a nil tree,
+// and then there is no trunk view to exempt against; the drop is still refused.
+func TestRunProvenanceCheck_BodySectionDropped_RunsWithoutALoadedTree(t *testing.T) {
+	t.Parallel()
+	root := t.TempDir()
+	ctx := context.Background()
+	if err := gitops.Init(ctx, root); err != nil {
+		t.Fatalf("git init: %v", err)
+	}
+	base := writeSpec(t, ctx, root, specComplete, "aiwf add milestone M-0001",
+		[]gitops.Trailer{{Key: gitops.TrailerVerb, Value: "add"}})
+	writeSpec(t, ctx, root, specDropped, "chore(milestone): wrap M-0001", wrapRitualTrailers())
+
+	findings, err := RunProvenanceCheck(ctx, root, nil, base,
+		map[string]struct{}{"add": {}}, nil, nil, nil, mustHead(t, ctx, root))
+	if err != nil {
+		t.Fatalf("RunProvenanceCheck: %v", err)
+	}
+	for i := range findings {
+		if findings[i].Code == check.CodeEntityBodySectionDropped.ID {
+			return
+		}
+	}
+	t.Fatalf("%s did not fire without a loaded tree; got %+v", check.CodeEntityBodySectionDropped.ID, findings)
+}

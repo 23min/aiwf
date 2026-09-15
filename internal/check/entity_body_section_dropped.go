@@ -263,7 +263,7 @@ func (g *gateReader) removalOf(ids []string, kind entity.Kind, section string, c
 // path each canonical entity id has held in the range.
 func rangeHistory(ctx context.Context, root, baseSHA string) (commits []rangeCommit, paths map[string][]string) {
 	const recSep, fieldSep = "\x1e", "\x1f"
-	lines, ok := gitLines(ctx, root, "log", "--topo-order", "--cc", "--no-renames", "--name-status",
+	lines, ok := gitLines(ctx, root, "log", "--topo-order", "--no-renames", "--name-status",
 		"--format="+recSep+"%H"+fieldSep+"%P"+fieldSep+"%(trailers:only=true,unfold=true)"+fieldSep, baseSHA+"..HEAD")
 	paths = map[string][]string{}
 	if !ok { //coverage:ignore base and HEAD both resolved to commits, so the range is always a valid git log argument
