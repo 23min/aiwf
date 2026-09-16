@@ -2,6 +2,8 @@ package check
 
 import (
 	"context"
+	"os"
+	"os/exec"
 	"strings"
 	"testing"
 
@@ -61,6 +63,20 @@ func walkFrom(t *testing.T, f *walkerFixture, base string) []DroppedBodySection 
 func walkWithTrunk(t *testing.T, f *walkerFixture, base, trunk string) []DroppedBodySection {
 	t.Helper()
 	return WalkDroppedBodySections(context.Background(), f.root, base, trunk)
+}
+
+// commitDated commits the staged tree with both git dates set to date, so a
+// history's clock can disagree with its topology.
+func commitDated(f *walkerFixture, date, msg string) string {
+	f.t.Helper()
+	f.run("git", "add", "-A")
+	cmd := exec.Command("git", "commit", "-q", "-m", msg)
+	cmd.Dir = f.root
+	cmd.Env = append(os.Environ(), "GIT_AUTHOR_DATE="+date, "GIT_COMMITTER_DATE="+date)
+	if out, err := cmd.CombinedOutput(); err != nil {
+		f.t.Fatalf("git commit at %s: %v\n%s", date, err, out)
+	}
+	return f.head()
 }
 
 func assertDropped(t *testing.T, want, got []DroppedBodySection) {
@@ -325,8 +341,8 @@ func TestWalkDroppedBodySections(t *testing.T) {
 
 	// `aiwf import` is excluded from the write seams rather than gated, and a
 	// body it wrote is likewise its own starting point.
-	// One import commit can create many entities; its trailers are read once and
-	// answer for every entity it created.
+	// One import commit can create many entities, and its trailers answer for
+	// every entity it created.
 	t.Run("exempts every entity one aiwf import commit created", func(t *testing.T) {
 		t.Parallel()
 		f := newWalkerFixture(t)
@@ -335,6 +351,73 @@ func TestWalkDroppedBodySections(t *testing.T) {
 		f.writeFile("work/gaps/G-0002-other.md", gapFile("G-0002", "", whatsMissing))
 		f.commit("aiwf import manifest", "aiwf-verb: import", "aiwf-actor: human/test")
 		assertDropped(t, nil, walkFrom(t, f, base))
+	})
+
+	// A path deleted and re-created inside the push starts from the create the
+	// file at HEAD descends from, not from whichever add came first.
+	t.Run("holds a hand re-create to the whole set after a forced create was removed", func(t *testing.T) {
+		t.Parallel()
+		f := newWalkerFixture(t)
+		base := f.head()
+		f.put(gapPath, partial, "aiwf add gap G-0001", "aiwf-verb: add", "aiwf-entity: G-0001", "aiwf-actor: human/test", "aiwf-force: needed now")
+		f.run("git", "rm", "-q", gapPath)
+		f.commit("remove it")
+		recreated := f.put(gapPath, partial, "hand re-create", wrapTrailers...)
+		f.put("work/gaps/G-0002-later.md", gapFile("G-0002", "", whatsMissing, whyItMatters), "later work, so the re-create is not HEAD")
+		assertDropped(t, []DroppedBodySection{{SHA: recreated, Path: gapPath, EntityID: "G-0001", Section: whyItMatters}}, walkFrom(t, f, base))
+	})
+
+	t.Run("starts a forced re-create from its own body after a hand create was removed", func(t *testing.T) {
+		t.Parallel()
+		f := newWalkerFixture(t)
+		base := f.head()
+		f.put(gapPath, partial, "hand create", wrapTrailers...)
+		f.run("git", "rm", "-q", gapPath)
+		f.commit("remove it")
+		f.put(gapPath, partial, "aiwf add gap G-0001", "aiwf-verb: add", "aiwf-entity: G-0001", "aiwf-actor: human/test", "aiwf-force: needed now")
+		assertDropped(t, nil, walkFrom(t, f, base))
+	})
+
+	// ADRs are the one kind stored outside work/, and the gate reads them too.
+	t.Run("judges an ADR under docs/adr", func(t *testing.T) {
+		t.Parallel()
+		f := newWalkerFixture(t)
+		const adrPath = "docs/adr/ADR-0001-fixture.md"
+		adr := func(sections ...string) string {
+			var b strings.Builder
+			b.WriteString("---\nid: ADR-0001\ntitle: Fixture\nstatus: proposed\n---\n")
+			for _, s := range sections {
+				b.WriteString("## " + s + "\n\nProse.\n\n")
+			}
+			return b.String()
+		}
+		f.put(adrPath, adr("Context", "Decision", "Consequences"), "seed")
+		base := f.head()
+		drop := f.put(adrPath, adr("Context", "Decision"), "drop", "aiwf-verb: wrap-milestone", "aiwf-entity: ADR-0001", "aiwf-actor: human/test")
+		assertDropped(t, []DroppedBodySection{{SHA: drop, Path: adrPath, EntityID: "ADR-0001", Section: "Consequences"}}, walkFrom(t, f, base))
+	})
+
+	// The range is read in topological order: a removal that a later restore
+	// undid is never credited over the removal HEAD carries, however the
+	// commits' clocks fell.
+	t.Run("credits the removal HEAD carries when commit dates invert the history", func(t *testing.T) {
+		t.Parallel()
+		f := newWalkerFixture(t)
+		f.put(gapPath, full, "seed")
+		base := f.head()
+		f.writeFile(gapPath, partial)
+		commitDated(f, "2001-01-01T00:00:10Z", "first removal")
+		f.run("git", "branch", "side")
+		f.writeFile(gapPath, full)
+		commitDated(f, "2001-01-01T00:00:01Z", "restore, dated before its parent")
+		f.writeFile(gapPath, partial)
+		second := commitDated(f, "2001-01-01T00:00:02Z", "second removal, dated before its grandparent")
+		f.run("git", "checkout", "-q", "side")
+		f.writeFile("work/gaps/G-0002-other.md", gapFile("G-0002", "", whatsMissing, whyItMatters))
+		commitDated(f, "2099-01-01T00:00:00Z", "unrelated side work, dated after everything")
+		f.run("git", "checkout", "-q", "main")
+		f.run("git", "merge", "-q", "--no-ff", "--no-edit", "side")
+		assertDropped(t, []DroppedBodySection{{SHA: second, Path: gapPath, EntityID: "G-0001", Section: whyItMatters}}, walkFrom(t, f, base))
 	})
 
 	t.Run("does not report what an aiwf import create left out", func(t *testing.T) {

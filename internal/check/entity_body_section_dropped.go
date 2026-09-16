@@ -139,7 +139,7 @@ func WalkDroppedBodySections(ctx context.Context, root, base, trunk string) []Dr
 			continue
 		}
 		id := canonicalIDOf(path)
-		chain := chainOf(path, lineage(id, path, raw), commits)
+		chain, created := chainOf(path, lineage(id, path, raw), commits)
 		// Identical bytes carry identical sections, so the common case — an
 		// entity the push left alone — costs one map lookup and no read.
 		startPath, atStart := firstIn(atBase, chain)
@@ -147,7 +147,7 @@ func WalkDroppedBodySections(ctx context.Context, root, base, trunk string) []Dr
 			continue
 		}
 		kind, _ := entity.PathKind(path)
-		exempt := g.startingOmissions(ctx, root, kind, baseSHA, atStart, chain, commits)
+		exempt := g.startingOmissions(ctx, root, kind, baseSHA, atStart, chain, created, commits)
 		// Trunk exempts only what this entity lacks there, under its own id: a
 		// chain path carrying a prior id belongs, on trunk, to whatever entity
 		// kept that id.
@@ -192,19 +192,20 @@ type gateReader struct {
 // its starting point, which no push is asked to restore. An entity absent at
 // base starts from the body its creating commit wrote only when that commit came
 // from a verb that may write an incomplete body; otherwise, including when no
-// commit in the range created it, it starts from nothing.
-func (g *gateReader) startingOmissions(ctx context.Context, root string, kind entity.Kind, baseSHA string, atStart bool, chain []string, commits []rangeCommit) []string {
+// commit in the range created it, it starts from nothing. created indexes the
+// commit that added the chain's oldest path, or is negative.
+func (g *gateReader) startingOmissions(ctx context.Context, root string, kind entity.Kind, baseSHA string, atStart bool, chain []string, created int, commits []rangeCommit) []string {
 	if atStart {
 		return g.absentAt(baseSHA, chain, kind)
 	}
-	c, created, found := creatingCommit(chain, commits)
-	if !found {
+	if created < 0 {
 		return nil
 	}
+	c := commits[created]
 	if t := g.createVerb(ctx, root, c.sha); t.verb != "import" && (t.verb != "add" || !t.forced) {
 		return nil
 	}
-	return g.absentAt(c.sha, []string{created}, kind)
+	return g.absentAt(c.sha, chain[len(chain)-1:], kind)
 }
 
 // createVerb returns the aiwf-verb trailer a commit carries, and whether it
@@ -229,37 +230,26 @@ func (g *gateReader) createVerb(ctx context.Context, root, sha string) createTra
 	return t
 }
 
-// creatingCommit returns the oldest commit in the range that added a path of
-// the chain, and that path.
-func creatingCommit(chain []string, commits []rangeCommit) (rangeCommit, string, bool) {
-	for i := len(commits) - 1; i >= 0; i-- {
-		for _, path := range commits[i].adds {
-			if slices.Contains(chain, path) {
-				return commits[i], path, true
-			}
-		}
-	}
-	return rangeCommit{}, "", false
-}
-
 // chainOf returns the paths an entity has held across the range, newest first,
-// from its path at HEAD. The commit that added a path and, in the same commit,
-// deleted one carrying an id the entity claims — its own for a retitle or an
-// archive, a prior one for a reallocation — moved the entity, and the deleted
-// path is where it was before. Each step looks only at commits older than the
-// last move, so the walk ends.
-func chainOf(headPath string, ids []string, commits []rangeCommit) []string {
-	chain := []string{headPath}
+// from its path at HEAD, and the index in commits of the commit that added the
+// oldest of them — the commit the file at HEAD descends from — or -1 when no
+// commit in the range added it. The commit that added a path and, in the same
+// commit, deleted one carrying an id the entity claims — its own for a retitle
+// or an archive, a prior one for a reallocation — moved the entity, and the
+// deleted path is where it was before. Each step looks only at commits older
+// than the last move, so the walk ends.
+func chainOf(headPath string, ids []string, commits []rangeCommit) (chain []string, created int) {
+	chain = []string{headPath}
 	path, from := headPath, 0
 	for {
 		i := slices.IndexFunc(commits[from:], func(c rangeCommit) bool { return slices.Contains(c.adds, path) })
 		if i < 0 {
-			return chain
+			return chain, -1
 		}
 		i += from
 		j := slices.IndexFunc(commits[i].deletes, func(d string) bool { return slices.Contains(ids, canonicalIDOf(d)) })
 		if j < 0 {
-			return chain
+			return chain, i
 		}
 		path, from = commits[i].deletes[j], i+1
 		chain = append(chain, path)
@@ -317,10 +307,12 @@ func (g *gateReader) removalOf(chain []string, kind entity.Kind, section string,
 			}
 		}
 	}
-	// The passes above always name a commit: the first commit whose version
-	// lacks the section has parents whose versions carry it or are no entity, and
-	// a commit that changes the version either lists a chain path or is a merge,
-	// so it is a candidate. What follows is the shape of the answer, not a path.
+	// A pass above always names a commit. The section is present at base and
+	// absent at HEAD, and base is an ancestor of HEAD, so on every line of
+	// ancestry from HEAD back to base some commit's version lacks it while a
+	// parent's carries it; that commit changed the version, so it lists a chain
+	// path or is a merge, and the second pass credits it at the latest. What
+	// follows is the shape of the answer, not a path.
 	if len(candidates) > 0 { //coverage:ignore unreached, as argued above
 		return candidates[0].sha //coverage:ignore unreached, as argued above
 	}
