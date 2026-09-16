@@ -199,7 +199,7 @@ required.
 - D-0092 — superseded by ADR-0049
 - E-0081 — gave the section set one owner and deliberately excluded enforcement
 - E-0083 — shared the finding-code question, now answered by D-0090
-- G-0571 — the hole this closes, jointly with the deletion milestone
+- G-0571 — the hole this closes
 - G-0667 — `aiwf import`'s unrecorded deprecation
 - G-0679 — the ranges the push seam cannot judge
 
@@ -209,18 +209,19 @@ required.
 section — `## Goal`, `## What's missing`, and the rest of each kind's set — out of
 an entity's body, reporting `entity-body-section-dropped` at error severity. It
 catches edits that never passed through `aiwf edit-body`, including a plain
-`git commit` carrying aiwf trailers, and it judges the whole push: a section
-removed on a branch merged in, or in a file a later commit renamed or reallocated,
-is reported, and one added and removed again within the push is not. A section
-already missing where the branch left its base, or already missing on trunk, is
-never reported.
+`git commit` carrying aiwf trailers, and it judges everything the checked-out
+branch adds over its upstream as one push: a section removed on a branch merged
+in, or in a file a later commit renamed, archived or reallocated, is reported, and
+one added and removed again within the push is not. A section already missing
+where the branch left its base, or already missing on trunk, is never reported.
 An entity the push creates must carry every required section unless
 `aiwf import` or `aiwf add --force` created it. Restore the heading with its
-content to clear the finding — for a gap, decision, ADR or contract an empty
-required section is itself an error — or keep a removal with
+content to clear the finding — for a gap, decision, ADR or contract that is not
+terminal, an empty required section is itself an error — or keep a removal with
 `aiwf acknowledge illegal <sha> --reason "..."`, adding `--for-entity <id>` when
-that commit carries no aiwf trailers. The check runs only when the branch has an
-upstream or `--since <ref>` is passed.
+the same commit is also reported by `provenance-untrailered-entity-commit`. The
+check runs only when the branch has an upstream or `--since <ref>` is passed, and
+the pre-push hook runs it on the branch checked out where the push is made.
 
 ## Decisions made during implementation
 
@@ -230,12 +231,12 @@ upstream or `--since <ref>` is passed.
 ## Validation
 
 Measured 2026-09-16 in the devcontainer (linux/amd64, go1.25.11, git 2.54.0), on
-the milestone branch at `27152d6e8`, whose last build input is `4189e0c7e`. The
+the milestone branch at `4657f985c`, whose last build input is `c97776bd4`. The
 binary was built from that commit.
 
 | Command | Expected | Observed |
 |---|---|---|
-| `AIWF_COVERAGE_BASE=09d2058cc make ci` | exit 0 | exit 0 — vet, lint clean, `go test -race` across 71 packages, the diff-scoped gates over `09d2058cc`, self-check |
+| `AIWF_COVERAGE_BASE=09d2058cc make ci` | exit 0 | exit 0 — vet, lint clean, `go test -race` across every package, the diff-scoped gates over `09d2058cc`, self-check |
 | `aiwf check --since 09d2058cc`, which runs the gate over this milestone's own range | 0 errors, no finding from this rule | 0 errors, 18 warnings, none from this rule |
 | scratch repo in the wrap ritual's shape: a milestone branch drops a section in a commit carrying the ritual's trailers, merged `--no-ff` into an epic branch with an upstream; `aiwf check` | one `entity-body-section-dropped` naming the milestone-branch commit, exit 1 | exactly that, naming the drop rather than the merge |
 | scratch repo: a branch with an upstream merges a `main` on which another commit dropped a section; `aiwf check`, then again with `origin/main` moved back to where the section existed | exit 0, then exit 1 | exit 0, then exit 1 naming the trunk commit |
@@ -245,17 +246,18 @@ binary was built from that commit.
 A manual mutation probe ran against this walker, since no mutation tool is wired
 for a local diff, restoring the file byte-identical after each mutant. It ran in a
 worktree at `2335b86dc` with the walker and its test applied; the merge of `main`
-since then adds no test that reads the walker. Of twenty-four mutants run against
-the tests in `internal/check`, `internal/cli/check` and `internal/policies`, six
+since then adds no test that reads the walker. Of twenty-seven mutants run against
+the tests in `internal/check`, `internal/cli/check` and `internal/policies`, five
 survive: the skip for an entity byte-identical at both ends of the range, which is
-equivalent — identical files carry identical sections; three that change only which
-commit is credited or the order findings are reported in — trunk's paths joining an
-entity's path set, the early exit once a revision's sections are read, the sort of
-reported ids; the check that a listed path was added rather than changed, which
-picks the commit a create's starting point is read from; and the fallback to HEAD,
-which no test reaches, as the annotation arguing it unreachable implies. Putting
-message bytes into the record, blinding the read of a create's trailers, dropping
-merge candidacy, or dropping `--no-renames` each fails a test.
+equivalent — identical files carry identical sections; the sort of reported paths,
+which changes output order alone; the range log's topological order, which the
+fixtures cannot tell from clock order because their commits share a clock; and the
+two last-resort lines of the credit, which no history reaches, as the argument
+above them states. Putting message bytes into the record, blinding or not
+memoising the read of a create's trailers, dropping either credit pass, letting a
+prior id's file or another entity's file stand in for the entity's own, linking a
+chain through an unrelated deletion, sharing the section cache across entities,
+dropping merge candidacy, or dropping `--no-renames` each fails a test.
 
 Every AC is `met` with `tdd_phase: done`. AC-1's seam test, built on the ritual's
 merge shape, fails against a gate that reads only the first-parent line.
@@ -266,6 +268,9 @@ merge shape, fails against a gate that reads only the first-parent line.
   a pull request merged on the server can carry content nothing compared.
 - G-0684 — a path git quotes is invisible to the gate at both ends of the range,
   so an entity at such a path is judged by nothing.
+- G-0685 — the pre-push hook runs the check on the branch checked out, not on the
+  refs being pushed, so a push made from another branch's checkout is judged by
+  nothing.
 
 ## Reviewer notes
 
@@ -279,10 +284,18 @@ merge shape, fails against a gate that reads only the first-parent line.
   one follows that shape.
 - Declined: collapsing `sortedIDs` into an iterator one-liner; eight plain lines
   read better than the chain that replaces them.
-- Limit left in place: the commit a finding names is best-effort (ADR-0049). That
-  is why the credit-only mutants in `## Validation` survive, and why an
-  acknowledgment keyed to that commit can be re-raised when a later merge is
-  credited instead; acknowledging the commit newly named clears it.
+- Limit left in place: the commit a finding names is best-effort (ADR-0049). An
+  acknowledgment keyed to it can be re-raised when a later merge is credited
+  instead; acknowledging the commit newly named clears it, and no acknowledgment
+  moves the commit a finding names.
+- Limit left in place: an acknowledgment exempts every section this rule reports
+  on that commit, whichever entity `--for-entity` binds it to; it is a record
+  about the commit (ADR-0049).
+- Limit left in place: the `aiwf acknowledge illegal --help` row and the
+  `aiwf check --since` help sentence that name this gate are held by no test.
+- Declined: a report that `aiwf reallocate <path>` is refused while trunk holds
+  the duplicate id. Measured on a branch that had not merged trunk, the verb
+  renumbers the branch's file at exit 0 with the trunk-collision finding standing.
 - Limit left in place: the AC-5 test depends on at least one shipped template
   carrying a section beyond its declared set. The demand is named in the test's
   header and retires with the test.
