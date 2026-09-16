@@ -82,8 +82,8 @@ did not create, and the three verbs above are where that would bite first.
 `aiwf check` reports the same findings on this tree before and after the gate
 lands.
 
-The rule does not join `check.Run`; it runs only on the push, over a commit
-range. No existing entity gains a finding, which is what keeps the tree's
+The rule does not join `check.Run`; it runs wherever `aiwf check` resolves a
+commit range — the pre-push hook, or `--since`. No existing entity gains a finding, which is what keeps the tree's
 accumulated omissions out of scope by construction rather than by a
 grandfather list.
 
@@ -126,23 +126,25 @@ required.
   reads "leaves required section … out of" to be true of both. A new code owes a
   row in the shipped `aiwf-check` findings table, which the discoverability
   policy enforces.
-- The gate judges every entity that differs between base and HEAD, by id, rather
-  than only the entities git lists a write for: a merge can adopt one parent's
-  copy of a file wholesale, and git lists no write for it. Reading
-  along the first-parent line commit by commit cannot see a drop merged in with
-  `--no-ff`, loses one a later rename carries, and refuses a push whose section
-  came and went.
+- The gate judges every entity that differs between its starting point and HEAD,
+  by id, rather than only the entities git lists a write for: a merge can adopt
+  one parent's copy of a file wholesale, and git lists no write for it. The
+  starting point is where the branch left its base — judging against the base's
+  current tip charges the pusher for whatever moved there after the fork.
 - A reported section is credited by comparing a commit with its own parents: the
   newest commit whose version lacks it while every parent carried it, then a
-  merge that adopted a copy lacking it, then HEAD, so a finding always names a
-  commit `aiwf acknowledge illegal <sha>` can exempt. Comparing each write with
-  the previous one in log order instead names a clean merge whenever both sides
-  edited the file.
+  merge that adopted a copy lacking it, so a finding names a commit
+  `aiwf acknowledge illegal <sha>` can exempt. Comparing each write with the
+  previous one in log order instead names a clean merge whenever both sides
+  edited the file. ADR-0049 records where the named commit can still be the
+  wrong one.
 - Two exemptions keep the gate off debt the pushing author did not create: a
-  section the entity already lacks on the configured trunk, and a create by
-  `aiwf import` or a forced `aiwf add`, which starts from the body it wrote. An
-  `aiwf add` trailer without `aiwf-force` is not trusted, because that verb
-  refuses to write an incomplete body unforced.
+  section the entity already lacks on the configured trunk under its own id, and
+  a create by `aiwf import` or a forced `aiwf add`, which starts from the body it
+  wrote. An `aiwf add` trailer without `aiwf-force` is not trusted, because that
+  verb refuses to write an incomplete body unforced. Trunk is matched by the
+  entity's own id alone, so an unrelated entity holding a prior id after a
+  collision exempts nothing.
 - G-0571's inherited obligation — fold the `milestone-done-empty-release-note`
   rule into the general mechanism, or record why it stays separate — is
   discharged as the second, in that rule's own doc comment.
@@ -161,6 +163,9 @@ required.
 - `internal/check/hint.go`, the `aiwf-check` skill's findings table, and
   `aiwf acknowledge illegal --help` — the remedy and the escape
 - `internal/check/milestone_release_note.go` — why that rule stays separate
+- `docs/design/legal-workflows-first-principles.md` and
+  `docs/design/legal-workflows-audit.md` — the rule rosters that named only the
+  two write seams
 - `docs/design/design-decisions.md`, the `aiwf-add` skill, `aiwf add --force` help
   and the self-check's fixture comment — each said no rule reports an absent
   section
@@ -168,8 +173,8 @@ required.
 
 ## Out of scope
 
-- The existing violations. Both seams read only bytes being written, so a body
-  already committed is never in scope. Paying that debt is a migration with its
+- The existing violations. Each seam judges only what a write or a push changes,
+  so a body committed before the pushed range is never in scope. Paying that debt is a migration with its
   own evidence.
 - Emptiness. Whether a section that is present carries content is ADR-0042's
   subject and E-0083's work.
@@ -207,7 +212,8 @@ catches edits that never passed through `aiwf edit-body`, including a plain
 `git commit` carrying aiwf trailers, and it judges the whole push: a section
 removed on a branch merged in, or in a file a later commit renamed or reallocated,
 is reported, and one added and removed again within the push is not. A section
-already missing before the push, or already missing on trunk, is never reported.
+already missing where the branch left its base, or already missing on trunk, is
+never reported.
 An entity the push creates must carry every required section unless
 `aiwf import` or `aiwf add --force` created it. Restore the heading with its
 content to clear the finding — for a gap, decision, ADR or contract an empty
@@ -219,12 +225,12 @@ upstream or `--since <ref>` is passed.
 ## Decisions made during implementation
 
 - ADR-0049 — the push seam holds each entity to its starting point rather than
-  to the whole set; it supersedes ADR-0048 on that seam and replaces D-0092.
+  to the whole set; it supersedes ADR-0048 and replaces D-0092.
 
 ## Validation
 
-Measured 2026-09-14 in the devcontainer (linux/amd64, go1.25.11, git 2.54.0), on
-the milestone branch with its last build input at `0a98d1ec1`. The binary was
+Measured 2026-09-16 in the devcontainer (linux/amd64, go1.25.11, git 2.54.0), on
+the milestone branch with its last build input at `271183339`. The binary was
 built from that commit.
 
 | Command | Expected | Observed |
@@ -236,19 +242,19 @@ built from that commit.
 | scratch repo: a branch with an upstream merges a `main` on which another commit dropped a section; `aiwf check`, then again with `origin/main` moved back to where the section existed | exit 0, then exit 1 | exit 0, then exit 1 naming the trunk commit |
 | scratch repo: a commit with no aiwf trailers drops a section; `aiwf acknowledge illegal <sha> --for-entity <id> --reason "..."`; `aiwf check --since <base>` | two errors before, exit 0 after | `entity-body-section-dropped` and `provenance-untrailered-entity-commit` before, exit 0 after |
 
-A manual mutation probe ran 17 mutants against the walker and rule, since no
-mutation tool is wired for a local diff, restoring each file byte-identical. All
-but one fail a test. The survivor removes the skip for an entity whose file is
-byte-identical at both ends of the range: identical files carry identical
-sections, so the skip saves reads and changes no answer.
+A manual mutation probe ran against the walker and rule, since no mutation tool
+is wired for a local diff, restoring each file byte-identical. The only mutant
+that survives removes the skip for an entity whose file is byte-identical at both
+ends of the range: identical files carry identical sections, so the skip saves
+reads and changes no answer.
 
 Every AC is `met` with `tdd_phase: done`. AC-1's seam test, built on the ritual's
 merge shape, fails against a gate that reads only the first-parent line.
 
 ## Deferrals
 
-- G-0679 — a branch's first push, and a pull request merged on the server, are
-  judged by nothing.
+- G-0679 — a branch started from a local ref is not judged at its first push, so
+  a pull request merged on the server can carry content nothing compared.
 
 ## Reviewer notes
 
