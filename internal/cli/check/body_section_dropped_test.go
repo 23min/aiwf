@@ -3,7 +3,6 @@ package check
 import (
 	"context"
 	"os"
-	"os/exec"
 	"path/filepath"
 	"strings"
 	"testing"
@@ -122,17 +121,17 @@ func TestRunProvenanceCheck_BodySectionDropped_WrapRitualMergeIsRefused(t *testi
 	if err := gitops.Init(ctx, root); err != nil {
 		t.Fatalf("git init: %v", err)
 	}
-	gitIn(t, remote, "init", "-q", "--bare")
-	gitIn(t, root, "checkout", "-q", "-b", "epic/E-0001-seed")
+	gitRun(t, remote, "init", "-q", "--bare")
+	gitRun(t, root, "checkout", "-q", "-b", "epic/E-0001-seed")
 	writeSpec(t, ctx, root, specComplete, "aiwf add milestone M-0001",
 		[]gitops.Trailer{{Key: gitops.TrailerVerb, Value: "add"}})
-	gitIn(t, root, "remote", "add", "origin", remote)
-	gitIn(t, root, "push", "-q", "-u", "origin", "epic/E-0001-seed")
+	gitRun(t, root, "remote", "add", "origin", remote)
+	gitRun(t, root, "push", "-q", "-u", "origin", "epic/E-0001-seed")
 
-	gitIn(t, root, "checkout", "-q", "-b", "milestone/M-0001-seed")
+	gitRun(t, root, "checkout", "-q", "-b", "milestone/M-0001-seed")
 	drop := writeSpec(t, ctx, root, specDropped, "chore(milestone): wrap M-0001", wrapRitualTrailers())
-	gitIn(t, root, "checkout", "-q", "epic/E-0001-seed")
-	gitIn(t, root, "merge", "-q", "--no-ff", "--no-commit", "milestone/M-0001-seed")
+	gitRun(t, root, "checkout", "-q", "epic/E-0001-seed")
+	gitRun(t, root, "merge", "-q", "--no-ff", "--no-commit", "milestone/M-0001-seed")
 	if err := gitops.Commit(ctx, root, "chore(milestone): wrap M-0001 — Seed", "", wrapRitualTrailers()); err != nil {
 		t.Fatalf("merge commit: %v", err)
 	}
@@ -167,16 +166,6 @@ func TestRunProvenanceCheck_BodySectionDropped_WrapRitualMergeIsRefused(t *testi
 	}
 	if found.Path != specPath {
 		t.Errorf("Path = %q, want %q", found.Path, specPath)
-	}
-}
-
-// gitIn runs git in dir, failing the test on error.
-func gitIn(t *testing.T, dir string, args ...string) {
-	t.Helper()
-	cmd := exec.Command("git", args...)
-	cmd.Dir = dir
-	if out, err := cmd.CombinedOutput(); err != nil {
-		t.Fatalf("git %v: %v\n%s", args, err, out)
 	}
 }
 
