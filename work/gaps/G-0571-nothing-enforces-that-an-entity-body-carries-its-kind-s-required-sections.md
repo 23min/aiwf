@@ -22,7 +22,8 @@ one the committed body carries (ADR-0049). M-0331 closes the push: a push that
 leaves a required section out of a body that carried it, or out of an entity
 created without a verb, is refused there. What no seam covers is the bodies
 already committed without a section, which ADR-0049 leaves unconverged, a branch
-pushed once and merged on the server (G-0679), and `aiwf import`, excluded
+pushed once and merged on the server (G-0679), an entity at a path git quotes
+(G-0684), and `aiwf import`, excluded
 pending G-0667.
 
 ## Why it matters
