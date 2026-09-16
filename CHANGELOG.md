@@ -16,6 +16,16 @@ section in this file.
 
 ## [Unreleased]
 
+### Changed — G-0652: the wrap review asks whether each claim belongs, not only whether it holds
+
+The milestone wrap already sends `## Release note`, `## Validation` and
+`## Deferrals` to the reviewer as claims to check against the tree. The brief now
+also asks whether each claim belongs there, by asking whether a reader who never
+saw the earlier version would need it: an account of how the text was drafted or
+the work was carried out is reported as a finding even when it is true. A release
+note's before-and-after and a measurement record are named as passing that
+question.
+
 ### Fixed — G-0660: the wrap review's compression question settles a removal by probe, not by a green gate
 
 The question told a reviewer to apply a cut, run the gates, and report what broke.
@@ -28,6 +38,7 @@ surviving mutant rather than an all-clear. Where one cut falls under both the
 compression and over-guarding questions, the keep-unless-proven-dead default governs
 it. Each trial now names the command it ran and what that returned, so the next
 reviewer re-runs it instead of re-reasoning it.
+
 ### Changed — D-0094: `## Reviewer notes` carries the review's result, not its rounds
 
 The section was defined as holding "the review's own outcome", which read as licence
