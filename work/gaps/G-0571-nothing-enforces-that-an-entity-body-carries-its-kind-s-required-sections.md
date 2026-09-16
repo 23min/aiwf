@@ -6,10 +6,9 @@ discovered_in: M-0305
 ---
 ## What's missing
 
-No surface enforces that an entity body carries the sections its kind requires.
 `entity-body-empty` reports a section that is present and empty; a heading absent
-outright is skipped by design. The `aiwf add` gate consults the same helper, so it
-inherits the same blind spot.
+outright is skipped by design, and no tree-wide rule reports it. Enforcement of
+membership lives at the seams a body passes, described below.
 
 The scaffold does not cover the hole. For the born-complete kinds — adr, gap,
 decision, contract — `aiwf add` refuses its own scaffold, because every scaffolded
@@ -23,8 +22,8 @@ leaves a required section out of a body that carried it, or out of an entity
 created without a verb, is refused there. What no seam covers is the bodies
 already committed without a section, which ADR-0049 leaves unconverged, a branch
 pushed once and merged on the server (G-0679), an entity at a path git quotes
-(G-0684), and `aiwf import`, excluded
-pending G-0667.
+(G-0684), a push made from another branch's checkout, where the hook judges the
+branch checked out instead (G-0685), and `aiwf import`, excluded pending G-0667.
 
 ## Why it matters
 
