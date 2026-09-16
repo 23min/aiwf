@@ -103,13 +103,18 @@ type treeEntry struct{ path, blob string }
 // Returns nil when base resolves to no commit: the provenance audit reports an
 // unresolvable range itself.
 func WalkDroppedBodySections(ctx context.Context, root, base, trunk string) []DroppedBodySection {
-	resolved, _ := gitLines(ctx, root, "rev-parse", base+"^{commit}", "HEAD^{commit}")
-	if len(resolved) != 2 {
+	// Where the branch left its base, not wherever the base has since reached: an
+	// upstream that moved on after the fork carries changes this push did not
+	// make, and judging against its tip charges them to the pusher. Two histories
+	// with no commit in common give the push no starting point at all.
+	forked, _ := gitLines(ctx, root, "merge-base", base, "HEAD")
+	headRev, _ := gitLines(ctx, root, "rev-parse", "HEAD^{commit}")
+	if len(forked) != 1 || len(headRev) != 1 {
 		return nil
 	}
-	baseSHA, headSHA := resolved[0], resolved[1]
+	baseSHA, headSHA := forked[0], headRev[0]
 	br, err := gitops.NewBlobReader(ctx, root)
-	if err != nil { //coverage:ignore root resolved a commit a moment ago, so it is a repository; NewBlobReader then fails only when git itself cannot start
+	if err != nil { //coverage:ignore callers pass the repository root the check verb resolved, and git just answered two rev queries in it
 		return nil
 	}
 	defer func() { _ = br.Close() }()
@@ -119,13 +124,21 @@ func WalkDroppedBodySections(ctx context.Context, root, base, trunk string) []Dr
 	atHEAD := entitiesAt(ctx, root, headSHA, paths)
 	atTrunk := map[string]treeEntry{}
 	if trunk != "" {
-		atTrunk = entitiesAt(ctx, root, trunk, paths)
+		// Trunk is read for the exemption alone, so its paths stay out of the set
+		// this entity's history is read through: after an id collision, trunk's
+		// file under the same id belongs to a different entity.
+		atTrunk = entitiesAt(ctx, root, trunk, map[string][]string{})
 	}
-	g := &gateReader{br: br, paths: paths, state: map[string]*sectionState{}}
+	g := &gateReader{br: br, paths: paths, state: map[string][]string{}}
 
 	var out []DroppedBodySection
 	for _, id := range sortedIDs(atHEAD) {
 		head := atHEAD[id]
+		// Identical bytes carry identical sections, so the common case — an
+		// entity the push left alone — costs one map lookup and no read.
+		if start, unchanged := atBase[id]; unchanged && start.blob == head.blob {
+			continue
+		}
 		raw, headBody, ok := entityBodyAt(br, headSHA, head.path)
 		if !ok {
 			continue
@@ -133,11 +146,10 @@ func WalkDroppedBodySections(ctx context.Context, root, base, trunk string) []Dr
 		ids := lineage(id, head.path, raw)
 		kind, _ := entity.PathKind(head.path)
 		start, atStart := firstOf(atBase, ids)
-		if atStart && start.blob == head.blob {
-			continue
-		}
 		exempt := startingOmissions(br, kind, baseSHA, start, atStart, ids, commits)
-		if t, onTrunk := firstOf(atTrunk, ids); onTrunk {
+		// Trunk exempts only what this entity lacks there, under its own id: an
+		// unrelated entity holding a prior id after a collision is not it.
+		if t, onTrunk := atTrunk[id]; onTrunk {
 			if _, body, ok := entityBodyAt(br, trunk, t.path); ok {
 				exempt = append(exempt, AbsentRequiredSections(kind, body)...)
 			}
@@ -190,38 +202,32 @@ func creatingCommit(ids []string, commits []rangeCommit) (rangeCommit, string, b
 	return rangeCommit{}, "", false
 }
 
-// sectionState is whether an entity exists at a revision, and the required
-// sections it lacks there.
-type sectionState struct {
-	exists bool
-	absent []string
-}
-
-// gateReader reads an entity's state at any revision in the range, trying every
-// path its ids have held, and remembers what it read.
+// gateReader reads which required sections an entity lacks at a revision,
+// trying every path its ids have held, and remembers what it read. A revision
+// holding no such entity lacks nothing — there is no body there for a section to
+// be missing from — which is what makes a create's parent count as carrying.
 type gateReader struct {
 	br    *gitops.BlobReader
 	paths map[string][]string
-	state map[string]*sectionState
+	state map[string][]string
 }
 
-func (g *gateReader) at(rev string, ids []string, kind entity.Kind) *sectionState {
+func (g *gateReader) absentAt(rev string, ids []string, kind entity.Kind) []string {
 	key := rev + "\x00" + strings.Join(ids, ",")
-	if st, ok := g.state[key]; ok {
-		return st
+	if absent, ok := g.state[key]; ok {
+		return absent
 	}
-	st := &sectionState{}
+	var absent []string
 	for _, id := range ids {
 		for _, path := range g.paths[id] {
 			if _, body, ok := entityBodyAt(g.br, rev, path); ok {
-				st = &sectionState{exists: true, absent: AbsentRequiredSections(kind, body)}
-				g.state[key] = st
-				return st
+				absent = AbsentRequiredSections(kind, body)
+				break
 			}
 		}
 	}
-	g.state[key] = st
-	return st
+	g.state[key] = absent
+	return absent
 }
 
 // removalOf returns the commit that left section out of the entity. It prefers
@@ -230,9 +236,8 @@ func (g *gateReader) at(rev string, ids []string, kind entity.Kind) *sectionStat
 // that lacks it has one parent that carried it, and is credited when no true
 // removal exists. HEAD is the last resort, so a finding always names a commit.
 func (g *gateReader) removalOf(ids []string, kind entity.Kind, section string, commits []rangeCommit, headSHA string) string {
-	lacks := func(rev string) (exists, lacking bool) {
-		st := g.at(rev, ids, kind)
-		return st.exists, st.exists && slices.Contains(st.absent, section)
+	lacks := func(rev string) bool {
+		return slices.Contains(g.absentAt(rev, ids, kind), section)
 	}
 	var candidates []rangeCommit
 	for _, c := range commits {
@@ -242,12 +247,12 @@ func (g *gateReader) removalOf(ids []string, kind entity.Kind, section string, c
 	}
 	for _, every := range []bool{true, false} {
 		for _, c := range candidates {
-			if _, lacking := lacks(c.sha); !lacking {
+			if !lacks(c.sha) {
 				continue
 			}
 			carried := 0
 			for _, p := range c.parents {
-				if exists, lacking := lacks(p); !exists || !lacking {
+				if !lacks(p) {
 					carried++
 				}
 			}
@@ -256,7 +261,7 @@ func (g *gateReader) removalOf(ids []string, kind entity.Kind, section string, c
 			}
 		}
 	}
-	return headSHA
+	return headSHA //coverage:ignore the base is where this branch forked, so the entity carried the section there and lacks it at HEAD; some commit in between is the first not to carry it, and a commit that changes a file either lists it or is a merge, so a pass above finds one
 }
 
 // rangeHistory reads base..HEAD newest-first and returns its commits, plus every

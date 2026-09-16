@@ -55,7 +55,7 @@ var releaseNoteSectionSlug = entity.SectionSlug(ReleaseNoteSectionHeading)
 // declared set and putting it there is a different decision from enforcing the
 // set; this rule is tree-wide and conditional on status, where the membership
 // gate is scoped to a commit range and reads status not at all; and it reports
-// absence and emptiness as one finding, which the two membership rules keep
+// absence and emptiness as one finding, where membership and emptiness are kept
 // apart because their remedies are mutually escaping.
 func milestoneDoneEmptyReleaseNote(t *tree.Tree) []Finding {
 	var findings []Finding

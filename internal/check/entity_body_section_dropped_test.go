@@ -322,10 +322,10 @@ func TestWalkDroppedBodySections(t *testing.T) {
 		assertDropped(t, nil, walkFrom(t, f, base))
 	})
 
-	// An entity the base's line deleted and the pushed branch still carries comes
-	// back with no commit in the push creating it. It starts from nothing, and
-	// with no commit in the range having written it the finding names HEAD.
-	t.Run("holds an entity the push brings back to the whole set, naming HEAD", func(t *testing.T) {
+	// The push is judged from where the branch left its base, so an entity the
+	// base's line deleted afterwards is compared against the body the branch
+	// forked from, and an omission it already had is not the pusher's.
+	t.Run("does not report an entity the base's line deleted after the fork", func(t *testing.T) {
 		t.Parallel()
 		f := newWalkerFixture(t)
 		f.put(gapPath, partial, "an entity already missing a section")
@@ -334,8 +334,91 @@ func TestWalkDroppedBodySections(t *testing.T) {
 		f.commit("delete it on the base's line")
 		base := f.head()
 		f.run("git", "checkout", "-q", "keep")
-		head := f.put("work/gaps/G-0002-other.md", gapFile("G-0002", "", whatsMissing, whyItMatters), "unrelated work")
-		assertDropped(t, []DroppedBodySection{{SHA: head, Path: gapPath, EntityID: "G-0001", Section: whyItMatters}}, walkFrom(t, f, base))
+		f.put("work/gaps/G-0002-other.md", gapFile("G-0002", "", whatsMissing, whyItMatters), "unrelated work")
+		assertDropped(t, nil, walkFrom(t, f, base))
+	})
+
+	// A branch tracking a moving upstream is judged from where it forked, not from
+	// wherever the upstream has since reached: a section filled in there afterwards
+	// was never this branch's to lose.
+	t.Run("does not report a section the upstream gained after the fork", func(t *testing.T) {
+		t.Parallel()
+		f := newWalkerFixture(t)
+		f.put(gapPath, partial, "an entity missing a section")
+		f.run("git", "branch", "feature")
+		upstream := f.put(gapPath, full, "someone fills the section in on the upstream")
+		f.run("git", "checkout", "-q", "feature")
+		f.put("work/gaps/G-0002-other.md", gapFile("G-0002", "", whatsMissing, whyItMatters), "unrelated work")
+		assertDropped(t, nil, walkFrom(t, f, upstream))
+	})
+
+	// Two histories with no commit in common give the push no starting point.
+	t.Run("returns nothing when the base shares no history with HEAD", func(t *testing.T) {
+		t.Parallel()
+		f := newWalkerFixture(t)
+		f.put(gapPath, full, "seed")
+		base := f.head()
+		f.run("git", "checkout", "-q", "--orphan", "unrelated")
+		f.run("git", "rm", "-rqf", ".")
+		f.put(gapPath, partial, "an unrelated history")
+		assertDropped(t, nil, walkFrom(t, f, base))
+	})
+
+	// Trunk exempts only what the entity itself lacks there. An unrelated entity
+	// that kept the id through a collision is not this one.
+	t.Run("does not borrow omissions from another entity holding its prior id on trunk", func(t *testing.T) {
+		t.Parallel()
+		f := newWalkerFixture(t)
+		base := f.head()
+		f.run("git", "branch", "trunk")
+		f.put(gapPath, full, "the branch adds its own G-0001", "aiwf-verb: add", "aiwf-entity: G-0001", "aiwf-actor: human/test")
+		f.run("git", "checkout", "-q", "trunk")
+		f.put("work/gaps/G-0001-other.md", gapFile("G-0001", "", whatsMissing),
+			"trunk force-adds an unrelated G-0001", "aiwf-verb: add", "aiwf-entity: G-0001", "aiwf-actor: human/test", "aiwf-force: x")
+		f.run("git", "checkout", "-q", "main")
+		f.run("git", "merge", "-q", "--no-ff", "--no-edit", "trunk")
+		const reallocated = "work/gaps/G-0002-fixture.md"
+		f.run("git", "mv", gapPath, reallocated)
+		f.writeFile(reallocated, gapFile("G-0002", "prior_ids:\n    - G-0001\n", whatsMissing, whyItMatters))
+		f.commit("aiwf reallocate G-0001 -> G-0002", "aiwf-verb: reallocate", "aiwf-entity: G-0002", "aiwf-actor: human/test")
+		f.put(reallocated, gapFile("G-0002", "prior_ids:\n    - G-0001\n", whatsMissing), "hand drop")
+		got := walkWithTrunk(t, f, base, "trunk")
+		// Which commit is credited is not pinned here: two entities hold the id
+		// across this history, so reading the prior id back through the range can
+		// reach the other one's commits. The report itself is what matters, and
+		// the commit it names is one an acknowledgment can reach.
+		if len(got) != 1 || got[0].EntityID != "G-0002" || got[0].Section != whyItMatters || got[0].SHA == "" {
+			t.Errorf("want one G-0002 %q finding naming some commit, got %+v", whyItMatters, got)
+		}
+	})
+
+	// A file at an entity path on trunk that carries no frontmatter is not an
+	// entity there, and exempts nothing.
+	t.Run("ignores a trunk file that carries no entity frontmatter", func(t *testing.T) {
+		t.Parallel()
+		f := newWalkerFixture(t)
+		f.put(gapPath, "## What's missing\n\nnot an entity\n", "a file that is not an entity")
+		f.run("git", "branch", "trunk")
+		f.put(gapPath, full, "make it an entity", "aiwf-verb: add", "aiwf-entity: G-0001", "aiwf-actor: human/test")
+		base := f.head()
+		drop := f.put(gapPath, partial, "drop a section", wrapTrailers...)
+		assertDropped(t, []DroppedBodySection{{SHA: drop, Path: gapPath, EntityID: "G-0001", Section: whyItMatters}}, walkWithTrunk(t, f, base, "trunk"))
+	})
+
+	// A merge that writes a new entity in its own resolution lists no commit that
+	// added it, so the push has no verb-written body to start from and the entity
+	// is held to the whole set.
+	t.Run("holds an entity a merge itself created to the whole set", func(t *testing.T) {
+		t.Parallel()
+		f := newWalkerFixture(t)
+		f.put("work/gaps/G-0002-other.md", gapFile("G-0002", "", whatsMissing, whyItMatters), "seed")
+		base := f.head()
+		f.run("git", "checkout", "-q", "-b", "side")
+		f.put("work/gaps/G-0003-side.md", gapFile("G-0003", "", whatsMissing, whyItMatters), "side work")
+		f.run("git", "checkout", "-q", "main")
+		f.run("git", "merge", "-q", "--no-ff", "--no-commit", "side")
+		merge := f.put(gapPath, partial, "merge, and write a new gap in the same commit")
+		assertDropped(t, []DroppedBodySection{{SHA: merge, Path: gapPath, EntityID: "G-0001", Section: whyItMatters}}, walkFrom(t, f, base))
 	})
 
 	// An entity gone at HEAD has no body the push publishes.

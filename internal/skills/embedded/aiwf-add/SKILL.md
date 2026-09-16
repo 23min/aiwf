@@ -113,7 +113,7 @@ $ aiwf add epic --title "Caching" --body-file goal-and-scope-only.md
 aiwf add: E-NNNN: body omits required section(s) `## Out of scope` — add the heading with real prose under it, or --force --reason "..." to create anyway
 ```
 
-`aiwf check`'s `entity-body-empty` rule is the backstop for a section that is **present and empty** — in a hand-authored file, or in one forced past this gate. For these four kinds it always fires at **error** severity, independent of `aiwf.yaml: tdd.strict`, so a hollow gap/decision/adr/contract that slips past the verb still blocks the pre-push hook. A section that is **absent** is caught at the push instead: `entity-body-section-dropped` reports a pushed commit that removes one, or that creates an entity without `aiwf add` and leaves one out.
+`aiwf check`'s `entity-body-empty` rule is the backstop for a section that is **present and empty** — in a hand-authored file, or in one forced past this gate. For these four kinds it always fires at **error** severity, independent of `aiwf.yaml: tdd.strict`, so a hollow gap/decision/adr/contract that slips past the verb still blocks the pre-push hook. A section that is **absent** is caught at the push instead: `entity-body-section-dropped` reports a pushed commit that removes one, or that creates an entity by hand and leaves one out.
 
 ## Allocating ids across branches and clones
 
