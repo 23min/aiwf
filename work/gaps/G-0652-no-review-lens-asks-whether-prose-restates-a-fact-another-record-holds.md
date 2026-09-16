@@ -1,6 +1,6 @@
 ---
 id: G-0652
-title: Every review lens asks what prose is missing; none asks what is surplus
+title: No review lens asks whether prose restates a fact another record holds
 status: open
 ---
 ## What's missing
