@@ -79,8 +79,8 @@ did not create, and the three verbs above are where that would bite first.
 
 ### AC-3 — The new rule leaves aiwf check's tree-wide output unchanged
 
-`aiwf check` reports the same findings on this tree before and after the gate
-lands.
+`aiwf check`'s tree-wide pass reports the same findings on this tree before and
+after the gate lands.
 
 The rule does not join `check.Run`; it runs wherever `aiwf check` resolves a
 commit range — the pre-push hook, or `--since`. No existing entity gains a finding, which is what keeps the tree's
@@ -230,7 +230,7 @@ upstream or `--since <ref>` is passed.
 ## Validation
 
 Measured 2026-09-16 in the devcontainer (linux/amd64, go1.25.11, git 2.54.0), on
-the milestone branch with its last build input at `271183339`. The binary was
+the milestone branch with its last build input at `45b11a9fd`. The binary was
 built from that commit.
 
 | Command | Expected | Observed |
@@ -242,11 +242,18 @@ built from that commit.
 | scratch repo: a branch with an upstream merges a `main` on which another commit dropped a section; `aiwf check`, then again with `origin/main` moved back to where the section existed | exit 0, then exit 1 | exit 0, then exit 1 naming the trunk commit |
 | scratch repo: a commit with no aiwf trailers drops a section; `aiwf acknowledge illegal <sha> --for-entity <id> --reason "..."`; `aiwf check --since <base>` | two errors before, exit 0 after | `entity-body-section-dropped` and `provenance-untrailered-entity-commit` before, exit 0 after |
 
-A manual mutation probe ran against the walker and rule, since no mutation tool
-is wired for a local diff, restoring each file byte-identical. The only mutant
-that survives removes the skip for an entity whose file is byte-identical at both
-ends of the range: identical files carry identical sections, so the skip saves
-reads and changes no answer.
+A manual mutation probe ran against the walker, since no mutation tool is wired
+for a local diff, restoring the file byte-identical after each mutant. Of
+twenty-three mutants run against the tests in `internal/check`,
+`internal/cli/check` and `internal/policies`, five survive: the skip for an
+entity byte-identical at both ends of the range, which is equivalent — identical
+files carry identical sections; three that change only which commit is credited
+or the order findings are reported in — trunk's paths joining an entity's path
+set, the early exit once a revision's sections are read, the sort of reported
+ids; and the check that a listed path was added rather than changed, which picks
+the commit a create's starting point is read from. Dropping the record-length
+guard, merge candidacy, `--no-renames`, or the fallback's commit each fails a
+test.
 
 Every AC is `met` with `tdd_phase: done`. AC-1's seam test, built on the ritual's
 merge shape, fails against a gate that reads only the first-parent line.
@@ -255,7 +262,25 @@ merge shape, fails against a gate that reads only the first-parent line.
 
 - G-0679 — a branch started from a local ref is not judged at its first push, so
   a pull request merged on the server can carry content nothing compared.
+- G-0684 — a path git quotes is invisible to the gate at both ends of the range,
+  so an entity at such a path is judged by nothing.
 
 ## Reviewer notes
 
-- (none)
+- The gate's design was kept by both lenses of the deciding review; every
+  finding was fixed inside the milestone or is recorded here.
+- Declined: restating ADR-0049's Decision as the one rule the code implements
+  rather than one bullet per seam. An operator meets the seams one at a time,
+  and the bullets are what they look up.
+- Declined: routing the walker's git calls through a shared runner.
+  `internal/check` has none — each walker there shells out for itself — and this
+  one follows that shape.
+- Declined: collapsing `sortedIDs` into an iterator one-liner; eight lines do not
+  buy a post-review touch to a reviewed file.
+- Limit left in place: the commit a finding names is best-effort (ADR-0049). That
+  is why four of the walker mutants in `## Validation` survive, and why an
+  acknowledgment keyed to that commit can be re-raised when a later merge is
+  credited instead; acknowledging again clears it.
+- Limit left in place: the AC-5 test depends on at least one shipped template
+  carrying a section beyond its declared set. The demand is named in the test's
+  header and retires with the test.
