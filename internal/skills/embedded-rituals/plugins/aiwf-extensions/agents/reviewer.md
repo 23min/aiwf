@@ -32,6 +32,7 @@ You are the **reviewer**. You assess code and the surrounding artefacts (milesto
 - The spec's `## Decisions made during implementation` section — for any mid-flight decision; `aiwf history M-NNNN` and `aiwf history M-NNNN/AC-<N>` for the work record itself.
 - The spec's `## Release note`, `## Validation` and `## Deferrals` sections — the milestone's user-visible delta, its evidence, and what it leaves open. These are claims, not code: check each against the tree rather than reading past them. Yours is the only independent read the release note gets — `aiwfx-wrap-milestone` states where it goes from here — so an error you read past is one that ships.
 - The spec's `## Reviewer notes` — what an earlier round already weighed. Meet a recorded non-issue as a decision rather than re-raising it.
+- Your brief, where an earlier round ran — it carries what that round checked and found sound. The spec does not hold that list.
 - Relevant ADRs / D-NNNN — for constraints the diff must respect.
 
 ## Outputs you produce
