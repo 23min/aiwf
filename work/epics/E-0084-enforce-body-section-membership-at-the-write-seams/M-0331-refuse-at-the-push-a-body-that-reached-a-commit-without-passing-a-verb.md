@@ -229,13 +229,9 @@ upstream or `--since <ref>` is passed.
 
 ## Validation
 
-Measured 2026-09-16 in the devcontainer (linux/amd64, go1.25.11, git 2.54.0). The
-first two rows ran on the milestone branch at `471b86505`, which merges `main` into
-it. The scratch-repo rows and the mutation probe below were measured with the last
-build input at `45b11a9fd`. Nothing under `internal/check`, `internal/cli`,
-`internal/entity` or `internal/gitops` differs between the two, so the gate they
-exercised is the gate at `471b86505`: `git diff --name-only 45b11a9fd 471b86505 --
-internal/check internal/cli internal/entity internal/gitops` prints nothing.
+Measured 2026-09-16 in the devcontainer (linux/amd64, go1.25.11, git 2.54.0), on
+the milestone branch at `27152d6e8`, whose last build input is `4189e0c7e`. The
+binary was built from that commit.
 
 | Command | Expected | Observed |
 |---|---|---|
@@ -244,19 +240,22 @@ internal/check internal/cli internal/entity internal/gitops` prints nothing.
 | scratch repo in the wrap ritual's shape: a milestone branch drops a section in a commit carrying the ritual's trailers, merged `--no-ff` into an epic branch with an upstream; `aiwf check` | one `entity-body-section-dropped` naming the milestone-branch commit, exit 1 | exactly that, naming the drop rather than the merge |
 | scratch repo: a branch with an upstream merges a `main` on which another commit dropped a section; `aiwf check`, then again with `origin/main` moved back to where the section existed | exit 0, then exit 1 | exit 0, then exit 1 naming the trunk commit |
 | scratch repo: a commit with no aiwf trailers drops a section; `aiwf acknowledge illegal <sha> --for-entity <id> --reason "..."`; `aiwf check --since <base>` | two errors before, exit 0 after | `entity-body-section-dropped` and `provenance-untrailered-entity-commit` before, exit 0 after |
+| scratch repo: a commit whose message carries the log's record separator drops a section, and later work follows it; `aiwf check --since <base>`, `aiwf acknowledge illegal` on the commit it names, then `aiwf check --since <base>` again | the drop commit named, then exit 0 | exactly that; with `bd5a1cfee`'s walker the finding names HEAD instead, and moves to each new HEAD an acknowledgment makes |
 
-A manual mutation probe ran against the walker, since no mutation tool is wired
-for a local diff, restoring the file byte-identical after each mutant. Of
-twenty-three mutants run against the tests in `internal/check`,
-`internal/cli/check` and `internal/policies`, five survive: the skip for an
-entity byte-identical at both ends of the range, which is equivalent — identical
-files carry identical sections; three that change only which commit is credited
-or the order findings are reported in — trunk's paths joining an entity's path
-set, the early exit once a revision's sections are read, the sort of reported
-ids; and the check that a listed path was added rather than changed, which picks
-the commit a create's starting point is read from. Dropping the record-length
-guard, merge candidacy, `--no-renames`, or the fallback's commit each fails a
-test.
+A manual mutation probe ran against this walker, since no mutation tool is wired
+for a local diff, restoring the file byte-identical after each mutant. It ran in a
+worktree at `2335b86dc` with the walker and its test applied; the merge of `main`
+since then adds no test that reads the walker. Of twenty-four mutants run against
+the tests in `internal/check`, `internal/cli/check` and `internal/policies`, six
+survive: the skip for an entity byte-identical at both ends of the range, which is
+equivalent — identical files carry identical sections; three that change only which
+commit is credited or the order findings are reported in — trunk's paths joining an
+entity's path set, the early exit once a revision's sections are read, the sort of
+reported ids; the check that a listed path was added rather than changed, which
+picks the commit a create's starting point is read from; and the fallback to HEAD,
+which no test reaches, as the annotation arguing it unreachable implies. Putting
+message bytes into the record, blinding the read of a create's trailers, dropping
+merge candidacy, or dropping `--no-renames` each fails a test.
 
 Every AC is `met` with `tdd_phase: done`. AC-1's seam test, built on the ritual's
 merge shape, fails against a gate that reads only the first-parent line.
@@ -270,20 +269,20 @@ merge shape, fails against a gate that reads only the first-parent line.
 
 ## Reviewer notes
 
-- The gate's design was kept by both lenses of the deciding review; every
-  finding was fixed inside the milestone or is recorded here.
+- Verdict: the gate's design stands as reviewed; what the review declined or
+  left in place is recorded here.
 - Declined: restating ADR-0049's Decision as the one rule the code implements
   rather than one bullet per seam. An operator meets the seams one at a time,
   and the bullets are what they look up.
 - Declined: routing the walker's git calls through a shared runner.
   `internal/check` has none — each walker there shells out for itself — and this
   one follows that shape.
-- Declined: collapsing `sortedIDs` into an iterator one-liner; eight lines do not
-  buy a post-review touch to a reviewed file.
+- Declined: collapsing `sortedIDs` into an iterator one-liner; eight plain lines
+  read better than the chain that replaces them.
 - Limit left in place: the commit a finding names is best-effort (ADR-0049). That
-  is why four of the walker mutants in `## Validation` survive, and why an
+  is why the credit-only mutants in `## Validation` survive, and why an
   acknowledgment keyed to that commit can be re-raised when a later merge is
-  credited instead; acknowledging again clears it.
+  credited instead; acknowledging the commit newly named clears it.
 - Limit left in place: the AC-5 test depends on at least one shipped template
   carrying a section beyond its declared set. The demand is named in the test's
   header and retires with the test.
