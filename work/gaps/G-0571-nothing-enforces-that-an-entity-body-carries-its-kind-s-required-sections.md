@@ -58,6 +58,6 @@ M-0326 ships a standalone `aiwf check` rule reporting a `done` milestone whose
 `## Release note` is absent or empty, rather than making it this machinery's
 first consumer. Enforcing the declared set is the blast radius measured above
 and belongs to this gap, so routing that one rule through it would have pulled
-the cost forward into a milestone about something else. Whoever closes this gap
-folds that rule into the general mechanism or records why it stays separate —
-leaving it unexamined is the outcome the split was chosen to avoid.
+the cost forward into a milestone about something else. The rule stays separate,
+for reasons recorded in its own doc comment
+(`internal/check/milestone_release_note.go`), so the split did not go unexamined.
