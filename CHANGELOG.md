@@ -16,6 +16,18 @@ section in this file.
 
 ## [Unreleased]
 
+### Fixed — G-0660: the wrap review's compression question settles a removal by probe, not by a green gate
+
+The question told a reviewer to apply a cut, run the gates, and report what broke.
+That settles a rewrite and cannot settle a removal: deleting a test leaves a suite
+greener, and removing a guard reds behaviourally only where some test already produces the
+state it caught, so a green run read as a clearance for exactly the cuts that lose working
+code. A removal now routes to `wf-vacuity`'s mutation probe — break what the removed
+thing protected and confirm something else goes red, with nothing red reported as a
+surviving mutant rather than an all-clear. Where one cut falls under both the
+compression and over-guarding questions, the keep-unless-proven-dead default governs
+it. Each trial now names the command it ran and what that returned, so the next
+reviewer re-runs it instead of re-reasoning it.
 ### Changed — D-0094: `## Reviewer notes` carries the review's result, not its rounds
 
 The section was defined as holding "the review's own outcome", which read as licence
