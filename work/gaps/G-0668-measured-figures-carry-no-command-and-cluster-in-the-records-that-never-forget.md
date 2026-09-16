@@ -77,11 +77,9 @@ is absent is the half that makes one checkable.
 The rule that would apply is already shipped, and already read. D-0084 is the
 case in point: an accepted decision carrying four measured figures, not one of
 which names the command behind it, in a document whose own reasoning holds that
-a record is safe in proportion to how hard it resists a false claim. One of the
-four was written into it by the same work that went on to measure this
-phenomenon. So the rule was in force, had been read, and on the last of the
-four to be written the measurement was in hand — and it still did not bind.
-Restating it is the one fix the evidence rules out.
+a record is safe in proportion to how hard it resists a false claim. So the rule
+was in force and had been read, and it still did not bind. Restating it is the
+one fix the evidence rules out.
 
 Related but distinct: G-0659 records the two classes of overturned claim and
 routes the drift class; this is the figure class specifically, which routing does
