@@ -1,6 +1,6 @@
 ---
 id: G-0679
-title: A branch's first push is never judged, and no workflow runs aiwf check
+title: A branch started from a local ref is never judged at its first push
 status: open
 discovered_in: M-0331
 ---
