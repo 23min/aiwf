@@ -229,15 +229,18 @@ upstream or `--since <ref>` is passed.
 
 ## Validation
 
-Measured 2026-09-16 in the devcontainer (linux/amd64, go1.25.11, git 2.54.0), on
-the milestone branch with its last build input at `45b11a9fd`. The binary was
-built from that commit.
+Measured 2026-09-16 in the devcontainer (linux/amd64, go1.25.11, git 2.54.0). The
+first two rows ran on the milestone branch at `471b86505`, which merges `main` into
+it. The scratch-repo rows and the mutation probe below were measured with the last
+build input at `45b11a9fd`. Nothing under `internal/check`, `internal/cli`,
+`internal/entity` or `internal/gitops` differs between the two, so the gate they
+exercised is the gate at `471b86505`: `git diff --name-only 45b11a9fd 471b86505 --
+internal/check internal/cli internal/entity internal/gitops` prints nothing.
 
 | Command | Expected | Observed |
 |---|---|---|
-| `make check-fast` | exit 0 | exit 0 — vet, `go test` across 71 packages, lint clean |
-| `AIWF_COVERAGE_BASE=09d2058cc make coverage-gate` | exit 0 | exit 0 |
-| `aiwf check --since 09d2058cc`, which runs the gate over this milestone's own range | 0 errors, no finding from this rule | 0 errors, 14 warnings, none from this rule |
+| `AIWF_COVERAGE_BASE=09d2058cc make ci` | exit 0 | exit 0 — vet, lint clean, `go test -race` across 71 packages, the diff-scoped gates over `09d2058cc`, self-check |
+| `aiwf check --since 09d2058cc`, which runs the gate over this milestone's own range | 0 errors, no finding from this rule | 0 errors, 18 warnings, none from this rule |
 | scratch repo in the wrap ritual's shape: a milestone branch drops a section in a commit carrying the ritual's trailers, merged `--no-ff` into an epic branch with an upstream; `aiwf check` | one `entity-body-section-dropped` naming the milestone-branch commit, exit 1 | exactly that, naming the drop rather than the merge |
 | scratch repo: a branch with an upstream merges a `main` on which another commit dropped a section; `aiwf check`, then again with `origin/main` moved back to where the section existed | exit 0, then exit 1 | exit 0, then exit 1 naming the trunk commit |
 | scratch repo: a commit with no aiwf trailers drops a section; `aiwf acknowledge illegal <sha> --for-entity <id> --reason "..."`; `aiwf check --since <base>` | two errors before, exit 0 after | `entity-body-section-dropped` and `provenance-untrailered-entity-commit` before, exit 0 after |
