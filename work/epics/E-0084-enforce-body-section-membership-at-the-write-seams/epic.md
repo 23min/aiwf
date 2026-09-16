@@ -131,12 +131,6 @@ Each states the section set, and each is deletable only once a refusal carries i
 - A future body-writing verb that does not call the scan is unenforced at the verb
   seam. The push seam still covers it, so the failure degrades to late feedback rather
   than none.
-- Merging this epic into `main` conflicts in the `aiwf-add` skill at §"What to write
-  per kind", and keeping both sides leaves two false sentences: `main`'s paragraph
-  cites a per-kind table this epic deleted, and this epic's line eleven lines above
-  the conflict promises per-kind content that `main` has since moved into each
-  kind's template. Both sentences should route to the template; neither side's
-  wording survives as written.
 
 ## Milestones
 
