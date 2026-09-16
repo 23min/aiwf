@@ -155,6 +155,9 @@ required.
 ## Surfaces touched
 
 - `internal/check/entity_body_section_dropped.go` — the walker and the rule
+- `internal/verb/import.go` — a per-entity import plan stamps `aiwf-verb: import`,
+  as the single-commit plan does, so the push sees an import in either mode
+- `entity.RequiredSections`'s doc comment — the seams it names
 - `RunProvenanceCheck` in `internal/cli/check/provenance.go` — hands the gate the
   base of the range `ResolveUntrailedRange` resolves
 - `check.AbsentRequiredSections` — the membership scan the verb seams use, called
@@ -180,7 +183,8 @@ required.
   subject and E-0083's work.
 - Changing what any kind's required set contains. That set is E-0081's answer
   and this milestone consumes it.
-- `aiwf import`, which is excluded on its deprecation pending G-0667.
+- `aiwf import` at the write seam, excluded on its deprecation pending G-0667. The
+  push exempts what an import created, in either commit mode.
 
 ## Dependencies
 
@@ -215,7 +219,10 @@ in, or in a file a later commit renamed, archived or reallocated, is reported, a
 one added and removed again within the push is not. A section already missing
 where the branch left its base, or already missing on trunk, is never reported.
 An entity the push creates must carry every required section unless
-`aiwf import` or `aiwf add --force` created it. Restore the heading with its
+`aiwf import` or `aiwf add --force` created it; an import in per-entity commit
+mode now stamps `aiwf-verb: import` on each commit, so `aiwf history` and the
+`aiwf status` digest show those entities as imported rather than added. Restore
+the heading with its
 content to clear the finding — for a gap, decision, ADR or contract that is not
 terminal, an empty required section is itself an error — or keep a removal with
 `aiwf acknowledge illegal <sha> --reason "..."`, adding `--for-entity <id>` when
@@ -231,7 +238,7 @@ the pre-push hook runs it on the branch checked out where the push is made.
 ## Validation
 
 Measured 2026-09-16 in the devcontainer (linux/amd64, go1.25.11, git 2.54.0), on
-the milestone branch at `4657f985c`, whose last build input is `c97776bd4`. The
+the milestone branch at `eed5ceb21`, whose last build input is `3de2153bd`. The
 binary was built from that commit.
 
 | Command | Expected | Observed |
@@ -241,23 +248,24 @@ binary was built from that commit.
 | scratch repo in the wrap ritual's shape: a milestone branch drops a section in a commit carrying the ritual's trailers, merged `--no-ff` into an epic branch with an upstream; `aiwf check` | one `entity-body-section-dropped` naming the milestone-branch commit, exit 1 | exactly that, naming the drop rather than the merge |
 | scratch repo: a branch with an upstream merges a `main` on which another commit dropped a section; `aiwf check`, then again with `origin/main` moved back to where the section existed | exit 0, then exit 1 | exit 0, then exit 1 naming the trunk commit |
 | scratch repo: a commit with no aiwf trailers drops a section; `aiwf acknowledge illegal <sha> --for-entity <id> --reason "..."`; `aiwf check --since <base>` | two errors before, exit 0 after | `entity-body-section-dropped` and `provenance-untrailered-entity-commit` before, exit 0 after |
-| scratch repo: a commit whose message carries the log's record separator drops a section, and later work follows it; `aiwf check --since <base>`, `aiwf acknowledge illegal` on the commit it names, then `aiwf check --since <base>` again | the drop commit named, then exit 0 | exactly that; with `bd5a1cfee`'s walker the finding names HEAD instead, and moves to each new HEAD an acknowledgment makes |
+| scratch repo: a commit whose message carries the log's record separator drops a section, and later work follows it; `aiwf check --since <base>`, `aiwf acknowledge illegal` on the commit it names, then `aiwf check --since <base>` again | the drop commit named, then exit 0 | exactly that |
 
 A manual mutation probe ran against this walker, since no mutation tool is wired
-for a local diff, restoring the file byte-identical after each mutant. It ran in a
-worktree at `2335b86dc` with the walker and its test applied; the merge of `main`
-since then adds no test that reads the walker. Of twenty-seven mutants run against
-the tests in `internal/check`, `internal/cli/check` and `internal/policies`, five
-survive: the skip for an entity byte-identical at both ends of the range, which is
-equivalent — identical files carry identical sections; the sort of reported paths,
-which changes output order alone; the range log's topological order, which the
-fixtures cannot tell from clock order because their commits share a clock; and the
-two last-resort lines of the credit, which no history reaches, as the argument
-above them states. Putting message bytes into the record, blinding or not
-memoising the read of a create's trailers, dropping either credit pass, letting a
-prior id's file or another entity's file stand in for the entity's own, linking a
-chain through an unrelated deletion, sharing the section cache across entities,
-dropping merge candidacy, or dropping `--no-renames` each fails a test.
+for a local diff, restoring the file byte-identical after each mutant, against
+the tests in `internal/check`, `internal/cli/check` and `internal/policies`. The
+mutants that survive: the skip for an entity byte-identical at both ends of the
+range, which is equivalent — identical files carry identical sections; the memo
+of a create commit's trailers, which changes only how often one commit is read;
+the sort of reported paths, which survives a single run and fails under
+repetition, since without it the order is a map's; and the two last-resort lines
+of the credit, which no history reaches, as the argument above them states.
+Every other mutant fails a test: putting message bytes into the record, blinding
+the read of a create's trailers, reading a create's start from the wrong add,
+dropping either credit pass, reading the range in clock order rather than
+topological order, letting a prior id's file or another entity's file stand in
+for the entity's own, linking a chain through an unrelated deletion, sharing the
+section cache across entities, leaving `docs/adr` out of the tree scan, dropping
+merge candidacy, or dropping `--no-renames`.
 
 Every AC is `met` with `tdd_phase: done`. AC-1's seam test, built on the ritual's
 merge shape, fails against a gate that reads only the first-parent line.
@@ -271,6 +279,10 @@ merge shape, fails against a gate that reads only the first-parent line.
 - G-0685 — the pre-push hook runs the check on the branch checked out, not on the
   refs being pushed, so a push made from another branch's checkout is judged by
   nothing.
+- G-0686 — a move the push makes outside one add-and-delete commit reads as a
+  create, and is held to every required section.
+- G-0687 — `aiwf acknowledge illegal --for-entity` refuses a merge commit, so a
+  merge this rule credits that is also reported untrailered has no clearing form.
 
 ## Reviewer notes
 
@@ -282,7 +294,7 @@ merge shape, fails against a gate that reads only the first-parent line.
 - Declined: routing the walker's git calls through a shared runner.
   `internal/check` has none — each walker there shells out for itself — and this
   one follows that shape.
-- Declined: collapsing `sortedIDs` into an iterator one-liner; eight plain lines
+- Declined: collapsing `sortedPaths` into an iterator one-liner; eight plain lines
   read better than the chain that replaces them.
 - Limit left in place: the commit a finding names is best-effort (ADR-0049). An
   acknowledgment keyed to it can be re-raised when a later merge is credited
@@ -291,8 +303,12 @@ merge shape, fails against a gate that reads only the first-parent line.
 - Limit left in place: an acknowledgment exempts every section this rule reports
   on that commit, whichever entity `--for-entity` binds it to; it is a record
   about the commit (ADR-0049).
-- Limit left in place: the `aiwf acknowledge illegal --help` row and the
-  `aiwf check --since` help sentence that name this gate are held by no test.
+- Limit left in place: the `aiwf acknowledge illegal --help` row, the
+  `aiwf check --since` and `aiwf add --force` help sentences, and the two
+  range-skip warnings that name this gate are held by no test.
+- Limit left in place: the gate's base is the range argument the provenance
+  audit resolves, minus its `..HEAD` suffix — the only two shapes that resolver
+  returns; a third shape would need its own base.
 - Declined: a report that `aiwf reallocate <path>` is refused while trunk holds
   the duplicate id. Measured on a branch that had not merged trunk, the verb
   renumbers the branch's file at exit 0 with the trunk-collision finding standing.
