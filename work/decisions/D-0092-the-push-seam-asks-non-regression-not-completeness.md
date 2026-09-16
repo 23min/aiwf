@@ -39,12 +39,11 @@ It also reproduces, one seam later, the cost ADR-0048 measured and rejected at
 the edit seam: refusing an author over an omission they did not introduce. That
 cost is not hypothetical here. Measured 2026-09-14 against the active tree, 55
 live entities omit at least one required section — 109 omissions between them,
-concentrated in 24 decisions and 30 gaps — and every one of those 55 carried a
-body-content change in the preceding 180 days, across 91 commits. Under
-completeness each of those pushes is refused until the author writes a section
-into somebody else's entity. For the born-complete kinds the remedy is not
-"add the heading" either: an empty one is an error-severity `entity-body-empty`,
-so it is "write the section".
+concentrated in 24 decisions and 30 gaps — and 29 of them have had their body
+changed since creation. Under completeness each such push is refused until the
+author writes a section into somebody else's entity. For the born-complete kinds
+the remedy is not "add the heading" either: an empty one is an error-severity
+`entity-body-empty`, so it is "write the section".
 
 Reporting an inherited omission as a warning beside the error for a newly
 dropped one was the remaining alternative. It loses as a second copy of what a
@@ -62,4 +61,5 @@ Nothing converges the bodies already committed without a required section. Every
 seam reads only what is being written, so the debt is permanent rather than
 merely current, and closing it would need a tree-side rule judging against a
 baseline — deliberately not built. ADR-0048's Consequences names this seam as
-what would change that; it does not, and that sentence is corrected to say so.
+what would change that; it does not. ADR-0049 supersedes both records and carries
+this answer forward, with the push judged from where the branch left its base.
