@@ -37,8 +37,9 @@ Each seam holds a body to where it started.
 - `aiwf edit-body` refuses a write that drops a section the committed body
   carries. It has no `--force`; a deliberate removal is recorded with
   `aiwf acknowledge illegal <sha>`.
-- The push compares each entity, by id, at its starting point and at HEAD, and
-  refuses a required section present at the start and absent at HEAD, reported as
+- The push compares each entity file at HEAD with the entity's starting point,
+  following it by path through the moves the push made, and refuses a required
+  section present at the start and absent at HEAD, reported as
   `entity-body-section-dropped` at error severity against the commit that removed
   it. The starting point is where the branch left its base, not wherever the base
   has since reached. An entity present there begins from that body, matched
@@ -46,8 +47,8 @@ Each seam holds a body to where it started.
   the body an `aiwf import` or a forced `aiwf add` commit wrote, and is otherwise
   held to every required section, since an unforced `aiwf add` cannot write an
   incomplete body. A section the entity already lacks on the configured trunk,
-  under its own id, is exempt: trunk lacks it whether or not the push lands, so
-  refusing recovers nothing.
+  at a path carrying its own id, is exempt: trunk lacks it whether or not the
+  push lands, so refusing recovers nothing.
 
 A violation is what ADR-0043 defined and this carries forward: a required section
 not present as a top-level `## ` heading, with sections beyond the set legal and
@@ -72,10 +73,15 @@ joins `check.Run`.
   publishes an older copy anyway. An acknowledgment is keyed to the commit named,
   so a later merge credited instead re-raises the finding, and acknowledging that
   commit clears it; the commit named never moves under an acknowledgment, which
-  is an empty commit. Should naming a commit prove wrong again, the reserved
-  answer is to stop: report the entity and section alone, and let the
-  acknowledgment bind to the entity.
+  is an empty commit. Should naming a commit prove wrong, the reserved answer is
+  to stop: report the entity and section alone, and let the acknowledgment bind
+  to the entity.
 - An acknowledgment exempts every section this rule reports on that commit,
   whichever entity it binds to; it is a record about the commit.
+- The push follows an entity through a move only where one commit adds the new
+  path and deletes the old one carrying the entity's id or a prior id. A move made
+  any other way — split across commits, a hand renumber naming no prior id, or
+  made only in a merge's own resolution — reads as a create and is held to every
+  required section (G-0686).
 - The push judges only ranges the provenance audit resolves, so a branch started
   from a local ref is judged by nothing at its first push (G-0679).
