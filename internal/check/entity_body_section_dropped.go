@@ -75,8 +75,6 @@ func RunEntityBodySectionDropped(dropped []DroppedBodySection, ackedSHAs map[str
 type rangeCommit struct {
 	sha     string
 	parents []string
-	verb    string   // the commit's aiwf-verb trailer, empty when it carries none
-	forced  bool     // the commit carries aiwf-force
 	adds    []string // entity paths the commit added
 	touches []string // canonical ids of the entities the commit wrote
 }
@@ -146,7 +144,7 @@ func WalkDroppedBodySections(ctx context.Context, root, base, trunk string) []Dr
 		ids := lineage(id, head.path, raw)
 		kind, _ := entity.PathKind(head.path)
 		start, atStart := firstOf(atBase, ids)
-		exempt := startingOmissions(br, kind, baseSHA, start, atStart, ids, commits)
+		exempt := startingOmissions(ctx, root, br, kind, baseSHA, start, atStart, ids, commits)
 		// Trunk exempts only what this entity lacks there, under its own id: an
 		// unrelated entity holding a prior id after a collision is not it.
 		if t, onTrunk := atTrunk[id]; onTrunk {
@@ -174,11 +172,14 @@ func WalkDroppedBodySections(ctx context.Context, root, base, trunk string) []Dr
 // base starts from the body its creating commit wrote only when that commit came
 // from a verb that may write an incomplete body; otherwise, including when no
 // commit in the range created it, it starts from nothing.
-func startingOmissions(br *gitops.BlobReader, kind entity.Kind, baseSHA string, start treeEntry, atStart bool, ids []string, commits []rangeCommit) []string {
+func startingOmissions(ctx context.Context, root string, br *gitops.BlobReader, kind entity.Kind, baseSHA string, start treeEntry, atStart bool, ids []string, commits []rangeCommit) []string {
 	rev, path := baseSHA, start.path
 	if !atStart {
 		c, created, found := creatingCommit(ids, commits)
-		if !found || (c.verb != "import" && (c.verb != "add" || !c.forced)) {
+		if !found {
+			return nil
+		}
+		if verb, forced := createVerb(ctx, root, c.sha); verb != "import" && (verb != "add" || !forced) {
 			return nil
 		}
 		rev, path = c.sha, created
@@ -187,6 +188,22 @@ func startingOmissions(br *gitops.BlobReader, kind entity.Kind, baseSHA string, 
 		return AbsentRequiredSections(kind, body)
 	}
 	return nil
+}
+
+// createVerb returns the aiwf-verb trailer a commit carries, and whether it
+// carries aiwf-force. The range log reads no message bytes, so the one commit
+// whose trailers decide anything is read on its own.
+func createVerb(ctx context.Context, root, sha string) (verb string, forced bool) {
+	lines, _ := gitLines(ctx, root, "show", "-s", "--format=%(trailers:only=true,unfold=true)", sha)
+	for _, tr := range gitops.ParseTrailers(strings.Join(lines, "\n")) {
+		switch tr.Key {
+		case gitops.TrailerVerb:
+			verb = strings.TrimSpace(tr.Value)
+		case gitops.TrailerForce:
+			forced = true
+		}
+	}
+	return verb, forced
 }
 
 // creatingCommit returns the oldest commit in the range that added a path of
@@ -267,32 +284,21 @@ func (g *gateReader) removalOf(ids []string, kind entity.Kind, section string, c
 // rangeHistory reads base..HEAD newest-first and returns its commits, plus every
 // path each canonical entity id has held in the range.
 func rangeHistory(ctx context.Context, root, baseSHA string) (commits []rangeCommit, paths map[string][]string) {
+	// The record carries commit ids and the paths written, never message bytes:
+	// a message is arbitrary and can hold any separator, which would split the
+	// record it sits in. The one commit whose trailers matter, the create an
+	// entity starts from, is read on its own.
 	const recSep, fieldSep = "\x1e", "\x1f"
 	lines, ok := gitLines(ctx, root, "log", "--topo-order", "--no-renames", "--name-status",
-		"--format="+recSep+"%H"+fieldSep+"%P"+fieldSep+"%(trailers:only=true,unfold=true)"+fieldSep, baseSHA+"..HEAD")
+		"--format="+recSep+"%H"+fieldSep+"%P"+fieldSep, baseSHA+"..HEAD")
 	paths = map[string][]string{}
 	if !ok { //coverage:ignore base and HEAD both resolved to commits, so the range is always a valid git log argument
 		return nil, paths
 	}
 	for _, rec := range strings.Split(strings.Join(lines, "\n"), recSep)[1:] {
-		fields := strings.SplitN(rec, fieldSep, 4)
-		if len(fields) < 4 {
-			// A commit message is arbitrary bytes and can carry the separators
-			// themselves; a fragment one splits off has too few fields and is
-			// skipped. The entity is still judged from the two trees, so the
-			// finding fires and at most its credit falls back to HEAD.
-			continue
-		}
+		fields := strings.SplitN(rec, fieldSep, 3)
 		c := rangeCommit{sha: strings.TrimSpace(fields[0]), parents: strings.Fields(fields[1])}
-		for _, tr := range gitops.ParseTrailers(fields[2]) {
-			switch tr.Key {
-			case gitops.TrailerVerb:
-				c.verb = strings.TrimSpace(tr.Value)
-			case gitops.TrailerForce:
-				c.forced = true
-			}
-		}
-		for _, line := range strings.Split(fields[3], "\n") {
+		for _, line := range strings.Split(fields[2], "\n") {
 			status, path, _ := strings.Cut(strings.TrimSpace(line), "\t")
 			id, isEntity := entityIDFromPath(path)
 			if !isEntity {

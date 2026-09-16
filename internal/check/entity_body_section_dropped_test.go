@@ -88,21 +88,17 @@ func TestWalkDroppedBodySections(t *testing.T) {
 		assertDropped(t, []DroppedBodySection{{SHA: drop, Path: gapPath, EntityID: "G-0001", Section: whyItMatters}}, walkFrom(t, f, base))
 	})
 
-	// A commit message is arbitrary bytes, so the log read cannot assume its own
-	// separators are absent from one. A record a stray separator splits is
-	// skipped; the entity is still judged from the two trees, so the drop is
-	// reported, credited by the best remaining evidence.
-	t.Run("reports a drop through a commit message carrying the record separator", func(t *testing.T) {
+	// A commit message is arbitrary bytes, and the range log reads none of them:
+	// one carrying the log's own separators neither splits a record nor hides
+	// the commit that dropped the section, so the credit still names it.
+	t.Run("credits a drop whose commit message carries the record separator", func(t *testing.T) {
 		t.Parallel()
 		f := newWalkerFixture(t)
 		f.put(gapPath, full, "seed")
 		base := f.head()
-		f.put(gapPath, partial, "drop", "aiwf-verb: edit-body", "aiwf-force: reason with \x1e inside", "aiwf-entity: G-0001")
+		drop := f.put(gapPath, partial, "drop", "aiwf-verb: edit-body", "aiwf-force: reason with \x1e and \x1f inside", "aiwf-entity: G-0001")
 		f.put("work/gaps/G-0002-later.md", gapFile("G-0002", "", whatsMissing, whyItMatters), "later work, so the drop is not HEAD")
-		got := walkFrom(t, f, base)
-		if len(got) != 1 || got[0].EntityID != "G-0001" || got[0].Path != gapPath || got[0].Section != whyItMatters || got[0].SHA == "" {
-			t.Fatalf("want one finding for G-0001's %q with a commit credited; got %+v", whyItMatters, got)
-		}
+		assertDropped(t, []DroppedBodySection{{SHA: drop, Path: gapPath, EntityID: "G-0001", Section: whyItMatters}}, walkFrom(t, f, base))
 	})
 
 	// An author is never held to an omission the push did not introduce.
