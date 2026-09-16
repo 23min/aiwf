@@ -19,8 +19,7 @@ import (
 
 const (
 	gapPath = "work/gaps/G-0001-fixture.md"
-	// gapRenamed sorts before gapPath, so git lists a rename's added path ahead
-	// of its deleted one and a delete line is the last word on the entity.
+	// gapRenamed is a second path for the same entity, for the rename cases.
 	gapRenamed   = "work/gaps/G-0001-a-renamed.md"
 	whatsMissing = "What's missing"
 	whyItMatters = "Why it matters"
@@ -218,7 +217,7 @@ func TestWalkDroppedBodySections(t *testing.T) {
 		f.put("work/gaps/G-0002-other.md", gapFile("G-0002", "", whatsMissing, whyItMatters), "unrelated work")
 		f.run("git", "merge", "-q", "-s", "ours", "--no-edit", "main")
 		adopted := f.head()
-		f.put("work/gaps/G-0003-later.md", gapFile("G-0003", "", whatsMissing, whyItMatters), "later work, so the merge is not HEAD")
+		f.put(gapPath, strings.Replace(partial, "Prose.", "Later prose.", 1), "later edit keeps the section out")
 		assertDropped(t, []DroppedBodySection{{SHA: adopted, Path: gapPath, EntityID: "G-0001", Section: whyItMatters}}, walkFrom(t, f, base))
 	})
 
@@ -326,6 +325,18 @@ func TestWalkDroppedBodySections(t *testing.T) {
 
 	// `aiwf import` is excluded from the write seams rather than gated, and a
 	// body it wrote is likewise its own starting point.
+	// One import commit can create many entities; its trailers are read once and
+	// answer for every entity it created.
+	t.Run("exempts every entity one aiwf import commit created", func(t *testing.T) {
+		t.Parallel()
+		f := newWalkerFixture(t)
+		base := f.head()
+		f.writeFile(gapPath, partial)
+		f.writeFile("work/gaps/G-0002-other.md", gapFile("G-0002", "", whatsMissing))
+		f.commit("aiwf import manifest", "aiwf-verb: import", "aiwf-actor: human/test")
+		assertDropped(t, nil, walkFrom(t, f, base))
+	})
+
 	t.Run("does not report what an aiwf import create left out", func(t *testing.T) {
 		t.Parallel()
 		f := newWalkerFixture(t)
@@ -400,23 +411,143 @@ func TestWalkDroppedBodySections(t *testing.T) {
 		f.run("git", "branch", "trunk")
 		f.put(gapPath, full, "the branch adds its own G-0001", "aiwf-verb: add", "aiwf-entity: G-0001", "aiwf-actor: human/test")
 		f.run("git", "checkout", "-q", "trunk")
-		f.put("work/gaps/G-0001-other.md", gapFile("G-0001", "", whatsMissing),
-			"trunk force-adds an unrelated G-0001", "aiwf-verb: add", "aiwf-entity: G-0001", "aiwf-actor: human/test", "aiwf-force: x")
+		f.put(gapPath, partial, "trunk force-adds an unrelated G-0001 at the same path",
+			"aiwf-verb: add", "aiwf-entity: G-0001", "aiwf-actor: human/test", "aiwf-force: x")
 		f.run("git", "checkout", "-q", "main")
-		f.run("git", "merge", "-q", "--no-ff", "--no-edit", "trunk")
 		const reallocated = "work/gaps/G-0002-fixture.md"
 		f.run("git", "mv", gapPath, reallocated)
 		f.writeFile(reallocated, gapFile("G-0002", "prior_ids:\n    - G-0001\n", whatsMissing, whyItMatters))
 		f.commit("aiwf reallocate G-0001 -> G-0002", "aiwf-verb: reallocate", "aiwf-entity: G-0002", "aiwf-actor: human/test")
-		f.put(reallocated, gapFile("G-0002", "prior_ids:\n    - G-0001\n", whatsMissing), "hand drop")
-		got := walkWithTrunk(t, f, base, "trunk")
-		// Which commit is credited is not pinned here: two entities hold the id
-		// across this history, so reading the prior id back through the range can
-		// reach the other one's commits. The report itself is what matters, and
-		// the commit it names is one an acknowledgment can reach.
-		if len(got) != 1 || got[0].EntityID != "G-0002" || got[0].Section != whyItMatters || got[0].SHA == "" {
-			t.Errorf("want one G-0002 %q finding naming some commit, got %+v", whyItMatters, got)
+		drop := f.put(reallocated, gapFile("G-0002", "prior_ids:\n    - G-0001\n", whatsMissing), "hand drop")
+		// Trunk holds the entity's old path, but under a prior id it belongs to
+		// whatever entity kept that id there, and what that file lacks is not
+		// this entity's debt.
+		assertDropped(t, []DroppedBodySection{{SHA: drop, Path: reallocated, EntityID: "G-0002", Section: whyItMatters}}, walkWithTrunk(t, f, base, "trunk"))
+	})
+
+	// After a reallocation, another entity can take the old path; at a revision
+	// where both paths exist, the entity is its own file, the first of its chain.
+	t.Run("reads its own file where another entity took its old path", func(t *testing.T) {
+		t.Parallel()
+		f := newWalkerFixture(t)
+		base := f.head()
+		f.run("git", "branch", "trunk")
+		f.put(gapPath, full, "the branch adds its own G-0001", "aiwf-verb: add", "aiwf-entity: G-0001", "aiwf-actor: human/test")
+		const reallocated = "work/gaps/G-0002-fixture.md"
+		f.run("git", "mv", gapPath, reallocated)
+		f.writeFile(reallocated, gapFile("G-0002", "prior_ids:\n    - G-0001\n", whatsMissing, whyItMatters))
+		f.commit("aiwf reallocate G-0001 -> G-0002", "aiwf-verb: reallocate", "aiwf-entity: G-0002", "aiwf-actor: human/test")
+		f.run("git", "checkout", "-q", "trunk")
+		f.put(gapPath, full, "trunk adds a complete G-0001 at the old path", "aiwf-verb: add", "aiwf-entity: G-0001", "aiwf-actor: human/test")
+		f.run("git", "checkout", "-q", "main")
+		f.run("git", "merge", "-q", "--no-ff", "--no-edit", "trunk")
+		drop := f.put(reallocated, gapFile("G-0002", "prior_ids:\n    - G-0001\n", whatsMissing), "hand drop")
+		f.put(reallocated, strings.Replace(gapFile("G-0002", "prior_ids:\n    - G-0001\n", whatsMissing), "Prose.", "Later prose.", 1), "later edit keeps the section out")
+		assertDropped(t, []DroppedBodySection{{SHA: drop, Path: reallocated, EntityID: "G-0002", Section: whyItMatters}}, walkFrom(t, f, base))
+	})
+
+	// A commit that deletes one entity and adds an unrelated one moved nothing:
+	// the new entity's chain does not run through the deleted path.
+	t.Run("does not read a deleted unrelated entity as a new entity's past", func(t *testing.T) {
+		t.Parallel()
+		f := newWalkerFixture(t)
+		f.put("work/gaps/G-0005-old.md", gapFile("G-0005", "", whatsMissing, whyItMatters), "seed")
+		base := f.head()
+		f.run("git", "rm", "-q", "work/gaps/G-0005-old.md")
+		f.put("work/gaps/G-0006-new.md", gapFile("G-0006", "", whatsMissing), "retire one gap, force-add another",
+			"aiwf-verb: add", "aiwf-entity: G-0006", "aiwf-actor: human/test", "aiwf-force: needed now")
+		assertDropped(t, nil, walkFrom(t, f, base))
+	})
+
+	// Two files can hold one id at the start, the state `ids-unique` sends an
+	// operator to `aiwf reallocate` to fix. The file the push wrote is the one
+	// the entity's history is read through, whichever of the two sorts first.
+	t.Run("does not report a reallocation that keeps an entity's own omissions", func(t *testing.T) {
+		t.Parallel()
+		for _, name := range []string{"alpha", "zeta"} {
+			f := newWalkerFixture(t)
+			incomplete := "work/gaps/G-0001-" + name + ".md"
+			f.put(incomplete, gapFile("G-0001", "", whatsMissing), "add "+name,
+				"aiwf-verb: add", "aiwf-entity: G-0001", "aiwf-actor: human/test", "aiwf-force: needed now")
+			f.put("work/gaps/G-0001-beta.md", gapFile("G-0001", "", whatsMissing, whyItMatters), "add beta",
+				"aiwf-verb: add", "aiwf-entity: G-0001", "aiwf-actor: human/test")
+			base := f.head()
+			moved := "work/gaps/G-0002-" + name + ".md"
+			f.run("git", "mv", incomplete, moved)
+			f.writeFile(moved, gapFile("G-0002", "prior_ids:\n    - G-0001\n", whatsMissing))
+			f.commit("aiwf reallocate G-0001 -> G-0002", "aiwf-verb: reallocate", "aiwf-entity: G-0002", "aiwf-actor: human/test")
+			assertDropped(t, nil, walkFrom(t, f, base))
 		}
+	})
+
+	t.Run("reports a drop in a reallocated entity whose prior id another entity still holds", func(t *testing.T) {
+		t.Parallel()
+		f := newWalkerFixture(t)
+		f.put("work/gaps/G-0001-alpha.md", gapFile("G-0001", "", whatsMissing, whyItMatters), "add alpha",
+			"aiwf-verb: add", "aiwf-entity: G-0001", "aiwf-actor: human/test")
+		f.put("work/gaps/G-0001-beta.md", gapFile("G-0001", "", whatsMissing), "add beta",
+			"aiwf-verb: add", "aiwf-entity: G-0001", "aiwf-actor: human/test", "aiwf-force: needed now")
+		base := f.head()
+		const moved = "work/gaps/G-0002-alpha.md"
+		f.run("git", "mv", "work/gaps/G-0001-alpha.md", moved)
+		f.writeFile(moved, gapFile("G-0002", "prior_ids:\n    - G-0001\n", whatsMissing, whyItMatters))
+		f.commit("aiwf reallocate G-0001 -> G-0002", "aiwf-verb: reallocate", "aiwf-entity: G-0002", "aiwf-actor: human/test")
+		drop := f.put(moved, gapFile("G-0002", "prior_ids:\n    - G-0001\n", whatsMissing), "hand drop")
+		f.put("work/gaps/G-0003-later.md", gapFile("G-0003", "", whatsMissing, whyItMatters), "later work, so the drop is not HEAD")
+		assertDropped(t, []DroppedBodySection{{SHA: drop, Path: moved, EntityID: "G-0002", Section: whyItMatters}}, walkFrom(t, f, base))
+	})
+
+	// A file with no frontmatter can share an entity's id at the start; deleting
+	// it changes nothing about the entity.
+	t.Run("does not report the deletion of a stray file sharing an entity's id", func(t *testing.T) {
+		t.Parallel()
+		f := newWalkerFixture(t)
+		f.put("work/gaps/G-0001-a-real.md", gapFile("G-0001", "", whatsMissing), "add real",
+			"aiwf-verb: add", "aiwf-entity: G-0001", "aiwf-actor: human/test", "aiwf-force: needed now")
+		f.put("work/gaps/G-0001-b-stray.md", "## What's missing\n\nscratch notes\n", "stray notes")
+		base := f.head()
+		f.run("git", "rm", "-q", "work/gaps/G-0001-b-stray.md")
+		f.commit("remove stray notes")
+		assertDropped(t, nil, walkFrom(t, f, base))
+	})
+
+	// Two files holding one id at HEAD is `ids-unique`'s finding and blocks the
+	// push on its own; this gate still names a commit that stays put under the
+	// empty commit an acknowledgment adds.
+	t.Run("names a commit an acknowledgment cannot move when two files hold one id at HEAD", func(t *testing.T) {
+		t.Parallel()
+		f := newWalkerFixture(t)
+		f.put("work/gaps/G-0001-a.md", full, "a")
+		f.put("work/gaps/G-0001-b.md", full, "b")
+		base := f.head()
+		f.put("work/gaps/G-0001-b.md", partial, "drop from b")
+		f.put("work/gaps/G-0001-a.md", full+"more\n", "edit a")
+		before := walkFrom(t, f, base)
+		f.run("git", "commit", "-q", "--allow-empty", "-m", "aiwf acknowledge illegal", "-m", "aiwf-verb: acknowledge")
+		assertDropped(t, before, walkFrom(t, f, base))
+		for _, d := range before {
+			if d.SHA == f.head() {
+				t.Errorf("finding names HEAD, which an acknowledgment moves: %+v", d)
+			}
+		}
+	})
+
+	// Each entity's credit is its own: the sections read at a revision are cached
+	// by lineage, never shared across entities.
+	t.Run("credits each of two entities' drops to its own commit", func(t *testing.T) {
+		t.Parallel()
+		f := newWalkerFixture(t)
+		const other = "work/gaps/G-0002-other.md"
+		f.put(gapPath, full, "seed one")
+		f.put(other, gapFile("G-0002", "", whatsMissing, whyItMatters), "seed two")
+		base := f.head()
+		dropOne := f.put(gapPath, partial, "drop one", wrapTrailers...)
+		dropTwo := f.put(other, gapFile("G-0002", "", whatsMissing), "drop two")
+		f.put(other, strings.Replace(gapFile("G-0002", "", whatsMissing), "Prose.", "Later prose.", 1), "later edit keeps two's section out")
+		assertDropped(t, []DroppedBodySection{
+			{SHA: dropOne, Path: gapPath, EntityID: "G-0001", Section: whyItMatters},
+			{SHA: dropTwo, Path: other, EntityID: "G-0002", Section: whyItMatters},
+		}, walkFrom(t, f, base))
 	})
 
 	// A file at an entity path on trunk that carries no frontmatter is not an

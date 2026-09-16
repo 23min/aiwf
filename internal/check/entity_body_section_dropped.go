@@ -25,8 +25,9 @@ import (
 // A finding is a required section the entity carried at its starting point and
 // does not carry at HEAD. An entity present when the pushed range starts starts
 // from that body. One the range creates starts from the body its creating
-// commit wrote when that commit came from `aiwf add` or `aiwf import`, and from
-// nothing otherwise, so a create that passed no verb is held to the whole set.
+// commit wrote when that commit came from `aiwf import` or a forced `aiwf add`,
+// and from nothing otherwise, so a create that passed no verb is held to the
+// whole set.
 var CodeEntityBodySectionDropped = codespkg.Code{
 	ID:    "entity-body-section-dropped",
 	Class: codespkg.ClassStructural,
@@ -76,27 +77,32 @@ type rangeCommit struct {
 	sha     string
 	parents []string
 	adds    []string // entity paths the commit added
-	touches []string // canonical ids of the entities the commit wrote
+	deletes []string // entity paths the commit deleted
+	touches []string // entity paths the commit wrote
 }
 
-// treeEntry is an entity file as a tree holds it.
-type treeEntry struct{ path, blob string }
-
-// WalkDroppedBodySections judges every entity that differs between base and
-// HEAD, by id, and credits each required section it lost to the commit that
-// removed it. trunk, when it names a ref, exempts any section the entity already
-// lacks there: a removal already on trunk is not the pushing author's debt.
+// WalkDroppedBodySections judges every entity file at HEAD that differs from
+// where the entity started, and credits each required section it lost to the
+// commit that removed it. trunk, when it names a ref, exempts any section the
+// entity already lacks there: a removal already on trunk is not the pushing
+// author's debt.
 //
 // Comparing the two ends makes the answer a property of the push rather than of
 // its commits. A drop reaching HEAD through a merge is found, a later rename,
 // archive or reallocation does not carry it away, and a section added and
 // removed again inside the push leaves nothing to report.
 //
-// An entity present at base starts from that body, matched through its prior ids
-// after a reallocation. One the range creates starts from the body its creating
-// commit wrote when that commit came from `aiwf import`, or from `aiwf add` with
-// `aiwf-force` — an unforced `aiwf add` refuses a body missing a section, so an
-// incomplete create claiming it passed no verb — and from nothing otherwise.
+// An entity is followed by path. A retitle, an archive or a reallocation inside
+// the push deletes one entity path and adds another in one commit, and the chain
+// of those moves, read back from the file at HEAD, is where the entity was at
+// every revision. Two files holding one id at once are two entities, judged
+// apart; that state is `ids-unique`'s finding.
+//
+// An entity present at base starts from its body there. One the range creates
+// starts from the body its creating commit wrote when that commit came from
+// `aiwf import`, or from `aiwf add` with `aiwf-force` — an unforced `aiwf add`
+// refuses a body missing a section, so an incomplete create claiming that verb
+// without force did not pass it — and from nothing otherwise.
 //
 // Returns nil when base resolves to no commit: the provenance audit reports an
 // unresolvable range itself.
@@ -117,48 +123,50 @@ func WalkDroppedBodySections(ctx context.Context, root, base, trunk string) []Dr
 	}
 	defer func() { _ = br.Close() }()
 
-	commits, paths := rangeHistory(ctx, root, baseSHA)
-	atBase := entitiesAt(ctx, root, baseSHA, paths)
-	atHEAD := entitiesAt(ctx, root, headSHA, paths)
-	atTrunk := map[string]treeEntry{}
+	commits := rangeHistory(ctx, root, baseSHA)
+	atBase := filesAt(ctx, root, baseSHA)
+	atHEAD := filesAt(ctx, root, headSHA)
+	atTrunk := map[string]string{}
 	if trunk != "" {
-		// Trunk is read for the exemption alone, so its paths stay out of the set
-		// this entity's history is read through: after an id collision, trunk's
-		// file under the same id belongs to a different entity.
-		atTrunk = entitiesAt(ctx, root, trunk, map[string][]string{})
+		atTrunk = filesAt(ctx, root, trunk)
 	}
-	g := &gateReader{br: br, paths: paths, state: map[string][]string{}}
+	g := &gateReader{br: br, state: map[string][]string{}, verbs: map[string]createTrailers{}}
 
 	var out []DroppedBodySection
-	for _, id := range sortedIDs(atHEAD) {
-		head := atHEAD[id]
-		// Identical bytes carry identical sections, so the common case — an
-		// entity the push left alone — costs one map lookup and no read.
-		if start, unchanged := atBase[id]; unchanged && start.blob == head.blob {
-			continue
-		}
-		raw, headBody, ok := entityBodyAt(br, headSHA, head.path)
+	for _, path := range sortedPaths(atHEAD) {
+		raw, headBody, ok := entityBodyAt(br, headSHA, path)
 		if !ok {
 			continue
 		}
-		ids := lineage(id, head.path, raw)
-		kind, _ := entity.PathKind(head.path)
-		start, atStart := firstOf(atBase, ids)
-		exempt := startingOmissions(ctx, root, br, kind, baseSHA, start, atStart, ids, commits)
-		// Trunk exempts only what this entity lacks there, under its own id: an
-		// unrelated entity holding a prior id after a collision is not it.
-		if t, onTrunk := atTrunk[id]; onTrunk {
-			if _, body, ok := entityBodyAt(br, trunk, t.path); ok {
+		id := canonicalIDOf(path)
+		chain := chainOf(path, lineage(id, path, raw), commits)
+		// Identical bytes carry identical sections, so the common case — an
+		// entity the push left alone — costs one map lookup and no read.
+		startPath, atStart := firstIn(atBase, chain)
+		if atStart && atBase[startPath] == atHEAD[path] {
+			continue
+		}
+		kind, _ := entity.PathKind(path)
+		exempt := g.startingOmissions(ctx, root, kind, baseSHA, atStart, chain, commits)
+		// Trunk exempts only what this entity lacks there, under its own id: a
+		// chain path carrying a prior id belongs, on trunk, to whatever entity
+		// kept that id.
+		for _, p := range chain {
+			if _, onTrunk := atTrunk[p]; !onTrunk || canonicalIDOf(p) != id {
+				continue
+			}
+			if _, body, ok := entityBodyAt(br, trunk, p); ok {
 				exempt = append(exempt, AbsentRequiredSections(kind, body)...)
 			}
+			break
 		}
 		for _, section := range AbsentRequiredSections(kind, headBody) {
 			if slices.Contains(exempt, section) {
 				continue
 			}
 			out = append(out, DroppedBodySection{
-				SHA:      g.removalOf(ids, kind, section, commits, headSHA),
-				Path:     head.path,
+				SHA:      g.removalOf(chain, kind, section, commits, headSHA),
+				Path:     path,
 				EntityID: id,
 				Section:  section,
 			})
@@ -167,51 +175,66 @@ func WalkDroppedBodySections(ctx context.Context, root, base, trunk string) []Dr
 	return out
 }
 
+// createTrailers is what a create commit's trailers say about how it was made.
+type createTrailers struct {
+	verb   string // the aiwf-verb value, empty when the commit carries none
+	forced bool   // the commit carries aiwf-force
+}
+
+// gateReader reads entity bodies across revisions for one walk.
+type gateReader struct {
+	br    *gitops.BlobReader
+	state map[string][]string       // absent sections, by revision and chain
+	verbs map[string]createTrailers // a create commit's trailers, by commit
+}
+
 // startingOmissions returns the required sections the entity already lacked at
 // its starting point, which no push is asked to restore. An entity absent at
 // base starts from the body its creating commit wrote only when that commit came
 // from a verb that may write an incomplete body; otherwise, including when no
 // commit in the range created it, it starts from nothing.
-func startingOmissions(ctx context.Context, root string, br *gitops.BlobReader, kind entity.Kind, baseSHA string, start treeEntry, atStart bool, ids []string, commits []rangeCommit) []string {
-	rev, path := baseSHA, start.path
-	if !atStart {
-		c, created, found := creatingCommit(ids, commits)
-		if !found {
-			return nil
-		}
-		if verb, forced := createVerb(ctx, root, c.sha); verb != "import" && (verb != "add" || !forced) {
-			return nil
-		}
-		rev, path = c.sha, created
+func (g *gateReader) startingOmissions(ctx context.Context, root string, kind entity.Kind, baseSHA string, atStart bool, chain []string, commits []rangeCommit) []string {
+	if atStart {
+		return g.absentAt(baseSHA, chain, kind)
 	}
-	if _, body, ok := entityBodyAt(br, rev, path); ok {
-		return AbsentRequiredSections(kind, body)
+	c, created, found := creatingCommit(chain, commits)
+	if !found {
+		return nil
 	}
-	return nil
+	if t := g.createVerb(ctx, root, c.sha); t.verb != "import" && (t.verb != "add" || !t.forced) {
+		return nil
+	}
+	return g.absentAt(c.sha, []string{created}, kind)
 }
 
 // createVerb returns the aiwf-verb trailer a commit carries, and whether it
-// carries aiwf-force. The range log reads no message bytes, so the one commit
-// whose trailers decide anything is read on its own.
-func createVerb(ctx context.Context, root, sha string) (verb string, forced bool) {
+// carries aiwf-force, reading each commit once per walk. The range log reads no
+// message bytes, so the one commit whose trailers decide anything is read on
+// its own.
+func (g *gateReader) createVerb(ctx context.Context, root, sha string) createTrailers {
+	if t, ok := g.verbs[sha]; ok {
+		return t
+	}
+	var t createTrailers
 	lines, _ := gitLines(ctx, root, "show", "-s", "--format=%(trailers:only=true,unfold=true)", sha)
 	for _, tr := range gitops.ParseTrailers(strings.Join(lines, "\n")) {
 		switch tr.Key {
 		case gitops.TrailerVerb:
-			verb = strings.TrimSpace(tr.Value)
+			t.verb = strings.TrimSpace(tr.Value)
 		case gitops.TrailerForce:
-			forced = true
+			t.forced = true
 		}
 	}
-	return verb, forced
+	g.verbs[sha] = t
+	return t
 }
 
 // creatingCommit returns the oldest commit in the range that added a path of
-// any of ids, and that path.
-func creatingCommit(ids []string, commits []rangeCommit) (rangeCommit, string, bool) {
+// the chain, and that path.
+func creatingCommit(chain []string, commits []rangeCommit) (rangeCommit, string, bool) {
 	for i := len(commits) - 1; i >= 0; i-- {
 		for _, path := range commits[i].adds {
-			if id, _ := entityIDFromPath(path); slices.Contains(ids, entity.Canonicalize(id)) {
+			if slices.Contains(chain, path) {
 				return commits[i], path, true
 			}
 		}
@@ -219,28 +242,42 @@ func creatingCommit(ids []string, commits []rangeCommit) (rangeCommit, string, b
 	return rangeCommit{}, "", false
 }
 
-// gateReader reads which required sections an entity lacks at a revision,
-// trying every path its ids have held, and remembers what it read. A revision
-// holding no such entity lacks nothing — there is no body there for a section to
-// be missing from — which is what makes a create's parent count as carrying.
-type gateReader struct {
-	br    *gitops.BlobReader
-	paths map[string][]string
-	state map[string][]string
+// chainOf returns the paths an entity has held across the range, newest first,
+// from its path at HEAD. The commit that added a path and, in the same commit,
+// deleted one carrying an id the entity claims — its own for a retitle or an
+// archive, a prior one for a reallocation — moved the entity, and the deleted
+// path is where it was before. Each step looks only at commits older than the
+// last move, so the walk ends.
+func chainOf(headPath string, ids []string, commits []rangeCommit) []string {
+	chain := []string{headPath}
+	path, from := headPath, 0
+	for {
+		i := slices.IndexFunc(commits[from:], func(c rangeCommit) bool { return slices.Contains(c.adds, path) })
+		if i < 0 {
+			return chain
+		}
+		i += from
+		j := slices.IndexFunc(commits[i].deletes, func(d string) bool { return slices.Contains(ids, canonicalIDOf(d)) })
+		if j < 0 {
+			return chain
+		}
+		path, from = commits[i].deletes[j], i+1
+		chain = append(chain, path)
+	}
 }
 
-func (g *gateReader) absentAt(rev string, ids []string, kind entity.Kind) []string {
-	key := rev + "\x00" + strings.Join(ids, ",")
+// absentAt returns the required sections the entity lacks at rev, read from the
+// first path of its chain that holds an entity body there; nil where none does.
+func (g *gateReader) absentAt(rev string, chain []string, kind entity.Kind) []string {
+	key := rev + "\x00" + strings.Join(chain, "\x00")
 	if absent, ok := g.state[key]; ok {
 		return absent
 	}
 	var absent []string
-	for _, id := range ids {
-		for _, path := range g.paths[id] {
-			if _, body, ok := entityBodyAt(g.br, rev, path); ok {
-				absent = AbsentRequiredSections(kind, body)
-				break
-			}
+	for _, path := range chain {
+		if _, body, ok := entityBodyAt(g.br, rev, path); ok {
+			absent = AbsentRequiredSections(kind, body)
+			break
 		}
 	}
 	g.state[key] = absent
@@ -251,14 +288,16 @@ func (g *gateReader) absentAt(rev string, ids []string, kind entity.Kind) []stri
 // the newest commit whose version lacks it where every parent's version carried
 // it or held no such entity — a true removal. A merge adopting a parent's copy
 // that lacks it has one parent that carried it, and is credited when no true
-// removal exists. HEAD is the last resort, so a finding always names a commit.
-func (g *gateReader) removalOf(ids []string, kind entity.Kind, section string, commits []rangeCommit, headSHA string) string {
+// removal exists. The newest candidate is the last resort: an acknowledgment is
+// an empty commit, never a candidate, so the commit a finding names does not
+// move under one.
+func (g *gateReader) removalOf(chain []string, kind entity.Kind, section string, commits []rangeCommit, headSHA string) string {
 	lacks := func(rev string) bool {
-		return slices.Contains(g.absentAt(rev, ids, kind), section)
+		return slices.Contains(g.absentAt(rev, chain, kind), section)
 	}
 	var candidates []rangeCommit
 	for _, c := range commits {
-		if len(c.parents) > 1 || slices.ContainsFunc(c.touches, func(id string) bool { return slices.Contains(ids, id) }) {
+		if len(c.parents) > 1 || slices.ContainsFunc(c.touches, func(p string) bool { return slices.Contains(chain, p) }) {
 			candidates = append(candidates, c)
 		}
 	}
@@ -278,69 +317,47 @@ func (g *gateReader) removalOf(ids []string, kind entity.Kind, section string, c
 			}
 		}
 	}
-	return headSHA //coverage:ignore the base is where this branch forked, so the entity carried the section there and lacks it at HEAD; some commit in between is the first not to carry it, and a commit that changes a file either lists it or is a merge, so a pass above finds one
+	// The passes above always name a commit: the first commit whose version
+	// lacks the section has parents whose versions carry it or are no entity, and
+	// a commit that changes the version either lists a chain path or is a merge,
+	// so it is a candidate. What follows is the shape of the answer, not a path.
+	if len(candidates) > 0 { //coverage:ignore unreached, as argued above
+		return candidates[0].sha //coverage:ignore unreached, as argued above
+	}
+	return headSHA //coverage:ignore unreached, as argued above
 }
 
-// rangeHistory reads base..HEAD newest-first and returns its commits, plus every
-// path each canonical entity id has held in the range.
-func rangeHistory(ctx context.Context, root, baseSHA string) (commits []rangeCommit, paths map[string][]string) {
+// rangeHistory reads base..HEAD newest-first and returns its commits.
+func rangeHistory(ctx context.Context, root, baseSHA string) []rangeCommit {
 	// The record carries commit ids and the paths written, never message bytes:
 	// a message is arbitrary and can hold any separator, which would split the
 	// record it sits in. The one commit whose trailers matter, the create an
-	// entity starts from, is read on its own.
+	// entity starts from, is read on its own. A path is quoted by git wherever it
+	// carries a control byte, which holds only while `-z` is absent — with it the
+	// raw bytes reach the stream, and a separator in a path splits the record.
 	const recSep, fieldSep = "\x1e", "\x1f"
-	lines, ok := gitLines(ctx, root, "log", "--topo-order", "--no-renames", "--name-status",
+	lines, _ := gitLines(ctx, root, "log", "--topo-order", "--no-renames", "--name-status",
 		"--format="+recSep+"%H"+fieldSep+"%P"+fieldSep, baseSHA+"..HEAD")
-	paths = map[string][]string{}
-	if !ok { //coverage:ignore base and HEAD both resolved to commits, so the range is always a valid git log argument
-		return nil, paths
-	}
+	var commits []rangeCommit
 	for _, rec := range strings.Split(strings.Join(lines, "\n"), recSep)[1:] {
 		fields := strings.SplitN(rec, fieldSep, 3)
-		c := rangeCommit{sha: strings.TrimSpace(fields[0]), parents: strings.Fields(fields[1])}
+		c := rangeCommit{sha: fields[0], parents: strings.Fields(fields[1])}
 		for _, line := range strings.Split(fields[2], "\n") {
-			status, path, _ := strings.Cut(strings.TrimSpace(line), "\t")
-			id, isEntity := entityIDFromPath(path)
-			if !isEntity {
+			status, path, _ := strings.Cut(line, "\t")
+			if _, isEntity := entityIDFromPath(path); !isEntity {
 				continue
 			}
-			id = entity.Canonicalize(id)
-			addPath(paths, id, path)
-			if !slices.Contains(c.touches, id) {
-				c.touches = append(c.touches, id)
-			}
-			if strings.Contains(status, "A") {
+			c.touches = append(c.touches, path)
+			switch {
+			case strings.Contains(status, "A"):
 				c.adds = append(c.adds, path)
+			case strings.Contains(status, "D"):
+				c.deletes = append(c.deletes, path)
 			}
 		}
 		commits = append(commits, c)
 	}
-	return commits, paths
-}
-
-// entitiesAt returns every entity file at rev, keyed by canonical id, and
-// records each path in paths.
-func entitiesAt(ctx context.Context, root, rev string, paths map[string][]string) map[string]treeEntry {
-	out := map[string]treeEntry{}
-	lines, _ := gitLines(ctx, root, "ls-tree", "-r", rev, "--", "work", "docs/adr")
-	for _, line := range lines {
-		meta, path, _ := strings.Cut(line, "\t")
-		id, ok := entityIDFromPath(path)
-		if !ok {
-			continue
-		}
-		id = entity.Canonicalize(id)
-		fields := strings.Fields(meta)
-		out[id] = treeEntry{path: path, blob: fields[len(fields)-1]}
-		addPath(paths, id, path)
-	}
-	return out
-}
-
-func addPath(paths map[string][]string, id, path string) {
-	if !slices.Contains(paths[id], path) {
-		paths[id] = append(paths[id], path)
-	}
+	return commits
 }
 
 // lineage returns id followed by the canonical ids the entity carried before a
@@ -355,23 +372,46 @@ func lineage(id, headPath string, headRaw []byte) []string {
 	return ids
 }
 
-// firstOf returns the entry for the first of ids that entries holds.
-func firstOf(entries map[string]treeEntry, ids []string) (treeEntry, bool) {
-	for _, id := range ids {
-		if e, ok := entries[id]; ok {
-			return e, true
+// filesAt returns the blob of every entity-shaped path at rev, keyed by path.
+func filesAt(ctx context.Context, root, rev string) map[string]string {
+	out := map[string]string{}
+	lines, _ := gitLines(ctx, root, "ls-tree", "-r", rev, "--", "work", "docs/adr")
+	for _, line := range lines {
+		meta, path, _ := strings.Cut(line, "\t")
+		if _, ok := entityIDFromPath(path); !ok {
+			continue
 		}
+		fields := strings.Fields(meta)
+		out[path] = fields[len(fields)-1]
 	}
-	return treeEntry{}, false
+	return out
 }
 
-func sortedIDs(entries map[string]treeEntry) []string {
-	ids := make([]string, 0, len(entries))
-	for id := range entries {
-		ids = append(ids, id)
+// firstIn returns the first path of chain that files holds.
+func firstIn(files map[string]string, chain []string) (string, bool) {
+	for _, path := range chain {
+		if _, ok := files[path]; ok {
+			return path, true
+		}
 	}
-	slices.Sort(ids)
-	return ids
+	return "", false
+}
+
+// canonicalIDOf returns the canonical id an entity-shaped path carries.
+func canonicalIDOf(path string) string {
+	id, _ := entityIDFromPath(path)
+	return entity.Canonicalize(id)
+}
+
+// sortedPaths returns the keys of files in order, so findings come out in a
+// stable order.
+func sortedPaths(files map[string]string) []string {
+	paths := make([]string, 0, len(files))
+	for p := range files {
+		paths = append(paths, p)
+	}
+	slices.Sort(paths)
+	return paths
 }
 
 // entityBodyAt returns the raw bytes and the post-frontmatter body of relPath at
