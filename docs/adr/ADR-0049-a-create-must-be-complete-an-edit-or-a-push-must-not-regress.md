@@ -15,8 +15,10 @@ two reasons. It refuses the commit `aiwf edit-body` has just made, since that ve
 permits an edit keeping an existing omission and neither path has `--force`. And
 it blocks authors over omissions they did not introduce: measured 2026-09-14 at
 `09d2058cc`, 55 active entities omit a required section, and 29 of them have had
-their body changed since creation — each file walked with `git log --follow`,
-comparing post-frontmatter bytes.
+their body changed since creation — each file's history read with
+`git log --follow --format=%H --name-only`, the path resolved at every commit
+through its renames, and the bytes after the frontmatter compared between
+consecutive versions. A walk that does not follow renames counts 27.
 
 Judging the push commit by commit along the first-parent line was rejected: it
 credits a `--no-ff` drop to the merge rather than to the commit that made it,
@@ -44,7 +46,8 @@ Each seam holds a body to where it started.
   the body an `aiwf import` or a forced `aiwf add` commit wrote, and is otherwise
   held to every required section, since an unforced `aiwf add` cannot write an
   incomplete body. A section the entity already lacks on the configured trunk,
-  under its own id, is exempt: that removal is not the pushing author's.
+  under its own id, is exempt: trunk lacks it whether or not the push lands, so
+  refusing recovers nothing.
 
 A violation is what ADR-0043 defined and this carries forward: a required section
 not present as a top-level `## ` heading, with sections beyond the set legal and
@@ -59,9 +62,14 @@ joins `check.Run`.
   asked for again.
 - The create exemption reads the commit's own trailers, so a hand-written create
   stamped `aiwf-verb: import`, or `aiwf-verb: add` with `aiwf-force`, is taken at
-  its word.
-- The commit a finding names can be the wrong one where history discards a removal
-  and a later merge publishes an older copy anyway, and where two entities hold
-  one id across a collision. The refusal and the acknowledgment are unaffected.
+  its word. It rests on `aiwf add` refusing an incomplete unforced body: loosen
+  that gate and the push refuses creates the verb permitted.
+- The trunk exemption keys on trunk's state, not on who removed the section. An
+  author who drops one trunk has already lost is not refused, even from a branch
+  that never merged trunk.
+- The commit a finding names is best-effort. It can be the wrong one where history
+  discards a removal and a later merge publishes an older copy anyway, and where
+  two entities hold one id across a collision; the refusal and the acknowledgment
+  do not depend on it, and only the report is pinned.
 - The push judges only ranges the provenance audit resolves, so a branch started
   from a local ref is judged by nothing at its first push (G-0679).
