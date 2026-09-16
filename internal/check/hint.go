@@ -206,7 +206,7 @@ var hintTable = map[string]string{
 	// itself an entity-body-empty error, so a bare heading only swaps one
 	// blocking finding for another. The acknowledge escape is named because no
 	// verb on this path carries --force.
-	"entity-body-section-dropped": "restore the named `## <Section>` heading, with its content, via `aiwf edit-body <id>` — a required section left empty is reported by `entity-body-empty` instead; to keep a removal you meant, run `aiwf acknowledge illegal <sha> --reason \"...\"` on the commit the finding names, adding `--for-entity <id>` when that commit carries no aiwf trailers so its untrailered-commit finding clears too",
+	"entity-body-section-dropped": "restore the named `## <Section>` heading, with its content, via `aiwf edit-body <id>` — on an entity that is not terminal, a required section left empty is reported by `entity-body-empty` instead; to keep a removal you meant, run `aiwf acknowledge illegal <sha> --reason \"...\"` on the commit the finding names, adding `--for-entity <id>` when that commit is also reported by `provenance-untrailered-entity-commit`, so both clear",
 
 	// G-0268 milestone-tdd-undeclared: the milestone has no tdd: policy
 	// and absent is silently treated as tdd: none. New milestones get

@@ -302,7 +302,7 @@ func ResolveUntrailedRange(ctx context.Context, root, since string) (string, *ch
 			advisory := &check.Finding{
 				Code:     check.CodeProvenanceUntrailedScopeUndefined,
 				Severity: check.SeverityWarning,
-				Message: fmt.Sprintf("--since %q does not resolve to a commit; provenance audit skipped",
+				Message: fmt.Sprintf("--since %q does not resolve to a commit; provenance audit and body-section gate skipped",
 					since),
 			}
 			return "", advisory, nil
@@ -317,7 +317,7 @@ func ResolveUntrailedRange(ctx context.Context, root, since string) (string, *ch
 	advisory := &check.Finding{
 		Code:     check.CodeProvenanceUntrailedScopeUndefined,
 		Severity: check.SeverityWarning,
-		Message:  "no upstream configured and no --since <ref>; provenance audit skipped",
+		Message:  "no upstream configured and no --since <ref>; provenance audit and body-section gate skipped",
 	}
 	return "", advisory, nil
 }
