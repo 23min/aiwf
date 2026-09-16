@@ -26,11 +26,6 @@ import (
 // and entity.RequiredSections moves it between the two halves of this test on
 // its own. Headings are matched by slug, the key every body reader uses.
 //
-// The closing guard is a standing demand on the shipped templates — at least one
-// must carry a section beyond its kind's declared set, or nothing here can tell
-// a gate reading the declaration from one reading the template. AC-5 of the
-// milestone that introduced this test owns it, and it retires with the test.
-//
 // Whether each template carries every declared section is a separate property,
 // pinned by TestEmbeddedTemplateCarriesRequiredSectionsAtTopLevel; here the
 // expectation covers the declared sections a template actually carries, so a
@@ -38,8 +33,11 @@ import (
 //
 // Not every template carries extras — some ship exactly their declared set, and
 // for those the first half has nothing to drop. That is skipped per template and
-// asserted across the corpus: if no template carried a section beyond its
-// declaration, the half would be silently inert.
+// asserted across the corpus: the closing guard demands that at least one shipped
+// template carry a section beyond its kind's declared set, since otherwise nothing
+// here can tell a gate reading the declaration from one reading the template.
+// That demand is AC-5's, from the milestone that introduced this test, and it
+// retires with the test.
 
 // gateFixture is a throwaway git repo the gate can be run against.
 type gateFixture struct {
