@@ -18,10 +18,10 @@ because nothing enforced it.
   verb and is left ungated on its deprecation, which no surface records (G-0667)
   — if that resolves the other way, gating it returns here.
 - A gate on the push, riding the commit range the provenance audit already resolves,
-  scoped to entities whose body content this push changed. **Unbuilt**, and the
-  reason it is still needed is unchanged: a body can reach a commit without
-  passing any verb, and the wrap-milestone ritual's plain `git commit` is that
-  path today.
+  judging each entity file that differs between where the branch forked and HEAD.
+  Delivered by M-0331. The reason it was needed stands: a body can reach a commit
+  without passing any verb, and the wrap-milestone ritual's plain `git commit` is
+  that path.
 - Deleting the prose that states the section set once a refusal carries it. The
   enforcement is what makes the deletion safe; landing it without the deletion leaves
   the second copy in place and spends the epic for nothing.
