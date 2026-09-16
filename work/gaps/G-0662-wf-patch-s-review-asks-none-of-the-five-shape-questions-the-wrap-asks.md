@@ -21,7 +21,8 @@ A patch is the higher-traffic surface. Work that never becomes a milestone never
 meets the only review lens that can shrink it, so the surplus the wrap ritual exists
 to catch accumulates on the path that skips the wrap.
 
-Porting them is blocked on G-0660: the compression lens's gate run cannot go red for
-the deletions it proposes, so the lens currently reports a result its own oracle
-cannot falsify. Copying it into `wf-patch` before that is repaired puts the defect on
-the busier surface.
+G-0660 has repaired the compression lens's oracle: a removal it proposes is settled
+by a mutation probe, not by a gate run with no failing state for a deleted test or a
+removed guard. The port carries that repaired form, and the same question applies to
+each of the five — a lens whose result its own oracle cannot falsify belongs on
+neither surface, least of all the busier one.

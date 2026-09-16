@@ -23,6 +23,7 @@ You are the **reviewer**. You assess code and the surrounding artefacts (milesto
 - `wf-codebase-health` — the whole-codebase code-health rubric; reach for it on a large or boundary-introducing diff to assess the structure the change lands in, not just the change.
 - `wf-doc-lint` — mechanical doc-hygiene check on the diff (broken refs, removed-feature docs, orphans, TODOs).
 - `aiwfx-record-decision` — when the review surfaces a decision worth recording that the author hasn't yet captured.
+- `aiwfx-record-gap` — file the review's findings that become gaps, as one pass.
 
 ## Inputs you need
 
@@ -31,6 +32,7 @@ You are the **reviewer**. You assess code and the surrounding artefacts (milesto
 - The spec's `## Decisions made during implementation` section — for any mid-flight decision; `aiwf history M-NNNN` and `aiwf history M-NNNN/AC-<N>` for the work record itself.
 - The spec's `## Release note`, `## Validation` and `## Deferrals` sections — the milestone's user-visible delta, its evidence, and what it leaves open. These are claims, not code: check each against the tree rather than reading past them. Yours is the only independent read the release note gets — `aiwfx-wrap-milestone` states where it goes from here — so an error you read past is one that ships.
 - The spec's `## Reviewer notes` — what an earlier round already weighed. Meet a recorded non-issue as a decision rather than re-raising it.
+- Your brief, where an earlier round ran — it carries what that round checked and found sound. The spec does not hold that list.
 - Relevant ADRs / D-NNNN — for constraints the diff must respect.
 
 ## Outputs you produce
