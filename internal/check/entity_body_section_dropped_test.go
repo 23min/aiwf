@@ -88,6 +88,23 @@ func TestWalkDroppedBodySections(t *testing.T) {
 		assertDropped(t, []DroppedBodySection{{SHA: drop, Path: gapPath, EntityID: "G-0001", Section: whyItMatters}}, walkFrom(t, f, base))
 	})
 
+	// A commit message is arbitrary bytes, so the log read cannot assume its own
+	// separators are absent from one. A record a stray separator splits is
+	// skipped; the entity is still judged from the two trees, so the drop is
+	// reported, credited by the best remaining evidence.
+	t.Run("reports a drop through a commit message carrying the record separator", func(t *testing.T) {
+		t.Parallel()
+		f := newWalkerFixture(t)
+		f.put(gapPath, full, "seed")
+		base := f.head()
+		f.put(gapPath, partial, "drop", "aiwf-verb: edit-body", "aiwf-force: reason with \x1e inside", "aiwf-entity: G-0001")
+		f.put("work/gaps/G-0002-later.md", gapFile("G-0002", "", whatsMissing, whyItMatters), "later work, so the drop is not HEAD")
+		got := walkFrom(t, f, base)
+		if len(got) != 1 || got[0].EntityID != "G-0001" || got[0].Path != gapPath || got[0].Section != whyItMatters || got[0].SHA == "" {
+			t.Fatalf("want one finding for G-0001's %q with a commit credited; got %+v", whyItMatters, got)
+		}
+	})
+
 	// An author is never held to an omission the push did not introduce.
 	t.Run("does not report an omission present when the push started", func(t *testing.T) {
 		t.Parallel()
@@ -124,7 +141,20 @@ func TestWalkDroppedBodySections(t *testing.T) {
 		f.run("git", "checkout", "-q", "main")
 		f.run("git", "merge", "-q", "--no-ff", "--no-commit", "side")
 		merge := f.put(gapPath, partial, "merge side and drop a section")
+		f.put("work/gaps/G-0003-later.md", gapFile("G-0003", "", whatsMissing, whyItMatters), "later work, so the merge is not HEAD")
 		assertDropped(t, []DroppedBodySection{{SHA: merge, Path: gapPath, EntityID: "G-0001", Section: whyItMatters}}, walkFrom(t, f, base))
+	})
+
+	// Prior ids come from the frontmatter at HEAD; where that does not parse the
+	// entity is judged under its own id alone, and the drop is still reported.
+	t.Run("reports a drop in an entity whose frontmatter at HEAD does not parse", func(t *testing.T) {
+		t.Parallel()
+		f := newWalkerFixture(t)
+		f.put(gapPath, full, "seed")
+		base := f.head()
+		drop := f.put(gapPath, gapFile("G-0001", "prior_ids: [\n", whatsMissing), "drop, and break the frontmatter", wrapTrailers...)
+		f.put("work/gaps/G-0002-later.md", gapFile("G-0002", "", whatsMissing, whyItMatters), "later work, so the drop is not HEAD")
+		assertDropped(t, []DroppedBodySection{{SHA: drop, Path: gapPath, EntityID: "G-0001", Section: whyItMatters}}, walkFrom(t, f, base))
 	})
 
 	// Identity is the id, not the path: a later retitle or archive in the same
@@ -148,6 +178,7 @@ func TestWalkDroppedBodySections(t *testing.T) {
 		f.run("git", "mv", gapPath, gapRenamed)
 		f.writeFile(gapRenamed, partial)
 		moved := f.commit("move and drop")
+		f.put("work/gaps/G-0002-later.md", gapFile("G-0002", "", whatsMissing, whyItMatters), "later work, so the move is not HEAD")
 		assertDropped(t, []DroppedBodySection{{SHA: moved, Path: gapRenamed, EntityID: "G-0001", Section: whyItMatters}}, walkFrom(t, f, base))
 	})
 
@@ -418,6 +449,7 @@ func TestWalkDroppedBodySections(t *testing.T) {
 		f.run("git", "checkout", "-q", "main")
 		f.run("git", "merge", "-q", "--no-ff", "--no-commit", "side")
 		merge := f.put(gapPath, partial, "merge, and write a new gap in the same commit")
+		f.put("work/gaps/G-0004-later.md", gapFile("G-0004", "", whatsMissing, whyItMatters), "later work, so the merge is not HEAD")
 		assertDropped(t, []DroppedBodySection{{SHA: merge, Path: gapPath, EntityID: "G-0001", Section: whyItMatters}}, walkFrom(t, f, base))
 	})
 

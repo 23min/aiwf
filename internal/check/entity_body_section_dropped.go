@@ -276,6 +276,13 @@ func rangeHistory(ctx context.Context, root, baseSHA string) (commits []rangeCom
 	}
 	for _, rec := range strings.Split(strings.Join(lines, "\n"), recSep)[1:] {
 		fields := strings.SplitN(rec, fieldSep, 4)
+		if len(fields) < 4 {
+			// A commit message is arbitrary bytes and can carry the separators
+			// themselves; a fragment one splits off has too few fields and is
+			// skipped. The entity is still judged from the two trees, so the
+			// finding fires and at most its credit falls back to HEAD.
+			continue
+		}
 		c := rangeCommit{sha: strings.TrimSpace(fields[0]), parents: strings.Fields(fields[1])}
 		for _, tr := range gitops.ParseTrailers(fields[2]) {
 			switch tr.Key {
