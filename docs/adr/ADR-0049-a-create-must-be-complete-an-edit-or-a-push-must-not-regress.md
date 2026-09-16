@@ -67,9 +67,15 @@ joins `check.Run`.
 - The trunk exemption keys on trunk's state, not on who removed the section. An
   author who drops one trunk has already lost is not refused, even from a branch
   that never merged trunk.
-- The commit a finding names is best-effort. It can be the wrong one where history
-  discards a removal and a later merge publishes an older copy anyway, and where
-  two entities hold one id across a collision; the refusal and the acknowledgment
-  do not depend on it, and only the report is pinned.
+- The commit a finding names is best-effort, and the refusal does not depend on
+  it. It can be the wrong one where history discards a removal and a later merge
+  publishes an older copy anyway. An acknowledgment is keyed to the commit named,
+  so a later merge credited instead re-raises the finding, and acknowledging that
+  commit clears it; the commit named never moves under an acknowledgment, which
+  is an empty commit. Should naming a commit prove wrong again, the reserved
+  answer is to stop: report the entity and section alone, and let the
+  acknowledgment bind to the entity.
+- An acknowledgment exempts every section this rule reports on that commit,
+  whichever entity it binds to; it is a record about the commit.
 - The push judges only ranges the provenance audit resolves, so a branch started
   from a local ref is judged by nothing at its first push (G-0679).
