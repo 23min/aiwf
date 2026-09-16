@@ -54,12 +54,13 @@ The distinction that separates a sound clearance from an unsound one has a
 second consequence, and it splits the repair in two. Where no command was run,
 the vocabulary change is the whole of it. Where one was run and it cannot fail,
 the reviewer complies with the rule and still reports a clearance, so the word
-is not what is wrong. G-0660 is that shape: the wrap ritual's compression
-question requires the cut applied and the gates run, and the gates it names have
-no failing state for a deleted test or a removed guard. Renaming the verdict
-there leaves the reviewer running the same command. The repair is to route the
-site to an instrument that can fail — and this gap already names one, in
-`wf-vacuity`'s mutation probe, as a verdict a command earns.
+is not what is wrong, and the repair is to route the site to an instrument that
+can fail. G-0660 is the worked instance, now closed: the wrap ritual's
+compression question settled a proposed cut by a gate run that no deletion could
+redden, and routing a removal to `wf-vacuity`'s mutation probe — a verdict a
+command earns — fixed it where renaming the verdict could not. Triage each
+remaining site by which of the two shapes it is before reaching for the
+vocabulary.
 
 Not a chore. Deciding which sites are legitimate takes judgment at each one, so
 the change wants its own branch and its own review rather than riding along with
