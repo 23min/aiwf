@@ -28,6 +28,17 @@ surviving mutant rather than an all-clear. Where one cut falls under both the
 compression and over-guarding questions, the keep-unless-proven-dead default governs
 it. Each trial now names the command it ran and what that returned, so the next
 reviewer re-runs it instead of re-reasoning it.
+### Changed — D-0094: `## Reviewer notes` carries the review's result, not its rounds
+
+The section was defined as holding "the review's own outcome", which read as licence
+for an account of the review itself — how many rounds ran, what each found, which
+attacks failed to break the change — and wrapped specs carried exactly that into the
+archive. It now holds the result a later reader can act on: findings declined with
+their reason, limits knowingly left, trade-offs and rejected approaches, and the
+deciding round's verdict. A fix made at wrap is no longer recorded there, since the
+commit and the check landing with it already are the record. What the next round
+needs travels in its brief instead — what the earlier round checked and found sound —
+which the reviewer agent card now names among its inputs.
 
 ### Changed — G-0677: the gap template routes misfiled content to its existing homes
 
