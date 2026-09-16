@@ -1,7 +1,7 @@
 ---
 id: D-0094
 title: Reviewer notes record the review's result, not its rounds
-status: proposed
+status: accepted
 relates_to:
     - D-0054
     - D-0085
