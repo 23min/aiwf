@@ -16,7 +16,11 @@ upstream: an entity at `work/gaps/G-0001-has "quote".md` whose pushed commit
 drops `## Why it matters` — `aiwf check` expected one
 `entity-body-section-dropped`, observed `ok — no findings`, exit 0. Passing
 `-z` to both git calls and splitting on NUL removes the quoting; the tab-split
-of `--name-status` lines goes with it.
+of `--name-status` lines goes with it. So does the assumption the range log's
+record parse rests on: without `-z`, git quotes a path carrying a control byte,
+which is what keeps a separator byte in a path from splitting a record. With
+`-z` the raw bytes reach the stream, and a path carrying `0x1E` or `0x1F` splits
+the record unless the parse guards its field count.
 
 ## Why it matters
 
