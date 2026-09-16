@@ -19,7 +19,7 @@ No workflow under `.github/workflows/` runs `aiwf check`. CI runs
 
 ## Why it matters
 
-Content pushed on a new branch and merged on the server — a pull request merged
+Content pushed on such a branch and merged on the server — a pull request merged
 or squashed on GitHub — is compared by nothing. The push that carried it had no
 range, and no later local push carries it. A branch merged locally is judged when
 the branch receiving the merge is pushed against its upstream, which is what
