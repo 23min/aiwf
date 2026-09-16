@@ -26,6 +26,11 @@ import (
 // and entity.RequiredSections moves it between the two halves of this test on
 // its own. Headings are matched by slug, the key every body reader uses.
 //
+// The closing guard is a standing demand on the shipped templates — at least one
+// must carry a section beyond its kind's declared set, or nothing here can tell
+// a gate reading the declaration from one reading the template. AC-5 of the
+// milestone that introduced this test owns it, and it retires with the test.
+//
 // Whether each template carries every declared section is a separate property,
 // pinned by TestEmbeddedTemplateCarriesRequiredSectionsAtTopLevel; here the
 // expectation covers the declared sections a template actually carries, so a
