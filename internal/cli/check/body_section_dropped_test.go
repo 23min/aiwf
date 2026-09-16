@@ -203,6 +203,50 @@ func TestRunProvenanceCheck_BodySectionDropped_KeepingAnExistingOmissionIsNotRef
 // TestRunProvenanceCheck_BodySectionDropped_RunsWithoutALoadedTree pins that the
 // gate does not depend on a loaded tree. RunProvenanceCheck accepts a nil tree,
 // and then there is no trunk view to exempt against; the drop is still refused.
+// The trunk exemption reaches the gate through the loaded tree's TrunkRef: a
+// section trunk already lacks is exempt when the tree names trunk, and reported
+// when it does not.
+func TestRunProvenanceCheck_BodySectionDropped_TrunkRefExemptsWhatTrunkLacks(t *testing.T) {
+	t.Parallel()
+	root := t.TempDir()
+	remote := t.TempDir()
+	ctx := context.Background()
+	if err := gitops.Init(ctx, root); err != nil {
+		t.Fatalf("git init: %v", err)
+	}
+	gitRun(t, remote, "init", "-q", "--bare")
+	gitRun(t, root, "checkout", "-q", "-b", "main")
+	writeSpec(t, ctx, root, specComplete, "aiwf add milestone M-0001", []gitops.Trailer{{Key: gitops.TrailerVerb, Value: "add"}})
+	gitRun(t, root, "remote", "add", "origin", remote)
+	gitRun(t, root, "push", "-q", "-u", "origin", "main")
+	gitRun(t, root, "checkout", "-q", "-b", "feature")
+	gitRun(t, root, "push", "-q", "-u", "origin", "feature")
+	gitRun(t, root, "checkout", "-q", "main")
+	writeSpec(t, ctx, root, specDropped, "trunk drops it", wrapRitualTrailers())
+	gitRun(t, root, "push", "-q", "origin", "main")
+	gitRun(t, root, "checkout", "-q", "feature")
+	writeSpec(t, ctx, root, specDropped, "the branch drops it too", wrapRitualTrailers())
+
+	dropped := func(tr *tree.Tree) bool {
+		findings, err := RunProvenanceCheck(ctx, root, tr, "", map[string]struct{}{"add": {}}, nil, nil, nil, mustHead(t, ctx, root))
+		if err != nil {
+			t.Fatalf("RunProvenanceCheck: %v", err)
+		}
+		for _, f := range findings {
+			if f.Code == check.CodeEntityBodySectionDropped.ID {
+				return true
+			}
+		}
+		return false
+	}
+	if dropped(&tree.Tree{TrunkRef: "refs/remotes/origin/main"}) {
+		t.Errorf("a section trunk already lacks was reported with the tree naming trunk")
+	}
+	if !dropped(&tree.Tree{}) {
+		t.Errorf("the drop was not reported with no trunk named")
+	}
+}
+
 func TestRunProvenanceCheck_BodySectionDropped_RunsWithoutALoadedTree(t *testing.T) {
 	t.Parallel()
 	root := t.TempDir()
