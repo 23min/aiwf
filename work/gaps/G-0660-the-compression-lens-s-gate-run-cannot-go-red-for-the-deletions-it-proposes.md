@@ -1,7 +1,9 @@
 ---
 id: G-0660
 title: The compression lens's gate run cannot go red for the deletions it proposes
-status: open
+status: addressed
+addressed_by_commit:
+    - 6e8412ebfbc242c3c988ac2cf8d04f29a677dcf6
 ---
 ## What's missing
 
