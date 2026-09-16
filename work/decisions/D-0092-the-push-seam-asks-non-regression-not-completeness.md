@@ -61,5 +61,8 @@ Nothing converges the bodies already committed without a required section. Every
 seam reads only what is being written, so the debt is permanent rather than
 merely current, and closing it would need a tree-side rule judging against a
 baseline — deliberately not built. ADR-0048's Consequences names this seam as
-what would change that; it does not. ADR-0049 supersedes both records and carries
-this answer forward, with the push judged from where the branch left its base.
+what would change that; it does not. ADR-0049 supersedes both records. It keeps
+non-regression at the push, judged from where the branch left its base, and
+changes one thing this decision settled: a create the push made without
+`aiwf import` or a forced `aiwf add` is held to every required section, where
+here it was not judged at all.
