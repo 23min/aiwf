@@ -33,7 +33,7 @@ because nothing enforced it.
   entities omit at least one required section, 109 omissions between them, of
   which 54 entities and 108 omissions sit on the born-complete kinds where the
   severity would be error. Counting archived entities too, 397 bodies carry 698
-  omissions. Both seams read only bytes being written, so these are never in
+  omissions. Each seam judges only what a write or a push changes, so these are never in
   scope — that is the mechanism, not a grandfather clause. Paying the debt is a
   migration and needs its own evidence.
 
@@ -67,7 +67,7 @@ kind and reported by nothing afterwards. The rate declines but has not stopped �
 of the last sixty-eight gaps, most recently G-0543.
 
 ADR-0043 decides where enforcement lives and why it is forward-only by construction
-rather than by policy. This epic implements it.
+rather than by policy; ADR-0049 carries that forward. This epic implements it.
 
 ## Constraints
 
@@ -120,7 +120,7 @@ Each states the section set, and each is deletable only once a refusal carries i
 | Question | Blocking? | Resolution path |
 |---|---|---|
 | One finding code for membership and emptiness, or one each? | no | Resolved: one each (D-0090). |
-| Does the push gate need its own severity, or does it inherit? | no | Resolved: error, as ADR-0043 defines the push seam. |
+| Does the push gate need its own severity, or does it inherit? | no | Resolved: error, as ADR-0049 defines the push seam. |
 | Should the wrap-milestone ritual's plain-`git commit` write of the milestone spec route through `aiwf edit-body`? | no | Its own change, on its own merits — the push gate covers the hole either way. |
 
 ## Risks
