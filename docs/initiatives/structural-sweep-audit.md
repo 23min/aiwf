@@ -139,8 +139,9 @@ exit 3 and is silently defaulted by the shape-only and fast paths at exit 0.
 **Measured defects, unowned:**
 
 - **A1** — the FSM history walker is blind to any entity whose path git quotes.
+  Promoted: G-0690.
 - **A2** — `aiwf check --shape-only` and `--fast` exit 0 with default policy on a
-  malformed `aiwf.yaml` that the full check refuses at exit 3.
+  malformed `aiwf.yaml` that the full check refuses at exit 3. Promoted: G-0691.
 
 **Tracked records whose premise changed:**
 
@@ -176,19 +177,31 @@ never unquotes; `internal/check/fsm_history_walker.go:199` misses the entity in
 `pathToEntity` and continues. In a scratch repo with `G-0001-plain.md` and
 `G-0002-héllo.md` both hand-edited `addressed → open` in one commit, `aiwf check`
 reports `fsm-history-consistent/illegal-transition` for the ASCII gap only. The
-sibling walker already does this right (`entity_body_section_dropped.go:424-433`,
-`area_mistag.go:231`); G-0684 owns the quoting defect in that file only. Patch,
-in `gitops` so every `BulkRevwalk` consumer inherits it.
+sibling walkers run their git calls with `-c core.quotePath=false`
+(`entity_body_section_dropped.go:424-433`, `area_mistag.go:231`); G-0684 records,
+for the section-dropped gate, the byte class that setting does not stop git
+quoting — a double quote, a backslash, a tab, a control byte — so this walker is
+affected by the non-ASCII class on top of that one. Patch, in `gitops` so every
+`BulkRevwalk` consumer inherits it. Promoted: G-0690.
 
 **A2. Shape-only and fast checks silently default on a malformed config.**
 *Measured.* With `tdd: [unterminated` appended to `aiwf.yaml`: `aiwf check` exits
 3 (pinned by `check_error_paths_test.go:44-54`), `aiwf check --shape-only` and
 `aiwf check --fast` print "ok — no findings" and exit 0.
-`internal/cli/check/check.go:369,440` take `cfgErr != nil → skip` and run with
-`tree.strict=false`, no `allow_paths`, and an empty severity policy. The
-pre-commit hook and the statusline run exactly these paths. Root cause is C5:
-`aiwf.yaml` is loaded at more than twenty independent sites with four failure
-behaviours. Patch for the two check paths; milestone for one load per invocation.
+The full path refuses inside `cliutil.LoadTreeWithTrunk` (`check.go:99`);
+`runShapeOnly` and `runFast` load through `tree.Load` and guard their own
+`config.Load` at `check.go:369,440` with `cfgErr == nil && cfg != nil`, running
+otherwise with `tree.strict=false`, no `allow_paths`, and an empty severity
+policy. Measured: with `tree: strict: true` in a valid config and a stray file
+under `work/gaps/`, both cheaper paths report `error unexpected-tree-file` and
+exit 1; with the same file corrupted, both report `warning` and exit 0. The
+pre-commit hook runs `--shape-only` on every commit. No shipped surface runs
+`--fast`: the flag's help at `check.go:60` names the statusline health glyph as
+its consumer, but the statusline script spawns no verb
+(`TestStatusline_RenderInvokesNoKernelVerb`), so that help text is stale. Root
+cause is C5: `aiwf.yaml` is loaded at more than twenty independent sites with
+four failure behaviours. Patch for the two check paths; milestone for one load
+per invocation. Promoted: G-0691.
 
 **A3. `aiwf status` hardcodes `main` as the trunk.** *Derived.*
 `internal/cli/status/worktrees.go:154,299,360,408,519,1262,1355,1374,1397` use the
@@ -582,7 +595,8 @@ registers `--trace`, so read verbs bypass it. `milestone tdd` and `depends-on`
 `verb_scaffold_convergence.go:169-194` detects re-inlines but not omissions.
 `status`, `render`, `template` and `schema` (`root.go:185-199`) never receive the
 root-minted correlation id and fire no diagnostic event — `status` being the verb
-the post-commit hook and statusline run most. `worktree add` is a hybrid: dead
+the post-commit hook runs on every commit (the statusline script itself spawns no
+verb). `worktree add` is a hybrid: dead
 `--trace`, an envelope only for lock contention, `BeginReadVerbDiag` on a verb that
 takes the lock. `init`, `update` and `worktree add` copy the artifact ledger
 (`initcmd.go:126`, `update.go:135`, `worktree.go:229`) and write three remedies for
