@@ -1,7 +1,7 @@
 ---
 id: D-0095
 title: Rituals enter new worktrees with cd, not EnterWorktree
-status: proposed
+status: accepted
 relates_to:
     - G-0673
     - G-0413
