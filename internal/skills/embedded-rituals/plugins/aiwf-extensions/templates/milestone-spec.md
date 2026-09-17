@@ -31,10 +31,11 @@ acs: []                  # filled by `aiwf add ac`, never by hand
 
 ## Context
 
-<!-- 2–3 sentences: what exists before this milestone, what must be in place, what
-     changed to make it possible now. Prior milestones, blocking dependencies
-     resolved, decisions landed. Not a re-telling of the epic, and not an argument
-     for the work. -->
+<!-- What exists before this milestone, what must be in place, what changed to make
+     it possible now. Prior milestones, blocking dependencies resolved, decisions
+     landed. Not a re-telling of the epic, and not an argument for the work. Keep
+     this short — with the one exception that a measurement of the starting state
+     is worth its space. -->
 
 <What exists before this milestone? What prior milestones does it build on? What
 changed to make it possible now?>
@@ -63,7 +64,7 @@ changed to make it possible now?>
 
 ## Constraints
 
-- <Non-negotiable invariants, banned shortcuts, shim-policy exceptions with a named removal trigger>
+- <Non-negotiable invariants for this milestone, banned shortcuts, shim-policy exceptions with a named removal trigger>
 
 ## Design notes
 

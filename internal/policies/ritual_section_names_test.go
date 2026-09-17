@@ -1,9 +1,11 @@
 package policies
 
 import (
+	"cmp"
 	"os"
 	"path/filepath"
 	"regexp"
+	"slices"
 	"strings"
 	"testing"
 
@@ -41,29 +43,27 @@ var ritualSectionInstructions = []sectionInstruction{
 }
 
 // optionalityMarkedSection matches an optionality marker anywhere in an
-// instruction passage. The passage is a short bulleted list of section names, so
-// there is nothing else the word can be marking; a form-specific pattern only
-// invites a spelling it does not cover, which is what an earlier bolded-or-heading
-// alternation did — its heading arm could not match a bulleted `- ## Name
-// (optional)` and was dead.
+// instruction passage. The passage is a short list of section names, so there is
+// nothing else the word can be marking, and a pattern tied to one spelling of a
+// name — bolded, or written as a heading — would miss the others.
 var optionalityMarkedSection = regexp.MustCompile(`(?i)\(optional\)`)
 
 // TestRitualsNameTheOwnedSectionsWithoutMarkers pins that a ritual passage
 // instructing an author to fill in a body names every section its kind
-// carries, and names none of them by a marker-suffixed form.
+// requires, and names none of them by a marker-suffixed form.
 //
-// Both halves are failures measured on live surfaces. The epic ritual told an
-// author to write "Scope — in / out", the substructure the epic template used
-// before its out-of-scope heading moved to top level, so a body written by
-// following it carried no `out_of_scope` key on any read path. The decision
-// ritual named `Validation (optional)` and `Consequences (optional)` after
-// those markers left the templates, which would have had aiwf's own ritual
-// emitting the `validation_optional` key the retirement exists to foreclose.
+// A body written by following a passage that omits a name lacks that section,
+// which the write seams refuse. A marker-suffixed name such as
+// `Validation (optional)` yields a section whose key folds the marker in
+// (`validation_optional`), which no template carries.
 //
-// The containment check is scoped to the instruction passage, not the file. A
-// ritual mentioning a section name anywhere — the `aiwf add` skeleton, a prose
-// aside — would otherwise satisfy it while the instruction itself omitted the
-// section, which is exactly how the epic ritual read before this milestone.
+// The containment check is scoped to the instruction passage, not the file: a
+// ritual mentioning a section name anywhere else — the `aiwf add` skeleton, a
+// prose aside — would otherwise satisfy it while the instruction itself
+// omitted the section. An anchor is left out of that scope too, since it can
+// name the template file, and `decision.md` would otherwise satisfy
+// `Decision`. A name found is struck from the passage before the next is
+// sought, longest first, so `Out of scope` cannot also stand in for `Scope`.
 //
 // Expected names come from entity.RequiredSections, so a kind gaining a section
 // fails here until the rituals that instruct authors follow.
@@ -85,11 +85,17 @@ func TestRitualsNameTheOwnedSectionsWithoutMarkers(t *testing.T) {
 				t.Errorf("%s: the passage at %q marks a section optional in its name; no template carries such a heading, so an author following this writes a section whose slug folds the marker into the key. State optionality in the description after the section name instead",
 					instr.path, instr.anchor)
 			}
-			for _, section := range entity.RequiredSections(instr.kind) {
-				if !strings.Contains(strings.ToLower(region), strings.ToLower(section)) {
+			named := strings.ToLower(strings.Replace(region, instr.anchor, "", 1))
+			sections := entity.RequiredSections(instr.kind)
+			slices.SortStableFunc(sections, func(a, b string) int { return cmp.Compare(len(b), len(a)) })
+			for _, section := range sections {
+				name := strings.ToLower(section)
+				if !strings.Contains(named, name) {
 					t.Errorf("%s: the passage at %q instructs an author to fill a %s body but never names its %q section; a body written by following it omits that section, which the write seams now refuse (G-0571)",
 						instr.path, instr.anchor, instr.kind, section)
+					continue
 				}
+				named = strings.ReplaceAll(named, name, "")
 			}
 		})
 	}

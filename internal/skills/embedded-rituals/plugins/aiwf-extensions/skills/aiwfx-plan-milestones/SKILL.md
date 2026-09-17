@@ -37,14 +37,14 @@ If the epic doesn't exist yet, use `aiwfx-plan-epic` first.
 
    `aiwf` allocates the next free `M-NNNN` (global, not epic-scoped), creates `work/epics/E-NNNN-<slug>/M-NNNN-<slug>.md` with the minimal body skeleton, sets `parent: E-NNNN` in frontmatter, and produces one commit per milestone with `aiwf-verb: add` trailers.
 
-5. **Replace each milestone's body with the rich template** at `.claude/templates/milestone-spec.md` (materialized by `aiwf update`; if it's missing, run `aiwf update` rather than copying an existing milestone spec). Fill in:
-   - **Goal** — 1–2 sentences.
-   - **Context** — what exists before; what must be in place; what changed to make it possible now.
+5. **Replace each milestone's body with the rich template** at `.claude/templates/milestone-spec.md` (materialized by `aiwf update`; if it's missing, run `aiwf update` rather than copying an existing milestone spec). Fill in the sections below, each as the template directs beside it:
+   - **Goal**
+   - **Context**
    - **Acceptance criteria** — created as AC entities via `aiwf add ac`, not freehand template prose (see the AC-creation block below the template list).
-   - **Constraints** — non-negotiable invariants for *this* milestone.
-   - **Design notes** — locked decisions; reference ADRs by id.
-   - **Out of scope** — what this milestone explicitly does NOT do.
-   - **Dependencies** — prior milestones, external deps, decision records.
+   - **Constraints**
+   - **Design notes**
+   - **Out of scope**
+   - **Dependencies**
 
    Frontmatter (`id`, `parent`, `status: draft`) was set by `aiwf add` — don't touch.
 
@@ -85,7 +85,7 @@ If the epic doesn't exist yet, use `aiwfx-plan-epic` first.
 
    Do not hand-edit `depends_on:` in frontmatter. Bless-mode `aiwf edit-body` refuses frontmatter changes, and a plain `git commit` against the milestone file trips the kernel's `provenance-untrailered-entity-commit` warning. Both writer verbs above leave a trailered commit that `aiwf history M-NNNN` can render whenever they change the list.
 
-7. **Update the epic's Milestones list.** Edit the epic spec to list all milestones in execution order. Use the format from the epic template — link, one-line description, dependencies.
+7. **Update the epic's Milestones list.** Edit the epic spec to list all milestones in execution order, in the format its template shows.
 
 8. **Update `ROADMAP.md`** by running:
 

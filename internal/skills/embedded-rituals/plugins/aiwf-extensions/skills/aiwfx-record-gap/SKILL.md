@@ -20,13 +20,8 @@ per gap. A single gap is a batch of one.
 ## Is this a gap at all?
 
 Settle this before writing anything. Open `.claude/templates/gap.md` first: it
-states what earns a gap — that it names where, and that something breaks — and it
-is where those rules are maintained. Two further tests it does not carry:
-
-- **It is one defect.** A body enumerating four concerns cannot close in any
-  shape. Split it, or write the container as an epic.
-- **It is not a decision.** An argued position on how to fix something is a
-  decision, not a defect — hand off to `aiwfx-record-decision` instead.
+states what earns a gap, and what belongs in another record instead. Where it sends
+something to a decision, hand that off to `aiwfx-record-decision`.
 
 ## Workflow
 
@@ -36,35 +31,10 @@ Read `.claude/templates/gap.md` and fill it. If the directory is absent the
 templates are not materialized — run `aiwf update`. Never reconstruct a body by
 copying an existing gap, which drifts from the template and drops its shape.
 
-The template's own sections carry the gap. Everything else the defect suggests
-has a home already:
-
-| what you have | where it goes |
-| --- | --- |
-| a file or a symbol — where the defect shows, and where a fix would land | `## What's missing` |
-| the command, the expectation, the observation | `## What's missing` |
-| what breaks while this stays open — the consequence | `## Why it matters` |
-| where it was found | the `discovered_in` field |
-| what it relates to, and anything else that cannot go stale | a section of your own |
-| an argued position on the fix, with alternatives | a decision entity |
-| a sequence of steps to carry out | an epic or a milestone |
-
-Add a section of your own only for something that cannot go stale. A section
-proposing a fix dates the file the moment the plan changes, and pre-empts a
-decision that belongs to whoever picks the gap up.
-
 ### 2. Reproduce the claim
 
-Run the thing. Write into `## What's missing` the command, what you expected, what
-you saw, and where it ran. A defect stated as a measurement can be re-run by the
-next reader; one stated as a conclusion has to be taken on trust, and the tree
-moves underneath it.
-
-**When there is nothing to run, say so in one line and name what a reader should
-look at instead** — an absent detector, a missing seam, and a shape claim about a
-tree are all real defects with no command behind them. Never invent a command or
-paste output you did not see. A fabricated reproduction reads as evidence, which
-makes it worse than none.
+Run the thing, and write the result into `## What's missing` as the template
+directs. Where there is nothing to run, the template says what to write instead.
 
 ### 3. Independent review of the batch — not self-review
 
@@ -84,11 +54,11 @@ validate. For each gap it returns:
 - **The reproduction, re-run.** The command, what it printed, and where. If the
   draft's reproduction does not reproduce, that is the finding — the claim is
   wrong, or the tree has already moved.
-- **Non-reproducible, with the reason**, where step 2 named no command. The
+- **Non-reproducible, with the reason**, where the draft names no command. The
   reviewer confirms there is nothing to run rather than inventing something.
 - **Whether the defect names where**, and whether the consequence is a consequence
   rather than a preference.
-- **Anything misfiled**, against the table in step 1.
+- **Anything misfiled**, against what the template says belongs elsewhere.
 
 **Reviewer-dispatch contract.** The drafts are uncommitted until step 4, so name
 their paths in the brief — the reviewer reads the draft files directly. Reading
@@ -129,6 +99,6 @@ ritual dispatched here, hand the ids back and continue where it left off.
 
 ## Constraints
 
-- One gap per defect; one ritual run per filing pass. A filing pass is one
-  declared-sequence gate, not one gate per gap.
+- One ritual run per filing pass. A filing pass is one declared-sequence gate,
+  not one gate per gap.
 - Priority is triage, not severity — leave it unset rather than guessing.

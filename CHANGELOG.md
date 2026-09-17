@@ -16,6 +16,15 @@ section in this file.
 
 ## [Unreleased]
 
+### Changed — G-0682: planning and record rituals leave section content to the templates
+
+`aiwfx-plan-epic`, `aiwfx-plan-milestones`, `aiwfx-record-decision` and
+`aiwfx-record-gap` now send the author to the entity template for what goes in each
+section instead of stating section rules of their own; a rule only a ritual stated
+has moved into the template, beside what it governs. Some template sections that
+capped their length by a count now say to keep it short instead, and name what may
+make one longer.
+
 ### Added — G-0652: code review flags added prose that repeats another record
 
 `wf-review-code` now flags a sentence a change adds or rewrites when another record

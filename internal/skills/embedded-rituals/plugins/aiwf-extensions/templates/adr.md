@@ -22,6 +22,8 @@ superseded_by:
 > This template follows the [Nygard ADR pattern](https://cognitect.com/blog/2011/11/15/documenting-architecture-decisions) — Context → Decision → Consequences; aiwf tightens the status vocabulary. Delete this blockquote after copying.
 >
 > **Put `date` and `decided_by` on the body header line above, not in frontmatter** — the strict frontmatter parser accepts only the fields it validates.
+>
+> **Record what was chosen, never when to act on it.** When to act is a planning concern, so no section says when to ratify the decision or when to act on it: no "ratify after X", no "status stays proposed through Y", no "accept once the epic closes".
 
 <!-- Status vocabulary. aiwf's ADR statuses are `proposed | accepted | superseded | rejected`:
 
@@ -43,7 +45,7 @@ Why is this decision being made now? What forces — technical, organizational, 
 
 ## Decision
 
-State the decision in plain terms. One or two paragraphs. Imperative voice ("we use X for Y" rather than "it was decided that…"). If there are sub-decisions, bullet them. If the decision is phased, say so.
+State the decision in plain terms. Imperative voice ("we use X for Y" rather than "it was decided that…"). If the decision is phased, say what each phase decides, not when it starts. Keep this short — with the one exception that a decision with sub-decisions gives each its own bullet. The argument for the decision belongs in Context, and what follows from it in Consequences.
 
 ## Consequences
 

@@ -33,7 +33,7 @@ possible now?>
 
 ## Constraints
 
-- <Technical invariant, non-negotiable rule, shim-policy exception with a named removal trigger>
+- <Technical invariant, non-negotiable rule, banned shortcut, shim-policy exception with a named removal trigger>
 
 ## Success criteria
 
