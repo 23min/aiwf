@@ -1,7 +1,9 @@
 ---
 id: G-0673
 title: wf-patch cannot reach its own merge step from the worktree it enters at step 2
-status: open
+status: addressed
+addressed_by_commit:
+    - 03d6e9360
 ---
 ## What's missing
 
