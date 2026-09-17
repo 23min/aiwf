@@ -16,6 +16,12 @@ section in this file.
 
 ## [Unreleased]
 
+### Added — G-0652: code review flags added prose that repeats another record
+
+`wf-review-code` now flags a sentence a change adds or rewrites when another record
+already holds what it says, so a true, current copy can be cut or replaced by a
+pointer to its owner, while reasoning no other record carries stays.
+
 ### Fixed — G-0673: rituals move into a new worktree with `cd`, so the wrap can reach its merge target
 
 `wf-patch`, `aiwfx-start-milestone` and `aiwfx-start-epic` told the session to
