@@ -200,9 +200,6 @@ func TestRunProvenanceCheck_BodySectionDropped_KeepingAnExistingOmissionIsNotRef
 	}
 }
 
-// TestRunProvenanceCheck_BodySectionDropped_RunsWithoutALoadedTree pins that the
-// gate does not depend on a loaded tree. RunProvenanceCheck accepts a nil tree,
-// and then there is no trunk view to exempt against; the drop is still refused.
 // The trunk exemption reaches the gate through the loaded tree's TrunkRef: a
 // section trunk already lacks is exempt when the tree names trunk, and reported
 // when it does not.
@@ -247,6 +244,9 @@ func TestRunProvenanceCheck_BodySectionDropped_TrunkRefExemptsWhatTrunkLacks(t *
 	}
 }
 
+// TestRunProvenanceCheck_BodySectionDropped_RunsWithoutALoadedTree pins that the
+// gate does not depend on a loaded tree. RunProvenanceCheck accepts a nil tree,
+// and then there is no trunk view to exempt against; the drop is still refused.
 func TestRunProvenanceCheck_BodySectionDropped_RunsWithoutALoadedTree(t *testing.T) {
 	t.Parallel()
 	root := t.TempDir()

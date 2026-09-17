@@ -296,9 +296,9 @@ func TestWalkDroppedBodySections(t *testing.T) {
 		assertDropped(t, nil, walkWithTrunk(t, f, base, "main"))
 	})
 
-	// A create that passed no body-supplying verb starts from nothing, so every
-	// required section it leaves out is reported.
-	t.Run("reports a section missing from an entity created without a verb", func(t *testing.T) {
+	// A create by anything other than `aiwf import` or a forced `aiwf add` starts
+	// from nothing, so every required section it leaves out is reported.
+	t.Run("reports a section missing from an entity created outside aiwf import or a forced aiwf add", func(t *testing.T) {
 		t.Parallel()
 		f := newWalkerFixture(t)
 		base := f.head()
@@ -647,8 +647,8 @@ func TestWalkDroppedBodySections(t *testing.T) {
 	})
 
 	// A merge that writes a new entity in its own resolution lists no commit that
-	// added it, so the push has no verb-written body to start from and the entity
-	// is held to the whole set.
+	// added it, so the push has no verb-written body to start from — whatever
+	// trailers the merge carries — and the entity is held to the whole set.
 	t.Run("holds an entity a merge itself created to the whole set", func(t *testing.T) {
 		t.Parallel()
 		f := newWalkerFixture(t)
@@ -658,8 +658,8 @@ func TestWalkDroppedBodySections(t *testing.T) {
 		f.put("work/gaps/G-0003-side.md", gapFile("G-0003", "", whatsMissing, whyItMatters), "side work")
 		f.run("git", "checkout", "-q", "main")
 		f.run("git", "merge", "-q", "--no-ff", "--no-commit", "side")
-		merge := f.put(gapPath, partial, "merge, and write a new gap in the same commit")
-		f.put("work/gaps/G-0004-later.md", gapFile("G-0004", "", whatsMissing, whyItMatters), "later work, so the merge is not HEAD")
+		merge := f.put(gapPath, partial, "merge, and write a new gap in the same commit", "aiwf-verb: import", "aiwf-entity: G-0001", "aiwf-actor: human/test")
+		f.put("work/gaps/G-0004-later.md", gapFile("G-0004", "", whatsMissing, whyItMatters), "aiwf import manifest, so the merge is not HEAD", "aiwf-verb: import", "aiwf-entity: G-0004", "aiwf-actor: human/test")
 		assertDropped(t, []DroppedBodySection{{SHA: merge, Path: gapPath, EntityID: "G-0001", Section: whyItMatters}}, walkFrom(t, f, base))
 	})
 

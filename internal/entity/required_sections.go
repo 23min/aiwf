@@ -27,9 +27,8 @@ var requiredSectionsByKind = map[Kind][]string{
 // that drops one the committed body carries, and the push refuses a commit
 // that leaves one out of a body that carried it, or out of an entity the push
 // created other than by `aiwf import` or a forced `aiwf add`. The
-// entity-body-empty rule
-// reports a section present and empty, which is a separate property with a
-// separate scope.
+// entity-body-empty rule reports a section present and empty, which is a
+// separate property with a separate scope.
 //
 // Every seam judges only what a write or a push changes, so a tree can still
 // carry an entity that omitted a section before any of them held it.
