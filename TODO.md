@@ -34,7 +34,7 @@ line saying what it is.
   production — reachable only through conditions no BulkRevwalk flag produces.
   Annotated rather than deleted, deliberately; nothing tracks the choice
 
-## Next, in order (2026-08-26)
+## Next, in order (2026-09-17)
 
 Clusters 1–9 and 11 cover the *defect* surface; cluster 12 covers the machine the
 gates run on. Cluster 10 is the exception: absences in what the kernel can
@@ -43,14 +43,19 @@ Feature and enhancement gaps fit none and are not listed, at any priority — th
 filter is what the gap is, not how urgent it is. Each gap sits in exactly one
 cluster.
 
-In flight: nothing. **E-0088** closed with M-0314..M-0317 all done; its residue is
-G-0623 and G-0630 in cluster 1, and the `docs/` half it declined to cross stays as
-G-0478 and G-0439 in cluster 11.
+In flight: **G-0681** and **G-0682**, both as patches. No active epic.
 
 Planned, not started: **E-0089** owns M-0318..M-0322 — make the legal-workflow table
-total and correct, per D-0077. It owns four gaps: G-0631 in cluster 2, G-0417 in
-cluster 11, and G-0160 and G-0166, which are unlisted. Starting it does not advance
-cluster 1, which is where seven of this week's twelve new gaps landed.
+total and correct, per D-0077. **E-0092** owns M-0333..M-0339 — shrink the always-on
+guidance to one home per rule under a ceiling. E-0092 is the only planned work that
+addresses the restate-and-drift class rather than an instance of it; G-0636, G-0665,
+G-0680 and G-0682 are four instances, each fixed on its own surface.
+
+**E-0084** and **E-0091** closed and swept to archive, along with 18 other terminal
+entities. `aiwf check` reports no findings.
+
+Cluster 1 is split three ways below, by the three shapes its own thesis already
+named. At 43 members it had stopped being one worklist.
 
 ### 1. Lying gates
 
@@ -60,18 +65,12 @@ coverage finds a guard and stops looking. The largest cluster, and the members
 fall in three shapes: a scan with a hole in its reach, a gate that fires on the
 wrong thing, and no gate at the point one would still be cheap.
 
-- **G-0518** — a body citing a real entity at a legacy width passes
-  `body-prose-id`, which canonicalizes before resolving. Measured worklist is two
-  bodies. G-0559 removed the generator by deriving `IDFormat` from
-  `CanonicalPad`, so what remains is chat-convention leakage; the case is now
-  symmetry — entity ids, docs, skills and Go literals are all enforced, entity
-  body citations are the one axis of five that is not
+#### 1a. A scan with a hole in its reach
+
+The gate exists and runs; what it looks at stops short of where the defect is.
+
 - **G-0563** *(low)* — bare-loading verbs refuse a reference that resolves only on
   another branch. The remaining surface of the gate G-0558 fixed for read paths
-- **G-0543** — the golangci firing harness asserts its isolation against the
-  command constructor, not against the harness that must use it; reverting the
-  call site leaves every test green. The instance form of this cluster's thesis:
-  the gate built to catch a dormant rule has claims nothing checks
 - **G-0516** — the comment-attrition scan is diff-scoped, so a stale comment
   outside the changed hunk is never examined. Its title-bearing shape widens the
   diff filter and leaves the phrase set alone; only the second shape asks to
@@ -99,44 +98,76 @@ wrong thing, and no gate at the point one would still be cheap.
   every composite subcode `internal/check` emits, dynamic or literal
 - **G-0550** — a commit carrying `aiwf-force` and no actor at all is refused by
   neither rule set: both test the actor for being non-human, which absent is not
-- **G-0573** — **already addressed.** `29eb2a94c` composed all four severity passes
-  into the guard, and ADR-0042 rules the behavioural residue moot rather than
-  pending. Promote `addressed --by-commit 29eb2a94c`
 - **G-0576** — `acs-tdd-tests-missing` reads an AC's whole history, so one cycle's
   trailer satisfies it for that criterion's entire life
-- **G-0571** — a body missing a required section outright is skipped by design;
-  `entity-body-empty` reports only one that is present and empty
-- **G-0233** — most of the htmlrender suite asserts structure with `strings.Contains`,
-  proving a literal exists somewhere rather than in the right element, and no AST
-  policy stops the pattern creeping back
-- **G-0540** — the assertions that replaced three vacuous policies were each accepted
-  as narrower than their names; one of the three has since been deleted outright,
-  so the live worklist is the other two
-- **G-0539** — a plain commit staging entity files passes pre-commit, and the finding
-  it produces never surfaces in the default flow at all — not at the push, and not
-  after, once the upstream is set
-- **G-0603** — the provenance backstop is commit-scoped by design, so a forgotten
-  entity trailer surfaces at the next gate rather than while the edit is cheap
-- **G-0608** — negative regression pins over shipped surfaces fit neither class
-  D-0070 names; one site was dropped rather than invent a third, and a second pin
-  is invisible to the ban entirely
-- **G-0640** — nothing surfaces an existing gap at filing time, so duplicates land.
-  The one entry in this file that reduces how many gaps get filed rather than how
-  many are wrong; G-0562 and G-0578, filed five days apart against one call site
-  with neither referencing the other, are what it would have caught
-- **G-0638** — the epic branch guard's `--force` bypass is recorded nowhere and
-  gated by nothing, so the escape hatch leaves no trace the next reader can find
-- **G-0629** — nothing fails when an m0127 allowlist entry stops matching the file
-  it exempts; the exemption outlives its subject and the scan still reports green
 - **G-0625** — lychee's `exclude_path` entries are read as regexes, dropping eight
   Normative paths out of the link gate's reach
 - **G-0624** — `markdownLinkRegex` misses titled markdown links, so they are
   invisible to the walk that is supposed to see every link
 - **G-0623** — outbound link repair covers single-file moves only, so a move that
   relocates a whole directory leaves ADR-0046's commitment unmet. E-0088's residue
+- **G-0657** — `aiwf history` drops a commit whose trailer block git splits from
+  `Co-Authored-By`, so the projection loses edits it owns
+- **G-0664** — `shipped-prose-assertion` misses an assertion whose shipped path is
+  built inline rather than spelled
+- **G-0666** — a body line over 64 KB makes a whole section report as empty
+- **G-0671** — the changelog audit does not see a delta in a named kernel surface
+- **G-0675** — the section-set scan's corpus is hand-maintained, so it narrows in
+  silence
+- **G-0684** — a path git quotes is invisible to the push gate
+- **G-0685** — the pre-push hook judges the checked-out branch, not the refs being
+  pushed
+- **G-0686** — a move the push makes outside one add-and-delete commit reads as a
+  create
+
+#### 1b. A gate that fires on the wrong thing
+
+The gate runs and returns a verdict about a subject that is not the one claimed.
+
+- **G-0543** — the golangci firing harness asserts its isolation against the
+  command constructor, not against the harness that must use it; reverting the
+  call site leaves every test green. The instance form of this cluster's thesis:
+  the gate built to catch a dormant rule has claims nothing checks
+- **G-0233** — most of the htmlrender suite asserts structure with `strings.Contains`,
+  proving a literal exists somewhere rather than in the right element, and no AST
+  policy stops the pattern creeping back
+- **G-0540** — the assertions that replaced three vacuous policies were each accepted
+  as narrower than their names; one of the three has since been deleted outright,
+  so the live worklist is the other two
+- **G-0608** — negative regression pins over shipped surfaces fit neither class
+  D-0070 names; one site was dropped rather than invent a third, and a second pin
+  is invisible to the ban entirely
+- **G-0629** — nothing fails when an m0127 allowlist entry stops matching the file
+  it exempts; the exemption outlives its subject and the scan still reports green
 - **G-0630** — `archive.go`'s 19 surviving mutants sit in the verb's own commit
   builder and planning path, not the link code E-0088's Context named. The measure
   that justified the epic did not measure what the epic changed
+- **G-0573** — **already addressed.** `29eb2a94c` composed all four severity passes
+  into the guard, and ADR-0042 rules the behavioural residue moot rather than
+  pending. Promote `addressed --by-commit 29eb2a94c`
+- **G-0644** — the orphan walk reports a commit already reachable from trunk
+- **G-0679** — a branch started from a local ref is never judged at its first push
+
+#### 1c. No gate where one would still be cheap
+
+Nothing fires at the point the defect is cheapest to catch.
+
+- **G-0539** — a plain commit staging entity files passes pre-commit, and the finding
+  it produces never surfaces in the default flow at all — not at the push, and not
+  after, once the upstream is set
+- **G-0640** — nothing surfaces an existing gap at filing time, so duplicates land.
+  The one entry in this file that reduces how many gaps get filed rather than how
+  many are wrong; G-0562 and G-0578, filed five days apart against one call site
+  with neither referencing the other, are what it would have caught
+- **G-0638** — the epic branch guard's `--force` bypass is recorded nowhere and
+  gated by nothing, so the escape hatch leaves no trace the next reader can find
+- **G-0658** — nothing pins that `--root` reaches the commit-msg guard that reads the
+  index
+- **G-0661** — no check caps an in-function comment at the length D-0084 sets
+- **G-0663** — the confirmation round after a review finding has no chokepoint
+- **G-0676** — a CLAUDE.md edit rides inside any commit and no gate is specific to it
+- **G-0683** — no automated gate catches a deleted CHANGELOG entry before the release
+  tag
 
 ### 2. Surfaces that state something false *(one decision first)*
 
@@ -185,6 +216,13 @@ neither reads what it says.
   key rather than correcting the fifteen cells
 - **G-0632** — a verb's long help can contradict its behaviour with nothing catching
   it; the help text is the surface a reader trusts before they run anything
+- **G-0643** — `aiwfx-whiteboard` calls an operator ordering file uncommitted; this
+  one is not
+- **G-0667** — `aiwf import` is deprecated but every surface presents it as current
+- **G-0668** — measured figures carry no command, and cluster in the records that
+  never forget
+- **G-0681** — shipped surfaces spell an `aiwf add` invocation that exits 2
+
 
 ### 3. Oracles — what tells the builder it is wrong *(design first)*
 
@@ -258,6 +296,8 @@ in is any good. Vocabulary in `docs/design/oracles.md`; initiative context in
   M-0309 are cancelled. Reconcile with E-0019, D-0066,
   `tdd-cycle-subagent-boundaries.md` and
   `milestone-preflight-as-independent-review.md` before reopening *(unfiled)*
+- **G-0662** — `wf-patch`'s review asks none of the five shape questions the wrap asks
+
 
 ### 4. Cheap fixes, batchable now
 
@@ -361,7 +401,6 @@ silently goes stale, or it cannot be enforced at all.
 - **G-0526** — source-discipline rules ship as prose with no rule or envelope of
   aiwf's own to enforce them. A seam does exist: the materialized hooks chain to a
   consumer's `<hook>.local`, which is what this repo's own instance rides
-- **G-0529** — CHANGELOG completeness rests on recall at epic wrap; nothing checks it
 - **G-0514** — `skill-body-id` would tell a CLI metavariable or a non-id acronym to
   become a placeholder. Latent: the M-0288 sweep emptied the population, so nothing
   is being misdirected today
@@ -373,9 +412,6 @@ silently goes stale, or it cannot be enforced at all.
   binary without consulting disk, so a stale binary moves them backwards and reports
   success. The statusline already implements the guard this asks for, and refuses to
   downgrade — copy it rather than design it
-- **G-0601** — `history` renders a commit carrying `aiwf-verb` or `aiwf-actor`, so a
-  shipped-surface edit provable by `aiwf-entity` alone is invisible in the timeline it
-  belongs to. Measured on `main`: 13 such commits, 7 of them watched skill edits
 - **G-0588** — `import` ships as a live verb with no consumer and its spec archived
 - **G-0586** — the handoff block carries settled conclusions and has no slot for an
   open question
@@ -397,6 +433,11 @@ silently goes stale, or it cannot be enforced at all.
 - **G-0634** — `aiwf worktree` ships `add` and nothing that undoes it, and no
   surface says what does: not the skill, not ADR-0023, not any design doc. The
   repo's own verb-design rule requires the answer
+- **G-0648** — wrap-epic's gap-closure precondition has no route for the epic's own
+  spec
+- **G-0688** — `aiwfx-wrap-epic` step 5 never fast-forwards local main when a worktree
+  holds it
+
 
 ### 8. Error contract *(parallel any time)*
 
@@ -416,6 +457,10 @@ exit-2/exit-3 boundary, which D-0044 already ratified a three-class contract for
 - **G-0568** — `status` rows omit `subcode`, so they cannot be matched against the
   findings envelope. Carry it when someone next touches the struct; the body declines
   severity outright and says to close this if no comparator materialises
+- **G-0649** — a sovereign-act refusal carries no finding code, so the spec cannot
+  bind it
+- **G-0687** — `acknowledge illegal --for-entity` refuses a merge commit
+
 
 ### 9. Duplication and the instrument that measures it *(any order)*
 
@@ -439,11 +484,13 @@ inventory question is the one that stands on its own.
 - **G-0448** — the check rule list is split across four dispatch surfaces, and the
   split is a declared layering boundary rather than an accident. What is missing is a
   wiring chokepoint; `Where to fix` omits the surface carrying seven rules
-- **G-0633** — two walks answer "which entity bodies mention this id" independently
-  and disagree. Duplication with a measurable consequence: the closure notice and
-  `reallocate`'s prose sweep act on different answers
-- **G-0636** — milestone-spec section timing is restated across five surfaces; a
-  correction has to find all five or the tree contradicts itself
+- **G-0656** — no rule records whether it keys to the kernel's scaffold set or the
+  template's
+- **G-0659** — a review finding is recorded twice, and the spec copy is the one that
+  drifts
+- **G-0672** — two policies duplicate the git range scan over a commit range
+- **G-0682** — rituals restate body rules the templates own, and have already drifted
+
 
 ### 10. What the model can't express *(each gated on a decision)*
 
@@ -511,6 +558,10 @@ in flight, and G-0519 and G-0548 are missing chokepoints rather than stale text.
   declines. E-0088 scopes the `docs/` half out deliberately; its last milestone
   re-frames or confirms this, and carries this gap's stale counts
 - **G-0579** — D-0015's consequences cite a drift guard that no longer exists
+- **G-0651** — backticked prose in a flag usage string renders as its value
+  placeholder
+- **G-0674** — the `--principal` flag's help text cites an internal iteration label
+
 
 ### 12. Development environment — the machine the gates run on
 
@@ -535,3 +586,7 @@ review cycles, and a green run on a nearly-full disk is not evidence either way.
   which requires the binding it removes
 - **G-0372** — the history-dependent check rules walk all reachable history from
   scratch on every push
+- **G-0645** — shared test-binary temp dirs are never removed, leaking ~23G to /tmp
+- **G-0654** — `make build` emits a `bin/aiwf` that gets reached for instead of the
+  release
+
