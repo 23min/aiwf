@@ -222,8 +222,10 @@ one added and removed again within the push is not. A section already missing
 where the branch left its base, or already missing on trunk, is never reported.
 An entity the push creates must carry every required section unless
 `aiwf import` or `aiwf add --force` created it; an import in per-entity commit
-mode now stamps `aiwf-verb: import` on each commit, so `aiwf history` and the
-`aiwf status` digest show those entities as imported rather than added. Restore
+mode now stamps `aiwf-verb: import` on each commit, so `aiwf history` shows
+those entities as imported rather than added, and the `aiwf status` digest,
+which counts only `add` commits under "Gaps opened" and "ADRs created", no
+longer counts them there. Restore
 the heading with its content to clear the finding — for a gap, decision, ADR or
 contract that is not terminal, an empty required section is itself an error — or
 keep a removal with
