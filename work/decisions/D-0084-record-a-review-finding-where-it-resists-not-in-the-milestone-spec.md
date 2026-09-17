@@ -80,9 +80,10 @@ milestone's own epic is retiring the section — and the section with no mandate
 grew while the author was pruning. All three are named in the reviewer's brief,
 so what grows here is read back into the next round.
 
-Rejected: capping doc comments by the same count. Measured, 85% of the blocks over
-eight lines in `internal/` sit against a declaration, which is where Go puts a
-symbol's contract and what `go doc` prints. The count is a proxy for "is this
+Rejected: capping doc comments by the same count. Measured with
+`make growth-report`, 91% of the blocks over eight lines in `internal/` sit
+against a declaration, which is where Go puts a symbol's contract and what
+`go doc` prints. The count is a proxy for "is this
 arguing", and substituting a proxy for the thing meant is the error this decision
 exists to reduce.
 
