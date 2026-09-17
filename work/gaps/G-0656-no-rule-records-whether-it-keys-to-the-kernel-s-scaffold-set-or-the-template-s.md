@@ -61,9 +61,8 @@ does when it wants a section only the template ships — accept that it can only
 warn, or extend the scaffold so the kernel writes it too.
 
 Extending the scaffold is not free: it changes what every new entity of that kind
-carries, and for milestone it would grow a two-entry set toward seventeen. G-0571
-measures the enforcement half of that blast radius at 119 findings over 60 live
-entities.
+carries, and for milestone it would grow a two-entry set toward seventeen. The
+enforcement half of that blast radius is measured in ADR-0043.
 
 ## References
 
