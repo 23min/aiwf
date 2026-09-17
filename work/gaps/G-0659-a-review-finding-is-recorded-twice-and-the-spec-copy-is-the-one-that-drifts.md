@@ -46,9 +46,11 @@ defects in prose written by the round before.
 
 The same shape appears in code comments, unbounded. Measured across `internal/`
 on 2026-09-01: 4,513 production comment blocks, of which 1,027 exceed eight lines
-and account for 17,426 lines; the longest is 115. 85% of those sit against a
-declaration, where Go's own convention puts a symbol's contract; 158 float inside
+and account for 17,426 lines; the longest is 115. 91% of those sit against a
+declaration, where Go's own convention puts a symbol's contract; 97 float inside
 function bodies, where nothing distinguishes an explanation from an argument.
+The block counts re-derive from `make growth-report`; the floating split is the
+figure it reports, agreeing with `go/parser` at every commit tried.
 M-0327 added 177 comment lines to production Go, 119 of them in blocks of ten or
 more.
 
