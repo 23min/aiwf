@@ -46,7 +46,15 @@ Cut it from the project's mainline in its own worktree rather than switching the
 aiwf worktree add patch/G-NNNN-<short-slug> --base main --print-path
 ```
 
-This ritual runs as the calling session's own direct work (not a dispatched subagent), so call the harness `EnterWorktree(path: <printed path>)` tool right after `aiwf worktree add` succeeds: creating the worktree only puts it on disk, it does not relocate the session, and only `EnterWorktree` does that.
+Then move this session into it:
+
+```bash
+cd "<printed path>"
+```
+
+Move with `cd`, not the `EnterWorktree` tool: a session entered that way cannot reach mainline's worktree, and steps 11 through 15 run there.
+
+Stay inside the repository while you work: a `cd` to a directory outside it returns the session to the directory it started in, not to this worktree. Run anything that needs another directory in a subshell, `( cd <dir> && … )`.
 
 Name the branch for the gap it closes so the statusline can surface it:
 
@@ -100,7 +108,14 @@ Show the user the staged diff, the independent-review outcome (or the named carv
 
 ### 9. After commit approval
 
-Re-run `git diff --cached` against the same fingerprint one more time, immediately before running `git commit` — the gap between gate approval and execution is exactly where an unnoticed mutation would land uncaught. Only then commit. The patch branch is normally never pushed — the merge in step 12 is local, so the branch lives and dies on this machine.
+Re-run `git diff --cached` against the same fingerprint one more time, immediately before running `git commit` — the gap between gate approval and execution is exactly where an unnoticed mutation would land uncaught. Only then commit, confirming the branch in the same command so a session that has lost its directory commits nothing:
+
+```bash
+[ "$(git rev-parse --abbrev-ref HEAD)" = <branch> ] || { echo "not on the patch branch"; exit 1; }
+git commit …          # with the message from step 7
+```
+
+The patch branch is normally never pushed — the merge in step 12 is local, so the branch lives and dies on this machine.
 
 ### 10. 🛑 Wrap gate (declared sequence)
 
@@ -120,21 +135,22 @@ Once the sequence is approved, execute it in order:
 
 Run this immediately before the merge — not as an earlier precondition a concurrent push can invalidate. The target is your *local* mainline (the branch the patch forked from and merges into), not the remote-tracking ref.
 
-**Move into mainline's worktree; do not check mainline out.** A branch can be checked out in one worktree at a time, so where the patch was cut into its own worktree (step 2) mainline is held elsewhere and `git checkout main` fails with *"fatal: … is already used by worktree at …"*. Changing directory into the worktree that already holds it moves no branch and cannot fail that way. Do it once, here — steps 12 through 15 then run as plain commands carrying no path:
+**Move into mainline's worktree; do not check mainline out.** A branch can be checked out in one worktree at a time, so where the patch was cut into its own worktree (step 2) mainline is held elsewhere and `git checkout main` fails with *"fatal: … is already used by worktree at …"*. Changing directory into the worktree that already holds it moves no branch and cannot fail that way. This step leaves the patch worktree on purpose; steps 12 through 15 then run there as plain commands carrying no path.
+
+Find the line containing `[main]` (substitute your mainline branch):
 
 ```bash
-MAIN_WT=$(git worktree list --porcelain \
-  | awk -v b="refs/heads/main" \
-        '/^worktree /{wt=substr($0,10)} $0=="branch "b{print wt; exit}')
-cd "${MAIN_WT:?mainline is checked out nowhere — take the fallback below}"
+git worktree list | grep -F '[main]'
+```
+
+Move to the path that line starts with, and confirm where you landed:
+
+```bash
+cd "<path from that line>"
 git rev-parse --abbrev-ref HEAD          # prints main; stop if it does not
 ```
 
-Resolve and `cd` in a **single** command. A shell variable does not survive to the next one — where each command runs in its own shell, as it does for an assistant driving one per tool call, a `MAIN_WT` read back at step 12 is empty, and `git -C ""` does not fail: it runs against the current worktree. `${MAIN_WT:?…}` aborts rather than moving nowhere, and the `rev-parse` states where you landed. Working directory is what survives, which is why nothing below carries a path — within the repository; a worktree placed outside it may be reset back to the repo root, which the `rev-parse` also catches.
-
-`substr($0,10)` rather than `$2` so a worktree path containing spaces survives.
-
-If the `cd` aborts, mainline is checked out nowhere. Check it out here and stay put — you are then already in the right directory, and the rest of the ritual reads the same. That is safe in this ritual specifically: nothing after this step needs the patch branch checked out, and step 14 deletes it, which requires that it is not.
+If no line matches, mainline is checked out nowhere. Check it out here and stay put — you are then already in the right directory, and the rest of the ritual reads the same. That is safe in this ritual specifically: nothing after this step needs the patch branch checked out, and step 14 deletes it, which requires that it is not.
 
 ```bash
 git checkout main
@@ -164,7 +180,7 @@ Step 11 left this session standing in mainline's worktree, so the merge needs no
 ```bash
 [ "$(git rev-parse --abbrev-ref HEAD)" = main ] || { echo "not in mainline's worktree — re-run step 11"; exit 1; }
 git merge --no-ff --no-commit <branch>
-git commit -m "Merge patch/<branch>: <summary>"
+git commit -m "Merge <branch>: <summary>"
 ```
 
 Substitute your mainline branch in the test. Checking rather than assuming is what makes the plain commands safe: without it, a lost directory puts the merge on the patch branch, where it reports `Already up to date.` at exit 0 and mainline receives nothing.
@@ -191,20 +207,18 @@ Those edits are not on the wrap gate's list. Finish the enumerated actions (step
 
 Delete the local branch; remove the worktree if one was used.
 
-Order matters and the branch cannot go first: git refuses to delete a branch a worktree still holds — *"error: cannot delete branch … used by worktree at …"* — and you cannot remove the worktree you are standing in. Leave it, then remove it, then delete the branch:
+Order matters and the branch cannot go first: git refuses to delete a branch a worktree still holds — *"error: cannot delete branch … used by worktree at …"* — and you cannot remove the worktree you are standing in. Leave it, then remove it, then delete the branch. Step 11 already moved this session out, so find the worktree by its branch:
 
 ```bash
-PATCH_WT=$(git worktree list --porcelain \
-  | awk -v b="refs/heads/<branch>" \
-        '/^worktree /{wt=substr($0,10)} $0=="branch "b{print wt; exit}')
+git worktree list | grep -F '[<branch>]'
+```
 
-# Step 11 already moved this session out of the patch worktree, so it can be removed.
-# Where the session entered it through the harness `EnterWorktree` tool rather than by
-# `cd`, leave it with `ExitWorktree` first.
-[ -n "$PATCH_WT" ] && git worktree remove "$PATCH_WT"
-
+```bash
+git worktree remove "<path from that line>"
 git branch -d <branch>
 ```
+
+If no line matches, no worktree holds the branch, and the branch delete is the whole of this step.
 
 ### 15. 🛑 Push gate
 

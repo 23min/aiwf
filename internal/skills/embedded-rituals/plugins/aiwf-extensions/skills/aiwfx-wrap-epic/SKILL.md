@@ -250,27 +250,32 @@ If `aiwf render roadmap --write` reported the file already up to date, skip the 
 
 ### 9. Merge the epic branch into the integration target with a trailered merge commit
 
-Everything above is committed on the epic branch, so this merge is the only commit the integration target receives.
-
-Everything the epic branch needed is now committed, so this is where the session
-moves into the target's worktree. Resolve and `cd` in a single command, and confirm
-where you landed — the target is still never checked *out*, only moved *into*:
+Everything above is committed on the epic branch, so this merge is the only commit the
+integration target receives, and this is where the session leaves the epic worktree
+and moves into the target's worktree — the target is still never checked *out*, only
+moved *into*. Find the line containing the target's name
+in brackets (substitute the project's mainline branch for `main` here and below):
 
 ```bash
-TARGET=main
-TARGET_WT=$(git worktree list --porcelain \
-  | awk -v b="refs/heads/$TARGET" \
-        '/^worktree /{wt=substr($0,10)} $0=="branch "b{print wt; exit}')
-cd "${TARGET_WT:?the target is checked out nowhere — create a worktree for it with aiwf worktree add, then cd there}"
-git rev-parse --abbrev-ref HEAD          # prints the target; stop if it does not
+git worktree list | grep -F '[main]'
 ```
+
+Move to the path that line starts with, and confirm where you landed:
+
+```bash
+cd "<path from that line>"
+git rev-parse --abbrev-ref HEAD          # prints main; stop if it does not
+```
+
+If no line matches, the target is checked out nowhere: create a worktree for it with
+`aiwf worktree add`, then `cd` there.
 
 Mainline can move while the wrap commits are being made, so re-run step 5's
 ancestor check now — this is the "immediately before the merge" step 5 promises:
 
 ```bash
-git merge --ff-only "origin/$TARGET"
-git merge-base --is-ancestor "$TARGET" epic/E-NNNN-<slug>
+git merge --ff-only origin/main
+git merge-base --is-ancestor main epic/E-NNNN-<slug>
 ```
 
 If that fails, mainline advanced: go back to step 5, integrate it into the epic
@@ -279,7 +284,7 @@ branch, and re-run the full local gate there before returning.
 Stage the merge **without committing** so the commit-emitting step is the one carrying trailers:
 
 ```bash
-[ "$(git rev-parse --abbrev-ref HEAD)" = "$TARGET" ] || { echo "not in the target's worktree — re-run the resolution above"; exit 1; }
+[ "$(git rev-parse --abbrev-ref HEAD)" = main ] || { echo "not in the target's worktree — re-run the move above"; exit 1; }
 git merge --no-ff --no-commit epic/E-NNNN-<slug>
 ```
 
@@ -305,7 +310,7 @@ The trailer keys are exact — `aiwf-verb`, `aiwf-entity`, `aiwf-actor`. Variant
 Push is outward and irreversible — its own gate, never part of the declared-sequence gate above. Confirm. Then:
 
 ```bash
-git push origin "$TARGET"
+git push origin main
 ```
 
 Push from the worktree holding the target, not from the epic worktree. The
