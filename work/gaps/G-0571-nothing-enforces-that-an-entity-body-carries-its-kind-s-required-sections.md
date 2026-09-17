@@ -19,8 +19,9 @@ M-0329 closed the write half. `aiwf add` refuses a body omitting a required
 section for every kind, and both `aiwf edit-body` modes refuse a write that drops
 one the committed body carries (ADR-0049). M-0331 closes the push: a push that
 leaves a required section out of a body that carried it, or out of an entity
-created without a verb, is refused there. What no seam covers is the bodies
-already committed without a section, which ADR-0049 leaves unconverged, a branch
+created other than by `aiwf import` or a forced `aiwf add`, is refused there.
+What no seam covers is the bodies already committed without a section, which
+ADR-0049 leaves unconverged, a branch
 pushed once and merged on the server (G-0679), an entity at a path git quotes
 (G-0684), a push made from another branch's checkout, where the hook judges the
 branch checked out instead (G-0685), and `aiwf import`, excluded pending G-0667.
