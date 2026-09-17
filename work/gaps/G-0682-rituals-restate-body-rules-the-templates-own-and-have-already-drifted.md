@@ -1,7 +1,9 @@
 ---
 id: G-0682
 title: Rituals restate body rules the templates own, and have already drifted
-status: open
+status: addressed
+addressed_by_commit:
+    - 6906da5df
 ---
 ## What's missing
 
