@@ -198,7 +198,8 @@ exit 1; with the same file corrupted, both report `warning` and exit 0. The
 pre-commit hook runs `--shape-only` on every commit. No shipped surface runs
 `--fast`: the flag's help at `check.go:60` names the statusline health glyph as
 its consumer, but the statusline script spawns no verb
-(`TestStatusline_RenderInvokesNoKernelVerb`), so that help text is stale. Root
+(`TestStatusline_RenderInvokesNoKernelVerb`), so that help text is stale;
+promoted as G-0692. Root
 cause is C5: `aiwf.yaml` is loaded at more than twenty independent sites with
 four failure behaviours. Patch for the two check paths; milestone for one load
 per invocation. Promoted: G-0691.
