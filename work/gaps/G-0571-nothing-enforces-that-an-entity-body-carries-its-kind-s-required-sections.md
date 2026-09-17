@@ -1,8 +1,10 @@
 ---
 id: G-0571
 title: Nothing enforces that an entity body carries its kind's required sections
-status: open
+status: addressed
 discovered_in: M-0305
+addressed_by_commit:
+    - 03c6175a1
 ---
 ## What's missing
 
