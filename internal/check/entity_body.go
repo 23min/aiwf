@@ -15,8 +15,9 @@ package check
 // is a milestone rather than a standalone file.
 //
 // This rule polices emptiness only. A body that omits a required heading
-// outright is skipped here; membership is held at the write seams instead,
-// by `aiwf add` and `aiwf edit-body`, and by no tree-wide rule (G-0571).
+// outright is skipped here; membership is held at the seams instead — `aiwf
+// add`, `aiwf edit-body`, and the push (entity-body-section-dropped) — and by
+// no tree-wide rule (ADR-0049).
 //
 // Definition of empty: between the section heading and the next
 // heading (or EOF), no non-whitespace content other than headings

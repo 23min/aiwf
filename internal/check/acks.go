@@ -35,8 +35,8 @@ import (
 // rules, and their wiring is what classes 4a-4c check
 // (ackedSHAsConsumers): FSMHistoryConsistent, RunIsolationEscape,
 // RunTrailerVerbUnknown, RunIDRenameUntrailered (M-0160/AC-4),
-// RunOrphanedAICommits, RunPromoteOnWrongBranch and RunProvenance
-// (M-0292).
+// RunOrphanedAICommits, RunPromoteOnWrongBranch, RunProvenance
+// (M-0292) and RunEntityBodySectionDropped (M-0331).
 //
 // Those rules, plus the leaf predicates at the end of
 // FSMHistoryConsistent's forwarding chain —

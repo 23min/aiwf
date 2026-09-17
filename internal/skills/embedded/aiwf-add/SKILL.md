@@ -101,21 +101,21 @@ Same leading-`---` rejection as the whole-entity flag. AC-specific rules:
 
 ## Empty-body gate for born-complete kinds (`gap`, `decision`, `adr`, `contract`)
 
-`gap`, `decision`, `adr`, and `contract` have no draft phase in their FSM — the entity is live and referenceable the moment the create commit lands, so an empty body is never "by design" the way a freshly-scaffolded milestone's is. `aiwf add` refuses to create one of these four kinds when a required top-level body section (`## <Section>` per the table in *"After `aiwf add <kind>`: fill in the body"* below) is empty: no content, all-whitespace, headings-only, or only an HTML comment.
+`gap`, `decision`, `adr`, and `contract` have no draft phase in their FSM — the entity is live and referenceable the moment the create commit lands, so an empty body is never "by design" the way a freshly-scaffolded milestone's is. `aiwf add` refuses to create one of these four kinds when a required top-level body section (`## <Section>`, as printed by `aiwf template <kind>`) is empty: no content, all-whitespace, headings-only, or only an HTML comment.
 
 ```
 $ aiwf add gap --title "Retry loop spins forever"
 aiwf add: G-NNNN: empty load-bearing body section(s) `## What's missing`, `## Why it matters`; a gap is referenceable the instant this commit lands, so its body must carry meaning at creation — pass --body "..." or --body-file <path> with real prose, or --force --reason "..." to create anyway (aiwf check will still flag it at error severity and the pre-push hook will still block until it's filled in)
 ```
 
-Fix it by passing real prose via `--body "<text>"` or `--body-file <path>`, or create it anyway with `--force --reason "<one-sentence justification>"` — the same sovereign-override shape `aiwf promote --force --reason` uses; `--reason` must be non-empty (after trim) whenever `--force` is set, and the override lands an `aiwf-force: <reason>` trailer on the create commit (only when the gate was actually bypassed — a `--force` on a body that would have passed anyway, including every create that takes the kind's scaffold, stamps no trailer). `--force` is not a full override for the *emptiness* half: the entity lands with an empty section, which the check-time backstop below still catches. It is a full override for the *absence* half — a section left out entirely is reported by no rule, so a body forced past that half is exempt from this gate and from `aiwf edit-body`'s, which compares an edit against the committed body and finds the section already gone. Prefer leaving the heading in and empty. Epic and milestone keep the placeholder-then-fill workflow for *emptiness* — a scaffolded body with every heading present and nothing under them is accepted (see *"After `aiwf add <kind>`: fill in the body"* below). A body that omits a heading is refused for them too:
+Fix it by passing real prose via `--body "<text>"` or `--body-file <path>`, or create it anyway with `--force --reason "<one-sentence justification>"` — the same sovereign-override shape `aiwf promote --force --reason` uses; `--reason` must be non-empty (after trim) whenever `--force` is set, and the override lands an `aiwf-force: <reason>` trailer on the create commit (only when the gate was actually bypassed — a `--force` on a body that would have passed anyway, including every create that takes the kind's scaffold, stamps no trailer). `--force` is not a full override for the *emptiness* half: the entity lands with an empty section, which the check-time backstop below still catches. It is a full override for the *absence* half: a forced create is its entity's starting point, so what it left out is never asked for again — not by `aiwf edit-body`, which compares an edit against the committed body, and not at the push. Prefer leaving the heading in and empty. Epic and milestone keep the placeholder-then-fill workflow for *emptiness* — a scaffolded body with every heading present and nothing under them is accepted (see *"After `aiwf add <kind>`: fill in the body"* below). A body that omits a heading is refused for them too:
 
 ```
 $ aiwf add epic --title "Caching" --body-file goal-and-scope-only.md
 aiwf add: E-NNNN: body omits required section(s) `## Out of scope` — add the heading with real prose under it, or --force --reason "..." to create anyway
 ```
 
-`aiwf check`'s `entity-body-empty` rule is the backstop for a section that is **present and empty** — in a hand-authored file, or in one forced past this gate. For these four kinds it always fires at **error** severity, independent of `aiwf.yaml: tdd.strict`, so a hollow gap/decision/adr/contract that slips past the verb still blocks the pre-push hook. It is not a backstop for a section that is **absent**: no rule reads a body it is not writing, so nothing downstream catches that.
+`aiwf check`'s `entity-body-empty` rule is the backstop for a section that is **present and empty** — in a hand-authored file, or in one forced past this gate. For these four kinds it always fires at **error** severity, independent of `aiwf.yaml: tdd.strict`, so a hollow gap/decision/adr/contract that slips past the verb still blocks the pre-push hook. A section that is **absent** is caught at the push instead: `entity-body-section-dropped` reports a pushed commit that removes one, or that creates an entity by hand and leaves one out.
 
 ## Allocating ids across branches and clones
 
@@ -178,19 +178,9 @@ aiwf milestone tdd M-NNNN --policy required --reason "AC list stabilized"
 
 ## After `aiwf add <kind>`: fill in the body
 
-`aiwf add` is step 1 of 2. The verb writes correct frontmatter and an atomic create commit; the body prose under each `## <Section>` heading is **required, not optional**, across all six top-level kinds and ACs. The kernel doesn't fail closed on missing prose at create time so the verb stays cheap, but `aiwf check` surfaces empty bodies as `entity-body-empty` findings, and any milestone or epic or AC with a hollow body is half-shipped.
+`aiwf add` is step 1 of 2. The verb writes correct frontmatter and an atomic create commit; the body prose under each `## <Section>` heading is **required, not optional**, across all six top-level kinds and ACs. A body that omits a required section is refused for every kind, and the born-complete kinds refuse an empty one too; epic and milestone accept a scaffold whose sections are present and empty, so the prose can follow in a second step, and `aiwf check` surfaces those empty sections as `entity-body-empty` findings — any milestone or epic or AC with a hollow body is half-shipped.
 
-The load-bearing body sections per kind:
-
-| Kind | Required body sections |
-|---|---|
-| epic | `## Goal`, `## Scope`, `## Out of scope` |
-| milestone | `## Goal`, `## Acceptance criteria` |
-| ac | The `### AC-N — <title>` body — see `aiwf-add` §"What to write per kind" below |
-| gap | `## What's missing`, `## Why it matters` |
-| adr | `## Context`, `## Decision`, `## Consequences` |
-| decision | `## Question`, `## Decision`, `## Reasoning` |
-| contract | `## Purpose`, `## Stability` |
+Which sections a kind requires is printed by `aiwf template <kind>`, and the verb holds you to it: `aiwf add` refuses a body omitting one, and `aiwf edit-body` refuses a write that drops one the committed body carries. An AC is the exception with no section set of its own — its body is the `### AC-N — <title>` prose. What to write *in* each section is stated by that kind's template; §"What to write per kind" below routes you to it.
 
 Two ways to land the body content:
 
@@ -203,7 +193,7 @@ Two ways to land the body content:
 
 ### What to write per kind
 
-The per-kind table above lists *which* sections must be non-empty. What to write *in* each one is stated by that kind's template, beside the section it governs — `aiwf-add` §"Locating the rich body template" above names the file for each kind. Open the template for the kind you are writing; for those six kinds this skill states no rule of its own.
+`aiwf template <kind>` lists *which* sections a kind requires. What to write *in* each one is stated by that kind's template, beside the section it governs — `aiwf-add` §"Locating the rich body template" above names the file for each kind. Open the template for the kind you are writing; for the six top-level kinds this skill states no rule of its own.
 
 An acceptance criterion is the exception: it is a sub-element of a milestone rather than a kind with a template file, so its rule is stated here. It is advisory — `aiwf check` asserts presence, not structure — but it shapes the project's default; following it produces a better criterion than inventing a shape.
 
@@ -242,7 +232,7 @@ If the LLM is invoked turn-by-turn by a human (HITL / tool mode), pass `--actor 
 - Don't pass `--actor` unless the user asked for a specific actor; the default (derived from git config user.email) is correct.
 - Don't omit `--principal` when invoking as a non-human actor — the verb refuses with a `provenance-trailer-incoherent` finding.
 - Don't manually edit the milestone's `acs[]` to "fix" a gap from a cancelled AC — AC ids are position-stable. After cancelling AC-2, the next `aiwf add ac` allocates AC-3, not a recycled AC-2.
-- Don't leave load-bearing body sections empty for any entity kind — the title is a label, not a spec. For `gap`/`decision`/`adr`/`contract` this is refused at creation (see *"Empty-body gate for born-complete kinds"* above); for epic/milestone/AC, a section left present and empty is surfaced by `aiwf check` as `entity-body-empty` (warning by default; error under `aiwf.yaml: tdd.strict: true`) — a heading deleted rather than left empty is refused at the write and reported by no tree-wide rule. The body is the spec — write the prose detail before declaring the entity complete. See *"After `aiwf add <kind>`: fill in the body"* above for the per-kind shapes.
+- Don't leave load-bearing body sections empty for any entity kind — the title is a label, not a spec. For `gap`/`decision`/`adr`/`contract` this is refused at creation (see *"Empty-body gate for born-complete kinds"* above); for epic and milestone, a section left present and empty is surfaced by `aiwf check` as `entity-body-empty` (warning by default; error under `aiwf.yaml: tdd.strict: true`), and a heading deleted rather than left empty is refused at the write and at the push. An acceptance criterion has no required section set of its own: its `### AC-N` body left empty is reported as `milestone-draft-incomplete-acs` while the milestone is a draft and as `acs-empty-body` at error severity once it is in progress, and the heading deleted is accepted at the write and reported as `acs-body-coherence`. The body is the spec — write the prose detail before declaring the entity complete. See *"After `aiwf add <kind>`: fill in the body"* above for where each kind's shape is stated.
 
 ## Tree discipline — `work/` is aiwf's domain
 

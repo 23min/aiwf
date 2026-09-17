@@ -25,6 +25,39 @@ has moved into the template, beside what it governs. Some template sections that
 capped their length by a count now say to keep it short instead, and name what may
 make one longer.
 
+### Added — E-0084: the push refuses an entity body that dropped a required section
+
+`aiwf check`, and so the pre-push hook, now refuses a push that leaves a required
+section — `## Goal`, `## What's missing`, and the rest of each kind's set — out of
+an entity's body, reporting `entity-body-section-dropped` at error severity. It
+catches edits that never passed through `aiwf edit-body`, including a plain
+`git commit` carrying aiwf trailers, and it judges everything the checked-out
+branch adds over its upstream as one push: a section removed on a branch merged
+in, or in a file a later commit renamed, archived or reallocated, is reported, and
+one added and removed again within the push is not. A section already missing
+where the branch left its base, or already missing on trunk, is never reported.
+An entity the push creates must carry every required section unless
+`aiwf import` or `aiwf add --force` created it; an import in per-entity commit
+mode now stamps `aiwf-verb: import` on each commit, so `aiwf history` shows
+those entities as imported rather than added, and the `aiwf status` digest,
+which counts only `add` commits under "Gaps opened" and "ADRs created", no
+longer counts them there. Restore
+the heading with its content to clear the finding — for a gap, decision, ADR or
+contract that is not terminal, an empty required section is itself an error — or
+keep a removal with `aiwf acknowledge illegal <sha> --reason "..."`, adding
+`--for-entity <id>` when the same commit is also reported by
+`provenance-untrailered-entity-commit`. The check runs only when the branch has
+an upstream or `--since <ref>` is passed, and the pre-push hook runs it on the
+branch checked out where the push is made.
+
+### Changed — E-0084: the `aiwf-add` skill routes to `aiwf template` instead of restating the section set
+
+The `aiwf-add` skill no longer carries a per-kind table of required body
+sections. Run `aiwf template <kind>` to see what a kind requires; `aiwf add`
+and `aiwf edit-body` already refuse a body that omits one, and the refusal
+names the missing headings. Consumers see the change on their next
+`aiwf update`.
+
 ### Added — G-0652: code review flags added prose that repeats another record
 
 `wf-review-code` now flags a sentence a change adds or rewrites when another record

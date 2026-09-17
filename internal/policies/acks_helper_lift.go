@@ -25,6 +25,7 @@ var ackedSHAsConsumers = []string{
 	"RunOrphanedAICommits",
 	"RunPromoteOnWrongBranch",
 	"RunProvenance",
+	"RunEntityBodySectionDropped",
 }
 
 // ackedSHAsBodyConsumers is the set whose bodies class 4d requires to
@@ -42,6 +43,7 @@ var ackedSHAsBodyConsumers = []string{
 	"RunOrphanedAICommits",
 	"RunPromoteOnWrongBranch",
 	"RunProvenance",
+	"RunEntityBodySectionDropped",
 	"illegalTransitionFindings",
 	"forcedUntraileredFindings",
 }

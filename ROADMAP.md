@@ -1170,7 +1170,7 @@ not.
 
 _No milestones yet._
 
-## E-0084 — Enforce body-section membership at the write seams (active)
+## E-0084 — Enforce body-section membership at the write seams (done)
 
 ### Goal
 
@@ -1180,8 +1180,8 @@ because nothing enforced it.
 
 | Milestone | Title | Status |
 |---|---|---|
-| M-0331 | Refuse at the push a body that reached a commit without passing a verb | draft |
-| M-0332 | Retire the prose that restates the section set | draft |
+| M-0331 | Refuse at the push a body that reached a commit without passing a verb | done |
+| M-0332 | Retire the prose that restates the section set | done |
 
 ## E-0085 — Measure the spec before the code; record what the measurement changed (cancelled)
 
