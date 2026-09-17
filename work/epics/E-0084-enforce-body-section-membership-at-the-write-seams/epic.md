@@ -94,14 +94,14 @@ rather than by policy; ADR-0049 carries that forward. This epic implements it.
       body (ADR-0049) — and a test per verb fails if the call is removed. M-0329
       satisfies this for `aiwf add` and `aiwf edit-body`; `aiwf import` is
       excluded on its deprecation, so the criterion closes when G-0667 does.
-- [ ] A body reaching a commit without passing any verb is refused at the push, proven
+- [x] A body reaching a commit without passing any verb is refused at the push, proven
       against the path that does this today rather than a synthetic one.
-- [ ] `aiwf check` on this tree reports the same findings before and after the epic.
-- [ ] A status promote, a retitle, and an archive sweep each succeed against an entity
+- [x] `aiwf check` on this tree reports the same findings before and after the epic.
+- [x] A status promote, a retitle, and an archive sweep each succeed against an entity
       whose body omits a required section.
 - [x] Every passage listed in *Prose retired* is deleted, and a test that would have
       failed had it been merely corrected instead.
-- [ ] G-0571 is `addressed`.
+- [x] G-0571 is `addressed`.
 
 ## Prose retired
 
@@ -136,8 +136,10 @@ Each states the section set, and each is deletable only once a refusal carries i
 
 - ~~the verb seam: the scan, wired into every body-supplying verb, with a per-verb
   test~~ — delivered by M-0329 under E-0091, less `aiwf import`
-- M-0331 — the push seam: the gate on the provenance range, scoped to
-  body-changed entities
+- ~~M-0331 — the push seam: the gate on the provenance range, scoped to
+  body-changed entities~~ — delivered: the gate follows each entity by path from
+  where the branch left its base to HEAD and refuses a required section present
+  at the start and absent at the end, crediting the commit that removed it
 - ~~M-0332 — the deletion: retire the prose the enforcement makes redundant~~ —
   delivered: both tables are gone, each replaced by a route to what owns the
   set, and a scan over the shipped and normative corpus reports any per-kind
