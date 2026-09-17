@@ -101,19 +101,24 @@ if ! command -v golangci-lint >/dev/null 2>&1; then
     | sh -s -- -b "$(go env GOPATH)/bin" "${GOLANGCI_LINT_VERSION}"
 fi
 
+# Pinned (not @latest): v0.12.0 requires go >= 1.26, ahead of this
+# container's toolchain; @latest would break under GOTOOLCHAIN=local.
+GOFUMPT_VERSION="v0.11.0"
 if ! command -v gofumpt >/dev/null 2>&1; then
-  echo "==> Installing gofumpt"
-  go install mvdan.cc/gofumpt@latest
+  echo "==> Installing gofumpt ${GOFUMPT_VERSION}"
+  go install "mvdan.cc/gofumpt@${GOFUMPT_VERSION}"
 fi
 
+GOIMPORTS_VERSION="v0.49.0"
 if ! command -v goimports >/dev/null 2>&1; then
-  echo "==> Installing goimports"
-  go install golang.org/x/tools/cmd/goimports@latest
+  echo "==> Installing goimports ${GOIMPORTS_VERSION}"
+  go install "golang.org/x/tools/cmd/goimports@${GOIMPORTS_VERSION}"
 fi
 
+GOVULNCHECK_VERSION="v1.7.0"
 if ! command -v govulncheck >/dev/null 2>&1; then
-  echo "==> Installing govulncheck"
-  go install golang.org/x/vuln/cmd/govulncheck@latest
+  echo "==> Installing govulncheck ${GOVULNCHECK_VERSION}"
+  go install "golang.org/x/vuln/cmd/govulncheck@${GOVULNCHECK_VERSION}"
 fi
 
 # gitleaks version must match .github/workflows/gitleaks.yml so the local
