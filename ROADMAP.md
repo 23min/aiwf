@@ -1170,7 +1170,7 @@ not.
 
 _No milestones yet._
 
-## E-0084 — Enforce body-section membership at the write seams (active)
+## E-0084 — Enforce body-section membership at the write seams (done)
 
 ### Goal
 
