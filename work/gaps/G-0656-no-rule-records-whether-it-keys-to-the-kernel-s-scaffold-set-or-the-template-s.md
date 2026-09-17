@@ -62,7 +62,7 @@ warn, or extend the scaffold so the kernel writes it too.
 
 Extending the scaffold is not free: it changes what every new entity of that kind
 carries, and for milestone it would grow a two-entry set toward seventeen. The
-enforcement half of that blast radius is measured in ADR-0043.
+enforcement half of that blast radius is measured in ADR-0049.
 
 ## References
 
