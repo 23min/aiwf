@@ -69,19 +69,8 @@ func TestShippedSkills_CrossSkillCitationsResolve(t *testing.T) {
 	root := repoRoot(t)
 
 	var checked int
-	err := filepath.WalkDir(filepath.Join(root, shippedMarkdownRoot), func(path string, d os.DirEntry, err error) error {
-		if err != nil {
-			return err
-		}
-		if d.IsDir() || !strings.HasSuffix(path, ".md") {
-			return nil
-		}
-		data, readErr := os.ReadFile(path) //nolint:gosec // walking a repo-relative tree under test
-		if readErr != nil {
-			return readErr
-		}
-		rel, _ := filepath.Rel(root, path)
-		for _, m := range skillSectionCitation.FindAllStringSubmatch(string(data), -1) {
+	err := walkShippedMarkdown(root, []string{shippedMarkdownRoot}, func(rel, content string) {
+		for _, m := range skillSectionCitation.FindAllStringSubmatch(content, -1) {
 			skill, section := m[1], m[2]
 			target := findEmbeddedSkill(root, skill)
 			if target == "" {
@@ -97,10 +86,9 @@ func TestShippedSkills_CrossSkillCitationsResolve(t *testing.T) {
 				t.Errorf("%s cites `%s` §%q, but %s has no heading by that name — the citation is dangling", rel, skill, section, skill)
 			}
 		}
-		return nil
 	})
 	if err != nil {
-		t.Fatalf("walk %s: %v", shippedMarkdownRoot, err)
+		t.Fatal(err)
 	}
 	if checked == 0 {
 		t.Error("no cross-skill section citations found; this check has stopped covering anything")

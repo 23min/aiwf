@@ -21,7 +21,7 @@ Every mutation of `aiwf.yaml.contracts.*` has a verb. The LLM uses the verb. Alw
 
 | Want to … | Use this verb |
 |---|---|
-| Create a contract entity (and optionally bind it) | `aiwf add contract --title "..." --linked-adr ADR-NNNN [--validator <name> --schema <path> --fixtures <path>]` |
+| Create a contract entity (and optionally bind it) | `aiwf add contract --title "..." --body-file <path> --linked-adr ADR-NNNN [--validator <name> --schema <path> --fixtures <path>]` |
 | Add or replace a binding for an existing contract | `aiwf contract bind <C-NNNN> --validator <name> --schema <path> --fixtures <path>` |
 | Remove a binding | `aiwf contract unbind <C-NNNN>` |
 | Install a validator from a shipped recipe | `aiwf contract recipe install <name>` |
@@ -54,17 +54,18 @@ If the user's language has no shipped recipe, see "Language with no recipe."
 
 A contract bundle has five pieces. All five are required to call the bundle complete. Walk the user through each:
 
-1. **An ADR explaining what the contract is and why.** `aiwf add adr --title "..."`. The ADR body covers: who produces, who consumes, what failure modes a free-form interface would carry, what alternatives were considered.
+1. **An ADR explaining what the contract is and why**, recorded through `aiwfx-record-decision`. The ADR body covers: who produces, who consumes, what failure modes a free-form interface would carry, what alternatives were considered.
 2. **The authoritative schema** in the user's chosen language at `docs/schemas/<topic>/schema.<ext>`. The schema is the single source of truth. Generated types and runtime checks derive from it; never the other way around.
 3. **At least one valid fixture** at `docs/schemas/<topic>/fixtures/v1/valid/<name>.<ext>`. Demonstrates the shape the schema accepts.
 4. **At least one invalid fixture** at `docs/schemas/<topic>/fixtures/v1/invalid/<name>.<ext>`. Demonstrates a shape the schema rejects. **Invalid fixtures are not optional** — without them, the schema's permissiveness goes untested. "Schema accepted something we didn't intend" is the dominant contract bug class.
 5. **A worked example** — one realistic, end-to-end scenario with concrete domain values. No `<placeholder>`, no `lorem ipsum`. Real names, real numbers, real dates. Lives at the path documented in the ADR. Proves a human can read the shape and tell what it means.
 
-After authoring, register and bind the contract in one verb:
+After authoring, draft the record's body from `.claude/templates/contract.md`, then register and bind the contract in one verb:
 
 ```bash
 aiwf add contract \
   --title "Op execution spec" \
+  --body-file op-execution-spec.md \
   --linked-adr ADR-NNNN \
   --validator cue \
   --schema   docs/schemas/opspec/schema.cue \
@@ -194,7 +195,7 @@ If the user wants to share their pattern, encourage upstreaming a recipe — but
 
 ### "Add a contract without a validator yet"
 
-Allowed and supported. Run `aiwf add contract --title "..." --linked-adr ADR-NNNN` **without** the `--validator / --schema / --fixtures` flags. The entity is created; no binding is added. The contract appears as a registry record but has no verification target. When the user is ready to wire validation, run `aiwf contract bind <id> --validator ... --schema ... --fixtures ...`.
+Allowed and supported. Run `aiwf add contract --title "..." --body-file <path> --linked-adr ADR-NNNN` **without** the `--validator / --schema / --fixtures` flags. The entity is created; no binding is added. The contract appears as a registry record but has no verification target. When the user is ready to wire validation, run `aiwf contract bind <id> --validator ... --schema ... --fixtures ...`.
 
 This is the right answer when:
 

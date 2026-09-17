@@ -62,9 +62,11 @@ func NewCmd(correlationID string) *cobra.Command {
   # Create a milestone under an epic (--tdd is required: required|advisory|none)
   aiwf add milestone --epic E-01 --tdd required --title "Bootstrap Cobra"
 
-  # Create a contract atomically wired to a validator
+  # Create a contract atomically wired to a declared validator
+  # (declare one first, e.g. aiwf contract recipe install cue; the ADR, a
+  # contract.md holding the body, and the --schema and --fixtures paths must exist)
   aiwf add contract --linked-adr ADR-0001 --title "Render envelope" \
-    --validator render --schema schemas/render.cue --fixtures fixtures/render`,
+    --body-file contract.md --validator cue --schema schemas/render.cue --fixtures fixtures/render`,
 		Args:          cobra.MinimumNArgs(1),
 		SilenceErrors: true,
 		SilenceUsage:  true,

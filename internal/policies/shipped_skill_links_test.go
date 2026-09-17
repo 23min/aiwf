@@ -2,8 +2,6 @@ package policies
 
 import (
 	"fmt"
-	"os"
-	"path/filepath"
 	"regexp"
 	"strings"
 	"testing"
@@ -85,27 +83,13 @@ func TestShippedSkills_NoRepoRelativeLinks(t *testing.T) {
 	root := repoRoot(t)
 
 	var offenders []string
-	for _, rel := range shippedSkillRoots {
-		err := filepath.WalkDir(filepath.Join(root, rel), func(path string, d os.DirEntry, err error) error {
-			if err != nil {
-				return err
-			}
-			if d.IsDir() || !strings.HasSuffix(path, ".md") {
-				return nil
-			}
-			data, err := os.ReadFile(path)
-			if err != nil {
-				return err
-			}
-			relPath, _ := filepath.Rel(root, path)
-			for _, h := range scanRepoRelativeLinks(string(data)) {
-				offenders = append(offenders, fmt.Sprintf("%s:%d → %s", relPath, h.line, h.dest))
-			}
-			return nil
-		})
-		if err != nil {
-			t.Fatalf("walking %s: %v", rel, err)
+	err := walkShippedMarkdown(root, shippedSkillRoots, func(relPath, content string) {
+		for _, h := range scanRepoRelativeLinks(content) {
+			offenders = append(offenders, fmt.Sprintf("%s:%d → %s", relPath, h.line, h.dest))
 		}
+	})
+	if err != nil {
+		t.Fatal(err)
 	}
 	if len(offenders) > 0 {
 		t.Errorf("M-0229/AC-2: shipped skills must carry no repo-relative markdown link "+

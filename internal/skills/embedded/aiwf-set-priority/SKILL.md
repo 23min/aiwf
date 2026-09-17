@@ -15,7 +15,7 @@ Triggers:
 - *"deprioritize this"*
 - *"clear the priority"* / *"unset the priority tag"*
 
-Priority can also be set at creation time with `aiwf add gap|decision --priority <level>` — see the `aiwf-add` skill. Reach for `aiwf set-priority` to change or clear it afterward.
+Priority can also be set at creation time, by passing `--priority <level>` to `aiwf add gap` or `aiwf add decision` — see the `aiwf-add` skill. Reach for `aiwf set-priority` to change or clear it afterward.
 
 ## What to run
 

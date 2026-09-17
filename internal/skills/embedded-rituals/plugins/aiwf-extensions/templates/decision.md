@@ -6,17 +6,16 @@ id: D-NNNN
 title: <imperative, ≤ 60 chars>
 status: proposed
 relates_to: []
-supersedes: []
-superseded_by:
 ---
 
 # <id> — <Decision Title>
 
 <!-- The heading above is optional. aiwf never requires it; `aiwf retitle` keeps a
      canonical `# <id> — <title>` in sync when one is present and leaves the body
-     alone when it is not. Keep it if this file will be read as a document outside
-     aiwf, where the id and title are what identify it; delete it otherwise. Delete this
-     comment either way. -->
+     alone when it is not. Delete it from the body you pass to `aiwf add`, which is
+     what allocates the id. If this file will be read as a document outside aiwf,
+     where the id and title are what identify it, add the heading back with
+     `aiwf edit-body` once the id exists. Delete this comment either way. -->
 
 > **Date:** YYYY-MM-DD · **Decided by:** <role or name>
 

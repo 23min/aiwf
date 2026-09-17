@@ -16,6 +16,17 @@ section in this file.
 
 ## [Unreleased]
 
+### Fixed — G-0681: shipped skills spell `aiwf add` commands that run
+
+Skills, rituals and `aiwf add --help` no longer tell a reader to run an `aiwf add`
+command that is refused for lacking a body: each such command now carries one, or is
+described instead of spelled, and the rituals that file a gap name
+`aiwfx-record-gap` alone. `aiwfx-record-decision` drafts the body before it creates
+the entity, and records a supersession with `aiwf promote` rather than a frontmatter
+edit. The ADR and decision templates say to leave their optional id heading out of
+the body passed to `aiwf add`, and to add it afterwards where it is wanted, and the
+decision template no longer lists supersession fields a decision does not have.
+
 ### Changed — G-0682: planning and record rituals leave section content to the templates
 
 `aiwfx-plan-epic`, `aiwfx-plan-milestones`, `aiwfx-record-decision` and

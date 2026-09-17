@@ -2,6 +2,7 @@ package policies
 
 import (
 	"os"
+	"path"
 	"path/filepath"
 	"strings"
 	"testing"
@@ -45,8 +46,8 @@ const (
 // this check matching a name nothing answers to.
 func gapRitualName(t *testing.T, root string) string {
 	t.Helper()
-	path := filepath.Join(root, ritualSkillsRoot, "plugins", "aiwf-extensions", "skills", gapRitualDirName, "SKILL.md")
-	body, err := os.ReadFile(path) //nolint:gosec // a repo-relative shipped source
+	skillFile := filepath.Join(root, ritualSkillsRoot, "plugins", "aiwf-extensions", "skills", gapRitualDirName, "SKILL.md")
+	body, err := os.ReadFile(skillFile) //nolint:gosec // a repo-relative shipped source
 	if err != nil {
 		t.Fatalf("reading %s/SKILL.md for the ritual's declared name: %v", gapRitualDirName, err)
 	}
@@ -67,22 +68,11 @@ func TestRitualsInstructingGapFilingRouteToTheRitual(t *testing.T) {
 	root := repoRoot(t)
 	ritual := gapRitualName(t, root)
 
-	err := filepath.WalkDir(filepath.Join(root, ritualSkillsRoot), func(path string, d os.DirEntry, err error) error {
-		if err != nil {
-			return err
+	err := walkShippedMarkdown(root, []string{ritualSkillsRoot}, func(rel, content string) {
+		if path.Base(rel) != "SKILL.md" || path.Base(path.Dir(rel)) == gapRitualDirName {
+			return
 		}
-		if d.IsDir() || filepath.Base(path) != "SKILL.md" {
-			return nil
-		}
-		if filepath.Base(filepath.Dir(path)) == gapRitualDirName {
-			return nil
-		}
-		content, readErr := os.ReadFile(path) //nolint:gosec // walking a repo-relative tree of shipped sources
-		if readErr != nil {
-			return readErr
-		}
-		rel, _ := filepath.Rel(root, path)
-		for n, line := range strings.Split(string(content), "\n") {
+		for n, line := range strings.Split(content, "\n") {
 			if !strings.Contains(line, gapFilingVerb) || strings.Contains(line, ritual) {
 				continue
 			}
@@ -90,9 +80,8 @@ func TestRitualsInstructingGapFilingRouteToTheRitual(t *testing.T) {
 				"instruction files a gap without the ritual that opens the template and reproduces the claim",
 				rel, n+1, gapFilingVerb, ritual)
 		}
-		return nil
 	})
 	if err != nil {
-		t.Fatalf("walking %s: %v", ritualSkillsRoot, err)
+		t.Fatal(err)
 	}
 }
