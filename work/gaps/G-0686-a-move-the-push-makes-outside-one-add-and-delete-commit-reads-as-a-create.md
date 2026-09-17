@@ -15,7 +15,8 @@ with nothing it already lacked at base or on trunk exempt. Measured against a
 scratch repository with an upstream, a gap missing `## Why it matters` at base and
 on trunk, copied to a new path in one commit and removed from the old path in the
 next — `aiwf check` expected no finding, observed
-`entity-body-section-dropped` naming the second commit. The same move as one
+`entity-body-section-dropped` naming the first commit, which copied the file; the
+removal touched no path of the entity's chain. The same move as one
 `git mv` commit reports nothing. Two more shapes reach the same verdict: a hand
 renumber to a new id whose frontmatter names no prior id, and a move that exists
 nowhere but in a merge commit's own resolution, which the range log lists no
