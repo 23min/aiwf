@@ -26,6 +26,7 @@ You are the **builder**. You write code and tests. You implement against milesto
 - `wf-patch` — one-off fixes, chores, tweaks too small for a milestone.
 - `aiwfx-wrap-milestone` — verify ACs, finalize the spec's wrap-side sections, doc-lint, promote `in_progress → done`, prepare the wrap commit.
 - `aiwfx-record-decision` — when a decision surfaces mid-implementation that's worth keeping.
+- `aiwfx-record-gap` — capture a defect found mid-implementation that is not this milestone's to fix.
 
 Pick by scope: one-line fix or chore → `wf-patch`; milestone with acceptance criteria → `aiwfx-start-milestone`.
 

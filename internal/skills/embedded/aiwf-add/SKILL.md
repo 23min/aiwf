@@ -11,6 +11,8 @@ The `aiwf add` verb creates a new entity (or acceptance criterion) and produces 
 
 The user wants to record a new piece of planning state — a new epic, a milestone under an existing epic, an ADR, a discovered gap, a decision, a contract, or an acceptance criterion (AC) under an existing milestone.
 
+For a **gap**, prefer the `aiwfx-record-gap` ritual over calling the verb directly: it triages whether the defect is a gap at all, fills the body from the kind's template, and reproduces the claim so a later reader can re-run it. This skill is what that ritual calls, and what to use when you already have the body written.
+
 ## What to run
 
 ```bash
@@ -106,14 +108,14 @@ $ aiwf add gap --title "Retry loop spins forever"
 aiwf add: G-NNNN: empty load-bearing body section(s) `## What's missing`, `## Why it matters`; a gap is referenceable the instant this commit lands, so its body must carry meaning at creation — pass --body "..." or --body-file <path> with real prose, or --force --reason "..." to create anyway (aiwf check will still flag it at error severity and the pre-push hook will still block until it's filled in)
 ```
 
-Fix it by passing real prose via `--body "<text>"` or `--body-file <path>`, or create it anyway with `--force --reason "<one-sentence justification>"` — the same sovereign-override shape `aiwf promote --force --reason` uses; `--reason` must be non-empty (after trim) whenever `--force` is set, and the override lands an `aiwf-force: <reason>` trailer on the create commit (only when the gate was actually bypassed — a `--force` on a body that would have passed anyway, including every create that takes the kind's scaffold, stamps no trailer). `--force` is not a full override for the *emptiness* half: the entity lands with an empty section, which the check-time backstop below still catches. It is a full override for the *absence* half — a section left out entirely is reported by no rule, so a body forced past that half is exempt from this gate and from `aiwf edit-body`'s, which compares an edit against the committed body and finds the section already gone. Prefer leaving the heading in and empty. Epic and milestone keep the placeholder-then-fill workflow for *emptiness* — a scaffolded body with every heading present and nothing under them is accepted (see *"After `aiwf add <kind>`: fill in the body"* below). A body that omits a heading is refused for them too:
+Fix it by passing real prose via `--body "<text>"` or `--body-file <path>`, or create it anyway with `--force --reason "<one-sentence justification>"` — the same sovereign-override shape `aiwf promote --force --reason` uses; `--reason` must be non-empty (after trim) whenever `--force` is set, and the override lands an `aiwf-force: <reason>` trailer on the create commit (only when the gate was actually bypassed — a `--force` on a body that would have passed anyway, including every create that takes the kind's scaffold, stamps no trailer). `--force` is not a full override for the *emptiness* half: the entity lands with an empty section, which the check-time backstop below still catches. It is a full override for the *absence* half: a forced create is its entity's starting point, so what it left out is never asked for again — not by `aiwf edit-body`, which compares an edit against the committed body, and not at the push. Prefer leaving the heading in and empty. Epic and milestone keep the placeholder-then-fill workflow for *emptiness* — a scaffolded body with every heading present and nothing under them is accepted (see *"After `aiwf add <kind>`: fill in the body"* below). A body that omits a heading is refused for them too:
 
 ```
 $ aiwf add epic --title "Caching" --body-file goal-and-scope-only.md
 aiwf add: E-NNNN: body omits required section(s) `## Out of scope` — add the heading with real prose under it, or --force --reason "..." to create anyway
 ```
 
-`aiwf check`'s `entity-body-empty` rule is the backstop for a section that is **present and empty** — in a hand-authored file, or in one forced past this gate. For these four kinds it always fires at **error** severity, independent of `aiwf.yaml: tdd.strict`, so a hollow gap/decision/adr/contract that slips past the verb still blocks the pre-push hook. It is not a backstop for a section that is **absent**: no rule reads a body it is not writing, so nothing downstream catches that.
+`aiwf check`'s `entity-body-empty` rule is the backstop for a section that is **present and empty** — in a hand-authored file, or in one forced past this gate. For these four kinds it always fires at **error** severity, independent of `aiwf.yaml: tdd.strict`, so a hollow gap/decision/adr/contract that slips past the verb still blocks the pre-push hook. A section that is **absent** is caught at the push instead: `entity-body-section-dropped` reports a pushed commit that removes one, or that creates an entity by hand and leaves one out.
 
 ## Allocating ids across branches and clones
 
@@ -176,9 +178,9 @@ aiwf milestone tdd M-NNNN --policy required --reason "AC list stabilized"
 
 ## After `aiwf add <kind>`: fill in the body
 
-`aiwf add` is step 1 of 2. The verb writes correct frontmatter and an atomic create commit; the body prose under each `## <Section>` heading is **required, not optional**, across all six top-level kinds and ACs. The kernel doesn't fail closed on missing prose at create time so the verb stays cheap, but `aiwf check` surfaces empty bodies as `entity-body-empty` findings, and any milestone or epic or AC with a hollow body is half-shipped.
+`aiwf add` is step 1 of 2. The verb writes correct frontmatter and an atomic create commit; the body prose under each `## <Section>` heading is **required, not optional**, across all six top-level kinds and ACs. A body that omits a required section is refused for every kind, and the born-complete kinds refuse an empty one too; epic and milestone accept a scaffold whose sections are present and empty, so the prose can follow in a second step, and `aiwf check` surfaces those empty sections as `entity-body-empty` findings — any milestone or epic or AC with a hollow body is half-shipped.
 
-Which sections a kind requires is printed by `aiwf template <kind>`, and the verb holds you to it: `aiwf add` refuses a body omitting one, and `aiwf edit-body` refuses a write that drops one the committed body carries. An AC is the exception with no section set of its own — its body is the `### AC-N — <title>` prose. What to write *in* each section is in §"What to write per kind" below.
+Which sections a kind requires is printed by `aiwf template <kind>`, and the verb holds you to it: `aiwf add` refuses a body omitting one, and `aiwf edit-body` refuses a write that drops one the committed body carries. An AC is the exception with no section set of its own — its body is the `### AC-N — <title>` prose. What to write *in* each section is stated by that kind's template; §"What to write per kind" below routes you to it.
 
 Two ways to land the body content:
 
@@ -191,7 +193,9 @@ Two ways to land the body content:
 
 ### What to write per kind
 
-`aiwf template <kind>` lists *which* sections a kind requires; this subsection covers *what* to write in each. The recommendations are advisory — `aiwf check` asserts presence, not structure — but they shape the project's default; an LLM (or human) skimming this skill produces better entities by following them than by inventing a shape.
+`aiwf template <kind>` lists *which* sections a kind requires. What to write *in* each one is stated by that kind's template, beside the section it governs — `aiwf-add` §"Locating the rich body template" above names the file for each kind. Open the template for the kind you are writing; for the six top-level kinds this skill states no rule of its own.
+
+An acceptance criterion is the exception: it is a sub-element of a milestone rather than a kind with a template file, so its rule is stated here. It is advisory — `aiwf check` asserts presence, not structure — but it shapes the project's default; following it produces a better criterion than inventing a shape.
 
 **Acceptance criteria.** The title names observable behavior rather than an implementation detail — "when X occurs, the system emits Y with property Z", never "X is tested", "refactor complete", or "feature implemented". It also stays a short label rather than a paragraph — `aiwf add ac` refuses a prose-shaped title outright, and `aiwf check` reports one already stored as `acs-title-prose`. *Observable* there is about the claim's shape, and is a different word from *observational*, which is about how a claim is met: a criterion naming something no test can reach is met by a record rather than an assertion, and what that record carries is in `aiwf-promote` §"Evidence for promoting an AC to `met`". The body is one paragraph (not an essay, not a one-liner) covering three things: (a) the **pass criterion** — the assertable claim, "under inputs X the system produces Y"; (b) the **edge cases** the test must cover — boundary values, malformed inputs, error paths, concurrency; (c) the **code references** — the file or function the AC will land against, or the test file that pins it. The forward references trade a little churn (paths can move) for a lot of context (a future reader doesn't have to grep for the call site).
 
@@ -208,33 +212,6 @@ empty), non-UTF-8 bytes (refused with `invalid encoding`), multi-line
 title (refused, single line). **Code references**: validation in
 `cmd/aiwf/add_cmd.go` (the `validateTitle` helper); regression tests
 in `cmd/aiwf/add_cmd_test.go`.
-```
-
-**Epics.** `## Goal` describes the problem the epic solves and what success looks like — one paragraph, no longer than four sentences. `## Scope` enumerates what's in (one bullet per major piece of work, often a milestone). `## Out of scope` enumerates what's deliberately not — usually the most-tempting adjacent work, with a one-line "why not yet."
-
-**Milestones.** `## Goal` describes the chunk of value this milestone ships. `## Acceptance criteria` is the heading container; the actual ACs land as `### AC-N — <title>` sub-elements with their own bodies. The rich template adds `## Context` for what exists before the work and `## Design notes` for decisions already locked — reach for those when the milestone needs them.
-
-**Gaps.** `## What's missing` is the **concrete defect** — what specifically doesn't exist or doesn't work; one paragraph naming the symptom and the affected surface. `## Why it matters` is the consequence — what fails, who notices, what bug class this enables; one paragraph naming the operational impact.
-
-**ADRs / decisions.** `## Context` (or `## Question`) frames the choice the team faces. `## Decision` records the choice in one or two sentences. `## Consequences` (or `## Reasoning`) names the trade-offs accepted — what becomes easy, what becomes harder, what we'd revisit if a constraint changed.
-
-**Contracts.** `## Purpose` names what the schema captures and who consumes it. `## Stability` names the contract's evolution posture (frozen, additive-only, breaking-allowed-with-migration), with a sentence on what triggers a version bump.
-
-```markdown
-## What's missing
-
-`aiwf add gap` accepts `--discovered-in <id>` but does not validate
-that the referenced entity exists. A mistyped id lands silently;
-only `aiwf check` catches it later, and only as a
-`refs-resolve/unresolved` warning rather than at the point of intent.
-
-## Why it matters
-
-Operators who file gaps mid-flow rely on the kernel to catch finger-
-errors at the verb boundary. A silently-accepted typo means the gap
-points at no entity at all, the audit trail loses a meaningful link,
-and the operator has to repair the gap separately later — exactly
-the failure class the verb-time projection check exists to prevent.
 ```
 
 Skip the prose and `aiwf check` reports the omission. Don't ship a half-written entity hoping the body "follows later" — the design's "prose is not parsed" principle (see `docs/archive/pocv3/acs-and-tdd-plan.md` and `docs/design/design-decisions.md`) treats body content as the spec; the title is a label, not a substitute.
@@ -255,7 +232,7 @@ If the LLM is invoked turn-by-turn by a human (HITL / tool mode), pass `--actor 
 - Don't pass `--actor` unless the user asked for a specific actor; the default (derived from git config user.email) is correct.
 - Don't omit `--principal` when invoking as a non-human actor — the verb refuses with a `provenance-trailer-incoherent` finding.
 - Don't manually edit the milestone's `acs[]` to "fix" a gap from a cancelled AC — AC ids are position-stable. After cancelling AC-2, the next `aiwf add ac` allocates AC-3, not a recycled AC-2.
-- Don't leave load-bearing body sections empty for any entity kind — the title is a label, not a spec. For `gap`/`decision`/`adr`/`contract` this is refused at creation (see *"Empty-body gate for born-complete kinds"* above); for epic/milestone/AC, a section left present and empty is surfaced by `aiwf check` as `entity-body-empty` (warning by default; error under `aiwf.yaml: tdd.strict: true`) — a heading deleted rather than left empty is refused at the write and reported by no tree-wide rule. The body is the spec — write the prose detail before declaring the entity complete. See *"After `aiwf add <kind>`: fill in the body"* above for the per-kind shapes.
+- Don't leave load-bearing body sections empty for any entity kind — the title is a label, not a spec. For `gap`/`decision`/`adr`/`contract` this is refused at creation (see *"Empty-body gate for born-complete kinds"* above); for epic and milestone, a section left present and empty is surfaced by `aiwf check` as `entity-body-empty` (warning by default; error under `aiwf.yaml: tdd.strict: true`), and a heading deleted rather than left empty is refused at the write and at the push. An acceptance criterion has no required section set of its own: its `### AC-N` body left empty is reported as `milestone-draft-incomplete-acs` while the milestone is a draft and as `acs-empty-body` at error severity once it is in progress, and the heading deleted is accepted at the write and reported as `acs-body-coherence`. The body is the spec — write the prose detail before declaring the entity complete. See *"After `aiwf add <kind>`: fill in the body"* above for where each kind's shape is stated.
 
 ## Tree discipline — `work/` is aiwf's domain
 

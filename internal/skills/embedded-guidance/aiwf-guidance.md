@@ -79,9 +79,9 @@ lives in the `wf-codebase-health` skill.
   one you never considered. Never lift an option from an entity's own body
   or from a summary without checking it; that prose may be the stale claim
   under review.
-- **Fix closely-related issues in place — the cheap-fix test.** Small, in a file
-  this work already touches, covered by a test you're already writing? Make it now.
-  File a gap only when it needs its own branch, its own review, or a real decision.
+- **Fix closely-related issues in place — the cheap-fix test.** Small, in a file this
+  work already touches, covered by a test you're writing? Make it now. Needs its own
+  branch, its own review, or a real decision? File it via `aiwfx-record-gap`.
 - **A gap names what is wrong and where, or it is not a gap.** Point at a file, a
   symbol, or an observable behaviour a reader can go and look at. One that cannot
   name where is a wish, not a defect — write it as an epic or a milestone, where a

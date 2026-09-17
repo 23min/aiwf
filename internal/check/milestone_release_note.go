@@ -49,6 +49,14 @@ var releaseNoteSectionSlug = entity.SectionSlug(ReleaseNoteSectionHeading)
 //
 // Archive-scoped per ADR-0004: an archived milestone is historical state, not
 // active drift, and every milestone reaching `done` is swept there eventually.
+//
+// This rule stays separate from the general body-section machinery rather than
+// becoming its first consumer. `Release note` is not in the declared set named
+// above, and putting it there is a different decision from enforcing the set;
+// this rule is tree-wide and conditional on status, where the membership
+// gate is scoped to a commit range and reads status not at all; and it reports
+// absence and emptiness as one finding, where membership and emptiness are kept
+// apart because their remedies are mutually escaping.
 func milestoneDoneEmptyReleaseNote(t *tree.Tree) []Finding {
 	var findings []Finding
 	for _, e := range t.Entities {

@@ -54,6 +54,7 @@ aiwf-force-for trailer:
       acknowledgment is a judgment about a commit rather than about one
       of the rules it happens to trip
     - provenance-untrailered-entity-commit            (G-0231 item 3; --for-entity required)
+    - entity-body-section-dropped
 
 Because that audit's rules clear as a set, a reason written about one finding
 retires the commit's others too — an acknowledgment recorded for a stray force

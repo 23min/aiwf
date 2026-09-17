@@ -16,6 +16,73 @@ section in this file.
 
 ## [Unreleased]
 
+### Fixed — G-0660: the wrap review's compression question settles a removal by probe, not by a green gate
+
+The question told a reviewer to apply a cut, run the gates, and report what broke.
+That settles a rewrite and cannot settle a removal: deleting a test leaves a suite
+greener, and removing a guard reds behaviourally only where some test already produces the
+state it caught, so a green run read as a clearance for exactly the cuts that lose working
+code. A removal now routes to `wf-vacuity`'s mutation probe — break what the removed
+thing protected and confirm something else goes red, with nothing red reported as a
+surviving mutant rather than an all-clear. Where one cut falls under both the
+compression and over-guarding questions, the keep-unless-proven-dead default governs
+it. Each trial now names the command it ran and what that returned, so the next
+reviewer re-runs it instead of re-reasoning it.
+### Changed — D-0094: `## Reviewer notes` carries the review's result, not its rounds
+
+The section was defined as holding "the review's own outcome", which read as licence
+for an account of the review itself — how many rounds ran, what each found, which
+attacks failed to break the change — and wrapped specs carried exactly that into the
+archive. It now holds the result a later reader can act on: findings declined with
+their reason, limits knowingly left, trade-offs and rejected approaches, and the
+deciding round's verdict. A fix made at wrap is no longer recorded there, since the
+commit and the check landing with it already are the record. What the next round
+needs travels in its brief instead — what the earlier round checked and found sound —
+which the reviewer agent card now names among its inputs.
+
+### Changed — G-0677: the gap template routes misfiled content to its existing homes
+
+The template demanded a location — "a file, a symbol, or an observable behaviour a
+reader can go and look at" — and then allowed only two sections, banning the one
+authors reached for to write it. Locations now route into `## What's missing` at both
+ends, the defect's and the fix's, and so does a pasted reproduction. A section of
+your own is allowed where it records something that cannot go stale. The ban on
+proposing a fix stays, with both escapes named: an argued position is a decision, a
+sequence of steps is an epic or a milestone. The one-paragraph cap on
+`## What's missing` is gone — it contradicted the measurement the same section asks
+for.
+
+### Added — G-0678: `aiwfx-record-gap`, the gap-authoring ritual
+
+Gaps were authored with no ritual: `aiwf add gap` validates and
+commits a body you have already written, but nothing opened the kind's template and
+nothing checked that the claim reproduced. The new ritual triages whether the defect
+is a gap at all, routes each piece of what you have to the section or entity that
+already holds it, requires the claim to be reproduced — or said to be unreproducible,
+with the reason — and sends the batch through an independent reviewer that returns a
+record rather than a verdict.
+
+Rituals that instruct gap filing now hand off to it (`aiwfx-wrap-milestone`,
+`aiwfx-wrap-epic`, `aiwfx-start-milestone`, `aiwfx-plan-milestones`,
+`aiwfx-whiteboard`), and the four role-agent cards list it. A ritual that spells
+`aiwf add gap` in a paragraph that does not name the ritual now fails the policy
+suite.
+
+### Changed — G-0680: the `aiwf-add` skill routes body-content rules to each kind's template
+
+The skill's *What to write per kind* subsection restated what each kind's sections
+should hold, and so did the templates. Where they disagreed: an epic goal capped at
+four sentences against the template's 1–2, an ADR decision at one or two sentences
+against one or two paragraphs, a gap section capped at one paragraph by a skill that
+never mentions the reproduction the template asks for. The subsection now points at
+the template for each of the six kinds and states no rule of its own for them, so
+the rule lives in the file an author has open while writing the entity. An
+acceptance criterion is the exception and keeps its rule in the skill: it is a
+sub-element of a milestone, with no template file to hold one. Two epic-authoring
+rules the skill carried and the template did not — one bullet per major piece of
+work, and a one-line "why not yet" beside each exclusion — move into
+`epic-spec.md`, the owner.
+
 ## [0.35.0] — 2026-09-12
 
 ### Changed — G-0670: shipped verb skills drop this repo's internal labels

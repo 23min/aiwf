@@ -35,6 +35,7 @@ var triggerPhraseExemptions = map[string]string{
 	"TestAiwfxRelease_DelegatesToDeployerAgent":                   "aiwfx-release's `## When to use` trigger phrases",
 	"TestAiwfxHandoff_SkillScaffolded":                            "aiwfx-handoff's `description:` on-request trigger phrases; the skill fires mid-conversation on these",
 	"TestAiwfxWhiteboard_AC2_DescriptionPhrasings":                "aiwfx-whiteboard's `description:` trigger phrases",
+	"TestAiwfxRecordGap_DescriptionCarriesFilingTriggers":         "aiwfx-record-gap's `description:` filing triggers; the ritual fires mid-flow on these, when nobody is looking for it by name",
 }
 
 // derivedExpectationExemptions cover relationship checks that reach their

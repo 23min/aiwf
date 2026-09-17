@@ -302,7 +302,9 @@ entities:
 }
 
 // TestImport_PerEntityCommitMode: commit.mode=per-entity produces N
-// plans, each carrying an `aiwf-entity` trailer.
+// plans, each carrying an `aiwf-entity` trailer and the verb that made it —
+// `import`, as the single-commit plan does, so a push judging a create by its
+// trailers sees an import in either mode.
 func TestImport_PerEntityCommitMode(t *testing.T) {
 	t.Parallel()
 	r := newRunner(t)
@@ -334,6 +336,13 @@ entities:
 	}
 	if !strings.Contains(out, "E-0002") {
 		t.Errorf("HEAD commit missing aiwf-entity: E-02 trailer; got %q", out)
+	}
+	stamped, err := runGit(r.ctx, r.root, "log", "--format=%(trailers:key=aiwf-verb,valueonly=true)", "-1")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if strings.TrimSpace(stamped) != "import" {
+		t.Errorf("per-entity import commit carries aiwf-verb %q, want %q", strings.TrimSpace(stamped), "import")
 	}
 }
 

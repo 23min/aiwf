@@ -1180,7 +1180,7 @@ because nothing enforced it.
 
 | Milestone | Title | Status |
 |---|---|---|
-| M-0331 | Refuse at the push a body that reached a commit without passing a verb | draft |
+| M-0331 | Refuse at the push a body that reached a commit without passing a verb | in_progress |
 | M-0332 | Retire the prose that restates the section set | done |
 
 ## E-0085 — Measure the spec before the code; record what the measurement changed (cancelled)
@@ -1294,5 +1294,13 @@ uniquely holds, and a release's notes rest on whoever cut it remembering.
 
 Cut the instruction load a session reads before its task to a fixed ceiling, enforced by a policy test, with every rule kept in exactly one home and no operating rule lost.
 
-_No milestones yet._
+| Milestone | Title | Status |
+|---|---|---|
+| M-0333 | Fence CLAUDE.md: one commit per edit, a ceiling, no discoverability channel | draft |
+| M-0334 | Write the rubric, record the baseline, add guidance metrics to growth-report | draft |
+| M-0335 | Re-home CLAUDE.md by directory and re-aim the pins | draft |
+| M-0336 | Delete the copies from CLAUDE.md | draft |
+| M-0337 | Audit finding messages and cut chokepointed sections to pointers | draft |
+| M-0338 | Record the after observation and re-run the growth report | draft |
+| M-0339 | Rewrite the fragment and update the anchors policy | draft |
 

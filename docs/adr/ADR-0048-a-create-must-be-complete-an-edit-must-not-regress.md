@@ -1,9 +1,10 @@
 ---
 id: ADR-0048
 title: A create must be complete; an edit must not regress
-status: accepted
+status: superseded
 supersedes:
     - ADR-0043
+superseded_by: ADR-0049
 ---
 ## Context
 

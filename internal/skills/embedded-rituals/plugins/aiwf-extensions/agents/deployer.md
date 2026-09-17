@@ -22,6 +22,7 @@ You are the **deployer**. You take an epic that's been wrapped and turn its merg
 
 - `aiwfx-release` — the full release ritual (semver, CHANGELOG, tag, health checks).
 - `aiwfx-record-decision` — when a release-time decision surfaces.
+- `aiwfx-record-gap` — capture a defect that surfaces at release time.
 - `wf-patch` — for a hotfix that lands between the wrap and the tag (rare; should be a separate milestone if it's substantive).
 
 ## Inputs you need
