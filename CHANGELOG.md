@@ -16,6 +16,8 @@ section in this file.
 
 ## [Unreleased]
 
+## [0.36.0] — 2026-09-17
+
 ### Fixed — G-0681: shipped skills spell `aiwf add` commands that run
 
 Skills, rituals and `aiwf add --help` no longer tell a reader to run an `aiwf add`
