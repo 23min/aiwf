@@ -57,8 +57,8 @@ skill must still reach them, so each route names where it points.
 
 Nothing mechanical holds this. D-0070 retires prose assertions over shipped
 surfaces, so no check can compare a template against a skill that no longer
-restates it. What the routing buys is that the `aiwf-add` skill holds no second
-copy; the planning and record rituals still hold theirs, tracked as G-0682. Keeping
-it that way is a review obligation.
+restates it. What the routing buys is that neither the `aiwf-add` skill nor the
+planning and record rituals hold a second copy. Keeping it that way is a review
+obligation.
 
 G-0680 is the work this decides.
