@@ -16,6 +16,35 @@ section in this file.
 
 ## [Unreleased]
 
+### Fixed — G-0673: rituals move into a new worktree with `cd`, so the wrap can reach its merge target
+
+`wf-patch`, `aiwfx-start-milestone` and `aiwfx-start-epic` told the session to
+enter a new worktree with Claude Code's `EnterWorktree` tool. A session entered
+that way is refused `cd` and `git -C` into any other checkout, so the matching
+wrap ritual could not reach the worktree it merges into from that session. The
+start rituals now move the session with `cd`, tell it to stay inside the
+repository while it works there (a `cd` outside returns the session to the
+directory it started in, not to the worktree), and send sibling-directory
+worktrees to a new session or a subagent. The merge and cleanup steps find a
+branch's worktree with `git worktree list | grep -F '[<branch>]'` in place of
+their multi-line lookup scripts — the merge steps `cd` there, the cleanup steps
+remove it — and no longer ask for `ExitWorktree`; `aiwfx-wrap-epic`'s push
+names the branch instead of a shell variable an earlier command set.
+`wf-patch` now checks the branch in the same command as its commit, and its
+merge commit message no longer doubles the `patch/` prefix. The merge flags,
+the update and "has the target moved ahead?" checks, the branch check run in
+the same command as the merge, and the merge commit's trailers are unchanged.
+
+### Changed — G-0652: the wrap review asks whether each claim belongs, not only whether it holds
+
+The milestone wrap already sends `## Release note`, `## Validation` and
+`## Deferrals` to the reviewer as claims to check against the tree. The brief now
+also asks whether each claim belongs there, by asking whether a reader who never
+saw the earlier version would need it: an account of how the text was drafted or
+the work was carried out is reported as a finding even when it is true. A release
+note's before-and-after and a measurement record are named as passing that
+question.
+
 ### Fixed — G-0660: the wrap review's compression question settles a removal by probe, not by a green gate
 
 The question told a reviewer to apply a cut, run the gates, and report what broke.
@@ -28,6 +57,7 @@ surviving mutant rather than an all-clear. Where one cut falls under both the
 compression and over-guarding questions, the keep-unless-proven-dead default governs
 it. Each trial now names the command it ran and what that returned, so the next
 reviewer re-runs it instead of re-reasoning it.
+
 ### Changed — D-0094: `## Reviewer notes` carries the review's result, not its rounds
 
 The section was defined as holding "the review's own outcome", which read as licence

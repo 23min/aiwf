@@ -32,7 +32,7 @@ If anything is red, stop and report. Wrap does not paper over failure.
 
 This gates milestone *closure*, not the per-commit work: the implementation commits are already in, but the milestone is not yet wrapped, so there is still a chance to fix things *inside* the milestone. Findings become corrective commits on the milestone branch — before any AC flips to `met` and before the commit gate (step 7). The review feeds the human gate; it does not replace it.
 
-**Point the review at the spec's evidence, not only at the code.** Before dispatching, bring `## Release note`, `## Validation` and `## Deferrals` up to date and commit them with `aiwf edit-body M-NNNN`, so the reviewer reads them from the tree and the spec is not left dirty across step 2's corrective commits. Then name all three in the brief: a section met as part of a diff gets skimmed as source, and these are claims — the archived spec is what a later reader consults for what this milestone established, and no gate checks prose.
+**Point the review at the spec's evidence, not only at the code.** Before dispatching, bring `## Release note`, `## Validation` and `## Deferrals` up to date and commit them with `aiwf edit-body M-NNNN`, so the reviewer reads them from the tree and the spec is not left dirty across step 2's corrective commits. Then name all three in the brief: a section met as part of a diff gets skimmed as source, and these are claims — the archived spec is what a later reader consults for what this milestone established, and no gate checks prose. Brief the reviewer to judge whether each claim belongs as well as whether it holds, by the question `wf-review-code` §"Documentation" asks: would a reader who never saw the earlier version need this sentence? An account of how the text was drafted or the work was carried out fails it, however true it is. A release note's before-and-after passes it, and so does a measurement record — step 1's gate output, or its record of an observation.
 
 `## Release note` is the input to the text that leaves the repository. The epic wrap composes its changelog entry from these notes and copies that entry verbatim into the changelog, so this is the only independent read the note itself gets. Brief the reviewer to check it against what the diff actually changed, in the terms a consumer would notice.
 
@@ -41,7 +41,7 @@ Dispatch a **fresh-context reviewer** (a subagent with no authorship attachment)
 - **Code-quality** (`wf-review-code`): correctness, AC coverage, branch-coverage discipline, conventions, docs. For a large milestone, *slice the review by concern or file group* — one agent over thousands of lines goes shallow, the exact failure independence is meant to avoid.
 - **Design-quality** (`wf-rethink`): run on the design unit(s) the milestone introduced — those matching the `wf-rethink` trigger (a new module/package boundary, core abstraction, or data model; see `wf-rethink` §"The non-trivial-design trigger"). `wf-rethink` is per-unit by rule ("never run it over the whole codebase at once"), so **name the unit(s)** rather than pointing it at the whole diff. If the milestone introduced no such surface — only mechanical or local change — there is nothing to rethink; say so and move on.
 
-**Brief the reviewer to measure the change's shape before judging it.** Every other check at wrap asks whether something is missing; none asks whether something is unnecessary, and a reviewer who never sees the size of what it reviews cannot tell whether the milestone spent more than it needed to. The reviewer derives these itself — numbers the author produced about their own work are what independence exists to replace:
+**Brief the reviewer to measure the change's shape before judging it.** No other check at wrap measures what the change spent, and a reviewer who never sees the size of what it reviews cannot tell whether the milestone spent more than it needed to. The reviewer derives these itself — numbers the author produced about their own work are what independence exists to replace:
 
 ```bash
 git diff --numstat <base> HEAD    # then bucket the rows by role, in this project's own terms
@@ -193,26 +193,22 @@ own worktree — which `aiwfx-start-milestone` step 5 offers — the epic branch
 elsewhere and `git checkout epic/E-NNNN-<slug>` fails with *"fatal: … is already used
 by worktree at …"*. Changing directory into the worktree that already holds it moves
 no branch and cannot fail that way. Do it once, here — steps 12 through 15 then run
-as plain commands carrying no path:
+there as plain commands carrying no path.
+
+Find the line containing the epic branch's name in brackets:
 
 ```bash
-EPIC_WT=$(git worktree list --porcelain \
-  | awk -v b="refs/heads/epic/E-NNNN-<slug>" \
-        '/^worktree /{wt=substr($0,10)} $0=="branch "b{print wt; exit}')
-cd "${EPIC_WT:?the epic branch is checked out nowhere — take the fallback below}"
+git worktree list | grep -F '[epic/E-NNNN-<slug>]'
+```
+
+Move to the path that line starts with, and confirm where you landed:
+
+```bash
+cd "<path from that line>"
 git rev-parse --abbrev-ref HEAD          # prints the epic branch; stop if it does not
 ```
 
-Resolve and `cd` in a **single** command. A shell variable does not survive to the
-next one — where each command runs in its own shell, as it does for an assistant
-driving one per tool call, an `EPIC_WT` read back below is empty, and neither
-`git -C ""` nor `--root ""` fails: both resolve to the current worktree.
-`${EPIC_WT:?…}` aborts rather than moving nowhere, and the `rev-parse` states where
-you landed. Working directory is what survives, which is why nothing below carries a
-path — within the repository; a worktree placed outside it may be reset back to the
-repo root, which the `rev-parse` also catches.
-
-If the `cd` aborts, the epic branch is checked out nowhere. Check it out here and stay
+If no line matches, the epic branch is checked out nowhere. Check it out here and stay
 put — you are then already in the right directory. That is safe in this ritual
 specifically: nothing after this step needs the milestone branch checked out, and
 step 15 deletes it, which requires that it is not.
@@ -222,7 +218,7 @@ git checkout epic/E-NNNN-<slug>
 ```
 
 ```bash
-[ "$(git rev-parse --abbrev-ref HEAD)" = "epic/E-NNNN-<slug>" ] || { echo "not in the epic branch's worktree — re-run the resolution above"; exit 1; }
+[ "$(git rev-parse --abbrev-ref HEAD)" = "epic/E-NNNN-<slug>" ] || { echo "not in the epic branch's worktree — re-run the move above"; exit 1; }
 git merge --no-ff --no-commit milestone/M-NNNN-<slug>
 ```
 
@@ -300,21 +296,19 @@ Delete the local milestone branch and, if one was used, its worktree.
 Order matters and the branch cannot go first: git refuses to delete a branch a
 worktree still holds — *"error: cannot delete branch … used by worktree at …"* —
 and you cannot remove the worktree you are standing in. Leave it, then remove it,
-then delete the branch:
+then delete the branch. Step 12 already moved this session out of the milestone's
+worktree, if it had one, so find it by its branch:
 
 ```bash
-MS_WT=$(git worktree list --porcelain \
-  | awk -v b="refs/heads/milestone/M-NNNN-<slug>" \
-        '/^worktree /{wt=substr($0,10)} $0=="branch "b{print wt; exit}')
+git worktree list | grep -F '[milestone/M-NNNN-<slug>]'
+```
 
-# If the milestone had its own worktree, leave it before removing it. In a
-# Claude Code session that means the harness `ExitWorktree` tool, not `cd`.
-[ -n "$MS_WT" ] && git worktree remove "$MS_WT"
-
+```bash
+git worktree remove "<path from that line>"
 git branch -d milestone/M-NNNN-<slug>
 ```
 
-Where the milestone shared the epic's worktree, `MS_WT` is empty, there is no
+Where the milestone shared the epic's worktree, no line matches, there is no
 worktree to remove, and the branch delete is the whole of this step.
 
 These are local and reversible, so they belong inside the gate above.

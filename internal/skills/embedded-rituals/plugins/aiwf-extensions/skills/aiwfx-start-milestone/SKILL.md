@@ -107,9 +107,9 @@ If you instead isolate this milestone in its own worktree (e.g. for parallel mil
 aiwf worktree add milestone/M-NNNN-<slug> --base epic/E-NNNN-<slug> --print-path
 ```
 
-If you (the calling session) are going to keep working in this worktree yourself — as opposed to dispatching a subagent — call the harness `EnterWorktree(path: <printed path>)` tool right after `aiwf worktree add` succeeds: creating the worktree only puts it on disk, it does not relocate the session, and only `EnterWorktree` does that.
+If you (the calling session) are going to keep working in this worktree yourself — as opposed to dispatching a subagent — move into it with `cd "<printed path>"`. Use `cd`, not the `EnterWorktree` tool: a session entered that way cannot reach the epic branch's worktree, where `aiwfx-wrap-milestone` merges. Stay inside the repository while you work there: a `cd` to a directory outside it returns the session to the directory it started in, not to this worktree, so run anything that needs another directory in a subshell, `( cd <dir> && … )`.
 
-Pass an explicit path as the verb's second argument for a sibling-directory placement instead. The per-invocation override (main-checkout / sibling) stays available; in-repo is the recommendation, not a lock. See the `aiwf-worktree` skill for the full verb reference.
+Pass an explicit path as the verb's second argument for a sibling-directory placement instead. A session started in the repository cannot move into a sibling worktree with `cd`, for the same reason; start a new session there, or dispatch a subagent with its path. The per-invocation override (main-checkout / sibling) stays available; in-repo is the recommendation, not a lock. See the `aiwf-worktree` skill for the full verb reference.
 
 ### 6. Implementation — iterate via `wf-tdd-cycle`
 
