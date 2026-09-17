@@ -35,7 +35,8 @@ riding the commit range the provenance audit already resolves.
 ## Closes
 
 - G-0571 — the enforcement hole: a push that leaves a required section out of a
-  body that carried it, or out of an entity created without a verb, is refused.
+  body that carried it, or out of an entity created other than by `aiwf import`
+  or a forced `aiwf add`, is refused.
   ADR-0049 records what no seam reaches.
 
 ## Context
@@ -122,8 +123,9 @@ required.
   first answered that question, is superseded by it.
 - The finding code is `entity-body-section-dropped`, under D-0090's split: this
   gate names a section left out, and emptiness stays with `entity-body-empty`.
-  It covers an entity created without a verb as well as a removal, so its message
-  reads "leaves required section … out of" to be true of both. A new code owes a
+  It covers an entity created other than by `aiwf import` or a forced `aiwf add`
+  as well as a removal, so its message reads "leaves required section … out of"
+  to be true of both. A new code owes a
   row in the shipped `aiwf-check` findings table, which the discoverability
   policy enforces.
 - The gate judges every entity that differs between its starting point and HEAD,
@@ -222,9 +224,9 @@ An entity the push creates must carry every required section unless
 `aiwf import` or `aiwf add --force` created it; an import in per-entity commit
 mode now stamps `aiwf-verb: import` on each commit, so `aiwf history` and the
 `aiwf status` digest show those entities as imported rather than added. Restore
-the heading with its
-content to clear the finding — for a gap, decision, ADR or contract that is not
-terminal, an empty required section is itself an error — or keep a removal with
+the heading with its content to clear the finding — for a gap, decision, ADR or
+contract that is not terminal, an empty required section is itself an error — or
+keep a removal with
 `aiwf acknowledge illegal <sha> --reason "..."`, adding `--for-entity <id>` when
 the same commit is also reported by `provenance-untrailered-entity-commit`. The
 check runs only when the branch has an upstream or `--since <ref>` is passed, and
@@ -259,9 +261,10 @@ of a create commit's trailers, which changes only how often one commit is read;
 the sort of reported paths, which survives a single run and fails under
 repetition, since without it the order is a map's; and the two last-resort lines
 of the credit, which no history reaches, as the argument above them states.
-Every other mutant fails a test: putting message bytes into the record, blinding
-the read of a create's trailers, reading a create's start from the wrong add,
-dropping either credit pass, reading the range in clock order rather than
+Each of these fails a test: putting message bytes into the record, blinding the
+read of a create's trailers, reading a create's start from the wrong add or from
+the trailers of a merge that wrote it in its own resolution, dropping either
+credit pass, reading the range in clock order rather than
 topological order, letting a prior id's file or another entity's file stand in
 for the entity's own, linking a chain through an unrelated deletion, sharing the
 section cache across entities, leaving `docs/adr` out of the tree scan, dropping
@@ -304,8 +307,9 @@ merge shape, fails against a gate that reads only the first-parent line.
   on that commit, whichever entity `--for-entity` binds it to; it is a record
   about the commit (ADR-0049).
 - Limit left in place: the `aiwf acknowledge illegal --help` row, the
-  `aiwf check --since` and `aiwf add --force` help sentences, and the two
-  range-skip warnings that name this gate are held by no test.
+  `aiwf check --since` and `aiwf add --force` help sentences, the two range-skip
+  warnings that name this gate, and the `aiwf-add` skill's account of what
+  `aiwf check` reports for an acceptance criterion's body are held by no test.
 - Limit left in place: the gate's base is the range argument the provenance
   audit resolves, minus its `..HEAD` suffix — the only two shapes that resolver
   returns; a third shape would need its own base.
