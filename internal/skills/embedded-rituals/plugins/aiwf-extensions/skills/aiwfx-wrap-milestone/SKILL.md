@@ -193,26 +193,22 @@ own worktree — which `aiwfx-start-milestone` step 5 offers — the epic branch
 elsewhere and `git checkout epic/E-NNNN-<slug>` fails with *"fatal: … is already used
 by worktree at …"*. Changing directory into the worktree that already holds it moves
 no branch and cannot fail that way. Do it once, here — steps 12 through 15 then run
-as plain commands carrying no path:
+there as plain commands carrying no path.
+
+Find the line containing the epic branch's name in brackets:
 
 ```bash
-EPIC_WT=$(git worktree list --porcelain \
-  | awk -v b="refs/heads/epic/E-NNNN-<slug>" \
-        '/^worktree /{wt=substr($0,10)} $0=="branch "b{print wt; exit}')
-cd "${EPIC_WT:?the epic branch is checked out nowhere — take the fallback below}"
+git worktree list | grep -F '[epic/E-NNNN-<slug>]'
+```
+
+Move to the path that line starts with, and confirm where you landed:
+
+```bash
+cd "<path from that line>"
 git rev-parse --abbrev-ref HEAD          # prints the epic branch; stop if it does not
 ```
 
-Resolve and `cd` in a **single** command. A shell variable does not survive to the
-next one — where each command runs in its own shell, as it does for an assistant
-driving one per tool call, an `EPIC_WT` read back below is empty, and neither
-`git -C ""` nor `--root ""` fails: both resolve to the current worktree.
-`${EPIC_WT:?…}` aborts rather than moving nowhere, and the `rev-parse` states where
-you landed. Working directory is what survives, which is why nothing below carries a
-path — within the repository; a worktree placed outside it may be reset back to the
-repo root, which the `rev-parse` also catches.
-
-If the `cd` aborts, the epic branch is checked out nowhere. Check it out here and stay
+If no line matches, the epic branch is checked out nowhere. Check it out here and stay
 put — you are then already in the right directory. That is safe in this ritual
 specifically: nothing after this step needs the milestone branch checked out, and
 step 15 deletes it, which requires that it is not.
@@ -222,7 +218,7 @@ git checkout epic/E-NNNN-<slug>
 ```
 
 ```bash
-[ "$(git rev-parse --abbrev-ref HEAD)" = "epic/E-NNNN-<slug>" ] || { echo "not in the epic branch's worktree — re-run the resolution above"; exit 1; }
+[ "$(git rev-parse --abbrev-ref HEAD)" = "epic/E-NNNN-<slug>" ] || { echo "not in the epic branch's worktree — re-run the move above"; exit 1; }
 git merge --no-ff --no-commit milestone/M-NNNN-<slug>
 ```
 
@@ -300,21 +296,19 @@ Delete the local milestone branch and, if one was used, its worktree.
 Order matters and the branch cannot go first: git refuses to delete a branch a
 worktree still holds — *"error: cannot delete branch … used by worktree at …"* —
 and you cannot remove the worktree you are standing in. Leave it, then remove it,
-then delete the branch:
+then delete the branch. Step 12 already moved this session out of the milestone's
+worktree, if it had one, so find it by its branch:
 
 ```bash
-MS_WT=$(git worktree list --porcelain \
-  | awk -v b="refs/heads/milestone/M-NNNN-<slug>" \
-        '/^worktree /{wt=substr($0,10)} $0=="branch "b{print wt; exit}')
+git worktree list | grep -F '[milestone/M-NNNN-<slug>]'
+```
 
-# If the milestone had its own worktree, leave it before removing it. In a
-# Claude Code session that means the harness `ExitWorktree` tool, not `cd`.
-[ -n "$MS_WT" ] && git worktree remove "$MS_WT"
-
+```bash
+git worktree remove "<path from that line>"
 git branch -d milestone/M-NNNN-<slug>
 ```
 
-Where the milestone shared the epic's worktree, `MS_WT` is empty, there is no
+Where the milestone shared the epic's worktree, no line matches, there is no
 worktree to remove, and the branch delete is the whole of this step.
 
 These are local and reversible, so they belong inside the gate above.
