@@ -1,7 +1,9 @@
 ---
 id: G-0681
 title: Shipped surfaces spell an aiwf add invocation that exits 2
-status: open
+status: addressed
+addressed_by_commit:
+    - 2415376ad
 ---
 
 ## What's missing
