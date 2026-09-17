@@ -430,7 +430,7 @@ func buildImportPlans(m *manifest.Manifest, plans []plannedEntry, ents []*entity
 			out[i] = &Plan{
 				Subject: subject,
 				Trailers: []gitops.Trailer{
-					{Key: gitops.TrailerVerb, Value: "add"},
+					{Key: gitops.TrailerVerb, Value: "import"},
 					// Canonical width per AC-1 in M-081.
 					{Key: gitops.TrailerEntity, Value: canonID},
 					{Key: gitops.TrailerActor, Value: actor},

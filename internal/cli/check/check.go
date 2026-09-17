@@ -55,7 +55,7 @@ func NewCmd(correlationID string) *cobra.Command {
 	cmd.Flags().StringVar(&root, "root", "", "consumer repo root (default: discover via aiwf.yaml)")
 	cmd.Flags().StringVar(&format, "format", "text", "output format: text or json")
 	cmd.Flags().BoolVar(&pretty, "pretty", false, "indent JSON output (only with --format=json)")
-	cmd.Flags().StringVar(&since, "since", "", "explicit base ref for the provenance untrailered-entity audit (default: @{u} when set, else skipped)")
+	cmd.Flags().StringVar(&since, "since", "", "explicit base ref for the provenance audit's commit range, including the untrailered-entity audit and the dropped-body-section gate (default: @{u} when set, else skipped)")
 	cmd.Flags().BoolVar(&shapeOnly, "shape-only", false, "run only the tree-discipline rule (skips trunk read, provenance audit, contract validation); used by the pre-commit hook for a fast LLM-loop check")
 	cmd.Flags().BoolVar(&fast, "fast", false, "run the in-memory content rules (refs, status, ids, cycles, body-prose, ACs) plus tree-discipline, skipping the trunk read / provenance / FSM-history / metrics / contract-validation layer; render-safe (sub-second) for the statusline health glyph and CI pre-flight (G-0290)")
 	cmd.Flags().BoolVar(&verbose, "verbose", false, "print one line per warning instance instead of the per-code summary; errors are always per-instance regardless")
