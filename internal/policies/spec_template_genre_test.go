@@ -20,10 +20,9 @@ package policies
 // instead — a phrase-content assertion pins a reading rather than a rule, and
 // the negator that makes a rule binding can sit outside the asserted span, so
 // an inverted instruction passes a `Contains` check unchanged. The same applies
-// to the `## Context` prompts this change rewords and to the matching bullets in
-// `aiwfx-plan-epic` / `aiwfx-plan-milestones`: nothing here asserts they stay
-// free of a request for justification. Held at review, per the disposition D5
-// prescribes for what cannot be pinned.
+// to the `## Context` prompts: nothing here asserts they stay free of a request
+// for justification. Held at review, per the disposition D5 prescribes for what
+// cannot be pinned.
 
 import (
 	"os"

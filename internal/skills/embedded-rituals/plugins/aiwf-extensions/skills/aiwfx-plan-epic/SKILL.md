@@ -37,17 +37,18 @@ If the work fits in one milestone, skip this skill and use `aiwfx-plan-milestone
 
    `aiwf` allocates the next free `E-NNNN`, creates `work/epics/E-NNNN-<slug>/epic.md` with the minimal body skeleton (`## Goal / ## Scope / ## Out of scope`), and produces one commit with `aiwf-verb: add` trailers.
 
-5. **Replace the body with the rich template** at `.claude/templates/epic-spec.md` (materialized by `aiwf update`; if it's missing, run `aiwf update` rather than copying an existing epic spec). Fill in:
-   - **Goal** — 1–2 sentences, value-shaped.
-   - **Context** — what exists; what changed to make this possible now; prior epics this builds on.
-   - **Scope** and **Out of scope** — sibling top-level sections, both populated.
-   - **Constraints** — invariants, banned shortcuts, shim policies.
-   - **Success criteria** — observable outcomes at epic close, *not* tests.
-   - **Open questions** — what's blocking; how each gets resolved.
-   - **Risks** — only if there are real risks.
-   - **Milestones** — known candidates with one-line descriptions; refine via `aiwfx-plan-milestones`.
+5. **Replace the body with the rich template** at `.claude/templates/epic-spec.md` (materialized by `aiwf update`; if it's missing, run `aiwf update` rather than copying an existing epic spec). Fill in the sections below, each as the template directs beside it:
+   - **Goal**
+   - **Context**
+   - **Scope**
+   - **Out of scope**
+   - **Constraints**
+   - **Success criteria**
+   - **Open questions**
+   - **Risks**
+   - **Milestones** — the known candidates, which `aiwfx-plan-milestones` refines.
 
-   Keep frontmatter (`id:`, `status:`) untouched — `aiwf add` set those correctly. The spec's body is where the planning conversation lives.
+   Keep frontmatter (`id:`, `status:`) untouched — `aiwf add` set those correctly.
 
    Land the filled-in body through the trailered verb, not a plain `git commit`:
 
@@ -57,9 +58,7 @@ If the work fits in one milestone, skip this skill and use `aiwfx-plan-milestone
 
    `aiwf edit-body <id>` commits the working-copy body bytes with provenance trailers in one atomic operation; a plain `git commit` against the spec would trip the kernel's `provenance-untrailered-entity-commit` finding. See the `aiwf-edit-body` skill for the `--body-file` and `--reason` variants.
 
-6. **Use reference-phrasing for list-derived counts.** When success criteria reference a list defined elsewhere in the spec, phrase as a reference, not a count. *"Every ADR listed in the *ADRs produced* table is merged"* not *"all 16 ADRs merged"*. Counts drift; references don't.
-
-7. **Update `ROADMAP.md`** by running:
+6. **Update `ROADMAP.md`** by running:
 
    ```bash
    aiwf render roadmap --write
@@ -77,7 +76,7 @@ If the work fits in one milestone, skip this skill and use `aiwfx-plan-milestone
 
    The trailer keys are exact — variant casings (e.g. `Aiwf-Verb`) fail the kernel's trailer-keys policy. Skip the `git add`/`git commit` if the render reported the file already up to date. This regenerates the markdown table of epics + milestones from the current tree. Don't hand-edit the roadmap.
 
-8. **Optional tracker linkage.** If the project mirrors planning into an external issue tracker, create or link the epic record according to the project's convention.
+7. **Optional tracker linkage.** If the project mirrors planning into an external issue tracker, create or link the epic record according to the project's convention.
 
 ## What this skill does NOT do
 
@@ -89,7 +88,6 @@ If the work fits in one milestone, skip this skill and use `aiwfx-plan-milestone
 
 - *Planning the epic and immediately starting work.* Don't skip review. The epic spec is the place where scope changes are cheap; once milestones are running, scope changes are expensive.
 - *Hand-writing scalar counts.* "5 milestones" rots; "every milestone listed below" doesn't.
-- *Treating "Open questions" as scratch.* If a question is blocking, state how it gets resolved.
 - *Inventing id-shaped labels for not-yet-allocated milestones.* Don't write an id-shaped label no verb allocated — a letter suffix, a spelled-out word suffix, an all-caps letter placeholder, or a pseudo-formal sequence label ("Phase 1", "alpha/beta") — anywhere, committed prose **or** conversation. The mechanical chokepoint `body-prose-id` catches malformed shapes that leak into committed bodies; the discipline above keeps the conversation clean. **In conversation**, when sequencing several not-yet-allocated milestones, a milestone prefix with a single digit is acceptable shorthand — distinguishable from a canonical id by its narrow width. Once `aiwf add milestone` runs, the verb assigns the canonical id and the deliverable name becomes the slug; replace the casual labels with the real ids in any prose that lands in entity bodies.
 
 ## Closing the planning session

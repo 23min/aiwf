@@ -32,7 +32,7 @@ What was being decided, and what made the answer non-obvious?
 
 ## Decision
 
-What was decided. Imperative voice. One short paragraph.
+What was decided. Imperative voice. Keep this short — with the one exception that a decision with several parts gives each its own bullet. Why this answer won belongs in Reasoning.
 
 ## Reasoning
 

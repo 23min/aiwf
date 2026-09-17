@@ -16,6 +16,15 @@ section in this file.
 
 ## [Unreleased]
 
+### Changed — G-0682: planning and record rituals leave section content to the templates
+
+`aiwfx-plan-epic`, `aiwfx-plan-milestones`, `aiwfx-record-decision` and
+`aiwfx-record-gap` now send the author to the entity template for what goes in each
+section instead of stating section rules of their own; a rule only a ritual stated
+has moved into the template, beside what it governs. Some template sections that
+capped their length by a count now say to keep it short instead, and name what may
+make one longer.
+
 ### Added — E-0084: the push refuses an entity body that dropped a required section
 
 `aiwf check`, and so the pre-push hook, now refuses a push that leaves a required
