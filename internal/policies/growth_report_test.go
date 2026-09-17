@@ -66,3 +66,19 @@ func TestGrowthReport_Parses(t *testing.T) {
 		}
 	}
 }
+
+// TestGrowthReport_CommentClassifierSelftest runs the script's own --selftest,
+// which pins the comment classifier against fixed Go snippets rather than
+// against the live tree. The split it asserts is load-bearing: D-0084 caps a
+// comment floating inside a function body and exempts one against a
+// declaration, so a classifier that reads an indented struct-field comment as
+// floating would report the capped class as larger than it is.
+func TestGrowthReport_CommentClassifierSelftest(t *testing.T) {
+	t.Parallel()
+
+	cmd := exec.Command("python3", growthReportScriptPath(t), "--selftest")
+	out, err := cmd.CombinedOutput()
+	if err != nil {
+		t.Fatalf("growth-report.py --selftest failed: %v\n%s", err, out)
+	}
+}

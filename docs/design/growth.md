@@ -173,6 +173,17 @@ needs a test file — and come apart here: `acs-tdd-audit` costs four promotes p
 acceptance criterion and adds nothing to the tree. The eight "neutral" codes are
 that class, and it is the class `exactness` had no room for.
 
+Comment volume is measured but not gated. `scripts/growth-report.py` reports the
+lines, the blocks over the eight-line cap D-0084 sets, and how many of those float
+inside a function body rather than sitting against a declaration — the split is
+load-bearing, since a block against a declaration is where Go puts a contract and
+is exempt by design. The block-identification half of that measure reproduces
+G-0659's independent hand count exactly (1,027 blocks over the cap, longest 115,
+both at `00bf4c9ff`), and the floating split agrees with `go/parser` at every
+commit tried. G-0659's own floating figure of 158 reproduces under no rule tried
+— neither indentation, nor brace depth, nor the parser at any threshold — so it
+is the figure to distrust. Re-run with `make growth-report`.
+
 ## What is *not* the mechanism
 
 Measured across all 289 milestones and 491 gaps, per-unit prose length shows **no
@@ -234,3 +245,4 @@ a chokepoint would be the same mistake one level up.
 |---|---|---|
 | 2026-08-02 | baseline recorded; no lever shipped | test:prod 2.26, policy share 57.3%, same-day gap share 49% |
 | 2026-08-03 | shipped surfaces classified; first lever shipped — the review disposition that needs no further record when a defect is already fixed and pinned (D-0054) | kernel finding codes 28% mandate, against the policy corpus' 53% |
+| 2026-09-17 | comment volume added to the report, with the block over the cap D-0084 sets split from the block against a declaration it exempts | comment lines 30,669 — 35% of production and growing faster than it (5.1× against 4.3× since 2026-05); 1,058 blocks over eight lines, 98 of them floating in a function body, against 1 in 2026-05 |

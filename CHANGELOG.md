@@ -27,6 +27,17 @@ edit. The ADR and decision templates say to leave their optional id heading out 
 the body passed to `aiwf add`, and to add it afterwards where it is wanted, and the
 decision template no longer lists supersession fields a decision does not have.
 
+### Added — growth-report tracks comment volume
+
+`make growth-report` reports three more figures: comment lines in production, the
+count of comment blocks over the eight-line cap D-0084 sets, and how many of those
+float inside a function body rather than sitting against a declaration. The split
+is the point — a block against a declaration is where Go puts a contract and is
+exempt by design, so one undivided number would conflate a contract with an
+argument. Measured at HEAD: 30,669 comment lines, 35% of production and growing
+faster than it; 1,058 blocks over the cap, 98 of them floating, against 1 in May.
+The measure is reported, not gated.
+
 ### Changed — G-0682: planning and record rituals leave section content to the templates
 
 `aiwfx-plan-epic`, `aiwfx-plan-milestones`, `aiwfx-record-decision` and
