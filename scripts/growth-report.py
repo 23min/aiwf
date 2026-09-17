@@ -83,6 +83,9 @@ class Snapshot:
     gap_status: dict[str, int] = field(default_factory=dict)
     shipped_words: int = 0
     docs_words: int = 0
+    comment_lines: int = 0
+    comment_blocks_over_cap: int = 0
+    floating_blocks_over_cap: int = 0
 
     @property
     def test_ratio(self) -> float:
@@ -91,6 +94,51 @@ class Snapshot:
     @property
     def policy_share(self) -> float:
         return 100 * self.policy_lines / max(self.prod_lines, 1)
+
+
+COMMENT_CAP = 8  # D-0084's cap on a comment floating inside a function body
+
+
+def comment_blocks(src: str) -> list[tuple[int, bool]]:
+    """Every run of consecutive `//` lines, as (length, floating).
+
+    Floating means the block sits inside a function body, which is the kind
+    D-0084 caps; a block against a declaration is left alone, since that is
+    where Go puts a contract. Body membership is tracked by brace depth from
+    the `func` that opened it, so a comment on a struct field or an interface
+    method reads as a declaration comment rather than a floating one.
+    """
+    lines = src.split("\n")
+    out: list[tuple[int, bool]] = []
+    depth = 0
+    func_depth = None
+    pending_sig = False  # brace depth at which the open func body started
+    i = 0
+    while i < len(lines):
+        line = lines[i]
+        stripped = line.lstrip()
+        if stripped.startswith("//"):
+            start = i
+            while i < len(lines) and lines[i].lstrip().startswith("//"):
+                i += 1
+            out.append((i - start, func_depth is not None))
+            continue
+        code = re.sub(r'"(?:\\.|[^"\\])*"|`[^`]*`|\'(?:\\.|[^\'\\])*\'|//.*', "", line)
+        if func_depth is None:
+            if re.search(r"\bfunc\b", code):
+                # A multi-line signature puts the brace on a later line that
+                # carries no `func`, so remember that one is open.
+                if "{" in code:
+                    func_depth = depth
+                else:
+                    pending_sig = True
+            elif pending_sig and "{" in code:
+                func_depth, pending_sig = depth, False
+        depth += code.count("{") - code.count("}")
+        if func_depth is not None and depth <= func_depth:
+            func_depth = None
+        i += 1
+    return out
 
 
 def snapshot(rev: str) -> Snapshot:
@@ -125,6 +173,10 @@ def snapshot(rev: str) -> Snapshot:
     snap.entity_words = words(entities)
     snap.shipped_words = words(shipped)
     snap.docs_words = words(docs)
+    blocks = [b for p in go_prod for b in comment_blocks(blobs.get(p, ""))]
+    snap.comment_lines = sum(n for n, _ in blocks)
+    snap.comment_blocks_over_cap = sum(1 for n, _ in blocks if n > COMMENT_CAP)
+    snap.floating_blocks_over_cap = sum(1 for n, f in blocks if n > COMMENT_CAP and f)
 
     status = collections.Counter()
     for path in entities:
@@ -197,6 +249,9 @@ def rows(snap: Snapshot, flow: GapFlow) -> list[tuple[str, str, float]]:
         ("production lines (internal/)", f"{snap.prod_lines:,}", snap.prod_lines),
         ("test lines (internal/)", f"{snap.test_lines:,}", snap.test_lines),
         ("test : production ratio", f"{snap.test_ratio:.2f}", snap.test_ratio),
+        ("comment lines (production)", f"{snap.comment_lines:,}", snap.comment_lines),
+        (f"comment blocks over {COMMENT_CAP} lines", f"{snap.comment_blocks_over_cap:,}", snap.comment_blocks_over_cap),
+        ("  of those, floating in a body", f"{snap.floating_blocks_over_cap:,}", snap.floating_blocks_over_cap),
         ("policy files", f"{snap.policy_files:,}", snap.policy_files),
         ("policy chokepoints (distinct ids)", f"{snap.policy_ids:,}", snap.policy_ids),
         ("policy lines", f"{snap.policy_lines:,}", snap.policy_lines),
@@ -216,12 +271,59 @@ def rows(snap: Snapshot, flow: GapFlow) -> list[tuple[str, str, float]]:
     ]
 
 
+SELFTEST_SRC = """package p
+
+// A declaration comment. Two lines, against a func.
+// It is exempt by design.
+func A() {
+	// floating one
+	// floating two
+	x := 1
+	_ = x
+}
+
+type T struct {
+	// a field comment sits against a declaration, not in a body
+	// even though it is indented
+	F int
+}
+
+// a package-level block
+// before a var
+var V = 1
+
+// A signature that spans lines puts its brace on a line carrying no `func`.
+func B(
+	a int,
+	b int,
+) (int, error) {
+	// floating, inside a multi-line-signature body
+	// and the classifier must see it as such
+	return a + b, nil
+}
+"""
+
+
+def selftest() -> int:
+    """Pin the classifier against fixed snippets, not against the live tree."""
+    got = comment_blocks(SELFTEST_SRC)
+    want = [(2, False), (2, True), (2, False), (2, False), (1, False), (2, True)]
+    if got != want:
+        print(f"selftest FAILED\n  want {want}\n  got  {got}")
+        return 1
+    print("selftest ok: 6 blocks, 2 floating")
+    return 0
+
+
 def main() -> int:
     ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     ap.add_argument("--at", default="HEAD", help="revision to measure (default: HEAD)")
     ap.add_argument("--baseline", help="revision to compare against; prints a delta column")
     ap.add_argument("--tsv", action="store_true", help="tab-separated output")
+    ap.add_argument("--selftest", action="store_true", help="pin the comment classifier against fixed snippets")
     args = ap.parse_args()
+    if args.selftest:
+        return selftest()
 
     snap = snapshot(args.at)
     current = rows(snap, gap_flow(args.at))
