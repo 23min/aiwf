@@ -1,7 +1,9 @@
 ---
 id: G-0652
 title: No review lens asks whether prose restates a fact another record holds
-status: open
+status: addressed
+addressed_by_commit:
+    - e3ea1a2b8
 ---
 ## What's missing
 
