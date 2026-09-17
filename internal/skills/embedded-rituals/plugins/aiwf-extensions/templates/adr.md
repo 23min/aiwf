@@ -13,9 +13,10 @@ superseded_by:
 
 <!-- The heading above is optional. aiwf never requires it; `aiwf retitle` keeps a
      canonical `# <id> — <title>` in sync when one is present and leaves the body
-     alone when it is not. Keep it if this file will be read as a document outside
-     aiwf, where the id and title are what identify it; delete it otherwise. Delete this
-     comment either way. -->
+     alone when it is not. Delete it from the body you pass to `aiwf add`, which is
+     what allocates the id. If this file will be read as a document outside aiwf,
+     where the id and title are what identify it, add the heading back with
+     `aiwf edit-body` once the id exists. Delete this comment either way. -->
 
 > **Date:** YYYY-MM-DD · **Decided by:** <role or name>
 
@@ -29,7 +30,8 @@ superseded_by:
 
        proposed   — written up, open for discussion or ratification.
        accepted   — in force. Steady state.
-       superseded — replaced by a later ADR. Set `superseded_by` on this one and
+       superseded — replaced by a later ADR. `aiwf promote <id> superseded
+                    --superseded-by <new-id>` sets `superseded_by` here and
                     `supersedes` on the new ADR. Never delete the file.
        rejected   — proposed and explicitly turned down. Keep the file for the
                     reasoning trail; do not re-use the number.
@@ -59,7 +61,7 @@ How will we know this decision still holds? A measurable signal, a periodic revi
 
 <!-- Optional — omit the section when there is nothing to point at. -->
 
-- Related ADRs: `ADR-NNNN`
+- Related ADRs, including any this one replaces: `ADR-NNNN`
 - aiwf decisions: `D-NNNN`
 - Linked epics or milestones: `E-NNNN`, `M-NNNN`
 - External: docs, specs, RFCs

@@ -1,6 +1,7 @@
 package policies
 
 import (
+	"fmt"
 	"os"
 	"path/filepath"
 	"regexp"
@@ -46,9 +47,32 @@ func TestShippedSurfaces_CiteOnlyMaterializedTemplatePaths(t *testing.T) {
 	root := repoRoot(t)
 	materialized := materializedTemplateNames(t)
 
-	for _, dir := range shippedSurfaceRoots {
-		walkRoot := filepath.Join(root, dir)
-		err := filepath.WalkDir(walkRoot, func(path string, d os.DirEntry, err error) error {
+	err := walkShippedMarkdown(root, shippedSurfaceRoots, func(rel, content string) {
+		for _, m := range templatePathCitation.FindAllStringSubmatch(content, -1) {
+			segment := m[1]
+			switch {
+			case segment == "":
+				// A bare directory reference names no file and cannot rot.
+			case strings.ContainsAny(segment, "<>"):
+				t.Errorf("%s cites the placeholder templates path %q; the shipped templates are not named per kind, "+
+					"so no substitution resolves for every kind — name the file, or name the directory and let the "+
+					"reader read it", rel, m[0])
+			case !materialized[segment]:
+				t.Errorf("%s cites %q, which materialization does not write; materialized templates are %v",
+					rel, m[0], sortedTemplateNames(materialized))
+			}
+		}
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+}
+
+// walkShippedMarkdown calls fn with the slash-separated repo-relative path and
+// the content of every markdown file under dirs, each resolved against root.
+func walkShippedMarkdown(root string, dirs []string, fn func(rel, content string)) error {
+	for _, dir := range dirs {
+		err := filepath.WalkDir(filepath.Join(root, dir), func(path string, d os.DirEntry, err error) error {
 			if err != nil {
 				return err
 			}
@@ -60,26 +84,14 @@ func TestShippedSurfaces_CiteOnlyMaterializedTemplatePaths(t *testing.T) {
 				return readErr
 			}
 			rel, _ := filepath.Rel(root, path)
-			for _, m := range templatePathCitation.FindAllStringSubmatch(string(content), -1) {
-				segment := m[1]
-				switch {
-				case segment == "":
-					// A bare directory reference names no file and cannot rot.
-				case strings.ContainsAny(segment, "<>"):
-					t.Errorf("%s cites the placeholder templates path %q; the shipped templates are not named per kind, "+
-						"so no substitution resolves for every kind — name the file, or name the directory and let the "+
-						"reader read it", rel, m[0])
-				case !materialized[segment]:
-					t.Errorf("%s cites %q, which materialization does not write; materialized templates are %v",
-						rel, m[0], sortedTemplateNames(materialized))
-				}
-			}
+			fn(filepath.ToSlash(rel), string(content))
 			return nil
 		})
 		if err != nil {
-			t.Fatalf("walking %s: %v", dir, err)
+			return fmt.Errorf("walking %s: %w", dir, err)
 		}
 	}
+	return nil
 }
 
 // materializedTemplateNames is the resolvable set, read from what

@@ -39,7 +39,7 @@ If `--path-hint` is **ambiguous** (matches several areas) or matches none, aiwf 
 
 ```bash
 # You know the file, not the area name — let the kernel map it:
-aiwf add gap --title "Login throttle off-by-one" --path-hint projects/app-a/auth/login.go
+aiwf add gap --title "Login throttle off-by-one" --body-file gap.md --path-hint projects/app-a/auth/login.go
 # → derives area: app-a
 
 # Or name it explicitly:
@@ -63,7 +63,7 @@ With `areas.required: true` (the 1:1 monorepo case — every entity belongs to e
 - For work that genuinely belongs to no single project, tag it `global` — the reserved cross-cutting sentinel. It is a valid `--area` value wherever an areas block is declared, and is excluded from the mistag check:
 
 ```bash
-aiwf add adr --title "Adopt a shared CI cache" --area global
+aiwf add adr --title "Adopt a shared CI cache" --body-file adr.md --area global
 ```
 
 ## Related

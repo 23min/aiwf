@@ -152,7 +152,7 @@ The skill's job is to **surface** structure (tiers, sequence, decisions) and **g
 
 ### 2. Inventing verbs that don't exist on the kernel surface
 
-Every verb invocation in the skill body or its rendered output must resolve to a real `aiwf` command available today. If the synthesis would benefit from a verb that doesn't exist, **record it as follow-up work** by invoking `aiwfx-record-gap`, which triages whether a missing verb is a defect to file (`aiwf add gap --title "..." --discovered-in M-NNNN`) or work that belongs in an epic, and surface the result in the output — do not encode a hand-edit workaround or pretend the verb exists. The kernel surface is authoritative; the skill is advisory; the verb-invention failure mode confuses that hierarchy.
+Every verb invocation in the skill body or its rendered output must resolve to a real `aiwf` command available today. If the synthesis would benefit from a verb that doesn't exist, **record it as follow-up work** by invoking `aiwfx-record-gap`, which triages whether a missing verb is a defect to file as a gap or work that belongs in an epic, and surface the result in the output — do not encode a hand-edit workaround or pretend the verb exists. The kernel surface is authoritative; the skill is advisory; the verb-invention failure mode confuses that hierarchy.
 
 ### 3. Persisting the synthesis to a checked-in file
 

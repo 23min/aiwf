@@ -26,10 +26,10 @@ The six kinds and their required flags:
 |---|---|---|
 | epic | `--title` | Allocates `E-NNNN`. |
 | milestone | `--title`, `--epic <E-NNNN>`, `--tdd <required\|advisory\|none>` | Lives under the epic's directory. Optional `--depends-on <id>[,<id>]` declares prerequisite milestones at allocation time; each id must already exist as a milestone. |
-| adr | `--title` | Allocates `ADR-NNNN` under `docs/adr/`. |
-| gap | `--title` | Optional `--discovered-in <id>`. Optional `--priority <level>` (`urgent`\|`high`\|`medium`\|`low`) sets the triage priority at creation — see the `aiwf-set-priority` skill to change or clear it later. |
-| decision | `--title` | Optional `--relates-to <id,id,...>`. Optional `--priority <level>` (`urgent`\|`high`\|`medium`\|`low`) — same as gap. |
-| contract | `--title` | Allocates `C-NNNN` and creates `work/contracts/C-NNNN-<slug>/contract.md`. Optional `--linked-adr <id,id,...>` records the motivating ADRs. Pass `--validator <name> --schema <path> --fixtures <path>` together to also bind the contract in aiwf.yaml within the same commit. |
+| adr | `--title`, `--body-file <path>` or `--body` | Allocates `ADR-NNNN` under `docs/adr/`. |
+| gap | `--title`, `--body-file <path>` or `--body` | Optional `--discovered-in <id>`. Optional `--priority <level>` (`urgent`\|`high`\|`medium`\|`low`) sets the triage priority at creation — see the `aiwf-set-priority` skill to change or clear it later. |
+| decision | `--title`, `--body-file <path>` or `--body` | Optional `--relates-to <id,id,...>`. Optional `--priority <level>` (`urgent`\|`high`\|`medium`\|`low`) — same as gap. |
+| contract | `--title`, `--body-file <path>` or `--body` | Allocates `C-NNNN` and creates `work/contracts/C-NNNN-<slug>/contract.md`. Optional `--linked-adr <id,id,...>` records the motivating ADRs. Pass `--validator <name> --schema <path> --fixtures <path>` together to also bind the contract in aiwf.yaml within the same commit. |
 | ac | `--title`, positional milestone id | Allocates `AC-N` per-milestone (max+1 across the full `acs[]` including cancelled). Appends to the milestone's frontmatter `acs[]` and scaffolds a `### AC-N — <title>` body heading. The milestone file is rewritten in place — no separate AC file. |
 
 ## Repeated --title for batched AC creation
@@ -189,7 +189,7 @@ Two ways to land the body content:
 
 ### Locating the rich body template
 
-`aiwf add` writes a *minimal valid* skeleton — enough headings to clear `aiwf check`, not the house-style shape. Richer templates are materialized into `.claude/templates/` by `aiwf update`, and their filenames do not follow a per-kind pattern — read the directory rather than guessing a name: `adr.md` and `decision.md` (the Nygard-structured ADR / decision bodies, carrying the date / decided-by header the skeleton omits, and an optional `# <id> — <title>` H1 the template marks as yours to keep or delete), `epic-spec.md` / `milestone-spec.md` (the planning-spec scaffolds), and `gap.md` / `contract.md` (the defect record and the contract registry record). For ADR and decision the `aiwfx-record-decision` ritual reads the template and fills it in; for epic and milestone the planning rituals do. Every template opens with a frontmatter block that is field reference, not payload: delete it before passing the filled-in body to `--body-file`, which refuses content carrying its own frontmatter. If `.claude/templates/` is absent, the templates aren't materialized: run `aiwf update` — don't reconstruct a body by copying an existing entity, which drifts from the canonical template and drops the header.
+Without a body, `aiwf add` writes a *minimal valid* skeleton for a kind that has a draft phase — enough headings to clear `aiwf check`, not the house-style shape — and refuses the rest. Richer templates are materialized into `.claude/templates/` by `aiwf update`, and their filenames do not follow a per-kind pattern — read the directory rather than guessing a name: `adr.md` and `decision.md` (the Nygard-structured ADR / decision bodies, carrying the date / decided-by header the skeleton omits, and an optional `# <id> — <title>` H1 whose template comment says how to handle it), `epic-spec.md` / `milestone-spec.md` (the planning-spec scaffolds), and `gap.md` / `contract.md` (the defect record and the contract registry record). For ADR and decision the `aiwfx-record-decision` ritual reads the template and fills it in; for epic and milestone the planning rituals do. Every template opens with a frontmatter block that is field reference, not payload: delete it before passing the filled-in body to `--body-file`, which refuses content carrying its own frontmatter. If `.claude/templates/` is absent, the templates aren't materialized: run `aiwf update` — don't reconstruct a body by copying an existing entity, which drifts from the canonical template and drops the header.
 
 ### What to write per kind
 
@@ -251,4 +251,4 @@ What `aiwf check` reports as `unexpected-tree-file`:
 - Files inside a contract's directory (`work/contracts/C-NNNN-*/`) are auto-exempt — schemas and fixtures live there legitimately.
 - Globs in `aiwf.yaml: tree.allow_paths` are exempt for project-specific carve-outs.
 
-If the user asks to "add a note about X" or similar prose work, edit the relevant entity's body — don't create a stray file. If the prose doesn't fit any existing entity, the right answer is usually a new entity (`aiwf add gap "..."` for a defect, `aiwf add decision "..."` for a directional choice) — not a free-floating file under `work/`.
+If the user asks to "add a note about X" or similar prose work, edit the relevant entity's body — don't create a stray file. If the prose doesn't fit any existing entity, the right answer is usually a new entity (a gap for a defect, filed through `aiwfx-record-gap`; a decision for a directional choice, recorded through `aiwfx-record-decision`) — not a free-floating file under `work/`.
