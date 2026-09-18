@@ -29,7 +29,7 @@ Provide complete, tested Codex artifact operations and preserve user-owned guida
 
 ## Closes
 
-- (none)
+- G-0501 — Preserve symlinked instruction files during init and update, report skipped guidance with remediation, and audit both instruction-file creation and managed-guidance writers.
 
 ## Context
 
