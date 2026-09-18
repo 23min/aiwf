@@ -16,7 +16,7 @@ acs:
     - id: AC-3
       title: Claude consumers use rendered definitions without unresolved placeholders
       status: open
-      tdd_phase: red
+      tdd_phase: green
     - id: AC-4
       title: Independent roots and repeated refreshes produce equivalent artifacts
       status: open
