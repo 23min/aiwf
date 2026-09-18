@@ -6,6 +6,25 @@ parent: E-0093
 depends_on:
     - M-0342
 tdd: advisory
+acs:
+    - id: AC-1
+      title: Fresh sessions discover the supported skills and instruction sources
+      status: open
+    - id: AC-2
+      title: Claude Codex and Claude can hand off one unfinished workflow
+      status: open
+    - id: AC-3
+      title: Concurrent host sessions keep edits and Git state in their assigned worktrees
+      status: open
+    - id: AC-4
+      title: An independent Codex review executes through the supported ritual path
+      status: open
+    - id: AC-5
+      title: A rebuilt devcontainer provides Codex and retains the selected state
+      status: open
+    - id: AC-6
+      title: Implementation passes repository gates and documents its support boundary
+      status: open
 ---
 ## Goal
 
@@ -22,6 +41,30 @@ Public host detection and artifact lifecycle behavior are complete. This milesto
 ## Acceptance criteria
 
 The criteria below define the observable completion contract.
+
+### AC-1 — Fresh sessions discover the supported skills and instruction sources
+
+Record fresh Claude and Codex runs in a disposable consumer checkout after materialization. Verify each host's exposed skill inventory and instruction-source diagnostics where available, and execute representative planning and review steps using the generated artifacts. Repeat relevant root/nested instruction precedence and size-limit scenarios for Codex. Separately verify that Codex working on aiwf receives repository development guidance through a maintained source/reference arrangement. State what was mechanically observable and what was only demonstrated by behavior.
+
+### AC-2 — Claude Codex and Claude can hand off one unfinished workflow
+
+Run an approved handoff from Claude to Codex and back on the same task/worktree using current aiwf records, branch/diff state, and a concise handoff note. The receiving session identifies completed versus unfinished work and continues without changing host selection or reconstructing the workflow by translating another host's artifacts. Record how uncommitted work and outstanding approvals were represented. A host account limit that prevents a leg leaves this observation incomplete.
+
+### AC-3 — Concurrent host sessions keep edits and Git state in their assigned worktrees
+
+Use separate terminals and distinct branches/worktrees for a bounded pair of non-overlapping tasks. Record both repository roots and branches before work, then verify each change and staged/unstaged state in the intended checkout. Each worktree must have its complete selected host artifacts. Keep integration serial and separately approved; do not run concurrent refreshes using divergent binaries against shared hook state. This demonstrates human-operated parallel sessions, not an orchestration engine.
+
+### AC-4 — An independent Codex review executes through the supported ritual path
+
+Exercise a review-required ritual with a fresh reviewer context that did not author the change. Record the dispatch method, reviewed diff, findings, and how the parent handled them. Confirm that the instructions resolve to capabilities available in the supported Codex setup. If delegation is unavailable, demonstrate the actionable limitation and keep the successful independent-review observation outstanding; self-review cannot satisfy this criterion.
+
+### AC-5 — A rebuilt devcontainer provides Codex and retains the selected state
+
+After separate rebuild approval, exercise the reviewed install and mount setup in a fresh container build. Verify that the global npm Codex binary is available even if the editor supplies another binary, and that repeating initialization does not reinstall an existing npm binary. Check host-backed Codex configuration/session state and login status before and after without exposing credentials. Confirm Claude remains usable and that the install/mount documentation matches the exercised behavior. Record any steps not run.
+
+### AC-6 — Implementation passes repository gates and documents its support boundary
+
+Run the required build, formatting/lint, race-test, coverage, and selfcheck gates against the final implementation checkout and record results with failures preserved. Review setup, host override, guidance opt-out, symlink diagnostic, handoff, and parallel-worktree instructions against the demonstrated workflows. State the deferred capabilities and the distinction between materialization health and observed discovery. This criterion records actual gate execution; it must not be replaced with a proxy assertion that commands appear in documentation.
 
 ## Constraints
 
