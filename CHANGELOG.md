@@ -16,6 +16,18 @@ section in this file.
 
 ## [Unreleased]
 
+### Fixed — G-0693: the Darwin signing wrapper no longer defeats the Go test cache off macOS
+
+Every `go test` the Makefile runs passed `-exec=scripts/sign-and-run.sh` on every host.
+The wrapper is a no-op away from macOS, but `-exec` with a program sits outside the flag
+set `go help test` defines as cacheable, so each local run re-executed the whole suite
+over an unchanged tree. The wrapper is now named only on Darwin, where the signing it
+does is load-bearing; elsewhere the flag is passed empty, which runs the binary directly
+and leaves the run cacheable. Measured in the Linux devcontainer, `make check-fast` over
+an unchanged tree went from 225s to 45s. The CI workflows go on naming the wrapper: every
+job runs on Linux, where it is the same no-op, but whether a gate should serve cached test
+results is a separate question this does not settle.
+
 ## [0.36.0] — 2026-09-17
 
 ### Fixed — G-0681: shipped skills spell `aiwf add` commands that run
