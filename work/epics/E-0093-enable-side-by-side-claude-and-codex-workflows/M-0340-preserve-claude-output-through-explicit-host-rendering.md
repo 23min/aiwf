@@ -19,7 +19,7 @@ acs:
       tdd_phase: done
     - id: AC-4
       title: Independent roots and repeated refreshes produce equivalent artifacts
-      status: open
+      status: met
       tdd_phase: done
 ---
 ## Goal
