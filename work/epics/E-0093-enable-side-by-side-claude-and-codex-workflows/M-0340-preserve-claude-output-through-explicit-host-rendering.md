@@ -7,16 +7,20 @@ tdd: required
 acs:
     - id: AC-1
       title: Claude output and consent behavior match the pre-refactor baseline
-      status: open
+      status: met
+      tdd_phase: done
     - id: AC-2
       title: Explicit bindings render deterministically and reject invalid inputs
-      status: open
+      status: met
+      tdd_phase: done
     - id: AC-3
       title: Claude consumers use rendered definitions without unresolved placeholders
-      status: open
+      status: met
+      tdd_phase: done
     - id: AC-4
       title: Independent roots and repeated refreshes produce equivalent artifacts
-      status: open
+      status: met
+      tdd_phase: done
 ---
 ## Goal
 
@@ -28,7 +32,7 @@ Introduce a tested rendering boundary for shared workflow sources while preservi
 
 ## Context
 
-The current materializer copies embedded Markdown and routes paths through a Target value. E-0093 requires explicit placeholders and named fragments before Codex output is enabled. A planning probe has demonstrated deterministic paths, modes, and bytes for the existing materializer; permanent regression checks remain to be added.
+Claude and Codex need different artifact paths and host instructions while sharing workflow facts. Explicit bindings keep those facts in one source; independently captured Claude artifacts constrain output changes during the transition.
 
 ## Acceptance criteria
 
@@ -54,7 +58,7 @@ Materialize the same version and configuration in independent temporary reposito
 
 - Author shared workflow facts once; use explicit typed bindings and small named fragments only for host differences.
 - Do not expose Codex selection or change the default host behavior in this milestone.
-- Preserve Claude output for ordinary owned artifacts. Later milestones carry the explicit host-selection and symlink policy changes.
+- Preserve Claude output for ordinary owned artifacts, except the two YAML frontmatter corrections documented in `internal/cli/integration/testdata/claude-baseline/README.md`. Later milestones carry the explicit host-selection and symlink policy changes.
 - Test filesystem and rendering behavior under D-0070; do not add literal prose-presence tests or rely on proposed D-0072 as accepted policy.
 - No new runtime dependency or extensible plugin framework. Exercise all reachable new rendering branches with deterministic inputs.
 
@@ -89,15 +93,34 @@ Materialize the same version and configuration in independent temporary reposito
 
 ## Release note
 
-
+Fix invalid YAML frontmatter in the `aiwf-area` and `wf-codebase-health` skills; their description text and instructions remain unchanged. Claude setup, updates, and aiwf-created worktrees retain their artifact layout and consent behavior. Generation and doctor drift checks now use rendered skill definitions.
 
 ## Decisions made during implementation
 
-- (none)
+- The Claude baseline permits the two frontmatter corrections documented in `internal/cli/integration/testdata/claude-baseline/README.md`. They make inherited invalid YAML parseable while preserving description text and skill bodies. Expected hashes are derived from the original capture revision with only those formatting corrections, independently of the renderer.
 
 ## Validation
 
+Measured on 2026-09-18 in the Linux x86_64 devcontainer with Go 1.25.11.
 
+| Command | Expected | Observed |
+| --- | --- | --- |
+| `make check-fast` | Exit 0; vet, lint, and full test suite pass | Exit 0; vet passed for default, stress, and testpins builds; lint reported `0 issues.`; 71 packages passed, four had no tests, and none failed |
+| `make diag-aiwf` | Build succeeds | Exit 0; produced `bin/aiwf-diag` |
+| `go test -race ./internal/skills -count=1` | Exit 0 | `ok github.com/23min/aiwf/internal/skills` |
+| `go test -race ./internal/cli/integration -run '^TestClaudeArtifacts_IndependentRootsAndRepeatedRefreshes$' -count=1` | Exit 0 | `ok github.com/23min/aiwf/internal/cli/integration` |
+| `bin/aiwf-diag check --since main --format=json` | No error-severity findings | No errors; the pre-existing `archive-sweep-pending` warning and two `terminal-entity-not-archived` warnings for G-0464 and G-0691 remain |
+
+The acceptance checks are re-runnable from the repository:
+
+- AC-1: `go test ./internal/cli/integration -run '^TestClaudeArtifacts_MatchBaseline$' -count=1` passes six configurations through init, update, and worktree creation. Capture provenance, inventory scope, the health-metadata exclusion, and the two approved YAML exceptions are defined in `internal/cli/integration/testdata/claude-baseline/README.md`.
+- AC-2: `go test ./internal/skills -run '^TestRenderSkills_' -count=1` covers explicit substitutions, unchanged literal bytes, deterministic output, independent result buffers, ordering, and typed errors with no partial batch. Coverage measured 100% of statements in `RenderSkills` and `renderText`; the manual branch audit is recorded in the AC phase history.
+- AC-3: `go test ./internal/skills ./internal/policies ./internal/cli/doctor` passes. Materialization tests exercise rejection before filesystem changes, writer failures, optional agents, guidance stamping, parseable skill frontmatter, and unresolved-token rejection. Existing policy checks resolve rendered template references and required template sections. The full suite also exercises doctor's clean and drifted consumer cases.
+- AC-4: `go test ./internal/cli/integration -run '^TestClaudeArtifacts_IndependentRootsAndRepeatedRefreshes$' -count=1` passes 32 snapshots across default and configured consumers, two independent roots per configuration, repeated init/update, and newly created worktrees with repeated updates. Input-derived checks additionally preserve surrounding user instructions, foreign file bytes, and executable permissions.
+
+`make mutate-diff` reports that gremlins is unavailable. Manual mutation probes were used instead; their defects and outcomes are recorded in each AC's phase history. Every injected production change was restored, and the affected tests passed again. These probes are sampled adversarial evidence, not exhaustive mutation coverage.
+
+The full `make ci` integration gate has not run for this milestone; the repository's local validation cadence uses `make check-fast` for milestone work and reserves `make ci` for epic-to-main integration and push.
 
 ## Deferrals
 
@@ -105,4 +128,8 @@ Materialize the same version and configuration in independent temporary reposito
 
 ## Reviewer notes
 
-- (none)
+- Independent code-quality review: no blocking findings. Design-quality verdict: keep the rendering boundary and its existing materializer integration.
+- Retain the explicit scalar and fragment switches. A passing compression trial reduced renderer function logic from 87 to 70 lines but constructed a lookup map per token; the modest reduction does not justify replacing the direct field dispatch.
+- Keep both the frozen Claude baseline and independent-root refresh checks: the former detects consistent output drift, while the latter detects checkout-dependent or cumulative changes. Neither substitutes for the other.
+- Rendering validates each materializer's selected inputs before its filesystem changes; this does not promise rollback after I/O failure or a transaction across the complete init pipeline.
+- Doc-lint: clean across 18 changed Markdown files. Code references, local links and anchors, CLI invocations, and heading structure resolve; no orphan documents or documentation TODOs were found.

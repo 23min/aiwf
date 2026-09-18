@@ -60,7 +60,7 @@ A contract bundle has five pieces. All five are required to call the bundle comp
 4. **At least one invalid fixture** at `docs/schemas/<topic>/fixtures/v1/invalid/<name>.<ext>`. Demonstrates a shape the schema rejects. **Invalid fixtures are not optional** — without them, the schema's permissiveness goes untested. "Schema accepted something we didn't intend" is the dominant contract bug class.
 5. **A worked example** — one realistic, end-to-end scenario with concrete domain values. No `<placeholder>`, no `lorem ipsum`. Real names, real numbers, real dates. Lives at the path documented in the ADR. Proves a human can read the shape and tell what it means.
 
-After authoring, draft the record's body from `.claude/templates/contract.md`, then register and bind the contract in one verb:
+After authoring, draft the record's body from `{{aiwf:templates_dir}}/contract.md`, then register and bind the contract in one verb:
 
 ```bash
 aiwf add contract \

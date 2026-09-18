@@ -6,6 +6,33 @@ If you only read one section: jump to "[The five rules](#the-five-rules)". The r
 
 ---
 
+## Embedded host bindings
+
+Canonical sources under `internal/skills/embedded`, `embedded-rituals`, and
+`embedded-guidance` are rendered before installation. Use
+`{{aiwf:templates_dir}}/epic-spec.md`, for example, when referring to a shipped
+template. Claude currently renders that reference to
+`.claude/templates/epic-spec.md`.
+
+The reserved `{{aiwf:...}}` syntax accepts the exact binding names `host`,
+`skills_dir`, `agents_dir`, `templates_dir`, and `hooks_dir`. The named fragment
+slots are `fragment:skill_invocation`, `fragment:worktree_entry`, and
+`fragment:review_dispatch`; a host must supply a fragment before a source uses
+it. Claude currently supplies the worktree-entry fragment from
+`internal/skills/embedded-guidance/claude/worktree-entry.md`. Fragments may use
+path bindings but cannot include other fragments. Unknown tokens, malformed
+syntax, and missing referenced bindings fail rendering before the artifact
+writer changes files. Other text is preserved literally, including configured
+paths such as `.claude/worktrees/`.
+
+`skills.List` and the ritual list functions return Claude-rendered definitions,
+which expected-content checks must compare against installed files. Source
+validation that follows generated references must render the source first.
+This boundary does not add host selection or change Claude's installation
+layout.
+
+---
+
 ## Verb cheat-sheet
 
 What a skill is allowed to call, what each verb does, and whether it produces a commit. Verbs that produce a commit also write the standard trailers (`aiwf-verb:`, `aiwf-entity:`, `aiwf-actor:`) automatically — your skill never assembles those by hand.

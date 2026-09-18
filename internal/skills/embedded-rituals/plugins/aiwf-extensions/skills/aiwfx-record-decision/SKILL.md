@@ -36,13 +36,13 @@ Ask the user (or, if the calling skill knows, just pick): ADR or D-NNNN?
 
 ### 2. Draft the body from the rich template
 
-The rich template is the source for the body. It ships materialized at `.claude/templates/adr.md` (ADR) and `.claude/templates/decision.md` (D-NNNN); `aiwf update` re-materializes both. If the file is absent, run `aiwf update` — **don't** reconstruct the format by copying an existing ADR or decision, which drifts from the canonical template and can silently drop its date-and-decider header line.
+The rich template is the source for the body. It ships materialized at `{{aiwf:templates_dir}}/adr.md` (ADR) and `{{aiwf:templates_dir}}/decision.md` (D-NNNN); `aiwf update` re-materializes both. If the file is absent, run `aiwf update` — **don't** reconstruct the format by copying an existing ADR or decision, which drifts from the canonical template and can silently drop its date-and-decider header line.
 
 Copy the template to a draft file outside the entity tree and delete its `---` frontmatter block: that block is field reference, and `aiwf add` writes the real frontmatter.
 
-For an ADR: read `.claude/templates/adr.md`. Fill in: **Context**, **Decision**, **Consequences** and **Validation**, each as the template directs beside it.
+For an ADR: read `{{aiwf:templates_dir}}/adr.md`. Fill in: **Context**, **Decision**, **Consequences** and **Validation**, each as the template directs beside it.
 
-For a D-NNNN: read `.claude/templates/decision.md`. Fill in: **Question**, **Decision**, **Reasoning** and **Consequences**, each as the template directs beside it.
+For a D-NNNN: read `{{aiwf:templates_dir}}/decision.md`. Fill in: **Question**, **Decision**, **Reasoning** and **Consequences**, each as the template directs beside it.
 
 ### 3. Create the entity with its body
 
