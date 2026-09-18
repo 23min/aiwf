@@ -1,7 +1,7 @@
 ---
 id: M-0340
 title: Preserve Claude output through explicit host rendering
-status: draft
+status: in_progress
 parent: E-0093
 tdd: required
 acs:
