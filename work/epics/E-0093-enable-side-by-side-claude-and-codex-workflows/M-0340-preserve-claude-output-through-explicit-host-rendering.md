@@ -7,7 +7,7 @@ tdd: required
 acs:
     - id: AC-1
       title: Claude output and consent behavior match the pre-refactor baseline
-      status: open
+      status: met
       tdd_phase: done
     - id: AC-2
       title: Explicit bindings render deterministically and reject invalid inputs
