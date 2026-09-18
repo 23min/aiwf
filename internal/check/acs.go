@@ -392,7 +392,7 @@ func milestoneDraftIncompleteACs(t *tree.Tree) []Finding {
 		// it one FSM stage earlier than acsEmptyBodyOnStart (which fires error
 		// at in_progress/done), as a warning, so plan-time review catches the
 		// empty body before the milestone lands on main. Same body-emptiness
-		// mechanism and the same missing-heading / cancelled-AC carve-outs as
+		// mechanism and the same missing-heading / terminal-AC carve-outs as
 		// that rule (M-0275/AC-2).
 		fullPath := filepath.Join(t.Root, e.Path)
 		raw, err := os.ReadFile(fullPath)
@@ -407,7 +407,7 @@ func milestoneDraftIncompleteACs(t *tree.Tree) []Finding {
 		}
 		sections := entity.ParseACSections(body)
 		for _, ac := range e.ACs {
-			if ac.ID == "" || ac.Status == entity.StatusCancelled {
+			if ac.ID == "" || entity.IsTerminalACStatus(ac.Status) {
 				continue
 			}
 			content, found := sections[ac.ID]
@@ -481,18 +481,24 @@ func milestoneCancelledIncompleteACs(t *tree.Tree) []Finding {
 }
 
 // acsEmptyBodyOnStart fires (error) when a non-archived milestone is
-// in_progress or done and any non-cancelled AC's body subsection
-// carries no non-heading prose (M-0268/AC-4, G-0216). Archive-scoped,
-// forward-only per D-0039 point 3 — an archived milestone never fires
-// this finding regardless of body state, matching every sibling rule
-// in this file; there is no separate grandfather or timestamp
-// mechanism.
+// in_progress or done and any AC still on the milestone's contract
+// carries no non-heading prose in its body subsection (M-0268/AC-4,
+// G-0216). An AC at a terminal status is off that contract — both
+// `deferred` and `cancelled` are removal-class terminals, neither
+// claiming the criterion succeeded — so terminality is asked of the
+// FSM via entity.IsTerminalACStatus rather than by naming a status.
+//
+// Archive-scoped, forward-only per D-0039 point 3 — an archived
+// milestone never fires this finding regardless of body state,
+// matching every sibling rule in this file; there is no separate
+// grandfather or timestamp mechanism.
 //
 // Deliberately does NOT use entityBodyEmpty's terminal-status
 // lifecycle gate: that gate silences the AC subcode of
-// entity-body-empty once a milestone reaches a terminal status, but
-// this rule's own scope is exactly in_progress and done — the two
-// statuses where a milestone AC is supposed to have a real contract.
+// entity-body-empty once the parent milestone reaches a terminal
+// status, but this rule's own scope is exactly in_progress and done —
+// the two statuses where a milestone AC is supposed to have a real
+// contract.
 //
 // An AC with no `### AC-N` heading in the body at all is a different
 // problem (a frontmatter/body desync) — acs-body-coherence/missing-
@@ -517,7 +523,7 @@ func acsEmptyBodyOnStart(t *tree.Tree) []Finding {
 		}
 		sections := entity.ParseACSections(body)
 		for _, ac := range e.ACs {
-			if ac.ID == "" || ac.Status == entity.StatusCancelled {
+			if ac.ID == "" || entity.IsTerminalACStatus(ac.Status) {
 				continue
 			}
 			content, found := sections[ac.ID]
