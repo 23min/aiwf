@@ -128,4 +128,8 @@ The full `make ci` integration gate has not run for this milestone; the reposito
 
 ## Reviewer notes
 
-- (none)
+- Independent code-quality review: no blocking findings. Design-quality verdict: keep the rendering boundary and its existing materializer integration.
+- Retain the explicit scalar and fragment switches. A passing compression trial reduced renderer function logic from 87 to 70 lines but constructed a lookup map per token; the modest reduction does not justify replacing the direct field dispatch.
+- Keep both the frozen Claude baseline and independent-root refresh checks: the former detects consistent output drift, while the latter detects checkout-dependent or cumulative changes. Neither substitutes for the other.
+- Rendering validates each materializer's selected inputs before its filesystem changes; this does not promise rollback after I/O failure or a transaction across the complete init pipeline.
+- Doc-lint: clean across 18 changed Markdown files. Code references, local links and anchors, CLI invocations, and heading structure resolve; no orphan documents or documentation TODOs were found.

@@ -1304,7 +1304,7 @@ Cut the instruction load a session reads before its task to a fixed ceiling, enf
 | M-0338 | Record the after observation and re-run the growth report | draft |
 | M-0339 | Rewrite the fragment and update the anchors policy | draft |
 
-## E-0093 — Enable side-by-side Claude and Codex workflows (proposed)
+## E-0093 — Enable side-by-side Claude and Codex workflows (active)
 
 ### Goal
 
@@ -1314,7 +1314,7 @@ and parallel implementation in separate worktrees.
 
 | Milestone | Title | Status |
 |---|---|---|
-| M-0340 | Preserve Claude output through explicit host rendering | draft |
+| M-0340 | Preserve Claude output through explicit host rendering | in_progress |
 | M-0341 | Implement Codex artifacts with safe guidance ownership | draft |
 | M-0342 | Enable host detection across setup refresh and diagnosis | draft |
 | M-0343 | Verify host handoff parallel worktrees and container persistence | draft |
