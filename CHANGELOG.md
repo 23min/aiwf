@@ -16,6 +16,16 @@ section in this file.
 
 ## [Unreleased]
 
+### Fixed — G-0691: `check --shape-only` and `--fast` refuse an `aiwf.yaml` they cannot read
+
+Every path `aiwf check` offers now refuses an `aiwf.yaml` that exists but does not
+parse, at exit 3 with the file named, as the full check already did. The
+`--shape-only` path the pre-commit hook runs and the `--fast` pre-flight previously
+reported a clean tree on such a file, running with every knob at its default — so a
+`tree.strict` or severity override the operator had set went unapplied, and the
+first refusal arrived at the pre-push hook after the commits that trusted the green
+signal. A missing `aiwf.yaml` is still the pre-init state and keeps its defaults.
+
 ### Fixed — G-0464: a deferred acceptance criterion is off the milestone's contract
 
 The three body-completeness lints over acceptance criteria — `acs-empty-body`,

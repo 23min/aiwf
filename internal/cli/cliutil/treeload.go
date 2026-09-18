@@ -29,9 +29,9 @@ func LoadTreeWithTrunk(ctx context.Context, rootDir string) (*tree.Tree, []tree.
 	if err != nil {
 		return tr, loadErrs, err
 	}
-	cfg, err := config.Load(rootDir)
-	if err != nil && !errors.Is(err, config.ErrNotFound) {
-		return tr, loadErrs, fmt.Errorf("loading aiwf.yaml: %w", err)
+	cfg, err := LoadOptionalConfig(rootDir)
+	if err != nil {
+		return tr, loadErrs, err
 	}
 	res, err := trunk.Read(ctx, rootDir, cfg)
 	if err != nil {
@@ -129,6 +129,30 @@ func LoadTreeWithTrunk(ctx context.Context, rootDir string) (*tree.Tree, []tree.
 	// blocking `unresolved` classification downstream (G-0558).
 	tr.CrossBranchScanned = true
 	return tr, loadErrs, nil
+}
+
+// LoadOptionalConfig reads the consumer's aiwf.yaml, treating absence
+// as the pre-init state and everything else as the operator's word.
+// A missing file yields a nil config, so every knob a caller reads
+// falls to its default. A file that exists but cannot be read — a
+// parse failure, a validation failure, an unreadable path — is
+// returned as an error, never folded into those defaults: a
+// configuration the operator wrote and this process cannot honor is
+// a refusal, since the defaults are weaker than what the file asked
+// for (a `tree.strict` or a severity override would go unapplied).
+//
+// Every `aiwf check` path reads its configuration through here, which
+// is what makes the cheaper paths agree with the full one about a file
+// that does not parse.
+func LoadOptionalConfig(rootDir string) (*config.Config, error) {
+	cfg, err := config.Load(rootDir)
+	if errors.Is(err, config.ErrNotFound) {
+		return nil, nil
+	}
+	if err != nil {
+		return nil, fmt.Errorf("loading %s: %w", config.FileName, err)
+	}
+	return cfg, nil
 }
 
 // ConfiguredTitleMaxLength returns the consumer's

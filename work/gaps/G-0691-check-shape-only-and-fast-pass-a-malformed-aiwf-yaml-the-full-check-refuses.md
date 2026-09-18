@@ -1,7 +1,9 @@
 ---
 id: G-0691
 title: check --shape-only and --fast pass a malformed aiwf.yaml the full check refuses
-status: open
+status: addressed
+addressed_by_commit:
+    - 65992426c32466c62a14a98a6547efe2454bdfb2
 ---
 ## What's missing
 
