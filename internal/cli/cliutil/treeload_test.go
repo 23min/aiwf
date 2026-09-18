@@ -327,25 +327,37 @@ func runGit(t *testing.T, dir string, args ...string) {
 
 // TestLoadOptionalConfig_AbsentIsNilAndUnreadableIsAnError pins the one
 // rule the helper decides: a missing aiwf.yaml is the pre-init state
-// (nil config, no error), while a file that exists but does not read is
-// an error naming the file — never a silent fall to the defaults its
-// author overrode. A file that reads comes back as written.
+// (nil config, no error), while a file that exists but does not read —
+// because it cannot be opened, or because what it holds does not parse
+// — is an error naming the file, never a silent fall to the defaults
+// its author overrode. A file that reads comes back as written.
+//
+// The present-but-unopenable case is staged as a directory named
+// aiwf.yaml rather than a mode-0000 file: permission bits do not bind
+// root, which is who CI may run the suite as.
 func TestLoadOptionalConfig_AbsentIsNilAndUnreadableIsAnError(t *testing.T) {
 	t.Parallel()
 	for _, tc := range []struct {
 		name    string
 		yaml    string // "" writes no file at all
+		dir     bool   // aiwf.yaml is present, as a directory
 		wantCfg bool
 		wantErr bool
 	}{
 		{name: "no aiwf.yaml"},
 		{name: "aiwf.yaml that does not parse", yaml: "tdd: [unterminated\n", wantErr: true},
+		{name: "aiwf.yaml present but not openable", dir: true, wantErr: true},
 		{name: "aiwf.yaml that reads", yaml: "tree:\n  strict: true\n", wantCfg: true},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
 			t.Parallel()
 			root := t.TempDir()
-			if tc.yaml != "" {
+			switch {
+			case tc.dir:
+				if err := os.Mkdir(filepath.Join(root, config.FileName), 0o755); err != nil {
+					t.Fatalf("mkdir %s: %v", config.FileName, err)
+				}
+			case tc.yaml != "":
 				if err := os.WriteFile(filepath.Join(root, config.FileName), []byte(tc.yaml), 0o644); err != nil {
 					t.Fatalf("write %s: %v", config.FileName, err)
 				}
