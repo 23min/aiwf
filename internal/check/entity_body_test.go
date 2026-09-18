@@ -131,16 +131,22 @@ func TestEntityBodyEmpty_FiresPerKind_OneSectionEmpty(t *testing.T) {
 	}
 }
 
-// TestEntityBodyEmpty_CancelledACSkipped pins the cancelled-AC arm
-// of the AC-body branch: when an AC is `status: cancelled`, the rule
-// must not fire even if its body section is empty. Cancellation
-// signals "this AC was ruled out"; surfacing an empty-body warning
-// against it would be noise.
-func TestEntityBodyEmpty_CancelledACSkipped(t *testing.T) {
+// TestEntityBodyEmpty_TerminalACSkipped pins the terminal-AC arm of the
+// AC-body branch: an AC at either terminal status must not fire even
+// when its body section is empty. Both terminals are removal-class —
+// `deferred` and `cancelled` each mean "off the milestone's contract",
+// neither claiming the criterion succeeded — so an empty-body warning
+// against either is noise (G-0464). `met` is not terminal in that FSM —
+// a met criterion is still on the contract and can be rescoped — so a
+// met AC with an empty body keeps firing.
+func TestEntityBodyEmpty_TerminalACSkipped(t *testing.T) {
 	t.Parallel()
-	root := t.TempDir()
-	path := "work/epics/E-01-foo/M-001-bar.md"
-	body := `## Goal
+	for _, status := range []entity.Status{entity.StatusDeferred, entity.StatusCancelled} {
+		t.Run(string(status), func(t *testing.T) {
+			t.Parallel()
+			root := t.TempDir()
+			path := "work/epics/E-01-foo/M-001-bar.md"
+			body := `## Goal
 
 Goal prose.
 
@@ -152,10 +158,10 @@ Each AC pins one observable behavior.
 
 prose
 
-### AC-2 — Cancelled AC
+### AC-2 — Disposed AC
 
 `
-	fm := `---
+			fm := `---
 id: M-001
 title: Bar
 status: in_progress
@@ -166,32 +172,34 @@ acs:
       title: Live AC
       status: open
     - id: AC-2
-      title: Cancelled AC
-      status: cancelled
+      title: Disposed AC
+      status: ` + string(status) + `
 ---
 
 `
-	abs := filepath.Join(root, filepath.FromSlash(path))
-	if err := os.MkdirAll(filepath.Dir(abs), 0o755); err != nil {
-		t.Fatal(err)
-	}
-	if err := os.WriteFile(abs, []byte(fm+body), 0o644); err != nil {
-		t.Fatal(err)
-	}
-	tr := &tree.Tree{
-		Root: root,
-		Entities: []*entity.Entity{{
-			ID: "M-0001", Kind: entity.KindMilestone, Title: "Bar",
-			Status: "in_progress", Parent: "E-0001", TDD: "none", Path: path,
-			ACs: []entity.AcceptanceCriterion{
-				{ID: "AC-1", Title: "Live AC", Status: "open"},
-				{ID: "AC-2", Title: "Cancelled AC", Status: entity.StatusCancelled},
-			},
-		}},
-	}
-	got := entityBodyEmpty(tr)
-	if len(got) != 0 {
-		t.Errorf("cancelled AC with empty body should produce no finding; got %+v", got)
+			abs := filepath.Join(root, filepath.FromSlash(path))
+			if err := os.MkdirAll(filepath.Dir(abs), 0o755); err != nil {
+				t.Fatal(err)
+			}
+			if err := os.WriteFile(abs, []byte(fm+body), 0o644); err != nil {
+				t.Fatal(err)
+			}
+			tr := &tree.Tree{
+				Root: root,
+				Entities: []*entity.Entity{{
+					ID: "M-0001", Kind: entity.KindMilestone, Title: "Bar",
+					Status: "in_progress", Parent: "E-0001", TDD: "none", Path: path,
+					ACs: []entity.AcceptanceCriterion{
+						{ID: "AC-1", Title: "Live AC", Status: "open"},
+						{ID: "AC-2", Title: "Disposed AC", Status: status},
+					},
+				}},
+			}
+			got := entityBodyEmpty(tr)
+			if len(got) != 0 {
+				t.Errorf("%s AC with empty body should produce no finding; got %+v", status, got)
+			}
+		})
 	}
 }
 
