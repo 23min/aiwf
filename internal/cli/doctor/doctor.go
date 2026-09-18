@@ -285,7 +285,7 @@ func DoctorReport(rootDir string, opts DoctorOptions) (lines []string, problems 
 			}
 			problems = append(problems, Problem{Severity: SeverityError, Message: val})
 		default:
-			lines = append(lines, fmt.Sprintf("%sok (%d skills, byte-equal to embed)", label("skills:"), len(embedded)))
+			lines = append(lines, fmt.Sprintf("%sok (%d skills, byte-equal to rendered definitions)", label("skills:"), len(embedded)))
 		}
 	}
 

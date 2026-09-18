@@ -1,6 +1,7 @@
 ---
 name: aiwf-area
-description: Use when choosing which `area` to tag an entity with, or to understand how aiwf's area feature works — the closed member set, the optional `paths:` oracle, the `areas.required` knob, and the area checks (mistag, dead-glob, overlap, area-unknown). Areas are aiwf's per-workstream / per-project grouping axis: you write code anywhere, but once you touch aiwf an entity belongs to a declared area (exactly one under `areas.required`), and `aiwf check` enforces that the tag matches where the work landed. Covers picking the area at `aiwf add` (explicit `--area`, or `--path-hint` derivation), fixing it with `aiwf set-area`, renaming a member with `aiwf rename-area`, and acknowledging legitimate cross-cutting with `aiwf acknowledge mistag`.
+description: >-
+  Use when choosing which `area` to tag an entity with, or to understand how aiwf's area feature works — the closed member set, the optional `paths:` oracle, the `areas.required` knob, and the area checks (mistag, dead-glob, overlap, area-unknown). Areas are aiwf's per-workstream / per-project grouping axis: you write code anywhere, but once you touch aiwf an entity belongs to a declared area (exactly one under `areas.required`), and `aiwf check` enforces that the tag matches where the work landed. Covers picking the area at `aiwf add` (explicit `--area`, or `--path-hint` derivation), fixing it with `aiwf set-area`, renaming a member with `aiwf rename-area`, and acknowledging legitimate cross-cutting with `aiwf acknowledge mistag`.
 ---
 
 # aiwf-area

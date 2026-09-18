@@ -37,7 +37,7 @@ If the epic doesn't exist yet, use `aiwfx-plan-epic` first.
 
    `aiwf` allocates the next free `M-NNNN` (global, not epic-scoped), creates `work/epics/E-NNNN-<slug>/M-NNNN-<slug>.md` with the minimal body skeleton, sets `parent: E-NNNN` in frontmatter, and produces one commit per milestone with `aiwf-verb: add` trailers.
 
-5. **Replace each milestone's body with the rich template** at `.claude/templates/milestone-spec.md` (materialized by `aiwf update`; if it's missing, run `aiwf update` rather than copying an existing milestone spec). Fill in the sections below, each as the template directs beside it:
+5. **Replace each milestone's body with the rich template** at `{{aiwf:templates_dir}}/milestone-spec.md` (materialized by `aiwf update`; if it's missing, run `aiwf update` rather than copying an existing milestone spec). Fill in the sections below, each as the template directs beside it:
    - **Goal**
    - **Context**
    - **Acceptance criteria** — created as AC entities via `aiwf add ac`, not freehand template prose (see the AC-creation block below the template list).

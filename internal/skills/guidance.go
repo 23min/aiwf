@@ -33,19 +33,35 @@ func GuidanceBytes() []byte {
 // RenderGuidance returns the consumer CLAUDE.md guidance fragment with
 // the version sentinel replaced by the given version string. This is
 // the content aiwf materializes to `.claude/aiwf-guidance.md`.
-func RenderGuidance(ver string) []byte {
-	return bytes.ReplaceAll(guidanceEmbed, []byte(guidanceVersionSentinel), []byte(ver))
+func RenderGuidance(ver string) ([]byte, error) {
+	return renderGuidance(guidanceEmbed, ver)
+}
+
+func renderGuidance(source []byte, ver string) ([]byte, error) {
+	stamped := bytes.ReplaceAll(source, []byte(guidanceVersionSentinel), []byte(ver))
+	rendered, err := RenderSkills([]Skill{{Name: GuidanceFile, Content: stamped}}, ClaudeRenderBindings())
+	if err != nil {
+		return nil, err
+	}
+	return rendered[0].Content, nil
 }
 
 // MaterializeGuidance writes the guidance fragment to
 // <root>/.claude/aiwf-guidance.md with the binary's current version
 // substituted. Idempotent: rewriting identical content is a no-op diff.
 func MaterializeGuidance(root string) error {
+	return materializeGuidance(root, guidanceEmbed, version.Current().Version)
+}
+
+func materializeGuidance(root string, source []byte, ver string) error {
+	content, err := renderGuidance(source, ver)
+	if err != nil {
+		return err
+	}
 	dest := filepath.Join(root, filepath.FromSlash(GuidanceFile))
 	if err := os.MkdirAll(filepath.Dir(dest), 0o755); err != nil {
 		return fmt.Errorf("creating %s: %w", filepath.Dir(dest), err)
 	}
-	content := RenderGuidance(version.Current().Version)
 	if err := pathutil.AtomicWriteFile(dest, content, 0o644); err != nil {
 		return fmt.Errorf("writing %s: %w", dest, err)
 	}
