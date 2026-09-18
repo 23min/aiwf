@@ -32,7 +32,7 @@ Introduce a tested rendering boundary for shared workflow sources while preservi
 
 ## Context
 
-The current materializer copies embedded Markdown and routes paths through a Target value. E-0093 requires explicit placeholders and named fragments before Codex output is enabled. A planning probe has demonstrated deterministic paths, modes, and bytes for the existing materializer; permanent regression checks remain to be added.
+Claude and Codex need different artifact paths and host instructions while sharing workflow facts. Explicit bindings keep those facts in one source; independently captured Claude artifacts constrain output changes during the transition.
 
 ## Acceptance criteria
 
@@ -93,7 +93,7 @@ Materialize the same version and configuration in independent temporary reposito
 
 ## Release note
 
-
+Fix invalid YAML frontmatter in the `aiwf-area` and `wf-codebase-health` skills; their description text and instructions remain unchanged. Claude setup, updates, and aiwf-created worktrees retain their artifact layout and consent behavior. Generation and doctor drift checks now use rendered skill definitions.
 
 ## Decisions made during implementation
 
@@ -101,7 +101,26 @@ Materialize the same version and configuration in independent temporary reposito
 
 ## Validation
 
+Measured on 2026-09-18 in the Linux x86_64 devcontainer with Go 1.25.11.
 
+| Command | Expected | Observed |
+| --- | --- | --- |
+| `make check-fast` | Exit 0; vet, lint, and full test suite pass | Exit 0; vet passed for default, stress, and testpins builds; lint reported `0 issues.`; 71 packages passed, four had no tests, and none failed |
+| `make diag-aiwf` | Build succeeds | Exit 0; produced `bin/aiwf-diag` |
+| `go test -race ./internal/skills -count=1` | Exit 0 | `ok github.com/23min/aiwf/internal/skills` |
+| `go test -race ./internal/cli/integration -run '^TestClaudeArtifacts_IndependentRootsAndRepeatedRefreshes$' -count=1` | Exit 0 | `ok github.com/23min/aiwf/internal/cli/integration` |
+| `bin/aiwf-diag check --since main --format=json` | No error-severity findings | No errors; the pre-existing `archive-sweep-pending` warning and two `terminal-entity-not-archived` warnings for G-0464 and G-0691 remain |
+
+The acceptance checks are re-runnable from the repository:
+
+- AC-1: `go test ./internal/cli/integration -run '^TestClaudeArtifacts_MatchBaseline$' -count=1` passes six configurations through init, update, and worktree creation. Capture provenance, inventory scope, the health-metadata exclusion, and the two approved YAML exceptions are defined in `internal/cli/integration/testdata/claude-baseline/README.md`.
+- AC-2: `go test ./internal/skills -run '^TestRenderSkills_' -count=1` covers explicit substitutions, unchanged literal bytes, deterministic output, independent result buffers, ordering, and typed errors with no partial batch. Coverage measured 100% of statements in `RenderSkills` and `renderText`; the manual branch audit is recorded in the AC phase history.
+- AC-3: `go test ./internal/skills ./internal/policies ./internal/cli/doctor` passes. Materialization tests exercise rejection before filesystem changes, writer failures, optional agents, guidance stamping, parseable skill frontmatter, and unresolved-token rejection. Existing policy checks resolve rendered template references and required template sections. The full suite also exercises doctor's clean and drifted consumer cases.
+- AC-4: `go test ./internal/cli/integration -run '^TestClaudeArtifacts_IndependentRootsAndRepeatedRefreshes$' -count=1` passes 32 snapshots across default and configured consumers, two independent roots per configuration, repeated init/update, and newly created worktrees with repeated updates. Input-derived checks additionally preserve surrounding user instructions, foreign file bytes, and executable permissions.
+
+`make mutate-diff` reports that gremlins is unavailable. Manual mutation probes were used instead; their defects and outcomes are recorded in each AC's phase history. Every injected production change was restored, and the affected tests passed again. These probes are sampled adversarial evidence, not exhaustive mutation coverage.
+
+The full `make ci` integration gate has not run for this milestone; the repository's local validation cadence uses `make check-fast` for milestone work and reserves `make ci` for epic-to-main integration and push.
 
 ## Deferrals
 
