@@ -57,7 +57,7 @@ Materialize the same version and configuration in independent temporary reposito
 
 - Author shared workflow facts once; use explicit typed bindings and small named fragments only for host differences.
 - Do not expose Codex selection or change the default host behavior in this milestone.
-- Preserve Claude output for ordinary owned artifacts. Later milestones carry the explicit host-selection and symlink policy changes.
+- Preserve Claude output for ordinary owned artifacts, except the two YAML frontmatter corrections documented in `internal/cli/integration/testdata/claude-baseline/README.md`. Later milestones carry the explicit host-selection and symlink policy changes.
 - Test filesystem and rendering behavior under D-0070; do not add literal prose-presence tests or rely on proposed D-0072 as accepted policy.
 - No new runtime dependency or extensible plugin framework. Exercise all reachable new rendering branches with deterministic inputs.
 
@@ -96,7 +96,7 @@ Materialize the same version and configuration in independent temporary reposito
 
 ## Decisions made during implementation
 
-- (none)
+- The Claude baseline permits the two frontmatter corrections documented in `internal/cli/integration/testdata/claude-baseline/README.md`. They make inherited invalid YAML parseable while preserving description text and skill bodies. Expected hashes are derived from the original capture revision with only those formatting corrections, independently of the renderer.
 
 ## Validation
 
