@@ -1,7 +1,7 @@
 ---
 id: E-0093
 title: Enable side-by-side Claude and Codex workflows
-status: proposed
+status: active
 ---
 ## Goal
 
