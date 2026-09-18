@@ -1,9 +1,11 @@
 ---
 id: G-0464
 title: check predicates treat deferred ACs as non-terminal
-status: open
+status: addressed
 priority: low
 discovered_in: M-0281
+addressed_by_commit:
+    - e5108aab07a561a1c29156510b1f63a0fb3eb5c6
 ---
 ## What's missing
 

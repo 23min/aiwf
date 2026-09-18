@@ -67,9 +67,11 @@ func From(cfg *config.Config) Policy {
 // declares. An absent or unparseable aiwf.yaml yields the zero Policy —
 // escalating nothing — because every caller here is a surface that must
 // still report findings when the configuration is missing or broken,
-// and the malformed-config diagnosis is `aiwf doctor`'s to give. It is
-// the same stance `aiwf check` itself takes on a config it cannot read,
-// which is what keeps the surfaces in agreement when one is broken.
+// and the malformed-config diagnosis is `aiwf doctor`'s to give. The
+// gate is the exception: `aiwf check` refuses a config it cannot read
+// on every path it offers, reading it through cliutil.LoadOptionalConfig
+// rather than here, so a read surface stays up while the gate says why
+// the configuration is wrong.
 //
 // An empty root is the zero Policy rather than a read: config.Load
 // resolves a relative "aiwf.yaml" against the process working

@@ -28,6 +28,31 @@ an unchanged tree went from 225s to 45s. The CI workflows go on naming the wrapp
 job runs on Linux, where it is the same no-op, but whether a gate should serve cached test
 results is a separate question this does not settle.
 
+### Fixed — G-0691: `check --shape-only` and `--fast` refuse an `aiwf.yaml` they cannot read
+
+Every path `aiwf check` offers now refuses an `aiwf.yaml` that exists but does not
+parse, at exit 3 with the file named, as the full check already did. The
+`--shape-only` path the pre-commit hook runs and the `--fast` pre-flight previously
+reported a clean tree on such a file, running with every knob at its default — so a
+`tree.strict` or severity override the operator had set went unapplied, and the
+first refusal arrived at the pre-push hook after the commits that trusted the green
+signal. A missing `aiwf.yaml` is still the pre-init state and keeps its defaults.
+
+### Fixed — G-0464: a deferred acceptance criterion is off the milestone's contract
+
+The three body-completeness lints over acceptance criteria — `acs-empty-body`,
+`milestone-draft-incomplete-acs/empty-body`, and `entity-body-empty/ac` — now
+exempt an AC at either terminal status rather than `cancelled` alone. A criterion
+promoted to `deferred` kept drawing a "body is empty" finding that no status verb
+could clear: `aiwf cancel` on a deferred AC converges to a no-op, and
+`aiwf promote <milestone-id>/AC-N cancelled` is refused because `deferred` is
+terminal. That left writing prose for work explicitly not being done, picking
+`cancelled` over `deferred` up front — losing the distinction between deciding not
+to do the work and deciding to do it later — or forcing the transition. The three
+predicates now ask the AC FSM whether the status is terminal instead of naming one,
+so the answer tracks the FSM's edges. `met` is not terminal there — a met criterion
+can still be rescoped — so its body is still held to the bar.
+
 ## [0.36.0] — 2026-09-17
 
 ### Fixed — G-0681: shipped skills spell `aiwf add` commands that run

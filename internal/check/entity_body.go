@@ -228,10 +228,17 @@ func entityBodyEmpty(t *tree.Tree) []Finding {
 		// empty bodies by design — `aiwfx-plan-milestones` ships shape
 		// first, prose lands as TDD work begins. Warning before the
 		// milestone promotes to `in_progress` is noise.
+		//
+		// An AC at a terminal status is off the milestone's contract —
+		// `deferred` and `cancelled` are both removal-class terminals,
+		// neither claiming the criterion succeeded — so its body is not
+		// held to the non-empty bar. The FSM answers that via
+		// entity.IsTerminalACStatus rather than this rule naming a
+		// status of its own.
 		if e.Kind == entity.KindMilestone && e.Status != entity.StatusDraft {
 			acBodies := scanACBodies(stripped)
 			for _, ac := range e.ACs {
-				if ac.ID == "" || ac.Status == entity.StatusCancelled {
+				if ac.ID == "" || entity.IsTerminalACStatus(ac.Status) {
 					continue
 				}
 				content, found := acBodies[ac.ID]

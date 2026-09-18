@@ -16,8 +16,8 @@ import (
 // guard are `//coverage:ignore`d in check.go itself (see the file for
 // per-line rationale). The branches below are genuinely triggerable.
 //
-// Serial: TestRun_PrettyWithoutJSONWarns uses testutil.CaptureStderr,
-// which swaps the process-global os.Stderr.
+// The serial tests in this file are listed, with their reasons, in
+// setup_test.go's serial block.
 
 func writeAiwfYAML(t *testing.T, root, content string) {
 	t.Helper()
@@ -40,17 +40,40 @@ func TestRun_PrettyWithoutJSONWarns(t *testing.T) {
 	}
 }
 
-// TestRun_LoadTreeWithTrunkFailure covers Run's bare
-// cliutil.LoadTreeWithTrunk guard: a syntactically broken aiwf.yaml
-// makes config.Load (called inside LoadTreeWithTrunk) fail with a
-// non-ErrNotFound error, which LoadTreeWithTrunk wraps and returns.
-func TestRun_LoadTreeWithTrunkFailure(t *testing.T) {
-	t.Parallel()
-	root := t.TempDir()
-	writeAiwfYAML(t, root, "tdd: [unterminated\n")
-	code := Run(root, "text", false, "", false, false, false, nil, "")
-	if code != cliutil.ExitInternal {
-		t.Errorf("rc = %d, want ExitInternal", code)
+// TestRun_UnreadableConfigIsRefusedOnEveryPath pins the property the
+// three check paths share: an aiwf.yaml that exists but cannot be read
+// is a refusal at exit 3 on each of them, naming the file on stderr.
+// The cheaper paths are the pre-commit hook's signal and the CI
+// pre-flight, so a clean verdict from them that the pre-push gate then
+// contradicts is the one thing an approximation of the gate may not
+// do — and the defaults they would otherwise run under are weaker than
+// what the broken file asked for.
+//
+// Serial: captures the process-global os.Stderr.
+func TestRun_UnreadableConfigIsRefusedOnEveryPath(t *testing.T) {
+	for _, tc := range []struct {
+		name      string
+		shapeOnly bool
+		fast      bool
+	}{
+		{name: "full"},
+		{name: "--shape-only", shapeOnly: true},
+		{name: "--fast", fast: true},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			root := t.TempDir()
+			writeAiwfYAML(t, root, "tdd: [unterminated\n")
+			var code int
+			stderr := testutil.CaptureStderr(t, func() {
+				code = Run(root, "text", false, "", tc.shapeOnly, tc.fast, false, nil, "")
+			})
+			if code != cliutil.ExitInternal {
+				t.Errorf("rc = %d, want %d — this path ran under defaults the operator's own file overrides", code, cliutil.ExitInternal)
+			}
+			if !strings.Contains(string(stderr), "aiwf.yaml") {
+				t.Errorf("stderr = %q, want the refusal to name aiwf.yaml", stderr)
+			}
+		})
 	}
 }
 

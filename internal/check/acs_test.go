@@ -735,26 +735,61 @@ func TestAcsEmptyBodyOnStart_PopulatedBodySilent(t *testing.T) {
 	}
 }
 
-// TestAcsEmptyBodyOnStart_CancelledACSkipped: a cancelled AC's body
-// isn't a live contract anymore — matches entity-body-empty/ac's own
-// exclusion.
-func TestAcsEmptyBodyOnStart_CancelledACSkipped(t *testing.T) {
+// TestAcsEmptyBodyOnStart_TerminalACSkipped: an AC at either terminal
+// status is off the milestone's contract, so its body is not held to
+// the non-empty bar — matches entity-body-empty/ac's own exclusion.
+// `deferred` and `cancelled` are both removal-class terminals (G-0464),
+// so exempting one and not the other splits a distinction the FSM does
+// not draw.
+func TestAcsEmptyBodyOnStart_TerminalACSkipped(t *testing.T) {
+	t.Parallel()
+	for _, status := range []entity.Status{entity.StatusDeferred, entity.StatusCancelled} {
+		t.Run(string(status), func(t *testing.T) {
+			t.Parallel()
+			root := t.TempDir()
+			mPath := "work/epics/E-0001-foo/M-0007-foo.md"
+			writeMilestoneFile(t, root, mPath, "---\n"+
+				"id: M-0007\ntitle: Foo\nstatus: in_progress\nparent: E-0001\n"+
+				"acs:\n  - id: AC-1\n    title: First\n    status: "+string(status)+"\n---\n\n"+
+				"## Acceptance criteria\n\n### AC-1 — First\n")
+
+			tr := &tree.Tree{Root: root, Entities: []*entity.Entity{{
+				ID: "M-0007", Kind: entity.KindMilestone, Title: "Foo",
+				Status: "in_progress", Parent: "E-0001",
+				ACs:  []entity.AcceptanceCriterion{{ID: "AC-1", Title: "First", Status: status}},
+				Path: mPath,
+			}}}
+			if got := acsEmptyBodyOnStart(tr); len(got) != 0 {
+				t.Errorf("%s AC should not fire, got: %+v", status, got)
+			}
+		})
+	}
+}
+
+// TestAcsEmptyBodyOnStart_MetACStillFires: `met` is not terminal in the
+// AC FSM — a met criterion is still on the contract and can be
+// rescoped — so an empty body under it still fires. The positive
+// counterpart to the terminal exemption above: a predicate that
+// treated every disposed-looking status as off-contract would swallow
+// this one.
+func TestAcsEmptyBodyOnStart_MetACStillFires(t *testing.T) {
 	t.Parallel()
 	root := t.TempDir()
 	mPath := "work/epics/E-0001-foo/M-0007-foo.md"
 	writeMilestoneFile(t, root, mPath, "---\n"+
 		"id: M-0007\ntitle: Foo\nstatus: in_progress\nparent: E-0001\n"+
-		"acs:\n  - id: AC-1\n    title: First\n    status: cancelled\n---\n\n"+
+		"acs:\n  - id: AC-1\n    title: First\n    status: met\n---\n\n"+
 		"## Acceptance criteria\n\n### AC-1 — First\n")
 
 	tr := &tree.Tree{Root: root, Entities: []*entity.Entity{{
 		ID: "M-0007", Kind: entity.KindMilestone, Title: "Foo",
 		Status: "in_progress", Parent: "E-0001",
-		ACs:  []entity.AcceptanceCriterion{{ID: "AC-1", Title: "First", Status: "cancelled"}},
+		ACs:  []entity.AcceptanceCriterion{{ID: "AC-1", Title: "First", Status: entity.StatusMet}},
 		Path: mPath,
 	}}}
-	if got := acsEmptyBodyOnStart(tr); len(got) != 0 {
-		t.Errorf("cancelled AC should not fire, got: %+v", got)
+	got := acsEmptyBodyOnStart(tr)
+	if len(got) != 1 || got[0].EntityID != "M-0007/AC-1" {
+		t.Errorf("met AC with an empty body should fire once for M-0007/AC-1, got: %+v", got)
 	}
 }
 
@@ -922,9 +957,11 @@ func TestCheckRun_DraftMilestoneEmptyACBodyWarns(t *testing.T) {
 
 // TestCheckRun_DraftMilestoneEmptyACBody_CarveOuts pins M-0275/AC-2's skip
 // branches, mirroring acsEmptyBodyOnStart's own carve-outs one FSM stage
-// earlier: a cancelled AC, an AC with no frontmatter id, and an AC with no
-// `### AC-N` body heading at all each leave empty-body silent (the last is
-// acs-body-coherence/missing-heading's concern, not this rule's).
+// earlier: an AC at either terminal status, an AC with no frontmatter id,
+// and an AC with no `### AC-N` body heading at all each leave empty-body
+// silent (the last is acs-body-coherence/missing-heading's concern, not
+// this rule's). Both terminals are removal-class, so both are off the
+// contract and neither is held to the non-empty bar (G-0464).
 func TestCheckRun_DraftMilestoneEmptyACBody_CarveOuts(t *testing.T) {
 	t.Parallel()
 	cases := []struct {
@@ -937,6 +974,12 @@ func TestCheckRun_DraftMilestoneEmptyACBody_CarveOuts(t *testing.T) {
 			name:    "cancelled AC skipped",
 			acsYAML: "acs:\n  - id: AC-1\n    title: First\n    status: cancelled\n",
 			acs:     []entity.AcceptanceCriterion{{ID: "AC-1", Title: "First", Status: "cancelled"}},
+			body:    "## Acceptance criteria\n\n### AC-1 — First\n",
+		},
+		{
+			name:    "deferred AC skipped",
+			acsYAML: "acs:\n  - id: AC-1\n    title: First\n    status: deferred\n",
+			acs:     []entity.AcceptanceCriterion{{ID: "AC-1", Title: "First", Status: "deferred"}},
 			body:    "## Acceptance criteria\n\n### AC-1 — First\n",
 		},
 		{
@@ -970,6 +1013,35 @@ func TestCheckRun_DraftMilestoneEmptyACBody_CarveOuts(t *testing.T) {
 				t.Errorf("empty-body must stay silent for %s; got %+v", tc.name, f)
 			}
 		})
+	}
+}
+
+// TestCheckRun_DraftMilestoneEmptyACBody_MetACStillFires is the positive
+// counterpart to the terminal carve-out above. `met` is not terminal in
+// the AC FSM — a met criterion is still on the milestone's contract and
+// can be rescoped — so its empty body still fires. Without this, the
+// rule is pinned only against exempting too little; a predicate that
+// also waved `met` through would pass every other assertion here.
+func TestCheckRun_DraftMilestoneEmptyACBody_MetACStillFires(t *testing.T) {
+	t.Parallel()
+	root := t.TempDir()
+	mPath := "work/epics/E-0001-foundations/M-0007-foo.md"
+	writeMilestoneFile(t, root, mPath, "---\n"+
+		"id: M-0007\ntitle: Foo\nstatus: draft\nparent: E-0001\n"+
+		"acs:\n  - id: AC-1\n    title: First\n    status: met\n---\n\n"+
+		"## Acceptance criteria\n\n### AC-1 — First\n")
+	tr := &tree.Tree{Root: root, Entities: []*entity.Entity{{
+		ID: "M-0007", Kind: entity.KindMilestone, Title: "Foo",
+		Status: "draft", Parent: "E-0001",
+		ACs:  []entity.AcceptanceCriterion{{ID: "AC-1", Title: "First", Status: entity.StatusMet}},
+		Path: mPath,
+	}}}
+	f := findingByCode(Run(tr, nil), CodeMilestoneDraftIncompleteACs, "empty-body")
+	if f == nil {
+		t.Fatal("a met AC with an empty body must still fire empty-body")
+	}
+	if f.EntityID != "M-0007/AC-1" {
+		t.Errorf("EntityID = %q, want M-0007/AC-1", f.EntityID)
 	}
 }
 

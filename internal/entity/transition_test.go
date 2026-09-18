@@ -265,6 +265,65 @@ func TestEveryAllowedACStatusHasTransitionEntry(t *testing.T) {
 	}
 }
 
+// TestIsTerminalACStatus_NamedSet locks which AC statuses are terminal.
+// `met` is deliberately not one of them — a met criterion is still on
+// the milestone's contract and can be rescoped — while `deferred` and
+// `cancelled` are both removal-class terminals, neither claiming the
+// criterion succeeded. The check rules that exempt a disposed AC from
+// body-completeness linting read their whole scope from this function,
+// so a status changing sides here changes what those rules lint.
+// Iterating the closed set (rather than the expectations) is what makes
+// a newly-added status fail here until someone states which side it is
+// on.
+func TestIsTerminalACStatus_NamedSet(t *testing.T) {
+	t.Parallel()
+	want := map[Status]bool{
+		StatusOpen:      false,
+		StatusMet:       false,
+		StatusDeferred:  true,
+		StatusCancelled: true,
+	}
+	for _, status := range AllowedACStatuses() {
+		w, named := want[status]
+		if !named {
+			t.Errorf("AC status %q has no expectation here; the closed set grew — state whether it is terminal", status)
+			continue
+		}
+		t.Run(string(status), func(t *testing.T) {
+			t.Parallel()
+			if got := IsTerminalACStatus(status); got != w {
+				t.Errorf("IsTerminalACStatus(%q) = %v, want %v", status, got, w)
+			}
+		})
+	}
+}
+
+// TestIsTerminalACStatus_UnknownInputs pins the unknown-status arm: a
+// status the AC FSM does not recognize is not terminal, so nothing
+// treats it as disposed. The two inputs are the two ways an
+// unrecognized status reaches an acs[] entry — a typo'd value and an
+// absent field — not two rules. Treating either as terminal would
+// exempt the entity from every rule that asks this question, so a
+// hand-edited file would go quiet exactly where it should go loud.
+func TestIsTerminalACStatus_UnknownInputs(t *testing.T) {
+	t.Parallel()
+	cases := []struct {
+		name   string
+		status Status
+	}{
+		{"unrecognized value", "bogus"},
+		{"absent status field", ""},
+	}
+	for _, c := range cases {
+		t.Run(c.name, func(t *testing.T) {
+			t.Parallel()
+			if IsTerminalACStatus(c.status) {
+				t.Errorf("IsTerminalACStatus(%q) = true, want false", c.status)
+			}
+		})
+	}
+}
+
 // TestEveryAllowedTDDPhaseHasTransitionEntry mirrors the drift guard
 // for AC statuses. Every phase in AllowedTDDPhases must have a
 // transition entry (possibly empty).
