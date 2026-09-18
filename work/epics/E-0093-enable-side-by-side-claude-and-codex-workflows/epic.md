@@ -81,7 +81,7 @@ initialization. Permanent compatibility tests precede renderer changes.
   statusline operations must not run for Codex-only or no-host selections.
 - Restrict changes to owned paths and managed blocks. Atomic file writes and
   idempotent recovery do not imply a transaction across the entire artifact set.
-- Follow D-0070 and D-0072: test output behavior, generated relationships, and
+- Follow accepted D-0070: test output behavior, generated relationships, and
   derived expectations rather than asserting the presence of prose phrases.
 - Use TDD for new logic and exercise every reachable changed branch. Run the
   repository's build, lint, race, coverage, and selfcheck gates before release.
@@ -131,21 +131,10 @@ initialization. Permanent compatibility tests precede renderer changes.
 
 ## Milestones
 
-- Preserve Claude output through explicit rendering: pin current artifacts and
-  introduce typed bindings and named fragments without exposing Codex selection.
-- Implement Codex artifacts and safe guidance ownership: complete rendering,
-  support files, guidance, and symlink handling behind the internal boundary.
-  Depends on the rendering milestone.
-- Enable detection across setup, refresh, worktrees, and diagnosis: expose
-  complete host selection and lifecycle behavior, including configuration and
-  documentation. Depends on both artifact adapters.
-- Verify switching and parallel sessions in the dogfooding environment: exercise
-  real host discovery, handoffs, independent review, and rebuild persistence.
-  Depends on the complete public lifecycle.
-
-Milestone ids and acceptance criteria will be allocated through aiwf after epic
-creation; the executable acceptance outline is in the initiative's delivery
-section.
+- M-0340 — Preserve Claude output through explicit host rendering.
+- M-0341 — Implement Codex artifacts with safe guidance ownership.
+- M-0342 — Enable host detection across setup refresh and diagnosis.
+- M-0343 — Verify host handoff parallel worktrees and container persistence.
 
 ## References
 
@@ -155,7 +144,7 @@ section.
   not a dependency for the bounded local-host slice.
 - ADR-0014 and ADR-0016 — embedded distribution and canonical workflow sources.
 - ADR-0018 — existing Claude guidance consent contract.
-- D-0070 and D-0072 — shipped-prose tests and derived-expectation boundaries.
+- D-0070 — accepted shipped-prose test boundaries; D-0072 remains proposed.
 - D-0073 and D-0095 — planning placement and host-specific worktree behavior.
 - G-0178 — second-host materializer; G-0501 — symlink preservation.
 - G-0504 — artifact drift; assess its full scope before declaring closure.
