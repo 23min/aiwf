@@ -12,7 +12,7 @@ acs:
     - id: AC-2
       title: Explicit bindings render deterministically and reject invalid inputs
       status: open
-      tdd_phase: red
+      tdd_phase: green
     - id: AC-3
       title: Claude consumers use rendered definitions without unresolved placeholders
       status: open
