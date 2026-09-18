@@ -16,6 +16,8 @@ section in this file.
 
 ## [Unreleased]
 
+## [0.36.1] — 2026-09-18
+
 ### Fixed — G-0693: the Darwin signing wrapper no longer defeats the Go test cache off macOS
 
 Every `go test` the Makefile runs passed `-exec=scripts/sign-and-run.sh` on every host.
