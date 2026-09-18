@@ -13,6 +13,9 @@ import (
 //   - TestCheckAndFastAgreeOnAreaUnknownSeverity — testutil.CaptureStdout,
 //     which swaps the process-global os.Stdout.
 //   - TestDocsStrictIsARuleOmissionNotASeverityDivergence — same.
+//   - TestRun_PrettyWithoutJSONWarns — testutil.CaptureStderr, which swaps
+//     the process-global os.Stderr.
+//   - TestRun_UnreadableConfigIsRefusedOnEveryPath — same.
 func TestMain(m *testing.M) {
 	os.Setenv("GIT_AUTHOR_NAME", "aiwf-test")
 	os.Setenv("GIT_AUTHOR_EMAIL", "test@example.com")
