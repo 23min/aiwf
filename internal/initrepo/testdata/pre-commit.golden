@@ -30,8 +30,9 @@ if [ -z "$AIWF" ]; then
 fi
 
 # (1) Tree-discipline. Output goes to stderr so the user sees it
-# during commit. Non-zero exit blocks (only fires under
-# tree.strict: true; warnings still print but exit 0).
+# during commit. Non-zero exit blocks: an error finding (only under
+# tree.strict: true) or an aiwf.yaml that cannot be read; warnings
+# still print but exit 0.
 if ! "$AIWF" check --shape-only --root "$repo_root" >&2; then
     exit 1
 fi

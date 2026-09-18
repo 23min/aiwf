@@ -189,7 +189,12 @@ func Run(root, format string, pretty bool, since string, shapeOnly, fast, verbos
 	// present-at-all switch, which is why it is read from here rather
 	// than kept as a second copy.
 	var sevPolicy severity.Policy
-	if cfg, cfgErr := config.Load(resolved); cfgErr == nil && cfg != nil {
+	cfg, err := cliutil.LoadOptionalConfig(resolved)
+	if err != nil { //coverage:ignore LoadTreeWithTrunk above reads this file through the same helper and refuses a failure first; the branch stays so every read of aiwf.yaml in this file takes one route
+		cliutil.Errorf("aiwf check: %v\n", err) //coverage:ignore see above
+		return cliutil.ExitInternal             //coverage:ignore see above
+	}
+	if cfg != nil {
 		requireMetrics = cfg.TDD.RequireTestMetrics
 		docPaths = cfg.DocsPaths()
 		treeAllow = cfg.Tree.AllowPaths
@@ -355,6 +360,11 @@ func runFast(ctx context.Context, root, format string, pretty bool) int {
 		cliutil.Errorf("aiwf check: loading tree: %v\n", err)
 		return cliutil.ExitInternal
 	}
+	cfg, err := cliutil.LoadOptionalConfig(root)
+	if err != nil {
+		cliutil.Errorf("aiwf check: %v\n", err)
+		return cliutil.ExitInternal
+	}
 	// This surface trades the cross-branch scan for speed, so it cannot
 	// substantiate `unresolved` and reports the non-blocking
 	// unresolved-unverified subcode instead (G-0558). Without this, a
@@ -366,7 +376,7 @@ func runFast(ctx context.Context, root, format string, pretty bool) int {
 	var areaMembers []string
 	strict := false
 	var sevPolicy severity.Policy
-	if cfg, cfgErr := config.Load(root); cfgErr == nil && cfg != nil {
+	if cfg != nil {
 		allow = cfg.Tree.AllowPaths
 		strict = cfg.Tree.Strict
 		sevPolicy = severity.From(cfg)
@@ -425,7 +435,10 @@ func runFast(ctx context.Context, root, format string, pretty bool) int {
 // (trunk read, provenance walk, contract validation) is too slow and
 // too noisy to fire on every commit, but the tree-discipline rule is
 // cheap and exact. Honors `aiwf.yaml: tree.{allow_paths,strict}` the
-// same way the full check does.
+// same way the full check does, and refuses an aiwf.yaml it cannot
+// read the same way too: this is the signal an operator sees on every
+// commit, so it must not report a clean tree under defaults the
+// operator's own file overrides.
 //
 // Exit codes match `aiwf check`'s contract: 0 ok, 1 findings (errors
 // present — only fires when tree.strict: true), 3 internal.
@@ -435,9 +448,14 @@ func runShapeOnly(ctx context.Context, root, format string, pretty bool) int {
 		cliutil.Errorf("aiwf check: loading tree: %v\n", err)
 		return cliutil.ExitInternal
 	}
+	cfg, err := cliutil.LoadOptionalConfig(root)
+	if err != nil {
+		cliutil.Errorf("aiwf check: %v\n", err)
+		return cliutil.ExitInternal
+	}
 	var allow []string
 	strict := false
-	if cfg, cfgErr := config.Load(root); cfgErr == nil && cfg != nil {
+	if cfg != nil {
 		allow = cfg.Tree.AllowPaths
 		strict = cfg.Tree.Strict
 	}
