@@ -6,6 +6,22 @@ parent: E-0093
 depends_on:
     - M-0340
 tdd: required
+acs:
+    - id: AC-1
+      title: Codex artifacts use the selected native and aiwf-owned support paths
+      status: open
+    - id: AC-2
+      title: Managed AGENTS guidance preserves user content and converges on refresh
+      status: open
+    - id: AC-3
+      title: Instruction-file symlinks and aliases are preserved and diagnosed
+      status: open
+    - id: AC-4
+      title: Ownership conflicts and unsafe paths cannot overwrite foreign artifacts
+      status: open
+    - id: AC-5
+      title: Operational fragments are selected by host and resolve workflow references
+      status: open
 ---
 ## Goal
 
@@ -22,6 +38,26 @@ The preceding milestone establishes explicit rendering and Claude compatibility 
 ## Acceptance criteria
 
 The criteria below define the observable completion contract.
+
+### AC-1 — Codex artifacts use the selected native and aiwf-owned support paths
+
+Render the canonical skill corpus under .agents/skills and templates under .agents/aiwf/templates, with ownership metadata for each generated family. References in the generated skills resolve to the generated support files. Validate skill metadata and output inventory through observable files. Do not create .agents/agents, Claude role Markdown as Codex agents, Claude settings, or a fictitious .agents/templates convention. Ordinary Claude output continues to match its baseline.
+
+### AC-2 — Managed AGENTS guidance preserves user content and converges on refresh
+
+Create a missing root AGENTS.md or add/update only aiwf's marked block in an existing regular file. Preserve surrounding bytes and applicable existing file permissions; exercise absent files, empty files, no final newline, existing blocks, duplicate/conflicting markers, one-sided or reversed markers, marker text quoted in ordinary prose, and persistent opt-out. Refuse ambiguous edits with actionable results. Repeating a successful update is byte-idempotent. The generated block contains native instructions, not an assumed Claude-style import.
+
+### AC-3 — Instruction-file symlinks and aliases are preserved and diagnosed
+
+Inspect root CLAUDE.md and AGENTS.md without following links before writing guidance. Skip linked instruction paths and report the path, current condition, and remediation. Preserve the link and its target for broken, external, looping, and ordinary links. When the two host paths alias the same underlying file, diagnose the conflict before either host updates it. Test that unrelated artifacts can still be handled as documented and that the result identifies guidance as incomplete. Apply the guard to Claude as the deliberate G-0501 correction while keeping AtomicWriteFile unchanged.
+
+### AC-4 — Ownership conflicts and unsafe paths cannot overwrite foreign artifacts
+
+Exercise first installation, refresh of owned output, an unowned file or directory occupying a desired Codex name, obsolete owned entries, and foreign siblings. Preserve content not established as aiwf-owned; report collisions instead of assuming a name proves ownership. Reject unsafe manifest paths and artifact-directory links that escape the permitted output location. An invalid ownership record must not trigger arbitrary deletion. Re-running after a controlled filesystem-boundary failure converges to the complete artifact set without consuming foreign content. Characterize any shared-writer change affecting existing Claude collision behavior explicitly.
+
+### AC-5 — Operational fragments are selected by host and resolve workflow references
+
+Given each supported host binding, verify that rendering selects its named skill-invocation, worktree-entry, and review-dispatch fragments, with shared workflow content preserved outside those slots. Derive expectations from the selected fragment source, and verify referenced local artifacts and valid rendered metadata rather than asserting prose phrases. Revalidate the fragment interfaces against current official documentation during implementation and review their semantics. Successful live delegation is a separate observation in the final milestone; this criterion does not claim that renderer tests prove a model can execute the workflow.
 
 ## Constraints
 
