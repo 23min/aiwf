@@ -1,7 +1,9 @@
 ---
 id: G-0693
 title: Makefile passes the Darwin signing wrapper on Linux, defeating the test cache
-status: open
+status: addressed
+addressed_by_commit:
+    - 22122a3c4
 ---
 ## What's missing
 
