@@ -10,7 +10,7 @@ acs:
     - id: AC-1
       title: Codex artifacts use the selected native and aiwf-owned support paths
       status: open
-      tdd_phase: red
+      tdd_phase: green
     - id: AC-2
       title: Managed AGENTS guidance preserves user content and converges on refresh
       status: open
