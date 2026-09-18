@@ -11,7 +11,7 @@ acs:
       tdd_phase: done
     - id: AC-2
       title: Explicit bindings render deterministically and reject invalid inputs
-      status: open
+      status: met
       tdd_phase: done
     - id: AC-3
       title: Claude consumers use rendered definitions without unresolved placeholders
