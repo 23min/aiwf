@@ -1315,7 +1315,7 @@ and parallel implementation in separate worktrees.
 | Milestone | Title | Status |
 |---|---|---|
 | M-0340 | Preserve Claude output through explicit host rendering | done |
-| M-0341 | Implement Codex artifacts with safe guidance ownership | draft |
+| M-0341 | Implement Codex artifacts with safe guidance ownership | in_progress |
 | M-0342 | Enable host detection across setup refresh and diagnosis | draft |
 | M-0343 | Verify host handoff parallel worktrees and container persistence | draft |
 

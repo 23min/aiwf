@@ -142,4 +142,7 @@ The host-fragment interface review is recorded in `docs/design/design-decisions.
 
 ## Reviewer notes
 
-- (none)
+- Independent code review: approve. Design review: keep the artifact ownership/recovery boundary and the instruction-file safety/block-splicing boundary. No blocking findings remain.
+- Keep separate preflight, ownership, and recovery states: each protects a distinct preservation or retry obligation. The smaller measured alternative loses clarity and replaces linear membership lookups with quadratic scans.
+- Retain the four private ownership-helper cancellation branches under the tested helper contract and Go context convention. The public materialization entry supplies `context.Background()`; this does not establish public cancellation support.
+- Scoped doc-lint: clean across the 24 changed Markdown files. Shared planning-workflow drift is recorded in G-0698 under Deferrals.
