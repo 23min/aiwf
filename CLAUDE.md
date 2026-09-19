@@ -126,9 +126,11 @@ go run ./cmd/stresstest compose <raw-report-path>   # render a human-readable su
 
 After cloning, run **`aiwf init`** (first time) or **`aiwf update`** (existing repo) at the repo root, then verify with **`aiwf doctor`**. The [host setup guide](README.md#2-host-setup-and-embedded-rituals) defines host selection, artifact paths, guidance wiring, settings consent and discovery limits.
 
+Claude settings writes, including `.claude/settings.json`, require explicit per-invocation consent under [ADR-0015](docs/adr/ADR-0015-settings-json-edits-require-explicit-per-invocation-consent.md). Claude-only settings operations do not run for Codex-only selections.
+
 ### Devcontainer
 
-The same selected-host setup applies inside the devcontainer. See [container setup](.devcontainer/README.md) for installation and persistence; mechanics live in [`.devcontainer/initialize.sh`](.devcontainer/initialize.sh) and [`.devcontainer/devcontainer.json`](.devcontainer/devcontainer.json).
+Inside the devcontainer, `aiwf init` / `aiwf update` materialize artifacts for the selected hosts; no separate ritual installation is needed. See [container setup](.devcontainer/README.md) for installation and persistence; mechanics live in [`.devcontainer/initialize.sh`](.devcontainer/initialize.sh) and [`.devcontainer/devcontainer.json`](.devcontainer/devcontainer.json).
 
 ---
 
