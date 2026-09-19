@@ -513,8 +513,50 @@ Compare these files, CLI availability and login status after a separately
 approved rebuild; verify repeat initialization skips installation and Claude
 remains usable. Docker/devcontainer CLIs and the Docker socket are unavailable
 inside this container, so the rebuild requires VS Code or the Docker host.
+The user deferred rebuilding to preserve active windows and other sessions;
 AC-5 remains open. Supporting logs and the baseline snapshot are in
 `/tmp/aiwf-M-0343-container-er9om5i7/`; the hashes above survive their removal.
+
+### AC-6 — repository gates and support-boundary review
+
+Observed 2026-09-19 in the implementation worktree on
+`milestone/M-0343-live-host-validation`, based on `3ab9bbec7` plus the reviewed
+working changes. Linux/amd64, Go 1.25.11, golangci-lint 2.12.2 (the repository
+pins 2.11.4). Run the local CI target over the full feature delta:
+
+```sh
+AIWF_COVERAGE_BASE=c5d2c1fce20586912f08ae45fc871d3696888c69 make ci
+```
+
+The first run passed race tests at 91.3% statement coverage, then exited 2:
+the changed-statement audit reported 34 uncovered lines. Build/self-check were
+not reached. Added in-process tests for host selection, Claude-only request
+refusal, missing-executable diagnosis, malformed ritual config, worktree rollback,
+and filesystem/legacy-write failures. Existing subprocess tests did not contribute
+to the main coverage profile. Guards involving immutable embedded data, a separately tested
+malformed linker stamp, or environmental failure in a fresh private test directory
+carry explicit `coverage:ignore` reasons; production behavior is unchanged.
+Initial focused fixtures incorrectly used update's nonexistent `--no-prompt`
+flag and expected a symlink refusal to be an error; both fixtures were corrected.
+
+The final full run exits 0: tagged/untagged vet, lint/format checks (0 issues),
+race tests, 91.4% statement coverage, all profile-driven policy gates, static
+binary build, and CLI self-check (29 steps) pass. Focused race tests also pass.
+The built `bin/aiwf check --since 3ab9bbec7` reports 0 errors and 9 advisory
+warnings. Hosted CI-only jobs outside `make ci` were not run.
+
+Reviewed README host setup, design rules, CLI configuration examples, worktree
+and handoff guidance against lifecycle tests and AC-1 through AC-4. Documentation
+names both artifact roots and gives a serial handoff procedure preserving pending
+work/approvals. Explicit host overrides, independent wiring opt-outs, retained
+unselected files and symlink refusals agree with tests. Disk health remains
+distinct from observed discovery. Codex role files, hooks/statusline, hosted
+review/cloud integration, managed-worktree creation and transcript transfer remain
+outside scope; native independent review is demonstrated separately. AC-5's
+rebuild remains unperformed at the user's request.
+
+Initial/final logs and focused failure records remain under
+`/tmp/aiwf-M-0343-ac6-*`; the command, outcomes and limits above are durable.
 
 ## Deferrals
 
