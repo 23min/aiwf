@@ -15,9 +15,10 @@ aiwf embeds canonical workflow definitions and supports Claude and Codex
 artifact generation, including native Codex guidance. Initialization, refresh,
 diagnosis, guidance wiring, and aiwf-created worktrees use shared host selection
 from executable detection or explicit configuration. M-0342 verifies these
-lifecycle paths with filesystem and subprocess tests. Live host discovery,
-Claude-to-Codex-to-Claude handoff, concurrent sessions, and container persistence
-remain to be demonstrated in M-0343.
+lifecycle paths with filesystem and subprocess tests. M-0343 records live host discovery,
+Claude-to-Codex-to-Claude handoff, concurrent sessions and independent review.
+Actual container rebuild verification is deferred to G-0699;
+installation and mount tests do not establish rebuild persistence.
 The local container can now run Codex, and a source-built aiwf binary has created
 the isolated `feat/codex-support` worktree for implementation.
 
@@ -118,15 +119,17 @@ initialization. Permanent compatibility tests precede renderer changes.
   artifacts using the same host selection and rendered expectations as refresh.
 - [ ] Fresh-session evidence demonstrates Claude-to-Codex-to-Claude handoff and
   concurrent work in separate branches/worktrees without unintended cross-edits.
-- [ ] The devcontainer's install and persistence setup has a recorded rebuild
-  verification, and the supported local capability boundary is documented.
+- [ ] The devcontainer install and mount setup passes isolated tests, and the
+  supported local capability boundary documents the outstanding rebuild
+  verification in G-0699. Rebuild verification is not an epic closure
+  requirement.
 
 ## Open questions
 
 | Question | Blocking? | Resolution path |
 |---|---|---|
 | Does current Codex delegation satisfy each supported ritual's independent-review requirement? | Blocks claiming workflow compatibility | Validate the rendered instructions in the adapter milestone and exercise a fresh reviewer in the live-session milestone. Report unsupported operation rather than weakening review. |
-| Are live Claude access and a container rebuild available during validation? | Blocks epic closure, not implementation | Record actual session and rebuild results when available; an unrun check stays outstanding. |
+| What remains unverified for the devcontainer? | Does not block epic closure | Actual rebuild persistence is tracked in G-0699. The user approved deferral to preserve active sessions; a rebuild retains its separate approval gate. |
 
 ## Risks
 
