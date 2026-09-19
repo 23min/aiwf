@@ -177,7 +177,7 @@ prefixes, or one the ` + "`.aiwf-owned`" + ` manifest never claimed — is never
 // same rendering contract; embedded sources may contain unresolved bindings.
 func List() ([]Skill, error) {
 	sources, err := listVerbSources()
-	if err != nil {
+	if err != nil { //coverage:ignore compiled-in artifact sources are immutable and validated by the embedded inventory tests
 		return nil, err
 	}
 	return RenderSkills(sources, ClaudeRenderBindings())
@@ -216,7 +216,7 @@ func listVerbSources() ([]Skill, error) {
 // only files literally named SKILL.md under a `skills/` parent qualify.
 func ListRituals() ([]Skill, error) {
 	sources, err := listRitualSources()
-	if err != nil {
+	if err != nil { //coverage:ignore compiled-in artifact sources are immutable and validated by the embedded inventory tests
 		return nil, err
 	}
 	return RenderSkills(sources, ClaudeRenderBindings())
@@ -291,7 +291,7 @@ func listRitualFiles(parentDir string) ([]Skill, error) {
 // model/effort tier injection. They materialize flat into `.claude/agents/`.
 func ListRitualAgents() ([]Skill, error) {
 	sources, err := listRitualFiles("agents")
-	if err != nil {
+	if err != nil { //coverage:ignore compiled-in artifact sources are immutable and validated by the embedded inventory tests
 		return nil, err
 	}
 	return RenderSkills(sources, ClaudeRenderBindings())
@@ -301,7 +301,7 @@ func ListRitualAgents() ([]Skill, error) {
 // flat into `.claude/templates/` (D-0015).
 func ListRitualTemplates() ([]Skill, error) {
 	sources, err := listRitualFiles("templates")
-	if err != nil {
+	if err != nil { //coverage:ignore compiled-in artifact sources are immutable and validated by the embedded inventory tests
 		return nil, err
 	}
 	return RenderSkills(sources, ClaudeRenderBindings())
@@ -439,19 +439,19 @@ func materializeTo(root string, target Target, tiers map[string]AgentTier) error
 
 func loadArtifactSources() (artifactSources, error) {
 	verbSkills, err := listVerbSources()
-	if err != nil {
+	if err != nil { //coverage:ignore compiled-in artifact sources are immutable and validated by the embedded inventory tests
 		return artifactSources{}, err
 	}
 	ritualSkills, err := listRitualSources()
-	if err != nil {
+	if err != nil { //coverage:ignore compiled-in artifact sources are immutable and validated by the embedded inventory tests
 		return artifactSources{}, err
 	}
 	agents, err := listRitualFiles("agents")
-	if err != nil {
+	if err != nil { //coverage:ignore compiled-in artifact sources are immutable and validated by the embedded inventory tests
 		return artifactSources{}, err
 	}
 	templates, err := listRitualFiles("templates")
-	if err != nil {
+	if err != nil { //coverage:ignore compiled-in artifact sources are immutable and validated by the embedded inventory tests
 		return artifactSources{}, err
 	}
 	// Verb skills (aiwf-*) and ritual skills (aiwfx-*, wf-*) share the
@@ -559,7 +559,7 @@ func GitignorePatternsFor(target Target) ([]string, error) {
 	}
 	if target.AgentsDir != "" {
 		agents, err := ListRitualAgents()
-		if err != nil {
+		if err != nil { //coverage:ignore compiled-in artifact sources are immutable and validated by the embedded inventory tests
 			return nil, err
 		}
 		for _, a := range agents {

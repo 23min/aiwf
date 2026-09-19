@@ -24,6 +24,25 @@ func hostDoctorFixture(t *testing.T, host config.Host) string {
 	return root
 }
 
+// Serial: this case isolates process PATH with t.Setenv.
+func TestDoctor_ConfiguredHostWithoutExecutableReportsRemediation(t *testing.T) {
+	root := t.TempDir()
+	t.Setenv("PATH", root)
+	selection := config.HostSelection{Hosts: []config.Host{config.HostClaudeCode, config.HostCodex}, Source: config.HostsConfigured}
+	_, problems := appendHostsReport(nil, nil, root, nil, selection)
+	for _, host := range selection.Hosts {
+		found := false
+		for _, problem := range problems {
+			if problem.Host == host && strings.Contains(problem.Message, "unavailable on PATH") {
+				found = problem.Severity == SeverityWarn && strings.Contains(problem.Message, "hosts in aiwf.yaml")
+			}
+		}
+		if !found {
+			t.Errorf("missing executable remediation for %s: %+v", host, problems)
+		}
+	}
+}
+
 func TestDoctor_SelectedHostArtifactAbsenceAndDrift(t *testing.T) {
 	t.Parallel()
 	for _, host := range []config.Host{config.HostClaudeCode, config.HostCodex} {

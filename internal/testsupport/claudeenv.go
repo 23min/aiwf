@@ -16,7 +16,7 @@ func RunWithClaudeOnPATH(run func() int) int {
 		return 1
 	}
 	defer func() { _ = os.RemoveAll(dir) }()
-	if err := WriteExecutable(filepath.Join(dir, "claude"), []byte("#!/bin/sh\nexit 99\n")); err != nil {
+	if err := WriteExecutable(filepath.Join(dir, "claude"), []byte("#!/bin/sh\nexit 99\n")); err != nil { //coverage:ignore fresh private temp directory is writable; failure requires environmental disk exhaustion or concurrent external interference
 		slog.Error("test_host_setup_failed", "operation", "write_command", "error", err)
 		return 1
 	}

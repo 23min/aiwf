@@ -48,7 +48,7 @@ func InspectArtifacts(ctx context.Context, root string, target Target, tiers map
 		return nil, fmt.Errorf("inspecting artifacts: %w", err)
 	}
 	sources, err := loadArtifactSources()
-	if err != nil {
+	if err != nil { //coverage:ignore compiled-in artifact sources are immutable and validated by the embedded inventory tests
 		return nil, err
 	}
 	families, err := renderArtifactFamilies(target, tiers, sources)
