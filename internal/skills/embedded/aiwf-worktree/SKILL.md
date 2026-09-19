@@ -1,11 +1,11 @@
 ---
 name: aiwf-worktree
-description: Use whenever a ritual, subagent dispatch, or ad-hoc fix needs a new git worktree in this repo. Runs `aiwf worktree add` so the worktree is created AND has aiwf's rituals (skills, agents, templates, guidance) materialized into it in one atomic step — a bare `git worktree add` leaves those absent with no warning.
+description: Use whenever a ritual, subagent dispatch, or ad-hoc fix needs a new git worktree in this repo. Runs `aiwf worktree add` to create the checkout and materialize the selected hosts' aiwf artifacts; bare Git worktree creation does not perform that setup.
 ---
 
 # aiwf-worktree
 
-`aiwf worktree add` replaces the two-command sequence `git worktree add` + `aiwf init`/`aiwf update` with one atomic step. A worktree created any other way starts with none of aiwf's gitignored, materialize-on-demand artifacts (skills, agents, templates, per-turn guidance) — every ritual and slash-command becomes invisible inside it until someone remembers to run `aiwf update` by hand.
+Use `aiwf worktree add` to create a checkout and materialize its selected hosts' artifacts in one command. Bare `git worktree add` does not materialize aiwf's ignored artifacts. For an existing checkout created another way, run `aiwf update` there and inspect `aiwf doctor` before relying on its installation; copied artifacts may be missing or stale.
 
 ## When to use
 
@@ -23,25 +23,27 @@ aiwf worktree add <branch> <path> --base <base-ref>
 # Reuse an EXISTING local branch (omit --base; it only applies to new branches)
 aiwf worktree add <branch>
 
-# Compose with cd — only the absolute path is printed on success
-cd "$(aiwf worktree add <branch> --print-path)"
+# Enter the checkout in the invoking shell only after creation succeeds
+checkout=$(aiwf worktree add <branch> --print-path) && cd "$checkout"
 ```
 
 - `<branch>` is required. When it does not already exist as a local branch, aiwf creates it fresh starting from `--base` (default: HEAD). When it already exists, aiwf reuses it and `--base` is rejected as a usage error — you cannot re-point an existing branch's start.
 - `<path>` is optional. Omit it to resolve to the configured worktree-placement directory plus the branch name; pass it explicitly for a sibling directory or any other location. An explicit path is honored verbatim — it is never redirected back in-repo, even if it points outside the repo.
-- `--print-path` suppresses every other output and prints only the resulting absolute path to stdout on success, nothing on failure. This is the only mode meant for shell composition (`cd "$(...)"`); don't parse the normal ledger output for the path.
+- `--print-path` suppresses every other output and prints only the resulting absolute path to stdout on success, nothing on failure. Use this mode for shell composition; don't parse the normal ledger output for the path.
+
+The shell example changes the invoking shell's directory. Follow the calling ritual's {{aiwf:host_label}} worktree-entry instructions for session and tool working directories, instruction loading, and wrap behavior. Verify the checkout root and branch before mutations.
 
 ## What aiwf does
 
 1. Runs `git worktree add`, surfacing any git failure directly (branch already checked out elsewhere, path already exists, etc.) — never reports success on a failed creation.
-2. Materializes rituals into the new worktree in the same step: skills, role agents, entity templates, and the per-turn guidance import — the identical pipeline `aiwf update` runs, just targeted at the fresh worktree instead of the current checkout.
+2. Materializes each selected host's supported skills and templates, plus role agents where supported. Root guidance follows the configured wiring opt-outs. Host selection and refresh use the same pipeline as `aiwf update`, targeted at the new checkout.
 3. Prints the resulting absolute path (or, under `--print-path`, only the path).
 
-Immediately after, `aiwf doctor --root <path>` on the new worktree reports rituals as materialized — no separate `aiwf update` step needed.
+Run `aiwf doctor --root <path>` to inspect the selected hosts' installation. Successful disk checks do not establish that an assistant session loaded the files.
 
 ## Don't
 
-- Don't run a bare `git worktree add` for repo branch work — the resulting worktree silently has no skills, no agents, no templates, and no guidance import until someone notices and runs `aiwf update` by hand.
-- Don't expect this verb to change your shell's current directory — no child process can `chdir` its parent. Compose with `cd "$(aiwf worktree add ... --print-path)"` instead.
+- Use `aiwf worktree add` for repo branch work so selected-host setup is included.
+- Don't expect this verb to change your shell's current directory — no child process can `chdir` its parent. Use the guarded shell example above and follow the calling ritual's host-specific entry instructions.
 - Don't pass `--base` when reusing an already-existing branch — aiwf rejects the combination rather than silently ignoring the flag.
 - Don't parse the normal (non-`--print-path`) output for the path in a script — that output includes a materialization ledger; `--print-path` is the stable, script-safe surface.

@@ -125,3 +125,22 @@ not recapture output from the new implementation.
 | `aiwf.example.yaml` | `046f0df0cf0390a3fabf39a15006172732caeba47eb7ae964dddc8d4ec8a3619` | `6977f2ad7ff8191f8e32ee351119bfb303fae2fdc49f4c9a8136100c72ece789` |
 | Scaffolded `aiwf.yaml` | `73748c6a5091a363cbabb8d05b93e902cab9e2299adb889301d917b38e73e00c` | `855415b8a161438817c332e8b07535f2fe29779140268f35a429bbf576c9c5ed` |
 | Scaffolded `aiwf.yaml` with hook consent | `c9f7f10ac9af60a447fe926a48ff5079c87acaf77da42f6d1ca602e2f65670a7` | `daea2561b4f7955b6d676b0ded324e6d915fe7495c8438b23c2c3b0c814ef4b9` |
+
+## Shared worktree instruction correction
+
+The E-0093 worktree-guidance clarification intentionally changes only
+`.claude/skills/aiwf-worktree/SKILL.md` in the six Claude inventories. It
+qualifies ignored-artifact availability and selected-host setup, distinguishes
+shell entry from assistant session entry, and guards shell composition against
+creation failure. Claude-specific entry fragments remain unchanged; Codex's
+managed-worktree boundary and session-loading instructions stay in its own
+fragment.
+
+Compute the expected bytes independently of the renderer by substituting the
+shared skill's sole `host_label` token with `Claude Code`, then hash the complete
+file. Verify the old source hash against each inventory before replacing only
+that skill's record. All other paths, modes and hashes remain frozen.
+
+| Artifact | Original SHA-256 | Updated SHA-256 |
+| --- | --- | --- |
+| `aiwf-worktree/SKILL.md` | `57c31fce28de1b12753c9f026eea3eedd503f131c1e3bab6c0be82cb666dd58f` | `194891ebbedce46737533f303c2f22f989b0d4acfa035090afce6ff9f2602aa1` |

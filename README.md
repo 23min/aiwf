@@ -244,6 +244,11 @@ placement; its name does not make it Claude-only. Set `worktree.dir` in
 and `steps` (`what`, `action`, optional `detail`); `--print-path` emits only the
 absolute path for shell composition.
 
+Start Codex in an aiwf-created checkout with `codex -C "<path>"`. This workflow
+does not require Codex's experimental worktrees feature. A command's working
+directory does not reload an existing Codex session's instructions or skills;
+use a fresh session to exercise discovery in the selected checkout.
+
 Codex support covers local skills, templates, and native guidance. It does not
 install Codex role TOML, hooks, statusline, cloud/review integrations, or
 Codex-managed worktrees. Switching assistants uses repository files and planning
