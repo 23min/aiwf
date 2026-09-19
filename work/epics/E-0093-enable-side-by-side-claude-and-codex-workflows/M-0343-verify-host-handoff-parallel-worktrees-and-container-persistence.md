@@ -24,7 +24,7 @@ acs:
       status: open
     - id: AC-6
       title: Implementation passes repository gates and documents its support boundary
-      status: open
+      status: met
 ---
 ## Goal
 
