@@ -15,7 +15,7 @@ acs:
       status: met
     - id: AC-3
       title: Concurrent host sessions keep edits and Git state in their assigned worktrees
-      status: open
+      status: met
     - id: AC-4
       title: An independent Codex review executes through the supported ritual path
       status: open
