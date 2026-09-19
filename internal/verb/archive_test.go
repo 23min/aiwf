@@ -24,6 +24,8 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/google/go-cmp/cmp"
+
 	"github.com/23min/aiwf/internal/entity"
 	"github.com/23min/aiwf/internal/gitops"
 	"github.com/23min/aiwf/internal/tree"
@@ -292,15 +294,26 @@ func TestComputeArchiveMoves_NonTerminalSkipped(t *testing.T) {
 // result, even when it is itself non-terminal.
 func TestNonTerminalEpicChildren_FiltersByParent(t *testing.T) {
 	t.Parallel()
-	tr := &tree.Tree{
-		Entities: []*entity.Entity{
-			{ID: "M-0020", Kind: entity.KindMilestone, Status: entity.StatusDraft, Parent: "E-0010"},
-			{ID: "M-0030", Kind: entity.KindMilestone, Status: entity.StatusDraft, Parent: "E-0099"},
-		},
-	}
-	got := nonTerminalEpicChildren(tr, "E-0010")
-	if len(got) != 1 || got[0] != "M-0020" {
-		t.Errorf("nonTerminalEpicChildren(tr, E-0010) = %v; want [M-0020] (M-0030 belongs to E-0099)", got)
+	for _, tc := range []struct{ name, epicID, parent string }{
+		{"canonical", "E-0010", "E-0010"},
+		{"narrow parent", "E-0010", "E-010"},
+		{"narrow epic", "E-010", "E-0010"},
+		{"both narrow", "E-010", "E-010"},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			t.Parallel()
+			tr := &tree.Tree{Entities: []*entity.Entity{
+				{ID: "M-0021", Kind: entity.KindMilestone, Status: entity.StatusDraft, Parent: tc.parent},
+				{ID: "M-0020", Kind: entity.KindMilestone, Status: entity.StatusInProgress, Parent: tc.parent},
+				{ID: "M-0030", Kind: entity.KindMilestone, Status: entity.StatusDraft, Parent: "E-0099"},
+				{ID: "M-0040", Kind: entity.KindMilestone, Status: entity.StatusDone, Parent: tc.parent},
+				{ID: "M-0041", Kind: entity.KindMilestone, Status: entity.StatusCancelled, Parent: tc.parent},
+				{ID: "G-0001", Kind: entity.KindGap, Status: entity.StatusOpen, Parent: tc.parent},
+			}}
+			if diff := cmp.Diff([]string{"M-0020", "M-0021"}, nonTerminalEpicChildren(tr, tc.epicID)); diff != "" {
+				t.Errorf("non-terminal children (-want +got):\n%s", diff)
+			}
+		})
 	}
 }
 
@@ -314,24 +327,29 @@ func TestNonTerminalEpicChildren_FiltersByParent(t *testing.T) {
 // frontmatter hand-edit).
 func TestComputeArchiveMoves_EpicWithNonTerminalChild_Skipped(t *testing.T) {
 	t.Parallel()
-	tr := &tree.Tree{
-		Entities: []*entity.Entity{
-			{ID: "E-0010", Kind: entity.KindEpic, Status: entity.StatusDone, Path: "work/epics/E-0010-foo/epic.md"},
-			{ID: "M-0020", Kind: entity.KindMilestone, Status: entity.StatusDraft, Parent: "E-0010", Path: "work/epics/E-0010-foo/M-0020-a.md"},
-		},
-	}
-	moves, skipped, err := computeArchiveMoves(tr, "")
-	if err != nil {
-		t.Fatalf("unexpected error: %v", err)
-	}
-	if len(moves) != 0 {
-		t.Errorf("expected 0 moves (epic has a non-terminal child); got %d:\n  %+v", len(moves), moves)
-	}
-	if len(skipped) != 1 || skipped[0].epic != "E-0010" {
-		t.Fatalf("skipped = %+v; want exactly one skip naming E-0010", skipped)
-	}
-	if len(skipped[0].children) != 1 || skipped[0].children[0] != "M-0020" {
-		t.Errorf("skipped[0].children = %v; want [M-0020]", skipped[0].children)
+	for _, parent := range []string{"E-0010", "E-010"} {
+		t.Run(parent, func(t *testing.T) {
+			t.Parallel()
+			tr := &tree.Tree{
+				Entities: []*entity.Entity{
+					{ID: "E-0010", Kind: entity.KindEpic, Status: entity.StatusDone, Path: "work/epics/E-0010-foo/epic.md"},
+					{ID: "M-0020", Kind: entity.KindMilestone, Status: entity.StatusDraft, Parent: parent, Path: "work/epics/E-0010-foo/M-0020-a.md"},
+				},
+			}
+			moves, skipped, err := computeArchiveMoves(tr, "")
+			if err != nil {
+				t.Fatalf("unexpected error: %v", err)
+			}
+			if len(moves) != 0 {
+				t.Errorf("expected 0 moves (epic has a non-terminal child); got %d:\n  %+v", len(moves), moves)
+			}
+			if len(skipped) != 1 || skipped[0].epic != "E-0010" {
+				t.Fatalf("skipped = %+v; want exactly one skip naming E-0010", skipped)
+			}
+			if len(skipped[0].children) != 1 || skipped[0].children[0] != "M-0020" {
+				t.Errorf("skipped[0].children = %v; want [M-0020]", skipped[0].children)
+			}
+		})
 	}
 }
 

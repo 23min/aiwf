@@ -18,9 +18,10 @@ import (
 // (G-0393 / G-0394, promote.go — both `done` and `cancelled`), and
 // Archive's independent subtree-terminality guard (G-0394, archive.go).
 func nonTerminalEpicChildren(t *tree.Tree, epicID string) []string {
+	epicID = entity.Canonicalize(epicID)
 	var nonTerminal []string
 	for _, m := range t.ByKind(entity.KindMilestone) {
-		if m.Parent == epicID && !entity.IsTerminal(entity.KindMilestone, m.Status) {
+		if entity.Canonicalize(m.Parent) == epicID && !entity.IsTerminal(entity.KindMilestone, m.Status) {
 			nonTerminal = append(nonTerminal, m.ID)
 		}
 	}
