@@ -8,7 +8,6 @@ import (
 	"github.com/23min/aiwf/internal/check"
 	"github.com/23min/aiwf/internal/config"
 	"github.com/23min/aiwf/internal/entity"
-	"github.com/23min/aiwf/internal/gitops"
 	"github.com/23min/aiwf/internal/tree"
 )
 
@@ -124,15 +123,11 @@ func ContractBind(ctx context.Context, t *tree.Tree, doc *aiwfyaml.Doc, current 
 	}
 
 	result := plan(&Plan{
-		Subject: fmt.Sprintf("aiwf contract bind %s", id),
-		Trailers: []gitops.Trailer{
-			{Key: gitops.TrailerVerb, Value: "contract-bind"},
-			{Key: gitops.TrailerEntity, Value: id},
-			{Key: gitops.TrailerActor, Value: actor},
-		},
-		Ops: []FileOp{{Type: OpWrite, Path: config.FileName, Content: doc.Bytes()}},
+		Subject:  fmt.Sprintf("aiwf contract bind %s", id),
+		Trailers: standardTrailers("contract-bind", id, actor),
+		Ops:      []FileOp{{Type: OpWrite, Path: config.FileName, Content: doc.Bytes()}},
 	})
-	result.Metadata = map[string]any{"entity_id": id, "validator": desired.Validator}
+	result.Metadata = map[string]any{"entity_id": canonID, "validator": desired.Validator}
 	return result, nil
 }
 
@@ -180,15 +175,11 @@ func ContractUnbind(ctx context.Context, t *tree.Tree, doc *aiwfyaml.Doc, curren
 	}
 
 	result := plan(&Plan{
-		Subject: fmt.Sprintf("aiwf contract unbind %s", id),
-		Trailers: []gitops.Trailer{
-			{Key: gitops.TrailerVerb, Value: "contract-unbind"},
-			{Key: gitops.TrailerEntity, Value: id},
-			{Key: gitops.TrailerActor, Value: actor},
-		},
-		Ops: []FileOp{{Type: OpWrite, Path: config.FileName, Content: doc.Bytes()}},
+		Subject:  fmt.Sprintf("aiwf contract unbind %s", id),
+		Trailers: standardTrailers("contract-unbind", id, actor),
+		Ops:      []FileOp{{Type: OpWrite, Path: config.FileName, Content: doc.Bytes()}},
 	})
-	result.Metadata = map[string]any{"entity_id": id}
+	result.Metadata = map[string]any{"entity_id": canonID}
 	return result, nil
 }
 

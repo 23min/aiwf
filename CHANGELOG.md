@@ -16,6 +16,11 @@ section in this file.
 
 ## [Unreleased]
 
+### Fixed — contract binding results use canonical IDs
+
+`aiwf contract bind` and `unbind` emit canonical contract IDs in commit trailers
+and result metadata when invoked with a legacy-width ID such as `C-001`.
+
 ### Fixed — epic lifecycle guards recognize legacy parent IDs
 
 `aiwf cancel` and terminal `aiwf promote` return their specific child-milestone

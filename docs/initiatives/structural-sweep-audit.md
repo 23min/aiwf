@@ -167,13 +167,6 @@ where `cfg.AllocateTrunkRef()` is the source. A repository using a different
 trunk can miss the stale-binary advisory or compare against the wrong ref.
 Patch; overlaps E-0093's doctor changes.
 
-**A4. Contract bind and unbind write the operator's raw-width id into kernel
-trailers.** *Derived.* `internal/verb/contractbind.go:86-93,161-163` canonicalize
-the id for matching, then `:128-135,184-191` write the raw spelling into
-`aiwf-entity` and `metadata`. `standardTrailers` (`internal/verb/ac.go:463`)
-canonicalizes and is bypassed here and at `add.go:206`, `rename.go:116`,
-`import.go:430,446`. Every test passes `C-0001`, so nothing pins either way. Patch.
-
 **A5. Actor derivation reads `user.email` from different repos per verb.**
 *Derived.* `internal/cli/cliutil/actor.go:51` runs `git config --get user.email`
 with no `cmd.Dir` (`:44` discards `root` with `_ = root`), so every verb reads the
@@ -496,7 +489,8 @@ production code with test-only callers. Also six `git` shell-outs each hand-buil
 `changelog_completeness.go:196,231,242`, `comment_history_attrition.go:79`);
 sequence with C1.
 
-**D6. Verb.** The `aiwf.yaml` write tail spelled five times with no
+**D6. Verb.** `standardTrailers` is bypassed at `add.go:206`, `rename.go:116`,
+`import.go:430,446`. The `aiwf.yaml` write tail spelled five times with no
 `planEntityWrite` twin (`contractbind.go:115-136,174-192`,
 `contractrecipe.go:64-84,117-131`, `add.go:491-500`), three carrying the same
 `coverage:ignore`; Rename and Retitle re-inline about twelve lines of rename
