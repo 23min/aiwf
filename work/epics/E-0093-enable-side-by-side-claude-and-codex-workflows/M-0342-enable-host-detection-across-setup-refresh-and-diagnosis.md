@@ -26,6 +26,7 @@ acs:
     - id: AC-5
       title: Dry-run and upgrade refresh honor host selection without hidden writes
       status: open
+      tdd_phase: red
     - id: AC-6
       title: Host configuration and supported capabilities are discoverable
       status: open
