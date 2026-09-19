@@ -136,7 +136,8 @@ The host-fragment interface review is recorded in `docs/design/design-decisions.
 
 ## Deferrals
 
-- No ACs deferred and no new follow-up gaps identified.
+- No ACs deferred.
+- G-0698 — The shared planning rituals retain a ritual branch and merge step contrary to accepted D-0073. Correcting both planning workflows changes shared behavior and the frozen Claude baseline; it requires a separate workflow change and review.
 - Public host detection and lifecycle selection remain the planned scope of M-0342; fresh-session discovery, cross-host handoff, parallel terminals, independent Codex review, and container persistence remain the planned observations in M-0343.
 
 ## Reviewer notes
