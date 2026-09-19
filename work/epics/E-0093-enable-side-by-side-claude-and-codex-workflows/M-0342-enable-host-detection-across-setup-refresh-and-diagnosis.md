@@ -10,6 +10,7 @@ acs:
     - id: AC-1
       title: Host resolution handles detection overrides and empty configuration consistently
       status: open
+      tdd_phase: red
     - id: AC-2
       title: Init update and worktree refresh materialize the complete resolved host set
       status: open
