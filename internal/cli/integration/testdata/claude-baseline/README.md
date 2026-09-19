@@ -104,3 +104,24 @@ only the `.gitignore` record in all six inventories and sort them again.
 | Artifact | Original SHA-256 | Updated SHA-256 |
 | --- | --- | --- |
 | `.gitignore` | `1154158ecbaa05116b8e8b5ff9b3f3f9d0a1ade84bbd4c5bba68d51ef4198457` | `8d01c4e9083f5ad84582127a76e688b0eed4b2dd674a8f8b3a30f0f1bff0e210` |
+
+## Host selection configuration exception
+
+M-0342 documents automatic detection, explicit host selection and the empty-list
+override in the generated `hosts` comment. Only that comment changes in
+`aiwf.example.yaml` and in newly scaffolded `aiwf.yaml`; existing consumer
+configuration and all Claude artifact bytes remain frozen.
+
+Expectations were derived from a `v0.36.0`-stamped binary built from production
+sources at `a6e54b8e3`. Capture the undecided and enabled-hook configurations,
+verify their complete hashes against the existing inventories, replace the
+single host-description comment with the new description, and hash the result.
+This textual transformation is independent of the changed schema generator.
+Substitute only these records in the six inventories and sort them again; do
+not recapture output from the new implementation.
+
+| Config artifact | Original SHA-256 | Updated SHA-256 |
+| --- | --- | --- |
+| `aiwf.example.yaml` | `046f0df0cf0390a3fabf39a15006172732caeba47eb7ae964dddc8d4ec8a3619` | `6977f2ad7ff8191f8e32ee351119bfb303fae2fdc49f4c9a8136100c72ece789` |
+| Scaffolded `aiwf.yaml` | `73748c6a5091a363cbabb8d05b93e902cab9e2299adb889301d917b38e73e00c` | `855415b8a161438817c332e8b07535f2fe29779140268f35a429bbf576c9c5ed` |
+| Scaffolded `aiwf.yaml` with hook consent | `c9f7f10ac9af60a447fe926a48ff5079c87acaf77da42f6d1ca602e2f65670a7` | `daea2561b4f7955b6d676b0ded324e6d915fe7495c8438b23c2c3b0c814ef4b9` |

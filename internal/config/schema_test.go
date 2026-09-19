@@ -21,7 +21,7 @@ import (
 func TestSchema_EnumeratesEveryYAMLField(t *testing.T) {
 	t.Parallel()
 	want := []SchemaField{
-		{Path: "hosts", Type: "[]string"},
+		{Path: "hosts", Type: "*[]string"},
 		{Path: "status_md", Type: "config.StatusMd"},
 		{Path: "status_md.auto_update", Type: "*bool"},
 		{Path: "tdd", Type: "config.TDD"},

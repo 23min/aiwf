@@ -397,6 +397,9 @@ type RefreshOptions struct {
 // Steps 1–3 write only if the artifact is missing; step 4 wipes-and-
 // rewrites per the cache contract for derivable artifacts.
 func Init(ctx context.Context, root string, opts Options) (*Result, error) {
+	if _, err := config.Load(root); err != nil && !errors.Is(err, config.ErrNotFound) {
+		return nil, fmt.Errorf("validating configuration before initialization: %w", err)
+	}
 	res := &Result{DryRun: opts.DryRun}
 
 	cfgStep, err := ensureConfig(root, opts)
@@ -465,6 +468,9 @@ func Init(ctx context.Context, root string, opts Options) (*Result, error) {
 // marker-managed hook, leaves user-written hooks alone) but does
 // not affect ensurePreCommitHook — the tree-discipline gate stays.
 func RefreshArtifacts(ctx context.Context, root string, opts RefreshOptions) ([]StepResult, bool, error) {
+	if _, err := config.Load(root); err != nil && !errors.Is(err, config.ErrNotFound) {
+		return nil, false, fmt.Errorf("validating configuration before artifact refresh: %w", err)
+	}
 	var steps []StepResult
 	var conflict bool
 

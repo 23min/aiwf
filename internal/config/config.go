@@ -3,7 +3,7 @@
 // The file is small and deliberately so — see
 // docs/design/design-decisions.md §"aiwf.yaml config". The fields are:
 //
-//	hosts: [claude-code]      # optional; PoC default and only supported value
+//	hosts: [claude-code, codex] # optional; absent detects PATH, [] selects none
 //	status_md:                # optional; opt-out for the STATUS.md auto-update
 //	  auto_update: false      # default true — see StatusMdAutoUpdate
 //
@@ -60,8 +60,8 @@ var ErrNotFound = errors.New("aiwf.yaml not found")
 // no whitespace, neither side empty.
 var ActorPattern = regexp.MustCompile(`^[^\s/]+/[^\s/]+$`)
 
-// Config is the in-memory shape of aiwf.yaml. Hosts is omitted when
-// the on-disk file leaves it absent (which is the typical case).
+// Config is the in-memory shape of aiwf.yaml. A nil Hosts means automatic
+// detection; a pointer to an empty list explicitly selects no hosts.
 //
 // StatusMd is the opt-out surface for the pre-commit hook that keeps
 // `STATUS.md` in sync with the entity tree. Default behavior (block
@@ -75,7 +75,7 @@ var ActorPattern = regexp.MustCompile(`^[^\s/]+/[^\s/]+$`)
 type Config struct {
 	LegacyAiwfVersion string           `yaml:"aiwf_version,omitempty"`
 	LegacyActor       string           `yaml:"actor,omitempty"`
-	Hosts             []string         `yaml:"hosts,omitempty"`
+	Hosts             *[]string        `yaml:"hosts,omitempty"`
 	StatusMd          StatusMd         `yaml:"status_md,omitempty"`
 	TDD               TDD              `yaml:"tdd,omitempty"`
 	HTML              HTML             `yaml:"html,omitempty"`
@@ -956,6 +956,9 @@ func Load(root string) (*Config, error) {
 // The areas block (E-0043) is the first cross-field constraint validated
 // here; the method remains the entry point for future rules.
 func (c *Config) Validate() error {
+	if err := c.validateHosts(); err != nil {
+		return err
+	}
 	if err := c.Areas.validate(); err != nil {
 		return err
 	}

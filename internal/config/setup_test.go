@@ -13,8 +13,8 @@ import (
 // config itself doesn't invoke git, but the template is uniform
 // across internal/* per M-0091.
 //
-// Serial tests: none. Every Test* function is pure-parser or uses
-// t.TempDir for filesystem isolation.
+// Serial tests: TestResolveHosts_UsesExecutablePATHOrExplicitSelection controls
+// process PATH. Other tests are pure-parser or use t.TempDir for isolation.
 func TestMain(m *testing.M) {
 	os.Setenv("GIT_AUTHOR_NAME", "aiwf-test")
 	os.Setenv("GIT_AUTHOR_EMAIL", "test@example.com")
