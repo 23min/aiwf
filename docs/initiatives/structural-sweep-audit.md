@@ -72,9 +72,8 @@ against open gaps and accepted decisions. Owned items are listed once under
 Most of this predates the 2026-08-05 sweep. That pass ran the two mechanical
 lenses and a light reasoning pass; this one is the first to run the data-flow
 lens and the binary-roots reachability run, and the dates on the findings agree:
-the last reader of `Tree.PlannedFiles` left in April, the hardcoded `main`
-literals in `aiwf status` are from May, and the branch helpers in `cli/authorize`
-predate their `gitops` equivalents by a month or more. The instrument got
+the last reader of `Tree.PlannedFiles` left in April, the branch helpers in `cli/authorize` predate their `gitops` equivalents
+by a month or more. The instrument got
 sharper; the tree did not degrade at the rate the count suggests.
 
 ## Cross-cutting patterns
@@ -162,14 +161,11 @@ reader would expect — patch or milestone — not a commitment.
 
 ### A — defects
 
-**A3. `aiwf status` hardcodes `main` as the trunk.** *Derived.*
-`internal/cli/status/worktrees.go:154,299,360,408,519,1262,1355,1374,1397` use the
-literal while `config.TrunkBranchShortName` (`internal/config/config.go:531`) and
-`cliutil.ConfiguredTrunkBranchShortName` exist; `internal/cli/doctor/binary_staleness.go:58`
-hardcodes `refs/remotes/origin/main` where `cfg.AllocateTrunkRef()` is the source.
-On a non-main trunk `branchAheadOfTrunkCount` (`:1397`) errors to 0 and the stale
-arm renders "safe to remove" for a wrap-pending worktree — the hint G-0153 removed.
-Patch.
+**A3. Doctor's binary-staleness check hardcodes `origin/main`.** *Derived.*
+`internal/cli/doctor/binary_staleness.go:58` uses `refs/remotes/origin/main`
+where `cfg.AllocateTrunkRef()` is the source. A repository using a different
+trunk can miss the stale-binary advisory or compare against the wrong ref.
+Patch; overlaps E-0093's doctor changes.
 
 **A4. Contract bind and unbind write the operator's raw-width id into kernel
 trailers.** *Derived.* `internal/verb/contractbind.go:86-93,161-163` canonicalize
@@ -613,7 +609,7 @@ places and the ledger names where it does not.
 | B1 typed interfaces | Strong | named structs at every boundary; exceptions: nine-to-eleven-positional `Run` signatures in `cli/check`, `status`, `initcmd`, `update`; four identical private structs in the stress harness |
 | B2 schemas | Weak | `Parse` is `KnownFields(true)` but `hooks:` has a second non-strict decoder (B10); the raw-report JSONL schema lives only in its writer (B5); five `metadata` keys undocumented (D9) |
 | B3 invariants | Weak | `verb.go:38` "exactly one of Findings, Plan, NoOp" is false at `add.go:239`, `rename.go:114`, `retitle.go:191`; `FileEntry.Path` contract broken by `walkMarkdown` (D5); `refs.go:11` says `ErrRefNotFound` is wrapped by `HasRef`, which never wraps it |
-| C1 single source | **Weak** | the sweep's dominant class: terminality ×6, id index ×6, path layout ×5, AC heading ×4, trunk name ×9 literal, `aiwf.yaml` ×20+, HEAD probe ×5, trailer index ×4 |
+| C1 single source | **Weak** | the sweep's dominant class: terminality ×6, id index ×6, path layout ×5, AC heading ×4, `aiwf.yaml` ×20+, HEAD probe ×5, trailer index ×4 |
 | C2 idempotence | Strong | ADR-0036 NoOp guards chokepointed by `noOpClaimScopes`; every `ensure*` converges to Preserved |
 | C3 atomic writes | Strong | `pathutil.AtomicWriteFile` plus its chokepoint; all twelve non-test `os.WriteFile` sites allowlisted with rationale; caveat: exemptions are whole-file and `os.CreateTemp` is outside the scanned set |
 | C4 versioned schemas | Weak | legacy `actor:`/`aiwf_version:` tolerance is hand-rolled line stripping; `manifest.supportedVersion` is the only declared schema version |
@@ -663,8 +659,6 @@ verdict cache); ADR-0011 (the spec tables consumed by policies only); ADR-0014 �
 
 Each of these is derived from reading, with the command that would settle it:
 
-- **A3** — on a repo whose trunk is not `main`, `aiwf status` with a wrap-pending
-  worktree; expect "safe to remove".
 - **A4** — `aiwf contract bind c-1 …` then `git log -1 --format=%(trailers)`;
   expect `aiwf-entity: c-1`.
 - **A5** — from a cwd whose repo has a different `user.email` than `--root`'s,
