@@ -16,6 +16,8 @@ section in this file.
 
 ## [Unreleased]
 
+## [0.37.0] — 2026-09-19
+
 ### Added — E-0093: side-by-side Claude Code and Codex workflows
 
 - `aiwf init`, `update`, upgrade refresh, `doctor` and `worktree add` share host
