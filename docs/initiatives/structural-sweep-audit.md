@@ -514,10 +514,7 @@ copies; `auditOnlyTrailers` (`auditonly.go:218-230`) re-inlines
 
 **D7. Check.** `eachActiveMilestone` (`acs.go:295`) bypassed at
 `acs.go:55,211,244,368,568` and `milestone_release_note.go:63` after the seam
-landed; `parseIDAndStatusFromFrontmatter` (`fsm_history_consistent.go:297-322`)
-re-implements `entity.Split` (`serialize.go:19`) and drops its BOM handling, so a
-BOM-prefixed blob reads as "no status" and the observation is skipped silently;
-`isArchivePath` (`entity_id_narrow_width.go:132`, any segment named `archive`) vs
+landed; `isArchivePath` (`entity_id_narrow_width.go:132`, any segment named `archive`) vs
 `entity.IsArchivedPath` (ADR-0004 position); `matchesAnyGlob` (`area_mistag.go:199`)
 vs `claimedByAnyArea` (`area_coverage.go:199`); three identical severity escalators
 (`entity_body.go:79`, `area_unknown.go:42`, `doc_id_width.go:204`).
@@ -665,8 +662,6 @@ Each of these is derived from reading, with the command that would settle it:
   `aiwf whoami --root <root>` vs `aiwf init --root <root>`'s derived actor.
 - **D3** — a milestone body with `###  AC-1 — x` (two spaces); `aiwf check`
   should report it as a heading under one rule and as missing under another.
-- **D7** — a BOM-prefixed entity blob in history; expect the FSM walker to skip
-  the observation with no `history-walk-error`.
 - **C7** — that DAG-derived ancestry yields byte-identical findings to the
   per-ack `git rev-list`.
 - **D11** — whether the unsigned stresstest-built binary crashes on a current

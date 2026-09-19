@@ -1,7 +1,6 @@
 package check
 
 import (
-	"bytes"
 	"context"
 	"os"
 	"os/exec"
@@ -292,27 +291,18 @@ func parseStatusFromFrontmatter(content []byte) string {
 // history carries no path to identify it by, so the id in its
 // frontmatter is the only thing that says whose status this is.
 //
-// Accepts both `---\n` and `---\r\n` opening sequences so files
-// written on Windows hosts still parse.
+// Uses the entity parser's delimiter and UTF-8 BOM handling so history
+// observes the same frontmatter as the current working tree.
 func parseIDAndStatusFromFrontmatter(content []byte) (id, status string) {
-	var rest []byte
-	switch {
-	case bytes.HasPrefix(content, []byte("---\n")):
-		rest = content[4:]
-	case bytes.HasPrefix(content, []byte("---\r\n")):
-		rest = content[5:]
-	default:
-		return "", ""
-	}
-	end := bytes.Index(rest, []byte("\n---"))
-	if end < 0 {
+	fm, _, ok := entity.Split(content)
+	if !ok {
 		return "", ""
 	}
 	var meta struct {
 		ID     string `yaml:"id"`
 		Status string `yaml:"status"`
 	}
-	if err := yaml.Unmarshal(rest[:end], &meta); err != nil {
+	if err := yaml.Unmarshal(fm, &meta); err != nil {
 		return "", ""
 	}
 	return meta.ID, meta.Status
