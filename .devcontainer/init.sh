@@ -141,6 +141,15 @@ if ! command -v claude >/dev/null 2>&1; then
   export PATH="$HOME/.local/bin:$PATH"
 fi
 
+# --- Codex CLI -----------------------------------------------------
+# Check npm's binary directly so a VS Code extension binary on PATH
+# does not substitute for the terminal installation.
+codex_npm_prefix=$(npm prefix -g)
+if [ ! -x "${codex_npm_prefix}/bin/codex" ]; then
+  echo "==> Installing Codex CLI"
+  npm install -g @openai/codex
+fi
+
 # --- aiwf binary + framework hooks ---------------------------------
 # `go install ./cmd/aiwf` is idempotent (it overwrites the prior
 # binary); `aiwf init` is idempotent (regenerates the chain-aware
@@ -185,10 +194,10 @@ cat <<'BANNER'
 ================================================================
 aiwf devcontainer ready.
 
-Rituals are already installed. `aiwf init` (run above) materialized
-the aiwf-* verb skills and the aiwfx-* / wf-* rituals, role agents,
-and templates into .claude/ directly — there is no separate
-plugin-install step (ADR-0014).
+`aiwf init` (run above) materializes skills, guidance and templates
+for hosts selected by aiwf.yaml or detected on PATH: .claude/ and
+CLAUDE.md for Claude; .agents/ and AGENTS.md for Codex. Claude also
+receives role agents. There is no separate plugin-install step.
 
 Verify with `aiwf doctor`: the `rituals:` line confirms the
 artifacts are materialized (it points you at `aiwf update` if any
