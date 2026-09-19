@@ -262,12 +262,6 @@ claiming an aggregation no call site performs. Nothing drives `branch.Rules()`
 against a verb. Milestone with a decision: derive real outcomes from each
 scenario's expectation, or shrink to an id registry and stop calling them rules.
 
-**B12. The cell generator hardcodes a dead worktree path.** *Measured.*
-`scripts/m0162-build-ac3-cells.py:6` sets `root = Path("/workspaces/aiwf-M-0162")`;
-the regeneration instruction at `rules_m0162_ac3.go:19-21` cannot be followed.
-With the path patched in a scratch copy it reproduces the committed cell set
-exactly; the header comment says 112 cells and the file holds 113. Patch.
-
 **B13. `ensureSkills` dry-run is a separate implementation that undercounts.**
 `internal/initrepo/initrepo.go:716-726` lists the verb skills (19 from the embed);
 the real arm (`:727-742` → `skills.go:422-509`) writes 39 skills, 4 agents and 6
