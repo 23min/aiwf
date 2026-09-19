@@ -16,6 +16,13 @@ section in this file.
 
 ## [Unreleased]
 
+### Fixed — G-0510: enum suppressions require a directive and a reason
+
+The repository's enum-literal and finding-code policies accept only
+`//enums:ignore <reason>` line comments, with a space or tab before a non-empty
+reason. Spaced prefixes, missing reasons, and longer words no longer suppress
+findings. Consumer CLI behavior is unchanged.
+
 ## [0.36.1] — 2026-09-18
 
 ### Fixed — G-0693: the Darwin signing wrapper no longer defeats the Go test cache off macOS

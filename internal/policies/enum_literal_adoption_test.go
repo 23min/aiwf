@@ -275,3 +275,80 @@ func good(status string) bool {
 		}
 	}
 }
+
+// Both policies share the enum escape, which requires a directive-shaped
+// line comment with a reason on the same line as the literal.
+func TestEnumIgnoreRequiresDirectiveWithReason(t *testing.T) {
+	t.Parallel()
+	policies := []struct {
+		name    string
+		literal string
+		build   func(*testing.T, string, string) string
+		run     func(string) ([]Violation, error)
+	}{
+		{"enum-literal-adoption", "open", buildSyntheticTreeForEnumPolicy, PolicyEnumLiteralAdoption},
+		{"finding-code-adoption", "acs-shape", buildSyntheticTreeForCodePolicy, PolicyFindingCodeAdoption},
+	}
+	tests := []struct {
+		name       string
+		comment    string
+		suppressed bool
+	}{
+		{"no comment", "", false},
+		{"reason after space", "//enums:ignore intentional literal", true},
+		{"reason after tab", "//enums:ignore\tintentional literal", true},
+		{"space before marker", "// enums:ignore intentional literal", false},
+		{"bare marker", "//enums:ignore", false},
+		{"whitespace only reason", "//enums:ignore \t ", false},
+		{"longer word", "//enums:ignoreable", false},
+		{"longer word with reason", "//enums:ignoreable intentional literal", false},
+		{"colon before reason", "//enums:ignore: intentional literal", false},
+		{"prose mention", "// see the enums:ignore escape", false},
+		{"block comment", "/* enums:ignore intentional literal */", false},
+		{"uppercase marker", "//ENUMS:IGNORE intentional literal", false},
+		{"other directive", "//coverage:ignore intentional literal", false},
+		{"directive on next line", "\n\t//enums:ignore intentional literal", false},
+	}
+	for _, policy := range policies {
+		for _, tt := range tests {
+			t.Run(policy.name+"/"+tt.name, func(t *testing.T) {
+				t.Parallel()
+				body := "package drift\n\nfunc compare(value string) bool {\n\treturn value == \"" + policy.literal + "\" " + tt.comment + "\n}\n"
+				root := policy.build(t, "drift", body)
+				violations, err := policy.run(root)
+				if err != nil {
+					t.Fatalf("policy: %v", err)
+				}
+				if tt.suppressed {
+					if len(violations) != 0 {
+						t.Fatalf("valid directive must suppress the finding; got %+v", violations)
+					}
+					return
+				}
+				if len(violations) != 1 {
+					t.Fatalf("expected exactly one unsuppressed finding; got %+v", violations)
+				}
+				v := violations[0]
+				if v.Policy != policy.name || v.File != "internal/cli/drift/drift.go" || v.Line != 4 {
+					t.Errorf("expected %s finding at internal/cli/drift/drift.go:4; got %+v", policy.name, v)
+				}
+			})
+		}
+		t.Run(policy.name+"/directive on preceding line", func(t *testing.T) {
+			t.Parallel()
+			body := "package drift\n\nfunc compare(value string) bool {\n\t//enums:ignore intentional literal\n\treturn value == \"" + policy.literal + "\"\n}\n"
+			root := policy.build(t, "drift", body)
+			violations, err := policy.run(root)
+			if err != nil {
+				t.Fatalf("policy: %v", err)
+			}
+			if len(violations) != 1 {
+				t.Fatalf("directive must not suppress the following line; got %+v", violations)
+			}
+			v := violations[0]
+			if v.Policy != policy.name || v.File != "internal/cli/drift/drift.go" || v.Line != 5 {
+				t.Errorf("expected %s finding at internal/cli/drift/drift.go:5; got %+v", policy.name, v)
+			}
+		})
+	}
+}
