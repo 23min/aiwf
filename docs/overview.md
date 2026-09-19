@@ -157,7 +157,7 @@ These are non-goals for the PoC. Each one was considered and deferred; see [`des
 
 - **No separate event-log file.** `git log` is the event log; structured commit trailers (`aiwf-verb:`, `aiwf-entity:`, `aiwf-actor:`) make it queryable.
 - **No graph projection or hash chain.** `aiwf check` reconstructs the graph in memory from the markdown files; there is no separate cache to invalidate.
-- **No multi-host adapter generation.** Skills are materialized for Claude Code only. A second AI host can be added when there is one to integrate.
+- **No host-runtime parity.** Local Claude Code and Codex skills, templates, and guidance are supported. Codex role TOML, hooks, statusline, cloud/review integrations, and Codex-managed worktrees are outside this support. See [host setup](../README.md#2-host-setup-and-embedded-rituals).
 - **No `task` or `story` entity.** Issue trackers do that better. The framework's smallest unit is the milestone.
 - **No FSM-as-YAML.** The six kinds and their statuses are hardcoded in Go. External configuration is the move when there's a second consumer who needs to customize — not before.
 - **No GitHub Issues / Linear / Jira / Azure DevOps sync.** Out of scope for the PoC. A modular backend adapter is an explicit longer-term aspiration — see [README — Beyond the current shape](../README.md#beyond-the-current-shape) — but no adapter is implemented today and the adapter interface is not yet designed.

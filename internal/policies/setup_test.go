@@ -49,5 +49,6 @@ func TestMain(m *testing.M) {
 	// internal/testsupport and enforced for every exec-bearing
 	// internal/* package by PolicyGitTestEnvHardened.
 	testsupport.HardenGitTestEnv()
-	os.Exit(m.Run())
+	// Claude setup fixtures require command presence; selection tests isolate PATH.
+	os.Exit(testsupport.RunWithClaudeOnPATH(m.Run))
 }

@@ -15,5 +15,6 @@ func TestMain(m *testing.M) {
 	os.Setenv("GIT_COMMITTER_NAME", "aiwf-test")
 	os.Setenv("GIT_COMMITTER_EMAIL", "test@example.com")
 	testsupport.HardenGitTestEnv()
-	os.Exit(m.Run())
+	// Claude setup fixtures require command presence; selection tests isolate PATH.
+	os.Exit(testsupport.RunWithClaudeOnPATH(m.Run))
 }

@@ -298,7 +298,7 @@ func TestLoad_TypicalFile(t *testing.T) {
 	if cfg.LegacyActor != "" {
 		t.Errorf("LegacyActor = %q, want empty (no actor: key in source)", cfg.LegacyActor)
 	}
-	if len(cfg.Hosts) != 1 || cfg.Hosts[0] != "claude-code" {
+	if cfg.Hosts == nil || len(*cfg.Hosts) != 1 || (*cfg.Hosts)[0] != "claude-code" {
 		t.Errorf("hosts = %v, want [claude-code]", cfg.Hosts)
 	}
 }
@@ -373,7 +373,7 @@ func TestLoad_WithHosts(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Load: %v", err)
 	}
-	if len(cfg.Hosts) != 1 || cfg.Hosts[0] != "claude-code" {
+	if cfg.Hosts == nil || len(*cfg.Hosts) != 1 || (*cfg.Hosts)[0] != "claude-code" {
 		t.Errorf("got %v", cfg.Hosts)
 	}
 }

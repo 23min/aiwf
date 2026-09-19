@@ -52,7 +52,7 @@ Run an approved handoff from Claude to Codex and back on the same task/worktree 
 
 ### AC-3 — Concurrent host sessions keep edits and Git state in their assigned worktrees
 
-Use separate terminals and distinct branches/worktrees for a bounded pair of non-overlapping tasks. Record both repository roots and branches before work, then verify each change and staged/unstaged state in the intended checkout. Each worktree must have its complete selected host artifacts. Keep integration serial and separately approved; do not run concurrent refreshes using divergent binaries against shared hook state. This demonstrates human-operated parallel sessions, not an orchestration engine.
+Use separate terminals and distinct branches/worktrees for a bounded pair of non-overlapping tasks. Record both repository roots and branches before work, then verify each change and staged/unstaged state in the intended checkout. Each worktree must have its complete selected host artifacts. Create these checkouts with `aiwf worktree add`. Start the fresh Codex session with `codex --disable worktrees -C "<path>"`, record the CLI version and explicit disabled-feature invocation, and verify observed skill discovery in that checkout. Codex-managed worktree creation is not part of this observation. Keep integration serial and separately approved; do not run concurrent refreshes using divergent binaries against shared hook state. This demonstrates human-operated parallel sessions, not an orchestration engine.
 
 ### AC-4 — An independent Codex review executes through the supported ritual path
 

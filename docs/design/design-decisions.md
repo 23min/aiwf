@@ -242,8 +242,34 @@ Claude family receipts are gitignored. Existing manifest ownership remains
 authoritative for edited generated files. Writes are atomic per file and retries
 converge after a filesystem failure is resolved; the family set is not an
 all-files transaction. The generic `AtomicWriteFile` contract is unchanged.
-Codex skills and support templates use the same internal writer; public Codex
-host selection remains part of E-0093.
+Codex skills and support templates use the same writer. Init, update, and
+worktree setup refresh only the resolved host set. Existing unselected host
+paths remain untouched, including Claude settings, lifecycle hooks, statuslines,
+and installation-health files; stored hook consent never selects a host.
+Explicit Claude-only options require Claude selection and otherwise fail before
+artifact writes. Core Git hooks remain independent of assistant selection.
+
+The setup ledger identifies existing unselected host paths as preserved without
+refresh, including when an executable disappears from PATH. It inspects path
+presence without following links or reading retained content. Presence is not a
+claim of aiwf ownership or installation health. Worktree JSON exposes the same
+ledger under `result.steps`, alongside `path` and `host_selection`.
+
+Doctor compares selected-host verb skills, ritual skills, templates, and supported
+agent cards against the same rendered families used by materialization, including
+configured agent model/effort fields. Verb-skill failures are errors; ritual skills,
+templates, agent cards, and guidance findings are warnings. Missing and drifted
+artifacts are reported independently, with the host, family, path, and remediation.
+Guidance diagnosis uses the root writer's read-only plan, including opt-outs and
+refusals for symlinks, aliases, and damaged markers. User bytes outside managed
+blocks and unselected host files are not generated drift. Disk checks cannot
+establish that instructions reached a model's context.
+
+`aiwf doctor --check-rituals` checks the selected hosts' ritual bytes and returns
+findings for absence, drift, or blocked paths; it succeeds silently when no host
+is selected. `--write-health` requires Claude selection both in the source
+checkout and in the main checkout where the statusline health file is stored.
+Core Git-hook checks remain independent of assistant selection.
 
 Host instructions are authored under `internal/skills/embedded-guidance/claude/`
 and `codex/`. The shared sources mark substitution sites explicitly. Skill
@@ -282,13 +308,15 @@ live skill execution and delegation are separate observations in E-0093.
 
 `aiwf update` is the **upgrade verb**: it refreshes every marker-managed framework artifact the consumer is opted into — embedded skills, embedded git hooks, and any future templated artifact the framework ships. `aiwf init` is first-time setup that runs the same refresh pipeline at the end. Re-running either verb converges to the same state for a given binary version + `aiwf.yaml`. (Earlier in the PoC, `aiwf update` refreshed only skills; the broadening landed in `update-broaden-plan.md`.)
 
+`aiwf init --dry-run` and the shared refresh API's dry-run option resolve the same host set as their write paths. Their ledgers report intended guidance updates, opt-outs, and safety refusals without modifying the consumer or user-home files. Init's preview accounts for its preceding scaffold step: wiring guidance into a newly scaffolded `CLAUDE.md` is an update to that file. The `aiwf update` CLI has no dry-run flag.
+
 Skills are embedded in the `aiwf` binary via Go's `embed.FS` and copied out on `init` / `update`. This deliberately couples skill content to the binary version: skills are adapters that call binary-provided commands, so version-skew between them would silently break things. Distributing skills via a separate channel — e.g., as a Claude Code plugin — is a viable future *packaging* path for easier installation, but as an architecture choice it would re-introduce the version-skew problem that embedding avoids.
 
 ### Release and upgrade
 
 Releases are git tags on the kernel repo. The Go module proxy (`proxy.golang.org`) reads tags directly: `go install github.com/23min/aiwf/cmd/aiwf@v0.1.0` resolves the tag, `@latest` resolves to the highest semver tag, and `GET https://proxy.golang.org/<module>/@latest` returns the latest version as JSON without cloning. The running binary's own version comes from `runtime/debug.ReadBuildInfo()` — `v0.x.y` for tagged installs, `(devel)` for working-tree builds, a pseudo-version for `@main` installs. No release infrastructure beyond `git tag && git push --tags`.
 
-`aiwf upgrade` is the one-command upgrade flow: it shells out to `go install <module>@<version>` (default `@latest`, override with `--version`), then re-execs the freshly-installed binary to run `aiwf update` in the consumer repo. The upgrade verb composes the two pieces (`go install` + the existing `aiwf update`) so a consumer never needs to remember the two-step ritual. `--check` reports the comparison without installing; `--yes` skips the confirmation prompt. The verb is the only place in the kernel that hardcodes the module path.
+`aiwf upgrade` is the one-command upgrade flow: it shells out to `go install <module>@<version>` (default `@latest`, override with `--version`), then re-execs the freshly-installed binary to run `aiwf update` in the consumer repo. The upgrade verb composes the two pieces (`go install` + the existing `aiwf update`) so a consumer never needs to remember the two-step ritual. `--check` reports the comparison without installing. Upgrade resolves the consumer root before installation and passes that absolute path to the new process as `update --root`; the new process resolves hosts from that checkout's configuration and inherited PATH. Linked worktrees use their own configuration. A failed re-execution or refresh returns a failure even if installation succeeded. Tests use a fake installer and a temporary replacement launcher running the actual update command, without downloading or replacing an installed binary.
 
 Version skew shows up in three rows of `aiwf doctor`, all advisory:
 
@@ -307,12 +335,12 @@ A short YAML file at the consumer repo root. Read by `aiwf` on every invocation;
 | Field | Type | Required | Notes |
 |---|---|---|---|
 | `aiwf_version` | string | yes | Engine version the repo expects (e.g., `0.1.0`). `aiwf doctor` warns on mismatch. |
-| `hosts` | []string | no | Hosts to materialize skills for. PoC default and only supported value: `[claude-code]`. |
+| `hosts` | []string | no | Supported values: `claude-code`, `codex`. The shared resolver detects executable `claude` and `codex` commands on PATH when the field is absent or null; `[]` explicitly selects none. A configured list overrides detection, including for tools absent from PATH. Resolution deduplicates into Claude/Codex order without rewriting the configured list or persisting detection. Init, update, and worktree setup materialize the resolved set and report its source. Doctor diagnoses that same set; configured but unavailable executables are reported separately from disk artifact state. |
 | `contracts` | mapping | no | Contract bindings: a `validators` mapping (name → command + args), an `entries` list (each with `id`, `validator`, `schema`, `fixtures`), and `strict_validators` (bool, default false). Owned and round-tripped programmatically by `aiwf contract bind/unbind/recipe …`. See [`contracts-plan.md`](../archive/pocv3/contracts-plan.md) §5. |
 | `status_md` | mapping | no | `auto_update` (bool, default true) — install a marker-managed pre-commit hook that regenerates `STATUS.md` (a committed `aiwf status --format=md` snapshot) on every commit. Set to `false` to opt out; `aiwf init`/`update` will then leave the hook uninstalled and remove a previously-installed marker-managed one. The committed `STATUS.md` itself is the user's content once tracked — flipping the flag does not delete it. See [`update-broaden-plan.md`](../archive/pocv3/update-broaden-plan.md). |
 | `html` | mapping | no | `out_dir` (string, default `site`) — render output directory relative to repo root; `commit_output` (bool, default `false`) — when `false`, `aiwf init`/`update` add `out_dir` to the framework-managed gitignore block; when `true`, both verbs remove it from the block. The gitignore is a derived artifact controlled by this field. See [`governance-html-plan.md`](../archive/pocv3/governance-html-plan.md) §2. |
 | `tdd` | mapping | no | `require_test_metrics` (bool, default `false`) — opt in to the `acs-tdd-tests-missing` warning. When `true` and a milestone is `tdd: required`, ACs in `tdd_phase: done` whose first commit returned by `aiwf history` lacks an `aiwf-tests:` trailer produce a warning. When `false`, the trailer is purely informational and absence is not a finding. `test_paths` ([]string, default empty) — the glob set classifying a repo-relative path as a *test* path for the red/green diff-shape gate on `--phase red` / `--phase green` promotes (D-0047, M-0276); entries are Tier-1-validated globs (doublestar `**` semantics, via the `areamatch` SSOT). See [`governance-html-plan.md`](../archive/pocv3/governance-html-plan.md) §4. |
-| `guidance` | mapping | no | `wire_claudemd` (bool, default true) — whether `aiwf init`/`update` automatically maintain the marker-wrapped `@.claude/aiwf-guidance.md` import in the consumer's root `CLAUDE.md` (self-healing; line-anchored). Set to `false` to opt out — the framework's opt-out, not opt-in (ADR-0018, E-0040). `wire_agentsmd` (bool, default true) independently controls native guidance in `AGENTS.md` when Codex is selected; setting it to `false` preserves existing content and stops maintenance. The Codex writer is currently internal; public host selection is part of E-0093. There is no CLI flag for either guidance opt-out. |
+| `guidance` | mapping | no | `wire_claudemd` (bool, default true) — whether `aiwf init`/`update` automatically maintain the marker-wrapped `@.claude/aiwf-guidance.md` import in the consumer's root `CLAUDE.md` (self-healing; line-anchored). Set to `false` to opt out — the framework's opt-out, not opt-in (ADR-0018, E-0040). `wire_agentsmd` (bool, default true) independently controls native guidance in `AGENTS.md` when Codex is selected; setting it to `false` preserves existing content and stops maintenance. There is no CLI flag for either guidance opt-out. |
 | `doctor` | mapping | no | `recommended_plugins` (list of `<name>@<marketplace>` strings, default empty) — Claude Code plugin identifiers the consumer expects to be installed for this repo's project scope. `aiwf doctor` reads `<rootDir>/.claude/settings.json`'s `enabledPlugins` map (project-committed; path-independent by construction) and emits one `recommended-plugin-not-installed` warning per declared entry that is not enabled there. Each entry shape is validated at load time: `<name>@<marketplace>`, both sides non-empty, no whitespace. Empty list (or absent block) means the check makes zero observations — the kernel makes no assumption about which plugins a consumer "should" have. See M-0070 (E-0018); G-0138 / M-0133 switched the source of truth from the machine-local `~/.claude/plugins/installed_plugins.json` (path-strict; false-positives across worktrees / devcontainers / re-clones) to the project-committed `enabledPlugins` map. |
 | `agents` | mapping | no | Per-agent compute policy (G-0353), keyed by shipped agent name (e.g. `reviewer`, `builder`, `planner`, `deployer`). Each entry takes an optional `model` (one of `opus`, `sonnet`, `haiku`, `fable`, `inherit`) and an optional `effort` (one of `low`, `medium`, `high`, `xhigh`, `max`), materialized into that agent's card frontmatter on `aiwf init`/`update`. An omitted field inherits the session default; a key matching no shipped agent is reported in the step ledger and ignored. Advisory, never load-bearing — a guarantee must not depend on which tier ran. |
 
@@ -322,7 +350,7 @@ Example (the typical file with no contracts):
 aiwf_version: 0.1.0
 ```
 
-That's the entire file in normal use. `hosts` is omitted to take the default. The actor identity is derived at runtime from `git config user.email` (per `provenance-model.md`); `--actor` overrides per invocation. `contracts:` is added by `aiwf contract recipe install` and `aiwf contract bind` — no hand-editing required. No project-name field, no per-project skill paths, no other policy knobs in the PoC; the kind FSM, id formats, and status sets are hardcoded in the engine — see *Six entity kinds*.
+That's the entire file in normal use. `hosts` is omitted to detect installed assistant commands on PATH. The actor identity is derived at runtime from `git config user.email` (per `provenance-model.md`); `--actor` overrides per invocation. `contracts:` is added by `aiwf contract recipe install` and `aiwf contract bind` — no hand-editing required. No project-name field, no per-project skill paths, no other policy knobs in the PoC; the kind FSM, id formats, and status sets are hardcoded in the engine — see *Six entity kinds*.
 
 ### One git commit per mutating verb
 
@@ -343,7 +371,7 @@ In rough order of "if needed, here's how to add it":
 | Feature | When to add | What's required |
 |---|---|---|
 | Project-specific skills | When a project starts wanting its own domain skill | A `.ai-repo/skills/` directory; `aiwf update` includes it in materialization |
-| Multi-host adapters (Cursor, Copilot) | When a second host is in use | Per-host materializer functions; `hosts:` already accommodated in `aiwf.yaml` |
+| Multi-host adapters (Cursor, Copilot) | When another host is needed | Per-host materializer functions; `hosts:` already accommodated in `aiwf.yaml` |
 | Third-party skill registry | When a useful community skill emerges | `aiwf install`, lockfile, registry resolution |
 | FSM-as-YAML | When kinds need per-project customization | Move the hardcoded transition functions to YAML |
 | Module system | When the framework grows past ~20 verbs | Module loader controlled by `aiwf.yaml` |

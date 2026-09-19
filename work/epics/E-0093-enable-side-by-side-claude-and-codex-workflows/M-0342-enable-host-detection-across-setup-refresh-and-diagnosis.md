@@ -9,22 +9,28 @@ tdd: required
 acs:
     - id: AC-1
       title: Host resolution handles detection overrides and empty configuration consistently
-      status: open
+      status: met
+      tdd_phase: done
     - id: AC-2
       title: Init update and worktree refresh materialize the complete resolved host set
-      status: open
+      status: met
+      tdd_phase: done
     - id: AC-3
       title: Unselected host settings and artifacts remain untouched
-      status: open
+      status: met
+      tdd_phase: done
     - id: AC-4
       title: Doctor detects selected-host absence drift and guidance conflicts
-      status: open
+      status: met
+      tdd_phase: done
     - id: AC-5
       title: Dry-run and upgrade refresh honor host selection without hidden writes
-      status: open
+      status: met
+      tdd_phase: done
     - id: AC-6
       title: Host configuration and supported capabilities are discoverable
-      status: open
+      status: met
+      tdd_phase: done
 ---
 ## Goal
 
@@ -108,7 +114,7 @@ Verify the hosts field, supported values, absent-versus-empty semantics, guidanc
 
 ## Release note
 
-
+`aiwf init`, `update`, upgrade refresh, `doctor`, and `worktree add` now use the same Claude/Codex host selection: detect executables on PATH, override with `hosts`, or select none with `hosts: []`. Setup materializes the selected hosts and preserves unselected installations; doctor reports missing, stale, and unsafe artifacts with remediation. Dry-run reports the planned setup without changing the checkout, and lifecycle help documents configuration, retained files, and capability limits. Codex uses aiwf-created worktrees without requiring its experimental managed-worktree feature; Claude-specific entry instructions are preserved.
 
 ## Decisions made during implementation
 
@@ -116,7 +122,30 @@ Verify the hosts field, supported values, absent-versus-empty semantics, guidanc
 
 ## Validation
 
+Validation environment: Linux amd64 devcontainer, Go 1.25.11, implementation branch `milestone/M-0342-host-lifecycle`, source through `89c9445cb`. Review the full milestone against `a6e54b8e3`; that range includes the lifecycle changes and the explicit worktree-guidance clarification.
 
+Wrap gates on 2026-09-19:
+
+- `make check-fast`: exit 0; vet with normal, stress, and testpins tags passed; `golangci-lint` reported `0 issues.`; the full test suite passed.
+- `make diag-aiwf`: exit 0; built the implementation checkout's `bin/aiwf-diag` with `CGO_ENABLED=0`.
+- `go test -race ./internal/config ./internal/initrepo ./internal/skills ./internal/cli/doctor ./internal/cli/initcmd ./internal/cli/update ./internal/cli/worktree ./internal/testsupport`: exit 0; all eight packages passed.
+- `bin/aiwf-diag show M-0342`: all six ACs `met`, all six TDD phases `done`, no milestone findings.
+- `bin/aiwf-diag check --since a6e54b8e3`: exit 0; `4 findings (0 errors, 4 warnings)`. The warnings are three terminal entities awaiting archive and the archive-sweep advisory. An unscoped check also reported the missing-upstream advisory; the explicit base enables provenance and body-section checks.
+
+| Criterion | Re-runnable behavioral evidence |
+| --- | --- |
+| AC-1 | `go test ./internal/config ./internal/initrepo -run 'TestResolveHosts_|TestHosts_|TestArtifactEntryPoints_' -count=1`: controlled executable PATHs, explicit/null/empty selection, validation before writes, and configuration round trips. |
+| AC-2 | `go test ./internal/cli/integration -run 'TestHostLifecycle_InitUpdateAndWorktreeUseResolvedHosts|TestHostLifecycle_AddingCodexPreservesClaudeArtifacts|TestHostLifecycle_WorktreeArtifactFailuresRollBackCreation|TestHostLifecycle_SelfCheckWorksWithoutAssistantCommands' -count=1`: real CLI and Git worktrees, all host sets, rollback, and assistant-free self-check. |
+| AC-3 | `go test ./internal/cli/integration ./internal/initrepo -run 'TestHostLifecycle_DeselectedAndDisappearedHostsAreRetained|TestHostLifecycle_UnselectedClaudeSecondaryPathsStayUntouched|TestHostLifecycle_ExplicitClaudeRequestsPreserveUnselectedState|TestRetainedHostSteps_' -count=1`: retained file bytes, modes, timestamps, link handling, and untouched unselected secondary paths. |
+| AC-4 | `go test ./internal/skills ./internal/initrepo ./internal/cli/doctor ./internal/cli/integration -run 'TestInspect|TestDoctor_|TestWriteHealth_|TestHostLifecycle_Doctor' -count=1`: missing/drifted/blocked artifacts, family severity, guidance conflicts, read-only diagnosis, and health-write selection. |
+| AC-5 | `go test ./internal/initrepo ./internal/cli/integration -run 'TestHostDryRun_|TestHostLifecycle_DryRun|TestHostLifecycle_Upgrade' -count=1`: filesystem snapshots and preview/apply ledger parity; actual process re-execution through a fake installer boundary, checkout resolution, and failure propagation. No download or global binary replacement. |
+| AC-6 | `go test ./internal/config ./internal/cli/integration ./internal/skills -run 'TestHostExamples_|TestHostDiscovery_|TestHostFragments_|TestClaudeArtifacts_MatchBaseline|TestMaterializeTo_Codex' -count=1`: executable help examples, configuration semantics, native fragment selection, and six frozen Claude inventories. |
+
+The Claude inventory exceptions are documented in `internal/cli/integration/testdata/claude-baseline/README.md`. The shared worktree-skill correction changes its recorded hash only; Claude-specific entry fragments remain unchanged. Disposable two-host materialization confirmed that the new Codex launch and experimental-feature instructions do not appear in generated Claude markdown.
+
+Per-AC branch audits and bounded manual mutation probes covered the changed logic and its observable contracts. AC-1 through AC-6 caught 10, 10, 11, 17, 7, and 7 compiled probes respectively: 62 caught, no survivors in that bounded set. Each probe failed a behavioral assertion, and source bytes were restored before subsequent gates. `make mutate-diff` reported Gremlins unavailable; this is not a complete mechanical mutation score or proof of branch completeness. The final shared-skill prose correction adds no runtime branches.
+
+Live assistant discovery, Claude-to-Codex-to-Claude handoff, concurrent assistant sessions, and devcontainer rebuild/persistence are not established by these filesystem and subprocess tests. M-0343 owns those observations, including the explicit `--disable worktrees` condition. Full `make ci` remains the epic-to-main/push gate; it is not claimed as executed for this milestone wrap.
 
 ## Deferrals
 
@@ -124,4 +153,9 @@ Verify the hosts field, supported values, absent-versus-empty semantics, guidanc
 
 ## Reviewer notes
 
-- (none)
+- Independent code review of `a6e54b8e3..d267fc658`, split across lifecycle/configuration and diagnosis/artifact inspection: approve, no blocking findings. The slices cover the full milestone change-set and its Release note, Validation, and Deferrals. Independent targeted tests passed; the reviewers did not independently reproduce the historical 62-probe total.
+- Independent design review: keep the optional host-selection model and shared read-only artifact inspection. The raw optional configuration list preserves wire semantics while the typed effective selection is derived; the inspector shares rendered expectations with the writer and keeps CLI severity policy at the reporting boundary.
+- Retain direct sequential refresh calls rather than a closure-table rewrite: the measured alternative reduces substantive lines from 121 to 73 but adds indirection without simplifying the distinct host and hook contracts. Retain explicit per-family finding counts rather than coupling healthy-summary eligibility to the report accumulator's length. Neither alternative warrants a new refactoring obligation.
+- The retired presence-only artifact tests are replaced by inspection tests that distinguish complete, missing, partial, and unsupported-agent layouts. Independent mutation probes confirmed that omitted agents, missing files reported current, and invented unsupported agents are caught. The replacement init rerun test also catches omitted user-hook preservation.
+- Independent two-host materialization confirmed the documented shared-skill hash and found no Codex launch or experimental-feature instructions in generated Claude markdown. Claude-specific entry fragments are unchanged.
+- Scoped doc-lint: clean for changed passages in seven narrative documents. Changed code references and CLI invocations were checked, along with document links/anchors, heading structure, and TODO markers; no new orphan narrative documents or scratch/debug code were identified. No additional deferrals or accepted judgment-level rule changes are required.

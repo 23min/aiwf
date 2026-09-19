@@ -4,6 +4,8 @@ package update
 
 import (
 	"context"
+	"errors"
+	"slices"
 	"time"
 
 	"github.com/spf13/cobra"
@@ -22,12 +24,9 @@ import (
 // `initrepo.RefreshArtifacts` — so init and update converge to the
 // same state for a given binary version + aiwf.yaml.
 //
-// Concretely the verb refreshes:
-//   - the embedded skills under .claude/skills/aiwf-*
-//   - the .gitignore patterns covering them
-//   - the marker-managed pre-push hook
-//   - the marker-managed pre-commit hook (gated by
-//     aiwf.yaml's status_md.auto_update; default-on)
+// The resolved hosts receive skills, templates, supported agents, and root
+// guidance. Core example configuration, gitignore patterns, and Git hooks
+// refresh independently of the host set; unselected host files are retained.
 //
 // Hook conflicts (a non-marker hook already in place) are reported
 // in the per-step ledger and surface a remediation block, mirroring
@@ -45,7 +44,8 @@ func NewCmd() *cobra.Command {
 	)
 	cmd := &cobra.Command{
 		Use:   "update",
-		Short: "Refresh marker-managed framework artifacts (skills, hooks)",
+		Short: "Refresh framework artifacts for selected hosts and core Git hooks",
+		Long:  "Refresh selected-host skills, templates, supported agents, and guidance, plus core aiwf artifacts and Git hooks. Existing unselected host artifacts are retained." + cliutil.HostSetupHelp,
 		Example: `  # Refresh skills + hooks against the current binary version
   aiwf update
 
@@ -123,16 +123,21 @@ func Run(root string, statusline bool, scope string, wireSettings, allowUntagged
 		return cliutil.ExitInternal
 	}
 
-	steps, conflict, err := initrepo.RefreshArtifacts(context.Background(), rootDir, initrepo.RefreshOptions{
+	refresh, err := initrepo.RefreshArtifacts(context.Background(), rootDir, initrepo.RefreshOptions{
+		RequireClaude:      statusline || remove || len(enableHooks) > 0,
 		StatusMdAutoUpdate: cfg.StatusMdAutoUpdate(),
 		WireClaudeMd:       cfg.WireClaudeMd(),
 	})
 	if err != nil {
 		cliutil.Errorf("aiwf update: %v\n", err)
+		if errors.Is(err, initrepo.ErrClaudeUnselected) {
+			return cliutil.ExitUsage
+		}
 		return cliutil.ExitInternal
 	}
 
-	for _, s := range steps {
+	cliutil.PrintHostSelection(refresh.HostSelection)
+	for _, s := range refresh.Steps {
 		if s.Detail != "" {
 			cliutil.Printf("  %-9s  %s  (%s)\n", s.Action, s.What, s.Detail)
 		} else {
@@ -150,7 +155,7 @@ func Run(root string, statusline bool, scope string, wireSettings, allowUntagged
 		cliutil.Println("`.git/hooks/` directory; this update affects all worktrees of the repo.")
 	}
 
-	if conflict {
+	if refresh.HookConflict {
 		cliutil.Println()
 		cliutil.Println("aiwf update: hook chain collision.")
 		cliutil.Println("A non-aiwf hook would auto-migrate to its `.local` sibling, but a `.local`")
@@ -158,6 +163,11 @@ func Run(root string, statusline bool, scope string, wireSettings, allowUntagged
 		cliutil.Println("Resolve manually: merge the existing hook's content into the `.local` file,")
 		cliutil.Println("delete the original (non-`.local`) hook, and re-run `aiwf update`.")
 		return cliutil.ExitFindings
+	}
+
+	if !slices.Contains(refresh.HostSelection.Hosts, config.HostClaudeCode) {
+		cliutil.Println("\naiwf update: done.")
+		return cliutil.ExitOK
 	}
 
 	cliutil.Println("\naiwf update: done.")

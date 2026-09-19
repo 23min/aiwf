@@ -11,6 +11,7 @@ import (
 	"github.com/23min/aiwf/internal/cli/initcmd"
 	"github.com/23min/aiwf/internal/config"
 	"github.com/23min/aiwf/internal/skills"
+	"github.com/23min/aiwf/internal/testsupport"
 )
 
 func freshGitRepo(t *testing.T) string {
@@ -265,21 +266,43 @@ func TestNewCmd_SmokeShape(t *testing.T) {
 	}
 }
 
-// TestNewCmd_HelpDocumentsIdempotentReRun: `aiwf init --help` (the
-// command's Long description) must state the re-run is idempotent and
-// name every artifact init never overwrites (M-0232/AC-5). Scoped to
-// the Long field specifically — the one Cobra surface --help actually
-// renders this prose from — not a blind grep over the file.
-func TestNewCmd_HelpDocumentsIdempotentReRun(t *testing.T) {
+// Re-running initialization preserves personal settings and chains a user hook
+// without changing its bytes; generated wrappers may refresh.
+func TestNewCmd_ReRunPreservesConfigurationSettingsAndUserHook(t *testing.T) {
 	t.Parallel()
-	cmd := initcmd.NewCmd()
-	help := cmd.Long
-	if !strings.Contains(help, "idempotent") {
-		t.Errorf("Long missing an idempotent re-run statement: %q", help)
+	root := freshGitRepo(t)
+	configBody := "hosts: [claude-code]\nhooks:\n  worktree-rituals-check.sh:\n    enabled: false\n"
+	settingsBody := "{\"env\":{\"PERSONAL_SETTING\":\"keep\"}}\n"
+	hookBody := "#!/bin/sh\nexit 0\n"
+	settingsPath := filepath.Join(root, ".claude", "settings.json")
+	if err := os.MkdirAll(filepath.Dir(settingsPath), 0o755); err != nil {
+		t.Fatal(err)
 	}
-	for _, never := range []string{"aiwf.yaml", ".claude/settings.json", "git hooks"} {
-		if !strings.Contains(help, never) {
-			t.Errorf("Long missing %q from the never-overwritten list: %q", never, help)
+	for path, body := range map[string]string{filepath.Join(root, config.FileName): configBody, settingsPath: settingsBody} {
+		if err := os.WriteFile(path, []byte(body), 0o600); err != nil {
+			t.Fatal(err)
+		}
+	}
+	hookPath := filepath.Join(root, ".git", "hooks", "pre-push")
+	if err := testsupport.WriteExecutable(hookPath, []byte(hookBody)); err != nil {
+		t.Fatal(err)
+	}
+	for range 2 {
+		cmd := initcmd.NewCmd()
+		cmd.SetArgs([]string{"--root", root, "--no-prompt"})
+		cmd.SetOut(os.Stderr)
+		cmd.SetErr(os.Stderr)
+		if err := cmd.Execute(); err != nil {
+			t.Fatal(err)
+		}
+		for path, want := range map[string]string{filepath.Join(root, config.FileName): configBody, settingsPath: settingsBody, hookPath + ".local": hookBody} {
+			got, err := os.ReadFile(path)
+			if err != nil {
+				t.Fatal(err)
+			}
+			if string(got) != want {
+				t.Errorf("%s changed: got=%q want=%q", path, got, want)
+			}
 		}
 	}
 }

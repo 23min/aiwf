@@ -30,7 +30,7 @@ aiwf has four distinct layers, each living where its constraints are best served
                                   ▼
 ┌─────────────────────────────────────────────────────────────────────┐
 │  Layer 3 — Materialized skill adapters (in-repo, gitignored)        │
-│  ─ <consumer-repo>/.claude/skills/aiwf-*/                           │
+│  ─ <consumer-repo>/.claude/skills/ or .agents/skills/               │
 │  ─ Regenerated only on explicit aiwf init / aiwf update             │
 │  ─ Stable across git checkout by design                             │
 └─────────────────────────────────────────────────────────────────────┘
@@ -126,7 +126,7 @@ Concretely: if a behavior must hold for `aiwf` to be correct, it lives in the en
 
 The engine is **stateless across invocations** — it reads the consumer's tree on every verb, computes everything in memory, writes back, exits. There is no engine cache, no engine state file, no engine-owned database. The consumer's git repo is the sole persistent state.
 
-The engine's only consumer-side state-shaping action is `aiwf init`: it writes `aiwf.yaml`, scaffolds `work/` directories, materializes `.claude/skills/aiwf-*/`, and installs the pre-push hook. After that, every verb is "read tree, validate, write entity files, git commit, exit" — no engine-owned bookkeeping accumulates.
+`aiwf init` creates configuration and planning directories; init, update, and worktree setup share the selected-host artifact refresh pipeline. Claude uses `.claude/`; Codex uses `.agents/` and native root `AGENTS.md` guidance. Host resolution uses explicit `aiwf.yaml` selection or executable detection on PATH, without persisting detected machine state. Core Git hooks remain independent of host selection. See [host setup](../README.md#2-host-setup-and-embedded-rituals) for layouts and supported capabilities.
 
 ### Per-machine ↔ per-project
 

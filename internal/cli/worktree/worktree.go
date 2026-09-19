@@ -10,6 +10,7 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"slices"
 
 	"github.com/spf13/cobra"
 
@@ -18,6 +19,7 @@ import (
 	"github.com/23min/aiwf/internal/gitops"
 	"github.com/23min/aiwf/internal/initrepo"
 	"github.com/23min/aiwf/internal/render"
+	"github.com/23min/aiwf/internal/skills"
 )
 
 // NewCmd builds the `aiwf worktree` parent command — a verb group that
@@ -41,6 +43,12 @@ func newAddCmd(correlationID string) *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "add <branch> [path]",
 		Short: "Create a git worktree and materialize aiwf rituals into it atomically",
+		Long: `Create a git worktree and materialize rituals for the resolved hosts.
+Existing unselected host paths are retained without refresh.
+
+With --format=json, result contains path, host_selection (hosts and source),
+and steps: the artifact ledger with what, action, and optional detail fields.
+A preserved unselected path is not a claim that its files are current or healthy.` + cliutil.HostSetupHelp,
 		Example: `  # Create an in-repo worktree for a new branch off main
   aiwf worktree add epic/E-0099-my-epic --base main
 
@@ -152,17 +160,24 @@ func Run(branch, path, base, root string, printPath bool, out cliutil.OutputForm
 		return fail("aiwf worktree add", fmt.Errorf("reading aiwf.yaml in the new worktree: %w", err), cliutil.ExitInternal)
 	}
 
-	steps, conflict, err := initrepo.RefreshArtifacts(ctx, absPath, initrepo.RefreshOptions{
+	refresh, err := initrepo.RefreshArtifacts(ctx, absPath, initrepo.RefreshOptions{
 		StatusMdAutoUpdate: wtCfg.StatusMdAutoUpdate(),
 		WireClaudeMd:       wtCfg.WireClaudeMd(),
 	})
-	if err != nil { //coverage:ignore RefreshArtifacts fails only on a filesystem fault (permission denied, disk full) writing marker-managed artifacts; not deterministically reproducible.
+	if err != nil {
 		rollback()
 		return fail("aiwf worktree add", err, cliutil.ExitInternal)
 	}
 
-	if conflict {
-		for _, s := range steps {
+	if slices.Contains(refresh.HostSelection.Hosts, config.HostClaudeCode) {
+		if rc := cliutil.SyncHookMaterialization(absPath, skills.ClaudeTarget, skills.ShippedHooks); rc != cliutil.ExitOK {
+			rollback()
+			return rc
+		}
+	}
+
+	if refresh.HookConflict {
+		for _, s := range refresh.Steps {
 			printStep(s)
 		}
 		cliutil.Errorln("aiwf worktree add: hook chain collision in the new worktree; " +
@@ -185,7 +200,7 @@ func Run(branch, path, base, root string, printPath bool, out cliutil.OutputForm
 		// envelope rather than calling those, so it calls the exported
 		// method directly instead of leaving CorrelationID unread.
 		env := cliutil.OKEnvelope(
-			map[string]any{"path": absPath},
+			worktreeResult{Path: absPath, HostSelection: refresh.HostSelection, Steps: refresh.Steps},
 			out.Metadata(map[string]any{"branch": branch, "path": absPath}),
 		)
 		if werr := render.JSON(os.Stdout, env, out.Pretty); werr != nil { //coverage:ignore render.JSON to os.Stdout fails only on a write fault (broken pipe, closed fd); not deterministically reproducible.
@@ -194,11 +209,18 @@ func Run(branch, path, base, root string, printPath bool, out cliutil.OutputForm
 		return cliutil.ExitOK
 	}
 
-	for _, s := range steps {
+	cliutil.PrintHostSelection(refresh.HostSelection)
+	for _, s := range refresh.Steps {
 		printStep(s)
 	}
 	cliutil.Println(absPath)
 	return cliutil.ExitOK
+}
+
+type worktreeResult struct {
+	Path          string                `json:"path"`
+	HostSelection config.HostSelection  `json:"host_selection"`
+	Steps         []initrepo.StepResult `json:"steps"`
 }
 
 // resolveCreatedPath turns the (possibly relative) path passed to

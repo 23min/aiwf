@@ -1,5 +1,7 @@
 package doctor
 
+import "github.com/23min/aiwf/internal/config"
+
 // Severity is a doctor problem's severity, in the health-file schema's
 // vocabulary. Only warn and error are produced: info-level context
 // (binary version, env, ok lines) is not a problem and yields nothing.
@@ -18,6 +20,9 @@ const (
 // aiwf writes to .claude/health.aiwf.json and what the doctor exit code
 // counts; ok/info report lines produce no Problem.
 type Problem struct {
+	// Host and Path identify host-specific findings; core findings leave them empty.
+	Host     config.Host
+	Path     string
 	Severity Severity
 	Message  string
 }

@@ -11,25 +11,36 @@ If you only read one section: jump to "[The five rules](#the-five-rules)". The r
 Canonical sources under `internal/skills/embedded`, `embedded-rituals`, and
 `embedded-guidance` are rendered before installation. Use
 `{{aiwf:templates_dir}}/epic-spec.md`, for example, when referring to a shipped
-template. Claude currently renders that reference to
-`.claude/templates/epic-spec.md`.
+template: Claude renders `.claude/templates/epic-spec.md`; Codex renders
+`.agents/aiwf/templates/epic-spec.md`.
 
 The reserved `{{aiwf:...}}` syntax accepts the exact binding names `host`,
-`skills_dir`, `agents_dir`, `templates_dir`, and `hooks_dir`. The named fragment
-slots are `fragment:skill_invocation`, `fragment:worktree_entry`, and
-`fragment:review_dispatch`; a host must supply a fragment before a source uses
-it. Claude currently supplies the worktree-entry fragment from
-`internal/skills/embedded-guidance/claude/worktree-entry.md`. Fragments may use
-path bindings but cannot include other fragments. Unknown tokens, malformed
-syntax, and missing referenced bindings fail rendering before the artifact
-writer changes files. Other text is preserved literally, including configured
-paths such as `.claude/worktrees/`.
+`host_label`, `skills_dir`, `agents_dir`, `templates_dir`, and `hooks_dir`.
+The named fragment slots are:
 
-`skills.List` and the ritual list functions return Claude-rendered definitions,
-which expected-content checks must compare against installed files. Source
-validation that follows generated references must render the source first.
-This boundary does not add host selection or change Claude's installation
-layout.
+- `fragment:skill_invocation`, `fragment:worktree_entry`, `fragment:review_dispatch`
+- `fragment:epic_worktree_entry`, `fragment:milestone_worktree_entry`
+- `fragment:epic_worktree_placement`, `fragment:milestone_worktree_placement`
+- `fragment:epic_external_worktree`, `fragment:milestone_external_worktree`
+
+Each host supplies the fragments referenced by shared sources. Operational
+fragments live under `internal/skills/embedded-guidance/claude/` and
+`internal/skills/embedded-guidance/codex/`. Fragments may use path bindings but
+cannot include other fragments. Unknown tokens, malformed syntax, and missing
+referenced bindings fail rendering before the artifact writer changes files.
+Configured paths such as `.claude/worktrees/` remain literal and are usable by
+either host.
+
+`skills.List` and the ritual list functions return Claude-rendered definitions.
+Use the selected target's rendering when validating generated references or
+expected installed bytes; `skills.InspectArtifacts` shares the materializer's
+rendered families for diagnosis. Codex has no custom-role output directory or
+lifecycle-hook output in this support; do not assume optional bindings exist.
+
+Use `aiwf init --help` or `aiwf update --help` for host selection and guidance
+examples, and `aiwf worktree add --help` for the structured ledger and placement
+contract. [Host setup](../README.md#2-host-setup-and-embedded-rituals) lists the
+supported layouts and capability boundaries.
 
 ---
 

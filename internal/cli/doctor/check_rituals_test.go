@@ -49,7 +49,7 @@ func TestCheckRitualsResult_MissingRitualsReportsActionableMessage(t *testing.T)
 	t.Parallel()
 	root := freshInitializedRootForRituals(t)
 	// Remove one materialized ritual skill (an aiwfx-*/wf-* skill — the
-	// set skills.MaterializedRituals actually walks, distinct from the
+	// advisory ritual set, distinct from the
 	// per-verb aiwf-* skills) to simulate a partially-materialized
 	// worktree (e.g. an interrupted `aiwf worktree add`).
 	ritualSkillDir := filepath.Join(root, ".claude", "skills", "wf-tdd-cycle")

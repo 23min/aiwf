@@ -19,7 +19,7 @@ Most existing tools optimise for one of those concerns and ignore the others. Is
 - **Hooks itself into `git push`** (`aiwf init`) so an inconsistent tree never reaches the remote.
 - **Reads the lifecycle from `git log`** (`aiwf history <id>`) via structured commit trailers; no separate event log.
 
-Markdown files are the source of truth; `git log` is the audit trail; `aiwf check` is the validator. No server, no API key, no separate database. The framework is deliberately minimal: it does not try to be a project-management tool, and the AI host (Claude Code at the moment) sees the planning state through materialized skills, not a custom protocol.
+Markdown files are the source of truth; `git log` is the audit trail; `aiwf check` is the validator. No server, no API key, no separate database. The framework is deliberately minimal: it does not try to be a project-management tool, and the AI hosts (Claude Code and Codex) sees the planning state through materialized skills, not a custom protocol.
 
 For the lifecycle diagrams and the per-kind state machines, see [`docs/overview.md`](docs/overview.md). For worked walk-throughs of typical sessions and example AI prompts, see [`docs/workflows.md`](docs/workflows.md). For the design closure that produced this shape, see [`docs/design/design-decisions.md`](docs/design/design-decisions.md). The historical session/iteration narrative is archived at [`docs/archive/pocv3/poc-plan-pre-migration.md`](docs/archive/pocv3/poc-plan-pre-migration.md); current in-flight work lives in the entity tree under `work/` (run `aiwf status`).
 
@@ -180,20 +180,80 @@ aiwf status                                                # project snapshot (s
 
 Identity is derived from `git config user.email` (e.g., `you@example.com` becomes actor `human/you`); `--actor` overrides per invocation. Each mutating verb produces a single git commit with structured trailers (`aiwf-verb:`, `aiwf-entity:`, `aiwf-actor:`, plus the I2.5 provenance set when relevant). The pre-push hook installed by `aiwf init` runs `aiwf check` on every push so an inconsistent tree never reaches the remote.
 
-### 2. The rituals ship embedded — no plugin install
+### 2. Host setup and embedded rituals
 
-aiwf core is the planning data layer; the end-to-end workflow — milestone-lifecycle skills (`aiwfx-*`), generic engineering skills (`wf-*`: TDD cycle, code review, doc-lint), the four role agents (planner, builder, reviewer, deployer), and templates — is **embedded in the engine binary** from a pinned snapshot of [`23min/ai-workflow-rituals`](https://github.com/23min/ai-workflow-rituals) and materialized into `.claude/` by `aiwf init` / `aiwf update` (ADR-0014). There is no marketplace install and no `/plugin` step: the ritual version always equals the binary version, and `aiwf update` refreshes everything in one command.
+`aiwf init` and `aiwf update` install artifacts for every selected host. Omit
+`hosts` from `aiwf.yaml`, or set it to `null`, to detect executable `claude` and
+`codex` commands on the invoking terminal's PATH. Detection neither launches the
+assistants nor checks authentication, and its result is never saved into shared
+configuration. An explicit list overrides detection even when a command is absent:
 
-`aiwf init` materializes:
+```yaml
+hosts: [claude-code, codex]
+```
 
-- `.claude/skills/aiwf-*` — the kernel verb skills
-- `.claude/skills/aiwfx-*`, `.claude/skills/wf-*` — the ritual skills
-- `.claude/agents/*.md` — the role agents
-- `.claude/templates/*.md` — the entity templates
+Use `[claude-code]` or `[codex]` to select one host; use `hosts: []` to select
+neither. Unknown host names are rejected. Core aiwf scaffolding and Git hooks
+still work with no selected host. `aiwf.example.yaml` is a commented schema
+reference: leaving its host line commented enables detection; uncommenting its
+empty list deliberately selects no hosts.
 
-All are gitignored and marker-managed; your own user-authored skills/agents are never touched. You can still use aiwf as a planning data store only — the verbs work without the rituals — but the embedded rituals are what turn it into an end-to-end loop, and they arrive for free with the binary.
+The kernel verb skills (`aiwf-*`), lifecycle rituals (`aiwfx-*`), engineering
+rituals (`wf-*`), and templates are embedded in the binary from a pinned snapshot
+of [ai-workflow-rituals](https://github.com/23min/ai-workflow-rituals). There is no
+marketplace install or separate plugin step; artifact versions follow the binary.
 
-Run `aiwf doctor` to confirm: the `rituals:` line reports the artifacts materialized. To verify end-to-end, `aiwf doctor --self-check` spins up a throwaway repo, drives every verb, and reports pass/fail per step.
+| Artifact | Claude Code | Codex |
+|---|---|---|
+| Verb and ritual skills | `.claude/skills/` | `.agents/skills/` |
+| Entity templates | `.claude/templates/` | `.agents/aiwf/templates/` |
+| Custom role agents | `.claude/agents/*.md` | Not generated |
+| Standing guidance | `.claude/aiwf-guidance.md`, imported by root `CLAUDE.md` | Native managed block in root `AGENTS.md` |
+| Lifecycle hooks and statusline | Existing consent and opt-in rules | Not installed |
+
+Generated artifacts are gitignored. User-owned files and content
+outside managed root guidance blocks are preserved; ownership collisions and
+unsafe instruction paths are reported instead of overwritten. Root guidance is
+wired by default for selected hosts. To manage either instruction file yourself:
+
+```yaml
+guidance:
+  wire_claudemd: false
+  wire_agentsmd: false
+```
+
+An opt-out preserves an existing block. Symlinks, aliased instruction files, and
+ambiguous markers are left untouched with remediation in the ledger. If automatic detection stops
+selecting a host, or an explicit list deselects it, its existing artifacts are
+retained without refresh; that is not a claim that those files are current.
+
+`init`, `update`, and `doctor` report the selected hosts and whether they came
+from detection or configuration. `upgrade` runs the new binary's `update` against
+the resolved checkout. `doctor` compares selected artifacts with their rendered
+expectations: verb-skill findings are errors; rituals, templates, role cards,
+and guidance are advisory. `doctor --check-rituals` also fails on ritual drift.
+These disk checks do not establish that a running model loaded the instructions.
+`doctor --self-check` exercises the CLI against a throwaway repository.
+
+For parallel Claude and Codex implementation sessions, use separate branches and
+worktrees. `aiwf worktree add` materializes the hosts selected by the new
+checkout's configuration. Both hosts use the same default `.claude/worktrees/`
+placement; its name does not make it Claude-only. Set `worktree.dir` in
+`aiwf.yaml`, or pass an explicit path to `worktree add`, to change placement.
+`worktree add --format=json` reports `path`, `host_selection` (`hosts`, `source`),
+and `steps` (`what`, `action`, optional `detail`); `--print-path` emits only the
+absolute path for shell composition.
+
+Start Codex in an aiwf-created checkout with `codex -C "<path>"`. This workflow
+does not require Codex's experimental worktrees feature. A command's working
+directory does not reload an existing Codex session's instructions or skills;
+use a fresh session to exercise discovery in the selected checkout.
+
+Codex support covers local skills, templates, and native guidance. It does not
+install Codex role TOML, hooks, statusline, cloud/review integrations, or
+Codex-managed worktrees. Switching assistants uses repository files and planning
+state; aiwf does not transfer transcripts. Shared Git hooks and installed aiwf
+binaries remain shared resources across worktrees.
 
 ### Sample of `aiwf check` output
 
@@ -239,7 +299,7 @@ The output is a pure function of the planning tree: render twice into separate d
 | Verb | Purpose |
 |---|---|
 | `aiwf init` | First-time setup: write `aiwf.yaml`, scaffold planning dirs, then run the same refresh pipeline `aiwf update` calls. Idempotent. |
-| `aiwf update` | Refresh every marker-managed framework artifact the consumer is opted into: `.claude/skills/aiwf-*`, `.gitignore` patterns, `.git/hooks/pre-push`, `.git/hooks/pre-commit`, and `.git/hooks/post-commit` (gated on `status_md.auto_update`). The artifact-refresh verb. |
+| `aiwf update` | Refresh the selected hosts’ skills, templates, supported agents and guidance, plus core `.gitignore` patterns and Git hooks. Retain unselected host artifacts. |
 | `aiwf upgrade` | Fetch a newer aiwf binary via `go install` and re-exec into `aiwf update`. Default target is `@latest` from the Go module proxy; `--version vX.Y.Z` pins. `--check` reports the current/target comparison without installing. |
 | `aiwf doctor` | Self-diagnostics: binary version, skill drift, id-collision health, version-skew advisories (binary, pin, latest). `--self-check` drives every verb against a throwaway repo; `--check-latest` adds the opt-in module-proxy lookup. |
 | `aiwf whoami` | Print the resolved actor and the source it came from (typically `git config user.email`). |
@@ -340,7 +400,8 @@ Verb-specific flags for `add`:
 ├── docs/
 │   └── adr/
 │       └── ADR-NNNN-<slug>.md
-├── .claude/skills/aiwf-*/                 # gitignored; materialized by aiwf init/update
+├── .claude/skills/                        # gitignored; when Claude is selected
+├── .agents/skills/                        # gitignored; when Codex is selected
 └── STATUS.md                              # gitignored; local snapshot regenerated by aiwf init's post-commit hook
 ```
 
@@ -348,27 +409,32 @@ For the full kind/status/transition reference and the per-kind state-machine dia
 
 ---
 
-## Coexistence with your `.claude/`
+## Coexistence with your host setup
 
-`aiwf` is designed to live alongside your own Claude Code setup — your own skills, agents, slash commands, output styles, and any other tooling you've configured. It uses a strict `aiwf-*` namespace and never touches anything outside it.
+`aiwf` lives alongside personal Claude Code and Codex artifacts. Generated skill, agent, and template files are tracked by ownership manifests; root instructions use bounded managed blocks. The [host setup table](#2-host-setup-and-embedded-rituals) lists the selected-host paths.
 
 **What aiwf writes:**
 
-- `.claude/skills/aiwf-*/SKILL.md` — twelve skill files (`aiwf-add`, `aiwf-authorize`, `aiwf-check`, `aiwf-contract`, `aiwf-edit-body`, `aiwf-history`, `aiwf-promote`, `aiwf-reallocate`, `aiwf-render`, `aiwf-rename`, `aiwf-retitle`, `aiwf-status`) materialized from the binary. Wiped and rewritten by `aiwf init` / `aiwf update`. New skills added in future binary versions land automatically on the next `aiwf update`.
-- `.gitignore` — appends a wildcard for the `aiwf-*` skill namespace plus the `.aiwf-owned` ownership manifest. Your other `.claude/` content is yours to commit or gitignore as you choose; `aiwf` does not gitignore the directory wholesale.
-- `aiwf.yaml`, `CLAUDE.md` — written only if absent. Existing files are preserved verbatim.
+- Selected hosts’ embedded skills and templates, plus Claude role agents and the guidance fragment. `init` / `update` refresh the owned files, and new embedded artifacts arrive with the next refresh.
+- `.gitignore` — maintains selected artifact patterns and core generated-file patterns, preserving unrelated entries. The entire `.claude/` or `.agents/` directory is not ignored wholesale.
+- `aiwf.yaml` — created if absent; explicit configuration is preserved, apart from documented legacy-key cleanup and consent decisions. `aiwf.example.yaml` is regenerated as a commented schema reference.
+- `CLAUDE.md` and `AGENTS.md` — selected-host guidance wiring maintains the managed block unless opted out. User text outside the block is preserved; unsafe paths or markers are reported without changing that file.
 - `.git/hooks/pre-push` — installed (or refreshed) by `aiwf init` and `aiwf update`. The hook carries an `# aiwf:pre-push` marker. If a non-marker hook is already in place, init **auto-migrates** it to `.git/hooks/pre-push.local`, then installs aiwf's chain-aware hook on top (G-0045). The chain runs `pre-push.local` first; on exit 0 it falls through to `aiwf check`. Your existing hook content keeps working byte-for-byte, just at the `.local` path. The exception: if a `pre-push.local` already exists when migration would write one, init refuses (won't clobber a deliberate `.local`) and asks you to merge content manually. The hook silently no-ops on branches or clones with no `aiwf.yaml` at the repo root, so brownfield migrations and pre-init checkouts aren't blocked from pushing.
 - `.git/hooks/pre-commit` — installed (or refreshed) by `aiwf init` and `aiwf update`. The hook runs the tree-discipline gate on every commit. Same `# aiwf:pre-commit` marker, same auto-migration to `pre-commit.local` when a non-marker hook is found, same brownfield no-op when no `aiwf.yaml` is at the repo root.
 - `.git/hooks/post-commit` — installed (or refreshed) by `aiwf init` and `aiwf update`, gated on `aiwf.yaml`'s `status_md.auto_update` (default `true`). The hook regenerates a gitignored `STATUS.md` (an `aiwf status --format=md` snapshot) after every commit as a working-copy convenience for the operator — the file is never tracked, so it carries no merge-conflict tax (G-0112). Same `# aiwf:post-commit` marker, same auto-migration to `post-commit.local` when a non-marker hook is found, same brownfield no-op when no `aiwf.yaml` is at the repo root. Set `status_md.auto_update: false` and re-run `aiwf update` to opt out.
 
 **Hook chain semantics (G-0045):** the aiwf-managed hooks invoke `<hook-name>.local` (if present and executable) before running aiwf's own work. User-first ordering means your existing checks gate aiwf rather than the other way around. A `.local` that exists but is not executable fails loud — `aiwf doctor` flags it and the hook itself refuses to run silently around it (chmod +x to enable, or remove the file). `aiwf doctor` reports the chain shape per hook: absent (no suffix), present + executable (`chains to .git/hooks/<name>.local`), or present + non-executable (error).
 
-**What aiwf does *not* touch:**
+**Preserved boundaries:**
 
-- User-authored skills, agents, and templates. aiwf owns only the artifacts it materializes — the `aiwf-*` / `aiwfx-*` / `wf-*` skill dirs, the ritual agent files under `.claude/agents/`, and the ritual templates under `.claude/templates/` — each tracked by a per-dir `.aiwf-owned` manifest. Anything you author yourself (a skill outside those prefixes, an agent or template the manifest never claimed) sits next to aiwf's and is never overwritten by `aiwf update`.
-- `.claude/commands/`, `.claude/output-styles/`, your `.claude/settings.json`, or any other path under `.claude/` that aiwf does not materialize. (Note: as of ADR-0014, aiwf *does* materialize the ritual agents and templates — see "The rituals ship embedded" above — so `.claude/agents/` and `.claude/templates/` carry aiwf-owned files alongside any of your own.)
-- An existing `CLAUDE.md`, `.gitignore`, or `aiwf.yaml`.
-- Anything outside the consumer repo. There are no writes to `~/.claude/`, no changes to your MCP server config, and no API settings touched.
+- User-authored skills, agents, and templates outside the ownership manifests. An unowned collision is refused, including a file occupying a generated artifact's expected name.
+- Unselected host directories and root instruction files, retained without refresh.
+- Unrelated settings, commands, output styles, MCP configuration, and API settings. Selected Claude hook consent can update `.claude/settings.json`; optional statusline wiring can update its selected scope. These operations do not run for Codex-only or no-host selections.
+- User content outside managed guidance blocks, and unrelated `.gitignore` entries.
+
+The optional Claude statusline uses user scope by default and can write to the
+user's `.claude/` directory; `--scope project` keeps that setup in the consumer
+checkout. This is separate from ordinary local-host skill and guidance refresh.
 
 **Why the `aiwf-*` skills are gitignored.** The materialized skills are a derivable cache: `aiwf init` and `aiwf update` regenerate them byte-for-byte from the binary's embedded copies. Gitignoring the cache rather than committing it means teammates on different `aiwf` versions don't fight merge conflicts, an old `git checkout` doesn't drag stale skill text along with it, and the source of truth stays in the binary. `aiwf doctor` byte-compares the on-disk copies against the embedded ones and surfaces drift; `aiwf update` is the one-button restore.
 
@@ -376,7 +442,7 @@ For the full kind/status/transition reference and the per-kind state-machine dia
 
 ## Validators (`aiwf check`)
 
-`aiwf check` runs on every invocation, and on every `git push` via the pre-push hook installed by `aiwf init`. The full list of finding codes is documented in the embedded `aiwf-check` skill (materialized at `.claude/skills/aiwf-check/SKILL.md`); the highlights:
+`aiwf check` runs on every invocation, and on every `git push` via the pre-push hook installed by `aiwf init`. The full list of finding codes is documented in the embedded `aiwf-check` skill (materialized at `.claude/skills/aiwf-check/SKILL.md` or `.agents/skills/aiwf-check/SKILL.md` for the selected host); the highlights:
 
 **Core (Sessions 1–2):**
 

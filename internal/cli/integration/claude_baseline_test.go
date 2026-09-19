@@ -14,6 +14,7 @@ import (
 	"github.com/google/go-cmp/cmp"
 
 	"github.com/23min/aiwf/internal/cli/cliutil/testutil"
+	"github.com/23min/aiwf/internal/config"
 )
 
 // TestClaudeArtifacts_MatchBaseline compares real CLI output with a frozen
@@ -108,7 +109,7 @@ func claudeBaselineCommand(t *testing.T, root, home, bin, name string, args ...s
 		"XDG_CONFIG_HOME="+home,
 		"GIT_CONFIG_GLOBAL="+os.DevNull,
 		"GIT_CONFIG_NOSYSTEM=1",
-		"PATH="+filepath.Dir(bin)+string(os.PathListSeparator)+os.Getenv("PATH"),
+		"PATH="+hostLifecyclePATH(t, bin, []config.Host{config.HostClaudeCode}),
 	)
 	if out, err := cmd.CombinedOutput(); err != nil {
 		t.Fatalf("%s %v: %v\n%s", name, args, err, out)

@@ -182,7 +182,7 @@ func TestRefreshArtifacts_RefreshesExampleYAML(t *testing.T) {
 	if err := os.WriteFile(filepath.Join(root, config.ExampleFileName), stale, 0o644); err != nil {
 		t.Fatal(err)
 	}
-	if _, _, err := RefreshArtifacts(context.Background(), root, RefreshOptions{StatusMdAutoUpdate: true}); err != nil {
+	if _, err := RefreshArtifacts(context.Background(), root, RefreshOptions{StatusMdAutoUpdate: true}); err != nil {
 		t.Fatalf("RefreshArtifacts: %v", err)
 	}
 	got, err := os.ReadFile(filepath.Join(root, config.ExampleFileName))
@@ -256,7 +256,7 @@ func TestRefreshArtifacts_PreservesExistingConfig(t *testing.T) {
 	if err := os.WriteFile(filepath.Join(root, config.FileName), custom, 0o644); err != nil {
 		t.Fatal(err)
 	}
-	if _, _, err := RefreshArtifacts(context.Background(), root, RefreshOptions{StatusMdAutoUpdate: true}); err != nil {
+	if _, err := RefreshArtifacts(context.Background(), root, RefreshOptions{StatusMdAutoUpdate: true}); err != nil {
 		t.Fatalf("RefreshArtifacts: %v", err)
 	}
 	got, err := os.ReadFile(filepath.Join(root, config.FileName))
@@ -663,7 +663,7 @@ func TestInit_GitignoreExampleYAMLIsolatedTrigger(t *testing.T) {
 	if wErr := os.WriteFile(giPath, []byte(stripped), 0o644); wErr != nil {
 		t.Fatal(wErr)
 	}
-	step, err := ensureGitignore(root, true, false)
+	step, err := ensureGitignore(root, config.HostSelection{Hosts: []config.Host{config.HostClaudeCode}}, true, false)
 	if err != nil {
 		t.Fatalf("ensureGitignore: %v", err)
 	}

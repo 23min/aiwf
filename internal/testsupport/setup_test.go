@@ -19,6 +19,7 @@ import (
 // Git identity vars are not seeded: no test here commits.
 //
 // Serial tests:
+//   - TestRunWithClaudeOnPATH_* changes PATH or TMPDIR.
 //   - TestHardenGitTestEnv (gitenv_test.go) mutates process env
 //     (t.Setenv + raw os.Setenv of GIT_CONFIG_*).
 //   - TestWriteExecutable_TakesForkLock (execfile_test.go) holds

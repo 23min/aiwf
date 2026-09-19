@@ -3,11 +3,16 @@ package doctor
 import (
 	"context"
 	"encoding/json"
+	"errors"
+	"fmt"
 	"os"
 	"os/exec"
 	"path/filepath"
 	"strings"
 	"testing"
+
+	"github.com/23min/aiwf/internal/config"
+	"github.com/23min/aiwf/internal/initrepo"
 )
 
 // TestHealthFileFrom_MapsAndEmpties pins the pure mapping: healthy →
@@ -108,5 +113,51 @@ func TestWriteHealth_LinkedWorktreeResolvesToMainCheckout(t *testing.T) {
 	}
 	if _, err := os.Stat(filepath.Join(linked, ".claude", "health.aiwf.json")); !os.IsNotExist(err) {
 		t.Errorf("health file must NOT land in the linked worktree (stat err = %v)", err)
+	}
+}
+
+func TestWriteHealth_RequiresClaudeInSourceAndDestination(t *testing.T) {
+	t.Parallel()
+	for _, linked := range []bool{false, true} {
+		t.Run(fmt.Sprintf("linked=%v", linked), func(t *testing.T) {
+			t.Parallel()
+			main := healthTestRepo(t)
+			runGit(t, main, "commit", "--allow-empty", "-m", "seed")
+			root := main
+			if linked {
+				root = filepath.Join(t.TempDir(), "linked")
+				runGit(t, main, "worktree", "add", "-q", root, "-b", "health")
+				if err := os.WriteFile(filepath.Join(root, "aiwf.yaml"), []byte("hosts: [claude-code]\n"), 0o644); err != nil {
+					t.Fatal(err)
+				}
+			}
+			if err := os.WriteFile(filepath.Join(main, "aiwf.yaml"), []byte("hosts: []\n"), 0o644); err != nil {
+				t.Fatal(err)
+			}
+			if err := WriteHealth(context.Background(), root, "test", DoctorOptions{}); !errors.Is(err, initrepo.ErrClaudeUnselected) {
+				t.Fatalf("health selection refusal = %v", err)
+			}
+			for _, dir := range []string{main, root} {
+				if _, err := os.Stat(filepath.Join(dir, ".claude")); !os.IsNotExist(err) {
+					t.Fatalf("refusal created .claude in %s: %v", dir, err)
+				}
+			}
+		})
+	}
+}
+
+func TestWriteHealth_RejectsCanceledAndMalformedSelection(t *testing.T) {
+	t.Parallel()
+	root := t.TempDir()
+	ctx, cancel := context.WithCancel(context.Background())
+	cancel()
+	if err := WriteHealth(ctx, root, "test", DoctorOptions{}); !errors.Is(err, context.Canceled) {
+		t.Fatalf("cancellation = %v", err)
+	}
+	if err := os.WriteFile(filepath.Join(root, "aiwf.yaml"), []byte("hosts: [unknown]\n"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	if err := WriteHealth(context.Background(), root, "test", DoctorOptions{}); !errors.Is(err, config.ErrInvalidHost) {
+		t.Fatalf("invalid config = %v", err)
 	}
 }
