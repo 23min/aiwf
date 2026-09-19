@@ -12,7 +12,7 @@ acs:
       status: met
     - id: AC-2
       title: Claude Codex and Claude can hand off one unfinished workflow
-      status: open
+      status: met
     - id: AC-3
       title: Concurrent host sessions keep edits and Git state in their assigned worktrees
       status: open
