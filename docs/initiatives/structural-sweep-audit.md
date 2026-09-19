@@ -234,13 +234,6 @@ unconditionally; the projection excludes `body-prose-id` via
 Patch: per-entry triage; delete the unowned, name the deliberate seams in an
 allowlist the policy under *What would prevent it* reads.
 
-**B5. The stress harness drops every oracle's violation message.**
-`internal/stresstest/scenario.go:28-32` produces them; `cmd/stresstest/run.go:159-169`
-prints only "attempt failed, repo preserved at X"; `repeat.go:25-31` `RepeatEvent`
-has no violations field; `compose.go:13-16` returns `[]json.RawMessage` and never
-decodes what it reads. An operator running `make stress` learns that an attempt
-failed and never which oracle. Patch.
-
 **B6. The stress seed is logged as replayable and nothing can replay it.**
 `internal/stresstest/repeat.go:12-15` claims replay; `cmd/stresstest/run.go:19-38`
 has no `--seed` flag and `:171-172` always draws `rand.Int64()`; 15 of 16
@@ -596,27 +589,27 @@ places and the ledger names where it does not.
 | A2 coupling | Weak | every verb imports the catch-all `cliutil` (G-0227); `cli/render` mirrors `htmlrender` because its helpers are unexported (C6); `changelog_completeness.go` reaches into a sibling for separators (G-0672) |
 | A3 layering | Strong | `layering_direction.go` enforces the tier graph and no upward import was found — but it governs imports only, and `check` spawns git directly at fifteen sites (C1) |
 | B1 typed interfaces | Strong | named structs at every boundary; exceptions: nine-to-eleven-positional `Run` signatures in `cli/check`, `status`, `initcmd`, `update`; four identical private structs in the stress harness |
-| B2 schemas | Weak | `Parse` is `KnownFields(true)` but `hooks:` has a second non-strict decoder (B10); the raw-report JSONL schema lives only in its writer (B5); five `metadata` keys undocumented (D9) |
+| B2 schemas | Weak | `Parse` is `KnownFields(true)` but `hooks:` has a second non-strict decoder (B10); the raw-report JSONL schema lives only in its writer; five `metadata` keys undocumented (D9) |
 | B3 invariants | Weak | `verb.go:38` "exactly one of Findings, Plan, NoOp" is false at `add.go:239`, `rename.go:114`, `retitle.go:191`; `FileEntry.Path` contract broken by `walkMarkdown` (D5); `refs.go:11` says `ErrRefNotFound` is wrapped by `HasRef`, which never wraps it |
 | C1 single source | **Weak** | the sweep's dominant class: terminality ×6, id index ×6, path layout ×5, AC heading ×4, `aiwf.yaml` ×20+, HEAD probe ×5, trailer index ×4 |
 | C2 idempotence | Strong | ADR-0036 NoOp guards chokepointed by `noOpClaimScopes`; every `ensure*` converges to Preserved |
 | C3 atomic writes | Strong | `pathutil.AtomicWriteFile` plus its chokepoint; all twelve non-test `os.WriteFile` sites allowlisted with rationale; caveat: exemptions are whole-file and `os.CreateTemp` is outside the scanned set |
 | C4 versioned schemas | Weak | legacy `actor:`/`aiwf_version:` tolerance is hand-rolled line stripping; `manifest.supportedVersion` is the only declared schema version |
 | D1 behaviour pinned | Strong | integration through `cli.Execute`; a pure `classify*` per stress scenario; every policy has a firing fixture, the ledger down to one deliberate entry |
-| D2 seam equivalence | Weak | `LoadScope` vs `ReplayScopes` have no equivalence test and disagree (B1); the two `hooks:` decoders unpinned (B10); JSONL writer and reader share no type (B5); Strong where it exists (`EventFromCommit`, the single-pass index) |
+| D2 seam equivalence | Weak | `LoadScope` vs `ReplayScopes` have no equivalence test and disagree (B1); the two `hooks:` decoders unpinned (B10); JSONL composition preserves raw events without typed interpretation; Strong where it exists (`EventFromCommit`, the single-pass index) |
 | D3 branch coverage | Strong | diff-scoped gate inside `make ci` |
 | D4 altitude | Strong | subprocess at the seam, in-process fixtures |
 | D5 findings become checks | Strong | the policies package is this principle; caveat B15 |
 | E1 structured logs | Strong | slog via `BeginVerbDiag`, `forbidigo` fence; gaps: `status`, `render`, `template`, `schema`, `milestone` emit no event (D9) |
 | E2 designed failures | Weak | one condition, four dispositions for an unparseable Go file (C2) and for a malformed `aiwf.yaml` (C5); four HEAD probes collapse a fault into "empty" (C1) |
-| E3 audit trail | Strong | trailers on every plan; edges: raw-width id in contract trailers (A4), `aiwf-prior-parent` write-only (B9) |
-| E4 self-explaining errors | Strong | a remedy per path role in verb refusals; Weak at the stress operator boundary (B5) and in `cli`, where "not found" is reported four ways (G-0483) |
+| E3 audit trail | Strong | trailers on every plan; edge: `aiwf-prior-parent` write-only (B9) |
+| E4 self-explaining errors | Strong | a remedy per path role in verb refusals; Weak in `cli`, where "not found" is reported four ways (G-0483) |
 | F1 names | Weak | `isTerminalStatus` ≠ `IsTerminal` (A6); `skills.HooksDir` is `.claude/hooks` while `gitops.HooksDir` is `.git/hooks`; `--root` help "(default: cwd)" on a verb that walks up; `Outcome: Legal` on cells that fire (B11) |
 | F2 comments | Weak | drafting-history residue (`fsm_history_consistent.go:190` "The pre-lift line was", `acks.go:12` "Lifted from", eight drop-narration blocks in `branch/rules.go`); comments asserting a parity that does not hold (`initrepo.go:855`, `reflog_walk.go:146`, `pagedata.go:38`) |
 | F3 decision records | Strong | guards cite the ADR, decision or gap that pins them at the enforcement site |
 | G1 reproducible | Strong | no clock in core; sorted iteration in render; Weak: the stress seed is a decoy (B6) |
 | G2 reversible | Strong | every verb doc answers "what undoes this"; LIFO undo journal (D-0029); Weak: dry-run is a separate implementation in three `initrepo` steps (B13) |
-| G3 observable | Weak | stress oracle messages never reach stdout or the report (B5); four read verbs invisible to the diagnostic log (D9) |
+| G3 observable | Weak | four read verbs invisible to the diagnostic log (D9) |
 | H1 reuse | **Weak** | helpers exist and are bypassed at six, eight, nine and thirteen sites (D7, D8, D9, D2) |
 | H2 no dead weight | **Weak** | 41 test-only production functions (B4), one unlinked package (B2), `PlannedFiles` (B3), a dozen unread view-model fields (B7), no-op flags (B8), `gitEnv()` (B17) |
 | H3 additions carry | Weak | per-subject mandates with no retirement: `terminalStatusesForKind`'s same-commit note (D1), the `ackedSHAs` consumer roster (`acks.go:17-45`), per-scenario `*ExpectedWarnings` (D-0063, accepted), each new policy hand-wired three times (D-0025, accepted) |

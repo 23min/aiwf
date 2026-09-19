@@ -16,6 +16,12 @@ section in this file.
 
 ## [Unreleased]
 
+### Fixed — stress reports preserve verification failures
+
+Failed stress attempts print each violation message and retain the same records
+in the JSONL report's `violations` array, with a `message` field per violation.
+Passing attempts omit the array; preserved repository paths remain available.
+
 ### Fixed — contract binding results use canonical IDs
 
 `aiwf contract bind` and `unbind` emit canonical contract IDs in commit trailers

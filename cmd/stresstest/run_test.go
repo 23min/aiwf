@@ -257,3 +257,29 @@ func TestResolveScenarios_NamedEntry_ResolvesToThatEntryAlone(t *testing.T) {
 		t.Fatalf("resolveScenarios(%q) resolved to %q; want %q", lockKillName, got[0].Name, lockKillName)
 	}
 }
+
+func TestPrintScenarioSummary_Violations(t *testing.T) {
+	t.Parallel()
+	for _, tc := range []struct {
+		name    string
+		results []stresstest.RunResult
+		want    string
+	}{
+		{"multiple failures", []stresstest.RunResult{
+			{Passed: true},
+			{Dir: "/preserved", Violations: []stresstest.Violation{{Message: "first breach"}, {Message: "second breach"}}},
+			{Violations: []stresstest.Violation{{Message: "third breach"}}},
+		}, "stresstest run: sample: attempt failed, repo preserved at /preserved\n  violation: first breach\n  violation: second breach\n  violation: third breach\nstresstest run: sample: 1/3 attempts passed\n"},
+		{"pass", []stresstest.RunResult{{Passed: true}}, "stresstest run: sample: 1/1 attempts passed\n"},
+		{"failure without violations", []stresstest.RunResult{{Dir: "/preserved"}}, "stresstest run: sample: attempt failed, repo preserved at /preserved\nstresstest run: sample: 0/1 attempts passed\n"},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			t.Parallel()
+			var out bytes.Buffer
+			printScenarioSummary(&out, "sample", tc.results)
+			if got := out.String(); got != tc.want {
+				t.Errorf("summary = %q; want %q", got, tc.want)
+			}
+		})
+	}
+}

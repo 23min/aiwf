@@ -154,15 +154,20 @@ func runRun(ctx context.Context, moduleRoot, outDirFlag string, repeat int, scen
 }
 
 // printScenarioSummary reports one scenario's own attempts: a line
-// per failing attempt naming its preserved Dir, then a pass-count
-// summary line.
+// per failing attempt naming its preserved Dir and each violation, then
+// a pass-count summary line.
 func printScenarioSummary(out io.Writer, name string, results []stresstest.RunResult) {
 	passCount := 0
 	for _, r := range results {
 		if r.Passed {
 			passCount++
-		} else if r.Dir != "" {
-			_, _ = fmt.Fprintf(out, "stresstest run: %s: attempt failed, repo preserved at %s\n", name, r.Dir)
+		} else {
+			if r.Dir != "" {
+				_, _ = fmt.Fprintf(out, "stresstest run: %s: attempt failed, repo preserved at %s\n", name, r.Dir)
+			}
+			for _, violation := range r.Violations {
+				_, _ = fmt.Fprintf(out, "  violation: %s\n", violation.Message)
+			}
 		}
 	}
 	_, _ = fmt.Fprintf(out, "stresstest run: %s: %d/%d attempts passed\n", name, passCount, len(results))
