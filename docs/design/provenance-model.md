@@ -34,7 +34,7 @@ I2.5 removes `aiwf.yaml.actor` entirely. Actor identity is derived at runtime:
 | Source | Precedence | Result |
 |---|---|---|
 | `--actor <role>/<id>` flag on the verb | highest | overrides everything; LLM harnesses use this to set `ai/claude` |
-| `git config user.email` | default | `human/<localpart>` |
+| `git config user.email` | default | `human/<localpart>`, read in the resolved target repository (including `--root`), with Git's normal global fallback |
 | (no source) | n/a | verb refuses with usage error; `aiwf doctor` flags this as misconfiguration |
 
 `aiwf doctor` validates that `git config user.email` is set and well-formed (`<role>/<id>` derivable). The `<role>/<id>` regex is the same as today: `^[^\s/]+/[^\s/]+$` (exactly one `/`, no whitespace, neither side empty).

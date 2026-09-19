@@ -2,6 +2,7 @@ package cliutil
 
 import (
 	"os"
+	"os/exec"
 	"path/filepath"
 	"strings"
 	"testing"
@@ -172,5 +173,63 @@ func TestResolveActor_NoConfigErrors(t *testing.T) {
 	}
 	if !strings.Contains(err.Error(), "no actor") {
 		t.Errorf("error %q should mention 'no actor'", err.Error())
+	}
+}
+
+// Serial: changes cwd and Git config environment to separate target identity
+// from the invoking repository and the machine's global configuration.
+func TestResolveActorWithSource_TargetRepository(t *testing.T) {
+	base := t.TempDir()
+	cwdRepo := filepath.Join(base, "cwd")
+	targetRepo := filepath.Join(base, "target")
+	unconfiguredRepo := filepath.Join(base, "unconfigured")
+	t.Setenv("GIT_CONFIG_NOSYSTEM", "1")
+	t.Setenv("GIT_CONFIG_GLOBAL", os.DevNull)
+	for _, repo := range []struct{ path, email string }{
+		{cwdRepo, "cwd-user@example.com"}, {targetRepo, "target-user@example.com"}, {unconfiguredRepo, ""},
+	} {
+		if out, err := exec.Command("git", "init", repo.path).CombinedOutput(); err != nil {
+			t.Fatalf("init: %v: %s", err, out)
+		}
+		if repo.email != "" {
+			if out, err := exec.Command("git", "-C", repo.path, "config", "user.email", repo.email).CombinedOutput(); err != nil {
+				t.Fatalf("config: %v: %s", err, out)
+			}
+		}
+	}
+	globalConfig := filepath.Join(base, "global-config")
+	if err := os.WriteFile(globalConfig, []byte("[user]\nemail = global-user@example.com\n"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	t.Chdir(cwdRepo)
+	for _, tc := range []struct {
+		name, root, explicit, want, source string
+		global                             bool
+	}{
+		{"target local config", targetRepo, "", "human/target-user", ActorSourceGitConfig, false},
+		{"relative target", filepath.Join("..", "target"), "", "human/target-user", ActorSourceGitConfig, false},
+		{"empty root uses cwd", "", "", "human/cwd-user", ActorSourceGitConfig, false},
+		{"target inherits global", unconfiguredRepo, "", "human/global-user", ActorSourceGitConfig, true},
+		{"target local beats global", targetRepo, "", "human/target-user", ActorSourceGitConfig, true},
+		{"target lacks identity", unconfiguredRepo, "", "", "", false},
+		{"explicit beats target", targetRepo, "ai/codex", "ai/codex", ActorSourceFlag, false},
+		{"explicit needs no repository", filepath.Join(base, "missing"), "ai/codex", "ai/codex", ActorSourceFlag, false},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			if tc.global {
+				t.Setenv("GIT_CONFIG_GLOBAL", globalConfig)
+			}
+			actor, source, err := ResolveActorWithSource(tc.explicit, tc.root)
+			if tc.want == "" {
+				if err == nil || !strings.Contains(err.Error(), "no actor") {
+					t.Fatalf("error = %v; want no actor", err)
+				}
+			} else if err != nil {
+				t.Fatal(err)
+			}
+			if actor != tc.want || source != tc.source {
+				t.Errorf("got (%q, %q); want (%q, %q)", actor, source, tc.want, tc.source)
+			}
+		})
 	}
 }

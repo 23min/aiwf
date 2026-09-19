@@ -16,6 +16,12 @@ section in this file.
 
 ## [Unreleased]
 
+### Fixed — actor identity follows the target repository
+
+Actor derivation reads `git config user.email` in the resolved target repository,
+so `--root` no longer borrows the current directory's repository identity.
+Explicit `--actor` values still take precedence; Git's global fallback is retained.
+
 ### Fixed — terminal status checks follow each entity's FSM
 
 Worktree status uses kind-specific terminal states, so deprecated contracts and
