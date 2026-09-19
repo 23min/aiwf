@@ -28,7 +28,7 @@ acs:
 ---
 ## Goal
 
-Establish recorded evidence that the supported Claude and Codex workflows are usable in fresh local sessions and survive the intended container lifecycle.
+Establish recorded evidence that the supported Claude and Codex workflows are usable in fresh local sessions. Rebuild persistence verification is deferred to G-0699.
 
 ## Closes
 
@@ -36,7 +36,7 @@ Establish recorded evidence that the supported Claude and Codex workflows are us
 
 ## Context
 
-Public host detection and artifact lifecycle behavior are complete. This milestone tests actual host discovery and operator workflows, which filesystem tests alone cannot establish. Existing devcontainer edits are uncommitted and must be reviewed on their own merits before they are incorporated. The implementation worktree must receive approved planning commits before feature work starts.
+Public host detection and artifact lifecycle behavior are complete. This milestone tests actual host discovery and operator workflows, which filesystem tests alone cannot establish. The reviewed devcontainer installation and mount changes have isolated script tests; actual rebuild verification remains outstanding in G-0699.
 
 ## Acceptance criteria
 
@@ -60,7 +60,7 @@ Exercise a review-required ritual with a fresh reviewer context that did not aut
 
 ### AC-5 — A rebuilt devcontainer provides Codex and retains the selected state
 
-After separate rebuild approval, exercise the reviewed install and mount setup in a fresh container build. Verify that the global npm Codex binary is available even if the editor supplies another binary, and that repeating initialization does not reinstall an existing npm binary. Check host-backed Codex configuration/session state and login status before and after without exposing credentials. Confirm Claude remains usable and that the install/mount documentation matches the exercised behavior. Record any steps not run.
+Deferred to G-0699; the remaining verification contract follows. After separate rebuild approval, exercise the reviewed install and mount setup in a fresh container build. Verify that the global npm Codex binary is available even if the editor supplies another binary, and that repeating initialization does not reinstall an existing npm binary. Check host-backed Codex configuration/session state and login status before and after without exposing credentials. Confirm Claude remains usable and that the install/mount documentation matches the exercised behavior. Record any steps not run.
 
 ### AC-6 — Implementation passes repository gates and documents its support boundary
 
@@ -109,7 +109,10 @@ Run the required build, formatting/lint, race-test, coverage, and selfcheck gate
 
 ## Release note
 
-
+Live checks demonstrate Codex loading the repository's canonical rules,
+Claude/Codex handoff, parallel worktrees and independent Codex review. Isolated
+tests cover editor-independent Codex installation and host-state mount setup;
+actual rebuild persistence remains unverified in G-0699.
 
 ## Decisions made during implementation
 
@@ -514,7 +517,7 @@ approved rebuild; verify repeat initialization skips installation and Claude
 remains usable. Docker/devcontainer CLIs and the Docker socket are unavailable
 inside this container, so the rebuild requires VS Code or the Docker host.
 The user deferred rebuilding to preserve active windows and other sessions;
-AC-5 remains open. Supporting logs and the baseline snapshot are in
+AC-5 rebuild verification is deferred to G-0699. Supporting logs and the baseline snapshot are in
 `/tmp/aiwf-M-0343-container-er9om5i7/`; the hashes above survive their removal.
 
 ### AC-6 — repository gates and support-boundary review
@@ -560,7 +563,9 @@ Initial/final logs and focused failure records remain under
 
 ## Deferrals
 
-- (none)
+- G-0699 — AC-5 rebuild verification; deferred with user approval
+  to preserve active windows and sessions. Isolated tests passed; actual rebuild
+  persistence is unverified and is outside E-0093 completion requirements.
 
 ## Reviewer notes
 
@@ -580,4 +585,5 @@ and the malformed-stamp subprocess test; both pass. Existing lifecycle assertion
 pin host selection; no wording-presence test was added for this prose correction.
 Coverage exclusions and sampled observation records raised no further findings.
 Full CI, hosted CI, external host observations and rebuild were not repeated.
-AC-5 remains open; this review does not approve milestone closure.
+Rebuild verification remains outstanding; this interim review does not approve
+milestone closure.
