@@ -16,6 +16,12 @@ section in this file.
 
 ## [Unreleased]
 
+### Fixed — epic lifecycle guards recognize legacy parent IDs
+
+`aiwf cancel` and terminal `aiwf promote` return their specific child-milestone
+refusal when a child's parent reference uses legacy ID padding, including with
+`--force`. `aiwf archive` skips terminal epics with those non-terminal children.
+
 ### Fixed — history checks retain BOM-prefixed entity states
 
 `aiwf check` detects illegal status transitions when either historical entity

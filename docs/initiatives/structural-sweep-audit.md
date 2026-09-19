@@ -464,15 +464,13 @@ re-implements `entity.ParseACSections` and bypasses `ACSectionIsEmpty`
 (`body.go:262`), whose comment says it was exported so a verb-time gate and a
 check-time rule "consult the same definition of empty without drifting".
 
-**D4. Milestones under an epic, five ways, half literal and half canonical.**
-`internal/verb/cancel_guards.go:20-28` (literal `m.Parent == epicID`),
+**D4. Milestones under an epic, repeated scans and mixed ID matching.**
 `internal/check/epic_terminal_children.go:52-64` (canonical),
 `internal/workflows/spec/evaluate.go:219-232` (literal),
 `internal/roadmap/roadmap.go:61-67,140-146` (raw key, then a rescan per epic in
 the same render), `internal/cli/status/status.go:473-480` (canonical),
-`internal/cli/render/resolver.go:504-514` (rescan per page). A child whose `parent:`
-is at legacy width is invisible to `aiwf cancel`'s guard and reported by the check;
-`import.go:305-317` works around it by rewriting `parent:`. AC progress is
+`internal/cli/render/resolver.go:504-514` (rescan per page).
+`import.go:305-317` rewrites `parent:` to the resolved epic's stored ID. AC progress is
 computed three ways (`default_resolver.go:346`, `resolver.go:754`, `status.go:149`).
 One `Tree.ChildrenOf(id)` and one exported progress function.
 
