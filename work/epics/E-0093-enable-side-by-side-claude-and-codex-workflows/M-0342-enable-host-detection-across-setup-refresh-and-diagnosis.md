@@ -18,6 +18,7 @@ acs:
     - id: AC-3
       title: Unselected host settings and artifacts remain untouched
       status: open
+      tdd_phase: red
     - id: AC-4
       title: Doctor detects selected-host absence drift and guidance conflicts
       status: open
