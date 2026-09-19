@@ -1,7 +1,7 @@
 ---
 id: M-0341
 title: Implement Codex artifacts with safe guidance ownership
-status: in_progress
+status: done
 parent: E-0093
 depends_on:
     - M-0340
