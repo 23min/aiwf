@@ -487,13 +487,14 @@ func TestGitignorePatterns(t *testing.T) {
 	wantGuidance := GuidanceFile
 
 	want := map[string]bool{
-		wantVerbWildcard:  true,
-		wantAiwfxWildcard: true,
-		wantWfWildcard:    true,
-		wantManifest:      true,
-		wantReadme:        true,
-		wantBinary:        true,
-		wantGuidance:      true,
+		wantVerbWildcard:                      true,
+		wantAiwfxWildcard:                     true,
+		wantWfWildcard:                        true,
+		wantManifest:                          true,
+		SkillsDir + "/" + PendingManifestFile: true,
+		wantReadme:                            true,
+		wantBinary:                            true,
+		wantGuidance:                          true,
 	}
 	agents, err := ListRitualAgents()
 	if err != nil {
@@ -503,6 +504,7 @@ func TestGitignorePatterns(t *testing.T) {
 		want[AgentsDir+"/"+a.Name] = true
 	}
 	want[AgentsDir+"/"+ManifestFile] = true
+	want[AgentsDir+"/"+PendingManifestFile] = true
 	tmpls, err := ListRitualTemplates()
 	if err != nil {
 		t.Fatalf("ListRitualTemplates: %v", err)
@@ -511,6 +513,7 @@ func TestGitignorePatterns(t *testing.T) {
 		want[TemplatesDir+"/"+tm.Name] = true
 	}
 	want[TemplatesDir+"/"+ManifestFile] = true
+	want[TemplatesDir+"/"+PendingManifestFile] = true
 
 	gotSet := map[string]bool{}
 	for _, p := range got {

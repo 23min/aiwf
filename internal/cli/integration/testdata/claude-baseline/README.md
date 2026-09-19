@@ -85,3 +85,22 @@ remain frozen; sort the records after substituting these hashes.
 | `aiwf.example.yaml` | `5bf701304f5b83410eee6ad1c28e4bd771bb9d762e5aab817fece1f11b78657a` | `046f0df0cf0390a3fabf39a15006172732caeba47eb7ae964dddc8d4ec8a3619` |
 | Scaffolded `aiwf.yaml` | `57a8cd51e36dcd55d39be610d80c393cd77dfdc2bf32b956d71daae49b72c33b` | `73748c6a5091a363cbabb8d05b93e902cab9e2299adb889301d917b38e73e00c` |
 | Scaffolded `aiwf.yaml` with hook consent | `d32092a6a30030d7c0801050657463e986e45f294c2a0d44a73b34d7a8a7f62e` | `c9f7f10ac9af60a447fe926a48ff5079c87acaf77da42f6d1ca602e2f65670a7` |
+
+## Artifact recovery ignore exception
+
+M-0341 adds temporary recovery receipts to the shared artifact writer. Successful
+materialization removes them. The only inventory change is `.gitignore`: add
+`.claude/skills/.aiwf-pending`, `.claude/agents/.aiwf-pending`, and
+`.claude/templates/.aiwf-pending`, each immediately after its family's existing
+`.aiwf-owned` entry. Generated Claude skills, agents, templates, manifests,
+provenance, instructions, settings, hooks and their modes remain frozen.
+
+The expected hash was derived independently of the new writer: capture
+`.gitignore` with the pre-change `a195023ca` binary in a fresh consumer seeded
+with `user-cache/` plus a newline, verify its historical SHA-256, insert only the
+three lines above, and hash the complete bytes using Node's SHA-256 API. Replace
+only the `.gitignore` record in all six inventories and sort them again.
+
+| Artifact | Original SHA-256 | Updated SHA-256 |
+| --- | --- | --- |
+| `.gitignore` | `1154158ecbaa05116b8e8b5ff9b3f3f9d0a1ade84bbd4c5bba68d51ef4198457` | `8d01c4e9083f5ad84582127a76e688b0eed4b2dd674a8f8b3a30f0f1bff0e210` |

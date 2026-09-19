@@ -5,7 +5,6 @@
 0644 096fceaaa41f584deda34368ab3c7d598c385638f1ad73c54d78598dc3408d4c .claude/skills/wf-property-test/SKILL.md
 0644 0ac0b36f7f6230ec3e35767ede67fe8dbed67eec8520099226f0f52c659a6822 .claude/skills/aiwfx-record-gap/SKILL.md
 0644 0c8260c422311c32bf0a45956ca92592bd11607c309819226373af30b9d34f81 .claude/skills/aiwf-add/SKILL.md
-0644 1154158ecbaa05116b8e8b5ff9b3f3f9d0a1ade84bbd4c5bba68d51ef4198457 .gitignore
 0644 16211003b72bec774ac2d0092b321b65d57c9a48af4fb9a4cdac621f4eb30a7c .claude/agents/builder.md
 0644 1b856a1f9aff4a0a398383724418a2ce34dbceb3333ea53992f1c5a6a11c8541 .claude/skills/aiwfx-whiteboard/SKILL.md
 0644 1bc22d4a869d966be826649b1329b3321ffe2931982e56c559142c020feb930b .claude/skills/aiwf-edit-body/SKILL.md
@@ -34,6 +33,7 @@
 0644 7bb2bdc1a0ac7c3f6fe3b17449a1e9e7adea8e4f8e3d0a27855667e6ef98a5fa .claude/skills/aiwf-archive/SKILL.md
 0644 7e90287ea2d54db13c394a4ef2389e73152f225fe47671e051862d709b48314a .claude/skills/aiwf-contract/SKILL.md
 0644 8bd8dbe525b58d5e12c69db7bc738242a48738511e1732c8b97d5ee25ace7c24 .claude/templates/adr.md
+0644 8d01c4e9083f5ad84582127a76e688b0eed4b2dd674a8f8b3a30f0f1bff0e210 .gitignore
 0644 8fedbdb070d77e4c261d6d8c4fcc693ee27c46e1d994fcb611ccfdc2118eff88 .claude/skills/aiwf-check/SKILL.md
 0644 9350dfffec1a1ac39dc4f05f9566fb644358cb6892677648e80cbaeafed68c1e .claude/skills/aiwfx-start-milestone/SKILL.md
 0644 93f21a037a54a23b11b9059c64f2afcfaf8fcb88afeba23040aa8cdc5cd45e06 .claude/skills/aiwf-retitle/SKILL.md

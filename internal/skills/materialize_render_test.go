@@ -7,7 +7,6 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
-	"syscall"
 	"testing"
 
 	"github.com/google/go-cmp/cmp"
@@ -81,16 +80,17 @@ func TestMaterializeArtifacts_ReportsFilesystemFailures(t *testing.T) {
 	for _, tc := range []struct {
 		name, blocker, readOnly, context string
 		directory                        bool
+		want                             error
 	}{
-		{name: "skills directory", blocker: SkillsDir, context: "creating " + SkillsDir},
-		{name: "manifest read", blocker: SkillsDir + "/" + ManifestFile, directory: true, context: "reading manifest"},
-		{name: "obsolete removal", readOnly: SkillsDir + "/obsolete", context: "removing previously-owned skill obsolete"},
-		{name: "skill directory", blocker: SkillsDir + "/fixture", context: "creating "},
-		{name: "skill write", blocker: SkillsDir + "/fixture/SKILL.md", directory: true, context: "writing fixture/SKILL.md"},
-		{name: "manifest write", readOnly: SkillsDir, context: "writing manifest"},
-		{name: "provenance write", blocker: SkillsDir + "/" + ProvenanceReadme, directory: true, context: "writing " + SkillsDir + "/" + ProvenanceReadme},
-		{name: "agents", blocker: AgentsDir, context: "creating " + AgentsDir},
-		{name: "templates", blocker: TemplatesDir, context: "creating " + TemplatesDir},
+		{name: "skills directory", blocker: SkillsDir, context: SkillsDir, want: ErrUnsafeArtifactPath},
+		{name: "manifest read", blocker: SkillsDir + "/" + ManifestFile, directory: true, context: ManifestFile, want: ErrInvalidOwnership},
+		{name: "obsolete removal", readOnly: SkillsDir + "/obsolete", context: "retiring artifact", want: fs.ErrPermission},
+		{name: "skill directory", blocker: SkillsDir + "/fixture", context: "fixture", want: ErrOwnershipConflict},
+		{name: "skill write", blocker: SkillsDir + "/fixture/SKILL.md", directory: true, context: "fixture/SKILL.md", want: ErrOwnershipConflict},
+		{name: "provenance permission", readOnly: SkillsDir, context: "writing provenance", want: fs.ErrPermission},
+		{name: "provenance write", blocker: SkillsDir + "/" + ProvenanceReadme, directory: true, context: ProvenanceReadme, want: ErrOwnershipConflict},
+		{name: "agents", blocker: AgentsDir, context: AgentsDir, want: ErrUnsafeArtifactPath},
+		{name: "templates", blocker: TemplatesDir, context: TemplatesDir, want: ErrUnsafeArtifactPath},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
 			t.Parallel()
@@ -107,9 +107,10 @@ func TestMaterializeArtifacts_ReportsFilesystemFailures(t *testing.T) {
 			}
 			if tc.readOnly != "" {
 				writeArtifactFixture(t, filepath.Join(root, SkillsDir, "fixture", "SKILL.md"), "old")
+				writeArtifactFixture(t, filepath.Join(root, SkillsDir, ManifestFile), "fixture\n")
 				if tc.name == "obsolete removal" {
 					writeArtifactFixture(t, filepath.Join(root, SkillsDir, ManifestFile), "fixture\nobsolete\n")
-					writeArtifactFixture(t, filepath.Join(root, tc.readOnly, "file"), "old")
+					writeArtifactFixture(t, filepath.Join(root, tc.readOnly, "SKILL.md"), "old")
 				}
 				path := filepath.Join(root, tc.readOnly)
 				if err := os.Chmod(path, 0o555); err != nil {
@@ -123,9 +124,8 @@ func TestMaterializeArtifacts_ReportsFilesystemFailures(t *testing.T) {
 			}
 			sources := artifactSources{skills: []Skill{{Name: "fixture", Content: []byte("new")}}}
 			err := materializeArtifacts(root, ClaudeTarget, nil, sources)
-			var errno syscall.Errno
-			if !errors.As(err, &errno) || !strings.Contains(err.Error(), tc.context) {
-				t.Fatalf("error = %v; want wrapped filesystem error with context %q", err, tc.context)
+			if !errors.Is(err, tc.want) || !strings.Contains(err.Error(), tc.context) {
+				t.Fatalf("error = %v; want classified failure with context %q", err, tc.context)
 			}
 		})
 	}
@@ -243,7 +243,14 @@ func artifactTree(t *testing.T, root string) map[string]artifactEntry {
 			return err
 		}
 		var content []byte
-		if !entry.IsDir() {
+		if info.Mode()&os.ModeSymlink != 0 {
+			var target string
+			target, err = os.Readlink(path)
+			if err != nil {
+				return err
+			}
+			content = []byte(target)
+		} else if !entry.IsDir() {
 			content, err = os.ReadFile(path)
 			if err != nil {
 				return err
