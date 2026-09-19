@@ -16,6 +16,13 @@ section in this file.
 
 ## [Unreleased]
 
+### Fixed — G-0684: dropped-section checks retain Git-quoted entity paths
+
+The push gate detects dropped required sections in entity filenames containing
+quotes, backslashes, tabs, or control bytes, including newlines. It follows
+renames and credits the commit that removed the section while preserving
+exemptions for omissions already present before the push.
+
 ### Fixed — G-0690: history checks retain Git-quoted entity paths
 
 `aiwf check` detects illegal status transitions in entities whose filenames

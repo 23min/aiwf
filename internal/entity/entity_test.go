@@ -650,6 +650,12 @@ func TestPathKind(t *testing.T) {
 		{"work/decisions/D-001-format.md", KindDecision, true},
 		{"work/contracts/C-001-orders/contract.md", KindContract, true},
 		{"docs/adr/ADR-0001-format.md", KindADR, true},
+		{"work/epics/E-0001-has\nnewline/epic.md", KindEpic, true},
+		{"work/epics/E-0001-fixture/M-0001-has\nnewline.md", KindMilestone, true},
+		{"work/gaps/G-0001-has\nnewline.md", KindGap, true},
+		{"work/decisions/D-0001-has\nnewline.md", KindDecision, true},
+		{"work/contracts/C-0001-has\nnewline/contract.md", KindContract, true},
+		{"docs/adr/ADR-0001-has\nnewline.md", KindADR, true},
 
 		// Negative cases — files that should be skipped.
 		{"README.md", "", false},
