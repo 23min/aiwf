@@ -478,6 +478,44 @@ in the native trace; its exact delivered wording is not independently verified.
 Prompts, command, staged diff, snapshots, results and sanitized trace evidence
 remain under `/tmp/aiwf-M-0343-handoff-327e30na/review-dispatch-preparation/`.
 
+### AC-5 — installation preparation; rebuild outstanding
+
+Prepared 2026-09-19 from the four pending main-checkout `.devcontainer/`
+edits, preserving that checkout unchanged. The install checks npm's own binary,
+so an editor-provided Codex does not suppress installation. The host initializer
+creates private `~/.codex-linux` state and the matching bind-mount source.
+Onboarding describes both selected hosts and distinguishes mounted files from
+credentials stored elsewhere or running sessions.
+
+`go test ./internal/policies -run '^TestDevcontainerCodex' -count=1` first
+failed against the committed scripts: missing installation/state directory and
+unexpected success on simulated npm failures. With the prepared scripts it
+passes. Five install cases exercise missing/existing npm binaries, an extension
+binary, prefix failure and install failure; two runs per case check repeat
+behavior. A host-init test verifies private permissions, retained state and
+the JSON mount's resolution to the created directory. These run full scripts
+with process-boundary fakes and temporary files; they do not build a container.
+The focused race run and `bash -n` pass. The first `make check-fast` stopped
+on three `gocritic filepathJoin` findings in the test; path components were
+split before rechecking. The corrected `make check-fast` passes (vet, lint,
+full tests); the final focused race run and lint also pass. The scoped
+`aiwf check --since f46121f55` reports 0 errors and 9 advisory warnings.
+
+Before rebuild, the npm binary reports Codex 0.155.0, Claude reports 2.1.278,
+and `codex login status` reports `Logged in using ChatGPT`. `findmnt` shows
+the default Codex directory backed by host `.codex-linux`. The config retains
+`alternate_screen = "never"` and `animations = false`; its SHA-256 is
+`0d653f373d5e808bd25e1b5543fe4b649968101cf4b6bc6e75b3d7b97dd0abf7`.
+The completed AC-4 parent session under `.codex/sessions/2026/09/19/`, named
+`rollout-2026-09-19T15-53-49-01a0ba5f-b597-79e1-9cff-3ac155e4b537.jsonl`,
+has SHA-256 `307c6b8cf71c43abe0741fb56184d47a934a97b64ecc845c2e80149b5a0f62ec`.
+Compare these files, CLI availability and login status after a separately
+approved rebuild; verify repeat initialization skips installation and Claude
+remains usable. Docker/devcontainer CLIs and the Docker socket are unavailable
+inside this container, so the rebuild requires VS Code or the Docker host.
+AC-5 remains open. Supporting logs and the baseline snapshot are in
+`/tmp/aiwf-M-0343-container-er9om5i7/`; the hashes above survive their removal.
+
 ## Deferrals
 
 - (none)
