@@ -3,7 +3,7 @@
 import re
 from pathlib import Path
 
-root = Path("/workspaces/aiwf-M-0162")
+root = Path(__file__).resolve().parents[1]
 integration = root / "internal/cli/integration"
 
 pairs = []
