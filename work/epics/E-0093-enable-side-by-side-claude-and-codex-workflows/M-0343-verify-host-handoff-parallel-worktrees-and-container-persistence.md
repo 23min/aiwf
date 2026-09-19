@@ -578,7 +578,16 @@ reports 0 errors and 10 advisory warnings. Scoped documentation checks found
 no broken local references, stale added invocations or structural issues.
 
 No tests were retired: subprocess lifecycle tests and in-process failure tests
-cover distinct execution seams. The read-only review did not perform a shell
-compression experiment; no measured simplification result is claimed. Full CI,
+cover distinct execution seams. An isolated shell compression trial passed the
+script tests but changed failure behavior: joining `mkdir` and `chmod` with `&&`
+continued after a simulated mkdir failure (exit 0); the original stopped at 42.
+The trial was rejected; production shell code is unchanged.
+
+Merge-time policy checks failed on missing consent-file/ADR references and the
+explicit materialization description in `CLAUDE.md`. Both named regression tests
+pass after restoring those details with selected-host wording. The full policy
+suite also passes: `go test -race -parallel 8 ./internal/policies -count=1`.
+The merge was aborted without a merge commit. The documentation correction is
+mechanically verified; the independent verdict above predates it. Full CI,
 external host sessions and rebuild were not repeated. Rebuild persistence remains
 unverified in G-0699.
