@@ -153,4 +153,9 @@ Live assistant discovery, Claude-to-Codex-to-Claude handoff, concurrent assistan
 
 ## Reviewer notes
 
-- (none)
+- Independent code review of `a6e54b8e3..d267fc658`, split across lifecycle/configuration and diagnosis/artifact inspection: approve, no blocking findings. The slices cover the full milestone change-set and its Release note, Validation, and Deferrals. Independent targeted tests passed; the reviewers did not independently reproduce the historical 62-probe total.
+- Independent design review: keep the optional host-selection model and shared read-only artifact inspection. The raw optional configuration list preserves wire semantics while the typed effective selection is derived; the inspector shares rendered expectations with the writer and keeps CLI severity policy at the reporting boundary.
+- Retain direct sequential refresh calls rather than a closure-table rewrite: the measured alternative reduces substantive lines from 121 to 73 but adds indirection without simplifying the distinct host and hook contracts. Retain explicit per-family finding counts rather than coupling healthy-summary eligibility to the report accumulator's length. Neither alternative warrants a new refactoring obligation.
+- The retired presence-only artifact tests are replaced by inspection tests that distinguish complete, missing, partial, and unsupported-agent layouts. Independent mutation probes confirmed that omitted agents, missing files reported current, and invented unsupported agents are caught. The replacement init rerun test also catches omitted user-hook preservation.
+- Independent two-host materialization confirmed the documented shared-skill hash and found no Codex launch or experimental-feature instructions in generated Claude markdown. Claude-specific entry fragments are unchanged.
+- Scoped doc-lint: clean for changed passages in seven narrative documents. Changed code references and CLI invocations were checked, along with document links/anchors, heading structure, and TODO markers; no new orphan narrative documents or scratch/debug code were identified. No additional deferrals or accepted judgment-level rule changes are required.
