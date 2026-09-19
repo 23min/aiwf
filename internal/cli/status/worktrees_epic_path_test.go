@@ -311,8 +311,8 @@ func TestBuildWorktreeViews_EpicPathOverrideInteractsWithMergedStaleOverride(t *
 	if got.DriverKind != "epic" || got.DriverEntityID != "E-9046" {
 		t.Fatalf("driver = %s/%s, want epic/E-9046 (path signal should still win)", got.DriverKind, got.DriverEntityID)
 	}
-	if got.AheadOfTrunk != 0 {
-		t.Fatalf("precondition: AheadOfTrunk = %d, want 0 (branch fully merged)", got.AheadOfTrunk)
+	if got.AheadOfTrunk == nil || *got.AheadOfTrunk != 0 {
+		t.Fatalf("precondition: AheadOfTrunk = %v, want pointer to 0 (branch fully merged)", got.AheadOfTrunk)
 	}
 	if !got.Stale {
 		t.Errorf("mergedStaleOverride should fire against the reassigned epic driver; got Stale=false")

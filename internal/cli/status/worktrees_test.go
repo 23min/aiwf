@@ -200,7 +200,7 @@ func TestCorrelateBranchToEntity_RitualBranchPrecedence(t *testing.T) {
 		tc := tc
 		t.Run(tc.name, func(t *testing.T) {
 			t.Parallel()
-			got := correlateBranchToEntity(t.Context(), "", tc.branch)
+			got := correlateBranchToEntity(t.Context(), "", "refs/heads/main", "main", tc.branch)
 			if got != tc.want {
 				t.Errorf("correlateBranchToEntity(%q) = %q, want %q", tc.branch, got, tc.want)
 			}
@@ -481,7 +481,7 @@ func TestRenderWorktreeViews(t *testing.T) {
 		{
 			name: "trunk worktree with no other in-flight gets the default marker",
 			views: []WorktreeView{
-				{Path: "/repo", Branch: "main"},
+				{Path: "/repo", Branch: "main", IsTrunk: true},
 			},
 			mustHave: []string{
 				"Worktree: /repo",
@@ -531,7 +531,7 @@ func TestRenderWorktreeViews(t *testing.T) {
 					Path: "/repo/wt-merged", Branch: "milestone/M-0099-old",
 					DriverEntityID: "M-0099", DriverKind: "milestone",
 					DriverStatus: "done", DriverTitle: "Old work", Stale: true,
-					AheadOfTrunk:     0,
+					AheadOfTrunk:     trunkCount(0),
 					ParentEpicID:     "E-0042",
 					ParentEpicTitle:  "Closed Epic",
 					ParentEpicStatus: "done",
@@ -564,7 +564,7 @@ func TestRenderWorktreeViews(t *testing.T) {
 					Path: "/repo/wt-wrap", Branch: "milestone/M-0124-wrap",
 					DriverEntityID: "M-0124", DriverKind: "milestone",
 					DriverStatus: "done", DriverTitle: "Wrap pending", Stale: true,
-					AheadOfTrunk:     5,
+					AheadOfTrunk:     trunkCount(5),
 					ParentEpicID:     "E-0033",
 					ParentEpicTitle:  "Pin legal workflows",
 					ParentEpicStatus: "active",
@@ -609,7 +609,7 @@ func TestRenderWorktreeViews(t *testing.T) {
 					Path: "/repo/wt-one", Branch: "milestone/M-0100-one",
 					DriverEntityID: "M-0100", DriverKind: "milestone",
 					DriverStatus: "done", DriverTitle: "Just one", Stale: true,
-					AheadOfTrunk: 1,
+					AheadOfTrunk: trunkCount(1),
 				},
 			},
 			mustHave: []string{
@@ -633,7 +633,7 @@ func TestRenderWorktreeViews(t *testing.T) {
 					Path: "/repo/wt-abandoned", Branch: "milestone/M-0066-dropped",
 					DriverEntityID: "M-0066", DriverKind: "milestone",
 					DriverStatus: "cancelled", DriverTitle: "Dropped work", Stale: true,
-					AheadOfTrunk:     3, // intentional: irrelevant for abandoned
+					AheadOfTrunk:     trunkCount(3), // intentional: irrelevant for abandoned
 					ParentEpicID:     "E-0050",
 					ParentEpicTitle:  "Older epic",
 					ParentEpicStatus: "active",

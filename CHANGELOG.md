@@ -16,6 +16,15 @@ section in this file.
 
 ## [Unreleased]
 
+### Fixed — status uses the configured trunk for worktree comparisons
+
+`aiwf status` uses the local branch named by `allocate.trunk` for worktree merge
+checks, entity correlation, activity timestamps, and trunk labeling, falling back
+to the configured ref when that local branch is absent. Unavailable merge comparisons report
+`MERGE STATUS UNKNOWN` instead of suggesting removal. JSON worktree rows expose
+`ahead_of_trunk: null` for unknown comparisons, a numeric count for successful
+comparisons, and `is_trunk: true` for the configured trunk checkout.
+
 ### Fixed — G-0684: dropped-section checks retain Git-quoted entity paths
 
 The push gate detects dropped required sections in entity filenames containing

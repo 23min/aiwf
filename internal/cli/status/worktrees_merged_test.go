@@ -93,7 +93,7 @@ func TestTrunkTreeOf_NoMainWorktree(t *testing.T) {
 		{Path: "/repo/wt-a", Branch: "epic/E-0001-a"},
 		{Path: "/repo/wt-b", Branch: "milestone/M-0002-b"},
 	}
-	if got := trunkTreeOf(context.Background(), worktrees, "/repo", nil); got != nil {
+	if got := trunkTreeOf(context.Background(), worktrees, "/repo", "main", nil); got != nil {
 		t.Errorf("trunkTreeOf with no main worktree = %v, want nil", got)
 	}
 }
@@ -185,8 +185,8 @@ func TestBuildWorktreeViews_MergedEpicTrunkTerminal(t *testing.T) {
 		t.Fatalf("BuildWorktreeViews: %v", err)
 	}
 	got := viewForBranch(t, views, "epic/E-9001-merged")
-	if got.AheadOfTrunk != 0 {
-		t.Fatalf("AheadOfTrunk = %d, want 0 (branch fully merged)", got.AheadOfTrunk)
+	if got.AheadOfTrunk == nil || *got.AheadOfTrunk != 0 {
+		t.Fatalf("AheadOfTrunk = %v, want pointer to 0 (branch fully merged)", got.AheadOfTrunk)
 	}
 	if !got.Stale {
 		t.Errorf("merged worktree whose driver is terminal on trunk should be Stale; got Stale=false — the G-0172 phantom-in-flight bug")
@@ -247,7 +247,7 @@ func TestBuildWorktreeViews_PreservesGenuineInFlight(t *testing.T) {
 	}
 
 	active := viewForBranch(t, views, "epic/E-9100-active")
-	if active.AheadOfTrunk == 0 {
+	if active.AheadOfTrunk == nil || *active.AheadOfTrunk == 0 {
 		t.Fatalf("precondition: epic/E-9100-active should be ahead of trunk, got AheadOfTrunk=0")
 	}
 	if active.Stale {
