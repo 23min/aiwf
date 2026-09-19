@@ -564,4 +564,20 @@ Initial/final logs and focused failure records remain under
 
 ## Reviewer notes
 
-- (none)
+Interim independent Codex review on 2026-09-19: fresh context, read-only,
+all 19 changed files at `b3bc70b21` against `28f7e1230` (969 additions,
+40 deletions). Verdict: request changes for one blocking documentation defect.
+Canonical `CLAUDE.md` still described setup and materialization as Claude-only.
+Disposition: accepted; operator setup now points to README's selected-host
+contract, and related delivery descriptions distinguish supported host paths.
+The parent checked the correction against that contract; independent re-review
+of the correction has not run.
+
+Focused race tests for host dispatch, refresh failures, missing executables and
+container scripts pass. The reviewer also ran
+`TestHostLifecycle_InitUpdateAndWorktreeUseResolvedHosts` under the race detector
+and the malformed-stamp subprocess test; both pass. Existing lifecycle assertions
+pin host selection; no wording-presence test was added for this prose correction.
+Coverage exclusions and sampled observation records raised no further findings.
+Full CI, hosted CI, external host observations and rebuild were not repeated.
+AC-5 remains open; this review does not approve milestone closure.
