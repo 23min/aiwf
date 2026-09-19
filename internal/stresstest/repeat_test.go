@@ -121,7 +121,7 @@ func TestRunRepeated_ContinuesPastAScenarioFailure(t *testing.T) {
 	newScenario := func(seed int64) Scenario {
 		s := &fakeScenario{}
 		if attempt == 1 {
-			s.violations = []Violation{{Message: "found it"}}
+			s.violations = []Violation{{Message: "first breach"}, {Message: "second breach"}}
 		}
 		attempt++
 		return s
@@ -147,10 +147,18 @@ func TestRunRepeated_ContinuesPastAScenarioFailure(t *testing.T) {
 		t.Fatalf("expected 3 logged events, got %d", len(cw.calls))
 	}
 	wantPassed := []bool{true, false, true}
+	wantViolations := []string{"", `[{"message":"first breach"},{"message":"second breach"}]`, ""}
 	for i, call := range cw.calls {
 		var ev RepeatEvent
 		if err := json.Unmarshal(call[:len(call)-1], &ev); err != nil {
 			t.Fatalf("event %d is not valid JSON: %v\n%s", i, err, call)
+		}
+		var wire map[string]json.RawMessage
+		if decodeErr := json.Unmarshal(call, &wire); decodeErr != nil {
+			t.Fatal(decodeErr)
+		}
+		if got := string(wire["violations"]); got != wantViolations[i] {
+			t.Errorf("event %d violations = %s; want %s", i, got, wantViolations[i])
 		}
 		if ev.Passed != wantPassed[i] {
 			t.Fatalf("event %d: Passed = %v, want %v", i, ev.Passed, wantPassed[i])

@@ -21,13 +21,15 @@ import (
 // reports as metadata.correlation_id (internal/cli/root.go: "reused
 // as the diagnostic logger's run_id"), so a failing attempt's Dir plus
 // these ids is enough to find every diagnostic-log entry that
-// subprocess wrote without re-running the campaign.
+// subprocess wrote without re-running the campaign. Violations preserves every
+// verification failure in oracle order; it is omitted when none occurred.
 type RepeatEvent struct {
-	Attempt        int      `json:"attempt"`
-	Seed           int64    `json:"seed"`
-	Passed         bool     `json:"passed"`
-	Dir            string   `json:"dir,omitempty"`
-	CorrelationIDs []string `json:"correlation_ids,omitempty"`
+	Violations     []Violation `json:"violations,omitempty"`
+	Attempt        int         `json:"attempt"`
+	Seed           int64       `json:"seed"`
+	Passed         bool        `json:"passed"`
+	Dir            string      `json:"dir,omitempty"`
+	CorrelationIDs []string    `json:"correlation_ids,omitempty"`
 }
 
 // RunRepeated runs a scenario n times against baseDir. newScenario
@@ -91,7 +93,7 @@ func RunRepeated(newScenario func(seed int64) Scenario, baseDir string, n int, s
 			}
 		}
 
-		event := RepeatEvent{Attempt: i, Seed: seed, Passed: result.Passed, Dir: result.Dir, CorrelationIDs: ids}
+		event := RepeatEvent{Attempt: i, Seed: seed, Passed: result.Passed, Dir: result.Dir, CorrelationIDs: ids, Violations: result.Violations}
 		if err := rw.WriteEvent(event); err != nil {
 			return results, fmt.Errorf("logging attempt %d (seed %d): %w", i, seed, err)
 		}
