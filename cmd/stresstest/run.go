@@ -15,22 +15,28 @@ import (
 	"github.com/23min/aiwf/internal/stresstest"
 )
 
-func newRunCmd() *cobra.Command {
+func newRunCmd(randomSeed func() int64) *cobra.Command {
 	var (
 		moduleRoot   string
 		outDir       string
 		repeat       int
 		scenarioName string
+		seed         int64
 	)
 	cmd := &cobra.Command{
 		Use:   "run",
 		Short: "Build the aiwf binary under test and run one or all of the real catalog scenarios",
 		RunE: func(cmd *cobra.Command, _ []string) error {
-			return runRun(cmd.Context(), moduleRoot, outDir, repeat, scenarioName, cmd.OutOrStdout())
+			seedFn := randomSeed
+			if cmd.Flags().Changed("seed") {
+				seedFn = func() int64 { return seed }
+			}
+			return runRun(cmd.Context(), moduleRoot, outDir, repeat, scenarioName, cmd.OutOrStdout(), seedFn)
 		},
 	}
 	cmd.Flags().StringVar(&moduleRoot, "module-root", ".", "aiwf module root to build the binary under test from")
 	cmd.Flags().StringVar(&outDir, "out", "", "directory for the build output, scenario temp dirs, and the raw-report file (defaults to a fresh temp dir, printed on completion)")
+	cmd.Flags().Int64Var(&seed, "seed", 0, "seed for every attempt (default: fresh random seed per attempt); replays verb-sequence actions, not concurrent timing; other scenarios ignore it")
 	cmd.Flags().IntVar(&repeat, "repeat", 1, "number of times to repeat the scenario")
 	cmd.Flags().StringVar(&scenarioName, "scenario", "", fmt.Sprintf("scenario to run: one of %s, or \"all\" to run the whole catalog", strings.Join(scenarioNames(), ", ")))
 	_ = cmd.MarkFlagRequired("scenario")
@@ -89,6 +95,8 @@ func resolveOutDir(outDir string) (string, error) {
 // shared raw-report JSONL file under outDirFlag (or a fresh temp dir
 // if empty). scenarioName is resolved against the registry before any
 // I/O — a bad --scenario, like a bad --out, never wastes a compile.
+// seedFn supplies each attempt's seed: fresh random values by default, or the
+// explicit --seed value for every attempt when replaying.
 //
 // Diagnostic logging (AIWF_LOG/AIWF_LOG_FORMAT/AIWF_LOG_FILE) is
 // enabled for the whole run, pointed at one shared file under outDir:
@@ -97,7 +105,7 @@ func resolveOutDir(outDir string) (string, error) {
 // attempt's preserved Dir plus that attempt's own RepeatEvent.
 // CorrelationIDs is enough to find every diagnostic-log entry
 // involved without re-running the campaign.
-func runRun(ctx context.Context, moduleRoot, outDirFlag string, repeat int, scenarioName string, out io.Writer) error {
+func runRun(ctx context.Context, moduleRoot, outDirFlag string, repeat int, scenarioName string, out io.Writer, seedFn func() int64) error {
 	if repeat <= 0 {
 		return fmt.Errorf("repeat count must be positive, got %d", repeat)
 	}
@@ -143,7 +151,7 @@ func runRun(ctx context.Context, moduleRoot, outDirFlag string, repeat int, scen
 	// to the next one's first attempt.
 	var logOffset int64
 	for _, entry := range entries {
-		results, err := stresstest.RunRepeated(entry.Build(rt), outDir, repeat, nextSeed, rw, diagnosticLogPath, &logOffset)
+		results, err := stresstest.RunRepeated(entry.Build(rt), outDir, repeat, seedFn, rw, diagnosticLogPath, &logOffset)
 		if err != nil { //coverage:ignore not portably triggerable: every registered scenario's Setup/Run failure mode is a genuine environmental fault (a bad binary path, a disk fault) already exercised at its own source in internal/stresstest; forcing one here, or forcing rw.WriteEvent to fail mid-write, needs either sabotaging the freshly built binary or an already-open fd to fail, neither reproducible without an unsafe/fragile test
 			return fmt.Errorf("running scenario %s: %w", entry.Name, err)
 		}
@@ -173,5 +181,5 @@ func printScenarioSummary(out io.Writer, name string, results []stresstest.RunRe
 	_, _ = fmt.Fprintf(out, "stresstest run: %s: %d/%d attempts passed\n", name, passCount, len(results))
 }
 
-// nextSeed returns a fresh pseudo-random seed for one repeat attempt.
-func nextSeed() int64 { return rand.Int64() } //nolint:gosec // G404: replay needs a seedable source; crypto/rand can't be seeded, and this isn't a security context
+// nextSeed returns a fresh pseudo-random seed when --seed is omitted.
+func nextSeed() int64 { return rand.Int64() } //nolint:gosec // G404: scenario seed selection is not a security context

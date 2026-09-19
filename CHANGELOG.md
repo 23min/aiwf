@@ -16,6 +16,14 @@ section in this file.
 
 ## [Unreleased]
 
+### Added — explicit seeds for stress replay
+
+`stresstest run --seed <int64>` supplies that seed to every selected attempt,
+including with `--repeat`; omitted seeds remain fresh random values per attempt.
+Use `--scenario verb-sequence --seed <recorded-seed>` with the same binary and
+inputs to replay generated actions. Other scenarios ignore the seed; concurrent
+timing and identical outcomes are not guaranteed.
+
 ### Fixed — actor identity follows the target repository
 
 Actor derivation reads `git config user.email` in the resolved target repository,

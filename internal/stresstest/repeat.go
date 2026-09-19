@@ -9,11 +9,12 @@ import (
 	"os"
 )
 
-// RepeatEvent is the raw-report event one --repeat attempt logs. The
-// seed is what makes a violation found on a given attempt replayable:
-// rerunning newScenario with that exact seed reproduces the same
-// actor-start jitter and randomized delays the attempt used. Dir
-// names the preserved scenario dir on a failing attempt (mirrors
+// RepeatEvent is the raw-report event one --repeat attempt logs. Seed is the
+// value passed to the scenario constructor. With the same binary and inputs,
+// verb-sequence uses it to reproduce generated actions via `run --scenario
+// verb-sequence --seed <seed>`. Other catalog scenarios ignore it; a seed does
+// not reproduce process scheduling or guarantee the same outcome. Dir names
+// the preserved scenario dir on a failing attempt (mirrors
 // RunResult.Dir; empty on a pass). CorrelationIDs holds every
 // diagnostic-log run_id observed during this attempt's window (empty
 // when diagnosticLogPath was never supplied, or nothing logged) — the

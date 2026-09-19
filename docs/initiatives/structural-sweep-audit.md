@@ -214,12 +214,6 @@ unconditionally; the projection excludes `body-prose-id` via
 Patch: per-entry triage; delete the unowned, name the deliberate seams in an
 allowlist the policy under *What would prevent it* reads.
 
-**B6. The stress seed is logged as replayable and nothing can replay it.**
-`internal/stresstest/repeat.go:12-15` claims replay; `cmd/stresstest/run.go:19-38`
-has no `--seed` flag and `:171-172` always draws `rand.Int64()`; 15 of 16
-constructors discard the seed (`registry.go:89-132`); only `verb_sequence.go:83`
-consumes it. Patch: add `--seed`, or drop the claim and stop logging a decoy.
-
 **B7. HTML view-model fields computed at real cost and read by no template.**
 `internal/cli/render/resolver.go:81,226` `LastActivity` (a history lookup per
 epic and per milestone), `:315` `MilestoneData.LinkedEntities` (a full
@@ -589,7 +583,7 @@ places and the ledger names where it does not.
 | F1 names | Weak | `skills.HooksDir` is `.claude/hooks` while `gitops.HooksDir` is `.git/hooks`; `--root` help "(default: cwd)" on a verb that walks up; `Outcome: Legal` on cells that fire (B11) |
 | F2 comments | Weak | drafting-history residue (`fsm_history_consistent.go:190` "The pre-lift line was", `acks.go:12` "Lifted from", eight drop-narration blocks in `branch/rules.go`); comments asserting a parity that does not hold (`initrepo.go:855`, `reflog_walk.go:146`, `pagedata.go:38`) |
 | F3 decision records | Strong | guards cite the ADR, decision or gap that pins them at the enforcement site |
-| G1 reproducible | Strong | no clock in core; sorted iteration in render; Weak: the stress seed is a decoy (B6) |
+| G1 reproducible | Strong | no clock in core; sorted iteration in render |
 | G2 reversible | Strong | every verb doc answers "what undoes this"; LIFO undo journal (D-0029); Weak: dry-run is a separate implementation in three `initrepo` steps (B13) |
 | G3 observable | Weak | four read verbs invisible to the diagnostic log (D9) |
 | H1 reuse | **Weak** | helpers exist and are bypassed at six, eight, nine and thirteen sites (D7, D8, D9, D2) |

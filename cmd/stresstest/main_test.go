@@ -26,7 +26,7 @@ func TestRun_UnknownCommandReturnsOne(t *testing.T) {
 // unit tests around runRun itself never exercise, since they call
 // runRun directly. Cannot use t.Parallel() — reaches runRun's
 // AIWF_LOG* os.Setenv call; see run_test.go's
-// TestRunRun_Succeeds doc comment for the full rationale.
+// TestRunCommand_DefaultSeeds doc comment for the full rationale.
 func TestRun_RunCommand_Succeeds(t *testing.T) {
 	outDir := t.TempDir()
 
