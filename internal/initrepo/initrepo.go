@@ -1142,7 +1142,7 @@ func ensureGitignore(root string, selection config.HostSelection, statusMdAutoUp
 			target = skills.ClaudeTarget
 		}
 		patterns, err := skills.GitignorePatternsFor(target)
-		if err != nil {
+		if err != nil { //coverage:ignore selected built-in targets use validated immutable embedded sources; there is no caller-supplied layout here
 			return StepResult{}, fmt.Errorf("computing %s gitignore patterns: %w", host, err)
 		}
 		for _, pattern := range patterns {

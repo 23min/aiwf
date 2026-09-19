@@ -9,6 +9,8 @@ import (
 
 // TestMain seeds GIT identity once at startup so tests can run with
 // t.Parallel() without t.Setenv panics.
+// TestDoctor_ConfiguredHostWithoutExecutableReportsRemediation stays serial:
+// it isolates process PATH with t.Setenv.
 func TestMain(m *testing.M) {
 	os.Setenv("GIT_AUTHOR_NAME", "aiwf-test")
 	os.Setenv("GIT_AUTHOR_EMAIL", "test@example.com")

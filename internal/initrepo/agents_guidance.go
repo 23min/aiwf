@@ -40,7 +40,7 @@ func ensureAgentsGuidance(ctx context.Context, root string, cfg *config.Config, 
 		}
 	}
 	body, err := skills.RenderCodexGuidance(version.Current().Version)
-	if err != nil {
+	if err != nil { //coverage:ignore malformed immutable linker stamps are exercised in TestEnsureAgentsGuidance_InvalidBuildStampPreservesFile via a separately linked subprocess
 		return StepResult{}, fmt.Errorf("rendering AGENTS.md guidance: %w", err)
 	}
 	rebuilt, err := spliceAgentsGuidance(string(content), string(body))

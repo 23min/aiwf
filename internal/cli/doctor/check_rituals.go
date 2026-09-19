@@ -19,13 +19,13 @@ func checkRitualsResult(rootDir string) (ok bool, message string, err error) {
 		return false, "", err
 	}
 	selection, err := cfg.ResolveHosts(context.Background())
-	if err != nil {
+	if err != nil { //coverage:ignore config.Load already validates host names and context.Background cannot be canceled
 		return false, "", err
 	}
 	var findings []string
 	for _, host := range selection.Hosts {
 		statuses, inspectErr := skills.InspectArtifacts(context.Background(), rootDir, hostTarget(host), configuredAgentTiers(cfg))
-		if inspectErr != nil {
+		if inspectErr != nil { //coverage:ignore built-in targets and immutable embedded sources render successfully; background context cannot be canceled
 			return false, "", inspectErr
 		}
 		for _, status := range statuses {
