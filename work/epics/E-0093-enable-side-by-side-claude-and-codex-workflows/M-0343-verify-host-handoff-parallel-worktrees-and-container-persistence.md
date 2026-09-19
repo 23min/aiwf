@@ -18,7 +18,7 @@ acs:
       status: met
     - id: AC-4
       title: An independent Codex review executes through the supported ritual path
-      status: open
+      status: met
     - id: AC-5
       title: A rebuilt devcontainer provides Codex and retains the selected state
       status: open
