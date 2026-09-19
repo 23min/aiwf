@@ -89,26 +89,40 @@ func mustReadDoc(t *testing.T, src string) (*aiwfyaml.Doc, *aiwfyaml.Contracts) 
 
 func TestContractBind_NewBinding(t *testing.T) {
 	t.Parallel()
-	tr := contractTree("C-0001", "proposed")
-	d, c := mustReadDoc(t, baseAiwfYAML)
+	for _, id := range []string{"C-0001", "C-001"} {
+		t.Run(id, func(t *testing.T) {
+			t.Parallel()
+			tr := contractTree("C-0001", "proposed")
+			d, c := mustReadDoc(t, baseAiwfYAML)
 
-	res, err := ContractBind(context.Background(), tr, d, c, "C-0001", "human/test", bindRepo(t), ContractBindOptions{
-		Validator: "cue", Schema: "schema.cue", Fixtures: "fixtures",
-	})
-	if err != nil {
-		t.Fatalf("ContractBind: %v", err)
+			res, err := ContractBind(context.Background(), tr, d, c, id, "human/test", bindRepo(t), ContractBindOptions{
+				Validator: "cue", Schema: "schema.cue", Fixtures: "fixtures",
+			})
+			if err != nil {
+				t.Fatalf("ContractBind: %v", err)
+			}
+			if res.Plan == nil {
+				t.Fatal("expected a Plan; got NoOp or nil")
+			}
+			if len(res.Plan.Ops) != 1 || res.Plan.Ops[0].Path != "aiwf.yaml" {
+				t.Errorf("expected single OpWrite for aiwf.yaml; got %+v", res.Plan.Ops)
+			}
+			if !strings.Contains(string(res.Plan.Ops[0].Content), id) {
+				t.Errorf("aiwf.yaml content missing the new entry id:\n%s", res.Plan.Ops[0].Content)
+			}
+			wantTrailers := []gitops.Trailer{
+				{Key: gitops.TrailerVerb, Value: "contract-bind"},
+				{Key: gitops.TrailerEntity, Value: "C-0001"},
+				{Key: gitops.TrailerActor, Value: "human/test"},
+			}
+			if diff := cmp.Diff(wantTrailers, res.Plan.Trailers); diff != "" {
+				t.Errorf("trailers (-want +got):\n%s", diff)
+			}
+			if gotID := res.Metadata["entity_id"]; gotID != "C-0001" {
+				t.Errorf("entity_id = %v; want C-0001", gotID)
+			}
+		})
 	}
-	if res.Plan == nil {
-		t.Fatal("expected a Plan; got NoOp or nil")
-	}
-	if len(res.Plan.Ops) != 1 || res.Plan.Ops[0].Path != "aiwf.yaml" {
-		t.Errorf("expected single OpWrite for aiwf.yaml; got %+v", res.Plan.Ops)
-	}
-	if !strings.Contains(string(res.Plan.Ops[0].Content), "C-0001") {
-		t.Errorf("aiwf.yaml content missing the new entry id:\n%s", res.Plan.Ops[0].Content)
-	}
-	mustHaveTrailerInPlan(t, res.Plan, "aiwf-verb", "contract-bind")
-	mustHaveTrailerInPlan(t, res.Plan, "aiwf-entity", "C-0001")
 }
 
 func TestContractBind_IdempotentExactMatch(t *testing.T) {
@@ -222,26 +236,40 @@ func TestContractBind_RejectsMissingFlags(t *testing.T) {
 
 func TestContractUnbind_Removes(t *testing.T) {
 	t.Parallel()
-	src := strings.Replace(baseAiwfYAML, "  entries: []", `  entries:
+	for _, id := range []string{"C-0001", "C-001"} {
+		t.Run(id, func(t *testing.T) {
+			t.Parallel()
+			src := strings.Replace(baseAiwfYAML, "  entries: []", `  entries:
     - id: C-001
       validator: cue
       schema: s.cue
       fixtures: f`, 1)
-	d, c := mustReadDoc(t, src)
+			d, c := mustReadDoc(t, src)
 
-	res, err := ContractUnbind(context.Background(), &tree.Tree{}, d, c, "C-0001", "human/test", t.TempDir())
-	if err != nil {
-		t.Fatalf("ContractUnbind: %v", err)
+			res, err := ContractUnbind(context.Background(), &tree.Tree{}, d, c, id, "human/test", t.TempDir())
+			if err != nil {
+				t.Fatalf("ContractUnbind: %v", err)
+			}
+			if res.Plan == nil {
+				t.Fatal("expected Plan")
+			}
+			got := string(res.Plan.Ops[0].Content)
+			if strings.Contains(got, "C-001") || strings.Contains(got, "C-0001") {
+				t.Errorf("entry not removed from aiwf.yaml:\n%s", got)
+			}
+			wantTrailers := []gitops.Trailer{
+				{Key: gitops.TrailerVerb, Value: "contract-unbind"},
+				{Key: gitops.TrailerEntity, Value: "C-0001"},
+				{Key: gitops.TrailerActor, Value: "human/test"},
+			}
+			if diff := cmp.Diff(wantTrailers, res.Plan.Trailers); diff != "" {
+				t.Errorf("trailers (-want +got):\n%s", diff)
+			}
+			if gotID := res.Metadata["entity_id"]; gotID != "C-0001" {
+				t.Errorf("entity_id = %v; want C-0001", gotID)
+			}
+		})
 	}
-	if res.Plan == nil {
-		t.Fatal("expected Plan")
-	}
-	got := string(res.Plan.Ops[0].Content)
-	if strings.Contains(got, "C-0001") {
-		t.Errorf("entry not removed from aiwf.yaml:\n%s", got)
-	}
-	mustHaveTrailerInPlan(t, res.Plan, "aiwf-verb", "contract-unbind")
-	mustHaveTrailerInPlan(t, res.Plan, "aiwf-entity", "C-0001")
 }
 
 // TestContractUnbind_IntroducesNoBindingWarningButDoesNotBlock: proves
