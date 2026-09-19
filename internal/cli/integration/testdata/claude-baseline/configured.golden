@@ -1,6 +1,7 @@
 0644 02a56115ef4770618d9fcef90d385da4c721cee87985296155df5905aa3a351f .claude/settings.json.bak
 0644 02a56115ef4770618d9fcef90d385da4c721cee87985296155df5905aa3a351f user/.claude/settings.json
 0644 02a958a0c386cd9716af125233ff3fa0ccad8c3830319675115813fb2de61dd6 .claude/skills/aiwf-reallocate/SKILL.md
+0644 046f0df0cf0390a3fabf39a15006172732caeba47eb7ae964dddc8d4ec8a3619 aiwf.example.yaml
 0644 096fceaaa41f584deda34368ab3c7d598c385638f1ad73c54d78598dc3408d4c .claude/skills/wf-property-test/SKILL.md
 0644 0ac0b36f7f6230ec3e35767ede67fe8dbed67eec8520099226f0f52c659a6822 .claude/skills/aiwfx-record-gap/SKILL.md
 0644 0c8260c422311c32bf0a45956ca92592bd11607c309819226373af30b9d34f81 .claude/skills/aiwf-add/SKILL.md
@@ -19,7 +20,6 @@
 0644 593dc29b0594640de8ca050bcecd6ae558af85433a2086e16028ff3a04289c79 .claude/templates/gap.md
 0644 59ed01ac5e0dfef0d9736500319c749aa448a1ae0a045da8f36727ebc48c0b5d .claude/skills/wf-codebase-health/SKILL.md
 0644 5a4cb52538cfa56e60c7ebdc78f7a542075e3dd14217454c9f1a2096d6d4378d .claude/skills/aiwfx-plan-epic/SKILL.md
-0644 5bf701304f5b83410eee6ad1c28e4bd771bb9d762e5aab817fece1f11b78657a aiwf.example.yaml
 0644 5e9c3d4227cdabf0b27f75b72d6119397d28c3022c3ccb367c837e415ce06bb8 .claude/templates/epic-spec.md
 0644 5f91482e1fa70bf50a0e21ee77e49e6f2d743b42f76fe5e3ddd50e52db194ae8 .claude/settings.json
 0644 6911c113e853749d07c7413c25a0de1bdcb78dd040f64a2e754ca73122672773 .claude/agents/deployer.md

@@ -62,3 +62,26 @@ baseline. Do not normalize the generated files during comparison.
 | --- | --- | --- |
 | `aiwf-area` | `512a8a10734fb6128c80aceec612a03b6d9f8764e96330ffbf735d3863231054` | `d6b141d62c26926e02f66ae841a0fedd581811b0de723538e32e88ab06043d0f` |
 | `wf-codebase-health` | `c3a88b2ef4cac7f2716bb1a5997e0ddb6fe5849f6b358d575e1e1f18e47807c3` | `59ed01ac5e0dfef0d9736500319c749aa448a1ae0a045da8f36727ebc48c0b5d` |
+
+## Codex guidance configuration exception
+
+M-0341 adds `guidance.wire_agentsmd` to the shared config schema. The generated
+config example changes only the `guidance` comment to describe both instruction
+files and adds the commented `wire_agentsmd: true` field with its description.
+Newly scaffolded `aiwf.yaml` files include the same two comment changes. Existing
+consumer config, Claude adapters, instructions, settings, hooks, paths and modes
+remain unchanged.
+
+The six inventories change only `aiwf.example.yaml` and, in the four scenarios
+that scaffold config, `aiwf.yaml`. Expectations were derived independently of the
+new schema generator: capture those files using the pre-change `c2e1bf6ec` binary,
+verify their hashes against the historical inventory, apply only the two textual
+comment edits above, and compute SHA-256 of the complete result. The enabled-hook
+scenario includes its existing hook-consent mapping. All other inventory records
+remain frozen; sort the records after substituting these hashes.
+
+| Config artifact | Original SHA-256 | Updated SHA-256 |
+| --- | --- | --- |
+| `aiwf.example.yaml` | `5bf701304f5b83410eee6ad1c28e4bd771bb9d762e5aab817fece1f11b78657a` | `046f0df0cf0390a3fabf39a15006172732caeba47eb7ae964dddc8d4ec8a3619` |
+| Scaffolded `aiwf.yaml` | `57a8cd51e36dcd55d39be610d80c393cd77dfdc2bf32b956d71daae49b72c33b` | `73748c6a5091a363cbabb8d05b93e902cab9e2299adb889301d917b38e73e00c` |
+| Scaffolded `aiwf.yaml` with hook consent | `d32092a6a30030d7c0801050657463e986e45f294c2a0d44a73b34d7a8a7f62e` | `c9f7f10ac9af60a447fe926a48ff5079c87acaf77da42f6d1ca602e2f65670a7` |

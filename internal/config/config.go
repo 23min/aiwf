@@ -719,19 +719,13 @@ func (c *Config) StatusMdAutoUpdate() bool {
 // generator can cite it instead of a bare literal hiding inside the getter).
 const DefaultStatusMdAutoUpdate = true
 
-// Guidance carries the consumer's opt-out for aiwf maintaining its
-// per-turn LLM guidance import in the repo-root `CLAUDE.md` (ADR-0018).
-// WireClaudeMd is a tristate via *bool mirroring StatusMd.AutoUpdate:
-// nil → default (true), &false → explicit opt-out, &true → explicit
-// opt-in. Use the getter Config.WireClaudeMd, not the pointer.
-//
-// Default behavior (empty Guidance block, or absent
-// guidance.wire_claudemd): aiwf wires and self-heals the marker-wrapped
-// `@.claude/aiwf-guidance.md` import on every `aiwf init` / `aiwf
-// update` — the framework's opt-out, not opt-in. There is deliberately
-// no CLI flag; the wiring is automatic, like skill/hook materialization.
+// Guidance carries independent opt-outs for managed instructions in the
+// consumer's root CLAUDE.md and AGENTS.md. Each pointer is tristate:
+// nil defaults on, false opts out, and true explicitly opts in. Use the
+// Config getters rather than reading the pointers directly.
 type Guidance struct {
 	WireClaudeMd *bool `yaml:"wire_claudemd,omitempty"`
+	WireAgentsMd *bool `yaml:"wire_agentsmd,omitempty"`
 }
 
 // WireClaudeMd returns whether aiwf should maintain its guidance import
@@ -749,6 +743,18 @@ func (c *Config) WireClaudeMd() bool {
 // aiwf.yaml.guidance.wire_claudemd is unset (E-0057: named so the schema
 // generator can cite it instead of a bare literal hiding inside the getter).
 const DefaultWireClaudeMd = true
+
+// WireAgentsMd returns whether aiwf should maintain native guidance in
+// AGENTS.md when Codex is selected. A nil receiver defaults on.
+func (c *Config) WireAgentsMd() bool {
+	if c == nil || c.Guidance.WireAgentsMd == nil {
+		return DefaultWireAgentsMd
+	}
+	return *c.Guidance.WireAgentsMd
+}
+
+// DefaultWireAgentsMd applies when guidance.wire_agentsmd is unset.
+const DefaultWireAgentsMd = true
 
 // Worktree carries the consumer's default placement for the git
 // worktrees the start rituals (`aiwfx-start-epic` / `aiwfx-start-milestone`)

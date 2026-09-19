@@ -64,8 +64,9 @@ var fieldDescriptions = map[string]string{
 	"entities":                  "Policy for entity-shape constraints the kernel enforces when writing entity files.",
 	"entities.title_max_length": "Maximum length for an entity title and slug (default 80).",
 
-	"guidance":               "Opt-out for aiwf maintaining its per-turn LLM guidance import in the consumer's CLAUDE.md.",
+	"guidance":               "Opt-outs for aiwf maintaining instructions in the consumer's CLAUDE.md and AGENTS.md.",
 	"guidance.wire_claudemd": "Whether aiwf wires and self-heals the guidance import in CLAUDE.md (default true).",
+	"guidance.wire_agentsmd": "Whether aiwf maintains native guidance in AGENTS.md when Codex is selected (default true).",
 
 	"areas":                 "Declares the closed set of workstream area tags entities may carry.",
 	"areas.members":         "Declared area members, each a name and optional source-path globs.",
@@ -148,6 +149,9 @@ var fieldDefaultResolvers = map[string]func() string{
 	},
 	"guidance.wire_claudemd": func() string {
 		return fmt.Sprintf("%t", (&Config{}).WireClaudeMd())
+	},
+	"guidance.wire_agentsmd": func() string {
+		return fmt.Sprintf("%t", (&Config{}).WireAgentsMd())
 	},
 }
 
