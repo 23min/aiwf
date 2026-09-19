@@ -1304,7 +1304,7 @@ Cut the instruction load a session reads before its task to a fixed ceiling, enf
 | M-0338 | Record the after observation and re-run the growth report | draft |
 | M-0339 | Rewrite the fragment and update the anchors policy | draft |
 
-## E-0093 — Enable side-by-side Claude and Codex workflows (active)
+## E-0093 — Enable side-by-side Claude and Codex workflows (done)
 
 ### Goal
 
