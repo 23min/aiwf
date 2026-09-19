@@ -326,9 +326,9 @@ const (
 
 // StepResult is one line of init's per-step ledger.
 type StepResult struct {
-	What   string
-	Action Action
-	Detail string
+	What   string `json:"what"`
+	Action Action `json:"action"`
+	Detail string `json:"detail,omitempty"`
 }
 
 // Result is the per-step ledger init returns. Order matches the order
@@ -503,7 +503,7 @@ func RefreshArtifacts(ctx context.Context, root string, opts RefreshOptions) (*R
 }
 
 func refreshArtifacts(ctx context.Context, root string, cfg *config.Config, selection config.HostSelection, opts RefreshOptions) (*Result, error) {
-	var steps []StepResult
+	steps := retainedHostSteps(root, selection)
 	var conflict bool
 
 	for _, host := range selection.Hosts {

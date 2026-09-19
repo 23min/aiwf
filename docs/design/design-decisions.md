@@ -242,8 +242,18 @@ Claude family receipts are gitignored. Existing manifest ownership remains
 authoritative for edited generated files. Writes are atomic per file and retries
 converge after a filesystem failure is resolved; the family set is not an
 all-files transaction. The generic `AtomicWriteFile` contract is unchanged.
-Codex skills and support templates use the same internal writer; public Codex
-host selection remains part of E-0093.
+Codex skills and support templates use the same writer. Init, update, and
+worktree setup refresh only the resolved host set. Existing unselected host
+paths remain untouched, including Claude settings, lifecycle hooks, statuslines,
+and installation-health files; stored hook consent never selects a host.
+Explicit Claude-only options require Claude selection and otherwise fail before
+artifact writes. Core Git hooks remain independent of assistant selection.
+
+The setup ledger identifies existing unselected host paths as preserved without
+refresh, including when an executable disappears from PATH. It inspects path
+presence without following links or reading retained content. Presence is not a
+claim of aiwf ownership or installation health. Worktree JSON exposes the same
+ledger under `result.steps`, alongside `path` and `host_selection`.
 
 Host instructions are authored under `internal/skills/embedded-guidance/claude/`
 and `codex/`. The shared sources mark substitution sites explicitly. Skill

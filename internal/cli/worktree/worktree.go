@@ -43,6 +43,12 @@ func newAddCmd(correlationID string) *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "add <branch> [path]",
 		Short: "Create a git worktree and materialize aiwf rituals into it atomically",
+		Long: `Create a git worktree and materialize rituals for the resolved hosts.
+Existing unselected host paths are retained without refresh.
+
+With --format=json, result contains path, host_selection (hosts and source),
+and steps: the artifact ledger with what, action, and optional detail fields.
+A preserved unselected path is not a claim that its files are current or healthy.`,
 		Example: `  # Create an in-repo worktree for a new branch off main
   aiwf worktree add epic/E-0099-my-epic --base main
 
@@ -194,7 +200,7 @@ func Run(branch, path, base, root string, printPath bool, out cliutil.OutputForm
 		// envelope rather than calling those, so it calls the exported
 		// method directly instead of leaving CorrelationID unread.
 		env := cliutil.OKEnvelope(
-			worktreeResult{Path: absPath, HostSelection: refresh.HostSelection},
+			worktreeResult{Path: absPath, HostSelection: refresh.HostSelection, Steps: refresh.Steps},
 			out.Metadata(map[string]any{"branch": branch, "path": absPath}),
 		)
 		if werr := render.JSON(os.Stdout, env, out.Pretty); werr != nil { //coverage:ignore render.JSON to os.Stdout fails only on a write fault (broken pipe, closed fd); not deterministically reproducible.
@@ -212,8 +218,9 @@ func Run(branch, path, base, root string, printPath bool, out cliutil.OutputForm
 }
 
 type worktreeResult struct {
-	Path          string               `json:"path"`
-	HostSelection config.HostSelection `json:"host_selection"`
+	Path          string                `json:"path"`
+	HostSelection config.HostSelection  `json:"host_selection"`
+	Steps         []initrepo.StepResult `json:"steps"`
 }
 
 // resolveCreatedPath turns the (possibly relative) path passed to
