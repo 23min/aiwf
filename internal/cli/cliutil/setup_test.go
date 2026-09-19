@@ -8,6 +8,8 @@ import (
 )
 
 // Serial tests (do NOT call t.Parallel):
+//   - TestResolveActorWithSource_TargetRepository (actor_test.go) — changes
+//     cwd and Git config environment to distinguish two repositories.
 //   - TestOutputFormat_EmitHelpers (outputformat_test.go) — redirects the
 //     process-global os.Stdout/os.Stderr to capture envelope output.
 //   - TestParseTestsFlag (verbhelpers_test.go) — its "malformed" subtest

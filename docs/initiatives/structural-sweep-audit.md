@@ -167,16 +167,6 @@ where `cfg.AllocateTrunkRef()` is the source. A repository using a different
 trunk can miss the stale-binary advisory or compare against the wrong ref.
 Patch; overlaps E-0093's doctor changes.
 
-**A5. Actor derivation reads `user.email` from different repos per verb.**
-*Derived.* `internal/cli/cliutil/actor.go:51` runs `git config --get user.email`
-with no `cmd.Dir` (`:44` discards `root` with `_ = root`), so every verb reads the
-cwd's repo; `internal/initrepo/initrepo.go:668` sets `cmd.Dir = root`. Six
-`git config --get` readers carry four exit-1 conventions
-(`gitops.go:282`, `committree.go:158`, `cli/check/git_config.go:33`,
-`isolation_escape_oracle.go:197`, `actor.go:51`, `initrepo.go:667`). Whether cwd ≠
-root is reachable for verbs other than `doctor` was not traced. Patch plus a
-decision on which repo is the identity source.
-
 ### B — dead paths and dropped data flow
 
 **B1. The scope FSM's legality check is test-only; production replays scopes
@@ -249,7 +239,7 @@ and `--no-history` (`internal/cli/render/render.go:66-67,300-301`; help says
 "reserved; not yet implemented"; carried by `help_banner_drift_test.go:92` and
 `completion_drift_test.go:93`; the gap-truth audit already recorded `--scope E-0058`
 rendering the whole site); `htmlrender.Options.Scope`/`Root` never read;
-`internal/cli/cliutil/actor.go:44` `_ = root`; `internal/cli/add/add.go:440` `_ = k`.
+`internal/cli/add/add.go:440` `_ = k`.
 CLAUDE.md bans the blank-identifier keep-alive. Patch.
 
 **B9. `aiwf-prior-parent` is written by `move` and read by nothing.**
@@ -343,6 +333,9 @@ inline scans. "Does HEAD resolve" exists five times; `gitops.HasHEAD`
 (`gitops.go:229`) distinguishes a fault from an empty repo and the four copies
 (`cliutil/gitstate.go:11`, `entityview/historyevent.go:82`,
 `check/fsm_history_consistent.go:325`, `doctor.go:972`) collapse both to false.
+Six Git-config readers retain four exit-1 conventions (`gitops.go:282`,
+`committree.go:158`, `cli/check/git_config.go:33`, `isolation_escape_oracle.go:197`,
+`cliutil/actor.go`, `initrepo.go:667`).
 Milestone: export the runner or a `ForEachCommit`, then route; absorbs G-0672's
 seam and re-opens D-0045.
 
@@ -630,10 +623,6 @@ verdict cache); ADR-0011 (the spec tables consumed by policies only); ADR-0014 �
 
 Each of these is derived from reading, with the command that would settle it:
 
-- **A4** — `aiwf contract bind c-1 …` then `git log -1 --format=%(trailers)`;
-  expect `aiwf-entity: c-1`.
-- **A5** — from a cwd whose repo has a different `user.email` than `--root`'s,
-  `aiwf whoami --root <root>` vs `aiwf init --root <root>`'s derived actor.
 - **D3** — a milestone body with `###  AC-1 — x` (two spaces); `aiwf check`
   should report it as a heading under one rule and as missing under another.
 - **C7** — that DAG-derived ancestry yields byte-identical findings to the
