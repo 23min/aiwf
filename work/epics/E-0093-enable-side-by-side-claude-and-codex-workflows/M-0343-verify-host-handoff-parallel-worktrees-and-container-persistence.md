@@ -569,21 +569,16 @@ Initial/final logs and focused failure records remain under
 
 ## Reviewer notes
 
-Interim independent Codex review on 2026-09-19: fresh context, read-only,
-all 19 changed files at `b3bc70b21` against `28f7e1230` (969 additions,
-40 deletions). Verdict: request changes for one blocking documentation defect.
-Canonical `CLAUDE.md` still described setup and materialization as Claude-only.
-Disposition: accepted; operator setup now points to README's selected-host
-contract, and related delivery descriptions distinguish supported host paths.
-The parent checked the correction against that contract; independent re-review
-of the correction has not run.
+Final independent review approves closure readiness at `0aaf4a0eb` against
+`28f7e1230`, with AC-5 deferred to G-0699. No blocking findings. Canonical
+host guidance, coverage exclusions and sampled observation records agree with
+the documented support boundary. No new design unit requires separate review.
+Focused race tests, shell syntax and diff whitespace checks pass; `aiwf check`
+reports 0 errors and 10 advisory warnings. Scoped documentation checks found
+no broken local references, stale added invocations or structural issues.
 
-Focused race tests for host dispatch, refresh failures, missing executables and
-container scripts pass. The reviewer also ran
-`TestHostLifecycle_InitUpdateAndWorktreeUseResolvedHosts` under the race detector
-and the malformed-stamp subprocess test; both pass. Existing lifecycle assertions
-pin host selection; no wording-presence test was added for this prose correction.
-Coverage exclusions and sampled observation records raised no further findings.
-Full CI, hosted CI, external host observations and rebuild were not repeated.
-Rebuild verification remains outstanding; this interim review does not approve
-milestone closure.
+No tests were retired: subprocess lifecycle tests and in-process failure tests
+cover distinct execution seams. The read-only review did not perform a shell
+compression experiment; no measured simplification result is claimed. Full CI,
+external host sessions and rebuild were not repeated. Rebuild persistence remains
+unverified in G-0699.
