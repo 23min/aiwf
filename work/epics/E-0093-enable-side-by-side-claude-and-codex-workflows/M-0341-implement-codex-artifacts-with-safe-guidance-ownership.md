@@ -17,7 +17,7 @@ acs:
       tdd_phase: done
     - id: AC-3
       title: Instruction-file symlinks and aliases are preserved and diagnosed
-      status: open
+      status: met
       tdd_phase: done
     - id: AC-4
       title: Ownership conflicts and unsafe paths cannot overwrite foreign artifacts
