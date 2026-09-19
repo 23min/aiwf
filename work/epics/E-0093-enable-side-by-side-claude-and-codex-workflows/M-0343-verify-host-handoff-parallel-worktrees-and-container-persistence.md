@@ -21,7 +21,7 @@ acs:
       status: met
     - id: AC-5
       title: A rebuilt devcontainer provides Codex and retains the selected state
-      status: open
+      status: deferred
     - id: AC-6
       title: Implementation passes repository gates and documents its support boundary
       status: met
