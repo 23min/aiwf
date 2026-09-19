@@ -47,6 +47,7 @@ func NewCmd() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "upgrade",
 		Short: "Fetch a newer aiwf binary via go install and refresh artifacts",
+		Long:  "Install the requested aiwf binary, then re-execute its update command against the resolved consumer checkout. Refresh uses that checkout's host configuration and the inherited PATH. A failed refresh returns a failure even when installation succeeded." + cliutil.HostSetupHelp,
 		Example: `  # Upgrade to latest published release
   aiwf upgrade
 

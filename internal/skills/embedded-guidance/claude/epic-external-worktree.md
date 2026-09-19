@@ -1,0 +1,1 @@
+Trade-off: unreachable as the working directory of a session started in the repository — work there needs its own session or a dispatched subagent — and `find`-based tools rooted at the original repo do not see it.

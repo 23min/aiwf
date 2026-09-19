@@ -1,0 +1,1 @@
+In-repo is the default because a Claude Code session in a sandboxed devcontainer is confined to the workspace folder — a sibling or `$HOME` worktree is unreachable as the session's cwd and a `$HOME`-placed one is wiped on container rebuild.

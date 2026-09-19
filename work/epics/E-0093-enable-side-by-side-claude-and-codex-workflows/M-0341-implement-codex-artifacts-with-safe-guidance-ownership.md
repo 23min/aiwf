@@ -1,7 +1,7 @@
 ---
 id: M-0341
 title: Implement Codex artifacts with safe guidance ownership
-status: draft
+status: done
 parent: E-0093
 depends_on:
     - M-0340
@@ -9,19 +9,24 @@ tdd: required
 acs:
     - id: AC-1
       title: Codex artifacts use the selected native and aiwf-owned support paths
-      status: open
+      status: met
+      tdd_phase: done
     - id: AC-2
       title: Managed AGENTS guidance preserves user content and converges on refresh
-      status: open
+      status: met
+      tdd_phase: done
     - id: AC-3
       title: Instruction-file symlinks and aliases are preserved and diagnosed
-      status: open
+      status: met
+      tdd_phase: done
     - id: AC-4
       title: Ownership conflicts and unsafe paths cannot overwrite foreign artifacts
-      status: open
+      status: met
+      tdd_phase: done
     - id: AC-5
       title: Operational fragments are selected by host and resolve workflow references
-      status: open
+      status: met
+      tdd_phase: done
 ---
 ## Goal
 
@@ -29,7 +34,7 @@ Provide complete, tested Codex artifact operations and preserve user-owned guida
 
 ## Closes
 
-- (none)
+- G-0501 — Preserve symlinked instruction files during init and update, report skipped guidance with remediation, and audit both instruction-file creation and managed-guidance writers.
 
 ## Context
 
@@ -100,7 +105,7 @@ Given each supported host binding, verify that rendering selects its named skill
 
 ## Release note
 
-
+Claude setup and refresh preserve linked or aliased instruction files and report incomplete guidance with remediation. Artifact refresh refuses unowned name collisions, preserves supplemental user files when retiring generated skills, and supports retry after partial writes. Codex skills, templates, managed AGENTS guidance, and native workflow instructions are implemented internally; automatic detection and public host selection arrive in M-0342.
 
 ## Decisions made during implementation
 
@@ -108,12 +113,36 @@ Given each supported host binding, verify that rendering selects its named skill
 
 ## Validation
 
+Validated on 2026-09-19 in the Linux devcontainer, on the isolated milestone branch. All five ACs are met with TDD phase done. Implementation commits: AC-1 `c2e1bf6ec`, AC-2 `853188e90`, AC-3 `a195023ca`, AC-4 `88e6aa2c1`, AC-5 `e874bb7f0`.
 
+- `make check-fast`: exit 0; default, stress-tagged, and testpins-tagged vet passed; full configured lint reported `0 issues.`; the full untagged test suite passed, including CLI integration and policy tests.
+- `make diag-aiwf`: exit 0; the worktree-local diagnostic binary built successfully.
+- Race tests for `internal/skills` and `internal/initrepo`: passed after the final mutation probes and source restoration. The full repository race/coverage/self-check gate, `make ci`, has not been run for this milestone; the repository requires it at epic-to-main and push boundaries.
+- `bin/aiwf-diag check --since epic/E-0093-enable-side-by-side-claude-and-codex-workflows`: exit 0; `3 findings (0 errors, 3 warnings)`. The warnings concern archive cleanup for G-0464 and G-0691, not this milestone.
+
+AC evidence:
+
+- **AC-1** — `go test -parallel 8 ./internal/skills -run 'TestMaterializeTo_|TestMaterializeArtifacts_'`: Complete Codex inventory, valid metadata, resolving support references, independent host roots, and preservation of foreign siblings.
+- **AC-2** — `go test -parallel 8 ./internal/initrepo ./internal/config -run 'TestSpliceAgentsGuidance_|TestEnsureAgentsGuidance_|TestWireAgentsMd_'`: Exact surrounding bytes and modes, marker ambiguity refusal, idempotent refresh, persistent opt-out, dry-run and error behavior.
+- **AC-3** — `go test -parallel 8 ./internal/initrepo -run 'TestInstruction|TestInitAndRefresh_|TestClaudeScaffold_'`: All three instruction writers preserve symlinks and targets, refuse aliases in either order, and diagnose incomplete guidance while unrelated artifacts continue.
+- **AC-4** — `go test -parallel 8 ./internal/skills -run TestArtifactOwnership_`: Collision refusal, validated ownership and paths, conservative retirement, preserved user content, and recovery across partial writes and changed sources.
+- **AC-5** — `go test -parallel 8 ./internal/skills -run 'TestHostFragments_|TestRender'`: Native fragment selection, unchanged shared bytes, concrete local references, and missing-binding refusal.
+
+The full-suite `TestClaudeArtifacts_MatchBaseline` comparison passes for init, update, and generated worktrees in all six scenarios. The independently captured inventory and its narrowly approved configuration and recovery-ignore exceptions are documented in `internal/cli/integration/testdata/claude-baseline/README.md`. Native-fragment extraction changes no Claude output bytes.
+
+Changed branches received manual branch walks and coverage inspection. Assertion-strength checks caught all 48 bounded manual mutations across the five ACs (9, 10, 10, 10, and 9 respectively), with exact source restoration. Gremlins was unavailable, so this is sampled mutation evidence, not an exhaustive mutation score.
+
+The host-fragment interface review is recorded in `docs/design/design-decisions.md`: official host documentation plus local `codex --version` (0.155.0) and `codex --help` confirmed the cited entry points. Renderer tests do not establish live skill discovery, handoff, or independent delegation; those observations belong to M-0343. Filesystem safety covers inspected paths and per-file atomic writes with retry, not concurrent path replacement or an all-files transaction.
 
 ## Deferrals
 
-- (none)
+- No ACs deferred.
+- G-0698 — The shared planning rituals retain a ritual branch and merge step contrary to accepted D-0073. Correcting both planning workflows changes shared behavior and the frozen Claude baseline; it requires a separate workflow change and review.
+- Public host detection and lifecycle selection remain the planned scope of M-0342; fresh-session discovery, cross-host handoff, parallel terminals, independent Codex review, and container persistence remain the planned observations in M-0343.
 
 ## Reviewer notes
 
-- (none)
+- Independent code review: approve. Design review: keep the artifact ownership/recovery boundary and the instruction-file safety/block-splicing boundary. No blocking findings remain.
+- Keep separate preflight, ownership, and recovery states: each protects a distinct preservation or retry obligation. The smaller measured alternative loses clarity and replaces linear membership lookups with quadratic scans.
+- Retain the four private ownership-helper cancellation branches under the tested helper contract and Go context convention. The public materialization entry supplies `context.Background()`; this does not establish public cancellation support.
+- Scoped doc-lint: clean across the 24 changed Markdown files. Shared planning-workflow drift is recorded in G-0698 under Deferrals.

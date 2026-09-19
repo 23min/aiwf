@@ -1,7 +1,7 @@
 ---
 id: E-0093
 title: Enable side-by-side Claude and Codex workflows
-status: active
+status: done
 ---
 ## Goal
 
@@ -11,9 +11,14 @@ and parallel implementation in separate worktrees.
 
 ## Context
 
-aiwf embeds its workflow definitions and materializes Claude artifacts through
-an existing target seam. Codex-shaped paths appear only in tests; initialization,
-refresh, diagnosis, guidance wiring, and worktree setup still select Claude.
+aiwf embeds canonical workflow definitions and supports Claude and Codex
+artifact generation, including native Codex guidance. Initialization, refresh,
+diagnosis, guidance wiring, and aiwf-created worktrees use shared host selection
+from executable detection or explicit configuration. M-0342 verifies these
+lifecycle paths with filesystem and subprocess tests. M-0343 records live host discovery,
+Claude-to-Codex-to-Claude handoff, concurrent sessions and independent review.
+Actual container rebuild verification is deferred to G-0699;
+installation and mount tests do not establish rebuild persistence.
 The local container can now run Codex, and a source-built aiwf binary has created
 the isolated `feat/codex-support` worktree for implementation.
 
@@ -99,30 +104,32 @@ initialization. Permanent compatibility tests precede renderer changes.
 
 ## Success criteria
 
-- [ ] A consumer running init/update receives complete local artifacts for the
+- [x] A consumer running init/update receives complete local artifacts for the
   detected hosts, or the explicit override, with actionable reporting when
   neither host is available.
-- [ ] Installing the second host and rerunning update adds its usable surface
+- [x] Installing the second host and rerunning update adds its usable surface
   without damaging the first host or changing user-owned instruction content.
-- [ ] Explicit Claude selection retains the characterized ordinary-file
+- [x] Explicit Claude selection retains the characterized ordinary-file
   behavior; a symlinked instruction file is preserved and a skipped update is
   clearly diagnosed.
-- [ ] A Codex-only consumer can discover the skills, obtain standing guidance,
+- [x] A Codex-only consumer can discover the skills, obtain standing guidance,
   resolve templates, and perform a representative workflow with independent
   review without translating Claude artifacts by hand.
-- [ ] Doctor distinguishes missing, stale, conflicting, and unselected retained
+- [x] Doctor distinguishes missing, stale, conflicting, and unselected retained
   artifacts using the same host selection and rendered expectations as refresh.
-- [ ] Fresh-session evidence demonstrates Claude-to-Codex-to-Claude handoff and
+- [x] Fresh-session evidence demonstrates Claude-to-Codex-to-Claude handoff and
   concurrent work in separate branches/worktrees without unintended cross-edits.
-- [ ] The devcontainer's install and persistence setup has a recorded rebuild
-  verification, and the supported local capability boundary is documented.
+- [x] The devcontainer install and mount setup passes isolated tests, and the
+  supported local capability boundary documents the outstanding rebuild
+  verification in G-0699. Rebuild verification is not an epic closure
+  requirement.
 
 ## Open questions
 
 | Question | Blocking? | Resolution path |
 |---|---|---|
-| Does current Codex delegation satisfy each supported ritual's independent-review requirement? | Blocks claiming workflow compatibility | Validate the rendered instructions in the adapter milestone and exercise a fresh reviewer in the live-session milestone. Report unsupported operation rather than weakening review. |
-| Are live Claude access and a container rebuild available during validation? | Blocks epic closure, not implementation | Record actual session and rebuild results when available; an unrun check stays outstanding. |
+| Is an independent Codex review path demonstrated? | Resolved for the exercised local workflow | M-0343/AC-4 records fresh-context dispatch, executable review evidence and parent finding disposition; this is not a guarantee for every session or hosted review integration. |
+| What remains unverified for the devcontainer? | Does not block epic closure | Actual rebuild persistence is tracked in G-0699. The user approved deferral to preserve active sessions; a rebuild retains its separate approval gate. |
 
 ## Risks
 
@@ -151,7 +158,7 @@ initialization. Permanent compatibility tests precede renderer changes.
 - ADR-0018 — existing Claude guidance consent contract.
 - D-0070 — accepted shipped-prose test boundaries; D-0072 remains proposed.
 - D-0073 and D-0095 — planning placement and host-specific worktree behavior.
-- G-0178 — second-host materializer; G-0501 — symlink preservation.
-- G-0504 — artifact drift; assess its full scope before declaring closure.
+- G-0178 — implemented second-host materializer; G-0501 — addressed symlink preservation.
+- G-0504 — drift diagnosis implemented; planning-template refresh remains open.
 - G-0523 and G-0600 — delivery and downgrade concerns excluded from closure claims.
 - E-0092 and E-0019 — adjacent guidance-reduction and parallel-agent work.

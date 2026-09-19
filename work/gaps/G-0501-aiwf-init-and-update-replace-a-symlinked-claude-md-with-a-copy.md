@@ -1,9 +1,11 @@
 ---
 id: G-0501
 title: aiwf init and update replace a symlinked CLAUDE.md with a copy
-status: open
+status: addressed
 priority: high
 discovered_in: M-0284
+addressed_by_commit:
+    - a195023ca4c727a6bee96d3e58c5cb9f6d6a7410
 ---
 ## What's missing
 

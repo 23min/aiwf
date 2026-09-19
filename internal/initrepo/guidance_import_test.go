@@ -2,6 +2,8 @@ package initrepo
 
 import (
 	"context"
+	"errors"
+	"io/fs"
 	"os"
 	"path/filepath"
 	"strings"
@@ -67,7 +69,7 @@ func TestInit_GuidanceOptOutViaConfig(t *testing.T) {
 func TestEnsureGuidanceImport_OptOut(t *testing.T) {
 	t.Parallel()
 	root := t.TempDir()
-	st, err := ensureGuidanceImport(root, RefreshOptions{WireClaudeMd: false})
+	st, err := ensureGuidanceImport(context.Background(), root, RefreshOptions{WireClaudeMd: false})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -83,7 +85,7 @@ func TestEnsureGuidanceImport_OptOut(t *testing.T) {
 func TestEnsureGuidanceImport_CreatesWhenAbsent(t *testing.T) {
 	t.Parallel()
 	root := t.TempDir()
-	st, err := ensureGuidanceImport(root, RefreshOptions{WireClaudeMd: true})
+	st, err := ensureGuidanceImport(context.Background(), root, RefreshOptions{WireClaudeMd: true})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -100,7 +102,7 @@ func TestEnsureGuidanceImport_PreservesOutsideContent(t *testing.T) {
 	t.Parallel()
 	root := t.TempDir()
 	writeClaudeMd(t, root, "# My project\n\nSome notes.\n")
-	if _, err := ensureGuidanceImport(root, RefreshOptions{WireClaudeMd: true}); err != nil {
+	if _, err := ensureGuidanceImport(context.Background(), root, RefreshOptions{WireClaudeMd: true}); err != nil {
 		t.Fatal(err)
 	}
 	got := readClaudeMd(t, root)
@@ -117,11 +119,11 @@ func TestEnsureGuidanceImport_Idempotent(t *testing.T) {
 	t.Parallel()
 	root := t.TempDir()
 	writeClaudeMd(t, root, "# u\n")
-	if _, err := ensureGuidanceImport(root, RefreshOptions{WireClaudeMd: true}); err != nil {
+	if _, err := ensureGuidanceImport(context.Background(), root, RefreshOptions{WireClaudeMd: true}); err != nil {
 		t.Fatal(err)
 	}
 	first := readClaudeMd(t, root)
-	st, err := ensureGuidanceImport(root, RefreshOptions{WireClaudeMd: true})
+	st, err := ensureGuidanceImport(context.Background(), root, RefreshOptions{WireClaudeMd: true})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -138,12 +140,12 @@ func TestEnsureGuidanceImport_Idempotent(t *testing.T) {
 func TestEnsureGuidanceImport_SelfHealsRemovedBlock(t *testing.T) {
 	t.Parallel()
 	root := t.TempDir()
-	if _, err := ensureGuidanceImport(root, RefreshOptions{WireClaudeMd: true}); err != nil {
+	if _, err := ensureGuidanceImport(context.Background(), root, RefreshOptions{WireClaudeMd: true}); err != nil {
 		t.Fatal(err)
 	}
 	// Operator removes the block entirely.
 	writeClaudeMd(t, root, "# just my notes\n")
-	st, err := ensureGuidanceImport(root, RefreshOptions{WireClaudeMd: true})
+	st, err := ensureGuidanceImport(context.Background(), root, RefreshOptions{WireClaudeMd: true})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -165,7 +167,7 @@ func TestEnsureGuidanceImport_RefreshesStaleBlock(t *testing.T) {
 	root := t.TempDir()
 	stale := "# u\n\n" + guidanceImportStartMarker + "\n@.claude/OLD.md\n" + guidanceImportEndMarker + "\n"
 	writeClaudeMd(t, root, stale)
-	st, err := ensureGuidanceImport(root, RefreshOptions{WireClaudeMd: true})
+	st, err := ensureGuidanceImport(context.Background(), root, RefreshOptions{WireClaudeMd: true})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -188,7 +190,7 @@ func TestEnsureGuidanceImport_MarkersInProseAreInert(t *testing.T) {
 	root := t.TempDir()
 	prose := "We wrap regions with " + guidanceImportStartMarker + " then text then " + guidanceImportEndMarker + " inline.\n"
 	writeClaudeMd(t, root, prose)
-	if _, err := ensureGuidanceImport(root, RefreshOptions{WireClaudeMd: true}); err != nil {
+	if _, err := ensureGuidanceImport(context.Background(), root, RefreshOptions{WireClaudeMd: true}); err != nil {
 		t.Fatal(err)
 	}
 	got := readClaudeMd(t, root)
@@ -206,7 +208,7 @@ func TestEnsureGuidanceImport_WrapsBareImportLine(t *testing.T) {
 	t.Parallel()
 	root := t.TempDir()
 	writeClaudeMd(t, root, "# u\n@.claude/aiwf-guidance.md\n")
-	st, err := ensureGuidanceImport(root, RefreshOptions{WireClaudeMd: true})
+	st, err := ensureGuidanceImport(context.Background(), root, RefreshOptions{WireClaudeMd: true})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -228,7 +230,7 @@ func TestEnsureGuidanceImport_DamagedMarkerRefused(t *testing.T) {
 	root := t.TempDir()
 	damaged := "# u\n\n" + guidanceImportStartMarker + "\n@.claude/aiwf-guidance.md\n" // START, no END
 	writeClaudeMd(t, root, damaged)
-	st, err := ensureGuidanceImport(root, RefreshOptions{WireClaudeMd: true})
+	st, err := ensureGuidanceImport(context.Background(), root, RefreshOptions{WireClaudeMd: true})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -246,7 +248,7 @@ func TestEnsureGuidanceImport_ReversedMarkersRefused(t *testing.T) {
 	root := t.TempDir()
 	reversed := guidanceImportEndMarker + "\nstuff\n" + guidanceImportStartMarker + "\n"
 	writeClaudeMd(t, root, reversed)
-	st, err := ensureGuidanceImport(root, RefreshOptions{WireClaudeMd: true})
+	st, err := ensureGuidanceImport(context.Background(), root, RefreshOptions{WireClaudeMd: true})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -264,7 +266,7 @@ func TestEnsureGuidanceImport_NoTrailingNewline(t *testing.T) {
 	t.Parallel()
 	root := t.TempDir()
 	writeClaudeMd(t, root, "# no newline at end")
-	if _, err := ensureGuidanceImport(root, RefreshOptions{WireClaudeMd: true}); err != nil {
+	if _, err := ensureGuidanceImport(context.Background(), root, RefreshOptions{WireClaudeMd: true}); err != nil {
 		t.Fatal(err)
 	}
 	got := readClaudeMd(t, root)
@@ -273,15 +275,20 @@ func TestEnsureGuidanceImport_NoTrailingNewline(t *testing.T) {
 	}
 }
 
-// Branch coverage: a read error that is not fs.ErrNotExist (CLAUDE.md is a dir).
+// A regular instruction file can exist but be unreadable.
 func TestEnsureGuidanceImport_ReadError(t *testing.T) {
 	t.Parallel()
+	if os.Geteuid() == 0 {
+		t.Skip("root bypasses permission checks")
+	}
 	root := t.TempDir()
-	if err := os.Mkdir(filepath.Join(root, "CLAUDE.md"), 0o755); err != nil {
+	path := filepath.Join(root, "CLAUDE.md")
+	if err := os.WriteFile(path, []byte("private"), 0o000); err != nil {
 		t.Fatal(err)
 	}
-	if _, err := ensureGuidanceImport(root, RefreshOptions{WireClaudeMd: true}); err == nil {
-		t.Error("expected a read error when CLAUDE.md is a directory")
+	t.Cleanup(func() { _ = os.Chmod(path, 0o600) })
+	if _, err := ensureGuidanceImport(context.Background(), root, RefreshOptions{WireClaudeMd: true}); !errors.Is(err, fs.ErrPermission) {
+		t.Fatalf("read error = %v", err)
 	}
 }
 
@@ -289,7 +296,7 @@ func TestEnsureGuidanceImport_ReadError(t *testing.T) {
 func TestEnsureGuidanceImport_DryRunAddDoesNotWrite(t *testing.T) {
 	t.Parallel()
 	root := t.TempDir()
-	st, err := ensureGuidanceImport(root, RefreshOptions{WireClaudeMd: true, DryRun: true})
+	st, err := ensureGuidanceImport(context.Background(), root, RefreshOptions{WireClaudeMd: true, DryRun: true})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -307,7 +314,7 @@ func TestEnsureGuidanceImport_DryRunRefreshDoesNotWrite(t *testing.T) {
 	root := t.TempDir()
 	stale := guidanceImportStartMarker + "\n@.claude/OLD.md\n" + guidanceImportEndMarker + "\n"
 	writeClaudeMd(t, root, stale)
-	st, err := ensureGuidanceImport(root, RefreshOptions{WireClaudeMd: true, DryRun: true})
+	st, err := ensureGuidanceImport(context.Background(), root, RefreshOptions{WireClaudeMd: true, DryRun: true})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -327,7 +334,7 @@ func TestEnsureGuidanceImport_AddWriteError(t *testing.T) {
 		t.Fatal(err)
 	}
 	t.Cleanup(func() { _ = os.Chmod(root, 0o755) })
-	if _, err := ensureGuidanceImport(root, RefreshOptions{WireClaudeMd: true}); err == nil {
+	if _, err := ensureGuidanceImport(context.Background(), root, RefreshOptions{WireClaudeMd: true}); err == nil {
 		t.Error("expected a write error into a read-only root")
 	}
 }
@@ -369,7 +376,7 @@ func TestEnsureGuidanceImport_RefreshWriteError(t *testing.T) {
 		t.Fatal(err)
 	}
 	t.Cleanup(func() { _ = os.Chmod(root, 0o755) })
-	if _, err := ensureGuidanceImport(root, RefreshOptions{WireClaudeMd: true}); err == nil {
+	if _, err := ensureGuidanceImport(context.Background(), root, RefreshOptions{WireClaudeMd: true}); err == nil {
 		t.Error("expected a write error refreshing into a read-only root")
 	}
 }

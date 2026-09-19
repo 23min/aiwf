@@ -6,7 +6,7 @@ Three sections:
 
 1. **The standard flow** — architect → plan an epic → plan milestones → implement → wrap. Linear, no detours.
 2. **A realistic flow** — adds ADRs, decisions, gaps, and a mid-stream new epic. This is closer to what happens on a real project.
-3. **AI prompts** — natural-language phrasings that map cleanly to verb sequences when you're driving `aiwf` through Claude Code (or any AI host with the materialized skills).
+3. **AI prompts** — natural-language phrasings that map cleanly to verb sequences when you're driving `aiwf` through Claude Code or Codex with the selected host artifacts installed.
 
 Throughout, command output is elided unless it matters. Every mutating verb produces exactly one git commit, so a six-step sequence below is six commits — that is the audit trail.
 
@@ -38,7 +38,7 @@ git config user.email peter@example.com
 aiwf init                                 # writes aiwf.yaml, scaffolds dirs, installs pre-push hook
 ```
 
-After `aiwf init` the repo has the conventional layout, a pre-push hook that runs `aiwf check`, and the materialized `aiwf-*` skills in `.claude/skills/` (gitignored).
+After `aiwf init` the repo has the conventional layout, a pre-push hook that runs `aiwf check`, and the selected hosts’ materialized `aiwf-*` skills in `.claude/skills/` and/or `.agents/skills/` (gitignored). See [host setup](../README.md#2-host-setup-and-embedded-rituals) for PATH detection, explicit overrides, guidance opt-outs, and parallel worktree placement.
 
 **1. Plan the epic.**
 
@@ -206,7 +206,7 @@ ADRs, gaps, and decisions don't appear in the roadmap by design — the roadmap 
 
 ## 3. AI prompts
 
-The verbs above are for you. When you're working *through* an AI host (Claude Code with the `aiwf-*` skills materialized by `aiwf init`), you usually don't need to remember the verb syntax — you describe the intent in English and the AI picks the right command.
+The verbs above are for you. When you're working *through* an AI host (Claude Code or Codex with the `aiwf-*` skills materialized by `aiwf init`), you usually don't need to remember the verb syntax — you describe the intent in English and the AI picks the right command.
 
 These are concrete examples of what to say. The AI's response is the verb sequence in the second column.
 
@@ -235,7 +235,7 @@ A few guardrails the AI applies automatically because the skills tell it to:
 - It will surface validation findings before pushing, not after.
 - It will treat `aiwf check` errors as blockers; warnings are surfaced but not blocking.
 
-If you want the AI to behave differently from this default — for example, "always auto-promote new ADRs to accepted because I'm flying solo" — say so once and the assistant will follow that for the session. Persistent-across-sessions changes go in the consumer repo's `CLAUDE.md`, which `aiwf init` seeds with a minimal template.
+If you want the AI to behave differently from this default — for example, "always auto-promote new ADRs to accepted because I'm flying solo" — say so once and the assistant will follow that for the session. Persistent rules go outside aiwf's managed block in the selected host's root instruction file: `CLAUDE.md` for Claude or `AGENTS.md` for Codex.
 
 ---
 

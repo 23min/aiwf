@@ -10,6 +10,7 @@ import (
 	"testing"
 
 	"github.com/23min/aiwf/internal/entity"
+	"github.com/23min/aiwf/internal/skills"
 )
 
 // Ritual skills that enumerate an entity kind's body sections for the author
@@ -77,7 +78,11 @@ func TestRitualsNameTheOwnedSectionsWithoutMarkers(t *testing.T) {
 			if err != nil {
 				t.Fatalf("reading %s: %v", instr.path, err)
 			}
-			region, found := instructionRegion(string(raw), instr.anchor)
+			rendered, err := skills.RenderSkills([]skills.Skill{{Name: instr.path, Content: raw}}, skills.ClaudeRenderBindings())
+			if err != nil {
+				t.Fatal(err)
+			}
+			region, found := instructionRegion(string(rendered[0].Content), instr.anchor)
 			if !found {
 				t.Fatalf("%s: no passage anchored on %q; the instruction moved or was reworded", instr.path, instr.anchor)
 			}

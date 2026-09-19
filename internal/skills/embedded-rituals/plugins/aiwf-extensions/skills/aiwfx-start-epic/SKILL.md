@@ -106,23 +106,23 @@ If step 5 chose in-loop, skip.
 
 ### 8. Worktree placement and branch creation (Q&A)
 
-Lead with the default: **in-repo placement under the configured `worktree.dir`** (default `.claude/worktrees/<branch>/`). In-repo is the default because a Claude Code session in a sandboxed devcontainer is confined to the workspace folder — a sibling or `$HOME` worktree is unreachable as the session's cwd (so cwd-derived surfaces like the statusline never follow the work) and a `$HOME`-placed one is wiped on container rebuild. In-repo worktrees are reachable as the session cwd, persistent under the mounted workspace, and gitignored (`.claude/*`).
+Lead with the default: **in-repo placement under the configured `worktree.dir`** (default `.claude/worktrees/<branch>/`). {{aiwf:fragment:epic_worktree_placement}}
 
 The default is a recommendation, not a lock — the per-invocation override stays. The choice still matters (parallel work, IDE state, `aiwf check` blast radius), so surface the three placements and let the operator override:
 
 1. **`.claude/worktrees/<branch>/` (in-repo worktree — the default).** Created with `aiwf worktree add epic/E-NNNN-<slug>` — the verb resolves the path from the same `worktree.dir` knob rather than hardcoding it, and materializes rituals (skills, agents, templates, guidance) into the new worktree atomically, in one step. Survives `git checkout` on the main worktree; gitignored; reachable as a sandboxed session's cwd. Recommended placement (see the in-repo placement convention).
 2. **No worktree, work directly on the epic branch in the main checkout.** The operator's existing checkout switches to `epic/E-NNNN-<slug>` via `git checkout -b`. Simplest; no extra checkout state to manage. Trade-off: no isolated playground if the epic gets contentious.
-3. **`../aiwf-<branch>/` (sibling-directory worktree).** Created with `aiwf worktree add epic/E-NNNN-<slug> ../aiwf-<branch>` — an explicit path is honored verbatim, never redirected back in-repo. Fully isolated path. Trade-off: unreachable as the working directory of a session started in the repository — work there needs its own session or a dispatched subagent — and `find`-based tools rooted at the original repo do not see it.
+3. **`../aiwf-<branch>/` (sibling-directory worktree).** Created with `aiwf worktree add epic/E-NNNN-<slug> ../aiwf-<branch>` — an explicit path is honored verbatim, never redirected back in-repo. Fully isolated path. {{aiwf:fragment:epic_external_worktree}}
 
 The branch shape follows the branch-model convention: ritualized work on `epic/E-NNNN-<slug>`. If step 7's authorize commit was produced (delegated case), the branch name is already in the trailer — this step cuts that exact ref. If step 5 chose in-loop, the operator still cuts `epic/E-NNNN-<slug>` (the same naming convention; no `aiwf-branch:` trailer was emitted upstream, but the convention is the same).
 
-Execute the branch cut against the chosen placement: `aiwf worktree add --print-path` for placements 1 and 3 — confirm materialization afterward with `aiwf doctor --root <path>`, which reports rituals as materialized with no separate `aiwf update` step needed — or plain `git checkout -b` for placement 2 (no new worktree, nothing to materialize; the current checkout already has its skills, agents, templates, and guidance). The branch operation itself does not produce an aiwf commit; it is plain git plumbing. For placement 1, if you (the calling session) are going to keep working in the new worktree yourself — as opposed to dispatching a subagent — move into it with `cd "<printed path>"`. Use `cd`, not the `EnterWorktree` tool: a session entered that way cannot reach mainline's worktree, where `aiwfx-wrap-epic` merges. Stay inside the repository while you work there: a `cd` to a directory outside it returns the session to the directory it started in, not to this worktree, so run anything that needs another directory in a subshell, `( cd <dir> && … )`. For the same reason a session started in the repository cannot move into a placement-3 worktree with `cd`; start a new session there, or dispatch a subagent with its path.
+Execute the branch cut against the chosen placement: `aiwf worktree add --print-path` for placements 1 and 3 — confirm materialization afterward with `aiwf doctor --root <path>`, which reports rituals as materialized with no separate `aiwf update` step needed — or plain `git checkout -b` for placement 2 (no new worktree, nothing to materialize; the current checkout already has its skills, agents, templates, and guidance). The branch operation itself does not produce an aiwf commit; it is plain git plumbing. {{aiwf:fragment:epic_worktree_entry}}
 
 ### 9. Hand-off
 
 The epic is now `active`, the branch is cut, and the operator's HEAD is on `epic/E-NNNN-<slug>` (in the chosen worktree). The natural next step is `aiwfx-start-milestone <first-M>` (typically the lowest-numbered `draft` milestone under this epic).
 
-If a delegation scope was opened in step 7, the hand-off is to the named agent (the subagent-spawn mechanics are Claude Code surface, outside this skill's scope). The operator names the receiving agent and transmits the milestone id; the agent then enters `aiwfx-start-milestone` itself.
+If a delegation scope was opened in step 7, the hand-off is to the named agent (the subagent-spawn mechanics are {{aiwf:host_label}} surface, outside this skill's scope). The operator names the receiving agent and transmits the milestone id; the agent then enters `aiwfx-start-milestone` itself.
 
 ## Constraints
 

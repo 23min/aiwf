@@ -59,13 +59,13 @@ In VS Code at this repo's root:
 2. Command Palette → `Dev Containers: Reopen in Container`.
 3. The first open builds the image (slow) and runs
    `.devcontainer/init.sh` (idempotent install of golangci-lint,
-   gofumpt, govulncheck, Claude Code CLI, aiwf binary, framework
+   gofumpt, govulncheck, Claude Code CLI, Codex CLI, aiwf binary, framework
    hooks). Subsequent opens reuse the cached image.
-4. After init completes, the rituals are already installed —
-   `aiwf init` (run by init.sh) materialized the aiwf-* verb skills
-   and the aiwfx-* / wf-* rituals, role agents, and templates into
-   `.claude/` directly. There is no separate plugin-install step
-   (ADR-0014).
+4. `aiwf init` (run by init.sh) materializes skills, guidance and templates
+   for the selected hosts: `.claude/` and `CLAUDE.md` for Claude;
+   `.agents/` and `AGENTS.md` for Codex. An explicit `hosts` list in
+   `aiwf.yaml` controls selection; otherwise init detects installed CLIs.
+   Claude also receives role agents. No separate plugin install is needed.
 
 Verify the container is set up correctly:
 
@@ -73,6 +73,61 @@ Verify the container is set up correctly:
 aiwf doctor          # rituals: line confirms the skills are materialized.
 make ci              # vet + lint + test-race + coverage + selfcheck green.
 ```
+
+## Codex CLI
+
+`init.sh` installs `@openai/codex` globally through the existing Node feature
+on container creation/rebuild. It skips installation when npm's Codex binary
+already exists, even if the VS Code extension also supplies a binary.
+To upgrade explicitly, run `npm install -g @openai/codex@latest` inside the
+container.
+
+The host directory `~/.codex-linux` is mounted at `/home/vscode/.codex`.
+It retains files stored there, including Codex configuration and sessions,
+across rebuilds, separately from the host's `~/.codex`. File-backed login state
+is retained too; credentials stored elsewhere are outside this mount.
+Keep this directory outside Git. A custom `CODEX_HOME` must use its own
+persistent mount; this setup mounts the default location only.
+
+**Before the first rebuild**, preserve any existing container-only state you
+want to keep. Quit active Codex sessions, then run these commands from a
+**Docker-host terminal** (the remote host for an SSH workflow), provided
+`~/.codex-linux` does not already exist:
+
+```sh
+mkdir -m 700 "$HOME/.codex-linux" &&
+  docker cp aiwf-dev:/home/vscode/.codex/. "$HOME/.codex-linux/"
+```
+
+If the destination already exists, reconcile it before copying; do not overwrite
+an existing Codex state directory blindly. Without this copy, the new mount
+starts with its own state and does not contain the old container's sessions.
+
+Apply the configuration with VS Code's **Dev Containers: Rebuild Container**.
+Then, in the container terminal:
+
+```sh
+npm_codex_prefix=$(npm prefix -g)
+"$npm_codex_prefix/bin/codex" --version
+command -v codex
+codex login status
+# If not logged in:
+codex login --device-auth
+# From the repository directory:
+codex resume
+```
+
+If device login is unavailable for your account, follow the CLI's login guidance.
+Run `codex` for a new session. Installing the CLI and materializing aiwf artifacts
+are separate steps: init.sh performs both. For an existing checkout, run
+`aiwf update` with the intended host selection, then start a fresh session to
+load its generated guidance and skills. See [host setup](../README.md#2-host-setup-and-embedded-rituals).
+
+To verify persistence, record the npm binary version and login status, retain a
+known session and configuration value, then rebuild and check them again.
+Repeating initialization must skip the npm install when that binary exists.
+The host mount preserves files; it does not keep a running session or tmux
+server alive through container replacement.
 
 ## Environment variables
 
@@ -92,9 +147,9 @@ environment from VS Code's remote session.
 The rituals (`aiwfx-*` / `wf-*` skills, role agents, templates) are
 authored in-repo in the embedded snapshot at
 `internal/skills/embedded-rituals/`, embedded into the `aiwf` binary
-via `go:embed`, and materialized into `.claude/` by `aiwf init` /
-`aiwf update` (ADR-0014, ADR-0016). A ritual edit is one commit in
-this repo — there is no separate marketplace repo and no cross-repo
+via `go:embed`, and materialized for the selected hosts into `.claude/`
+or `.agents/` by `aiwf init` / `aiwf update` (ADR-0014, ADR-0016).
+A ritual edit is one commit in this repo — there is no separate marketplace repo and no cross-repo
 copy step; the upstream marketplace channel that predated this is
 archived (ADR-0016, G-0193).
 

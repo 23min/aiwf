@@ -21,7 +21,7 @@ import (
 func TestSchema_EnumeratesEveryYAMLField(t *testing.T) {
 	t.Parallel()
 	want := []SchemaField{
-		{Path: "hosts", Type: "[]string"},
+		{Path: "hosts", Type: "*[]string"},
 		{Path: "status_md", Type: "config.StatusMd"},
 		{Path: "status_md.auto_update", Type: "*bool"},
 		{Path: "tdd", Type: "config.TDD"},
@@ -45,6 +45,7 @@ func TestSchema_EnumeratesEveryYAMLField(t *testing.T) {
 		{Path: "entities.title_max_length", Type: "*int"},
 		{Path: "guidance", Type: "config.Guidance"},
 		{Path: "guidance.wire_claudemd", Type: "*bool"},
+		{Path: "guidance.wire_agentsmd", Type: "*bool"},
 		{Path: "areas", Type: "config.Areas"},
 		{Path: "areas.members", Type: "[]config.Member"},
 		{Path: "areas.members[].name", Type: "string"},
@@ -433,9 +434,8 @@ func TestIsSliceOfStruct_MapOfStruct_StructContainer(t *testing.T) {
 
 // TestDefaultFor_HandlesAllLeafTypes drives defaultFor directly, including
 // the "*bool" leaf shape that the real schema never reaches through this
-// switch — both real *bool leaf fields (status_md.auto_update,
-// guidance.wire_claudemd) have a fieldDefaultResolvers override and return
-// before the switch runs.
+// switch — real *bool leaves have either a default resolver or a dynamic
+// map ancestor, so they return before this switch runs.
 func TestDefaultFor_HandlesAllLeafTypes(t *testing.T) {
 	t.Parallel()
 	cases := []struct {
@@ -473,6 +473,7 @@ func TestDefaultFor_ResolverPaths(t *testing.T) {
 		{"worktree.dir", zero.WorktreeDir()},
 		{"status_md.auto_update", fmt.Sprintf("%t", zero.StatusMdAutoUpdate())},
 		{"guidance.wire_claudemd", fmt.Sprintf("%t", zero.WireClaudeMd())},
+		{"guidance.wire_agentsmd", fmt.Sprintf("%t", zero.WireAgentsMd())},
 	}
 	for _, c := range cases {
 		got := defaultFor(SchemaField{Path: c.path, Type: "string"})

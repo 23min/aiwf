@@ -48,7 +48,12 @@ func TestShippedSurfaces_CiteOnlyMaterializedTemplatePaths(t *testing.T) {
 	materialized := materializedTemplateNames(t)
 
 	err := walkShippedMarkdown(root, shippedSurfaceRoots, func(rel, content string) {
-		for _, m := range templatePathCitation.FindAllStringSubmatch(content, -1) {
+		rendered, err := skills.RenderSkills([]skills.Skill{{Name: rel, Content: []byte(content)}}, skills.ClaudeRenderBindings())
+		if err != nil {
+			t.Errorf("%s: %v", rel, err)
+			return
+		}
+		for _, m := range templatePathCitation.FindAllStringSubmatch(string(rendered[0].Content), -1) {
 			segment := m[1]
 			switch {
 			case segment == "":

@@ -17,7 +17,8 @@
 # resolves plugin paths relative to $HOME. Tracking issue:
 #   https://github.com/anthropics/claude-code/issues/31388
 #
-# The three mount points:
+# The mount points:
+#   ~/.codex-linux          → /tmp/.codex-mount           (container-only Codex state)
 #   ~/.claude               → /tmp/.claude-mount          (full state shared with host)
 #   ~/.claude-linux/plugins → /tmp/.claude-plugins-mount  (container-only plugin index)
 #   ~/.config/gh            → /tmp/.gh-mount              (gh auth shared with host)
@@ -27,7 +28,10 @@ set -euo pipefail
 mkdir -p "$HOME/.claude"
 mkdir -p "$HOME/.claude-linux/plugins"
 mkdir -p "$HOME/.config/gh"
+mkdir -p "$HOME/.codex-linux"
+chmod 700 "$HOME/.codex-linux"
 
 ln -sfn "$HOME/.claude"                /tmp/.claude-mount
 ln -sfn "$HOME/.claude-linux/plugins"  /tmp/.claude-plugins-mount
 ln -sfn "$HOME/.config/gh"             /tmp/.gh-mount
+ln -sfn "$HOME/.codex-linux"           /tmp/.codex-mount

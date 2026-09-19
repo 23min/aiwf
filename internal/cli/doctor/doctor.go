@@ -8,13 +8,13 @@
 package doctor
 
 import (
-	"bytes"
 	"context"
 	"errors"
 	"fmt"
 	"os"
 	"os/exec"
 	"path/filepath"
+	"slices"
 	"sort"
 	"strings"
 	"time"
@@ -48,6 +48,14 @@ func NewCmd() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "doctor",
 		Short: "Drift / version / id-collision health check",
+		Long: `Inspect core aiwf setup and the hosts resolved from aiwf.yaml or PATH.
+Host findings name the host, artifact family, and affected path. Verb-skill
+failures are errors; ritual skills, agent cards, templates, guidance, and
+unavailable host commands are warnings. Unselected paths are reported as retained.
+Guidance opt-outs and blocked updates are reported separately.
+
+These disk checks do not establish that instructions reached a model's context.
+The regular report exits 1 for errors; --check-rituals also exits 1 for ritual drift.` + cliutil.HostSetupHelp,
 		Example: `  # Local health check on the current consumer repo
   aiwf doctor
 
@@ -76,8 +84,8 @@ func NewCmd() *cobra.Command {
 	cmd.Flags().StringVar(&root, "root", "", "consumer repo root")
 	cmd.Flags().BoolVar(&selfCheck, "self-check", false, "run every verb against a temp repo and report pass/fail")
 	cmd.Flags().BoolVar(&checkLatest, "check-latest", false, "look up the latest published aiwf version on the Go module proxy (one HTTP call; honors GOPROXY=off)")
-	cmd.Flags().BoolVar(&writeHealth, "write-health", false, "write .claude/health.aiwf.json from doctor's warnings and errors (consumed by the statusline health stoplight)")
-	cmd.Flags().BoolVar(&checkRituals, "check-rituals", false, "check only whether ritual artifacts (skills/agents/templates) are materialized; silent with exit 0 if so, or a single actionable stderr line with exit 1 otherwise")
+	cmd.Flags().BoolVar(&writeHealth, "write-health", false, "write .claude/health.aiwf.json from doctor findings; requires Claude selection in this checkout and the main checkout")
+	cmd.Flags().BoolVar(&checkRituals, "check-rituals", false, "check selected-host ritual artifacts (skills/agents/templates) for missing files or drift; silent with exit 0 when current, or actionable stderr with exit 1 otherwise")
 	return cmd
 }
 
@@ -121,6 +129,9 @@ func runWriteHealth(root string) int {
 	}
 	if err := WriteHealth(context.Background(), rootDir, time.Now().UTC().Format(time.RFC3339), DoctorOptions{}); err != nil {
 		cliutil.Errorf("aiwf doctor --write-health: %v\n", err)
+		if errors.Is(err, initrepo.ErrClaudeUnselected) {
+			return cliutil.ExitUsage
+		}
 		return cliutil.ExitInternal
 	}
 	return cliutil.ExitOK
@@ -162,8 +173,8 @@ var subIndent = strings.Repeat(" ", labelWidth)
 
 // DoctorReport collects every doctor finding into a slice of human
 // strings and returns the warnings and errors as []Problem — the
-// report's problem states without the ok/info context. Pure for
-// testability. The error count (what doctor's exit code weighs) is the
+// report's problem states without the ok/info context. It inspects disk and
+// process state but does not refresh host artifacts. The error count (what doctor's exit code weighs) is the
 // number of SeverityError entries; warnings are advisory.
 func DoctorReport(rootDir string, opts DoctorOptions) (lines []string, problems []Problem) {
 	current := version.Current()
@@ -176,13 +187,23 @@ func DoctorReport(rootDir string, opts DoctorOptions) (lines []string, problems 
 	}
 
 	// env: line — informational, never increments problems. M-0135/AC-1.
+	cfg, configErr := config.Load(rootDir)
+	selection := config.HostSelection{}
+	if configErr == nil || errors.Is(configErr, config.ErrNotFound) {
+		var selectionErr error
+		selection, selectionErr = cfg.ResolveHosts(context.Background())
+		if selectionErr != nil { //coverage:ignore Load validates host values and Background cannot be canceled
+			configErr = selectionErr
+		}
+	}
+	claudeSelected := slices.Contains(selection.Hosts, config.HostClaudeCode)
 	inContainer, envLabel := InContainer()
 	lines = append(lines, label("env:")+envLabel)
 
 	// plugin-mount: + plugin-paths: lines — gated on in-container,
 	// never increment problems. M-0135/AC-2; plugin-paths: closes
 	// G-0174.
-	if inContainer {
+	if inContainer && claudeSelected {
 		if home, homeErr := os.UserHomeDir(); homeErr != nil {
 			lines = append(lines, renderMountLine(mountStateError, 0, homeErr.Error()))
 		} else {
@@ -202,7 +223,7 @@ func DoctorReport(rootDir string, opts DoctorOptions) (lines []string, problems 
 		}
 	}
 
-	cfg, err := config.Load(rootDir)
+	err := configErr
 	switch {
 	case errors.Is(err, config.ErrNotFound):
 		val := "aiwf.yaml not found (run `aiwf init`)"
@@ -263,30 +284,10 @@ func DoctorReport(rootDir string, opts DoctorOptions) (lines []string, problems 
 		problems = append(problems, Problem{Severity: SeverityWarn, Message: val})
 	}
 
-	embedded, err := skills.List()
-	if err != nil { //coverage:ignore skills.List reads the compiled-in embed FS; it cannot fail at runtime, so tempdir tests cannot reach this arm
-		lines = append(lines, label("skills:")+err.Error())
-		problems = append(problems, Problem{Severity: SeverityError, Message: err.Error()})
+	if configErr == nil || errors.Is(configErr, config.ErrNotFound) {
+		lines, problems = appendHostsReport(lines, problems, rootDir, cfg, selection)
 	} else {
-		drift, missing := skillDrift(rootDir, embedded)
-		switch {
-		case len(missing) > 0:
-			val := fmt.Sprintf("%d missing — run `aiwf init` or `aiwf update`", len(missing))
-			lines = append(lines, label("skills:")+val)
-			for _, m := range missing {
-				lines = append(lines, subIndent+"- "+m)
-			}
-			problems = append(problems, Problem{Severity: SeverityError, Message: val})
-		case len(drift) > 0:
-			val := fmt.Sprintf("%d drifted — run `aiwf update` to refresh", len(drift))
-			lines = append(lines, label("skills:")+val)
-			for _, d := range drift {
-				lines = append(lines, subIndent+"- "+d)
-			}
-			problems = append(problems, Problem{Severity: SeverityError, Message: val})
-		default:
-			lines = append(lines, fmt.Sprintf("%sok (%d skills, byte-equal to embed)", label("skills:"), len(embedded)))
-		}
+		lines = append(lines, label("hosts:")+"not checked: invalid configuration")
 	}
 
 	tr, loadErrs, err := tree.Load(context.Background(), rootDir)
@@ -324,41 +325,12 @@ func DoctorReport(rootDir string, opts DoctorOptions) (lines []string, problems 
 	lines, problems = appendCommitMsgHookReport(lines, problems, rootDir)
 	lines, problems = appendPostCommitHookReport(lines, problems, rootDir)
 	lines, problems = appendRenderReport(lines, problems, rootDir)
-	lines, problems = appendMaterializedRitualsReport(lines, problems, rootDir)
-	lines, problems = appendHookMaterializationReport(lines, problems, rootDir, skills.ShippedHooks)
-	lines, problems = appendStatuslineReport(lines, problems, rootDir)
-	lines, problems = appendGuidanceImportReport(lines, problems, rootDir)
+	if claudeSelected {
+		lines, problems = appendHookMaterializationReport(lines, problems, rootDir, skills.ShippedHooks)
+		lines, problems = appendStatuslineReport(lines, problems, rootDir)
+	}
 
 	return lines, problems
-}
-
-// appendMaterializedRitualsReport verifies the embedded ritual
-// artifacts (skills, agents, templates) are materialized under the
-// consumer's `.claude/` tree (ADR-0014 §5 — doctor verifies the
-// materialized artifacts instead of recommending a marketplace plugin).
-// A `rituals:` ok line confirms presence; a soft warning naming the
-// missing artifacts points at `aiwf update`. Rituals are advisory
-// artifacts, so a miss never increments the problem count.
-func appendMaterializedRitualsReport(in []string, problemsIn []Problem, rootDir string) (lines []string, problems []Problem) {
-	problems = problemsIn
-	present, missing, err := skills.MaterializedRituals(rootDir, skills.ClaudeTarget)
-	if err != nil { //coverage:ignore MaterializedRituals errors only when the compiled-in embed FS walk fails; unreachable at runtime, so tempdir tests cannot reach this arm
-		return append(in, label("rituals:")+err.Error()), problems
-	}
-	if len(missing) > 0 {
-		out := in
-		val := fmt.Sprintf("%d of %d ritual artifacts not materialized — run `aiwf update`", len(missing), len(present)+len(missing))
-		out = append(out, label("rituals:")+val)
-		for _, m := range missing {
-			out = append(out, subIndent+"- "+m)
-		}
-		problems = append(problems, Problem{Severity: SeverityWarn, Message: val})
-		return out, problems
-	}
-	return append(in,
-		fmt.Sprintf("%sok (%d artifacts materialized)", label("rituals:"), len(present)),
-		subIndent+"managed by aiwf (skills aiwf-*/aiwfx-*/wf-*, agents, templates); `aiwf update` refreshes — do not hand-edit (see .claude/skills/README.md)",
-	), problems
 }
 
 // appendHookMaterializationReport surfaces ADR-0032's three
@@ -909,24 +881,6 @@ func appendValidatorReport(in []string, problemsIn []Problem, rootDir string) (l
 		problems = append(problems, Problem{Severity: SeverityWarn, Message: warn})
 	}
 	return lines, problems
-}
-
-// skillDrift compares each embedded skill against its on-disk copy
-// and reports two sets: drifted and missing.
-func skillDrift(rootDir string, embedded []skills.Skill) (drifted, missing []string) {
-	for _, s := range embedded {
-		on := filepath.Join(rootDir, skills.SkillsDir, s.Name, "SKILL.md")
-		got, err := os.ReadFile(on)
-		switch {
-		case errors.Is(err, os.ErrNotExist):
-			missing = append(missing, s.Name)
-		case err != nil:
-			drifted = append(drifted, s.Name+": "+err.Error())
-		case !bytes.Equal(got, s.Content):
-			drifted = append(drifted, s.Name)
-		}
-	}
-	return drifted, missing
 }
 
 // renderLatestPublished formats the doctor latest: row.

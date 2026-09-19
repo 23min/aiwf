@@ -3,7 +3,7 @@
 // The file is small and deliberately so — see
 // docs/design/design-decisions.md §"aiwf.yaml config". The fields are:
 //
-//	hosts: [claude-code]      # optional; PoC default and only supported value
+//	hosts: [claude-code, codex] # optional; absent detects PATH, [] selects none
 //	status_md:                # optional; opt-out for the STATUS.md auto-update
 //	  auto_update: false      # default true — see StatusMdAutoUpdate
 //
@@ -60,8 +60,8 @@ var ErrNotFound = errors.New("aiwf.yaml not found")
 // no whitespace, neither side empty.
 var ActorPattern = regexp.MustCompile(`^[^\s/]+/[^\s/]+$`)
 
-// Config is the in-memory shape of aiwf.yaml. Hosts is omitted when
-// the on-disk file leaves it absent (which is the typical case).
+// Config is the in-memory shape of aiwf.yaml. A nil Hosts means automatic
+// detection; a pointer to an empty list explicitly selects no hosts.
 //
 // StatusMd is the opt-out surface for the pre-commit hook that keeps
 // `STATUS.md` in sync with the entity tree. Default behavior (block
@@ -75,7 +75,7 @@ var ActorPattern = regexp.MustCompile(`^[^\s/]+/[^\s/]+$`)
 type Config struct {
 	LegacyAiwfVersion string           `yaml:"aiwf_version,omitempty"`
 	LegacyActor       string           `yaml:"actor,omitempty"`
-	Hosts             []string         `yaml:"hosts,omitempty"`
+	Hosts             *[]string        `yaml:"hosts,omitempty"`
 	StatusMd          StatusMd         `yaml:"status_md,omitempty"`
 	TDD               TDD              `yaml:"tdd,omitempty"`
 	HTML              HTML             `yaml:"html,omitempty"`
@@ -719,19 +719,13 @@ func (c *Config) StatusMdAutoUpdate() bool {
 // generator can cite it instead of a bare literal hiding inside the getter).
 const DefaultStatusMdAutoUpdate = true
 
-// Guidance carries the consumer's opt-out for aiwf maintaining its
-// per-turn LLM guidance import in the repo-root `CLAUDE.md` (ADR-0018).
-// WireClaudeMd is a tristate via *bool mirroring StatusMd.AutoUpdate:
-// nil → default (true), &false → explicit opt-out, &true → explicit
-// opt-in. Use the getter Config.WireClaudeMd, not the pointer.
-//
-// Default behavior (empty Guidance block, or absent
-// guidance.wire_claudemd): aiwf wires and self-heals the marker-wrapped
-// `@.claude/aiwf-guidance.md` import on every `aiwf init` / `aiwf
-// update` — the framework's opt-out, not opt-in. There is deliberately
-// no CLI flag; the wiring is automatic, like skill/hook materialization.
+// Guidance carries independent opt-outs for managed instructions in the
+// consumer's root CLAUDE.md and AGENTS.md. Each pointer is tristate:
+// nil defaults on, false opts out, and true explicitly opts in. Use the
+// Config getters rather than reading the pointers directly.
 type Guidance struct {
 	WireClaudeMd *bool `yaml:"wire_claudemd,omitempty"`
+	WireAgentsMd *bool `yaml:"wire_agentsmd,omitempty"`
 }
 
 // WireClaudeMd returns whether aiwf should maintain its guidance import
@@ -749,6 +743,18 @@ func (c *Config) WireClaudeMd() bool {
 // aiwf.yaml.guidance.wire_claudemd is unset (E-0057: named so the schema
 // generator can cite it instead of a bare literal hiding inside the getter).
 const DefaultWireClaudeMd = true
+
+// WireAgentsMd returns whether aiwf should maintain native guidance in
+// AGENTS.md when Codex is selected. A nil receiver defaults on.
+func (c *Config) WireAgentsMd() bool {
+	if c == nil || c.Guidance.WireAgentsMd == nil {
+		return DefaultWireAgentsMd
+	}
+	return *c.Guidance.WireAgentsMd
+}
+
+// DefaultWireAgentsMd applies when guidance.wire_agentsmd is unset.
+const DefaultWireAgentsMd = true
 
 // Worktree carries the consumer's default placement for the git
 // worktrees the start rituals (`aiwfx-start-epic` / `aiwfx-start-milestone`)
@@ -950,6 +956,9 @@ func Load(root string) (*Config, error) {
 // The areas block (E-0043) is the first cross-field constraint validated
 // here; the method remains the entry point for future rules.
 func (c *Config) Validate() error {
+	if err := c.validateHosts(); err != nil {
+		return err
+	}
 	if err := c.Areas.validate(); err != nil {
 		return err
 	}

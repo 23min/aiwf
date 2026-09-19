@@ -17,7 +17,7 @@ But independence of *context* is necessary, not sufficient — the review is onl
 - **Instruct: verify by measuring, not reasoning.** "Run the coverage scan," "execute the failing input," "diff the output" — not "convince yourself it looks right." Reasoning is where self-review fails; measurement is what an independent pass adds.
 - **Name the risk areas** you are least sure of, so the reviewer spends attention where it pays.
 
-The reviewer is also fallible — independence is the floor, not a ceiling. But a fresh agent on an adversarial brief reliably finds more than the author re-reading their own diff, and that margin is the whole point. A calling ritual that invokes this skill should dispatch it as an independent pass, not run it in the author's own head.
+The reviewer is also fallible — independence is the floor, not a ceiling. But a fresh agent on an adversarial brief reliably finds more than the author re-reading their own diff, and that margin is the whole point. {{aiwf:fragment:review_dispatch}}
 
 And resource the reviewer to match the stakes — this is the highest-leverage gate in the workflow, the wrong place to economize. A strong reasoner with higher reasoning effort earns its cost on a large or high-stakes surface, where a missed defect is far more expensive than the review. Don't name a specific model (identifiers age, and consumers run different tiers); reach for the most capable the host offers. A dispatched subagent inherits the orchestrator's model by default, so the floor is already the session's own capability — the escalation is deliberate, for big surfaces.
 

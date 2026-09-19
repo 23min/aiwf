@@ -5,6 +5,8 @@ import (
 	"path/filepath"
 	"strings"
 	"testing"
+
+	"github.com/23min/aiwf/internal/config"
 )
 
 // errorCount returns the number of SeverityError problems — the
@@ -78,11 +80,11 @@ func TestProblems_PrePushHookNoMarker_Warn(t *testing.T) {
 func TestProblems_HealthySection_NoProblem(t *testing.T) {
 	t.Parallel()
 	root := guidanceFixture(t, true, true) // fragment present + imported
-	lines, problems := appendGuidanceImportReport(nil, nil, root)
+	lines, problems := appendHostGuidanceReport(nil, nil, root, config.HostClaudeCode, nil)
 	if len(problems) != 0 {
 		t.Errorf("wired guidance is healthy; want 0 problems, got %d", len(problems))
 	}
-	if !strings.Contains(strings.Join(lines, "\n"), "ok (CLAUDE.md imports") {
+	if !strings.Contains(strings.Join(lines, "\n"), "ok (managed root instructions") {
 		t.Errorf("expected the guidance ok line; got:\n%s", strings.Join(lines, "\n"))
 	}
 }

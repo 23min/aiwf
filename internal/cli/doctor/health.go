@@ -3,11 +3,15 @@ package doctor
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"os"
 	"path/filepath"
+	"slices"
 
+	"github.com/23min/aiwf/internal/config"
 	"github.com/23min/aiwf/internal/gitops"
+	"github.com/23min/aiwf/internal/initrepo"
 	"github.com/23min/aiwf/internal/pathutil"
 )
 
@@ -42,6 +46,9 @@ func healthFileFrom(ps []Problem, generatedAt string) healthFile {
 // so one file serves every worktree. generatedAt (ISO 8601 UTC) is passed
 // in so this stays wall-clock-free.
 func WriteHealth(ctx context.Context, rootDir, generatedAt string, opts DoctorOptions) error {
+	if err := requireHealthHost(ctx, rootDir); err != nil {
+		return err
+	}
 	data, err := json.MarshalIndent(healthFileFrom(Problems(rootDir, opts), generatedAt), "", "  ")
 	if err != nil {
 		return fmt.Errorf("encoding health.aiwf.json: %w", err) //coverage:ignore MarshalIndent of this fixed shape cannot fail
@@ -50,6 +57,11 @@ func WriteHealth(ctx context.Context, rootDir, generatedAt string, opts DoctorOp
 	if err != nil {
 		return fmt.Errorf("resolving main checkout: %w", err)
 	}
+	if root != rootDir {
+		if err := requireHealthHost(ctx, root); err != nil {
+			return fmt.Errorf("health destination %s: %w", root, err)
+		}
+	}
 	claudeDir := filepath.Join(root, ".claude")
 	if err := os.MkdirAll(claudeDir, 0o755); err != nil {
 		return fmt.Errorf("creating %s: %w", claudeDir, err) //coverage:ignore MkdirAll fails only on filesystem faults
@@ -57,6 +69,21 @@ func WriteHealth(ctx context.Context, rootDir, generatedAt string, opts DoctorOp
 	dest := filepath.Join(claudeDir, "health.aiwf.json")
 	if err := pathutil.AtomicWriteFile(dest, append(data, '\n'), 0o644); err != nil {
 		return fmt.Errorf("writing %s: %w", dest, err) //coverage:ignore AtomicWriteFile fails only on filesystem faults
+	}
+	return nil
+}
+
+func requireHealthHost(ctx context.Context, root string) error {
+	cfg, err := config.Load(root)
+	if err != nil && !errors.Is(err, config.ErrNotFound) {
+		return fmt.Errorf("loading health host selection: %w", err)
+	}
+	selection, err := cfg.ResolveHosts(ctx)
+	if err != nil {
+		return err
+	}
+	if !slices.Contains(selection.Hosts, config.HostClaudeCode) {
+		return initrepo.ErrClaudeUnselected
 	}
 	return nil
 }

@@ -16,6 +16,22 @@ section in this file.
 
 ## [Unreleased]
 
+### Added — E-0093: side-by-side Claude Code and Codex workflows
+
+- `aiwf init`, `update`, upgrade refresh, `doctor` and `worktree add` share host
+  selection: detect installed commands on PATH, override with `hosts`, or select
+  no assistant artifacts with `hosts: []`. Unselected installations are retained.
+- Codex receives native `AGENTS.md` guidance, `.agents/skills/` and shared
+  templates. Claude retains its artifact layout and consent rules. Setup
+  preserves linked or aliased instruction files, reports unsafe guidance and
+  ownership conflicts, and diagnoses drift across selected artifact families.
+- Handoff and parallel-worktree guidance supports both assistants; live checks
+  demonstrate fresh-session discovery and independent Codex review. Codex-managed
+  worktrees, hosted review and automatic transcript transfer remain outside scope.
+- Devcontainer setup installs Codex independently of editor extensions and
+  prepares host-backed state. Actual rebuild persistence remains unverified
+  in G-0699. Skill frontmatter corrections preserve the original descriptions.
+
 ### Fixed — workflow cell generation works from any checkout
 
 The cell generator locates its repository from the script's own path instead of

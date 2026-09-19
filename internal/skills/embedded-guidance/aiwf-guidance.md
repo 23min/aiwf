@@ -3,8 +3,7 @@
 
 These rules govern how you operate aiwf and collaborate with the human here.
 They have no mechanical chokepoint, so they bind only if you follow them every
-turn. The exception is **Code-health priming** at the end — the full rubric
-lives in the `wf-codebase-health` skill.
+turn. The exception is **Code-health priming** at the end — {{aiwf:fragment:skill_invocation}}.
 
 - **Each mutating action is its own approval gate.** Every aiwf mutation
   (promote, archive, cancel, reallocate), every commit, push, and merge is a
@@ -27,7 +26,7 @@ lives in the `wf-codebase-health` skill.
   review first.
 - **Entity files are verb- and template-managed — never author one by copying a
   neighbor** (which drifts from the canonical shape and can drop its header).
-  Create with `aiwf add`, filling the body from the kind's `.claude/templates/`
+  Create with `aiwf add`, filling the body from the kind's `{{aiwf:templates_dir}}/`
   file, or `aiwf template <kind>` if none ships; edit prose with `aiwf edit-body`; change
   title, status, slug, or id with the matching structured verb (`aiwf retitle` /
   `promote` / `rename` / `reallocate`). Never hand-write a file under `work/` or

@@ -19,7 +19,7 @@ per gap. A single gap is a batch of one.
 
 ## Is this a gap at all?
 
-Settle this before writing anything. Open `.claude/templates/gap.md` first: it
+Settle this before writing anything. Open `{{aiwf:templates_dir}}/gap.md` first: it
 states what earns a gap, and what belongs in another record instead. Where it sends
 something to a decision, hand that off to `aiwfx-record-decision`.
 
@@ -27,7 +27,7 @@ something to a decision, hand that off to `aiwfx-record-decision`.
 
 ### 1. Draft each body from the template
 
-Read `.claude/templates/gap.md` and fill it. If the directory is absent the
+Read `{{aiwf:templates_dir}}/gap.md` and fill it. If the directory is absent the
 templates are not materialized — run `aiwf update`. Never reconstruct a body by
 copying an existing gap, which drifts from the template and drops its shape.
 

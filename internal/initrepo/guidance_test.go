@@ -53,7 +53,7 @@ func TestInit_MaterializesGuidanceFragment(t *testing.T) {
 	}
 
 	// Idempotent: a second refresh (the update path) rewrites identical bytes.
-	if _, _, refreshErr := RefreshArtifacts(context.Background(), root, RefreshOptions{}); refreshErr != nil {
+	if _, refreshErr := RefreshArtifacts(context.Background(), root, RefreshOptions{}); refreshErr != nil {
 		t.Fatalf("RefreshArtifacts (update): %v", refreshErr)
 	}
 	second, err := os.ReadFile(guidancePath)

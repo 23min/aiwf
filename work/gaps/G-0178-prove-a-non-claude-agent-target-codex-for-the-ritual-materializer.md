@@ -1,8 +1,11 @@
 ---
 id: G-0178
 title: Prove a non-Claude agent target (Codex) for the ritual materializer
-status: open
+status: addressed
 priority: low
+addressed_by:
+    - M-0342
+    - M-0343
 ---
 ## Problem
 
