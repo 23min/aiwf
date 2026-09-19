@@ -30,7 +30,7 @@ acs:
     - id: AC-6
       title: Host configuration and supported capabilities are discoverable
       status: open
-      tdd_phase: red
+      tdd_phase: green
 ---
 ## Goal
 
