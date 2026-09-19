@@ -312,6 +312,100 @@ comprehension, hook parity, transcript transfer, default permission behavior,
 parallel editing, or rebuilt-container persistence. The remaining criteria
 retain their own evidence obligations.
 
+### AC-2 — Claude to Codex to Claude handoff
+
+Observed on 2026-09-19 with the same host and Node versions as AC-1. Three
+fresh CLI sessions received individual approval. The disposable consumer at
+`/tmp/aiwf-M-0343-handoff-327e30na/consumer` selects both hosts explicitly.
+Its fixture-local `bin/aiwf` symlink resolves to the implementation binary;
+each session names that exact executable when reading planning state.
+
+Local setup committed a working greeting module, seven passing tests, and a
+three-line usage-guide header. The module trims string ends, preserves
+internal whitespace, and rejects trimmed-empty input with
+`Error("Name is required")`. The task is documentation only: complete
+`docs/usage.md` with executable valid-name and rejection examples. aiwf
+allocated fixture epic `E-0001`, milestone `M-0001`, and criterion
+`M-0001/AC-1`; these identifiers belong to the disposable consumer, not this
+repository. The AC body and README state the task and approval boundaries.
+
+The first setup attempt to promote the milestone on `main` was refused at
+exit 2: activation belongs on the epic branch. After separate approval of
+the corrected sequence, `aiwf worktree add` created the epic worktree, the
+milestone was activated there, and another `aiwf worktree add` created
+`milestone/M-0001-host-handoff` from that epic branch. Its baseline HEAD is
+`7379947ccf53053223a027adacdd97d4c8b564ab`. Both hosts have 39 current skills;
+doctor and ritual checks pass. Full fixture check reports zero errors and
+six warnings: four empty scaffold sections, no remaining draft milestone,
+and no configured upstream for the provenance/body-section audit. Setup
+did not bypass the rejected transition or fabricate planning state.
+
+All three host sessions use the same milestone worktree under the consumer's
+`.claude/worktrees/` directory. Invocation forms match AC-1: Claude uses
+print/stream-json with `dontAsk`, no permission prompts, hooks disabled,
+strict empty MCP configuration and no session persistence. Its bounded
+allowlist includes direct read-only Git/aiwf commands and Node probes. Only
+the first Claude leg exposes `Edit`; the final Claude leg has read/test
+tools only. Codex uses `--disable worktrees -a never exec --json`, the exact
+worktree through `-C`, and `--sandbox workspace-write`. No session is
+authorized to stage, commit, promote, refresh artifacts, change hosts,
+install, integrate, or invoke another assistant.
+
+| Leg | Prompt and expected continuation | Observed result |
+| --- | --- | --- |
+| Claude author | Read Git/aiwf state; edit only the guide's valid-name examples; run examples/tests; leave rejection examples unfinished; emit an inline `aiwfx-handoff` note. | Exit 0. Three examples execute correctly and seven tests pass. Only the guide changes, unstaged; eight-line handoff names unfinished work, exact state pointers and pending approvals. |
+| Codex receiver | Receive only that short note and current state; reconcile stale claims; complete rejection examples while preserving earlier text; verify and emit a return handoff through its own generated skill. | Exit 0. Corrects a stale clean-worktree claim against Git/aiwf, adds the two rejection examples, preserves valid-name text byte-for-byte, and emits a ten-line return note. Five documented outputs match; direct test-file invocation passes seven tests. |
+| Fresh Claude verifier | Receive only the return note and current state; use its own generated review skill; review the full uncommitted guide and execute all examples/tests; report done-on-disk versus pending approvals without edits. | Exit 0, approve, no blocking or deferred findings. All five outputs match and seven tests pass. Identifies the fixture AC as open and staging, commit, completion, merge and push as unapproved. No file changes. |
+
+The five executable examples call `greet` with `"Ada"`, `"  Ada  "`,
+`"\tAda   Lovelace\n"`, `""`, and `" \t\n "`. They print respectively
+`Hello, Ada!`, `Hello, Ada!`, `Hello, Ada   Lovelace!`, and twice
+`Error: Name is required`. Examples use `node --input-type=module -e` from
+the worktree root, catching the errors to print their name and message.
+`node __tests__/greet.test.mjs` exposes all seven test results directly.
+Parent reruns match the guide outputs and confirm preservation of the first
+leg's valid-name text. Finite examples do not guarantee every future behavior.
+
+Before/after hashes cover all 114 non-Git files, including ignored generated
+artifacts. Only `docs/usage.md` changes in the authoring legs; no file changes
+in the final leg. The index stays empty and HEAD stays at the baseline SHA.
+Host selection, implementation, tests, planning records, and generated
+artifacts remain unchanged. The final reviewer correctly notes that Git
+alone cannot establish preservation of ignored artifacts; the parent's
+snapshot comparison supplies that evidence.
+
+The first handoff's clean-worktree statement was stale after its own edit,
+although it correctly described the guide as unstaged. The parent preserves
+that note exactly; Codex reconciles the contradiction from current records
+before continuing. Neither receiver gets the preceding provider transcript
+or a translation of the other host's artifacts. Native Claude `Skill`
+invocations and Codex reads of `.agents/skills/` establish use of the
+respective generated guidance. Parent capture of the short emitted notes
+outside the repository is experiment evidence, not a maintained handoff file
+or automatic chat transfer.
+
+Failures retained: the first Claude leg's compound aiwf command is denied
+and succeeds as separate exact-path commands. Codex's nested shell probe
+fails with `spawnSync /bin/sh EPERM`, and `--test-isolation=none` is unsupported;
+direct commands yield the required evidence. That compound shell's final
+exit 0 does not erase its earlier failures. The final Claude leg has four
+denied `git -C` commands, then succeeds with plain commands from the verified
+worktree. These are observations under the deliberately bounded permission
+configuration, not claims about default host permissions.
+
+The human-operated round trip is complete, with actual uncommitted work and
+pending approvals preserved. The disposable guide remains uncommitted and
+its fixture AC remains open by design. Nothing is pushed or integrated.
+This observation does not establish automated orchestration, parallel editing,
+or AC-4's required Codex reviewer-dispatch path.
+
+Raw setup commands/results, `allocated.json`, the three `*-prompt.txt` and
+`*-command.sh` files, event streams, result reports, eight-/ten-line handoff
+notes, snapshots and per-leg observations remain under
+`/tmp/aiwf-M-0343-handoff-327e30na/`. They are temporary supporting evidence;
+the setup, prompt contracts, command forms, expected outcomes, actual results
+and limits above form the durable rerun record.
+
 ## Deferrals
 
 - (none)
