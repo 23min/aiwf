@@ -26,7 +26,7 @@ acs:
     - id: AC-5
       title: Operational fragments are selected by host and resolve workflow references
       status: open
-      tdd_phase: red
+      tdd_phase: green
 ---
 ## Goal
 
