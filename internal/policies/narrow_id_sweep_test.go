@@ -67,6 +67,8 @@ func TestPolicy_NarrowIDLiteralsAllowlisted(t *testing.T) {
 		// equivalence at the lookup seam. Narrow inputs are required
 		// by design.
 		"internal/entity/canonicalize_test.go":                     "AC-2 parser-tolerance test (Canonicalize, IDGrepAlternation)",
+		"internal/verb/archive_test.go":                            "epic child guards compare canonicalized IDs; narrow parent and epic inputs prove width-insensitivity",
+		"internal/verb/epic_parent_ids_test.go":                    "cancel and promote must recognize loaded legacy-width parent references",
 		"internal/tree/tree_test.go":                               "AC-2 lookup-seam test (TestTree_ByID_AcceptsBothWidths, TestTree_ByPriorID_AcceptsBothWidths)",
 		"internal/cli/integration/canonicalize_render_test.go":     "AC-3 narrow-tree fixture exercising canonical render output (relocated from cmd/aiwf in M-0118/AC-6)",
 		"internal/cli/integration/canonicalize_history_test.go":    "AC-4 narrow trailer matches canonical query (relocated from cmd/aiwf in M-0118/AC-6)",

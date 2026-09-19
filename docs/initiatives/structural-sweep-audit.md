@@ -63,7 +63,7 @@ against open gaps and accepted decisions. Owned items are listed once under
 | Reachability hits, tests as roots | 2 (both owned, G-0417) |
 | Production functions reachable only from tests | **41**, plus one whole package |
 | Clone pairs at threshold 100, exclusions lifted | 7 (5 production, all owned, G-0472) |
-| Defects, unowned | **6** (2 measured, 4 derived) |
+| Defects, unowned | **4** (all derived) |
 | Dead paths and dropped data flow, unowned | **17** |
 | Convergent duplication, milestone-shaped, unowned | 7 |
 | Convergent duplication, patch-shaped, unowned | 12 per-package bundles |
@@ -72,9 +72,8 @@ against open gaps and accepted decisions. Owned items are listed once under
 Most of this predates the 2026-08-05 sweep. That pass ran the two mechanical
 lenses and a light reasoning pass; this one is the first to run the data-flow
 lens and the binary-roots reachability run, and the dates on the findings agree:
-the last reader of `Tree.PlannedFiles` left in April, the hardcoded `main`
-literals in `aiwf status` are from May, and the branch helpers in `cli/authorize`
-predate their `gitops` equivalents by a month or more. The instrument got
+the last reader of `Tree.PlannedFiles` left in April, the branch helpers in `cli/authorize` predate their `gitops` equivalents
+by a month or more. The instrument got
 sharper; the tree did not degrade at the rate the count suggests.
 
 ## Cross-cutting patterns
@@ -109,8 +108,7 @@ binaries' roots.
 
 **One condition, several dispositions.** An unparseable Go file is `continue`d in
 about 38 policies, returned as an error in three, emitted as a Violation in one,
-and declared unreachable in two. A malformed `aiwf.yaml` fails the full check at
-exit 3 and is silently defaulted by the shape-only and fast paths at exit 0.
+and declared unreachable in two.
 
 ## What would prevent it
 
@@ -135,13 +133,6 @@ exit 3 and is silently defaulted by the shape-only and fast paths at exit 0.
   reporting counts against this document.
 
 ## Ready to act on
-
-**Measured defects, unowned:**
-
-- **A1** — the FSM history walker is blind to any entity whose path git quotes.
-  Promoted: G-0690.
-- **A2** — `aiwf check --shape-only` and `--fast` exit 0 with default policy on a
-  malformed `aiwf.yaml` that the full check refuses at exit 3. Promoted: G-0691.
 
 **Tracked records whose premise changed:**
 
@@ -170,75 +161,11 @@ reader would expect — patch or milestone — not a commitment.
 
 ### A — defects
 
-**A1. FSM history walker is blind to any entity path git quotes.** *Measured.*
-`internal/gitops/revwalk.go:184` runs `git log --all --raw --no-abbrev -M` with
-neither `-z` nor `-c core.quotePath=false`, and `parseRawPathLine` (`:347-392`)
-never unquotes; `internal/check/fsm_history_walker.go:199` misses the entity in
-`pathToEntity` and continues. In a scratch repo with `G-0001-plain.md` and
-`G-0002-héllo.md` both hand-edited `addressed → open` in one commit, `aiwf check`
-reports `fsm-history-consistent/illegal-transition` for the ASCII gap only. The
-sibling walkers run their git calls with `-c core.quotePath=false`
-(`entity_body_section_dropped.go:424-433`, `area_mistag.go:231`); G-0684 records,
-for the section-dropped gate, the byte class that setting does not stop git
-quoting — a double quote, a backslash, a tab, a control byte — so this walker is
-affected by the non-ASCII class on top of that one. Patch, in `gitops` so every
-`BulkRevwalk` consumer inherits it. Promoted: G-0690.
-
-**A2. Shape-only and fast checks silently default on a malformed config.**
-*Measured.* With `tdd: [unterminated` appended to `aiwf.yaml`: `aiwf check` exits
-3 (pinned by `check_error_paths_test.go:44-54`), `aiwf check --shape-only` and
-`aiwf check --fast` print "ok — no findings" and exit 0.
-The full path refuses inside `cliutil.LoadTreeWithTrunk` (`check.go:99`);
-`runShapeOnly` and `runFast` load through `tree.Load` and guard their own
-`config.Load` at `check.go:369,440` with `cfgErr == nil && cfg != nil`, running
-otherwise with `tree.strict=false`, no `allow_paths`, and an empty severity
-policy. Measured: with `tree: strict: true` in a valid config and a stray file
-under `work/gaps/`, both cheaper paths report `error unexpected-tree-file` and
-exit 1; with the same file corrupted, both report `warning` and exit 0. The
-pre-commit hook runs `--shape-only` on every commit. No shipped surface runs
-`--fast`: the flag's help at `check.go:60` names the statusline health glyph as
-its consumer, but the statusline script spawns no verb
-(`TestStatusline_RenderInvokesNoKernelVerb`), so that help text is stale;
-promoted as G-0692. Root
-cause is C5: `aiwf.yaml` is loaded at more than twenty independent sites with
-four failure behaviours. Patch for the two check paths; milestone for one load
-per invocation. Promoted: G-0691.
-
-**A3. `aiwf status` hardcodes `main` as the trunk.** *Derived.*
-`internal/cli/status/worktrees.go:154,299,360,408,519,1262,1355,1374,1397` use the
-literal while `config.TrunkBranchShortName` (`internal/config/config.go:531`) and
-`cliutil.ConfiguredTrunkBranchShortName` exist; `internal/cli/doctor/binary_staleness.go:58`
-hardcodes `refs/remotes/origin/main` where `cfg.AllocateTrunkRef()` is the source.
-On a non-main trunk `branchAheadOfTrunkCount` (`:1397`) errors to 0 and the stale
-arm renders "safe to remove" for a wrap-pending worktree — the hint G-0153 removed.
-Patch.
-
-**A4. Contract bind and unbind write the operator's raw-width id into kernel
-trailers.** *Derived.* `internal/verb/contractbind.go:86-93,161-163` canonicalize
-the id for matching, then `:128-135,184-191` write the raw spelling into
-`aiwf-entity` and `metadata`. `standardTrailers` (`internal/verb/ac.go:463`)
-canonicalizes and is bypassed here and at `add.go:206`, `rename.go:116`,
-`import.go:430,446`. Every test passes `C-0001`, so nothing pins either way. Patch.
-
-**A5. Actor derivation reads `user.email` from different repos per verb.**
-*Derived.* `internal/cli/cliutil/actor.go:51` runs `git config --get user.email`
-with no `cmd.Dir` (`:44` discards `root` with `_ = root`), so every verb reads the
-cwd's repo; `internal/initrepo/initrepo.go:668` sets `cmd.Dir = root`. Six
-`git config --get` readers carry four exit-1 conventions
-(`gitops.go:282`, `committree.go:158`, `cli/check/git_config.go:33`,
-`isolation_escape_oracle.go:197`, `actor.go:51`, `initrepo.go:667`). Whether cwd ≠
-root is reachable for verbs other than `doctor` was not traced. Patch plus a
-decision on which repo is the identity source.
-
-**A6. Two terminality predicates disagree with the FSM.** *Derived.*
-`internal/cli/status/worktrees.go:555-568` `isTerminalStatus` lists
-`StatusDeprecated`, which is not terminal in any kind (`transition.go:50`:
-`deprecated → retired`), and ignores its `kind` argument;
-`internal/verb/authorize.go:739-741` `isTerminalStatus` is
-`len(AllowedTransitions)==0`, which is *true* for an unknown status where
-`entity.IsTerminal` is false, so `authorize` refuses a junk-status entity as "at
-terminal status" (`:359-361`) instead of the R1 "unrecognized" refusal. Unreachable
-today because ritual branches yield only E/M/G drivers. See D1 for the full set.
+**A3. Doctor's binary-staleness check hardcodes `origin/main`.** *Derived.*
+`internal/cli/doctor/binary_staleness.go:58` uses `refs/remotes/origin/main`
+where `cfg.AllocateTrunkRef()` is the source. A repository using a different
+trunk can miss the stale-binary advisory or compare against the wrong ref.
+Patch; overlaps E-0093's doctor changes.
 
 ### B — dead paths and dropped data flow
 
@@ -287,19 +214,6 @@ unconditionally; the projection excludes `body-prose-id` via
 Patch: per-entry triage; delete the unowned, name the deliberate seams in an
 allowlist the policy under *What would prevent it* reads.
 
-**B5. The stress harness drops every oracle's violation message.**
-`internal/stresstest/scenario.go:28-32` produces them; `cmd/stresstest/run.go:159-169`
-prints only "attempt failed, repo preserved at X"; `repeat.go:25-31` `RepeatEvent`
-has no violations field; `compose.go:13-16` returns `[]json.RawMessage` and never
-decodes what it reads. An operator running `make stress` learns that an attempt
-failed and never which oracle. Patch.
-
-**B6. The stress seed is logged as replayable and nothing can replay it.**
-`internal/stresstest/repeat.go:12-15` claims replay; `cmd/stresstest/run.go:19-38`
-has no `--seed` flag and `:171-172` always draws `rand.Int64()`; 15 of 16
-constructors discard the seed (`registry.go:89-132`); only `verb_sequence.go:83`
-consumes it. Patch: add `--seed`, or drop the claim and stop logging a decoy.
-
 **B7. HTML view-model fields computed at real cost and read by no template.**
 `internal/cli/render/resolver.go:81,226` `LastActivity` (a history lookup per
 epic and per milestone), `:315` `MilestoneData.LinkedEntities` (a full
@@ -319,7 +233,7 @@ and `--no-history` (`internal/cli/render/render.go:66-67,300-301`; help says
 "reserved; not yet implemented"; carried by `help_banner_drift_test.go:92` and
 `completion_drift_test.go:93`; the gap-truth audit already recorded `--scope E-0058`
 rendering the whole site); `htmlrender.Options.Scope`/`Root` never read;
-`internal/cli/cliutil/actor.go:44` `_ = root`; `internal/cli/add/add.go:440` `_ = k`.
+`internal/cli/add/add.go:440` `_ = k`.
 CLAUDE.md bans the blank-identifier keep-alive. Patch.
 
 **B9. `aiwf-prior-parent` is written by `move` and read by nothing.**
@@ -413,6 +327,9 @@ inline scans. "Does HEAD resolve" exists five times; `gitops.HasHEAD`
 (`gitops.go:229`) distinguishes a fault from an empty repo and the four copies
 (`cliutil/gitstate.go:11`, `entityview/historyevent.go:82`,
 `check/fsm_history_consistent.go:325`, `doctor.go:972`) collapse both to false.
+Six Git-config readers retain four exit-1 conventions (`gitops.go:282`,
+`committree.go:158`, `cli/check/git_config.go:33`, `isolation_escape_oracle.go:197`,
+`cliutil/actor.go`, `initrepo.go:667`).
 Milestone: export the runner or a `ForEachCommit`, then route; absorbs G-0672's
 seam and re-opens D-0045.
 
@@ -448,14 +365,14 @@ undocumented. Milestone.
 **C5. `aiwf.yaml` is loaded more than twenty times per process with four failure
 behaviours.** Fail-loud: `internal/cli/cliutil/treeload.go:32-35`,
 `update/update.go:120-124`, `worktree/worktree.go:149-152`, `doctor/doctor.go:205-213`.
-Silently default: `cli/check/check.go:192,369,440`, `treeload.go:141,156,171,184,198,219`
+Silently default: `cli/check/check.go:192`, `treeload.go:141,156,171,184,198,219`
 (six `Configured*` helpers), `resolvelogger.go:28,72`, `doctor.go:445,726`,
 `doctor/guidance.go:27`, `worktree.go:114` (the same verb fails loud on the same
 file at `:149`), `render/render.go:315,412`. `initrepo` re-parses five times per
 run (`initrepo.go:590,605,751,1206,1224`) while every caller already holds `cfg`,
 and two of those loads swallow every error into "no aiwf.yaml or unreadable".
 `config.Load` classifies a parse failure as a non-`ErrNotFound` error
-(`config.go:928`). A2 is the user-visible consequence. Milestone: one load per
+(`config.go:928`). Milestone: one load per
 invocation and one failure classification.
 
 **C6. `cli/render.Resolver` mirrors five unexported `htmlrender` helpers and three
@@ -484,13 +401,12 @@ Each bundle names a helper that exists and the sites that re-implement it. The f
 is routing, not design.
 
 **D1. Terminality and closed sets.** `entity.IsTerminal` (`transition.go:129`) is
-canonical with 21 production callers; re-derived at `internal/cli/status/worktrees.go:555`,
-`internal/verb/authorize.go:739`, `internal/verb/auditonly.go:263-267,276-290`
+canonical; re-derived at `internal/verb/auditonly.go:263-267,276-290`
 (a hand-copied per-kind table whose comment mandates a same-commit update nothing
 enforces, in a file that already derives cancel terminals from `AllowedStatuses`
 at `:133-141`), `internal/cli/cliutil/provenance.go:271` (`IsTerminalPromote`),
 `internal/workflows/spec/evaluate.go:204`. `auditonly.go:292-310` re-lists
-`entity.IsAllowedACStatus`/`IsAllowedTDDPhase`. A6 names the two that are wrong.
+`entity.IsAllowedACStatus`/`IsAllowedTDDPhase`.
 
 **D2. The `human/` actor predicate**, inline at `internal/verb/promote_sovereign_act.go:42`,
 `allow.go:143`, `authorize.go:310`, `acknowledgeillegal.go:75`, `acknowledgemistag.go:47`,
@@ -510,15 +426,13 @@ re-implements `entity.ParseACSections` and bypasses `ACSectionIsEmpty`
 (`body.go:262`), whose comment says it was exported so a verb-time gate and a
 check-time rule "consult the same definition of empty without drifting".
 
-**D4. Milestones under an epic, five ways, half literal and half canonical.**
-`internal/verb/cancel_guards.go:20-28` (literal `m.Parent == epicID`),
+**D4. Milestones under an epic, repeated scans and mixed ID matching.**
 `internal/check/epic_terminal_children.go:52-64` (canonical),
 `internal/workflows/spec/evaluate.go:219-232` (literal),
 `internal/roadmap/roadmap.go:61-67,140-146` (raw key, then a rescan per epic in
 the same render), `internal/cli/status/status.go:473-480` (canonical),
-`internal/cli/render/resolver.go:504-514` (rescan per page). A child whose `parent:`
-is at legacy width is invisible to `aiwf cancel`'s guard and reported by the check;
-`import.go:305-317` works around it by rewriting `parent:`. AC progress is
+`internal/cli/render/resolver.go:504-514` (rescan per page).
+`import.go:305-317` rewrites `parent:` to the resolved epic's stored ID. AC progress is
 computed three ways (`default_resolver.go:346`, `resolver.go:754`, `status.go:149`).
 One `Tree.ChildrenOf(id)` and one exported progress function.
 
@@ -544,7 +458,8 @@ production code with test-only callers. Also six `git` shell-outs each hand-buil
 `changelog_completeness.go:196,231,242`, `comment_history_attrition.go:79`);
 sequence with C1.
 
-**D6. Verb.** The `aiwf.yaml` write tail spelled five times with no
+**D6. Verb.** `standardTrailers` is bypassed at `add.go:206`, `rename.go:116`,
+`import.go:430,446`. The `aiwf.yaml` write tail spelled five times with no
 `planEntityWrite` twin (`contractbind.go:115-136,174-192`,
 `contractrecipe.go:64-84,117-131`, `add.go:491-500`), three carrying the same
 `coverage:ignore`; Rename and Retitle re-inline about twelve lines of rename
@@ -560,10 +475,7 @@ copies; `auditOnlyTrailers` (`auditonly.go:218-230`) re-inlines
 
 **D7. Check.** `eachActiveMilestone` (`acs.go:295`) bypassed at
 `acs.go:55,211,244,368,568` and `milestone_release_note.go:63` after the seam
-landed; `parseIDAndStatusFromFrontmatter` (`fsm_history_consistent.go:297-322`)
-re-implements `entity.Split` (`serialize.go:19`) and drops its BOM handling, so a
-BOM-prefixed blob reads as "no status" and the observation is skipped silently;
-`isArchivePath` (`entity_id_narrow_width.go:132`, any segment named `archive`) vs
+landed; `isArchivePath` (`entity_id_narrow_width.go:132`, any segment named `archive`) vs
 `entity.IsArchivedPath` (ADR-0004 position); `matchesAnyGlob` (`area_mistag.go:199`)
 vs `claimedByAnyArea` (`area_coverage.go:199`); three identical severity escalators
 (`entity_body.go:79`, `area_unknown.go:42`, `doc_id_width.go:204`).
@@ -653,27 +565,27 @@ places and the ledger names where it does not.
 | A2 coupling | Weak | every verb imports the catch-all `cliutil` (G-0227); `cli/render` mirrors `htmlrender` because its helpers are unexported (C6); `changelog_completeness.go` reaches into a sibling for separators (G-0672) |
 | A3 layering | Strong | `layering_direction.go` enforces the tier graph and no upward import was found — but it governs imports only, and `check` spawns git directly at fifteen sites (C1) |
 | B1 typed interfaces | Strong | named structs at every boundary; exceptions: nine-to-eleven-positional `Run` signatures in `cli/check`, `status`, `initcmd`, `update`; four identical private structs in the stress harness |
-| B2 schemas | Weak | `Parse` is `KnownFields(true)` but `hooks:` has a second non-strict decoder (B10); the raw-report JSONL schema lives only in its writer (B5); five `metadata` keys undocumented (D9) |
+| B2 schemas | Weak | `Parse` is `KnownFields(true)` but `hooks:` has a second non-strict decoder (B10); the raw-report JSONL schema lives only in its writer; five `metadata` keys undocumented (D9) |
 | B3 invariants | Weak | `verb.go:38` "exactly one of Findings, Plan, NoOp" is false at `add.go:239`, `rename.go:114`, `retitle.go:191`; `FileEntry.Path` contract broken by `walkMarkdown` (D5); `refs.go:11` says `ErrRefNotFound` is wrapped by `HasRef`, which never wraps it |
-| C1 single source | **Weak** | the sweep's dominant class: terminality ×6, id index ×6, path layout ×5, AC heading ×4, trunk name ×9 literal, `aiwf.yaml` ×20+, HEAD probe ×5, trailer index ×4 |
+| C1 single source | **Weak** | the sweep's dominant class: terminality ×6, id index ×6, path layout ×5, AC heading ×4, `aiwf.yaml` ×20+, HEAD probe ×5, trailer index ×4 |
 | C2 idempotence | Strong | ADR-0036 NoOp guards chokepointed by `noOpClaimScopes`; every `ensure*` converges to Preserved |
 | C3 atomic writes | Strong | `pathutil.AtomicWriteFile` plus its chokepoint; all twelve non-test `os.WriteFile` sites allowlisted with rationale; caveat: exemptions are whole-file and `os.CreateTemp` is outside the scanned set |
 | C4 versioned schemas | Weak | legacy `actor:`/`aiwf_version:` tolerance is hand-rolled line stripping; `manifest.supportedVersion` is the only declared schema version |
 | D1 behaviour pinned | Strong | integration through `cli.Execute`; a pure `classify*` per stress scenario; every policy has a firing fixture, the ledger down to one deliberate entry |
-| D2 seam equivalence | Weak | `LoadScope` vs `ReplayScopes` have no equivalence test and disagree (B1); the two `hooks:` decoders unpinned (B10); JSONL writer and reader share no type (B5); Strong where it exists (`EventFromCommit`, the single-pass index) |
+| D2 seam equivalence | Weak | `LoadScope` vs `ReplayScopes` have no equivalence test and disagree (B1); the two `hooks:` decoders unpinned (B10); JSONL composition preserves raw events without typed interpretation; Strong where it exists (`EventFromCommit`, the single-pass index) |
 | D3 branch coverage | Strong | diff-scoped gate inside `make ci` |
 | D4 altitude | Strong | subprocess at the seam, in-process fixtures |
 | D5 findings become checks | Strong | the policies package is this principle; caveat B15 |
 | E1 structured logs | Strong | slog via `BeginVerbDiag`, `forbidigo` fence; gaps: `status`, `render`, `template`, `schema`, `milestone` emit no event (D9) |
-| E2 designed failures | Weak | one condition, four dispositions for an unparseable Go file (C2) and for a malformed `aiwf.yaml` (C5, A2); four HEAD probes collapse a fault into "empty" (C1) |
-| E3 audit trail | Strong | trailers on every plan; edges: raw-width id in contract trailers (A4), `aiwf-prior-parent` write-only (B9) |
-| E4 self-explaining errors | Strong | a remedy per path role in verb refusals; Weak at the stress operator boundary (B5) and in `cli`, where "not found" is reported four ways (G-0483) |
-| F1 names | Weak | `isTerminalStatus` ≠ `IsTerminal` (A6); `skills.HooksDir` is `.claude/hooks` while `gitops.HooksDir` is `.git/hooks`; `--root` help "(default: cwd)" on a verb that walks up; `Outcome: Legal` on cells that fire (B11) |
+| E2 designed failures | Weak | one condition, four dispositions for an unparseable Go file (C2) and for a malformed `aiwf.yaml` (C5); four HEAD probes collapse a fault into "empty" (C1) |
+| E3 audit trail | Strong | trailers on every plan; edge: `aiwf-prior-parent` write-only (B9) |
+| E4 self-explaining errors | Strong | a remedy per path role in verb refusals; Weak in `cli`, where "not found" is reported four ways (G-0483) |
+| F1 names | Weak | `skills.HooksDir` is `.claude/hooks` while `gitops.HooksDir` is `.git/hooks`; `--root` help "(default: cwd)" on a verb that walks up; `Outcome: Legal` on cells that fire (B11) |
 | F2 comments | Weak | drafting-history residue (`fsm_history_consistent.go:190` "The pre-lift line was", `acks.go:12` "Lifted from", eight drop-narration blocks in `branch/rules.go`); comments asserting a parity that does not hold (`initrepo.go:855`, `reflog_walk.go:146`, `pagedata.go:38`) |
 | F3 decision records | Strong | guards cite the ADR, decision or gap that pins them at the enforcement site |
-| G1 reproducible | Strong | no clock in core; sorted iteration in render; Weak: the stress seed is a decoy (B6) |
+| G1 reproducible | Strong | no clock in core; sorted iteration in render |
 | G2 reversible | Strong | every verb doc answers "what undoes this"; LIFO undo journal (D-0029); Weak: dry-run is a separate implementation in three `initrepo` steps (B13) |
-| G3 observable | Weak | stress oracle messages never reach stdout or the report (B5); four read verbs invisible to the diagnostic log (D9) |
+| G3 observable | Weak | four read verbs invisible to the diagnostic log (D9) |
 | H1 reuse | **Weak** | helpers exist and are bypassed at six, eight, nine and thirteen sites (D7, D8, D9, D2) |
 | H2 no dead weight | **Weak** | 41 test-only production functions (B4), one unlinked package (B2), `PlannedFiles` (B3), a dozen unread view-model fields (B7), no-op flags (B8), `gitEnv()` (B17) |
 | H3 additions carry | Weak | per-subject mandates with no retirement: `terminalStatusesForKind`'s same-commit note (D1), the `ackedSHAs` consumer roster (`acks.go:17-45`), per-scenario `*ExpectedWarnings` (D-0063, accepted), each new policy hand-wired three times (D-0025, accepted) |
@@ -690,7 +602,8 @@ G-0545 (the coherence-guard seam policy); G-0456 (the two prelude arms); G-0563
 (bare `tree.Load` vs `LoadTreeWithTrunk`); G-0169 (verbs with no `--format`);
 G-0483 / D-0044 (code-less verb errors); G-0459, G-0460, G-0458 (event-shaped
 verbs, repeat authorize, AC phase input); G-0684 (quoting in the section-dropped
-walker); G-0666 (the 64 KB scanner ceiling); G-0644 (the orphan walk verdict);
+walker); G-0692 (stale `check --fast` help); G-0666 (the 64 KB scanner ceiling);
+G-0644 (the orphan walk verdict);
 G-0157 (the per-worktree subprocess fan-out in `status`); G-0400 (verb coverage of
 the stress catalogue); G-0555 / G-0645 (shared-binary temp dirs); G-0468, G-0491
 (stress oracle shape, `ETXTBSY`); G-0222 (wontfix, the resolver conformance
@@ -704,16 +617,8 @@ verdict cache); ADR-0011 (the spec tables consumed by policies only); ADR-0014 �
 
 Each of these is derived from reading, with the command that would settle it:
 
-- **A3** — on a repo whose trunk is not `main`, `aiwf status` with a wrap-pending
-  worktree; expect "safe to remove".
-- **A4** — `aiwf contract bind c-1 …` then `git log -1 --format=%(trailers)`;
-  expect `aiwf-entity: c-1`.
-- **A5** — from a cwd whose repo has a different `user.email` than `--root`'s,
-  `aiwf whoami --root <root>` vs `aiwf init --root <root>`'s derived actor.
 - **D3** — a milestone body with `###  AC-1 — x` (two spaces); `aiwf check`
   should report it as a heading under one rule and as missing under another.
-- **D7** — a BOM-prefixed entity blob in history; expect the FSM walker to skip
-  the observation with no `history-walk-error`.
 - **C7** — that DAG-derived ancestry yields byte-identical findings to the
   per-ack `git rev-list`.
 - **D11** — whether the unsigned stresstest-built binary crashes on a current

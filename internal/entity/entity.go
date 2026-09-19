@@ -511,10 +511,10 @@ type Entity struct {
 // Filename patterns for recognizing entity files during the directory walk.
 // Slugs after the id are tolerated but not parsed.
 var (
-	milestoneFile = regexp.MustCompile(`^M-\d+(-.*)?\.md$`)
-	gapFile       = regexp.MustCompile(`^G-\d+(-.*)?\.md$`)
-	decisionFile  = regexp.MustCompile(`^D-\d+(-.*)?\.md$`)
-	adrFile       = regexp.MustCompile(`^ADR-\d+(-.*)?\.md$`)
+	milestoneFile = regexp.MustCompile(`^M-\d+(-(?s:.*))?\.md$`)
+	gapFile       = regexp.MustCompile(`^G-\d+(-(?s:.*))?\.md$`)
+	decisionFile  = regexp.MustCompile(`^D-\d+(-(?s:.*))?\.md$`)
+	adrFile       = regexp.MustCompile(`^ADR-\d+(-(?s:.*))?\.md$`)
 )
 
 // Cardinality describes whether a reference field carries a single id

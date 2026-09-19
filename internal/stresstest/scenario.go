@@ -19,7 +19,7 @@ type Scenario interface {
 
 // Violation is one invariant breach a scenario's Verify step found.
 type Violation struct {
-	Message string
+	Message string `json:"message"`
 }
 
 // RunResult is the outcome of RunScenario. Dir names the scenario's

@@ -3,9 +3,11 @@ package main
 import (
 	"bytes"
 	"context"
+	"encoding/json"
 	"io"
 	"os"
 	"path/filepath"
+	"strconv"
 	"strings"
 	"testing"
 	"time"
@@ -81,7 +83,7 @@ func TestResolveOutDir_ErrorsWhenMkdirTempFails(t *testing.T) {
 	}
 }
 
-// TestRunRun_Succeeds cannot use t.Parallel(): runRun unconditionally
+// TestRunCommand_DefaultSeeds cannot use t.Parallel(): runRun unconditionally
 // enables diagnostic logging via os.Setenv(AIWF_LOG*) before running
 // any scenario (M-0249/AC-2) — a process-wide mutation. Go's env
 // functions are memory-safe to call concurrently (internally
@@ -92,12 +94,18 @@ func TestResolveOutDir_ErrorsWhenMkdirTempFails(t *testing.T) {
 // the wrong test's diagnostic log. Every runRun-driving test in this
 // file that reaches the env-setting code (past scenario/out-dir
 // resolution and the binary build) stays serial for the same reason.
-func TestRunRun_Succeeds(t *testing.T) {
+func TestRunCommand_DefaultSeeds(t *testing.T) {
 	outDir := t.TempDir()
 	var out bytes.Buffer
 
-	if err := runRun(context.Background(), repoRootRelative, outDir, 2, "disk-fault", &out); err != nil {
-		t.Fatalf("runRun: %v", err)
+	seed := int64(40)
+	seedFn := func() int64 { seed++; return seed }
+	cmd := newRunCmd(seedFn)
+	cmd.SetOut(&out)
+	cmd.SetErr(io.Discard)
+	cmd.SetArgs([]string{"--module-root", repoRootRelative, "--out", outDir, "--scenario", "disk-fault", "--repeat", "2"})
+	if err := cmd.Execute(); err != nil {
+		t.Fatal(err)
 	}
 
 	reportPath := filepath.Join(outDir, "report.jsonl")
@@ -107,6 +115,15 @@ func TestRunRun_Succeeds(t *testing.T) {
 	}
 	if len(composed.Events) != 2 {
 		t.Fatalf("expected 2 logged events (one per repeat attempt), got %d", len(composed.Events))
+	}
+	for i, raw := range composed.Events {
+		var event stresstest.RepeatEvent
+		if decodeErr := json.Unmarshal(raw, &event); decodeErr != nil {
+			t.Fatal(decodeErr)
+		}
+		if want := int64(41 + i); event.Seed != want {
+			t.Errorf("event %d seed = %d; want %d", i, event.Seed, want)
+		}
 	}
 	if !strings.Contains(out.String(), "disk-fault: 2/2 attempts passed") {
 		t.Fatalf("unexpected summary output: %q", out.String())
@@ -136,7 +153,7 @@ func TestRunRun_PrintsPreservedDirOnAFailingAttempt(t *testing.T) {
 func TestRunRun_ErrorsWhenRepeatIsNonPositive(t *testing.T) {
 	t.Parallel()
 	outDir := t.TempDir()
-	if err := runRun(context.Background(), repoRootRelative, outDir, 0, "disk-fault", io.Discard); err == nil {
+	if err := runRun(context.Background(), repoRootRelative, outDir, 0, "disk-fault", io.Discard, nextSeed); err == nil {
 		t.Fatal("expected runRun to reject a non-positive repeat count before doing any work")
 	}
 }
@@ -147,7 +164,7 @@ func TestRunRun_ErrorsWhenRepeatIsNonPositive(t *testing.T) {
 func TestRunRun_ErrorsWhenScenarioIsUnknown(t *testing.T) {
 	t.Parallel()
 	outDir := t.TempDir()
-	err := runRun(context.Background(), repoRootRelative, outDir, 1, "does-not-exist", io.Discard)
+	err := runRun(context.Background(), repoRootRelative, outDir, 1, "does-not-exist", io.Discard, nextSeed)
 	if err == nil {
 		t.Fatal("expected runRun to reject an unregistered --scenario name")
 	}
@@ -167,7 +184,7 @@ func TestRunRun_ErrorsWhenOutDirResolutionFails(t *testing.T) {
 	}
 	bad := filepath.Join(blocker, "child")
 
-	if err := runRun(context.Background(), repoRootRelative, bad, 1, "disk-fault", io.Discard); err == nil {
+	if err := runRun(context.Background(), repoRootRelative, bad, 1, "disk-fault", io.Discard, nextSeed); err == nil {
 		t.Fatal("expected runRun to propagate a resolveOutDir failure")
 	}
 }
@@ -193,7 +210,7 @@ func TestRunRun_ErrorsWhenReportPathIsADirectory(t *testing.T) {
 	}
 
 	start := time.Now()
-	err := runRun(context.Background(), repoRootRelative, outDir, 1, "disk-fault", io.Discard)
+	err := runRun(context.Background(), repoRootRelative, outDir, 1, "disk-fault", io.Discard, nextSeed)
 	elapsed := time.Since(start)
 
 	if err == nil {
@@ -212,7 +229,7 @@ func TestRunRun_ErrorsWhenBuildFails(t *testing.T) {
 		t.Fatalf("write go.mod: %v", err)
 	}
 
-	if err := runRun(context.Background(), bogusRoot, outDir, 1, "disk-fault", io.Discard); err == nil {
+	if err := runRun(context.Background(), bogusRoot, outDir, 1, "disk-fault", io.Discard, nextSeed); err == nil {
 		t.Fatal("expected runRun to propagate a BuildBinary failure")
 	}
 }
@@ -255,5 +272,63 @@ func TestResolveScenarios_NamedEntry_ResolvesToThatEntryAlone(t *testing.T) {
 	}
 	if got[0].Name != lockKillName {
 		t.Fatalf("resolveScenarios(%q) resolved to %q; want %q", lockKillName, got[0].Name, lockKillName)
+	}
+}
+
+func TestPrintScenarioSummary_Violations(t *testing.T) {
+	t.Parallel()
+	for _, tc := range []struct {
+		name    string
+		results []stresstest.RunResult
+		want    string
+	}{
+		{"multiple failures", []stresstest.RunResult{
+			{Passed: true},
+			{Dir: "/preserved", Violations: []stresstest.Violation{{Message: "first breach"}, {Message: "second breach"}}},
+			{Violations: []stresstest.Violation{{Message: "third breach"}}},
+		}, "stresstest run: sample: attempt failed, repo preserved at /preserved\n  violation: first breach\n  violation: second breach\n  violation: third breach\nstresstest run: sample: 1/3 attempts passed\n"},
+		{"pass", []stresstest.RunResult{{Passed: true}}, "stresstest run: sample: 1/1 attempts passed\n"},
+		{"failure without violations", []stresstest.RunResult{{Dir: "/preserved"}}, "stresstest run: sample: attempt failed, repo preserved at /preserved\nstresstest run: sample: 0/1 attempts passed\n"},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			t.Parallel()
+			var out bytes.Buffer
+			printScenarioSummary(&out, "sample", tc.results)
+			if got := out.String(); got != tc.want {
+				t.Errorf("summary = %q; want %q", got, tc.want)
+			}
+		})
+	}
+}
+
+// Serial: successful commands set the process-wide diagnostic environment.
+func TestRunCommand_ExplicitSeed(t *testing.T) {
+	for _, seed := range []int64{0, -42, 12345} {
+		t.Run(strconv.FormatInt(seed, 10), func(t *testing.T) {
+			outDir := t.TempDir()
+			cmd := newRunCmd(nextSeed)
+			cmd.SetOut(io.Discard)
+			cmd.SetErr(io.Discard)
+			cmd.SetArgs([]string{"--module-root", repoRootRelative, "--out", outDir, "--scenario", "disk-fault", "--repeat", "2", "--seed", strconv.FormatInt(seed, 10)})
+			if err := cmd.Execute(); err != nil {
+				t.Fatal(err)
+			}
+			report, err := stresstest.Compose(filepath.Join(outDir, "report.jsonl"))
+			if err != nil {
+				t.Fatal(err)
+			}
+			if len(report.Events) != 2 {
+				t.Fatalf("events = %d; want 2", len(report.Events))
+			}
+			for i, raw := range report.Events {
+				var event stresstest.RepeatEvent
+				if decodeErr := json.Unmarshal(raw, &event); decodeErr != nil {
+					t.Fatal(decodeErr)
+				}
+				if event.Seed != seed || event.Attempt != i || !event.Passed {
+					t.Errorf("event %d = %+v; want seed %d, matching attempt, and pass", i, event, seed)
+				}
+			}
+		})
 	}
 }

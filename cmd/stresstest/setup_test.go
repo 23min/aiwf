@@ -15,7 +15,7 @@ import (
 //
 // Serial skip-list (CLAUDE.md §"Test discipline"): every runRun-driving
 // test that reaches runRun's AIWF_LOG* os.Setenv call (past scenario
-// and out-dir resolution, past the binary build) — TestRunRun_Succeeds,
+// and out-dir resolution, past the binary build) — TestRunCommand_DefaultSeeds,
 // TestRunRun_LockKillScenario_BuildsLockHolderAndRuns (run_test.go),
 // TestRun_RunCommand_Succeeds (main_test.go), and, under the `stress`
 // build tag, TestRunRun_ScenarioAll_RunsWholeCatalogIntoOneReport and

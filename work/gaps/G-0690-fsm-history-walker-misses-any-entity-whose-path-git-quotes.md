@@ -1,7 +1,9 @@
 ---
 id: G-0690
 title: FSM history walker misses any entity whose path git quotes
-status: open
+status: addressed
+addressed_by_commit:
+    - fa59ea6d4
 ---
 ## What's missing
 

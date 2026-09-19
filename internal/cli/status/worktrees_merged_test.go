@@ -7,6 +7,8 @@ import (
 	"path/filepath"
 	"testing"
 
+	"github.com/google/go-cmp/cmp"
+
 	"github.com/23min/aiwf/internal/entity"
 	"github.com/23min/aiwf/internal/gitops"
 	"github.com/23min/aiwf/internal/tree"
@@ -61,7 +63,12 @@ func TestMergedStaleOverride(t *testing.T) {
 			wantStatus:   string(entity.StatusCancelled),
 			wantTitle:    "Abandoned",
 		},
+		{name: "deprecated contract", trunk: &entity.Entity{Kind: entity.KindContract, Status: entity.StatusDeprecated}},
+		{name: "wrong-kind terminal", trunk: &entity.Entity{Kind: entity.KindEpic, Status: entity.StatusRetired}},
+		{name: "unknown status", trunk: &entity.Entity{Kind: entity.KindEpic, Status: "garbage"}},
+		{name: "unknown kind", trunk: &entity.Entity{Kind: "garbage", Status: entity.StatusDone}},
 	}
+
 	for _, tc := range cases {
 		t.Run(tc.name, func(t *testing.T) {
 			t.Parallel()
@@ -93,7 +100,7 @@ func TestTrunkTreeOf_NoMainWorktree(t *testing.T) {
 		{Path: "/repo/wt-a", Branch: "epic/E-0001-a"},
 		{Path: "/repo/wt-b", Branch: "milestone/M-0002-b"},
 	}
-	if got := trunkTreeOf(context.Background(), worktrees, "/repo", nil); got != nil {
+	if got := trunkTreeOf(context.Background(), worktrees, "/repo", "main", nil); got != nil {
 		t.Errorf("trunkTreeOf with no main worktree = %v, want nil", got)
 	}
 }
@@ -185,8 +192,8 @@ func TestBuildWorktreeViews_MergedEpicTrunkTerminal(t *testing.T) {
 		t.Fatalf("BuildWorktreeViews: %v", err)
 	}
 	got := viewForBranch(t, views, "epic/E-9001-merged")
-	if got.AheadOfTrunk != 0 {
-		t.Fatalf("AheadOfTrunk = %d, want 0 (branch fully merged)", got.AheadOfTrunk)
+	if got.AheadOfTrunk == nil || *got.AheadOfTrunk != 0 {
+		t.Fatalf("AheadOfTrunk = %v, want pointer to 0 (branch fully merged)", got.AheadOfTrunk)
 	}
 	if !got.Stale {
 		t.Errorf("merged worktree whose driver is terminal on trunk should be Stale; got Stale=false — the G-0172 phantom-in-flight bug")
@@ -247,7 +254,7 @@ func TestBuildWorktreeViews_PreservesGenuineInFlight(t *testing.T) {
 	}
 
 	active := viewForBranch(t, views, "epic/E-9100-active")
-	if active.AheadOfTrunk == 0 {
+	if active.AheadOfTrunk == nil || *active.AheadOfTrunk == 0 {
 		t.Fatalf("precondition: epic/E-9100-active should be ahead of trunk, got AheadOfTrunk=0")
 	}
 	if active.Stale {
@@ -298,5 +305,21 @@ func TestBuildWorktreeViews_NoTrunkWorktree_NoOverride(t *testing.T) {
 	}
 	if got.DriverStatus != string(entity.StatusActive) {
 		t.Errorf("DriverStatus = %q, want %q (branch-local, override skipped)", got.DriverStatus, entity.StatusActive)
+	}
+}
+
+func TestOrderMilestonesByActivity_UsesMilestoneStates(t *testing.T) {
+	t.Parallel()
+	rows := []EpicChildRow{
+		{ID: "M-0001", Status: "done"},
+		{ID: "M-0002", Status: "retired"},
+		{ID: "M-0003", Status: "in_progress"},
+		{ID: "M-0004", Status: "draft"},
+		{ID: "M-0005", Status: "cancelled"},
+		{ID: "M-0006", Status: "garbage"},
+	}
+	want := []EpicChildRow{rows[2], rows[1], rows[3], rows[5], rows[0], rows[4]}
+	if diff := cmp.Diff(want, orderMilestonesByActivity(rows)); diff != "" {
+		t.Errorf("milestone order (-want +got):\n%s", diff)
 	}
 }

@@ -40,7 +40,13 @@ import (
 // and a caller feeding that to a shell executes them. Dropping the two
 // variables and passing --no-print-directory makes the result identical
 // however the suite was invoked.
-func makeDryRun(t *testing.T, root, target string) string {
+//
+// extraEnv entries are appended last, so a caller can override an
+// inherited variable for one expansion: `os/exec` dedups the environment
+// and keeps the later value of a duplicate key. Moving this to
+// `os.StartProcess` or `syscall.Exec`, neither of which dedups, would
+// reverse that.
+func makeDryRun(t *testing.T, root, target string, extraEnv ...string) string {
 	t.Helper()
 	cmd := exec.Command("make", "--no-print-directory", "-n", target)
 	cmd.Dir = root
@@ -50,6 +56,7 @@ func makeDryRun(t *testing.T, root, target string) string {
 		}
 		cmd.Env = append(cmd.Env, kv)
 	}
+	cmd.Env = append(cmd.Env, extraEnv...)
 	out, err := cmd.CombinedOutput()
 	if err != nil {
 		t.Fatalf("make -n %s: %v\n%s", target, err, out)
@@ -85,10 +92,11 @@ func TestCoverageGateWiring_CIRunsTheDiffScopedGate(t *testing.T) {
 
 // TestCoverageGateWiring_CIBuildsTheProfileOnlyOnce pins the property
 // that makes the gate affordable at this tier. A second instrumented run
-// costs the full suite and is never served from the test cache, because
-// every `go test` in the Makefile passes -exec, which is outside the
-// cacheable flag set; gating off the profile test-cov already wrote is
-// what keeps the marginal cost at seconds.
+// costs the full suite on a changed tree, and on Darwin costs it every
+// time — TEST_EXEC names the signing wrapper there, and -exec with a
+// program is outside the cacheable flag set. Gating off the profile
+// test-cov already wrote is what keeps the marginal cost at seconds
+// whatever the cache holds.
 func TestCoverageGateWiring_CIBuildsTheProfileOnlyOnce(t *testing.T) {
 	t.Parallel()
 	recipe := makeDryRun(t, repoRoot(t), "ci")

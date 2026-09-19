@@ -20,8 +20,15 @@ LDFLAGS := -X github.com/23min/aiwf/internal/version.Stamp=$(AIWF_VERSION)
 
 # Test-binary wrapper that ad-hoc signs Darwin test binaries before exec'ing
 # them, to dodge the macOS Sonoma 14.8.x syspolicyd crash on unsigned Mach-O
-# headers. No-op on Linux/CI. See work/gaps/G-0133.
-TEST_EXEC := $(CURDIR)/scripts/sign-and-run.sh
+# headers. See G-0133.
+#
+# Named on Darwin, empty everywhere else. `go test -exec=<prog>` sits
+# outside the flag set `go help test` defines as cacheable, so naming a
+# program costs every run the whole suite; away from Darwin the wrapper
+# is a bare `exec "$@"` and there is nothing to pay for. An empty
+# `-exec=` is accepted, runs the binary directly, and stays cacheable
+# (G-0693).
+TEST_EXEC := $(if $(filter Darwin,$(shell uname)),$(CURDIR)/scripts/sign-and-run.sh)
 
 help:
 	@echo "Targets:"
@@ -160,13 +167,14 @@ coverage-gate:
 
 # coverage-gate-only runs those same gates against a coverage.out that
 # already exists, skipping the instrumented suite run that produces it.
-# That run is the whole cost — 2 minutes against the gates' 3 seconds —
-# and it is never served from the test cache, because every `go test` here
-# passes -exec=$(TEST_EXEC), which is outside the cacheable flag set `go
-# help test` defines. (The coverage flags themselves are all cacheable;
-# -exec is what defeats it.) Splitting the gates out is what lets `make ci`
-# run them against the profile `test-cov` just built instead of paying for
-# the suite twice.
+# That run is the whole cost — 2 minutes against the gates' 3 seconds.
+# On Darwin it is never served from the test cache: TEST_EXEC names the
+# signing wrapper there, and -exec with a program is outside the
+# cacheable flag set `go help test` defines. (The coverage flags
+# themselves are all cacheable, profile included.) Elsewhere TEST_EXEC
+# is empty and an unchanged tree replays from cache. Splitting the gates
+# out is what lets `make ci` run them against the profile `test-cov`
+# just built on either host, rather than depending on cache state.
 #
 # AIWF_COVERAGE_BASE is honored when the caller sets it, so a range that
 # has already landed on trunk stays auditable:

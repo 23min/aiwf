@@ -16,6 +16,94 @@ section in this file.
 
 ## [Unreleased]
 
+### Added — explicit seeds for stress replay
+
+`stresstest run --seed <int64>` supplies that seed to every selected attempt,
+including with `--repeat`; omitted seeds remain fresh random values per attempt.
+Use `--scenario verb-sequence --seed <recorded-seed>` with the same binary and
+inputs to replay generated actions. Other scenarios ignore the seed; concurrent
+timing and identical outcomes are not guaranteed.
+
+### Fixed — actor identity follows the target repository
+
+Actor derivation reads `git config user.email` in the resolved target repository,
+so `--root` no longer borrows the current directory's repository identity.
+Explicit `--actor` values still take precedence; Git's global fallback is retained.
+
+### Fixed — terminal status checks follow each entity's FSM
+
+Worktree status uses kind-specific terminal states, so deprecated contracts and
+invalid kind/status combinations are not marked stale. Authorization identifies
+unrecognized statuses explicitly instead of calling them terminal; the existing
+`--force --reason` override remains available.
+
+### Fixed — stress reports preserve verification failures
+
+Failed stress attempts print each violation message and retain the same records
+in the JSONL report's `violations` array, with a `message` field per violation.
+Passing attempts omit the array; preserved repository paths remain available.
+
+### Fixed — contract binding results use canonical IDs
+
+`aiwf contract bind` and `unbind` emit canonical contract IDs in commit trailers
+and result metadata when invoked with a legacy-width ID such as `C-001`.
+
+### Fixed — epic lifecycle guards recognize legacy parent IDs
+
+`aiwf cancel` and terminal `aiwf promote` return their specific child-milestone
+refusal when a child's parent reference uses legacy ID padding, including with
+`--force`. `aiwf archive` skips terminal epics with those non-terminal children.
+
+### Fixed — history checks retain BOM-prefixed entity states
+
+`aiwf check` detects illegal status transitions when either historical entity
+version starts with a UTF-8 byte-order mark, including files with Windows line
+endings. History and current-file parsing use the same frontmatter boundaries.
+
+### Fixed — status uses the configured trunk for worktree comparisons
+
+`aiwf status` uses the local branch named by `allocate.trunk` for worktree merge
+checks, entity correlation, activity timestamps, and trunk labeling, falling back
+to the configured ref when that local branch is absent. Unavailable merge comparisons report
+`MERGE STATUS UNKNOWN` instead of suggesting removal. JSON worktree rows expose
+`ahead_of_trunk: null` for unknown comparisons, a numeric count for successful
+comparisons, and `is_trunk: true` for the configured trunk checkout.
+
+### Fixed — G-0684: dropped-section checks retain Git-quoted entity paths
+
+The push gate detects dropped required sections in entity filenames containing
+quotes, backslashes, tabs, or control bytes, including newlines. It follows
+renames and credits the commit that removed the section while preserving
+exemptions for omissions already present before the push.
+
+### Fixed — G-0690: history checks retain Git-quoted entity paths
+
+`aiwf check` detects illegal status transitions in entities whose filenames
+contain Unicode, quotes, backslashes, tabs, or other control bytes that Git
+escapes in its history output. Rename tracking preserves the original paths,
+so renaming an entity does not hide an earlier illegal transition.
+
+### Fixed — G-0510: enum suppressions require a directive and a reason
+
+The repository's enum-literal and finding-code policies accept only
+`//enums:ignore <reason>` line comments, with a space or tab before a non-empty
+reason. Spaced prefixes, missing reasons, and longer words no longer suppress
+findings. Consumer CLI behavior is unchanged.
+
+## [0.36.1] — 2026-09-18
+
+### Fixed — G-0693: the Darwin signing wrapper no longer defeats the Go test cache off macOS
+
+Every `go test` the Makefile runs passed `-exec=scripts/sign-and-run.sh` on every host.
+The wrapper is a no-op away from macOS, but `-exec` with a program sits outside the flag
+set `go help test` defines as cacheable, so each local run re-executed the whole suite
+over an unchanged tree. The wrapper is now named only on Darwin, where the signing it
+does is load-bearing; elsewhere the flag is passed empty, which runs the binary directly
+and leaves the run cacheable. Measured in the Linux devcontainer, `make check-fast` over
+an unchanged tree went from 225s to 45s. The CI workflows go on naming the wrapper: every
+job runs on Linux, where it is the same no-op, but whether a gate should serve cached test
+results is a separate question this does not settle.
+
 ### Fixed — G-0691: `check --shape-only` and `--fast` refuse an `aiwf.yaml` they cannot read
 
 Every path `aiwf check` offers now refuses an `aiwf.yaml` that exists but does not

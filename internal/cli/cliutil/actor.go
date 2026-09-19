@@ -30,8 +30,8 @@ const (
 // Returns an error when neither yields a valid value or when the
 // explicit value is malformed.
 //
-// The root parameter is unused but kept for call-site compatibility;
-// future per-repo identity policy (if it ever lands) would consult it.
+// Git config is read in root, including Git's usual global fallback. An empty
+// root uses the current directory. Explicit actors do not require a repository.
 func ResolveActor(explicit, root string) (string, error) {
 	actor, _, err := ResolveActorWithSource(explicit, root)
 	return actor, err
@@ -41,14 +41,15 @@ func ResolveActor(explicit, root string) (string, error) {
 // of which source produced the value. Used by `aiwf whoami` to explain
 // the precedence outcome to the user.
 func ResolveActorWithSource(explicit, root string) (actor, source string, err error) {
-	_ = root // reserved for future per-repo identity policy
 	if explicit != "" {
 		if !actorPattern.MatchString(explicit) {
 			return "", "", fmt.Errorf("--actor %q must match <role>/<identifier> (single '/', no whitespace)", explicit)
 		}
 		return explicit, ActorSourceFlag, nil
 	}
-	out, gitErr := exec.Command("git", "config", "user.email").Output()
+	cmd := exec.Command("git", "config", "user.email")
+	cmd.Dir = root
+	out, gitErr := cmd.Output()
 	if gitErr == nil {
 		email := strings.TrimSpace(string(out))
 		if at := strings.IndexByte(email, '@'); at > 0 {

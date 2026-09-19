@@ -1,8 +1,10 @@
 ---
 id: G-0510
 title: The enums:ignore escape accepts three shapes that are not the directive
-status: open
+status: addressed
 priority: low
+addressed_by_commit:
+    - 8979d24d95000ca14d1cb8ced7c92ce0c5de1963
 ---
 ## What's missing
 

@@ -9,6 +9,8 @@ import (
 	"strings"
 )
 
+const enumsIgnoreMarker = "enums:ignore"
+
 // PolicyEnumLiteralAdoption asserts that closed-set status string
 // constants declared in internal/entity/entity.go are used at
 // comparison sites rather than their literal values. Concretely:
@@ -192,8 +194,7 @@ func collectIgnoredLines(f *ast.File, fset *token.FileSet) map[int]bool {
 	out := map[int]bool{}
 	for _, group := range f.Comments {
 		for _, c := range group.List {
-			text := strings.TrimSpace(strings.TrimPrefix(c.Text, "//"))
-			if strings.HasPrefix(text, "enums:ignore") {
+			if hasDirectiveComment(c.Text, enumsIgnoreMarker) {
 				out[fset.Position(c.Pos()).Line] = true
 			}
 		}

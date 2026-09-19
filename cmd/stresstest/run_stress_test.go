@@ -26,12 +26,12 @@ import (
 // TestRunRun_ScenarioAll_RunsWholeCatalogIntoOneReport pins AC-2's own
 // acceptance text: --scenario all runs every registered scenario, all
 // logged into the same raw-report file. Serial — see
-// TestRunRun_Succeeds's doc comment.
+// TestRunCommand_DefaultSeeds's doc comment.
 func TestRunRun_ScenarioAll_RunsWholeCatalogIntoOneReport(t *testing.T) {
 	outDir := t.TempDir()
 	var out bytes.Buffer
 
-	if err := runRun(context.Background(), repoRootRelative, outDir, 1, "all", &out); err != nil {
+	if err := runRun(context.Background(), repoRootRelative, outDir, 1, "all", &out, nextSeed); err != nil {
 		t.Fatalf("runRun: %v", err)
 	}
 
@@ -62,12 +62,12 @@ func TestRunRun_ScenarioAll_RunsWholeCatalogIntoOneReport(t *testing.T) {
 // scenario's own correlation ids to each later scenario's first
 // event. With --repeat 1, report.jsonl has exactly one event per
 // scenario in registry order, so no id may appear in more than one
-// event. Serial — see TestRunRun_Succeeds's doc comment.
+// event. Serial — see TestRunCommand_DefaultSeeds's doc comment.
 func TestRunRun_ScenarioAll_CorrelationIDsDoNotBleedAcrossScenarios(t *testing.T) {
 	outDir := t.TempDir()
 	var out bytes.Buffer
 
-	if err := runRun(context.Background(), repoRootRelative, outDir, 1, "all", &out); err != nil {
+	if err := runRun(context.Background(), repoRootRelative, outDir, 1, "all", &out, nextSeed); err != nil {
 		t.Fatalf("runRun: %v", err)
 	}
 
@@ -104,12 +104,12 @@ func TestRunRun_ScenarioAll_CorrelationIDsDoNotBleedAcrossScenarios(t *testing.T
 // needsLockHolder branch: selecting "lock-kill" builds the separate
 // lockholder binary (BuildLockHolder) alongside the aiwf binary under
 // test, and the scenario runs to a real pass. Serial — see
-// TestRunRun_Succeeds's doc comment.
+// TestRunCommand_DefaultSeeds's doc comment.
 func TestRunRun_LockKillScenario_BuildsLockHolderAndRuns(t *testing.T) {
 	outDir := t.TempDir()
 	var out bytes.Buffer
 
-	if err := runRun(context.Background(), repoRootRelative, outDir, 1, "lock-kill", &out); err != nil {
+	if err := runRun(context.Background(), repoRootRelative, outDir, 1, "lock-kill", &out, nextSeed); err != nil {
 		t.Fatalf("runRun: %v", err)
 	}
 	if !strings.Contains(out.String(), "lock-kill: 1/1 attempts passed") {

@@ -134,7 +134,7 @@ func WalkDroppedBodySections(ctx context.Context, root, base, trunk string) []Dr
 
 	var out []DroppedBodySection
 	for _, path := range sortedPaths(atHEAD) {
-		raw, headBody, ok := entityBodyAt(br, headSHA, path)
+		raw, headBody, ok := entityBodyAt(ctx, root, br, headSHA, path)
 		if !ok {
 			continue
 		}
@@ -155,7 +155,7 @@ func WalkDroppedBodySections(ctx context.Context, root, base, trunk string) []Dr
 			if _, onTrunk := atTrunk[p]; !onTrunk || canonicalIDOf(p) != id {
 				continue
 			}
-			if _, body, ok := entityBodyAt(br, trunk, p); ok {
+			if _, body, ok := entityBodyAt(ctx, root, br, trunk, p); ok {
 				exempt = append(exempt, AbsentRequiredSections(kind, body)...)
 			}
 			break
@@ -165,7 +165,7 @@ func WalkDroppedBodySections(ctx context.Context, root, base, trunk string) []Dr
 				continue
 			}
 			out = append(out, DroppedBodySection{
-				SHA:      g.removalOf(chain, kind, section, commits, headSHA),
+				SHA:      g.removalOf(ctx, root, chain, kind, section, commits, headSHA),
 				Path:     path,
 				EntityID: id,
 				Section:  section,
@@ -196,7 +196,7 @@ type gateReader struct {
 // commit that added the chain's oldest path, or is negative.
 func (g *gateReader) startingOmissions(ctx context.Context, root string, kind entity.Kind, baseSHA string, atStart bool, chain []string, created int, commits []rangeCommit) []string {
 	if atStart {
-		return g.absentAt(baseSHA, chain, kind)
+		return g.absentAt(ctx, root, baseSHA, chain, kind)
 	}
 	if created < 0 {
 		return nil
@@ -205,7 +205,7 @@ func (g *gateReader) startingOmissions(ctx context.Context, root string, kind en
 	if t := g.createVerb(ctx, root, c.sha); t.verb != "import" && (t.verb != "add" || !t.forced) {
 		return nil
 	}
-	return g.absentAt(c.sha, chain[len(chain)-1:], kind)
+	return g.absentAt(ctx, root, c.sha, chain[len(chain)-1:], kind)
 }
 
 // createVerb returns the aiwf-verb trailer a commit carries, and whether it
@@ -258,14 +258,14 @@ func chainOf(headPath string, ids []string, commits []rangeCommit) (chain []stri
 
 // absentAt returns the required sections the entity lacks at rev, read from the
 // first path of its chain that holds an entity body there; nil where none does.
-func (g *gateReader) absentAt(rev string, chain []string, kind entity.Kind) []string {
+func (g *gateReader) absentAt(ctx context.Context, root, rev string, chain []string, kind entity.Kind) []string {
 	key := rev + "\x00" + strings.Join(chain, "\x00")
 	if absent, ok := g.state[key]; ok {
 		return absent
 	}
 	var absent []string
 	for _, path := range chain {
-		if _, body, ok := entityBodyAt(g.br, rev, path); ok {
+		if _, body, ok := entityBodyAt(ctx, root, g.br, rev, path); ok {
 			absent = AbsentRequiredSections(kind, body)
 			break
 		}
@@ -281,9 +281,9 @@ func (g *gateReader) absentAt(rev string, chain []string, kind entity.Kind) []st
 // removal exists. The newest candidate is the last resort: an acknowledgment is
 // an empty commit, never a candidate, so the commit a finding names does not
 // move under one.
-func (g *gateReader) removalOf(chain []string, kind entity.Kind, section string, commits []rangeCommit, headSHA string) string {
+func (g *gateReader) removalOf(ctx context.Context, root string, chain []string, kind entity.Kind, section string, commits []rangeCommit, headSHA string) string {
 	lacks := func(rev string) bool {
-		return slices.Contains(g.absentAt(rev, chain, kind), section)
+		return slices.Contains(g.absentAt(ctx, root, rev, chain, kind), section)
 	}
 	var candidates []rangeCommit
 	for _, c := range commits {
@@ -321,33 +321,35 @@ func (g *gateReader) removalOf(chain []string, kind entity.Kind, section string,
 
 // rangeHistory reads base..HEAD newest-first and returns its commits.
 func rangeHistory(ctx context.Context, root, baseSHA string) []rangeCommit {
-	// The record carries commit ids and the paths written, never message bytes:
-	// a message is arbitrary and can hold any separator, which would split the
-	// record it sits in. The one commit whose trailers matter, the create an
-	// entity starts from, is read on its own. A path is quoted by git wherever it
-	// carries a control byte, which holds only while `-z` is absent — with it the
-	// raw bytes reach the stream, and a separator in a path splits the record.
-	const recSep, fieldSep = "\x1e", "\x1f"
-	lines, _ := gitLines(ctx, root, "log", "--topo-order", "--no-renames", "--name-status",
-		"--format="+recSep+"%H"+fieldSep+"%P"+fieldSep, baseSHA+"..HEAD")
+	// NUL frames both headers and status/path pairs. Consume each path as one
+	// field before looking for another header: every non-NUL byte is legal in
+	// a path, including any printable or control-byte header marker.
+	fields, _ := gitFields(ctx, root, "\x00", "log", "-z", "--topo-order", "--no-renames", "--name-status",
+		"--format=commit %H %P", baseSHA+"..HEAD")
 	var commits []rangeCommit
-	for _, rec := range strings.Split(strings.Join(lines, "\n"), recSep)[1:] {
-		fields := strings.SplitN(rec, fieldSep, 3)
-		c := rangeCommit{sha: fields[0], parents: strings.Fields(fields[1])}
-		for _, line := range strings.Split(fields[2], "\n") {
-			status, path, _ := strings.Cut(line, "\t")
-			if _, isEntity := entityIDFromPath(path); !isEntity {
-				continue
-			}
-			c.touches = append(c.touches, path)
-			switch {
-			case strings.Contains(status, "A"):
-				c.adds = append(c.adds, path)
-			case strings.Contains(status, "D"):
-				c.deletes = append(c.deletes, path)
-			}
+	for i := 0; i < len(fields); i++ {
+		field := strings.TrimLeft(fields[i], "\n")
+		if header, ok := strings.CutPrefix(field, "commit "); ok {
+			sha, parents, _ := strings.Cut(header, " ")
+			commits = append(commits, rangeCommit{sha: sha, parents: strings.Fields(parents)})
+			continue
 		}
-		commits = append(commits, c)
+		if field == "" {
+			continue
+		}
+		i++ // --no-renames gives exactly one path per status.
+		path := fields[i]
+		if _, isEntity := entityIDFromPath(path); !isEntity {
+			continue
+		}
+		c := &commits[len(commits)-1]
+		c.touches = append(c.touches, path)
+		switch field {
+		case "A":
+			c.adds = append(c.adds, path)
+		case "D":
+			c.deletes = append(c.deletes, path)
+		}
 	}
 	return commits
 }
@@ -367,7 +369,7 @@ func lineage(id, headPath string, headRaw []byte) []string {
 // filesAt returns the blob of every entity-shaped path at rev, keyed by path.
 func filesAt(ctx context.Context, root, rev string) map[string]string {
 	out := map[string]string{}
-	lines, _ := gitLines(ctx, root, "ls-tree", "-r", rev, "--", "work", "docs/adr")
+	lines, _ := gitFields(ctx, root, "\x00", "ls-tree", "-rz", rev, "--", "work", "docs/adr")
 	for _, line := range lines {
 		meta, path, _ := strings.Cut(line, "\t")
 		if _, ok := entityIDFromPath(path); !ok {
@@ -409,8 +411,19 @@ func sortedPaths(files map[string]string) []string {
 // entityBodyAt returns the raw bytes and the post-frontmatter body of relPath at
 // rev. It reports false when the path holds no blob there, or when what it holds
 // carries no frontmatter and so is not an entity file.
-func entityBodyAt(br *gitops.BlobReader, rev, relPath string) (raw, body []byte, ok bool) {
-	raw, err := br.Read(rev, relPath)
+func entityBodyAt(ctx context.Context, root string, br *gitops.BlobReader, rev, relPath string) (raw, body []byte, ok bool) {
+	// cat-file --batch takes line-delimited requests. Resolve paths containing
+	// LF through an argv argument and send only the object id to that stream.
+	var err error
+	if strings.Contains(relPath, "\n") {
+		ids, resolved := gitLines(ctx, root, "rev-parse", "--verify", rev+":"+relPath)
+		if !resolved {
+			return nil, nil, false
+		}
+		raw, err = br.ReadObject(ids[0])
+	} else {
+		raw, err = br.Read(rev, relPath)
+	}
 	if err != nil {
 		return nil, nil, false
 	}
@@ -418,15 +431,18 @@ func entityBodyAt(br *gitops.BlobReader, rev, relPath string) (raw, body []byte,
 	return raw, body, ok
 }
 
-// gitLines runs git in root with quoted paths disabled — a path carrying
-// non-ASCII bytes otherwise comes back quoted and matches no entity shape — and
-// returns its output lines.
+// gitLines runs git in root and returns its output lines.
 func gitLines(ctx context.Context, root string, args ...string) ([]string, bool) {
-	cmd := exec.CommandContext(ctx, "git", append([]string{"-c", "core.quotePath=false"}, args...)...)
+	return gitFields(ctx, root, "\n", args...)
+}
+
+// gitFields preserves path bytes when the caller requests NUL-delimited output.
+func gitFields(ctx context.Context, root, separator string, args ...string) ([]string, bool) {
+	cmd := exec.CommandContext(ctx, "git", args...)
 	cmd.Dir = root
 	out, err := cmd.Output()
 	if err != nil {
 		return nil, false
 	}
-	return strings.Split(strings.TrimRight(string(out), "\n"), "\n"), true
+	return strings.Split(strings.TrimSuffix(string(out), separator), separator), true
 }

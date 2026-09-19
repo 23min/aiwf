@@ -263,6 +263,13 @@ func NewCmd() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "status",
 		Short: "Project snapshot: in-flight work, open decisions, gaps, recent activity",
+		Long: `Project snapshot: in-flight work, open decisions, gaps, recent activity.
+
+Worktree comparisons use the local branch named by allocate.trunk in aiwf.yaml
+(default: main), or the configured ref when that local branch is absent.
+An unavailable comparison is reported as MERGE STATUS UNKNOWN, never as merged.
+In JSON, worktrees[].ahead_of_trunk is null when unknown and a number otherwise;
+worktrees[].is_trunk identifies the configured trunk checkout.`,
 		Example: `  # One-screen project snapshot
   aiwf status
 
@@ -398,13 +405,6 @@ func Run(root, format, area, priority string, pretty, noTrunc, worktrees bool) i
 	// worktree-organized layout."
 	views, vErr := BuildWorktreeViews(ctx, rootDir, tr)
 	if vErr != nil {
-		//coverage:ignore BuildWorktreeViews only propagates
-		// gitops.ListWorktrees' `git worktree list --porcelain` error;
-		// by this point ReadRecentActivity/BuildActivityDigests above
-		// have already run git commands successfully against the same
-		// root, so an independent, later-only failure of this specific
-		// git subcommand isn't reachable through a clean deterministic
-		// fixture.
 		cliutil.Errorf("aiwf status: building worktree view: %v\n", vErr)
 		return cliutil.ExitInternal
 	}

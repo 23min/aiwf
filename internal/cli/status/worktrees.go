@@ -11,6 +11,7 @@ import (
 	"time"
 
 	"github.com/23min/aiwf/internal/branchparse"
+	"github.com/23min/aiwf/internal/cli/cliutil"
 	"github.com/23min/aiwf/internal/entity"
 	"github.com/23min/aiwf/internal/gitops"
 	"github.com/23min/aiwf/internal/render"
@@ -33,13 +34,11 @@ type WorktreeView struct {
 	DriverStatus   string    `json:"driver_status,omitempty"`
 	DriverTitle    string    `json:"driver_title,omitempty"`
 	Stale          bool      `json:"stale,omitempty"`
-	// AheadOfTrunk is the count of commits on this worktree's branch
-	// that are ahead of main. Zero on git failure or when the branch
-	// is fully merged into trunk. Used by the stale-rendering arm to
-	// distinguish wrap-pending (driver terminal + ahead > 0; merge
-	// before removal) from safe-to-remove (driver terminal + ahead = 0;
-	// commits are on trunk so the worktree can be removed). G-0153.
-	AheadOfTrunk int `json:"ahead_of_trunk,omitempty"`
+	// IsTrunk identifies the checkout of the configured trunk branch.
+	IsTrunk bool `json:"is_trunk,omitempty"`
+	// AheadOfTrunk counts commits absent from the comparison ref. Nil means
+	// the comparison was unavailable; only a measured zero proves a merge.
+	AheadOfTrunk *int `json:"ahead_of_trunk"`
 	// Populated only when DriverKind == "epic": milestones under this
 	// epic + gaps the epic (or its milestones) closes + gaps the epic
 	// (or its milestones) surfaced.
@@ -124,14 +123,15 @@ func BuildWorktreeViews(ctx context.Context, rootDir string, tr *tree.Tree) ([]W
 	if err != nil {
 		return nil, fmt.Errorf("listing worktrees: %w", err)
 	}
-	// G-0172: the `main`-branch checkout's tree is the authoritative
-	// "trunk" view. Used below to detect worktrees whose branch has
-	// merged into trunk but whose branch tree lags it. nil when no
-	// worktree is on main — the override then no-ops.
-	trunkTree := trunkTreeOf(ctx, worktrees, rootDir, tr)
+	trunkRef, trunkBranch, err := worktreeTrunk(ctx, rootDir)
+	if err != nil {
+		return nil, fmt.Errorf("resolving worktree trunk: %w", err)
+	}
+	// The trunk checkout supplies entity state for fully merged branches.
+	trunkTree := trunkTreeOf(ctx, worktrees, rootDir, trunkBranch, tr)
 	views := make([]WorktreeView, 0, len(worktrees))
 	for _, wt := range worktrees {
-		v := WorktreeView{Path: wt.Path, Branch: wt.Branch}
+		v := WorktreeView{Path: wt.Path, Branch: wt.Branch, IsTrunk: trunkBranch != "" && wt.Branch == trunkBranch}
 		wtTree := worktreeTree(ctx, wt.Path, rootDir, tr)
 		// HEAD time: author-date of the most recent commit on this
 		// worktree's branch. Best-effort — git failure leaves
@@ -148,21 +148,21 @@ func BuildWorktreeViews(ctx context.Context, rootDir string, tr *tree.Tree) ([]W
 		v.Dirty = worktreeIsDirty(ctx, wt.Path)
 		// Creation proxy: author-date of the first ahead-of-trunk
 		// commit on the branch (when the worktree's work started
-		// diverging from main). Best-effort — empty for branches
+		// diverging from trunk). Best-effort — empty for branches
 		// without ahead-of-trunk commits (fresh worktree, main itself,
 		// or detached HEAD).
-		if !v.HeadTime.IsZero() && wt.Branch != "" && wt.Branch != "main" {
-			if t, err := branchFirstAheadCommitTime(ctx, rootDir, wt.Branch); err == nil {
+		if !v.HeadTime.IsZero() && wt.Branch != "" && !v.IsTrunk {
+			if t, err := branchFirstAheadCommitTime(ctx, rootDir, trunkRef, wt.Branch); err == nil {
 				v.CreatedTime = t
 			}
 			// Ahead-of-trunk count: drives the stale-arm's
 			// wrap-pending-vs-safe-to-remove decision when the driver
-			// is terminal. Best-effort; zero on any git failure. G-0153.
-			v.AheadOfTrunk = branchAheadOfTrunkCount(ctx, rootDir, wt.Branch)
+			// is terminal. An unavailable comparison stays unknown.
+			v.AheadOfTrunk = branchAheadOfTrunkCount(ctx, rootDir, trunkRef, wt.Branch)
 			// Last entity touch: most recent commit on the branch
 			// with an aiwf-verb trailer. Best-effort; zero when no
 			// aiwf-verb commits exist on the branch.
-			if t, err := branchLastEntityCommitTime(ctx, rootDir, wt.Branch); err == nil {
+			if t, err := branchLastEntityCommitTime(ctx, rootDir, trunkRef, wt.Branch); err == nil {
 				v.LastEntityTime = t
 			}
 		}
@@ -171,7 +171,7 @@ func BuildWorktreeViews(ctx context.Context, rootDir string, tr *tree.Tree) ([]W
 			views = append(views, v)
 			continue
 		}
-		driverID := correlateBranchToEntity(ctx, rootDir, wt.Branch)
+		driverID := correlateBranchToEntity(ctx, rootDir, trunkRef, trunkBranch, wt.Branch)
 		// G-0332: the worktree *directory* may independently encode an
 		// epic id (`.claude/worktrees/epic/E-NNNN-…`, ADR-0023's in-repo
 		// placement) — a signal distinct from, and more stable than,
@@ -208,7 +208,7 @@ func BuildWorktreeViews(ctx context.Context, rootDir string, tr *tree.Tree) ([]W
 		v.DriverKind = string(e.Kind)
 		v.DriverStatus = string(e.Status)
 		v.DriverTitle = e.Title
-		v.Stale = isTerminalStatus(e.Kind, e.Status)
+		v.Stale = entity.IsTerminal(e.Kind, e.Status)
 		// G-0172: a worktree branch fully merged into trunk carries
 		// nothing that isn't already on trunk; its branch tree can lag
 		// trunk (e.g. the epic's promote-to-done landed on main *after*
@@ -218,8 +218,8 @@ func BuildWorktreeViews(ctx context.Context, rootDir string, tr *tree.Tree) ([]W
 		// merged-and-safe-to-remove rather than phantom in-flight work.
 		// Skip when the branch tree already considers the driver terminal
 		// — the existing stale path (G-0153) handles that case.
-		if !v.Stale && trunkTree != nil {
-			if st, title, stale := mergedStaleOverride(v.AheadOfTrunk, trunkTree.ByID(driverID)); stale {
+		if !v.Stale && trunkTree != nil && v.AheadOfTrunk != nil {
+			if st, title, stale := mergedStaleOverride(*v.AheadOfTrunk, trunkTree.ByID(driverID)); stale {
 				v.DriverStatus = st
 				v.DriverTitle = title
 				v.Stale = true
@@ -296,7 +296,7 @@ func BuildWorktreeViews(ctx context.Context, rootDir string, tr *tree.Tree) ([]W
 	other := buildOtherInFlight(tr, worktreeDriverIDs, branches)
 	if len(other) > 0 {
 		for i := range views {
-			if views[i].Branch == "main" {
+			if views[i].IsTrunk {
 				views[i].OtherInFlight = other
 				break
 			}
@@ -343,7 +343,7 @@ func worktreeTree(ctx context.Context, path, rootDir string, mainTree *tree.Tree
 //     intent; honoring them avoids the post-merge mislabeling where a
 //     child milestone's promote-trailer (pulled onto the epic branch by
 //     a merge) would otherwise beat the epic's branch name.
-//  2. **Scope-defining events** (G-0122): walk `git log main..<branch>`
+//  2. **Scope-defining events** (G-0122): walk `git log <trunk>..<branch>`
 //     for `aiwf-verb:` trailers (authorize, promote-to-active/
 //     in_progress, --phase promotes). Single-entity match wins;
 //     multi-entity prefers the most-recent active-state event.
@@ -351,16 +351,12 @@ func worktreeTree(ctx context.Context, path, rootDir string, mainTree *tree.Tree
 //     trailer on any ahead-of-trunk commit.
 //  4. Return "" when none of the above resolve.
 //
-// "main" is the trunk reference; if it doesn't exist (a repo whose
-// trunk is named differently, or a fresh worktree before main exists),
-// the function returns "" and the renderer treats the worktree as
-// uncorrelated — the operator sees it under "Trunk / no in-flight
-// scope," not as a false positive.
-func correlateBranchToEntity(ctx context.Context, rootDir, branch string) string {
-	if branch == "main" {
+// Missing history degrades to branch-name correlation without claiming
+// that the branch is merged.
+func correlateBranchToEntity(ctx context.Context, rootDir, trunkRef, trunkBranch, branch string) string {
+	if branch == trunkBranch {
 		// The trunk itself never drives a specific entity by definition.
-		// Skip the git-log walk; branch-parse on "main" would also yield
-		// nothing.
+		// Skip both branch-name parsing and the git-log walk.
 		return ""
 	}
 	// G-0154: ritual branch names are the operator's deliberate
@@ -370,7 +366,7 @@ func correlateBranchToEntity(ctx context.Context, rootDir, branch string) string
 	if id := branchparse.ParseEntityFromBranch(branch); id != "" {
 		return id
 	}
-	return correlateFromTrailerEvents(branchAiwfEvents(ctx, rootDir, branch))
+	return correlateFromTrailerEvents(branchAiwfEvents(ctx, rootDir, trunkRef, branch))
 }
 
 // correlateFromTrailerEvents derives an entity id from the trailer
@@ -394,18 +390,17 @@ type branchAiwfEventRecord struct {
 }
 
 // branchAiwfEvents returns the aiwf-verb / aiwf-entity / aiwf-to
-// trailers from every commit on `branch` ahead of `main`. Newest first.
-// Empty when `branch == main` or when there's no merge-base (separate
-// histories). git invocation failure returns empty (treat as "no
+// trailers from every commit on `branch` ahead of the configured trunk. Newest first.
+// Git invocation failure returns empty (treat as "no
 // ahead-of-trunk events", not a fatal error — the worktree view
 // degrades gracefully to branch-name parsing).
-func branchAiwfEvents(ctx context.Context, rootDir, branch string) []branchAiwfEventRecord {
+func branchAiwfEvents(ctx context.Context, rootDir, trunkRef, branch string) []branchAiwfEventRecord {
 	const sep = "\x1f"
 	const recSep = "\x1e\n"
 	cmd := exec.CommandContext(
 		ctx, "git",
 		"log",
-		"main.."+branch,
+		trunkRef+"..refs/heads/"+branch,
 		"--pretty=tformat:"+
 			"%(trailers:key=aiwf-verb,valueonly=true,unfold=true)"+sep+
 			"%(trailers:key=aiwf-entity,valueonly=true,unfold=true)"+sep+
@@ -501,22 +496,40 @@ func parentEntity(id string) string {
 	return id
 }
 
-// trunkTreeOf returns the loaded entity tree of the `main`-branch
-// checkout among the worktrees — the authoritative "trunk" view used to
-// detect merged-but-unpruned worktrees (G-0172). git's worktree set
-// almost always includes the main checkout; when it's on `main`, its
-// tree is trunk. In the canonical from-main invocation the main
-// checkout's path equals rootDir, so worktreeTree reuses the passed-in
-// tr without a duplicate disk walk.
-//
-// Returns nil when no worktree is on `main` (e.g. every worktree is on a
-// feature branch). The caller then falls back to branch-local
-// terminality and the G-0172 override is simply skipped — no regression
-// versus the pre-fix behavior. The `main` literal matches the trunk
-// reference the rest of this file uses for `main..<branch>` topology.
-func trunkTreeOf(ctx context.Context, worktrees []gitops.Worktree, rootDir string, tr *tree.Tree) *tree.Tree {
+// worktreeTrunk resolves the comparison ref and local checkout name once.
+// Local trunk is the merge destination for worktree cleanup. When it has
+// no local branch, the configured ref supplies the comparison baseline.
+func worktreeTrunk(ctx context.Context, rootDir string) (ref, branch string, err error) {
+	cfg, err := cliutil.LoadOptionalConfig(rootDir)
+	if err != nil {
+		return "", "", err
+	}
+	ref, _ = cfg.AllocateTrunkRef()
+	switch {
+	case strings.HasPrefix(ref, "refs/heads/"):
+		branch = strings.TrimPrefix(ref, "refs/heads/")
+	case strings.HasPrefix(ref, "refs/remotes/"):
+		_, branch, _ = strings.Cut(strings.TrimPrefix(ref, "refs/remotes/"), "/")
+	}
+	if branch != "" {
+		localRef := "refs/heads/" + branch
+		exists, refErr := gitops.HasRef(ctx, rootDir, localRef)
+		if refErr != nil {
+			return "", "", refErr
+		}
+		if exists {
+			ref = localRef
+		}
+	}
+	return ref, branch, nil
+}
+
+// trunkTreeOf returns the configured trunk checkout's entity tree, or nil
+// when that branch has no checkout. Only that checkout can override a
+// merged worktree's stale entity state.
+func trunkTreeOf(ctx context.Context, worktrees []gitops.Worktree, rootDir, trunkBranch string, tr *tree.Tree) *tree.Tree {
 	for _, wt := range worktrees {
-		if wt.Branch == "main" {
+		if trunkBranch != "" && wt.Branch == trunkBranch {
 			return worktreeTree(ctx, wt.Path, rootDir, tr)
 		}
 	}
@@ -541,30 +554,10 @@ func mergedStaleOverride(aheadOfTrunk int, trunkEntity *entity.Entity) (status, 
 	if aheadOfTrunk != 0 || trunkEntity == nil {
 		return "", "", false
 	}
-	if !isTerminalStatus(trunkEntity.Kind, trunkEntity.Status) {
+	if !entity.IsTerminal(trunkEntity.Kind, trunkEntity.Status) {
 		return "", "", false
 	}
 	return string(trunkEntity.Status), trunkEntity.Title, true
-}
-
-// isTerminalStatus reports whether the kind's status is a terminal
-// state (done / cancelled / wontfix / rejected / addressed / retired /
-// superseded). Mirrors entity.IsTerminalStatus when present; falls back
-// to a closed-set check here so the worktree view doesn't pull in a
-// package-level dependency for a narrowly-scoped check.
-func isTerminalStatus(kind entity.Kind, status entity.Status) bool {
-	switch status {
-	case entity.StatusDone,
-		entity.StatusCancelled,
-		entity.StatusWontfix,
-		entity.StatusRejected,
-		entity.StatusAddressed,
-		entity.StatusRetired,
-		entity.StatusSuperseded,
-		entity.StatusDeprecated:
-		return true
-	}
-	return false
 }
 
 // epicExpansion returns the milestone and gap children for an epic
@@ -816,7 +809,11 @@ func renderWorktreeSection(w io.Writer, v *WorktreeView, colorEnabled bool) erro
 		if len(v.OtherInFlight) > 0 {
 			return renderOtherInFlight(w, v.OtherInFlight, time.Now(), colorEnabled)
 		}
-		_, err := fmt.Fprintln(w, render.Dim("  No in-flight scope (trunk)", colorEnabled))
+		label := "  No driver entity"
+		if v.IsTrunk {
+			label = "  No in-flight scope (trunk)"
+		}
+		_, err := fmt.Fprintln(w, render.Dim(label, colorEnabled))
 		return err
 	}
 	// Stale worktrees branch three ways (G-0153):
@@ -871,13 +868,13 @@ func renderWorktreeSection(w io.Writer, v *WorktreeView, colorEnabled bool) erro
 //     the working tree before the merge, so the cleanup hint is
 //     inverted ("merge first" not "remove now").
 //
-// In all three cases the parent-epic breadcrumb is restored vs the
-// prior implementation: terminal driver status doesn't change the
-// fact that the worktree belongs under E-NNNN, and the active parent
-// epic is exactly the context the operator wants while reading a
-// done-but-not-yet-merged milestone ("right, this is the wrap step
-// in E-NNNN").
+// A failed comparison withholds cleanup advice. Known merge states retain
+// the parent-epic breadcrumb so terminal milestones keep their context.
 func renderStaleSection(w io.Writer, v *WorktreeView, colorEnabled bool) error {
+	if v.AheadOfTrunk == nil {
+		_, err := fmt.Fprintf(w, "  %s — %s [%s]\n  MERGE STATUS UNKNOWN — cannot compare branch with trunk; verify the configured trunk ref and merge state before removing this worktree\n", v.DriverEntityID, v.DriverTitle, v.DriverStatus)
+		return err
+	}
 	cancelledFlavor := entity.Status(v.DriverStatus) == entity.StatusCancelled ||
 		entity.Status(v.DriverStatus) == entity.StatusRejected ||
 		entity.Status(v.DriverStatus) == entity.StatusWontfix
@@ -888,7 +885,7 @@ func renderStaleSection(w io.Writer, v *WorktreeView, colorEnabled bool) error {
 	// renderer, then append a WRAP PENDING marker that names the
 	// pending step explicitly. No `git worktree remove` suggestion —
 	// running it now would drop the wrap-step working tree.
-	if !cancelledFlavor && v.AheadOfTrunk > 0 {
+	if !cancelledFlavor && *v.AheadOfTrunk > 0 {
 		switch v.DriverKind {
 		case string(entity.KindEpic):
 			if _, err := fmt.Fprintf(w, "  %s — %s %s\n",
@@ -913,13 +910,13 @@ func renderStaleSection(w io.Writer, v *WorktreeView, colorEnabled bool) error {
 			}
 		}
 		commitsWord := "commits"
-		if v.AheadOfTrunk == 1 {
+		if *v.AheadOfTrunk == 1 {
 			commitsWord = "commit"
 		}
 		_, err := fmt.Fprintf(w, "  %s — driver %s but branch ahead of trunk by %d %s; merge to trunk before removing\n",
 			render.Bold("WRAP PENDING", colorEnabled),
 			v.DriverStatus,
-			v.AheadOfTrunk,
+			*v.AheadOfTrunk,
 			commitsWord)
 		return err
 	}
@@ -1113,12 +1110,12 @@ func orderMilestonesByActivity(rows []EpicChildRow) []EpicChildRow {
 		}
 	}
 	for _, r := range rows {
-		if entity.Status(r.Status) != entity.StatusInProgress && !isTerminalStatus("", entity.Status(r.Status)) {
+		if entity.Status(r.Status) != entity.StatusInProgress && !entity.IsTerminal(entity.KindMilestone, entity.Status(r.Status)) {
 			out = append(out, r)
 		}
 	}
 	for _, r := range rows {
-		if isTerminalStatus("", entity.Status(r.Status)) {
+		if entity.IsTerminal(entity.KindMilestone, entity.Status(r.Status)) {
 			out = append(out, r)
 		}
 	}
@@ -1259,7 +1256,7 @@ func renderWorktreeShortDriver(b *strings.Builder, v *WorktreeView, now time.Tim
 
 func renderWorktreeShortTrunk(b *strings.Builder, v *WorktreeView, now time.Time, colorEnabled bool) {
 	parts := []string{v.Path, branchLabel(v.Branch)}
-	if v.Branch == "main" {
+	if v.IsTrunk {
 		parts = append(parts, "trunk (no in-flight scope)")
 	} else {
 		parts = append(parts, "no driver entity")
@@ -1345,14 +1342,14 @@ func worktreeIsDirty(ctx context.Context, path string) bool {
 
 // branchFirstAheadCommitTime returns the author-date of the first
 // ahead-of-trunk commit on `branch` — a proxy for "when this worktree
-// started diverging from main." Empty / err when branch has no ahead
+// started diverging from trunk." Empty / err when branch has no ahead
 // commits or when git log fails.
 //
-// Uses `main..<branch>` to scope to ahead-of-trunk commits; `--reverse`
+// Uses `<trunk>..<branch>` to scope to ahead-of-trunk commits; `--reverse`
 // + `-1` returns the oldest of those (the divergence point's first
 // step). G-0122 user-feedback extension.
-func branchFirstAheadCommitTime(ctx context.Context, rootDir, branch string) (time.Time, error) {
-	cmd := exec.CommandContext(ctx, "git", "log", "--reverse", "-1", "--format=%aI", "main.."+branch)
+func branchFirstAheadCommitTime(ctx context.Context, rootDir, trunkRef, branch string) (time.Time, error) {
+	cmd := exec.CommandContext(ctx, "git", "log", "--reverse", "-1", "--format=%aI", trunkRef+"..refs/heads/"+branch)
 	cmd.Dir = rootDir
 	out, err := cmd.Output()
 	if err != nil {
@@ -1366,12 +1363,12 @@ func branchFirstAheadCommitTime(ctx context.Context, rootDir, branch string) (ti
 }
 
 // branchLastEntityCommitTime returns the author-date of the most
-// recent commit on `branch` (ahead of main) that carries an
+// recent commit on `branch` (ahead of trunk) that carries an
 // `aiwf-verb:` trailer — the last meaningful entity-touching change.
 // Empty when no such commit exists. G-0122 user-feedback extension.
-func branchLastEntityCommitTime(ctx context.Context, rootDir, branch string) (time.Time, error) {
+func branchLastEntityCommitTime(ctx context.Context, rootDir, trunkRef, branch string) (time.Time, error) {
 	cmd := exec.CommandContext(ctx, "git", "log", "-1", "--format=%aI",
-		"--grep", "^aiwf-verb:", "-E", "main.."+branch)
+		"--grep", "^aiwf-verb:", "-E", trunkRef+"..refs/heads/"+branch)
 	cmd.Dir = rootDir
 	out, err := cmd.Output()
 	if err != nil {
@@ -1384,27 +1381,21 @@ func branchLastEntityCommitTime(ctx context.Context, rootDir, branch string) (ti
 	return time.Parse(time.RFC3339, s)
 }
 
-// branchAheadOfTrunkCount returns the count of commits on `branch`
-// that are ahead of main — i.e. the number of unmerged commits this
-// worktree carries. Zero on any git failure or when the branch is
-// fully merged into trunk (or doesn't exist).
-//
-// Used by the stale-rendering arm to distinguish wrap-pending (count
-// > 0; the operator must merge before removing) from safe-to-remove
-// (count == 0; commits live on trunk so removal is non-destructive).
-// G-0153.
-func branchAheadOfTrunkCount(ctx context.Context, rootDir, branch string) int {
-	cmd := exec.CommandContext(ctx, "git", "rev-list", "--count", "main.."+branch)
+// branchAheadOfTrunkCount counts branch commits absent from trunkRef.
+// Git or output-parsing failure returns nil: an unknown merge state must
+// never be interpreted as a fully merged branch.
+func branchAheadOfTrunkCount(ctx context.Context, rootDir, trunkRef, branch string) *int {
+	cmd := exec.CommandContext(ctx, "git", "rev-list", "--count", trunkRef+"..refs/heads/"+branch)
 	cmd.Dir = rootDir
 	out, err := cmd.Output()
 	if err != nil {
-		return 0
+		return nil
 	}
 	n, err := strconv.Atoi(strings.TrimSpace(string(out)))
 	if err != nil {
-		return 0
+		return nil
 	}
-	return n
+	return &n
 }
 
 // branchAge is one local branch's name + its HEAD commit time. Used

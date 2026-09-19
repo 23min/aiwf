@@ -1,12 +1,14 @@
 ---
 id: G-0693
 title: Makefile passes the Darwin signing wrapper on Linux, defeating the test cache
-status: open
+status: addressed
+addressed_by_commit:
+    - 22122a3c4
 ---
 ## What's missing
 
 `Makefile:24` sets `TEST_EXEC := $(CURDIR)/scripts/sign-and-run.sh` unconditionally, and
-eleven `go test` recipes pass it as `-exec=$(TEST_EXEC)`. `scripts/sign-and-run.sh:7`
+every `go test` recipe passes it as `-exec=$(TEST_EXEC)`. `scripts/sign-and-run.sh:7`
 signs only on Darwin and otherwise `exec "$@"` — a no-op. But `-exec` sits outside the
 flag set `go help test` lists as cacheable, so passing it defeats Go's test cache on
 every host, including the devcontainer `CLAUDE.md` documents as the primary path.
@@ -42,7 +44,20 @@ Every local test run pays a full uncached suite, so wall-clock scales with the n
 of runs rather than with what changed. The review loop `wf-patch` step 6 mandates
 re-runs the gate once per round of findings, and that is where it is felt.
 
-Go's cache does not observe inputs a test reads through a subprocess, so a policy test
-that shells out to git can serve a stale green locally once caching is live. The
-profile-driven gate targets already pass `-count=1`, and the workflows pass the
-wrapper by an absolute path of their own, so neither is affected.
+Go's cache does not observe inputs a test reads through a subprocess, so a policy that
+enumerates the tree that way replays a pass taken before the tree changed.
+`PolicyCommentHistoryAttritionTree` enumerates through `git diff` against the empty
+tree, and runs in the ordinary suite rather than behind `-count=1`. Measured in a
+detached worktree, after committing a Go file whose comment narrates history:
+
+```
+$ go test -exec= -run '^TestPolicy_CommentHistoryAttritionTree$' ./internal/policies/
+ok  github.com/23min/aiwf/internal/policies  (cached)
+$ go test -exec= -count=1 -run '^TestPolicy_CommentHistoryAttritionTree$' ./internal/policies/
+    internal/zzzprobe/probe.go:3: comment narrates history ("used to be")
+FAIL
+```
+
+The window is local and add-only: CI never caches, since the workflows name the wrapper
+by an absolute path of their own, and both git hooks pass `-count=1`. A file the scan
+has already read is re-read when it changes, because that read is the test's own.
