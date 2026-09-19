@@ -16,6 +16,13 @@ section in this file.
 
 ## [Unreleased]
 
+### Fixed — G-0690: history checks retain Git-quoted entity paths
+
+`aiwf check` detects illegal status transitions in entities whose filenames
+contain Unicode, quotes, backslashes, tabs, or other control bytes that Git
+escapes in its history output. Rename tracking preserves the original paths,
+so renaming an entity does not hide an earlier illegal transition.
+
 ### Fixed — G-0510: enum suppressions require a directive and a reason
 
 The repository's enum-literal and finding-code policies accept only
