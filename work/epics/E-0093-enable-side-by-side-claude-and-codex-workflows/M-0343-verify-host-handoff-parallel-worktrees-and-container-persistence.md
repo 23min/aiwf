@@ -1,7 +1,7 @@
 ---
 id: M-0343
 title: Verify host handoff parallel worktrees and container persistence
-status: draft
+status: in_progress
 parent: E-0093
 depends_on:
     - M-0342
