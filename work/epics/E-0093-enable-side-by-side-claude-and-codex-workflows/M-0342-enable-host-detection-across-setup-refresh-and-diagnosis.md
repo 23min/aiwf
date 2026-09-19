@@ -13,7 +13,7 @@ acs:
       tdd_phase: done
     - id: AC-2
       title: Init update and worktree refresh materialize the complete resolved host set
-      status: open
+      status: met
       tdd_phase: done
     - id: AC-3
       title: Unselected host settings and artifacts remain untouched
