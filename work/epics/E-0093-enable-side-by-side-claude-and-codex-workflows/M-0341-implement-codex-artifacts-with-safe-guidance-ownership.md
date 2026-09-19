@@ -22,7 +22,7 @@ acs:
     - id: AC-4
       title: Ownership conflicts and unsafe paths cannot overwrite foreign artifacts
       status: open
-      tdd_phase: red
+      tdd_phase: green
     - id: AC-5
       title: Operational fragments are selected by host and resolve workflow references
       status: open
