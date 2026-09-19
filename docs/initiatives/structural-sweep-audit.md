@@ -63,7 +63,7 @@ against open gaps and accepted decisions. Owned items are listed once under
 | Reachability hits, tests as roots | 2 (both owned, G-0417) |
 | Production functions reachable only from tests | **41**, plus one whole package |
 | Clone pairs at threshold 100, exclusions lifted | 7 (5 production, all owned, G-0472) |
-| Defects, unowned | **6** (2 measured, 4 derived) |
+| Defects, unowned | **4** (all derived) |
 | Dead paths and dropped data flow, unowned | **17** |
 | Convergent duplication, milestone-shaped, unowned | 7 |
 | Convergent duplication, patch-shaped, unowned | 12 per-package bundles |
@@ -109,8 +109,7 @@ binaries' roots.
 
 **One condition, several dispositions.** An unparseable Go file is `continue`d in
 about 38 policies, returned as an error in three, emitted as a Violation in one,
-and declared unreachable in two. A malformed `aiwf.yaml` fails the full check at
-exit 3 and is silently defaulted by the shape-only and fast paths at exit 0.
+and declared unreachable in two.
 
 ## What would prevent it
 
@@ -135,13 +134,6 @@ exit 3 and is silently defaulted by the shape-only and fast paths at exit 0.
   reporting counts against this document.
 
 ## Ready to act on
-
-**Measured defects, unowned:**
-
-- **A1** — the FSM history walker is blind to any entity whose path git quotes.
-  Promoted: G-0690.
-- **A2** — `aiwf check --shape-only` and `--fast` exit 0 with default policy on a
-  malformed `aiwf.yaml` that the full check refuses at exit 3. Promoted: G-0691.
 
 **Tracked records whose premise changed:**
 
@@ -169,40 +161,6 @@ Locations are `file:line` as read at `b10eb2676`. Size is the disposal shape a
 reader would expect — patch or milestone — not a commitment.
 
 ### A — defects
-
-**A1. FSM history walker is blind to any entity path git quotes.** *Measured.*
-`internal/gitops/revwalk.go:184` runs `git log --all --raw --no-abbrev -M` with
-neither `-z` nor `-c core.quotePath=false`, and `parseRawPathLine` (`:347-392`)
-never unquotes; `internal/check/fsm_history_walker.go:199` misses the entity in
-`pathToEntity` and continues. In a scratch repo with `G-0001-plain.md` and
-`G-0002-héllo.md` both hand-edited `addressed → open` in one commit, `aiwf check`
-reports `fsm-history-consistent/illegal-transition` for the ASCII gap only. The
-sibling walkers run their git calls with `-c core.quotePath=false`
-(`entity_body_section_dropped.go:424-433`, `area_mistag.go:231`); G-0684 records,
-for the section-dropped gate, the byte class that setting does not stop git
-quoting — a double quote, a backslash, a tab, a control byte — so this walker is
-affected by the non-ASCII class on top of that one. Patch, in `gitops` so every
-`BulkRevwalk` consumer inherits it. Promoted: G-0690.
-
-**A2. Shape-only and fast checks silently default on a malformed config.**
-*Measured.* With `tdd: [unterminated` appended to `aiwf.yaml`: `aiwf check` exits
-3 (pinned by `check_error_paths_test.go:44-54`), `aiwf check --shape-only` and
-`aiwf check --fast` print "ok — no findings" and exit 0.
-The full path refuses inside `cliutil.LoadTreeWithTrunk` (`check.go:99`);
-`runShapeOnly` and `runFast` load through `tree.Load` and guard their own
-`config.Load` at `check.go:369,440` with `cfgErr == nil && cfg != nil`, running
-otherwise with `tree.strict=false`, no `allow_paths`, and an empty severity
-policy. Measured: with `tree: strict: true` in a valid config and a stray file
-under `work/gaps/`, both cheaper paths report `error unexpected-tree-file` and
-exit 1; with the same file corrupted, both report `warning` and exit 0. The
-pre-commit hook runs `--shape-only` on every commit. No shipped surface runs
-`--fast`: the flag's help at `check.go:60` names the statusline health glyph as
-its consumer, but the statusline script spawns no verb
-(`TestStatusline_RenderInvokesNoKernelVerb`), so that help text is stale;
-promoted as G-0692. Root
-cause is C5: `aiwf.yaml` is loaded at more than twenty independent sites with
-four failure behaviours. Patch for the two check paths; milestone for one load
-per invocation. Promoted: G-0691.
 
 **A3. `aiwf status` hardcodes `main` as the trunk.** *Derived.*
 `internal/cli/status/worktrees.go:154,299,360,408,519,1262,1355,1374,1397` use the
@@ -448,14 +406,14 @@ undocumented. Milestone.
 **C5. `aiwf.yaml` is loaded more than twenty times per process with four failure
 behaviours.** Fail-loud: `internal/cli/cliutil/treeload.go:32-35`,
 `update/update.go:120-124`, `worktree/worktree.go:149-152`, `doctor/doctor.go:205-213`.
-Silently default: `cli/check/check.go:192,369,440`, `treeload.go:141,156,171,184,198,219`
+Silently default: `cli/check/check.go:192`, `treeload.go:141,156,171,184,198,219`
 (six `Configured*` helpers), `resolvelogger.go:28,72`, `doctor.go:445,726`,
 `doctor/guidance.go:27`, `worktree.go:114` (the same verb fails loud on the same
 file at `:149`), `render/render.go:315,412`. `initrepo` re-parses five times per
 run (`initrepo.go:590,605,751,1206,1224`) while every caller already holds `cfg`,
 and two of those loads swallow every error into "no aiwf.yaml or unreadable".
 `config.Load` classifies a parse failure as a non-`ErrNotFound` error
-(`config.go:928`). A2 is the user-visible consequence. Milestone: one load per
+(`config.go:928`). Milestone: one load per
 invocation and one failure classification.
 
 **C6. `cli/render.Resolver` mirrors five unexported `htmlrender` helpers and three
@@ -665,7 +623,7 @@ places and the ledger names where it does not.
 | D4 altitude | Strong | subprocess at the seam, in-process fixtures |
 | D5 findings become checks | Strong | the policies package is this principle; caveat B15 |
 | E1 structured logs | Strong | slog via `BeginVerbDiag`, `forbidigo` fence; gaps: `status`, `render`, `template`, `schema`, `milestone` emit no event (D9) |
-| E2 designed failures | Weak | one condition, four dispositions for an unparseable Go file (C2) and for a malformed `aiwf.yaml` (C5, A2); four HEAD probes collapse a fault into "empty" (C1) |
+| E2 designed failures | Weak | one condition, four dispositions for an unparseable Go file (C2) and for a malformed `aiwf.yaml` (C5); four HEAD probes collapse a fault into "empty" (C1) |
 | E3 audit trail | Strong | trailers on every plan; edges: raw-width id in contract trailers (A4), `aiwf-prior-parent` write-only (B9) |
 | E4 self-explaining errors | Strong | a remedy per path role in verb refusals; Weak at the stress operator boundary (B5) and in `cli`, where "not found" is reported four ways (G-0483) |
 | F1 names | Weak | `isTerminalStatus` ≠ `IsTerminal` (A6); `skills.HooksDir` is `.claude/hooks` while `gitops.HooksDir` is `.git/hooks`; `--root` help "(default: cwd)" on a verb that walks up; `Outcome: Legal` on cells that fire (B11) |
@@ -690,7 +648,8 @@ G-0545 (the coherence-guard seam policy); G-0456 (the two prelude arms); G-0563
 (bare `tree.Load` vs `LoadTreeWithTrunk`); G-0169 (verbs with no `--format`);
 G-0483 / D-0044 (code-less verb errors); G-0459, G-0460, G-0458 (event-shaped
 verbs, repeat authorize, AC phase input); G-0684 (quoting in the section-dropped
-walker); G-0666 (the 64 KB scanner ceiling); G-0644 (the orphan walk verdict);
+walker); G-0692 (stale `check --fast` help); G-0666 (the 64 KB scanner ceiling);
+G-0644 (the orphan walk verdict);
 G-0157 (the per-worktree subprocess fan-out in `status`); G-0400 (verb coverage of
 the stress catalogue); G-0555 / G-0645 (shared-binary temp dirs); G-0468, G-0491
 (stress oracle shape, `ETXTBSY`); G-0222 (wontfix, the resolver conformance

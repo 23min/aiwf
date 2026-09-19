@@ -4,6 +4,8 @@ import (
 	"context"
 	"reflect"
 	"testing"
+
+	"github.com/google/go-cmp/cmp"
 )
 
 // TestBulkRevwalk_EmptyRoot pins the early-return for an empty root
@@ -242,8 +244,7 @@ func TestParsePathsBlock(t *testing.T) {
 // TestParseRawPathLine exercises parseRawPathLine directly — the
 // `git log --raw` line parser — including the malformed-shape guards
 // that the line-format the production walk emits never hits but that
-// must reject cleanly (returning ok=false so parsePathsBlock falls
-// back to the name-status branch).
+// must reject cleanly (returning ok=false so parsePathsBlock skips them).
 func TestParseRawPathLine(t *testing.T) {
 	t.Parallel()
 	const pre = "1111111111111111111111111111111111111111"
@@ -282,6 +283,40 @@ func TestParseRawPathLine(t *testing.T) {
 			}
 			if ok && !reflect.DeepEqual(got, tc.want) {
 				t.Errorf("parseRawPathLine(%q) = %#v, want %#v", tc.line, got, tc.want)
+			}
+		})
+	}
+}
+
+func TestParseRawPathLine_QuotedOperands(t *testing.T) {
+	t.Parallel()
+	const prefix = ":100644 100644 pre post "
+	cases := []struct {
+		name string
+		line string
+		want PathTouch
+		ok   bool
+	}{
+		{"octal bytes", "M\t\"h\\303\\251llo.md\"", PathTouch{Status: "M", Path: "héllo.md", PreSHA: "pre", PostSHA: "post"}, true},
+		{"quoted rename source", "R100\t\"old\\t.md\"\tnew.md", PathTouch{Status: "R", SrcPath: "old\t.md", Path: "new.md", PreSHA: "pre", PostSHA: "post"}, true},
+		{"quoted copy destination", "C100\told.md\t\"new\\n.md\"", PathTouch{Status: "C", SrcPath: "old.md", Path: "new\n.md", PreSHA: "pre", PostSHA: "post"}, true},
+		{"unterminated quote", "M\t\"bad.md", PathTouch{}, false},
+		{"invalid escape", "M\t\"bad\\q.md\"", PathTouch{}, false},
+		{"invalid rename source", "R100\t\"bad\\q.md\"\tnew.md", PathTouch{}, false},
+		{"invalid rename destination", "R100\told.md\t\"bad\\q.md\"", PathTouch{}, false},
+		{"empty quoted path", "M\t\"\"", PathTouch{}, false},
+		{"empty quoted source", "R100\t\"\"\tnew.md", PathTouch{}, false},
+		{"empty quoted destination", "R100\told.md\t\"\"", PathTouch{}, false},
+	}
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			t.Parallel()
+			got, ok := parseRawPathLine(prefix + tc.line)
+			if ok != tc.ok {
+				t.Fatalf("accepted = %v, want %v", ok, tc.ok)
+			}
+			if diff := cmp.Diff(tc.want, got); diff != "" {
+				t.Errorf("path touch (-want +got):\n%s", diff)
 			}
 		})
 	}

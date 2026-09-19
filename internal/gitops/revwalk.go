@@ -6,6 +6,7 @@ import (
 	"errors"
 	"fmt"
 	"os/exec"
+	"strconv"
 	"strings"
 )
 
@@ -121,7 +122,7 @@ var bulkTrailerKeys = []string{
 }
 
 // BulkRevwalk runs a single
-// `git log --all --raw --no-abbrev -M --pretty=...` subprocess,
+// `git -c core.quotePath=true log --all --raw --no-abbrev -M --pretty=...` subprocess,
 // reads its full output, then calls fn for each commit-diff [CommitRecord]
 // in walk order. The single-subprocess shape replaces the per-entity
 // `git log --follow` fan-out used by callers that walk every entity
@@ -181,7 +182,9 @@ func bulkRevwalk(ctx context.Context, root string, extraArgs []string, fn func(C
 	}
 
 	pretty := buildBulkPretty()
-	args := []string{"log", "--all", "--raw", "--no-abbrev", "-M"}
+	// Force octal escapes for non-ASCII bytes so quoted filenames round-trip
+	// through strconv.Unquote even when their raw bytes are not valid UTF-8.
+	args := []string{"-c", "core.quotePath=true", "log", "--all", "--raw", "--no-abbrev", "-M"}
 	args = append(args, extraArgs...)
 	args = append(args, "--pretty="+pretty)
 	cmd := exec.CommandContext(ctx, "git", args...)
@@ -398,6 +401,18 @@ func parseRawPathLine(line string) (PathTouch, bool) {
 	preSHA := meta[2]
 	postSHA := meta[3]
 	operands := strings.Split(line[tab+1:], "\t")
+	// Git C-quotes paths containing control bytes, quotes or backslashes,
+	// and non-ASCII bytes when core.quotePath is true. Decode only after
+	// splitting the wire fields so escaped tabs and newlines stay in paths.
+	for i, operand := range operands {
+		if strings.HasPrefix(operand, "\"") {
+			decoded, err := strconv.Unquote(operand)
+			if err != nil {
+				return PathTouch{}, false
+			}
+			operands[i] = decoded
+		}
+	}
 	switch statusCode {
 	case "R", "C":
 		if len(operands) < 2 || operands[0] == "" || operands[1] == "" {
