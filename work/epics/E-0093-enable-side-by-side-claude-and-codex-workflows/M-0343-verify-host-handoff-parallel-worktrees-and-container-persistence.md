@@ -406,6 +406,42 @@ notes, snapshots and per-leg observations remain under
 the setup, prompt contracts, command forms, expected outcomes, actual results
 and limits above form the durable rerun record.
 
+### AC-3 — concurrent sessions in separate worktrees
+
+Observed 2026-09-19: Claude Code 2.1.278, Codex CLI 0.155.0, Node v22.23.2.
+Using AC-2's disposable consumer and baseline `7379947ccf53053223a027adacdd97d4c8b564ab`,
+create `experiment/parallel-claude` and `experiment/parallel-codex` serially with
+`aiwf worktree add <branch> --base <baseline>` and the same source-built binary.
+Both select both hosts, expose 39 skills per host, and pass doctor/ritual checks.
+Stage a distinct `session-scope.txt` in each; snapshot files, indexes and HEADs.
+
+Separately approved sessions start together in distinct PTYs. Claude uses AC-2's
+bounded print/stream-json settings with Write/Edit; Codex uses
+`codex --disable worktrees -a never exec --sandbox workspace-write --json -C <path>`.
+Each prompt requires root/branch checks, its generated worktree skill, measured
+examples and tests, and preservation of existing files/index entries. Only Claude's
+`docs/valid-names.md` and Codex's `docs/rejected-names.md` may be added, unstaged.
+
+Both exit 0: process intervals overlap by 61.735 seconds; first-to-last active-event
+intervals overlap by 54.762 seconds. Parent checks confirm only the assigned document
+appears per checkout; pre-existing file hashes, complete indexes, staged markers,
+branches and HEADs are unchanged. AC-2's checkout is unchanged. All five documented
+examples reproduce, and `node __tests__/greet.test.mjs` passes seven tests per checkout.
+No shared-hook refresh or integration occurs.
+
+Both read their assigned generated skill. Claude also reads the main checkout's
+byte-identical skill first and cannot run six Git commands under the restricted
+allowlist; it reports its index checks as unavailable. Parent Git/snapshot checks
+supply the isolation evidence. Codex retries discovery after initially missing
+ignored artifacts. The result establishes observed edit/index isolation, not
+perfect read confinement, default-permission behavior or universal adherence.
+
+Exact prompts, arguments, PTY/event timings, outputs and snapshots remain as
+`parallel-*` files under `/tmp/aiwf-M-0343-handoff-327e30na/`, including
+`parallel-verification.json` and `parallel-observation.md`. These are temporary
+supporting evidence; the setup, expected isolation and measured results above
+record the bounded human-operated concurrency observation.
+
 ## Deferrals
 
 - (none)
