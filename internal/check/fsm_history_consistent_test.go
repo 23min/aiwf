@@ -535,6 +535,9 @@ func TestParseStatusFromFrontmatter(t *testing.T) {
 	}{
 		{"well-formed", "---\nid: E-0001\nstatus: proposed\n---\nbody\n", "proposed"},
 		{"CRLF", "---\r\nid: E-0001\r\nstatus: active\r\n---\r\nbody\r\n", "active"},
+		{"BOM LF", "\xef\xbb\xbf---\nid: E-0001\nstatus: proposed\n---\n", "proposed"},
+		{"BOM CRLF", "\xef\xbb\xbf---\r\nid: E-0001\r\nstatus: active\r\n---\r\n", "active"},
+		{"delimiter must occupy its own line", "---\nid: E-0001\nstatus: proposed\n---suffix\n", ""},
 		{"no leading delim", "id: E-0001\nstatus: proposed\n", ""},
 		{"unterminated frontmatter", "---\nid: E-0001\nstatus: proposed\nbody\n", ""},
 		{"no status field", "---\nid: E-0001\ntitle: hi\n---\nbody\n", ""},

@@ -16,6 +16,12 @@ section in this file.
 
 ## [Unreleased]
 
+### Fixed — history checks retain BOM-prefixed entity states
+
+`aiwf check` detects illegal status transitions when either historical entity
+version starts with a UTF-8 byte-order mark, including files with Windows line
+endings. History and current-file parsing use the same frontmatter boundaries.
+
 ### Fixed — status uses the configured trunk for worktree comparisons
 
 `aiwf status` uses the local branch named by `allocate.trunk` for worktree merge
