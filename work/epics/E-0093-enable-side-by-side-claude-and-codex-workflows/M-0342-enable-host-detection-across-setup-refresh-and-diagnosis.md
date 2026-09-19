@@ -1,7 +1,7 @@
 ---
 id: M-0342
 title: Enable host detection across setup refresh and diagnosis
-status: in_progress
+status: done
 parent: E-0093
 depends_on:
     - M-0341
