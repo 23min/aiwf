@@ -356,7 +356,10 @@ func authorizeOpen(e *entity.Entity, actor string, opts AuthorizeOptions) (*Resu
 		return nil, fmt.Errorf("aiwf authorize --to: agent %q must match <role>/<id>", agent)
 	}
 
-	terminal := isTerminalStatus(e.Kind, e.Status)
+	if !opts.Force && !entity.IsAllowedStatus(e.Kind, e.Status) {
+		return nil, fmt.Errorf("%s status %q is not a recognized %s status; restore a recognized status before authorizing work", e.ID, e.Status, e.Kind)
+	}
+	terminal := entity.IsTerminal(e.Kind, e.Status)
 	if terminal && !opts.Force {
 		return nil, fmt.Errorf("%s is at terminal status %q; pass --force --reason \"...\" to authorize work on a terminal entity", e.ID, e.Status)
 	}
@@ -726,18 +729,6 @@ func mostRecentScopeInState(scopes []*scope.Scope, state scope.State) *scope.Sco
 		}
 	}
 	return nil
-}
-
-// isTerminalStatus reports whether the (kind, status) pair has no
-// outgoing entity-FSM transitions — i.e., is a terminal state. The
-// PoC's per-kind FSM is in entity.transitions (a closed set with no
-// outgoing edges from `done`/`cancelled`/`rejected`/`wontfix`/etc.).
-// AllowedTransitions returns nil for an unknown kind/status pair AND
-// for a known terminal state; the latter is intentional — we treat
-// "no defined moves out" as terminal. Verb refusal happens before
-// this for entities not in the tree.
-func isTerminalStatus(k entity.Kind, status entity.Status) bool {
-	return len(entity.AllowedTransitions(k, status)) == 0
 }
 
 // validateAuthorizeTrailers runs gitops.ValidateTrailer on every

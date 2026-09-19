@@ -177,16 +177,6 @@ cwd's repo; `internal/initrepo/initrepo.go:668` sets `cmd.Dir = root`. Six
 root is reachable for verbs other than `doctor` was not traced. Patch plus a
 decision on which repo is the identity source.
 
-**A6. Two terminality predicates disagree with the FSM.** *Derived.*
-`internal/cli/status/worktrees.go:555-568` `isTerminalStatus` lists
-`StatusDeprecated`, which is not terminal in any kind (`transition.go:50`:
-`deprecated → retired`), and ignores its `kind` argument;
-`internal/verb/authorize.go:739-741` `isTerminalStatus` is
-`len(AllowedTransitions)==0`, which is *true* for an unknown status where
-`entity.IsTerminal` is false, so `authorize` refuses a junk-status entity as "at
-terminal status" (`:359-361`) instead of the R1 "unrecognized" refusal. Unreachable
-today because ritual branches yield only E/M/G drivers. See D1 for the full set.
-
 ### B — dead paths and dropped data flow
 
 **B1. The scope FSM's legality check is test-only; production replays scopes
@@ -424,13 +414,12 @@ Each bundle names a helper that exists and the sites that re-implement it. The f
 is routing, not design.
 
 **D1. Terminality and closed sets.** `entity.IsTerminal` (`transition.go:129`) is
-canonical with 21 production callers; re-derived at `internal/cli/status/worktrees.go:555`,
-`internal/verb/authorize.go:739`, `internal/verb/auditonly.go:263-267,276-290`
+canonical; re-derived at `internal/verb/auditonly.go:263-267,276-290`
 (a hand-copied per-kind table whose comment mandates a same-commit update nothing
 enforces, in a file that already derives cancel terminals from `AllowedStatuses`
 at `:133-141`), `internal/cli/cliutil/provenance.go:271` (`IsTerminalPromote`),
 `internal/workflows/spec/evaluate.go:204`. `auditonly.go:292-310` re-lists
-`entity.IsAllowedACStatus`/`IsAllowedTDDPhase`. A6 names the two that are wrong.
+`entity.IsAllowedACStatus`/`IsAllowedTDDPhase`.
 
 **D2. The `human/` actor predicate**, inline at `internal/verb/promote_sovereign_act.go:42`,
 `allow.go:143`, `authorize.go:310`, `acknowledgeillegal.go:75`, `acknowledgemistag.go:47`,
@@ -604,7 +593,7 @@ places and the ledger names where it does not.
 | E2 designed failures | Weak | one condition, four dispositions for an unparseable Go file (C2) and for a malformed `aiwf.yaml` (C5); four HEAD probes collapse a fault into "empty" (C1) |
 | E3 audit trail | Strong | trailers on every plan; edge: `aiwf-prior-parent` write-only (B9) |
 | E4 self-explaining errors | Strong | a remedy per path role in verb refusals; Weak in `cli`, where "not found" is reported four ways (G-0483) |
-| F1 names | Weak | `isTerminalStatus` ≠ `IsTerminal` (A6); `skills.HooksDir` is `.claude/hooks` while `gitops.HooksDir` is `.git/hooks`; `--root` help "(default: cwd)" on a verb that walks up; `Outcome: Legal` on cells that fire (B11) |
+| F1 names | Weak | `skills.HooksDir` is `.claude/hooks` while `gitops.HooksDir` is `.git/hooks`; `--root` help "(default: cwd)" on a verb that walks up; `Outcome: Legal` on cells that fire (B11) |
 | F2 comments | Weak | drafting-history residue (`fsm_history_consistent.go:190` "The pre-lift line was", `acks.go:12` "Lifted from", eight drop-narration blocks in `branch/rules.go`); comments asserting a parity that does not hold (`initrepo.go:855`, `reflog_walk.go:146`, `pagedata.go:38`) |
 | F3 decision records | Strong | guards cite the ADR, decision or gap that pins them at the enforcement site |
 | G1 reproducible | Strong | no clock in core; sorted iteration in render; Weak: the stress seed is a decoy (B6) |
