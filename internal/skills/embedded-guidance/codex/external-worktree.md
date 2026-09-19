@@ -1,0 +1,1 @@
+Check that the sibling path is mounted and permitted for this session before using it. If it is unavailable, start a separate session configured for that checkout; a subagent inherits the parent's filesystem restrictions and does not bypass them.

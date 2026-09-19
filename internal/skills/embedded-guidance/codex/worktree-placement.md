@@ -1,0 +1,1 @@
+Keep worktrees under a persistent, mounted workspace path. Check the session's filesystem permissions and container mounts before selecting a sibling or home-directory path; a home-directory worktree survives a container rebuild only when that directory is persisted.

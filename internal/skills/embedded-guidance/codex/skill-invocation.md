@@ -1,0 +1,1 @@
+read `{{aiwf:skills_dir}}/wf-codebase-health/SKILL.md` for the full rubric. When a workflow names a skill, load and follow its `SKILL.md` from `{{aiwf:skills_dir}}/<skill-name>/` before executing the steps. The operator can select skills with `/skills` or mention `$skill-name` in Codex CLI or the IDE; those are prompt controls, not shell commands

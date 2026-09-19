@@ -3,8 +3,7 @@
 
 These rules govern how you operate aiwf and collaborate with the human here.
 They have no mechanical chokepoint, so they bind only if you follow them every
-turn. The exception is **Code-health priming** at the end — the full rubric
-lives in the `wf-codebase-health` skill.
+turn. The exception is **Code-health priming** at the end — {{aiwf:fragment:skill_invocation}}.
 
 - **Each mutating action is its own approval gate.** Every aiwf mutation
   (promote, archive, cancel, reallocate), every commit, push, and merge is a

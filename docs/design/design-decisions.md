@@ -245,6 +245,41 @@ all-files transaction. The generic `AtomicWriteFile` contract is unchanged.
 Codex skills and support templates use the same internal writer; public Codex
 host selection remains part of E-0093.
 
+Host instructions are authored under `internal/skills/embedded-guidance/claude/`
+and `codex/`. The shared sources mark substitution sites explicitly. Skill
+loading, worktree entry and independent-review dispatch are host fragments;
+distinct epic/milestone placement and entry paragraphs have their own slots to
+preserve Claude's existing bytes. Codex reuses its entry, placement and external
+path instructions across those slots. Shared approval gates, acceptance criteria,
+review lenses and workflow steps stay in the canonical skills. The `host_label`
+binding names the selected host in handoff instructions. Custom artifact layouts
+retain Claude instructions unless their target explicitly selects Codex.
+
+Both skill materialization and native guidance use the selected bindings. Codex
+instructions load named skills from `.agents/skills`, set working directories per
+tool call, and require a fresh independent reviewer when a workflow calls for
+one. They do not assume a custom reviewer role exists. If delegation or context
+isolation is unavailable, required review remains outstanding and must be supplied
+by a separate fresh session; the author cannot substitute self-review. These
+instructions are advice to the host, not a runtime enforcement mechanism.
+
+Interface review for M-0341 (2026-09-19): official
+[Codex skill documentation](https://learn.chatgpt.com/docs/build-skills) describes
+`/skills` and `$skill-name`; its
+[subagent documentation](https://learn.chatgpt.com/docs/agent-configuration/subagents)
+describes requested delegation and inherited filesystem restrictions. The
+[CLI reference](https://learn.chatgpt.com/docs/cli/reference) documents `-C` as the
+working-root selector, also observed in `codex --help` with Codex CLI 0.155.0 in
+the development container. Fresh context is an explicit review requirement:
+when an exposed spawn interface offers `fork_turns`, use `none`; the interface
+must establish isolation or the workflow reports it unavailable. The
+[Claude skill](https://code.claude.com/docs/en/skills) and
+[subagent](https://code.claude.com/docs/en/sub-agents) interfaces support skill
+loading and non-forked review contexts. D-0095 governs Claude's worktree entry;
+its confinement observations are not generalized to Codex. Renderer tests prove
+selection, shared-byte preservation, metadata validity and local references;
+live skill execution and delegation are separate observations in E-0093.
+
 `aiwf update` is the **upgrade verb**: it refreshes every marker-managed framework artifact the consumer is opted into — embedded skills, embedded git hooks, and any future templated artifact the framework ships. `aiwf init` is first-time setup that runs the same refresh pipeline at the end. Re-running either verb converges to the same state for a given binary version + `aiwf.yaml`. (Earlier in the PoC, `aiwf update` refreshed only skills; the broadening landed in `update-broaden-plan.md`.)
 
 Skills are embedded in the `aiwf` binary via Go's `embed.FS` and copied out on `init` / `update`. This deliberately couples skill content to the binary version: skills are adapters that call binary-provided commands, so version-skew between them would silently break things. Distributing skills via a separate channel — e.g., as a Claude Code plugin — is a viable future *packaging* path for easier installation, but as an architecture choice it would re-introduce the version-skew problem that embedding avoids.

@@ -99,7 +99,7 @@ git checkout -b milestone/M-NNNN-<slug>
 
 The branch operation does not produce an aiwf commit; it is plain git plumbing. If a delegated `aiwf authorize` commit was produced at step 4, the named branch now resolves and the binding closes — the trailer's forward-reference becomes a live ref.
 
-**Worktree placement.** By default the milestone branch is cut in the parent epic's worktree, which is already in-repo under the configured `worktree.dir` (default `.claude/worktrees/`) when the epic was activated via `aiwfx-start-epic`'s default. In-repo is the default because a Claude Code session in a sandboxed devcontainer is confined to the workspace folder — a sibling or `$HOME` worktree is unreachable as the session's cwd and a `$HOME`-placed one is wiped on container rebuild.
+**Worktree placement.** By default the milestone branch is cut in the parent epic's worktree, which is already in-repo under the configured `worktree.dir` (default `.claude/worktrees/`) when the epic was activated via `aiwfx-start-epic`'s default. {{aiwf:fragment:milestone_worktree_placement}}
 
 If you instead isolate this milestone in its own worktree (e.g. for parallel milestone work), use `aiwf worktree add` in place of the plain `git checkout -b` above — it creates the linked worktree and materializes rituals (skills, agents, templates, guidance) into it atomically, in one step, in-repo under the same `worktree.dir` by default:
 
@@ -107,9 +107,9 @@ If you instead isolate this milestone in its own worktree (e.g. for parallel mil
 aiwf worktree add milestone/M-NNNN-<slug> --base epic/E-NNNN-<slug> --print-path
 ```
 
-If you (the calling session) are going to keep working in this worktree yourself — as opposed to dispatching a subagent — move into it with `cd "<printed path>"`. Use {{aiwf:fragment:worktree_entry}}: a session entered that way cannot reach the epic branch's worktree, where `aiwfx-wrap-milestone` merges. Stay inside the repository while you work there: a `cd` to a directory outside it returns the session to the directory it started in, not to this worktree, so run anything that needs another directory in a subshell, `( cd <dir> && … )`.
+{{aiwf:fragment:milestone_worktree_entry}}
 
-Pass an explicit path as the verb's second argument for a sibling-directory placement instead. A session started in the repository cannot move into a sibling worktree with `cd`, for the same reason; start a new session there, or dispatch a subagent with its path. The per-invocation override (main-checkout / sibling) stays available; in-repo is the recommendation, not a lock. See the `aiwf-worktree` skill for the full verb reference.
+Pass an explicit path as the verb's second argument for a sibling-directory placement instead. {{aiwf:fragment:milestone_external_worktree}} The per-invocation override (main-checkout / sibling) stays available; in-repo is the recommendation, not a lock. See the `aiwf-worktree` skill for the full verb reference.
 
 ### 6. Implementation — iterate via `wf-tdd-cycle`
 

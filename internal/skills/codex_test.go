@@ -33,8 +33,7 @@ func TestMaterializeTo_CodexWritesCompleteNativeInventory(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	bindings := ClaudeRenderBindings()
-	bindings.Target = CodexTarget()
+	bindings := CodexRenderBindings()
 	definitions := append(append(verbs, rituals...), templates...)
 	rendered, err := RenderSkills(definitions, bindings)
 	if err != nil {

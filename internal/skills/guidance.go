@@ -40,7 +40,7 @@ func RenderGuidance(ver string) ([]byte, error) {
 // RenderCodexGuidance returns native instructions for an AGENTS.md block,
 // resolving canonical paths against the Codex layout.
 func RenderCodexGuidance(ver string) ([]byte, error) {
-	return renderGuidance(guidanceEmbed, ver, RenderBindings{Target: CodexTarget()})
+	return renderGuidance(guidanceEmbed, ver, CodexRenderBindings())
 }
 
 func renderGuidance(source []byte, ver string, bindings RenderBindings) ([]byte, error) {

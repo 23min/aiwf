@@ -469,8 +469,7 @@ func materializeArtifacts(root string, target Target, tiers map[string]AgentTier
 	// Validate the complete selected set before creating directories, deleting
 	// obsolete owned artifacts, or replacing any file. Claude is the only
 	// operational host; MaterializeTo still allows a caller-supplied layout.
-	bindings := ClaudeRenderBindings()
-	bindings.Target = target
+	bindings := renderBindingsForTarget(target)
 	all := make([]Skill, 0, len(sources.skills)+len(sources.agents)+len(sources.templates))
 	all = append(all, sources.skills...)
 	all = append(all, sources.agents...)
