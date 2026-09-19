@@ -9,7 +9,7 @@ tdd: advisory
 acs:
     - id: AC-1
       title: Fresh sessions discover the supported skills and instruction sources
-      status: open
+      status: met
     - id: AC-2
       title: Claude Codex and Claude can hand off one unfinished workflow
       status: open
