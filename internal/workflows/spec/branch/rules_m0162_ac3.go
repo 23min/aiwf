@@ -3,7 +3,7 @@ package branch
 import "github.com/23min/aiwf/internal/workflows/spec"
 
 // ac3ExpandedCells returns the M-0162/AC-3 cell-expansion entries:
-// 112 cells, one per discriminating E2E subtest across the
+// 113 cells, one per discriminating E2E subtest across the
 // M-0106 / M-0159 / M-0160 / M-0161 surfaces. Generated from the
 // CellID/Name pairs stamped into internal/cli/integration/*_test.go
 // at AC-3 RED time. Each cell is a catalog-vocabulary entry:
@@ -551,7 +551,7 @@ func ac3ExpandedCells() []spec.Rule {
 			Outcome: spec.OutcomeLegal,
 			Sources: spec.RuleSource{Decision: "ADR-0010"},
 		},
-		// branch-cell-m0161-ac5-c9 — isolation_escape_force_push_scenarios: AC-5 cell 5: force-push orphans AI commit + ack → orphan finding silent (G-0226 + G-0236)
+		// branch-cell-m0161-ac5-c9 — isolation_escape_force_push_scenarios: AC-5 cell 5: force-push orphans AI commit + ack → orphan finding silent
 		{
 			ID:      "branch-cell-m0161-ac5-c9",
 			Outcome: spec.OutcomeLegal,

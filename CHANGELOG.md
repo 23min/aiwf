@@ -16,6 +16,12 @@ section in this file.
 
 ## [Unreleased]
 
+### Fixed — workflow cell generation works from any checkout
+
+The cell generator locates its repository from the script's own path instead of
+a fixed worktree directory. Regeneration preserves the 113-cell catalog and
+updates its generated comments.
+
 ### Added — explicit seeds for stress replay
 
 `stresstest run --seed <int64>` supplies that seed to every selected attempt,
