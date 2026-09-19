@@ -208,7 +208,7 @@ func BuildWorktreeViews(ctx context.Context, rootDir string, tr *tree.Tree) ([]W
 		v.DriverKind = string(e.Kind)
 		v.DriverStatus = string(e.Status)
 		v.DriverTitle = e.Title
-		v.Stale = isTerminalStatus(e.Kind, e.Status)
+		v.Stale = entity.IsTerminal(e.Kind, e.Status)
 		// G-0172: a worktree branch fully merged into trunk carries
 		// nothing that isn't already on trunk; its branch tree can lag
 		// trunk (e.g. the epic's promote-to-done landed on main *after*
@@ -554,30 +554,10 @@ func mergedStaleOverride(aheadOfTrunk int, trunkEntity *entity.Entity) (status, 
 	if aheadOfTrunk != 0 || trunkEntity == nil {
 		return "", "", false
 	}
-	if !isTerminalStatus(trunkEntity.Kind, trunkEntity.Status) {
+	if !entity.IsTerminal(trunkEntity.Kind, trunkEntity.Status) {
 		return "", "", false
 	}
 	return string(trunkEntity.Status), trunkEntity.Title, true
-}
-
-// isTerminalStatus reports whether the kind's status is a terminal
-// state (done / cancelled / wontfix / rejected / addressed / retired /
-// superseded). Mirrors entity.IsTerminalStatus when present; falls back
-// to a closed-set check here so the worktree view doesn't pull in a
-// package-level dependency for a narrowly-scoped check.
-func isTerminalStatus(kind entity.Kind, status entity.Status) bool {
-	switch status {
-	case entity.StatusDone,
-		entity.StatusCancelled,
-		entity.StatusWontfix,
-		entity.StatusRejected,
-		entity.StatusAddressed,
-		entity.StatusRetired,
-		entity.StatusSuperseded,
-		entity.StatusDeprecated:
-		return true
-	}
-	return false
 }
 
 // epicExpansion returns the milestone and gap children for an epic
@@ -1130,12 +1110,12 @@ func orderMilestonesByActivity(rows []EpicChildRow) []EpicChildRow {
 		}
 	}
 	for _, r := range rows {
-		if entity.Status(r.Status) != entity.StatusInProgress && !isTerminalStatus("", entity.Status(r.Status)) {
+		if entity.Status(r.Status) != entity.StatusInProgress && !entity.IsTerminal(entity.KindMilestone, entity.Status(r.Status)) {
 			out = append(out, r)
 		}
 	}
 	for _, r := range rows {
-		if isTerminalStatus("", entity.Status(r.Status)) {
+		if entity.IsTerminal(entity.KindMilestone, entity.Status(r.Status)) {
 			out = append(out, r)
 		}
 	}

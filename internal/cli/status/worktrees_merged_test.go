@@ -7,6 +7,8 @@ import (
 	"path/filepath"
 	"testing"
 
+	"github.com/google/go-cmp/cmp"
+
 	"github.com/23min/aiwf/internal/entity"
 	"github.com/23min/aiwf/internal/gitops"
 	"github.com/23min/aiwf/internal/tree"
@@ -61,7 +63,12 @@ func TestMergedStaleOverride(t *testing.T) {
 			wantStatus:   string(entity.StatusCancelled),
 			wantTitle:    "Abandoned",
 		},
+		{name: "deprecated contract", trunk: &entity.Entity{Kind: entity.KindContract, Status: entity.StatusDeprecated}},
+		{name: "wrong-kind terminal", trunk: &entity.Entity{Kind: entity.KindEpic, Status: entity.StatusRetired}},
+		{name: "unknown status", trunk: &entity.Entity{Kind: entity.KindEpic, Status: "garbage"}},
+		{name: "unknown kind", trunk: &entity.Entity{Kind: "garbage", Status: entity.StatusDone}},
 	}
+
 	for _, tc := range cases {
 		t.Run(tc.name, func(t *testing.T) {
 			t.Parallel()
@@ -298,5 +305,21 @@ func TestBuildWorktreeViews_NoTrunkWorktree_NoOverride(t *testing.T) {
 	}
 	if got.DriverStatus != string(entity.StatusActive) {
 		t.Errorf("DriverStatus = %q, want %q (branch-local, override skipped)", got.DriverStatus, entity.StatusActive)
+	}
+}
+
+func TestOrderMilestonesByActivity_UsesMilestoneStates(t *testing.T) {
+	t.Parallel()
+	rows := []EpicChildRow{
+		{ID: "M-0001", Status: "done"},
+		{ID: "M-0002", Status: "retired"},
+		{ID: "M-0003", Status: "in_progress"},
+		{ID: "M-0004", Status: "draft"},
+		{ID: "M-0005", Status: "cancelled"},
+		{ID: "M-0006", Status: "garbage"},
+	}
+	want := []EpicChildRow{rows[2], rows[1], rows[3], rows[5], rows[0], rows[4]}
+	if diff := cmp.Diff(want, orderMilestonesByActivity(rows)); diff != "" {
+		t.Errorf("milestone order (-want +got):\n%s", diff)
 	}
 }

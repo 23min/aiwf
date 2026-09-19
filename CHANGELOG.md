@@ -16,6 +16,13 @@ section in this file.
 
 ## [Unreleased]
 
+### Fixed — terminal status checks follow each entity's FSM
+
+Worktree status uses kind-specific terminal states, so deprecated contracts and
+invalid kind/status combinations are not marked stale. Authorization identifies
+unrecognized statuses explicitly instead of calling them terminal; the existing
+`--force --reason` override remains available.
+
 ### Fixed — stress reports preserve verification failures
 
 Failed stress attempts print each violation message and retain the same records

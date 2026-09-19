@@ -1,12 +1,14 @@
 package verb_test
 
 import (
+	"context"
 	"strings"
 	"testing"
 
 	"github.com/23min/aiwf/internal/entity"
 	"github.com/23min/aiwf/internal/gitops"
 	"github.com/23min/aiwf/internal/scope"
+	"github.com/23min/aiwf/internal/tree"
 	"github.com/23min/aiwf/internal/verb"
 )
 
@@ -1329,5 +1331,29 @@ func TestAuthorize_Open_PauseResumeCycleE2E(t *testing.T) {
 			t.Fatalf("step %s apply: %v", step.reason, err)
 		}
 		s.State = step.next
+	}
+}
+
+func TestAuthorize_Open_UnrecognizedStatus(t *testing.T) {
+	t.Parallel()
+	for _, kind := range []entity.Kind{entity.KindEpic, entity.KindMilestone} {
+		for _, status := range []entity.Status{"garbage", entity.StatusRetired} {
+			t.Run(string(kind)+"/"+string(status), func(t *testing.T) {
+				t.Parallel()
+				tr := &tree.Tree{Entities: []*entity.Entity{{ID: "E-0001", Kind: kind, Status: status}}}
+				res, err := verb.Authorize(context.Background(), tr, "E-0001", testActor, verb.AuthorizeOptions{Mode: verb.AuthorizeOpen, Agent: "human/reviewer"})
+				if err == nil || res != nil {
+					t.Fatalf("Authorize = (%+v, %v); want refusal", res, err)
+				}
+				if !strings.Contains(err.Error(), "not a recognized") || !strings.Contains(err.Error(), string(status)) || strings.Contains(err.Error(), "terminal") {
+					t.Errorf("unexpected status refusal: %v", err)
+				}
+				// Force retains the existing sovereign override, including its reason requirement.
+				res, err = verb.Authorize(context.Background(), tr, "E-0001", testActor, verb.AuthorizeOptions{Mode: verb.AuthorizeOpen, Agent: "human/reviewer", Force: true, Reason: "repair the entity"})
+				if err != nil || res == nil || res.Plan == nil {
+					t.Fatalf("forced Authorize = (%+v, %v); want plan", res, err)
+				}
+			})
+		}
 	}
 }
