@@ -15,12 +15,19 @@ var (
 	ErrMissingRenderBinding  = errors.New("missing aiwf host binding")
 )
 
-// HostFragments contains the host-specific instructions embedded in otherwise
-// shared workflow sources. Fragments may reference path bindings, not fragments.
+// HostFragments contains host-specific instructions in shared workflow sources.
+// Distinct worktree contexts retain their own slots; hosts may share their values.
+// Fragments may reference path bindings, not other fragments.
 type HostFragments struct {
-	SkillInvocation string
-	WorktreeEntry   string
-	ReviewDispatch  string
+	SkillInvocation            string
+	WorktreeEntry              string
+	ReviewDispatch             string
+	EpicWorktreeEntry          string
+	MilestoneWorktreeEntry     string
+	EpicWorktreePlacement      string
+	MilestoneWorktreePlacement string
+	EpicExternalWorktree       string
+	MilestoneExternalWorktree  string
 }
 
 // RenderBindings supplies the existing artifact layout and the named host
@@ -37,9 +44,10 @@ const renderPrefix = "{{aiwf:"
 // render their complete artifact set before starting any filesystem mutation.
 // Results own their byte slices; neither sources nor bindings are modified.
 //
-// Bindings are host, skills_dir, agents_dir, templates_dir, and hooks_dir.
-// Fragment tokens are fragment:skill_invocation, fragment:worktree_entry, and
-// fragment:review_dispatch. Names are exact, without surrounding whitespace.
+// Bindings are host, host_label, skills_dir, agents_dir, templates_dir, hooks_dir.
+// Fragment tokens select skill_invocation, review_dispatch, worktree_entry,
+// or the epic/milestone variants of worktree_entry, worktree_placement, and
+// external_worktree. Names are exact, without surrounding whitespace.
 func RenderSkills(sources []Skill, bindings RenderBindings) ([]Skill, error) {
 	if len(sources) == 0 {
 		return nil, nil
@@ -91,6 +99,18 @@ func renderText(source string, bindings RenderBindings, allowFragments bool) (st
 				value = bindings.Fragments.WorktreeEntry
 			case "fragment:review_dispatch":
 				value = bindings.Fragments.ReviewDispatch
+			case "fragment:epic_worktree_entry":
+				value = bindings.Fragments.EpicWorktreeEntry
+			case "fragment:milestone_worktree_entry":
+				value = bindings.Fragments.MilestoneWorktreeEntry
+			case "fragment:epic_worktree_placement":
+				value = bindings.Fragments.EpicWorktreePlacement
+			case "fragment:milestone_worktree_placement":
+				value = bindings.Fragments.MilestoneWorktreePlacement
+			case "fragment:epic_external_worktree":
+				value = bindings.Fragments.EpicExternalWorktree
+			case "fragment:milestone_external_worktree":
+				value = bindings.Fragments.MilestoneExternalWorktree
 			default:
 				return "", fmt.Errorf("%w: %q", ErrUnknownRenderFragment, token)
 			}
@@ -106,6 +126,14 @@ func renderText(source string, bindings RenderBindings, allowFragments bool) (st
 			switch token {
 			case "host":
 				value = bindings.Target.Name
+			case "host_label":
+				value = bindings.Target.Name
+				switch value {
+				case "claude":
+					value = "Claude Code"
+				case "codex":
+					value = "Codex"
+				}
 			case "skills_dir":
 				value = bindings.Target.SkillsDir
 			case "agents_dir":

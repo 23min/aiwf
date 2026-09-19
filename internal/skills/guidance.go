@@ -34,12 +34,18 @@ func GuidanceBytes() []byte {
 // the version sentinel replaced by the given version string. This is
 // the content aiwf materializes to `.claude/aiwf-guidance.md`.
 func RenderGuidance(ver string) ([]byte, error) {
-	return renderGuidance(guidanceEmbed, ver)
+	return renderGuidance(guidanceEmbed, ver, ClaudeRenderBindings())
 }
 
-func renderGuidance(source []byte, ver string) ([]byte, error) {
+// RenderCodexGuidance returns native instructions for an AGENTS.md block,
+// resolving canonical paths against the Codex layout.
+func RenderCodexGuidance(ver string) ([]byte, error) {
+	return renderGuidance(guidanceEmbed, ver, CodexRenderBindings())
+}
+
+func renderGuidance(source []byte, ver string, bindings RenderBindings) ([]byte, error) {
 	stamped := bytes.ReplaceAll(source, []byte(guidanceVersionSentinel), []byte(ver))
-	rendered, err := RenderSkills([]Skill{{Name: GuidanceFile, Content: stamped}}, ClaudeRenderBindings())
+	rendered, err := RenderSkills([]Skill{{Name: GuidanceFile, Content: stamped}}, bindings)
 	if err != nil {
 		return nil, err
 	}
@@ -54,7 +60,7 @@ func MaterializeGuidance(root string) error {
 }
 
 func materializeGuidance(root string, source []byte, ver string) error {
-	content, err := renderGuidance(source, ver)
+	content, err := renderGuidance(source, ver, ClaudeRenderBindings())
 	if err != nil {
 		return err
 	}

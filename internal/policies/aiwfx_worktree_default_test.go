@@ -5,15 +5,10 @@ import (
 	"testing"
 )
 
-// M-0190 — the start rituals (aiwfx-start-epic / aiwfx-start-milestone)
-// default to in-repo worktree placement under the configured worktree.dir,
-// keep the per-invocation override, and record the devcontainer-sandbox
-// rationale citing ADR-0023. These tests assert the doc-shaped ACs against
-// the embedded ritual snapshot bytes, scoped to the relevant SKILL.md
-// section per CLAUDE.md §"Substring assertions are not structural
-// assertions". The start-epic / start-milestone fixture loaders and the
-// findWorktreePromptSection / extractMarkdownSection helpers live in
-// aiwfx_start_epic_test.go and aiwfx_start_milestone_test.go (same package).
+// The start rituals keep the per-invocation worktree override. The fixture
+// loaders and section helpers live in aiwfx_start_epic_test.go and
+// aiwfx_start_milestone_test.go. Host-fragment selection and generated Claude
+// compatibility are checked in the skills and CLI integration packages.
 
 // findStartMilestoneCutSection locates the `### 5. Cut the milestone branch`
 // subsection inside `## Workflow`. Heading-content driven (case-insensitive
@@ -110,33 +105,4 @@ func TestStartRituals_M0190_AC2_OverrideRetained(t *testing.T) {
 		{"the main-checkout override", "main-checkout", true},
 		{"the sibling override", "sibling", true},
 	})
-}
-
-// TestStartRituals_M0190_AC3_SandboxRationale pins M-0190/AC-3: both start
-// rituals record the devcontainer-sandbox rationale for the in-repo default.
-// Heading-scoped to each ritual's worktree guidance — the rationale must live
-// with the placement guidance, not in an unrelated section; the rationale
-// prose is matched case-insensitively. (M-0229/AC-3 dropped the ADR-0023
-// citation marker: the shipped skill's id-bearing doc-link is gone, and the
-// sandbox/devcontainer/rebuild behavioral markers pin the guidance.)
-func TestStartRituals_M0190_AC3_SandboxRationale(t *testing.T) {
-	t.Parallel()
-
-	sections := []struct {
-		ritual  string
-		section string
-	}{
-		{"start-epic", findWorktreePromptSection(loadAiwfxStartEpicFixture(t))},
-		{"start-milestone", findStartMilestoneCutSection(loadAiwfxStartMilestoneFixture(t))},
-	}
-	for _, s := range sections {
-		if s.section == "" {
-			t.Fatalf("AC-3: %s must contain its worktree-guidance subsection", s.ritual)
-		}
-		assertMarkers(t, "AC-3: "+s.ritual+" worktree guidance", s.section, []marker{
-			{"the sandbox confinement rationale", "sandbox", true},
-			{"the devcontainer context", "devcontainer", true},
-			{"the container-rebuild loss rationale", "rebuild", true},
-		})
-	}
 }

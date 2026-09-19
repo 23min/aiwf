@@ -23,7 +23,7 @@ func TestRenderSkills_SubstitutesOnlyExplicitBindings(t *testing.T) {
 	}{
 		{"empty", "", ""},
 		{"literal", "Unicode λ\r\n.claude/worktrees/\n{{ordinary}}\t", "Unicode λ\r\n.claude/worktrees/\n{{ordinary}}\t"},
-		{"paths", "{{aiwf:host}} {{aiwf:skills_dir}} {{aiwf:agents_dir}} {{aiwf:templates_dir}} {{aiwf:hooks_dir}}", "fixture-host native/skills native/agents support/templates native/hooks"},
+		{"paths", "{{aiwf:host}} {{aiwf:host_label}} {{aiwf:skills_dir}} {{aiwf:agents_dir}} {{aiwf:templates_dir}} {{aiwf:hooks_dir}}", "fixture-host fixture-host native/skills native/agents support/templates native/hooks"},
 		{"fragments", "{{aiwf:fragment:skill_invocation}}\n{{aiwf:fragment:worktree_entry}}\n{{aiwf:fragment:review_dispatch}}", "invoke the skill\nenter the checkout\nreview with native/agents/reviewer.md"},
 		{"adjacent and repeated", "{{aiwf:templates_dir}}{{aiwf:templates_dir}}\n", "support/templatessupport/templates\n"},
 		{"unreserved delimiters", "{{anything:literal}} }} { {{aiwf", "{{anything:literal}} }} { {{aiwf"},
@@ -48,6 +48,17 @@ func TestRenderSkills_SubstitutesOnlyExplicitBindings(t *testing.T) {
 				}
 			}
 		})
+	}
+}
+
+func TestRenderSkills_RequiresWorkflowSpecificFragments(t *testing.T) {
+	t.Parallel()
+	for _, name := range []string{"epic_worktree_entry", "milestone_worktree_entry", "epic_worktree_placement", "milestone_worktree_placement", "epic_external_worktree", "milestone_external_worktree"} {
+		sources := []Skill{{Name: "fixture", Content: []byte("{{aiwf:fragment:" + name + "}}")}}
+		got, err := RenderSkills(sources, RenderBindings{Target: ClaudeTarget})
+		if !errors.Is(err, ErrMissingRenderBinding) || got != nil {
+			t.Errorf("%s: output = %v, error = %v", name, got, err)
+		}
 	}
 }
 
