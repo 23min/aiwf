@@ -10,6 +10,7 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"slices"
 
 	"github.com/spf13/cobra"
 
@@ -18,6 +19,7 @@ import (
 	"github.com/23min/aiwf/internal/gitops"
 	"github.com/23min/aiwf/internal/initrepo"
 	"github.com/23min/aiwf/internal/render"
+	"github.com/23min/aiwf/internal/skills"
 )
 
 // NewCmd builds the `aiwf worktree` parent command — a verb group that
@@ -152,17 +154,24 @@ func Run(branch, path, base, root string, printPath bool, out cliutil.OutputForm
 		return fail("aiwf worktree add", fmt.Errorf("reading aiwf.yaml in the new worktree: %w", err), cliutil.ExitInternal)
 	}
 
-	steps, conflict, err := initrepo.RefreshArtifacts(ctx, absPath, initrepo.RefreshOptions{
+	refresh, err := initrepo.RefreshArtifacts(ctx, absPath, initrepo.RefreshOptions{
 		StatusMdAutoUpdate: wtCfg.StatusMdAutoUpdate(),
 		WireClaudeMd:       wtCfg.WireClaudeMd(),
 	})
-	if err != nil { //coverage:ignore RefreshArtifacts fails only on a filesystem fault (permission denied, disk full) writing marker-managed artifacts; not deterministically reproducible.
+	if err != nil {
 		rollback()
 		return fail("aiwf worktree add", err, cliutil.ExitInternal)
 	}
 
-	if conflict {
-		for _, s := range steps {
+	if slices.Contains(refresh.HostSelection.Hosts, config.HostClaudeCode) {
+		if rc := cliutil.SyncHookMaterialization(absPath, skills.ClaudeTarget, skills.ShippedHooks); rc != cliutil.ExitOK {
+			rollback()
+			return rc
+		}
+	}
+
+	if refresh.HookConflict {
+		for _, s := range refresh.Steps {
 			printStep(s)
 		}
 		cliutil.Errorln("aiwf worktree add: hook chain collision in the new worktree; " +
@@ -185,7 +194,7 @@ func Run(branch, path, base, root string, printPath bool, out cliutil.OutputForm
 		// envelope rather than calling those, so it calls the exported
 		// method directly instead of leaving CorrelationID unread.
 		env := cliutil.OKEnvelope(
-			map[string]any{"path": absPath},
+			worktreeResult{Path: absPath, HostSelection: refresh.HostSelection},
 			out.Metadata(map[string]any{"branch": branch, "path": absPath}),
 		)
 		if werr := render.JSON(os.Stdout, env, out.Pretty); werr != nil { //coverage:ignore render.JSON to os.Stdout fails only on a write fault (broken pipe, closed fd); not deterministically reproducible.
@@ -194,11 +203,17 @@ func Run(branch, path, base, root string, printPath bool, out cliutil.OutputForm
 		return cliutil.ExitOK
 	}
 
-	for _, s := range steps {
+	cliutil.PrintHostSelection(refresh.HostSelection)
+	for _, s := range refresh.Steps {
 		printStep(s)
 	}
 	cliutil.Println(absPath)
 	return cliutil.ExitOK
+}
+
+type worktreeResult struct {
+	Path          string               `json:"path"`
+	HostSelection config.HostSelection `json:"host_selection"`
 }
 
 // resolveCreatedPath turns the (possibly relative) path passed to

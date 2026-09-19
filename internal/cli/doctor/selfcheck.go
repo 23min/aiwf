@@ -11,6 +11,7 @@ import (
 	"strings"
 
 	"github.com/23min/aiwf/internal/cli/cliutil"
+	"github.com/23min/aiwf/internal/config"
 	"github.com/23min/aiwf/internal/entity"
 	"github.com/23min/aiwf/internal/gitops"
 )
@@ -143,7 +144,14 @@ func runSelfCheck() int {
 		// fired). Zero value means "expect cliutil.ExitOK".
 		wantRC int
 	}{
-		{label: "init", args: []string{"init", "--root", tmp, "--actor", actor}},
+		{
+			label: "init", args: []string{"init", "--root", tmp, "--actor", actor},
+			// The self-check exercises Claude artifacts independently of which
+			// assistant commands happen to be installed on the operator's PATH.
+			setup: func() error {
+				return config.Write(tmp, &config.Config{Hosts: &[]string{string(config.HostClaudeCode)}})
+			},
+		},
 		{label: "whoami", args: []string{"whoami", "--root", tmp}},
 		{label: "add epic", args: []string{"add", "epic", "--title", "Self-check epic", "--actor", actor, "--root", tmp}},
 		{label: "add milestone", args: []string{"add", "milestone", "--epic", "E-01", "--tdd", "none", "--title", "Schema", "--actor", actor, "--root", tmp}},

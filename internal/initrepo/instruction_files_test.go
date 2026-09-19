@@ -266,11 +266,14 @@ func TestInitAndRefresh_ReportIncompleteGuidanceAndContinueArtifacts(t *testing.
 					t.Fatalf("unrelated artifact %s: %v", relative, statErr)
 				}
 			}
-			steps, conflict, err := RefreshArtifacts(context.Background(), root, RefreshOptions{WireClaudeMd: true, SkipHooks: true})
-			if err != nil || conflict {
-				t.Fatalf("refresh: %v, hook conflict %v", err, conflict)
+			refresh, err := RefreshArtifacts(context.Background(), root, RefreshOptions{WireClaudeMd: true, SkipHooks: true})
+			if err != nil {
+				t.Fatal(err)
 			}
-			assertGuidanceAndArtifactSteps(t, steps)
+			if refresh.HookConflict {
+				t.Fatalf("refresh: %v, hook conflict %v", err, refresh.HookConflict)
+			}
+			assertGuidanceAndArtifactSteps(t, refresh.Steps)
 			assertAgentsFile(t, target, "user instructions", 0o640)
 			got, err := os.Readlink(path)
 			if err != nil || got != filepath.Base(target) {

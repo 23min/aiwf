@@ -4,6 +4,8 @@ package update
 
 import (
 	"context"
+	"errors"
+	"slices"
 	"time"
 
 	"github.com/spf13/cobra"
@@ -123,16 +125,21 @@ func Run(root string, statusline bool, scope string, wireSettings, allowUntagged
 		return cliutil.ExitInternal
 	}
 
-	steps, conflict, err := initrepo.RefreshArtifacts(context.Background(), rootDir, initrepo.RefreshOptions{
+	refresh, err := initrepo.RefreshArtifacts(context.Background(), rootDir, initrepo.RefreshOptions{
+		RequireClaude:      statusline || remove || len(enableHooks) > 0,
 		StatusMdAutoUpdate: cfg.StatusMdAutoUpdate(),
 		WireClaudeMd:       cfg.WireClaudeMd(),
 	})
 	if err != nil {
 		cliutil.Errorf("aiwf update: %v\n", err)
+		if errors.Is(err, initrepo.ErrClaudeUnselected) {
+			return cliutil.ExitUsage
+		}
 		return cliutil.ExitInternal
 	}
 
-	for _, s := range steps {
+	cliutil.PrintHostSelection(refresh.HostSelection)
+	for _, s := range refresh.Steps {
 		if s.Detail != "" {
 			cliutil.Printf("  %-9s  %s  (%s)\n", s.Action, s.What, s.Detail)
 		} else {
@@ -150,7 +157,7 @@ func Run(root string, statusline bool, scope string, wireSettings, allowUntagged
 		cliutil.Println("`.git/hooks/` directory; this update affects all worktrees of the repo.")
 	}
 
-	if conflict {
+	if refresh.HookConflict {
 		cliutil.Println()
 		cliutil.Println("aiwf update: hook chain collision.")
 		cliutil.Println("A non-aiwf hook would auto-migrate to its `.local` sibling, but a `.local`")
@@ -158,6 +165,11 @@ func Run(root string, statusline bool, scope string, wireSettings, allowUntagged
 		cliutil.Println("Resolve manually: merge the existing hook's content into the `.local` file,")
 		cliutil.Println("delete the original (non-`.local`) hook, and re-run `aiwf update`.")
 		return cliutil.ExitFindings
+	}
+
+	if !slices.Contains(refresh.HostSelection.Hosts, config.HostClaudeCode) {
+		cliutil.Println("\naiwf update: done.")
+		return cliutil.ExitOK
 	}
 
 	cliutil.Println("\naiwf update: done.")

@@ -52,8 +52,9 @@ func TestMain(m *testing.M) {
 	os.Setenv("GIT_COMMITTER_NAME", "aiwf-test")
 	os.Setenv("GIT_COMMITTER_EMAIL", "test@example.com")
 	testsupport.HardenGitTestEnv()
+	// Claude setup fixtures require command presence; selection tests isolate PATH.
 
-	code := m.Run()
+	code := testsupport.RunWithClaudeOnPATH(m.Run)
 
 	// M-0162/AC-4 invariant 4 post-hook. Under -tags testpins this
 	// reads branchtest.Pins() after all parallel + serial waves

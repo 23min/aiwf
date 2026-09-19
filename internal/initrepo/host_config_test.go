@@ -27,7 +27,7 @@ func TestArtifactEntryPoints_InvalidConfigLeavesRepositoryUntouched(t *testing.T
 					if entry == "init" {
 						_, err = Init(context.Background(), root, Options{ActorOverride: "human/test", SkipHook: true, DryRun: dryRun})
 					} else {
-						_, _, err = RefreshArtifacts(context.Background(), root, RefreshOptions{SkipHooks: true, DryRun: dryRun})
+						_, err = RefreshArtifacts(context.Background(), root, RefreshOptions{SkipHooks: true, DryRun: dryRun})
 					}
 					if err == nil {
 						t.Fatal("invalid configuration accepted")
@@ -56,18 +56,21 @@ func TestRefreshArtifacts_MissingConfigDoesNotBlockRefresh(t *testing.T) {
 		t.Run(map[bool]string{false: "write", true: "dry run"}[dryRun], func(t *testing.T) {
 			t.Parallel()
 			root := t.TempDir()
-			steps, conflict, err := RefreshArtifacts(context.Background(), root, RefreshOptions{SkipHooks: true, DryRun: dryRun})
-			if err != nil || conflict {
-				t.Fatalf("missing config blocked refresh: conflict=%v, err=%v", conflict, err)
+			refresh, err := RefreshArtifacts(context.Background(), root, RefreshOptions{SkipHooks: true, DryRun: dryRun})
+			if err != nil {
+				t.Fatal(err)
+			}
+			if refresh.HookConflict {
+				t.Fatalf("missing config blocked refresh: conflict=%v, err=%v", refresh.HookConflict, err)
 			}
 			found := false
-			for _, step := range steps {
+			for _, step := range refresh.Steps {
 				if step.What == "aiwf.example.yaml" && step.Action == ActionUpdated {
 					found = true
 				}
 			}
 			if !found {
-				t.Fatalf("example refresh missing from ledger: %+v", steps)
+				t.Fatalf("example refresh missing from ledger: %+v", refresh.Steps)
 			}
 			_, statErr := os.Stat(filepath.Join(root, "aiwf.example.yaml"))
 			if dryRun && !errors.Is(statErr, fs.ErrNotExist) || !dryRun && statErr != nil {

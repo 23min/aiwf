@@ -17,6 +17,7 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"slices"
 	"sort"
 	"strings"
 
@@ -25,6 +26,10 @@ import (
 	"github.com/23min/aiwf/internal/pathutil"
 	"github.com/23min/aiwf/internal/skills"
 )
+
+// ErrClaudeUnselected identifies an explicit Claude-only request when host
+// resolution excludes Claude. The request is rejected before artifact writes.
+var ErrClaudeUnselected = errors.New("claude-code options require claude-code in the selected hosts; configure hosts or remove the Claude-only flags")
 
 // preHookMarker is the exact comment line `aiwf init` writes inside its
 // managed pre-push hook. Re-running init detects this marker to know
@@ -331,11 +336,13 @@ type StepResult struct {
 // the pre-push hook because a non-aiwf hook was already in place;
 // callers should surface remediation guidance to the user. DryRun
 // echoes Options.DryRun so callers can format output appropriately
-// (a dry-run ledger looks identical but no writes occurred).
+// (a dry-run ledger describes intended actions without writes).
+// HostSelection records the resolved set used throughout this invocation.
 type Result struct {
-	Steps        []StepResult
-	HookConflict bool
-	DryRun       bool
+	HostSelection config.HostSelection
+	Steps         []StepResult
+	HookConflict  bool
+	DryRun        bool
 }
 
 // Options carries init-time inputs that override or supplement the
@@ -353,6 +360,8 @@ type Result struct {
 // version are we on" (`aiwf version`); a stored pin produced
 // chronic doctor noise without serving its intended purpose.
 type Options struct {
+	// RequireClaude validates an explicit Claude hook or statusline request.
+	RequireClaude bool
 	ActorOverride string
 	DryRun        bool
 	SkipHook      bool
@@ -371,6 +380,8 @@ type Options struct {
 // SkipHooks omits both pre-push and pre-commit installation
 // entirely (init's `--skip-hook` flag forwards into this field).
 type RefreshOptions struct {
+	// RequireClaude validates an explicit Claude hook or statusline request.
+	RequireClaude      bool
 	DryRun             bool
 	SkipHooks          bool
 	StatusMdAutoUpdate bool
@@ -390,17 +401,25 @@ type RefreshOptions struct {
 // Step order:
 //  1. aiwf.yaml (first-time-only)
 //  2. work/* and docs/adr scaffold dirs (first-time-only)
-//  3. CLAUDE.md (first-time-only)
+//  3. CLAUDE.md when Claude is selected (first-time-only)
 //  4. RefreshArtifacts: skills + .gitignore + pre-push hook +
 //     pre-commit hook (the same pipeline `aiwf update` calls).
 //
 // Steps 1–3 write only if the artifact is missing; step 4 wipes-and-
 // rewrites per the cache contract for derivable artifacts.
 func Init(ctx context.Context, root string, opts Options) (*Result, error) {
-	if _, err := config.Load(root); err != nil && !errors.Is(err, config.ErrNotFound) {
+	cfg, err := config.Load(root)
+	if err != nil && !errors.Is(err, config.ErrNotFound) {
 		return nil, fmt.Errorf("validating configuration before initialization: %w", err)
 	}
-	res := &Result{DryRun: opts.DryRun}
+	selection, err := cfg.ResolveHosts(ctx)
+	if err != nil {
+		return nil, err
+	}
+	if opts.RequireClaude && !slices.Contains(selection.Hosts, config.HostClaudeCode) {
+		return nil, ErrClaudeUnselected
+	}
+	res := &Result{DryRun: opts.DryRun, HostSelection: selection}
 
 	cfgStep, err := ensureConfig(root, opts)
 	if err != nil {
@@ -414,11 +433,13 @@ func Init(ctx context.Context, root string, opts Options) (*Result, error) {
 	}
 	res.Steps = append(res.Steps, scaffoldSteps...)
 
-	claudeStep, err := ensureClaudeMd(ctx, root, opts.DryRun)
-	if err != nil {
-		return nil, err
+	if slices.Contains(selection.Hosts, config.HostClaudeCode) {
+		claudeStep, claudeErr := ensureClaudeMd(ctx, root, opts.DryRun)
+		if claudeErr != nil {
+			return nil, claudeErr
+		}
+		res.Steps = append(res.Steps, claudeStep)
 	}
-	res.Steps = append(res.Steps, claudeStep)
 
 	statusMdAutoUpdate, err := loadStatusMdAutoUpdate(root)
 	if err != nil {
@@ -430,7 +451,7 @@ func Init(ctx context.Context, root string, opts Options) (*Result, error) {
 		return nil, err
 	}
 
-	refreshSteps, conflict, err := RefreshArtifacts(ctx, root, RefreshOptions{
+	refresh, err := refreshArtifacts(ctx, root, cfg, selection, RefreshOptions{
 		DryRun:             opts.DryRun,
 		SkipHooks:          opts.SkipHook,
 		StatusMdAutoUpdate: statusMdAutoUpdate,
@@ -439,20 +460,19 @@ func Init(ctx context.Context, root string, opts Options) (*Result, error) {
 	if err != nil {
 		return nil, err
 	}
-	res.Steps = append(res.Steps, refreshSteps...)
-	res.HookConflict = conflict
+	res.Steps = append(res.Steps, refresh.Steps...)
+	res.HookConflict = refresh.HookConflict
 
 	return res, nil
 }
 
 // RefreshArtifacts runs the wipe-and-rewrite pipeline shared by
 // `aiwf init` (after first-time-only scaffolding) and `aiwf update`.
-// All steps return a StepResult; only the hook steps can produce a
-// conflict (returned as the second value), at which point the caller
-// surfaces remediation guidance to the user.
+// The result records the effective host selection and per-step ledger.
+// Hook conflicts are reported separately from guidance refusals in the ledger.
 //
 // Step order:
-//  1. .claude/skills/aiwf-* (skills materialization)
+//  1. Selected hosts: skills, templates, supported agents, and guidance
 //  2. aiwf.yaml legacy `actor:` strip (idempotent)
 //  3. aiwf.example.yaml (always-fresh schema reference; M-0232/AC-3)
 //  4. .gitignore (skill cache patterns + STATUS.md)
@@ -467,52 +487,83 @@ func Init(ctx context.Context, root string, opts Options) (*Result, error) {
 // into its skip/uninstall path (removes a previously-installed
 // marker-managed hook, leaves user-written hooks alone) but does
 // not affect ensurePreCommitHook — the tree-discipline gate stays.
-func RefreshArtifacts(ctx context.Context, root string, opts RefreshOptions) ([]StepResult, bool, error) {
-	if _, err := config.Load(root); err != nil && !errors.Is(err, config.ErrNotFound) {
-		return nil, false, fmt.Errorf("validating configuration before artifact refresh: %w", err)
+func RefreshArtifacts(ctx context.Context, root string, opts RefreshOptions) (*Result, error) {
+	cfg, err := config.Load(root)
+	if err != nil && !errors.Is(err, config.ErrNotFound) {
+		return nil, fmt.Errorf("validating configuration before artifact refresh: %w", err)
 	}
+	selection, err := cfg.ResolveHosts(ctx)
+	if err != nil {
+		return nil, err
+	}
+	if opts.RequireClaude && !slices.Contains(selection.Hosts, config.HostClaudeCode) {
+		return nil, ErrClaudeUnselected
+	}
+	return refreshArtifacts(ctx, root, cfg, selection, opts)
+}
+
+func refreshArtifacts(ctx context.Context, root string, cfg *config.Config, selection config.HostSelection, opts RefreshOptions) (*Result, error) {
 	var steps []StepResult
 	var conflict bool
 
-	skillsStep, err := ensureSkills(root, opts.DryRun)
-	if err != nil {
-		return nil, false, err
+	for _, host := range selection.Hosts {
+		if host == config.HostClaudeCode {
+			skillsStep, err := ensureSkills(root, opts.DryRun)
+			if err != nil {
+				return nil, err
+			}
+			steps = append(steps, skillsStep)
+			guidanceStep, err := ensureGuidance(root, opts.DryRun)
+			if err != nil {
+				return nil, err
+			}
+			steps = append(steps, guidanceStep)
+			importStep, err := ensureGuidanceImport(ctx, root, opts)
+			if err != nil {
+				return nil, err
+			}
+			steps = append(steps, importStep)
+		} else {
+			target := skills.CodexTarget()
+			if !opts.DryRun {
+				if err := skills.MaterializeTo(root, target); err != nil {
+					return nil, fmt.Errorf("materializing Codex artifacts: %w", err)
+				}
+			}
+			detail := "materialized from embedded skills and templates"
+			if opts.DryRun {
+				detail = "would materialize from embedded skills and templates"
+			}
+			steps = append(steps, StepResult{What: target.SkillsDir + " and " + target.TemplatesDir, Action: ActionUpdated, Detail: detail})
+			guidanceStep, err := ensureAgentsGuidance(ctx, root, cfg, opts.DryRun)
+			if err != nil {
+				return nil, err
+			}
+			steps = append(steps, guidanceStep)
+		}
 	}
-	steps = append(steps, skillsStep)
-
-	guidanceStep, err := ensureGuidance(root, opts.DryRun)
-	if err != nil {
-		return nil, false, err
-	}
-	steps = append(steps, guidanceStep)
-
-	importStep, err := ensureGuidanceImport(ctx, root, opts)
-	if err != nil {
-		return nil, false, err
-	}
-	steps = append(steps, importStep)
 
 	legacyStep, err := ensureLegacyActorClean(root, opts.DryRun)
 	if err != nil {
-		return nil, false, err
+		return nil, err
 	}
 	steps = append(steps, legacyStep)
 
 	legacyVersionStep, err := ensureLegacyAiwfVersionClean(root, opts.DryRun)
 	if err != nil {
-		return nil, false, err
+		return nil, err
 	}
 	steps = append(steps, legacyVersionStep)
 
 	exampleStep, err := ensureExampleYAML(root, opts.DryRun)
 	if err != nil { //coverage:ignore only reachable if ensureExampleYAML's AtomicWriteFile call fails (already coverage:ignored there); same disk-full/permission non-triggerability
-		return nil, false, err
+		return nil, err
 	}
 	steps = append(steps, exampleStep)
 
-	gitignoreStep, err := ensureGitignore(root, opts.StatusMdAutoUpdate, opts.DryRun)
+	gitignoreStep, err := ensureGitignore(root, selection, opts.StatusMdAutoUpdate, opts.DryRun)
 	if err != nil {
-		return nil, false, err
+		return nil, err
 	}
 	steps = append(steps, gitignoreStep)
 
@@ -555,38 +606,38 @@ func RefreshArtifacts(ctx context.Context, root string, opts RefreshOptions) ([]
 				Detail: "--skip-hook flag set",
 			},
 		)
-		return steps, false, nil
+		return &Result{Steps: steps, DryRun: opts.DryRun, HostSelection: selection}, nil
 	}
 
 	preHookStep, prePushConflict, err := ensurePreHook(ctx, root, opts.DryRun)
 	if err != nil {
-		return nil, false, err
+		return nil, err
 	}
 	steps = append(steps, preHookStep)
 	conflict = conflict || prePushConflict
 
 	preCommitStep, preCommitConflict, err := ensurePreCommitHook(ctx, root, opts.DryRun)
 	if err != nil {
-		return nil, false, err
+		return nil, err
 	}
 	steps = append(steps, preCommitStep)
 	conflict = conflict || preCommitConflict
 
 	commitMsgStep, commitMsgConflict, err := ensureCommitMsgHook(ctx, root, opts.DryRun)
 	if err != nil {
-		return nil, false, err
+		return nil, err
 	}
 	steps = append(steps, commitMsgStep)
 	conflict = conflict || commitMsgConflict
 
 	postCommitStep, postCommitConflict, err := ensurePostCommitHook(ctx, root, opts.StatusMdAutoUpdate, opts.DryRun)
 	if err != nil {
-		return nil, false, err
+		return nil, err
 	}
 	steps = append(steps, postCommitStep)
 	conflict = conflict || postCommitConflict
 
-	return steps, conflict, nil
+	return &Result{Steps: steps, HookConflict: conflict, DryRun: opts.DryRun, HostSelection: selection}, nil
 }
 
 // loadStatusMdAutoUpdate reads aiwf.yaml at root and returns the
@@ -1070,10 +1121,22 @@ func ensureLegacyAiwfVersionClean(root string, dryRun bool) (StepResult, error) 
 // "/STATUS.md" or "STATUS.md  # my own comment" stays put.
 const statusMdGitignoreLine = "STATUS.md"
 
-func ensureGitignore(root string, statusMdAutoUpdate, dryRun bool) (StepResult, error) {
-	paths, err := skills.GitignorePatterns()
-	if err != nil {
-		return StepResult{}, fmt.Errorf("computing gitignore patterns: %w", err)
+func ensureGitignore(root string, selection config.HostSelection, statusMdAutoUpdate, dryRun bool) (StepResult, error) {
+	paths := []string{"/aiwf"}
+	for _, host := range selection.Hosts {
+		target := skills.CodexTarget()
+		if host == config.HostClaudeCode {
+			target = skills.ClaudeTarget
+		}
+		patterns, err := skills.GitignorePatternsFor(target)
+		if err != nil {
+			return StepResult{}, fmt.Errorf("computing %s gitignore patterns: %w", host, err)
+		}
+		for _, pattern := range patterns {
+			if !slices.Contains(paths, pattern) {
+				paths = append(paths, pattern)
+			}
+		}
 	}
 	htmlIgnore, htmlReason := htmlOutDirIgnore(root)
 

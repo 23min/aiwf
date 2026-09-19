@@ -4,9 +4,11 @@ package initcmd
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"os"
 	"path/filepath"
+	"slices"
 
 	"github.com/spf13/cobra"
 
@@ -39,7 +41,7 @@ func NewCmd() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "init",
 		Short: "One-time setup: aiwf.yaml, scaffolding, skills, pre-push hook",
-		Long: `One-time setup: writes aiwf.yaml, scaffolds entity directories, materializes skills, appends to .gitignore, writes a CLAUDE.md template, and installs the pre-push hook.
+		Long: `One-time setup: writes aiwf.yaml, scaffolds entity directories, materializes skills, appends to .gitignore, wires selected host guidance, and installs the pre-push hook.
 
 Safe to re-run: init is idempotent. A second run never overwrites an existing aiwf.yaml, .claude/settings.json, or user-authored git hooks — only derived artifacts (skills, aiwf.example.yaml, the hooks aiwf manages, STATUS.md wiring) refresh.`,
 		Example: `  # Scaffold a fresh consumer repo (run once)
@@ -111,14 +113,21 @@ func Run(root, actor string, dryRun, skipHook, statusline bool, scope string, wi
 	}
 
 	res, err := initrepo.Init(context.Background(), rootDir, initrepo.Options{
+		RequireClaude: statusline || len(enableHooks) > 0,
 		ActorOverride: actor,
 		DryRun:        dryRun,
 		SkipHook:      skipHook,
 	})
 	if err != nil {
 		cliutil.Errorf("aiwf init: %v\n", err)
+		if errors.Is(err, initrepo.ErrClaudeUnselected) {
+			return cliutil.ExitUsage
+		}
 		return cliutil.ExitInternal
 	}
+
+	claudeSelected := slices.Contains(res.HostSelection.Hosts, config.HostClaudeCode)
+	cliutil.PrintHostSelection(res.HostSelection)
 
 	if res.DryRun {
 		cliutil.Println("aiwf init: dry-run — nothing was written.")
@@ -156,13 +165,11 @@ func Run(root, actor string, dryRun, skipHook, statusline bool, scope string, wi
 	case skipHook:
 		cliutil.Println("\naiwf init: done (pre-push hook skipped). Commit aiwf.yaml when you're ready.")
 		cliutil.Println("Run `aiwf init` again later to install the hook, or wire `aiwf check` into your push flow manually.")
-		cliutil.Println("Skills, ritual skills, agents, and templates were materialized into .claude/ (no plugin install needed; see CLAUDE.md \"Operator setup\").")
 	default:
 		cliutil.Println("\naiwf init: done. Commit aiwf.yaml when you're ready.")
-		cliutil.Println("Skills, ritual skills, agents, and templates were materialized into .claude/ (no plugin install needed; see CLAUDE.md \"Operator setup\").")
 	}
 
-	if len(hooks) > 0 {
+	if claudeSelected && len(hooks) > 0 {
 		if !dryRun {
 			if rc := gateAndPersistHookDecisions(rootDir, hooks, enableHooks, noPrompt); rc != cliutil.ExitOK { //coverage:ignore gateAndPersistHookDecisions's own failure paths are unit-tested directly (TestGateAndPersistHookDecisions_MissingAiwfYamlReturnsInternal); triggering one from here would require initrepo.Init to report success while leaving no readable aiwf.yaml, which its own contract precludes
 				return rc

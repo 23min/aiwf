@@ -120,7 +120,7 @@ type Target struct {
 }
 
 // ClaudeTarget pins the `.claude/{skills,agents,templates,hooks}` layout
-// used by Materialize and the default init/update entry points.
+// used by Materialize and lifecycle entry points when Claude is selected.
 var ClaudeTarget = Target{
 	Name:         "claude",
 	SkillsDir:    SkillsDir,
@@ -467,8 +467,8 @@ func materializeArtifacts(root string, target Target, tiers map[string]AgentTier
 		sources.agents = nil
 	}
 	// Validate the complete selected set before creating directories, deleting
-	// obsolete owned artifacts, or replacing any file. Claude is the only
-	// operational host; MaterializeTo still allows a caller-supplied layout.
+	// obsolete owned artifacts, or replacing any file. MaterializeTo also
+	// accepts a caller-supplied layout.
 	bindings := renderBindingsForTarget(target)
 	all := make([]Skill, 0, len(sources.skills)+len(sources.agents)+len(sources.templates))
 	all = append(all, sources.skills...)
@@ -567,31 +567,41 @@ func recordArtifact(present, missing *[]string, id, path string) {
 // ritual agent arriving with a binary upgrade has its line appended by
 // the same `update` that materializes it.
 func GitignorePatterns() ([]string, error) {
+	return GitignorePatternsFor(ClaudeTarget)
+}
+
+// GitignorePatternsFor enumerates derivable files for one host layout.
+// Root instruction files stay user-owned and eligible for version control.
+func GitignorePatternsFor(target Target) ([]string, error) {
 	pats := []string{
-		SkillsDir + "/aiwf-*/",
-		SkillsDir + "/aiwfx-*/",
-		SkillsDir + "/wf-*/",
-		SkillsDir + "/" + ManifestFile,
-		SkillsDir + "/" + PendingManifestFile,
-		SkillsDir + "/" + ProvenanceReadme,
+		target.SkillsDir + "/aiwf-*/",
+		target.SkillsDir + "/aiwfx-*/",
+		target.SkillsDir + "/wf-*/",
+		target.SkillsDir + "/" + ManifestFile,
+		target.SkillsDir + "/" + PendingManifestFile,
+		target.SkillsDir + "/" + ProvenanceReadme,
 		"/aiwf",
-		GuidanceFile,
 	}
-	agents, err := ListRitualAgents()
-	if err != nil {
-		return nil, err
+	if target.Name == ClaudeTarget.Name {
+		pats = append(pats, GuidanceFile)
 	}
-	for _, a := range agents {
-		pats = append(pats, AgentsDir+"/"+a.Name)
+	if target.AgentsDir != "" {
+		agents, err := ListRitualAgents()
+		if err != nil {
+			return nil, err
+		}
+		for _, a := range agents {
+			pats = append(pats, target.AgentsDir+"/"+a.Name)
+		}
+		pats = append(pats, target.AgentsDir+"/"+ManifestFile, target.AgentsDir+"/"+PendingManifestFile)
 	}
-	pats = append(pats, AgentsDir+"/"+ManifestFile, AgentsDir+"/"+PendingManifestFile)
 	templates, err := ListRitualTemplates()
 	if err != nil {
 		return nil, err
 	}
 	for _, tm := range templates {
-		pats = append(pats, TemplatesDir+"/"+tm.Name)
+		pats = append(pats, target.TemplatesDir+"/"+tm.Name)
 	}
-	pats = append(pats, TemplatesDir+"/"+ManifestFile, TemplatesDir+"/"+PendingManifestFile)
+	pats = append(pats, target.TemplatesDir+"/"+ManifestFile, target.TemplatesDir+"/"+PendingManifestFile)
 	return pats, nil
 }

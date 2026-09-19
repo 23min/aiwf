@@ -430,16 +430,16 @@ func TestRefreshArtifacts_FlipOnInstallsPostCommit(t *testing.T) {
 	if err := os.WriteFile(filepath.Join(root, "aiwf.yaml"), []byte(""), 0o644); err != nil {
 		t.Fatal(err)
 	}
-	steps, conflict, err := RefreshArtifacts(context.Background(), root, RefreshOptions{
+	refresh, err := RefreshArtifacts(context.Background(), root, RefreshOptions{
 		StatusMdAutoUpdate: true,
 	})
 	if err != nil {
 		t.Fatalf("RefreshArtifacts: %v", err)
 	}
-	if conflict {
+	if refresh.HookConflict {
 		t.Errorf("conflict = true, want false")
 	}
-	step := findStep(t, steps, ".git/hooks/post-commit")
+	step := findStep(t, refresh.Steps, ".git/hooks/post-commit")
 	if step.Action != ActionCreated {
 		t.Errorf("post-commit step.Action = %q, want %q (fresh install on flip)", step.Action, ActionCreated)
 	}
@@ -599,7 +599,7 @@ func TestEnsureGitignore_StatusMdFlipFalseToTrue(t *testing.T) {
 	if err := os.WriteFile(filepath.Join(root, "aiwf.yaml"), []byte(""), 0o644); err != nil {
 		t.Fatal(err)
 	}
-	if _, _, err := RefreshArtifacts(context.Background(), root, RefreshOptions{
+	if _, err := RefreshArtifacts(context.Background(), root, RefreshOptions{
 		StatusMdAutoUpdate: true,
 	}); err != nil {
 		t.Fatalf("RefreshArtifacts: %v", err)
@@ -637,7 +637,7 @@ func TestEnsureGitignore_StatusMdFlipTrueToFalse(t *testing.T) {
 	if err := os.WriteFile(filepath.Join(root, "aiwf.yaml"), yaml, 0o644); err != nil {
 		t.Fatal(err)
 	}
-	if _, _, err := RefreshArtifacts(context.Background(), root, RefreshOptions{
+	if _, err := RefreshArtifacts(context.Background(), root, RefreshOptions{
 		StatusMdAutoUpdate: false,
 	}); err != nil {
 		t.Fatalf("RefreshArtifacts: %v", err)

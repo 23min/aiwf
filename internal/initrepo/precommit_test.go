@@ -300,13 +300,13 @@ func TestRefreshArtifacts_FlipFlagPreCommitUntouched(t *testing.T) {
 		t.Fatal(writeErr)
 	}
 
-	steps, conflict, err := RefreshArtifacts(context.Background(), root, RefreshOptions{
+	refresh, err := RefreshArtifacts(context.Background(), root, RefreshOptions{
 		StatusMdAutoUpdate: false,
 	})
 	if err != nil {
 		t.Fatalf("RefreshArtifacts: %v", err)
 	}
-	if conflict {
+	if refresh.HookConflict {
 		t.Errorf("conflict = true on opt-out, want false")
 	}
 	// The pre-commit body must be byte-equal across the flip — its
@@ -322,7 +322,7 @@ func TestRefreshArtifacts_FlipFlagPreCommitUntouched(t *testing.T) {
 		t.Errorf("refreshed hook missing tree-discipline gate:\n%s", after)
 	}
 	// Step is reported in the ledger.
-	_ = findStep(t, steps, ".git/hooks/pre-commit")
+	_ = findStep(t, refresh.Steps, ".git/hooks/pre-commit")
 }
 
 func bytesEqual(a, b []byte) bool {
