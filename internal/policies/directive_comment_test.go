@@ -5,11 +5,11 @@ import (
 	"testing"
 )
 
-// TestHasDirectiveComment pins the escape convention both //history:ok and
-// //exec:ok obey: the marker opens the comment, whitespace separates it from
+// TestHasDirectiveComment pins the escape convention the policy directives
+// obey: the marker opens the comment, whitespace separates it from
 // a reason, and the reason is mandatory.
 //
-// The table runs against both markers because the two policies share one
+// The table runs against every marker because the policies share one
 // matcher — a case that holds for one and not the other would mean the
 // conventions had drifted, which is what sharing the matcher makes
 // unrepresentable.
@@ -30,7 +30,7 @@ func TestHasDirectiveComment(t *testing.T) {
 
 		// The marker must open the comment. A comment that merely names the
 		// escape is documentation, not a directive — and this repo documents
-		// both markers in Go doc comments, so the match-anywhere reading
+		// the markers in Go doc comments, so the match-anywhere reading
 		// silences a gate by writing about it.
 		{"marker mid-line is not an escape", "// see below //MARKER supported older release", false},
 		{"prose naming the escape is not an escape", "// use MARKER when the format is legacy", false},
@@ -52,7 +52,7 @@ func TestHasDirectiveComment(t *testing.T) {
 		{"a comment opening with a block marker is not a directive", "/* MARKER legacy on-disk format */", false},
 	}
 
-	for _, marker := range []string{historyOKMarker, execOKMarker, coverageIgnoreMarker} {
+	for _, marker := range []string{historyOKMarker, execOKMarker, coverageIgnoreMarker, enumsIgnoreMarker} {
 		for _, tt := range tests {
 			t.Run(marker+"/"+tt.name, func(t *testing.T) {
 				t.Parallel()
@@ -69,7 +69,7 @@ func TestHasDirectiveComment(t *testing.T) {
 // escape is inert against every other marker in the family, so annotating an
 // exec-mode call cannot silence a history finding or a coverage one.
 //
-// Each marker annotates a different property, and the three gates fire on
+// Each marker annotates a different property, and the gates fire on
 // different evidence; one directive standing in for another would exempt a
 // block nobody examined.
 func TestHasDirectiveComment_MarkersDoNotCrossMatch(t *testing.T) {
@@ -79,6 +79,7 @@ func TestHasDirectiveComment_MarkersDoNotCrossMatch(t *testing.T) {
 		historyOKMarker:      "legacy on-disk format",
 		execOKMarker:         "the mode is the subject",
 		coverageIgnoreMarker: "unreachable in fixtures",
+		enumsIgnoreMarker:    "intentional literal",
 	}
 
 	for written, reason := range family {
