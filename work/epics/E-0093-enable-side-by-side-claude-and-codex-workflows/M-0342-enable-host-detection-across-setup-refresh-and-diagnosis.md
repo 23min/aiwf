@@ -14,6 +14,7 @@ acs:
     - id: AC-2
       title: Init update and worktree refresh materialize the complete resolved host set
       status: open
+      tdd_phase: red
     - id: AC-3
       title: Unselected host settings and artifacts remain untouched
       status: open
