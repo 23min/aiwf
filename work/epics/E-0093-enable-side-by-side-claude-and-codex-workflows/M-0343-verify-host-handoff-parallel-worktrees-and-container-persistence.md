@@ -442,6 +442,42 @@ Exact prompts, arguments, PTY/event timings, outputs and snapshots remain as
 supporting evidence; the setup, expected isolation and measured results above
 record the bounded human-operated concurrency observation.
 
+### AC-4 — native independent reviewer dispatch
+
+Observed 2026-09-19 with Codex CLI 0.155.0 and Node v22.23.2 in AC-2's
+disposable consumer. Create `patch/review-host-dispatch` with `aiwf worktree add`
+from baseline `7379947ccf53053223a027adacdd97d4c8b564ab`, using the same binary
+and both selected hosts. Stage only a rejection guide and its changelog entry:
+the guide runs `greet("   ")` with an error-printing catch, but deliberately
+documents `Hello, !` instead of the README contract's `Error: Name is required`.
+Doctor/ritual checks and all seven existing tests pass before review.
+
+The separately approved parent invocation uses
+`codex --disable worktrees -a never exec --sandbox read-only --json -C <path>`
+with no model override. Its prompt requires the generated `wf-patch` independent
+review step, one separately approved fresh reviewer, finding disposition, and
+unchanged staged fingerprints; fixes and commits are excluded from this probe.
+The reviewer brief names the absolute checkout, baseline, staged paths, README
+contract and executable-evidence requirement, without revealing the planted defect.
+
+The native trace records exactly one `collaboration.spawn_agent` call with
+`fork_turns: "none"`, returning `/root/independent_review`, and a completed child
+session. The child reads the generated `wf-review-code` skill, staged diff,
+documentation, module and tests. Its command prints `Error: Name is required`;
+the document-output equality assertion fails with exit 1 (`actual: Error: Name
+is required`, `expected: Hello, !`). Seven tests pass. The reviewer requests
+changes; the parent accepts the blocking documentation finding and withholds
+fixes and commit. No delegation fallback or follow-up dispatch is needed.
+
+Parent-side comparison confirms all 116 non-Git files, full index, branch and
+HEAD are unchanged. The staged binary diff retains SHA-256
+`73b5b5c7142e894212bf7e9a4cb6d39d377e1941b21835e0bf57457d3334cc5f`.
+This demonstrates the bounded review step and finding handling, not a completed
+patch ritual or a guarantee of reviewer accuracy. The dispatch message is opaque
+in the native trace; its exact delivered wording is not independently verified.
+Prompts, command, staged diff, snapshots, results and sanitized trace evidence
+remain under `/tmp/aiwf-M-0343-handoff-327e30na/review-dispatch-preparation/`.
+
 ## Deferrals
 
 - (none)
