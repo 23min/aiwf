@@ -249,10 +249,18 @@ does not require Codex's experimental worktrees feature. A command's working
 directory does not reload an existing Codex session's instructions or skills;
 use a fresh session to exercise discovery in the selected checkout.
 
+To hand unfinished work to the other host, finish the outgoing host's writes,
+then start the receiving session in the same checkout. Supply a short note with
+the task, completed and remaining work, uncommitted changes, and outstanding
+approvals. The receiver checks aiwf records, branch, diff and index before
+continuing with its own host artifacts. Approval for one action does not carry
+forward to another. Keep simultaneous writers in separate worktrees.
+
 Codex support covers local skills, templates, and native guidance. It does not
-install Codex role TOML, hooks, statusline, cloud/review integrations, or
-Codex-managed worktrees. Switching assistants uses repository files and planning
-state; aiwf does not transfer transcripts. Shared Git hooks and installed aiwf
+install Codex role TOML, hooks or statusline, or configure cloud tasks, hosted
+pull-request review integrations or Codex-managed worktrees. Switching assistants
+uses repository files and planning state; aiwf does not transfer transcripts.
+Shared Git hooks and installed aiwf
 binaries remain shared resources across worktrees.
 
 ### Sample of `aiwf check` output
