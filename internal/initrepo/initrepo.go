@@ -503,7 +503,7 @@ func RefreshArtifacts(ctx context.Context, root string, opts RefreshOptions) (*R
 }
 
 func refreshArtifacts(ctx context.Context, root string, cfg *config.Config, selection config.HostSelection, opts RefreshOptions) (*Result, error) {
-	steps := retainedHostSteps(root, selection)
+	steps := RetainedHostSteps(root, selection)
 	var conflict bool
 
 	for _, host := range selection.Hosts {

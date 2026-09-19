@@ -255,6 +255,22 @@ presence without following links or reading retained content. Presence is not a
 claim of aiwf ownership or installation health. Worktree JSON exposes the same
 ledger under `result.steps`, alongside `path` and `host_selection`.
 
+Doctor compares selected-host verb skills, ritual skills, templates, and supported
+agent cards against the same rendered families used by materialization, including
+configured agent model/effort fields. Verb-skill failures are errors; ritual skills,
+templates, agent cards, and guidance findings are warnings. Missing and drifted
+artifacts are reported independently, with the host, family, path, and remediation.
+Guidance diagnosis uses the root writer's read-only plan, including opt-outs and
+refusals for symlinks, aliases, and damaged markers. User bytes outside managed
+blocks and unselected host files are not generated drift. Disk checks cannot
+establish that instructions reached a model's context.
+
+`aiwf doctor --check-rituals` checks the selected hosts' ritual bytes and returns
+findings for absence, drift, or blocked paths; it succeeds silently when no host
+is selected. `--write-health` requires Claude selection both in the source
+checkout and in the main checkout where the statusline health file is stored.
+Core Git-hook checks remain independent of assistant selection.
+
 Host instructions are authored under `internal/skills/embedded-guidance/claude/`
 and `codex/`. The shared sources mark substitution sites explicitly. Skill
 loading, worktree entry and independent-review dispatch are host fragments;
@@ -317,7 +333,7 @@ A short YAML file at the consumer repo root. Read by `aiwf` on every invocation;
 | Field | Type | Required | Notes |
 |---|---|---|---|
 | `aiwf_version` | string | yes | Engine version the repo expects (e.g., `0.1.0`). `aiwf doctor` warns on mismatch. |
-| `hosts` | []string | no | Supported values: `claude-code`, `codex`. The shared resolver detects executable `claude` and `codex` commands on PATH when the field is absent or null; `[]` explicitly selects none. A configured list overrides detection, including for tools absent from PATH. Resolution deduplicates into Claude/Codex order without rewriting the configured list or persisting detection. Init, update, and worktree setup materialize the resolved set and report its source; diagnosis is the remaining M-0342 integration. |
+| `hosts` | []string | no | Supported values: `claude-code`, `codex`. The shared resolver detects executable `claude` and `codex` commands on PATH when the field is absent or null; `[]` explicitly selects none. A configured list overrides detection, including for tools absent from PATH. Resolution deduplicates into Claude/Codex order without rewriting the configured list or persisting detection. Init, update, and worktree setup materialize the resolved set and report its source. Doctor diagnoses that same set; configured but unavailable executables are reported separately from disk artifact state. |
 | `contracts` | mapping | no | Contract bindings: a `validators` mapping (name → command + args), an `entries` list (each with `id`, `validator`, `schema`, `fixtures`), and `strict_validators` (bool, default false). Owned and round-tripped programmatically by `aiwf contract bind/unbind/recipe …`. See [`contracts-plan.md`](../archive/pocv3/contracts-plan.md) §5. |
 | `status_md` | mapping | no | `auto_update` (bool, default true) — install a marker-managed pre-commit hook that regenerates `STATUS.md` (a committed `aiwf status --format=md` snapshot) on every commit. Set to `false` to opt out; `aiwf init`/`update` will then leave the hook uninstalled and remove a previously-installed marker-managed one. The committed `STATUS.md` itself is the user's content once tracked — flipping the flag does not delete it. See [`update-broaden-plan.md`](../archive/pocv3/update-broaden-plan.md). |
 | `html` | mapping | no | `out_dir` (string, default `site`) — render output directory relative to repo root; `commit_output` (bool, default `false`) — when `false`, `aiwf init`/`update` add `out_dir` to the framework-managed gitignore block; when `true`, both verbs remove it from the block. The gitignore is a derived artifact controlled by this field. See [`governance-html-plan.md`](../archive/pocv3/governance-html-plan.md) §2. |

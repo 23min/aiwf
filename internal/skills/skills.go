@@ -22,7 +22,6 @@ import (
 	"embed"
 	"fmt"
 	"io/fs"
-	"os"
 	"path/filepath"
 	"sort"
 	"strings"
@@ -431,21 +430,29 @@ func MaterializeTo(root string, target Target) error {
 // and MaterializeWithTiers. tiers (may be nil) inject per-agent model/effort
 // into the agent-card frontmatter before the flat agent files are written.
 func materializeTo(root string, target Target, tiers map[string]AgentTier) error {
-	verbSkills, err := listVerbSources()
+	sources, err := loadArtifactSources()
 	if err != nil {
 		return err
+	}
+	return materializeArtifacts(root, target, tiers, sources)
+}
+
+func loadArtifactSources() (artifactSources, error) {
+	verbSkills, err := listVerbSources()
+	if err != nil {
+		return artifactSources{}, err
 	}
 	ritualSkills, err := listRitualSources()
 	if err != nil {
-		return err
+		return artifactSources{}, err
 	}
 	agents, err := listRitualFiles("agents")
 	if err != nil {
-		return err
+		return artifactSources{}, err
 	}
 	templates, err := listRitualFiles("templates")
 	if err != nil {
-		return err
+		return artifactSources{}, err
 	}
 	// Verb skills (aiwf-*) and ritual skills (aiwfx-*, wf-*) share the
 	// `.claude/skills/` namespace and the single ownership manifest. The
@@ -453,7 +460,7 @@ func materializeTo(root string, target Target, tiers map[string]AgentTier) error
 	skills := make([]Skill, 0, len(verbSkills)+len(ritualSkills))
 	skills = append(skills, verbSkills...)
 	skills = append(skills, ritualSkills...)
-	return materializeArtifacts(root, target, tiers, artifactSources{skills: skills, agents: agents, templates: templates})
+	return artifactSources{skills: skills, agents: agents, templates: templates}, nil
 }
 
 type artifactSources struct {
@@ -463,6 +470,14 @@ type artifactSources struct {
 }
 
 func materializeArtifacts(root string, target Target, tiers map[string]AgentTier, sources artifactSources) error {
+	families, err := renderArtifactFamilies(target, tiers, sources)
+	if err != nil {
+		return err
+	}
+	return materializeArtifactFamilies(context.Background(), root, families)
+}
+
+func renderArtifactFamilies(target Target, tiers map[string]AgentTier, sources artifactSources) ([]artifactFamily, error) {
 	if target.AgentsDir == "" {
 		sources.agents = nil
 	}
@@ -476,7 +491,7 @@ func materializeArtifacts(root string, target Target, tiers map[string]AgentTier
 	all = append(all, sources.templates...)
 	rendered, err := RenderSkills(all, bindings)
 	if err != nil {
-		return err
+		return nil, err
 	}
 	skills := rendered[:len(sources.skills)]
 	agentsEnd := len(sources.skills) + len(sources.agents)
@@ -484,7 +499,7 @@ func materializeArtifacts(root string, target Target, tiers map[string]AgentTier
 	templates := rendered[agentsEnd:]
 	provenance, err := renderProvenance(target)
 	if err != nil {
-		return err
+		return nil, err
 	}
 
 	families := []artifactFamily{{dir: target.SkillsDir, skills: true, files: skills, provenance: provenance}}
@@ -492,50 +507,7 @@ func materializeArtifacts(root string, target Target, tiers map[string]AgentTier
 		families = append(families, artifactFamily{dir: target.AgentsDir, files: agents})
 	}
 	families = append(families, artifactFamily{dir: target.TemplatesDir, files: templates})
-	return materializeArtifactFamilies(context.Background(), root, families)
-}
-
-// MaterializedRituals reports which embedded ritual artifacts (skills,
-// agents, templates) are present on disk under target's dirs and which
-// are missing. `aiwf doctor` uses it to verify materialization — the
-// replacement for the retired marketplace recommendation (ADR-0014 §5).
-// Identifiers are "<kind>/<name>" (e.g. "skills/aiwfx-plan-epic",
-// "agents/planner.md") for display. A target with an empty AgentsDir
-// contributes no agent artifacts (they are never materialized for it).
-func MaterializedRituals(root string, target Target) (present, missing []string, err error) {
-	ritualSkills, err := ListRituals()
-	if err != nil {
-		return nil, nil, err
-	}
-	for _, s := range ritualSkills {
-		recordArtifact(&present, &missing, "skills/"+s.Name, filepath.Join(root, target.SkillsDir, s.Name, "SKILL.md"))
-	}
-	if target.AgentsDir != "" {
-		agents, aErr := ListRitualAgents()
-		if aErr != nil {
-			return nil, nil, aErr
-		}
-		for _, a := range agents {
-			recordArtifact(&present, &missing, "agents/"+a.Name, filepath.Join(root, target.AgentsDir, a.Name))
-		}
-	}
-	templates, tErr := ListRitualTemplates()
-	if tErr != nil {
-		return nil, nil, tErr
-	}
-	for _, t := range templates {
-		recordArtifact(&present, &missing, "templates/"+t.Name, filepath.Join(root, target.TemplatesDir, t.Name))
-	}
-	return present, missing, nil
-}
-
-// recordArtifact stats path and appends id to present or missing.
-func recordArtifact(present, missing *[]string, id, path string) {
-	if _, err := os.Stat(path); err == nil {
-		*present = append(*present, id)
-	} else {
-		*missing = append(*missing, id)
-	}
+	return families, nil
 }
 
 // GitignorePatterns returns the .gitignore lines that mask aiwf-

@@ -9,10 +9,10 @@ import (
 	"github.com/23min/aiwf/internal/config"
 )
 
-// retainedHostSteps reports unselected host paths without inspecting their
+// RetainedHostSteps reports unselected host paths without inspecting their
 // contents or following links. Presence does not imply an aiwf-owned or healthy
 // installation; these paths may include the user's own files.
-func retainedHostSteps(root string, selection config.HostSelection) []StepResult {
+func RetainedHostSteps(root string, selection config.HostSelection) []StepResult {
 	var steps []StepResult
 	for _, host := range []struct {
 		name  config.Host

@@ -70,7 +70,7 @@ func extractLine(haystack, prefix string) string {
 
 // TestRun_CreatesWorktreeAndMaterializesRituals is M-0233/AC-1: one
 // `aiwf worktree add` call creates the worktree AND leaves `aiwf
-// doctor` reporting `rituals: ok` immediately after, with no
+// doctor` reporting `claude-code rituals: ok` immediately after, with no
 // intervening `aiwf update`.
 func TestRun_CreatesWorktreeAndMaterializesRituals(t *testing.T) {
 	t.Parallel()
@@ -87,7 +87,7 @@ func TestRun_CreatesWorktreeAndMaterializesRituals(t *testing.T) {
 	}
 
 	lines, _ := doctor.DoctorReport(wtPath, doctor.DoctorOptions{})
-	ritualsLine := extractLine(strings.Join(lines, "\n"), "rituals:")
+	ritualsLine := extractLine(strings.Join(lines, "\n"), "claude-code rituals:")
 	if !strings.Contains(ritualsLine, "ok") {
 		t.Errorf("doctor rituals line = %q, want it to report ok\nfull report:\n%s", ritualsLine, strings.Join(lines, "\n"))
 	}
@@ -284,7 +284,7 @@ func TestRun_ReusesExistingBranchSuccessfully(t *testing.T) {
 
 	wtPath := filepath.Join(root, config.DefaultWorktreeDir, "feature", "reuse-me")
 	lines, _ := doctor.DoctorReport(wtPath, doctor.DoctorOptions{})
-	ritualsLine := extractLine(strings.Join(lines, "\n"), "rituals:")
+	ritualsLine := extractLine(strings.Join(lines, "\n"), "claude-code rituals:")
 	if !strings.Contains(ritualsLine, "ok") {
 		t.Errorf("doctor rituals line = %q, want it to report ok\nfull report:\n%s", ritualsLine, strings.Join(lines, "\n"))
 	}

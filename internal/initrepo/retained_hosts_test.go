@@ -25,7 +25,7 @@ func TestRetainedHostSteps_ReportsOnlyExistingUnselectedPaths(t *testing.T) {
 		t.Run(tc.name, func(t *testing.T) {
 			t.Parallel()
 			root := t.TempDir()
-			if got := retainedHostSteps(root, config.HostSelection{Hosts: tc.selected}); len(got) != 0 {
+			if got := RetainedHostSteps(root, config.HostSelection{Hosts: tc.selected}); len(got) != 0 {
 				t.Fatalf("empty repo reported retention: %+v", got)
 			}
 			for _, path := range []string{".claude", "CLAUDE.md", ".agents", "AGENTS.md"} {
@@ -35,7 +35,7 @@ func TestRetainedHostSteps_ReportsOnlyExistingUnselectedPaths(t *testing.T) {
 				}
 			}
 			var got []string
-			for _, step := range retainedHostSteps(root, config.HostSelection{Hosts: tc.selected}) {
+			for _, step := range RetainedHostSteps(root, config.HostSelection{Hosts: tc.selected}) {
 				if step.Action != ActionPreserved {
 					t.Errorf("action = %s", step.Action)
 				}
@@ -62,7 +62,7 @@ func TestRetainedHostSteps_UnreadableRootReportsSkippedInspection(t *testing.T) 
 	if _, err := os.Lstat(filepath.Join(root, ".claude")); !os.IsPermission(err) {
 		t.Skip("process bypasses directory permissions")
 	}
-	steps := retainedHostSteps(root, config.HostSelection{})
+	steps := RetainedHostSteps(root, config.HostSelection{})
 	if len(steps) != 4 {
 		t.Fatalf("inspection failures = %+v", steps)
 	}

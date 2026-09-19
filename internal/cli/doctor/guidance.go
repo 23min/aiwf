@@ -1,42 +1,46 @@
 package doctor
 
 import (
-	"os"
-	"path/filepath"
-	"strings"
+	"context"
+	"fmt"
 
 	"github.com/23min/aiwf/internal/config"
 	"github.com/23min/aiwf/internal/initrepo"
 	"github.com/23min/aiwf/internal/skills"
+	"github.com/23min/aiwf/internal/version"
 )
 
-// appendGuidanceImportReport adds the CLAUDE.md guidance-import advisory
-// to the doctor output (M-0165). Advisory only — never increments the
-// problem count.
-//
-// It is emitted only when guidance wiring is enabled (the default; opt
-// out via aiwf.yaml `guidance.wire_claudemd: false`) AND the materialized
-// fragment (.claude/aiwf-guidance.md) exists: if CLAUDE.md imports it,
-// reports "ok"; if not, reports `claudemd-guidance-unwired` naming the
-// exact fix (`aiwf update`, which self-heals the import per ADR-0018).
-// When the consumer opted out, or the fragment is absent, nothing is
-// reported.
-func appendGuidanceImportReport(in []string, problemsIn []Problem, rootDir string) (lines []string, problems []Problem) {
-	problems = problemsIn
-	// Respect the opt-out: a consumer who disabled wiring should not be nagged.
-	if cfg, err := config.Load(rootDir); err == nil && !cfg.WireClaudeMd() {
-		return in, problems
+func appendHostGuidanceReport(lines []string, problems []Problem, root string, host config.Host, cfg *config.Config) ([]string, []Problem) {
+	ctx := context.Background()
+	path, optedOut := "AGENTS.md", !cfg.WireAgentsMd()
+	if host == config.HostClaudeCode {
+		path, optedOut = "CLAUDE.md", !cfg.WireClaudeMd()
+		expected, err := skills.RenderGuidance(version.Current().Version)
+		if err != nil { //coverage:ignore compiled-in guidance cannot fail to render
+			return lines, append(problems, Problem{Host: host, Path: skills.GuidanceFile, Severity: SeverityWarn, Message: err.Error()})
+		}
+		status := skills.InspectArtifact(ctx, root, skills.FamilyGuidance, skills.GuidanceFile, expected)
+		if status.State != skills.ArtifactCurrent {
+			lines, problems = appendArtifactProblem(lines, problems, host, status, SeverityWarn)
+		}
 	}
-	guidancePath := filepath.Join(rootDir, filepath.FromSlash(skills.GuidanceFile))
-	if _, err := os.Stat(guidancePath); err != nil {
-		return in, problems // fragment absent → nothing to wire
+	if optedOut {
+		return append(lines, fmt.Sprintf("%sopted out (%s unchanged)", label(string(host)+" guidance:"), path)), problems
 	}
-	importLine := "@" + skills.GuidanceFile
-	if claudeMd, err := os.ReadFile(filepath.Join(rootDir, "CLAUDE.md")); err == nil &&
-		initrepo.GuidanceMarkerLineIdx(strings.Split(string(claudeMd), "\n"), importLine) != -1 {
-		return append(in, label("guidance:")+"ok (CLAUDE.md imports the aiwf guidance fragment)"), problems
+	plan, err := initrepo.InspectGuidance(ctx, root, host, cfg)
+	status := skills.ArtifactStatus{Family: skills.FamilyGuidance, Path: path, State: skills.ArtifactCurrent}
+	switch {
+	case err != nil:
+		status.State, status.Detail = skills.ArtifactBlocked, err.Error()
+	case plan.Action == initrepo.ActionSkipped:
+		status.State, status.Detail = skills.ArtifactBlocked, "update skipped: "+plan.Detail
+	case plan.Action == initrepo.ActionCreated:
+		status.State = skills.ArtifactMissing
+	case plan.Action == initrepo.ActionUpdated:
+		status.State = skills.ArtifactDrifted
 	}
-	val := "claudemd-guidance-unwired: advisory — " + skills.GuidanceFile + " exists but CLAUDE.md does not import it; run `aiwf update` to wire it"
-	problems = append(problems, Problem{Severity: SeverityWarn, Message: val})
-	return append(in, label("guidance:")+val), problems
+	if status.State != skills.ArtifactCurrent {
+		return appendArtifactProblem(lines, problems, host, status, SeverityWarn)
+	}
+	return append(lines, label(string(host)+" guidance:")+"ok (managed root instructions match the writer's plan)"), problems
 }
