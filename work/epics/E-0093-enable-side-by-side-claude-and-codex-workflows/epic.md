@@ -11,9 +11,11 @@ and parallel implementation in separate worktrees.
 
 ## Context
 
-aiwf embeds its workflow definitions and materializes Claude artifacts through
-an existing target seam. Codex-shaped paths appear only in tests; initialization,
-refresh, diagnosis, guidance wiring, and worktree setup still select Claude.
+aiwf embeds canonical workflow definitions and implements Claude and Codex
+artifact generation, including native Codex guidance, behind its internal target
+boundary. Public initialization, refresh, diagnosis, guidance wiring, and worktree
+setup still select Claude; automatic detection and public host selection remain
+the scope of M-0342.
 The local container can now run Codex, and a source-built aiwf binary has created
 the isolated `feat/codex-support` worktree for implementation.
 
