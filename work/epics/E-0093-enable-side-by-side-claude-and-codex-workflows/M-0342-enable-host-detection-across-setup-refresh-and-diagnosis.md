@@ -29,7 +29,7 @@ acs:
       tdd_phase: done
     - id: AC-6
       title: Host configuration and supported capabilities are discoverable
-      status: open
+      status: met
       tdd_phase: done
 ---
 ## Goal
