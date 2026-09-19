@@ -1,6 +1,5 @@
-// Package skills owns the materialization of aiwf's host adapters
-// (Claude Code skills) into a consumer repo's `.claude/skills/aiwf-*/`
-// tree.
+// Package skills renders and materializes aiwf's embedded workflow artifacts
+// into the selected host's layout.
 //
 // The skill markdown lives under embedded/ and is compiled into the
 // binary via go:embed. The on-disk skill files are a cache, not state:
@@ -76,8 +75,8 @@ func StatuslineBytes() []byte {
 	return statuslineEmbed
 }
 
-// Skill is one embedded skill: its directory name (e.g. "aiwf-add") and
-// the bytes that should be written to `.claude/skills/<name>/SKILL.md`.
+// Skill is one embedded document: its artifact name and content bytes.
+// Skills use directory names; flat artifacts include their file extension.
 type Skill struct {
 	Name    string // directory name, e.g. "aiwf-add"
 	Content []byte // SKILL.md contents
@@ -114,10 +113,9 @@ const SharedSettingsRelPath = ".claude/settings.json"
 // Target names an agent's on-disk layout: the host-relative dirs each
 // materializable artifact kind writes into. It is the seam (ADR-0014 §4)
 // that lets a non-Claude agent become a new value rather than a rewrite —
-// Codex writes the same SKILL.md to `.agents/skills/`, etc. An empty
-// AgentsDir means the target has no subagent concept, so the agent writer
-// is a no-op for it (ADR-0014 §4). HooksDir follows the same optional-empty
-// convention for a future target with no hook concept.
+// Codex writes SKILL.md to `.agents/skills/`. An empty AgentsDir means
+// aiwf does not install role cards for this target; the host may still support
+// native subagents. An empty HooksDir likewise means no host-hook output.
 type Target struct {
 	Name         string // display name, e.g. "claude"
 	SkillsDir    string // host-relative skills dir (dir-per-skill)
@@ -126,9 +124,8 @@ type Target struct {
 	HooksDir     string // host-relative hooks dir (flat); "" = no hooks
 }
 
-// ClaudeTarget is the only target with a shipped writer today. It pins
-// the `.claude/{skills,agents,templates,hooks}` layout that init/update
-// use, so Materialize(root) and every M-0149/M-0150 consumer see no change.
+// ClaudeTarget pins the `.claude/{skills,agents,templates,hooks}` layout
+// used by Materialize and the default init/update entry points.
 var ClaudeTarget = Target{
 	Name:         "claude",
 	SkillsDir:    SkillsDir,
@@ -153,12 +150,13 @@ const ManifestFile = ".aiwf-owned"
 // vendored-snapshot drift guard).
 const ProvenanceReadme = "README.md"
 
-// provenanceReadmeBody is the content of ProvenanceReadme. Written for a
+// provenanceReadmeIntro and provenanceReadmeOutro surround the selected
+// target's support-file references in ProvenanceReadme. Written for a
 // consumer audience (the consumer cannot re-vendor — a newer ritual set
 // arrives via `aiwf upgrade`). Version-agnostic on purpose so it needs
 // no dependency on the version package; it points at `aiwf doctor` for
 // the live version.
-const provenanceReadmeBody = `# aiwf-managed adapters
+const provenanceReadmeIntro = `# aiwf-managed adapters
 
 The directories listed in ` + "`.aiwf-owned`" + ` are **materialized by ` + "`aiwf`" + `** from a
 pinned snapshot embedded in the ` + "`aiwf`" + ` binary — they are not hand-authored:
@@ -167,8 +165,9 @@ pinned snapshot embedded in the ` + "`aiwf`" + ` binary — they are not hand-au
 - ` + "`aiwfx-*`" + ` — planning / lifecycle rituals (coupled to the aiwf kernel)
 - ` + "`wf-*`" + `    — generic engineering rituals (TDD, code review, doc-lint, patch)
 
-aiwf also materializes the role agents (` + "`../agents/*.md`" + `) and entity templates
-(` + "`../templates/*.md`" + `), each with its own ` + "`.aiwf-owned`" + ` manifest.
+`
+
+const provenanceReadmeOutro = `
 
 **Do not hand-edit these.** ` + "`aiwf update`" + ` overwrites them from the binary's
 embedded snapshot; ` + "`aiwf upgrade`" + ` pulls a newer ritual version (it always
@@ -430,8 +429,8 @@ func injectAgentFrontmatter(content []byte, tier AgentTier) []byte {
 // §4). It writes the skills (dir-per-skill) into target.SkillsDir, and
 // the agents and templates (flat) into target.AgentsDir /
 // target.TemplatesDir. A target with an empty AgentsDir materializes no
-// agents — the agent writer is a no-op for an agent host with no subagent
-// concept. The Claude target reproduces the exact M-0149/M-0150 layout.
+// agents. This is an artifact-layout operation; host selection and native
+// operational instructions are separate responsibilities.
 func MaterializeTo(root string, target Target) error {
 	return materializeTo(root, target, nil)
 }
@@ -492,6 +491,10 @@ func materializeArtifacts(root string, target Target, tiers map[string]AgentTier
 	agentsEnd := len(sources.skills) + len(sources.agents)
 	agents := applyAgentTiers(rendered[len(sources.skills):agentsEnd], tiers)
 	templates := rendered[agentsEnd:]
+	provenance, err := renderProvenance(target)
+	if err != nil {
+		return err
+	}
 
 	skillsRoot := filepath.Join(root, target.SkillsDir)
 	if mkErr := os.MkdirAll(skillsRoot, 0o755); mkErr != nil {
@@ -535,7 +538,7 @@ func materializeArtifacts(root string, target Target, tiers map[string]AgentTier
 	if wmErr := writeManifest(skillsRoot, skills); wmErr != nil {
 		return wmErr
 	}
-	if rErr := pathutil.AtomicWriteFile(filepath.Join(skillsRoot, ProvenanceReadme), []byte(provenanceReadmeBody), 0o644); rErr != nil {
+	if rErr := pathutil.AtomicWriteFile(filepath.Join(skillsRoot, ProvenanceReadme), provenance, 0o644); rErr != nil {
 		return fmt.Errorf("writing %s/%s: %w", target.SkillsDir, ProvenanceReadme, rErr)
 	}
 
