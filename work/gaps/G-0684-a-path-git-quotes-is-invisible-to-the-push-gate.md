@@ -1,8 +1,10 @@
 ---
 id: G-0684
 title: A path git quotes is invisible to the push gate
-status: open
+status: addressed
 discovered_in: M-0331
+addressed_by_commit:
+    - b9dd0ea91f37d210fc078ab20aa37deab6f5551b
 ---
 ## What's missing
 
