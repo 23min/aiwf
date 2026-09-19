@@ -22,6 +22,7 @@ acs:
     - id: AC-4
       title: Doctor detects selected-host absence drift and guidance conflicts
       status: open
+      tdd_phase: red
     - id: AC-5
       title: Dry-run and upgrade refresh honor host selection without hidden writes
       status: open
