@@ -120,7 +120,7 @@ Verify the hosts field, supported values, absent-versus-empty semantics, guidanc
 
 ## Deferrals
 
-- (none)
+- G-0504 — Selected-host drift reporting advances this gap. Its additional requirement for planning rituals to refresh templates before reading them remains outside this milestone, so this milestone does not claim to close the whole gap.
 
 ## Reviewer notes
 
