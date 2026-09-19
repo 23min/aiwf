@@ -11,11 +11,13 @@ and parallel implementation in separate worktrees.
 
 ## Context
 
-aiwf embeds canonical workflow definitions and implements Claude and Codex
-artifact generation, including native Codex guidance, behind its internal target
-boundary. Public initialization, refresh, diagnosis, guidance wiring, and worktree
-setup still select Claude; automatic detection and public host selection remain
-the scope of M-0342.
+aiwf embeds canonical workflow definitions and supports Claude and Codex
+artifact generation, including native Codex guidance. Initialization, refresh,
+diagnosis, guidance wiring, and aiwf-created worktrees use shared host selection
+from executable detection or explicit configuration. M-0342 verifies these
+lifecycle paths with filesystem and subprocess tests. Live host discovery,
+Claude-to-Codex-to-Claude handoff, concurrent sessions, and container persistence
+remain to be demonstrated in M-0343.
 The local container can now run Codex, and a source-built aiwf binary has created
 the isolated `feat/codex-support` worktree for implementation.
 
