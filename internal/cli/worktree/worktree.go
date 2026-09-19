@@ -48,7 +48,7 @@ Existing unselected host paths are retained without refresh.
 
 With --format=json, result contains path, host_selection (hosts and source),
 and steps: the artifact ledger with what, action, and optional detail fields.
-A preserved unselected path is not a claim that its files are current or healthy.`,
+A preserved unselected path is not a claim that its files are current or healthy.` + cliutil.HostSetupHelp,
 		Example: `  # Create an in-repo worktree for a new branch off main
   aiwf worktree add epic/E-0099-my-epic --base main
 

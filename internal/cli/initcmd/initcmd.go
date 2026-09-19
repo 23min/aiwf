@@ -43,7 +43,7 @@ func NewCmd() *cobra.Command {
 		Short: "One-time setup: aiwf.yaml, scaffolding, skills, pre-push hook",
 		Long: `One-time setup: writes aiwf.yaml, scaffolds entity directories, materializes skills, appends to .gitignore, wires selected host guidance, and installs the pre-push hook.
 
-Safe to re-run: init is idempotent. A second run never overwrites an existing aiwf.yaml, .claude/settings.json, or user-authored git hooks — only derived artifacts (skills, aiwf.example.yaml, the hooks aiwf manages, STATUS.md wiring) refresh.`,
+Safe to re-run: init refreshes derived artifacts and preserves user-owned content. Existing aiwf.yaml is preserved apart from legacy-key cleanup and hook consent decisions. Host hooks and statusline setup retain their separate consent rules. Existing user Git hooks are chained through .local files; collisions require manual resolution.` + cliutil.HostSetupHelp,
 		Example: `  # Scaffold a fresh consumer repo (run once)
   aiwf init
 

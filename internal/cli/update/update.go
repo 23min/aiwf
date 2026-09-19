@@ -24,12 +24,9 @@ import (
 // `initrepo.RefreshArtifacts` — so init and update converge to the
 // same state for a given binary version + aiwf.yaml.
 //
-// Concretely the verb refreshes:
-//   - the embedded skills under .claude/skills/aiwf-*
-//   - the .gitignore patterns covering them
-//   - the marker-managed pre-push hook
-//   - the marker-managed pre-commit hook (gated by
-//     aiwf.yaml's status_md.auto_update; default-on)
+// The resolved hosts receive skills, templates, supported agents, and root
+// guidance. Core example configuration, gitignore patterns, and Git hooks
+// refresh independently of the host set; unselected host files are retained.
 //
 // Hook conflicts (a non-marker hook already in place) are reported
 // in the per-step ledger and surface a remediation block, mirroring
@@ -47,7 +44,8 @@ func NewCmd() *cobra.Command {
 	)
 	cmd := &cobra.Command{
 		Use:   "update",
-		Short: "Refresh marker-managed framework artifacts (skills, hooks)",
+		Short: "Refresh framework artifacts for selected hosts and core Git hooks",
+		Long:  "Refresh selected-host skills, templates, supported agents, and guidance, plus core aiwf artifacts and Git hooks. Existing unselected host artifacts are retained." + cliutil.HostSetupHelp,
 		Example: `  # Refresh skills + hooks against the current binary version
   aiwf update
 

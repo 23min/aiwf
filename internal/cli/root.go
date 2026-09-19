@@ -263,7 +263,7 @@ Verbs:
   acknowledge mistag <id> --reason "..."    accept an area-mistag warning as legitimate cross-cutting work; human actor required
   worktree add <branch> [path]   create a git worktree and materialize aiwf's rituals into it atomically; --base <ref> for a new branch (default HEAD), --print-path to emit only the resulting path (for cd "$(...)")
   init                           one-time setup: aiwf.yaml, scaffolding, skills, pre-push hook
-  update                         re-materialize everything aiwf ships into .claude/: verb skills (aiwf-*), ritual skills (aiwfx-*/wf-*), role agents, entity templates, the aiwf-guidance.md fragment, and git hooks
+  update                         refresh selected Claude/Codex artifacts and core Git hooks; see update --help for hosts, guidance opt-outs, and retained installations
   upgrade [--version vX.Y.Z]     fetch a newer (or specified) aiwf binary via 'go install' and re-exec into 'aiwf update' (default: latest)
   history <id>                   show the entity's lifecycle from git log trailers
   doctor [--self-check] [--check-latest]  drift / version / id-collision health check; --self-check drives every verb against a temp repo; --check-latest hits the Go module proxy for the latest published aiwf version (advisory)

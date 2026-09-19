@@ -55,7 +55,7 @@ unavailable host commands are warnings. Unselected paths are reported as retaine
 Guidance opt-outs and blocked updates are reported separately.
 
 These disk checks do not establish that instructions reached a model's context.
-The regular report exits 1 for errors; --check-rituals also exits 1 for ritual drift.`,
+The regular report exits 1 for errors; --check-rituals also exits 1 for ritual drift.` + cliutil.HostSetupHelp,
 		Example: `  # Local health check on the current consumer repo
   aiwf doctor
 
