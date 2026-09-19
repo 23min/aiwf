@@ -18,7 +18,7 @@ acs:
     - id: AC-3
       title: Instruction-file symlinks and aliases are preserved and diagnosed
       status: open
-      tdd_phase: red
+      tdd_phase: green
     - id: AC-4
       title: Ownership conflicts and unsafe paths cannot overwrite foreign artifacts
       status: open
