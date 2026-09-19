@@ -14,6 +14,7 @@ acs:
     - id: AC-2
       title: Managed AGENTS guidance preserves user content and converges on refresh
       status: open
+      tdd_phase: red
     - id: AC-3
       title: Instruction-file symlinks and aliases are preserved and diagnosed
       status: open
