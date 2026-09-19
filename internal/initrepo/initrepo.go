@@ -411,7 +411,7 @@ func Init(ctx context.Context, root string, opts Options) (*Result, error) {
 	}
 	res.Steps = append(res.Steps, scaffoldSteps...)
 
-	claudeStep, err := ensureClaudeMd(root, opts.DryRun)
+	claudeStep, err := ensureClaudeMd(ctx, root, opts.DryRun)
 	if err != nil {
 		return nil, err
 	}
@@ -480,7 +480,7 @@ func RefreshArtifacts(ctx context.Context, root string, opts RefreshOptions) ([]
 	}
 	steps = append(steps, guidanceStep)
 
-	importStep, err := ensureGuidanceImport(root, opts)
+	importStep, err := ensureGuidanceImport(ctx, root, opts)
 	if err != nil {
 		return nil, false, err
 	}
@@ -887,12 +887,19 @@ func spliceGuidanceLines(lines []string, lo, hi int, repl []string) string {
 // marker text in user prose is inert and outside-marker content is
 // preserved verbatim. A one-sided or reversed marker pair is refused; a
 // pre-existing bare import line is wrapped in markers rather than duplicated.
-func ensureGuidanceImport(root string, opts RefreshOptions) (StepResult, error) {
+func ensureGuidanceImport(ctx context.Context, root string, opts RefreshOptions) (StepResult, error) {
 	const what = "CLAUDE.md (aiwf guidance import)"
 	if !opts.WireClaudeMd {
 		return StepResult{What: what, Action: ActionSkipped, Detail: "disabled via aiwf.yaml guidance.wire_claudemd"}, nil
 	}
 
+	files, err := inspectInstructionFiles(ctx, root)
+	if err != nil {
+		return StepResult{}, fmt.Errorf("checking CLAUDE.md guidance safety: %w", err)
+	}
+	if files.claude.refusal != "" {
+		return StepResult{What: what, Action: ActionSkipped, Detail: files.claude.refusal}, nil
+	}
 	path := filepath.Join(root, "CLAUDE.md")
 	existing, err := os.ReadFile(path)
 	fileAbsent := errors.Is(err, fs.ErrNotExist)
@@ -1308,13 +1315,18 @@ func buildGitignoreDetail(missingSkills int, addHTML, removeHTML, addStatusMd, r
 	return strings.Join(parts, "; ")
 }
 
-func ensureClaudeMd(root string, dryRun bool) (StepResult, error) {
-	path := filepath.Join(root, "CLAUDE.md")
-	if _, err := os.Stat(path); err == nil {
-		return StepResult{What: "CLAUDE.md", Action: ActionPreserved}, nil
-	} else if !errors.Is(err, fs.ErrNotExist) {
-		return StepResult{}, fmt.Errorf("statting CLAUDE.md: %w", err)
+func ensureClaudeMd(ctx context.Context, root string, dryRun bool) (StepResult, error) {
+	files, err := inspectInstructionFiles(ctx, root)
+	if err != nil {
+		return StepResult{}, fmt.Errorf("checking CLAUDE.md guidance safety: %w", err)
 	}
+	if files.claude.refusal != "" {
+		return StepResult{What: "CLAUDE.md", Action: ActionSkipped, Detail: files.claude.refusal}, nil
+	}
+	if files.claude.info != nil {
+		return StepResult{What: "CLAUDE.md", Action: ActionPreserved}, nil
+	}
+	path := filepath.Join(root, "CLAUDE.md")
 	if !dryRun {
 		if err := pathutil.AtomicWriteFile(path, []byte(CLAUDETemplate), 0o644); err != nil {
 			return StepResult{}, fmt.Errorf("writing CLAUDE.md: %w", err)

@@ -4,7 +4,6 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"io/fs"
 	"os"
 	"path/filepath"
 	"strings"
@@ -22,22 +21,19 @@ func ensureAgentsGuidance(ctx context.Context, root string, cfg *config.Config, 
 	if !cfg.WireAgentsMd() {
 		return StepResult{What: what, Action: ActionSkipped, Detail: "guidance.wire_agentsmd is false; existing AGENTS.md is unchanged"}, nil
 	}
-	if err := ctx.Err(); err != nil {
-		return StepResult{}, fmt.Errorf("maintaining AGENTS.md: %w", err)
+	files, err := inspectInstructionFiles(ctx, root)
+	if err != nil {
+		return StepResult{}, fmt.Errorf("checking AGENTS.md guidance safety: %w", err)
+	}
+	if files.agents.refusal != "" {
+		return StepResult{What: what, Action: ActionSkipped, Detail: files.agents.refusal}, nil
 	}
 	path := filepath.Join(root, "AGENTS.md")
-	info, err := os.Lstat(path)
-	absent := errors.Is(err, fs.ErrNotExist)
-	if err != nil && !absent {
-		return StepResult{}, fmt.Errorf("inspecting AGENTS.md: %w", err)
-	}
-	mode := fs.FileMode(0o644)
+	absent := files.agents.info == nil
+	mode := os.FileMode(0o644)
 	var content []byte
 	if !absent {
-		if !info.Mode().IsRegular() {
-			return StepResult{What: what, Action: ActionSkipped, Detail: "AGENTS.md is not a regular file; replace it with a regular file to enable managed guidance"}, nil
-		}
-		mode = info.Mode().Perm()
+		mode = files.agents.info.Mode().Perm()
 		content, err = os.ReadFile(path)
 		if err != nil {
 			return StepResult{}, fmt.Errorf("reading AGENTS.md: %w", err)

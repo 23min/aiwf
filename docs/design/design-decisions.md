@@ -195,6 +195,20 @@ A static-site generator (`aiwf render --format=html --out site/`) produces a per
 | Marker-managed git hooks (`.git/hooks/pre-push`, `.git/hooks/pre-commit`) | In the consumer repo, untracked | Composed from the binary on `aiwf init`/`update`; identified by an `# aiwf:<hook>` marker on the first content line so user-written hooks are left alone. |
 | Per-turn LLM guidance fragment (`.claude/aiwf-guidance.md`) + its marker-wrapped `@`-import in the consumer's root `CLAUDE.md` | Fragment gitignored; the one-line import lives inside the user-owned, git-tracked `CLAUDE.md` | Composed/refreshed on `aiwf init`/`update` (ADR-0018, E-0040). The import is automatically maintained and **self-healing** — line-anchored so only aiwf's own marker block is touched (surrounding content preserved verbatim). Default-on; opt out via `aiwf.yaml` `guidance.wire_claudemd: false`. This is the one aiwf write-channel into a user-owned file; consent is adopting aiwf, the edit is announced and reversible. |
 
+Root instruction files are user-owned. Before the initial `CLAUDE.md` scaffold or
+an instruction-block update, aiwf inspects both `CLAUDE.md` and `AGENTS.md` without
+following their final path components. It skips symlinks and non-regular files,
+and uses read-only target inspection to detect aliases. If both paths resolve to
+the same underlying file, neither instruction writer proceeds. An unresolved
+symlink target also blocks both writers: aiwf cannot establish that their targets
+are independent, including a dangling link to the other instruction path.
+The step ledger reports **guidance incomplete**, names the affected paths and
+condition, and explains how to use separate regular files or manage guidance
+manually with the persistent opt-outs. Unrelated artifact refreshes continue.
+This guard covers instruction-file creation and both hosts' managed-guidance
+writers (G-0501); `AtomicWriteFile` retains its replace-at-path contract. The
+preflight does not protect against another process replacing paths concurrently.
+
 The materialization invariant is load-bearing: artifacts are regenerated only on explicit `aiwf init` / `aiwf update`, never implicitly on `git checkout` or every verb invocation. This is what keeps the AI's behavior stable when switching branches. The on-disk files are a cache, not state: `aiwf update` wipes every `.claude/skills/aiwf-*/` directory and rewrites them from the binary's embedded skills, and refreshes every marker-managed hook from its embedded template; `aiwf doctor` reports drift via byte-compare against the embedded versions. No state file, no manifest, no version stamp.
 
 `aiwf update` is the **upgrade verb**: it refreshes every marker-managed framework artifact the consumer is opted into — embedded skills, embedded git hooks, and any future templated artifact the framework ships. `aiwf init` is first-time setup that runs the same refresh pipeline at the end. Re-running either verb converges to the same state for a given binary version + `aiwf.yaml`. (Earlier in the PoC, `aiwf update` refreshed only skills; the broadening landed in `update-broaden-plan.md`.)
