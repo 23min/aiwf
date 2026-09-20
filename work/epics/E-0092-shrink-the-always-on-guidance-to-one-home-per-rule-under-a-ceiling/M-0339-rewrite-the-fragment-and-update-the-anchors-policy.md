@@ -8,7 +8,7 @@ depends_on:
 tdd: required
 acs:
     - id: AC-1
-      title: Each pinned anchor appears in exactly one of CLAUDE.md and the fragment
+      title: Operating anchors have one authored source and valid host renderings
       status: open
     - id: AC-2
       title: No fragment rule exceeds the per-rule word cap
@@ -32,7 +32,7 @@ M-0336 removes independently authored copies from repository development guidanc
 
 ## Acceptance criteria
 
-### AC-1 — Each pinned anchor appears in exactly one of CLAUDE.md and the fragment
+### AC-1 — Operating anchors have one authored source and valid host renderings
 
 Each operating anchor has one canonical source in the shared fragment and no independent copy in either host's development guidance. The rendered Claude and Codex artifacts must contain the expected source-derived instruction. **Pass criterion**: ownership-aware anchor checks reject an extra authored copy while accepting both expected renderings.
 
