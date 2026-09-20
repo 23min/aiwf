@@ -17,7 +17,7 @@ Language conventions change independently of workflow machinery. Keep their cont
 
 ### External source and initial content
 
-- Use `23min/engineering-guidance` as the default canonical source. Establish that repository as part of delivery; its availability is not yet verified. It contains Markdown and a small declarative catalogue, without requiring aiwf planning or runtime machinery.
+- Use `23min/engineering-guidance` as the default canonical source. M-0344 records publication and retrieval evidence. It contains Markdown and a small declarative catalogue, without requiring aiwf planning or runtime machinery.
 - Seed it with the existing engineering and language guidance from ai-dotfiles, including guidance needed by aiwf itself. Preserve wording except for necessary packaging, naming, and reference changes. Personal collaboration rules, approvals, machine setup, and session tooling stay in ai-dotfiles.
 - Catalogue entries carry pack ids, document paths, applicability descriptions, and simple detection patterns. Opinionated names disclose tooling choices. A new language requires external content and patterns, not an aiwf release.
 
