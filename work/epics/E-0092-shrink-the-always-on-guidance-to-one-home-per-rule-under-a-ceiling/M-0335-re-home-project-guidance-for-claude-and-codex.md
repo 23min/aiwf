@@ -9,7 +9,7 @@ depends_on:
 tdd: required
 acs:
     - id: AC-1
-      title: Root CLAUDE.md imports only the shipped fragment
+      title: Both root entry points route to project-local guidance
       status: open
     - id: AC-2
       title: Nested CLAUDE.md files exist under internal, cmd, docs, and work
@@ -36,7 +36,7 @@ E-0092's delivery prerequisite supplies selected language guidance in the reposi
 
 ## Acceptance criteria
 
-### AC-1 — Root CLAUDE.md imports only the shipped fragment
+### AC-1 — Both root entry points route to project-local guidance
 
 The root Claude entry point retains its operating-fragment import and concise project-local task routing, with no home-directory language imports. Codex has equivalent native routing without treating Claude import syntax as an automatic read. **Pass criterion**: structural checks resolve each route and reject a missing selected target; observed task-specific loading is covered by AC-2. Changes to generated blocks use their owning updater.
 
