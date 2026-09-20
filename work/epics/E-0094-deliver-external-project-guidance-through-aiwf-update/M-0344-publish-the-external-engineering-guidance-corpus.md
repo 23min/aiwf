@@ -25,7 +25,7 @@ Establish the plain Markdown corpus and minimal catalogue that both legacy distr
 
 ## Context
 
-E-0094 selects `23min/engineering-guidance` as the canonical source. The maintained ai-dotfiles checkout contains the source material and detector. Inventory those sources before packaging; the selected repository's remote availability remains unverified.
+E-0094 selects `23min/engineering-guidance` as the canonical source. The maintained ai-dotfiles checkout contains the source material and detector. The published corpus and retrieval evidence are recorded below.
 
 ## Acceptance criteria
 
@@ -74,7 +74,7 @@ v22.23.2 and Git 2.54.0. The corpus is in `/workspaces/engineering-guidance`;
 its initial local commit is `26a55ecac2396d6ecd439a95ad4843dec65b1b25`.
 The tested working copy includes the link-check correction, identified by the
 SHA-256 of `__tests__/catalogue.test.mjs`: `e79e0833b3e013215d9f682a27448ef637ac1f497bd0e344a495877a869534ef`.
-No remote is configured and no remote retrieval is claimed.
+Remote publication and retrieval are recorded separately below.
 
 ### Catalogue and local documents
 
@@ -137,12 +137,11 @@ Observed: `PASS: source coverage, catalogue coverage, source hashes, and transfo
 The source revision and per-file mappings are in the corpus's `IMPORT.json`.
 This comparison is migration evidence, not a permanent wording freeze.
 
-### Local portability and publication boundary
+### Local portability
 
 A temporary `git clone --local --no-hardlinks` of the initial corpus commit passed
 its structural tests and remained clean. This establishes local Git consumption,
-not the remote default-branch retrieval required by AC-3. AC-3 remains open pending
-separate publication approval and a recorded remote-clone observation.
+with remote default-branch retrieval measured separately below.
 
 The corpus has no build step, dependency installation, or configured linter.
 Node.js is needed only to run its maintenance checks. Root-document links, heading
@@ -150,12 +149,55 @@ levels, and TODO scans passed the scoped documentation review. Imported guidance
 is covered by the byte comparison and pack-local link check.
 
 Independent full-package review approves the local catalogue, source preservation,
-and plain-file consumption; remote retrieval remains unverified. The reviewer
+and plain-file consumption. The reviewer
 independently repeated source-fidelity, malformed-input, and link-destination
 checks and confirmed the evidence above. No live TDD phase transitions were
 recorded; this evidence does not claim a timestamped red/green/done progression.
 
+## Remote publication evidence
+
+Observation on 2026-09-20 in the Linux x86_64 development container, using
+Git 2.54.0 and Node.js v22.23.2. The public repository is
+https://github.com/23min/engineering-guidance.
+
+Command: `gh repo view 23min/engineering-guidance --json nameWithOwner,visibility,defaultBranchRef,url`.
+Expected: the selected repository is public with default branch `main`.
+Observed: `visibility: PUBLIC`, `defaultBranchRef.name: main` and the URL above.
+
+The remote retrieval check runs in a temporary directory without an aiwf command,
+package installation, or credential-helper dependency:
+
+```sh
+python3 - <<'PYTHON'
+import os, subprocess, tempfile
+with tempfile.TemporaryDirectory(prefix='engineering-guidance-remote-') as directory:
+    env = os.environ.copy()
+    env['GIT_TERMINAL_PROMPT'] = '0'
+    subprocess.run(['git', '-c', 'credential.helper=', 'clone', '--depth', '1',
+                    'https://github.com/23min/engineering-guidance.git', directory],
+                   check=True, env=env)
+    for command in [['git', 'rev-parse', 'HEAD'],
+                    ['git', 'branch', '--show-current'],
+                    ['node', '--test', '__tests__/catalogue.test.mjs'],
+                    ['git', 'status', '--porcelain']]:
+        subprocess.run(command, cwd=directory, check=True)
+PYTHON
+```
+
+Expected: default-branch clone succeeds, the published revision is retrieved,
+all corpus checks pass, and the clone stays clean.
+Observed: every command exited zero; branch `main`, revision
+`9c9ca4b3681ca4cb8798e5af9e9124b1e761526b`, four tests passed, zero failures,
+and no porcelain status output. Git and plain files suffice to retrieve and read
+the corpus; Node.js is used only for the maintenance checks.
+
 ## Release note
+
+Engineering guidance is available as a public, standalone Markdown corpus at
+`23min/engineering-guidance`, with selectable packs and a declarative catalogue.
+The corpus preserves the existing engineering guidance and can be retrieved with
+Git without installing aiwf. Existing ai-dotfiles consumers are unchanged;
+aiwf delivery and compatibility routing belong to the subsequent milestones.
 
 ## Decisions made during implementation
 
@@ -163,10 +205,24 @@ recorded; this evidence does not claim a timestamped red/green/done progression.
 
 ## Validation
 
+The local and remote evidence above records the corpus test suite, syntax check,
+source-fidelity comparison, and documentation checks. The remote clone passed
+all four tests with no failures. This Markdown corpus has no build or configured
+lint command. No Go/build inputs changed in aiwf during this milestone.
+
+No live TDD phases were recorded under the advisory policy; the status promotions
+do not claim a red/green/done timeline. Planning-tree health is checked separately
+at the commit and closure boundaries.
+
 ## Deferrals
 
 - (none)
 
 ## Reviewer notes
 
-- (none)
+Independent full-package code and catalogue-design review approves the corpus;
+the design verdict is keep. The link checks cover the measured current-corpus
+forms, not arbitrary Markdown parsing. A general parser, registry, and permanent
+source-wording hash gate are deliberately omitted: this package supplies plain
+files and a small maintenance check. Consumer routing described in `DELIVERY.md`
+is an obligation for subsequent milestones, not tested installed behavior.
