@@ -83,7 +83,7 @@ The external corpus and installed-index shape from the preceding delivery.
 
 ## Decisions made during implementation
 
-- (none)
+- D-0097 — Unreadable project guidance requires operator direction before guidance-dependent work.
 
 ## Validation
 
