@@ -1,8 +1,10 @@
 ---
 id: G-0254
 title: Co-Authored-By commit-trailer convention is unstated and unenforced
-status: open
+status: addressed
 priority: medium
+addressed_by_commit:
+    - c0e24433bada81686af3d478e807d5664888cc62
 ---
 ## What's wrong
 
