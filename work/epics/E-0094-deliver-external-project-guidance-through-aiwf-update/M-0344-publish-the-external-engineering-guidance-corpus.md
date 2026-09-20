@@ -7,7 +7,7 @@ tdd: advisory
 acs:
     - id: AC-1
       title: The catalogue describes packs without aiwf language code
-      status: open
+      status: met
     - id: AC-2
       title: The initial corpus preserves existing engineering guidance
       status: open
