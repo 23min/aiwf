@@ -1,6 +1,6 @@
 ---
 id: M-0336
-title: Delete the copies from CLAUDE.md
+title: Remove duplicated project guidance for both hosts
 status: draft
 parent: E-0092
 depends_on:
