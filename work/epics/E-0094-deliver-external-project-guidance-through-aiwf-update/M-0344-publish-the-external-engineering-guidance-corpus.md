@@ -1,7 +1,7 @@
 ---
 id: M-0344
 title: Publish the external engineering guidance corpus
-status: draft
+status: in_progress
 parent: E-0094
 tdd: advisory
 acs:
