@@ -41,11 +41,11 @@ re-derives, so it drifts — and it contradicts the model's reading of an LLM
 directed in conversation, which is a tool rather than a co-author.
 
 Shipping the refusal unconditionally was the obvious alternative and is wrong for
-the surface it would ride. The four grounds already in the `commit-msg` hook are
+the surface it would ride. The grounds already in the `commit-msg` hook are
 about aiwf's own trailer grammar, which is aiwf's to define. Whether a *consumer*
 writes a co-author line is not: plenty of projects want one, and refusing a
 `git commit` is a hard failure whose only escapes are `--no-verify` or disabling
-the hook — which costs them the four grounds that are legitimately the kernel's.
+the hook — which costs them every ground that is legitimately the kernel's.
 So the rule ships, and naming an address is what arms it.
 
 Keeping it out of the shipped hook entirely was the other alternative, enforced
