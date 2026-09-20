@@ -34,13 +34,15 @@ Turn every section that documents a rule a check already enforces into a one-lin
 
 ## Context
 
+The development-guidance set includes both host entry points and their canonical repository-development documents. Generated operating and language blocks are judged through their owning sources; expected rendered copies are not independent rule restatements. E-0092 defines the per-host upfront measurement and delivery prerequisite.
+
 Most of the root's remaining bulk documents rules that a policy, a check rule, or a hook enforces. The check does the work; the prose spares one failed-check round trip, which a pointer spares equally once the finding message names the fix. The audit decides, per message, whether it already does.
 
 ## Acceptance criteria
 
 ### AC-1 — The audit table lists every policy and finding code a chokepointed section names
 
-This body's audit table lists every policy id and finding code named in any `CLAUDE.md` at the milestone's start, each with its current message and a verdict: states the fix, or does not. **Pass criterion**: a test derives the set of ids and codes from the `CLAUDE.md` files and asserts each has a row in this milestone's table, read through the loader; on the tree it passes. **Code references**: the policy-id literals under `internal/policies/`, the kernel's code set under `internal/check/`.
+This body's audit table lists every policy id and finding code named in the development-guidance set at the milestone's start, each with its current message and a verdict: states the fix, or does not. **Pass criterion**: a test derives the set of ids and codes from those guidance files and asserts each has a row in this milestone's table, read through the loader; on the tree it passes. **Code references**: the policy-id literals under `internal/policies/`, the kernel's code set under `internal/check/`.
 
 ### AC-2 — Every message the audit marks as not stating the fix is corrected and pinned
 
@@ -48,21 +50,21 @@ Every message the table marks as not stating the fix is changed to state it, and
 
 ### AC-3 — Every chokepoint pointer in CLAUDE.md resolves to a policy id or finding code
 
-Every pointer in a `CLAUDE.md` of the form "enforced by `<id>`" resolves to an existing policy id or finding code. **Pass criterion**: a relationship check derives the pointer set from the files and the id set from the code, and reports a pointer that resolves to neither; on the tree it reports none. **Code references**: a new policy under `internal/policies/`.
+Every pointer in development guidance of the form "enforced by `<id>`" resolves to an existing policy id or finding code. **Pass criterion**: a relationship check derives the pointer set from the files and the id set from the code, and reports a pointer that resolves to neither; on the tree it reports none. **Code references**: a new policy under `internal/policies/`.
 
 ### AC-4 — Every repo path CLAUDE.md cites exists
 
-Every backticked repository-relative path cited in a `CLAUDE.md` exists. **Pass criterion**: a relationship check reports a cited path absent from the tree; on the tree it reports none. **Edge cases**: a glob-shaped citation is matched as a glob; a placeholder in angle brackets is not a path; a path under a gitignored directory is checked on disk. **Code references**: the same policy; G-0436's two stale citations are the fixture.
+Every backticked repository-relative path cited in development guidance exists. **Pass criterion**: a relationship check reports a cited path absent from the tree; on the tree it reports none. **Edge cases**: a glob-shaped citation is matched as a glob; a placeholder in angle brackets is not a path; a path under a gitignored directory is checked on disk. **Code references**: the same policy; G-0436's two stale citations are the fixture.
 
 ### AC-5 — The ceiling constant reaches its target
 
-The ceiling constant reaches its target. **Pass criterion**: the policy passes at 3,500 words on the tree; Validation records the command and the figure.
+Both hosts' upfront project sets, as defined by E-0092 and implemented in M-0333, pass at 3,500 words each. Record each command and result, with task-loaded and personal/global text separate. A required upfront read of a large external document cannot be excluded to meet the target.
 
 ## Constraints
 
 - A section becomes a pointer only after its row's verdict is "states the fix".
 - Message edits change text only; a condition change is a kernel change and out of scope.
-- Every `CLAUDE.md` commit is its own, with a `pointer to <id>` disposition per compressed section.
+- Each guidance commit may include its related source and generated outputs together, with a `pointer to <id>` disposition per compressed section.
 - One row appended to the iteration log when this lands.
 
 ## Design notes
@@ -72,7 +74,7 @@ The ceiling constant reaches its target. **Pass criterion**: the policy passes a
 
 ## Surfaces touched
 
-- root `CLAUDE.md` and the nested files
+- Both host entry points and canonical development guidance
 - messages under `internal/policies/` and `internal/check/`
 
 ## Out of scope
@@ -82,6 +84,7 @@ The ceiling constant reaches its target. **Pass criterion**: the policy passes a
 
 ## Dependencies
 
+- E-0092's external delivery and repository migration prerequisite must be complete.
 - M-0336 — copies are gone before the remainder is compressed
 
 ## Coverage notes
