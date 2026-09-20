@@ -12,7 +12,7 @@ acs:
       title: The baseline observation is recorded with its command and environment
       status: open
     - id: AC-3
-      title: Growth-report tracks always-on words and CLAUDE.md commit rate
+      title: Growth-report measures upfront guidance per host and guidance commit rate
       status: open
 ---
 
@@ -38,7 +38,7 @@ This body's Design notes carry the rubric: a short task per judgment rule, the r
 
 Run each rubric task for both hosts in worktrees at the same post-delivery, pre-reduction commit. Record command/prompt, expectation, observed reads and behavior, host/model versions, date, checkout commit, guidance source revision and personal overlay. A judge receives the rubric and anonymised transcript. Record observed violations and unavailable evidence without treating file presence as a read. Freeze the installed guidance during the comparison and state the expected direction of each metric.
 
-### AC-3 — Growth-report tracks always-on words and CLAUDE.md commit rate
+### AC-3 — Growth-report measures upfront guidance per host and guidance commit rate
 
 Extend the report with upfront project words for each host, inventory sizes for conditional guidance, and trailing-thirty-day commits affecting either host's instructions. Use the same source-set definition as M-0333 and compare its counts against the policy. Report personal/global words and observed task-loaded words in the baseline record rather than claiming Git can reconstruct them. **Pass criterion**: run the report at HEAD and at the frozen baseline, test the metrics on fixtures, and append a dated baseline row with commands to the growth document.
 
