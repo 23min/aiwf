@@ -23,7 +23,7 @@ acs:
 
 ## Goal
 
-Remove from `CLAUDE.md` the text that already loads from another home: the rules the shipped fragment carries, the generic Go conventions, and the entity-id asides.
+Remove from both hosts' development guidance the text that already loads from another home: the rules the shipped fragment carries, the generic Go conventions, and the entity-id asides.
 
 ## Closes
 
@@ -31,30 +31,30 @@ Remove from `CLAUDE.md` the text that already loads from another home: the rules
 
 ## Context
 
-The fragment ships every consumer-operating rule and is imported by the root, so a restatement in `CLAUDE.md` is a second copy and the one nothing checks. Every topic of the imported Go module is restated in the Go conventions section. The entity-id asides narrate where a rule came from, which the entity and the commit trailers already carry. D-0091 governs what may be asserted about the file afterwards: absence, not presence.
+The shared operating fragment and externally owned language documents are canonical sources. Root and relocated development prose must not restate them. Generated host copies are expected delivery outputs and are excluded from duplicate-authoring checks by ownership, not by ignoring an entire host file. D-0091 governs the evidence restriction.
 
 ## Acceptance criteria
 
 ### AC-1 — CLAUDE.md carries no rule the fragment also carries
 
-For each anchor the operating-anchors policy pins, its trigger phrases are absent from every `CLAUDE.md` in the repository. **Pass criterion**: the anchors policy, extended, reports an anchor whose phrases appear in a `CLAUDE.md`; on the tree it reports none. **Edge cases**: a phrase inside a markdown link to the fragment is not a restatement. **Code references**: `internal/policies/m0211_guidance_operating_anchors.go`. An absence check holds no text in place, which is why D-0091 permits it; it is weak against rewording, and the ceiling is the stronger evidence.
+For each operating anchor, no independently authored copy remains in either host's repository-development guidance. Exclude only the exact generated operating blocks; the generated Codex block legitimately carries the shared source's rules. **Pass criterion**: fixtures distinguish an expected rendered block from an extra handwritten copy in the same file, and the live tree passes. Phrase checks cover only known anchors; semantic duplication remains a review question.
 
 ### AC-2 — CLAUDE.md cites no gap, epic, milestone, or decision id outside a markdown link
 
-No id-shaped token (gap, epic, milestone, decision, or ADR) appears in any `CLAUDE.md` outside a markdown link destination. **Pass criterion**: a structural scan in the shape of the `skill-body-id` check, with link carriers masked, reports each stray id; on the tree it reports none. **Edge cases**: a placeholder in the letter-N form inside backticks is syntax, not a citation; a command example cites a placeholder, never a real id. **Code references**: `internal/check/skill_body_id.go` for the masking; the new scan under `internal/policies/`.
+No id-shaped token (gap, epic, milestone, decision, or ADR) appears in handwritten development guidance outside a markdown link destination. **Pass criterion**: a structural scan in the shape of the `skill-body-id` check, with link carriers masked, reports each stray id; on the tree it reports none. **Edge cases**: a placeholder in the letter-N form inside backticks is syntax, not a citation; a command example cites a placeholder, never a real id. **Code references**: `internal/check/skill_body_id.go` for the masking; the new scan under `internal/policies/`.
 
 ### AC-3 — The generic Go conventions section is deleted
 
-The generic Go conventions section is deleted from root `CLAUDE.md`, its source remaining the Go module imported by `internal/CLAUDE.md`. This is a one-time act, met by the record: Validation cites the commit, whose disposition block names the module as the copy's source. The ceiling step in AC-4 is the mechanical trace.
+Remove generic Go conventions from repository-development prose wherever M-0335 placed them, retaining the selected project-local Go document and its routes for both hosts. Record the removal commit and the canonical source in its disposition. Retain aiwf-specific conventions. This is observational evidence, supported by the measured reduction.
 
 ### AC-4 — The ceiling constant steps down to the post-deletion size
 
-The ceiling constant is lowered to the count the policy reports after the deletions. **Pass criterion**: the policy passes at the new constant and fails at the previous one; Validation records the command and both figures.
+Lower each host's ceiling to its measured post-deletion upfront size. The current tree passes at the lowered ceiling; a fixture restoring the larger pre-deletion payload fails. Record commands and both hosts' figures.
 
 ## Constraints
 
 - Deletion of copies only; what stays is not reworded.
-- Every `CLAUDE.md` commit is its own, with a `copy of <path>` disposition per removed passage; an id aside whose reasoning is nowhere else goes to the entity that owns it first, and its block says `relocated to`.
+- Each guidance commit may include its related source and generated outputs together, with a `copy of <path>` disposition per removed passage; an id aside whose reasoning is nowhere else goes to the entity that owns it first, and its block says `relocated to`.
 - One row appended to the iteration log when this lands.
 
 ## Design notes
@@ -64,8 +64,8 @@ The ceiling constant is lowered to the count the policy reports after the deleti
 
 ## Surfaces touched
 
-- root `CLAUDE.md`
-- `internal/policies/m0211_guidance_operating_anchors.go` and one new scan
+- Both host entry points and relocated development guidance, respecting generated ownership.
+- The existing anchor policy and structural reference scan.
 
 ## Out of scope
 
@@ -74,6 +74,7 @@ The ceiling constant is lowered to the count the policy reports after the deleti
 
 ## Dependencies
 
+- E-0092's external delivery and repository migration prerequisite must be complete.
 - M-0335 — the root is thin before its copies are judged
 
 ## Coverage notes
