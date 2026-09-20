@@ -1,6 +1,6 @@
 ---
 id: D-0089
-title: aiwf ships no language-specific guidance
+title: Language guidance is externally owned and delivered as project policy
 status: proposed
 relates_to:
     - E-0092
