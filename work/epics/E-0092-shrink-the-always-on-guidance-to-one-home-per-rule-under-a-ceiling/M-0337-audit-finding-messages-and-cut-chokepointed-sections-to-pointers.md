@@ -14,7 +14,7 @@ acs:
       title: Every message the audit marks as not stating the fix is corrected and pinned
       status: open
     - id: AC-3
-      title: Every chokepoint pointer in CLAUDE.md resolves to a policy id or finding code
+      title: Every guidance enforcement pointer resolves to a policy or finding code
       status: open
     - id: AC-4
       title: Every repo path CLAUDE.md cites exists
@@ -48,7 +48,7 @@ This body's audit table lists every policy id and finding code named in the deve
 
 Every message the table marks as not stating the fix is changed to state it, and a test pins the changed message. **Pass criterion**: each such message has a test asserting its remediation clause, listed in this body at wrap; no check's condition changes, only its text. **Edge cases**: a message shared by several sites is changed once at its source.
 
-### AC-3 — Every chokepoint pointer in CLAUDE.md resolves to a policy id or finding code
+### AC-3 — Every guidance enforcement pointer resolves to a policy or finding code
 
 Every pointer in development guidance of the form "enforced by `<id>`" resolves to an existing policy id or finding code. **Pass criterion**: a relationship check derives the pointer set from the files and the id set from the code, and reports a pointer that resolves to neither; on the tree it reports none. **Code references**: a new policy under `internal/policies/`.
 
