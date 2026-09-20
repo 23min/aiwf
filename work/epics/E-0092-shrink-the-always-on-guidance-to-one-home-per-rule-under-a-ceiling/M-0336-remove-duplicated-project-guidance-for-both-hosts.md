@@ -11,7 +11,7 @@ acs:
       title: Development guidance has no independent copy of operating rules
       status: open
     - id: AC-2
-      title: CLAUDE.md cites no gap, epic, milestone, or decision id outside a markdown link
+      title: Development guidance cites entity ids only through links
       status: open
     - id: AC-3
       title: The generic Go conventions section is deleted
@@ -39,7 +39,7 @@ The shared operating fragment and externally owned language documents are canoni
 
 For each operating anchor, no independently authored copy remains in either host's repository-development guidance. Exclude only the exact generated operating blocks; the generated Codex block legitimately carries the shared source's rules. **Pass criterion**: fixtures distinguish an expected rendered block from an extra handwritten copy in the same file, and the live tree passes. Phrase checks cover only known anchors; semantic duplication remains a review question.
 
-### AC-2 — CLAUDE.md cites no gap, epic, milestone, or decision id outside a markdown link
+### AC-2 — Development guidance cites entity ids only through links
 
 No id-shaped token (gap, epic, milestone, decision, or ADR) appears in handwritten development guidance outside a markdown link destination. **Pass criterion**: a structural scan in the shape of the `skill-body-id` check, with link carriers masked, reports each stray id; on the tree it reports none. **Edge cases**: a placeholder in the letter-N form inside backticks is syntax, not a citation; a command example cites a placeholder, never a real id. **Code references**: `internal/check/skill_body_id.go` for the masking; the new scan under `internal/policies/`.
 
