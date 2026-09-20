@@ -110,12 +110,11 @@ Language conventions change independently of workflow machinery. Keep their cont
 
 ## Milestones
 
-Candidate deliverables, to be allocated during milestone planning:
-
-- Establish the external catalogue and initial corpus; implement explicit selection and generic detection.
-- Implement on-demand upstream refresh, tracked materialization, removal, and failure reporting.
-- Deliver Claude/Codex routing and diagnostics plus the ai-dotfiles compatibility update; verify legacy fallback and portable-checkout behavior before migration.
-- Migrate aiwf and the personal-bootstrap integration; record growth and link E-0092's prerequisite.
+- M-0344 — Publish the external engineering guidance corpus. No milestone prerequisites.
+- M-0345 — Preserve legacy guidance through repository-aware routing. Depends on M-0344.
+- M-0346 — Deliver explicitly selected project guidance through update. Depends on M-0344, M-0345.
+- M-0347 — Suggest applicable guidance during init and update. Depends on M-0346.
+- M-0348 — Verify migration and establish the reduction prerequisite. Depends on M-0344, M-0345, M-0346, M-0347.
 
 ## References
 
