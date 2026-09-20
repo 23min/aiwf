@@ -21,7 +21,7 @@ acs:
       title: Finding codes and config fields remain discoverable outside guidance
       status: open
     - id: AC-6
-      title: A new test asserting a phrase in a CLAUDE.md file fails the gate
+      title: New prose-presence assertions over development guidance fail the gate
       status: open
 ---
 
@@ -61,7 +61,7 @@ Measure Claude and Codex separately using E-0092's upfront-project definition: a
 
 The discoverability channel list contains neither host entry point nor relocated development guidance and both `finding-codes-are-discoverable` and `config-fields-are-discoverable` pass on the tree. **Pass criterion**: a test over the channel list asserts the entry is absent; the two policies' own tests stay green. **Edge cases**: the policies' fixtures, if they seed a `CLAUDE.md` channel, are updated. **Code references**: `internal/policies/discoverability.go`, `internal/policies/config_fields_discoverable.go` (comments only).
 
-### AC-6 — A new test asserting a phrase in a CLAUDE.md file fails the gate
+### AC-6 — New prose-presence assertions over development guidance fail the gate
 
 A test file added or modified in the gate's range that reads a document in the development-guidance set and asserts a string literal is present in its content fails the gate, naming the test. **Pass criterion**: a fixture test with such an assertion produces one violation; an absence assertion, and an expectation derived from code or from another artefact, produce none; the tests G-0676's floor command lists are carried in a grandfather ledger that only shrinks, in the shape of `firing_fixture_presence.go`'s ledger, and produce none while listed. **Edge cases**: a nested `CLAUDE.md` path counts; a helper that reads the file for a test that then asserts is caught at the assertion. **Code references**: `internal/policies/shipped_prose_assertion.go`, extended or given a sibling; D-0091 is the decision.
 
