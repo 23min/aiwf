@@ -9,7 +9,7 @@ acs:
       title: Guidance commits reject unrelated changes and allow managed outputs
       status: open
     - id: AC-2
-      title: A CLAUDE.md commit without a resolving entity trailer fails the gate
+      title: Guidance commits require a resolving entity trailer
       status: open
     - id: AC-3
       title: A CLAUDE.md commit removing text without a disposition block fails the gate
@@ -45,7 +45,7 @@ G-0676 measured how `CLAUDE.md` grew and named the surfaces that let it. D-0091 
 
 A commit changing repository guidance alongside unrelated implementation files fails the gate. Related guidance sources, configuration and generated host outputs may change together as one logical update. **Pass criterion**: fixtures cover an unrelated code edit being refused, a source-plus-rendered-output update passing, and an unrelated file hidden beside that update being refused. Identify the finite owned path set from the completed delivery implementation; do not exempt arbitrary files by directory alone. Cover both host entry points, relocated development documents, renames and merge commits. Reuse the existing commit-range policy machinery.
 
-### AC-2 — A CLAUDE.md commit without a resolving entity trailer fails the gate
+### AC-2 — Guidance commits require a resolving entity trailer
 
 A development-guidance commit carrying no `aiwf-entity` trailer, or one whose value resolves to no entity, fails the gate with the commit and the value in the detail. **Pass criterion**: fixture commits for the missing and the unresolvable case each produce one violation; one naming a real entity produces none. **Edge cases**: a narrow-width legacy id resolves after canonicalization; an archived entity resolves, since the loader spans the archive; a composite `M-NNNN/AC-N` resolves to its milestone. **Code references**: the same policy, resolving through `tree.Load` and `Tree.ByID`.
 
