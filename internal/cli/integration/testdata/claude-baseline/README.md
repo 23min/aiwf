@@ -144,3 +144,11 @@ that skill's record. All other paths, modes and hashes remain frozen.
 | Artifact | Original SHA-256 | Updated SHA-256 |
 | --- | --- | --- |
 | `aiwf-worktree/SKILL.md` | `57c31fce28de1b12753c9f026eea3eedd503f131c1e3bab6c0be82cb666dd58f` | `194891ebbedce46737533f303c2f22f989b0d4acfa035090afce6ff9f2602aa1` |
+
+## Patch review instruction exception
+
+G-0694 changes `wf-patch` review dispatch and mutation-harness instructions.
+Each inventory replaces only `.claude/skills/wf-patch/SKILL.md` and is sorted
+again. The expected hash was derived by verifying the pre-change Claude adapter
+against the stored hash, applying only the reviewed step 6 edit to those bytes,
+and hashing the result. All other records remain unchanged.

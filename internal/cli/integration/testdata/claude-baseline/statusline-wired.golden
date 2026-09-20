@@ -14,6 +14,7 @@
 0644 3502fc53efdbf327648ecef3e22f5f60a8d468fcd1bbc1856935d70c39745636 .claude/skills/aiwfx-plan-milestones/SKILL.md
 0644 417069c8044c32e058989b42e5506a93ebdb45d162398d9b00037b2e587d38ca .claude/templates/contract.md
 0644 42a0239d684c86691dcda34e945ecccceb049425bf95736b3200769f69dc286c .claude/templates/.aiwf-owned
+0644 4a9055dd141c561e39ac17848f6c58395c6d39ea57a6539480c84d9b4a7f11dc .claude/skills/wf-patch/SKILL.md
 0644 4b869c0d1bec1f0e72b66752c8cba437470ca3b5f5a974389f154546b56b54a7 .claude/skills/wf-review-code/SKILL.md
 0644 4c4d402bc64c0161a7b4663fe9db9216ef44376b1dd0dfb2ae66a796733f4dfa .claude/skills/aiwfx-handoff/SKILL.md
 0644 5637e521ede87288a792565f539c4c3f5ab8416faaae3ee244e8c1c2b18cc2e3 user/.claude/settings.json
@@ -54,7 +55,6 @@
 0644 db3ae26e01bbd148c6312f74f8c5797be8c3f669a9d84bb56c334e97dab8e725 .claude/skills/wf-rethink/SKILL.md
 0644 e09312b1a5d18c33a74012763b0a46850c23a94a00e65920ce81172357a53e91 .claude/skills/aiwfx-release/SKILL.md
 0644 e3f65c3d27b41240fb381ffecc76b84cc72262618273f7b8eb4339c7467218c6 .claude/agents/reviewer.md
-0644 e52aecc0274e99d321b8692cf7a3b798a45b1513ceb540ab3ce178970cec076b .claude/skills/wf-patch/SKILL.md
 0644 f29175f8a9fa154cdf2fae8b5f3bf8259aea126a587c41a5d4a8a8850fbfdd4c .claude/skills/wf-vacuity/SKILL.md
 0644 f4208309eabc66588c4abb58a091f36198b6dc98f10bacd773e93e2ead41c32b .claude/skills/aiwf-authorize/SKILL.md
 0644 f92594261b78dc7ecaee59facf41f65d810b1a9140c5c08e234be29ed04c203d .claude/agents/planner.md
