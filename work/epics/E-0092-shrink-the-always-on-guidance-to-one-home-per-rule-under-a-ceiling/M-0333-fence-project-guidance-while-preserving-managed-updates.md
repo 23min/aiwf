@@ -18,7 +18,7 @@ acs:
       title: The always-on set above the ceiling fails the policy
       status: open
     - id: AC-5
-      title: Finding codes and config fields stay discoverable without CLAUDE.md as a channel
+      title: Finding codes and config fields remain discoverable outside guidance
       status: open
     - id: AC-6
       title: A new test asserting a phrase in a CLAUDE.md file fails the gate
@@ -57,7 +57,7 @@ A development-guidance commit whose diff removes lines and whose message body ca
 
 Measure Claude and Codex separately using E-0092's upfront-project definition: automatic entry-point content plus project documents required before any task. A reference requiring a full upfront read cannot move those words outside the count. Personal/global material is reported separately; selected project guidance counts whenever its routing makes it upfront. Conditional task reads are reported separately. **Pass criterion**: fixtures cover both host entry points, transitive required reads, shared targets, cycles, missing targets, and a host above its ceiling. Unresolved routing is reported rather than silently omitted. Each host's initial ceiling equals its measured post-delivery size; later milestones lower it. The measure is an explicit model of configured routing, checked against live observations in M-0334, not a claim to inspect hidden model context.
 
-### AC-5 — Finding codes and config fields stay discoverable without CLAUDE.md as a channel
+### AC-5 — Finding codes and config fields remain discoverable outside guidance
 
 The discoverability channel list contains neither host entry point nor relocated development guidance and both `finding-codes-are-discoverable` and `config-fields-are-discoverable` pass on the tree. **Pass criterion**: a test over the channel list asserts the entry is absent; the two policies' own tests stay green. **Edge cases**: the policies' fixtures, if they seed a `CLAUDE.md` channel, are updated. **Code references**: `internal/policies/discoverability.go`, `internal/policies/config_fields_discoverable.go` (comments only).
 
