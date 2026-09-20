@@ -16,6 +16,13 @@ section in this file.
 
 ## [Unreleased]
 
+### Fixed — G-0694: concurrent patch reviews and harness-first mutation checks
+
+`wf-patch` dispatches applicable review lenses concurrently when the host supports
+parallel agents, gathers their findings before editing, and directs test-sufficiency
+review to the project's mutation harness, preferring its diff-scoped command.
+Mutation runs use an isolated checkout containing the staged changes.
+
 ## [0.37.0] — 2026-09-19
 
 ### Added — E-0093: side-by-side Claude Code and Codex workflows
