@@ -4,6 +4,16 @@ title: Publish the external engineering guidance corpus
 status: draft
 parent: E-0094
 tdd: advisory
+acs:
+    - id: AC-1
+      title: The catalogue describes packs without aiwf language code
+      status: open
+    - id: AC-2
+      title: The initial corpus preserves existing engineering guidance
+      status: open
+    - id: AC-3
+      title: The source can be consumed without aiwf tooling
+      status: open
 ---
 ## Goal
 
@@ -19,7 +29,17 @@ E-0094 selects `23min/engineering-guidance` as the canonical source. The maintai
 
 ## Acceptance criteria
 
+### AC-1 — The catalogue describes packs without aiwf language code
 
+Catalogue entries identify Markdown documents, applicability descriptions, and simple marker/path/extension patterns. Validate unique ids, resolvable documents, safe paths, and names that disclose opinionated tooling; no executable hooks or dependency parsing. References: external catalogue and its validation fixtures; `/workspaces/ai-dotfiles/bin/dotfiles-sync` supplies existing detection rules to inventory.
+
+### AC-2 — The initial corpus preserves existing engineering guidance
+
+Map all existing engineering and language guidance to the external corpus, including code-health and the material used by aiwf. Compare against a recorded source revision, allowing only documented packaging, naming, and reference changes; personal collaboration, approval, machine, and session rules remain outside the corpus. References: ai-dotfiles `guidance/`, engineering-related skill sources, and the external corpus inventory. The comparison establishes migration fidelity, not permanent prose pins.
+
+### AC-3 — The source can be consumed without aiwf tooling
+
+The default branch supplies the documented catalogue and Markdown, with no aiwf runtime, package installer, registry, or planning tree needed to read them. Verify the local repository first and record remote retrieval after publication approval, including command, expectation, observation, and source revision. References: the external repository's README and catalogue. Do not claim the remote exists from a local fixture.
 
 ## Constraints
 
