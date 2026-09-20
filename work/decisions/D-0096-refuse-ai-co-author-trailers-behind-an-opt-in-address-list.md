@@ -1,7 +1,7 @@
 ---
 id: D-0096
 title: Refuse AI co-author trailers behind an opt-in address list
-status: proposed
+status: accepted
 ---
 > **Date:** 2026-09-20 · **Decided by:** human/peter
 
