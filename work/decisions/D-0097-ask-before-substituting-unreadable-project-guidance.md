@@ -1,7 +1,7 @@
 ---
 id: D-0097
 title: Ask before substituting unreadable project guidance
-status: proposed
+status: accepted
 relates_to:
     - E-0094
     - M-0345
