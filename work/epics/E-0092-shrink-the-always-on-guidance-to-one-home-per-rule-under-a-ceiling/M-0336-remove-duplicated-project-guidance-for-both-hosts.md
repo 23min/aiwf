@@ -8,7 +8,7 @@ depends_on:
 tdd: advisory
 acs:
     - id: AC-1
-      title: CLAUDE.md carries no rule the fragment also carries
+      title: Development guidance has no independent copy of operating rules
       status: open
     - id: AC-2
       title: CLAUDE.md cites no gap, epic, milestone, or decision id outside a markdown link
@@ -35,7 +35,7 @@ The shared operating fragment and externally owned language documents are canoni
 
 ## Acceptance criteria
 
-### AC-1 — CLAUDE.md carries no rule the fragment also carries
+### AC-1 — Development guidance has no independent copy of operating rules
 
 For each operating anchor, no independently authored copy remains in either host's repository-development guidance. Exclude only the exact generated operating blocks; the generated Codex block legitimately carries the shared source's rules. **Pass criterion**: fixtures distinguish an expected rendered block from an extra handwritten copy in the same file, and the live tree passes. Phrase checks cover only known anchors; semantic duplication remains a review question.
 
