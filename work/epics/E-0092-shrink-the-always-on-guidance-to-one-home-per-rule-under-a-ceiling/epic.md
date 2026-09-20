@@ -6,120 +6,101 @@ status: proposed
 
 ## Goal
 
-Cut the instruction load a session reads before its task to a fixed ceiling, enforced by a policy test, with every rule kept in exactly one home and no operating rule lost.
+Reduce the project instructions Claude and Codex read before a task to a ceiling for each host, while keeping each rule in one canonical home and preserving its effect. Measure task-loaded guidance separately so relocation cannot masquerade as a reduction.
 
 ## Context
 
-The always-on set is root `CLAUDE.md` plus every file it `@`-imports: the shipped guidance fragment (ADR-0018, E-0040) and three language modules from the operator's dotfiles. Measured 2026-09-13 in the devcontainer, at the tree of this epic's allocation commit:
+E-0093 establishes the two supported hosts. Their entry points and loading mechanisms differ, so a filename-only measure cannot describe the instruction load of both. An instruction to read an entire document before any work belongs in the upfront load even when the host does not import that document automatically.
 
-```
-wc -w CLAUDE.md .claude/aiwf-guidance.md \
-  ~/.agents/guidance/200-go.md ~/.agents/guidance/201-python.md ~/.agents/guidance/203-typescript.md
-```
+Repository development rules, aiwf operating guidance, and project-adopted language conventions have different owners. The delivery follow-up to E-0093 will establish tracked project guidance from an external source and migrate this repository off home-directory language imports. This epic reduces the resulting instructions; it does not implement that delivery system.
 
-| file | words |
-|---|---|
-| `CLAUDE.md` | 9,234 |
-| `.claude/aiwf-guidance.md` | 2,238 |
-| `200-go.md` | 285 |
-| `201-python.md` + `203-typescript.md` | 322 |
-
-Length is not where the effect is. A rule with a chokepoint takes its effect from the check; the prose only spares one failed-check round trip, which is worth a pointer once the finding message states the fix. Most of `CLAUDE.md` documents such rules. Its two largest sections are design reasoning needed only when designing a verb or a stress scenario, and the ADRs and design docs already hold most of it. The operating rules the fragment ships are restated in `CLAUDE.md`, against the repo's own rule that consumer-operating guidance lives in the fragment and is not forked. Every topic in `200-go.md` is restated in the Go conventions section. The Python and TypeScript modules load into a Go repo. The premise the observation milestone tests is that per-rule compliance falls as the rule count rises, so the rules that matter compete with thousands of words that do not, and that the register of the load is the register every output imitates.
-
-A subdirectory `CLAUDE.md` is loaded only when a session reads files under it, and `@` imports resolve relative to the importing file (Claude Code memory documentation). That gives repo-development conventions a home outside the always-on set with no new mechanism.
-
-The file grew inside ordinary work. G-0676 names the four surfaces that let it: an edit to `CLAUDE.md` rides in any commit that also touches code, a doc-shaped AC may be evidenced by a sentence pinned in the file, the discoverability policies count the file as a channel, and the principle text names it as one. If those stay open, every cut below regrows at the rate that gap records, so the fence lands before the first cut.
+A check-backed rule can become a short pointer once its diagnostic states the remedy. Judgment rules need their reasoning retained and their effect observed. G-0676 identifies how root guidance grows during ordinary work; the fence addresses that growth before the reduction starts. Python scripts and TypeScript tests remain legitimate consumers of language guidance alongside Go code.
 
 ## Scope
 
-Staged, in this order. Each stage is a milestone; the ceiling steps down after each stage that removes text.
-
-- **The fence.** A diff-scoped policy that fails a commit modifying `CLAUDE.md` alongside any other path, carrying no `aiwf-entity` trailer that resolves, or removing text without a disposition block per removed passage; the ceiling policy, landed at the current size; `CLAUDE.md` removed from the discoverability channel list; the discoverability principle no longer naming the file. Closes G-0676.
-- **The baseline.** The rubric, then the baseline observation of the judgment rules over a fixed task set; `scripts/growth-report.py` extended with always-on words and `CLAUDE.md` commits per month, and the pre-epic baseline row appended to the iteration log in `docs/design/growth.md`.
-- **Re-home by directory.** A thin root `CLAUDE.md`; nested `CLAUDE.md` files under `internal/`, `cmd/`, `docs/`, and `work/`, each loaded only when a session reads files there; every test that pins a moved passage re-aimed at the passage's new file; the `@`-imported Go module moved to `internal/CLAUDE.md`; the Python and TypeScript imports deleted.
-- **Delete copies.** Text that already loads from another home: the rules the fragment carries, the generic Go conventions section (its source is the imported `200-go.md`), and the entity-id asides, whose reasoning moves to the entity that owns it where it is not already there.
-- **Pointer cut.** An audit of every finding and policy message a `CLAUDE.md` section documents, messages that do not state the fix corrected, and the chokepointed sections compressed to one-line pointers. Closes G-0436. The ceiling reaches its target here.
-- **The after observation**, against the same rubric, and the growth report re-run against the pre-epic baseline.
-- **The fragment.** The shipped fragment rewritten as one imperative plus one line of why per rule, `CLAUDE.md` and the fragment holding each anchor in exactly one place, the operating-anchors policy updated in the same commit. This stage runs only if the after observation shows no lost effect; otherwise it is cancelled and the epic wraps without it.
+- **Delivery prerequisite.** The separate follow-up to E-0093 must complete external guidance delivery and this repository's migration before implementation here. Its implementation and pre/post growth measurements belong to that epic.
+- **The fence, M-0333.** Cover both host entry points and the canonical repository-development documents they route to. Preserve generated-block ownership and permit one guidance change to update its source and derived outputs together.
+- **The baseline, M-0334.** Freeze a post-delivery, pre-reduction commit and guidance revision. Record both hosts' upfront load, task-loaded guidance, and behavior against the same tasks.
+- **Relocation, M-0335.** Give task-specific development rules project-local homes reachable from either host, including a session started at the repository root. Re-aim or retire affected pins with reasons.
+- **Delete copies, M-0336.** Remove duplicate operating rules, generic language conventions and provenance asides while preserving their canonical sources and routing.
+- **Pointer cut, M-0337.** Audit diagnostics, correct messages that omit the remedy, and shorten check-backed rules. Reach the upfront ceiling for each host.
+- **After observation, M-0338.** Compare each host against its own frozen baseline, including guidance loaded during the task.
+- **Fragment, M-0339.** Shorten shared operating guidance only if both hosts show no lost effect; retain one source and verify both rendered forms.
 
 ## Out of scope
 
-- Entity templates (G-0530 owns the milestone template).
-- Ritual and verb `SKILL.md` bodies; they load on demand.
-- The operator's dotfiles repo, including whether it ships to other people.
-- Any change to what a check enforces; only messages change.
-- Guidance delivery failing unobserved (G-0523).
-- A fragment-only ceiling; added only if the fragment drifts after the union cap lands.
-- Any ceiling on a consumer's `CLAUDE.md`. The policy runs only in this repository's suite and never ships.
+- External source selection, language detection, pack selection, upstream refresh and tracked-output delivery; the separate delivery epic owns them.
+- Authoring language conventions inside aiwf or requiring VS Code/ai-dotfiles to supply project guidance.
+- Personal collaboration preferences and machine/session configuration in ai-dotfiles.
+- Entity templates and general changes to ritual or verb skill bodies, except references that must follow relocated guidance.
+- Changing existing check conditions while improving their messages.
+- New host adapters, including Copilot, or universal guarantees of model compliance.
+- A ceiling imposed on consumer repositories; the reduction policies are internal to this repository.
 
 ## Constraints
 
-- The fence lands before the first cut, and nothing shipped changes before the after observation is judged.
-- Every `CLAUDE.md` edit under this epic is its own commit carrying an entity trailer, the rule the fence enforces.
-- The ceiling is one number on the union, not one per file: 3,500 words at target, whitespace-split, over root `CLAUDE.md` and every file its `@` imports resolve to. It lands at the current size and only ever steps down.
-- No rule is dropped. A rule is relocated or compressed; a judgment rule keeps one line of why.
-- A test that pins a moved passage is re-aimed at the passage's new home, or retired with the reason recorded in the milestone; none is deleted silently.
-- No AC is evidenced by a sentence pinned in a `CLAUDE.md`, root or nested (D-0091); the diff-scoped scan that enforces it lands at the fence milestone.
-- A chokepointed section becomes a pointer only after its finding message states the fix.
-- Language conventions that are not aiwf-specific live in the operator's dotfiles; aiwf ships none (D-0089).
-- The observation rubric is written before the baseline run and not changed after.
-- Every measured figure recorded under this epic carries the command that produced it (G-0668).
-- A commit that removes text from a `CLAUDE.md` states, per removed passage, what was removed and its disposition: copy of a named file, relocated to a named file, pointer to a named policy or code, or deleted. The fence enforces the block's presence.
-- Each milestone that removes text appends one row to the iteration log in `docs/design/growth.md` when it lands.
-- The removal manifest is rendered from the commits into the epic's wrap artefact by a recorded command; no hand-kept copy exists.
-- An effect observed after a stage lands is filed as a gap discovered in this epic, so the review joins dated observations to dated changes.
-- `CLAUDE.md` follows its own rule: the conclusion, not the drafting history.
+- Delivery and migration finish first. M-0334's baseline uses the resulting project guidance, not a pre-delivery checkout. No upstream guidance refresh occurs between the before and after observations.
+- The target is 3,500 whitespace-split words of upfront project instructions for each host. Count automatically loaded project text and documents required before any task. Report conditional task reads and personal/global instructions separately; do not exempt upfront text merely by moving it behind a reference.
+- Each rule has one authored source. Generated copies in host entry points are delivery artifacts, not independent rule owners.
+- The fence lands before the first reduction. Its commit scope allows related guidance sources and generated outputs together, but excludes unrelated implementation changes. Generated blocks are changed through their owner, never edited by hand.
+- No rule is silently lost. Relocate or compress it; retain a short reason for judgment rules. Record each removed passage's disposition in the commit body.
+- Language content stays externally owned; project-adopted copies are tracked and readable without aiwf or ai-dotfiles installed. D-0089 records the ownership boundary.
+- Pins move or retire with a recorded reason. Extend D-0091's prohibition on prose-presence evidence to both host entry points and relocated development guidance.
+- A check-backed section becomes a pointer only after its diagnostic states the remedy.
+- Commit the observation rubric before its first run. Record command, expected result, observed result and environment, including host/model versions and guidance source revision.
+- Record a growth-report row at each reduction boundary and derive the removal manifest from commits at wrap.
+- Personal approval rules remain in effect: enumerated local reversible sequences may share approval; outward actions retain separate gates.
+- Operational loading observations must distinguish readable files, observed reads, and behavioral compliance.
 
 ## Success criteria
 
-- [ ] A commit that modifies `CLAUDE.md` alongside another file, or without a resolving entity trailer, fails the profile-driven gate.
-- [ ] The always-on set is at or under the ceiling and a policy test fails when it regrows.
-- [ ] Root `CLAUDE.md` `@`-imports only the shipped fragment.
-- [ ] Every test that pinned a root passage pins it at its new home or is retired with a recorded reason.
-- [ ] `CLAUDE.md` carries no generic language convention and no rule the fragment also carries.
-- [ ] Every chokepoint pointer in `CLAUDE.md` resolves to an existing policy id or finding code.
-- [ ] The before and after observations are recorded, each with command, expectation, observation, and environment.
-- [ ] The growth report carries the pre-epic baseline and the after run, and the iteration log carries one row per milestone that removed text.
-- [ ] The wrap artefact carries the removal manifest rendered from the commits.
-- [ ] G-0676 and G-0436 are closed.
-- [ ] If the fragment stage runs: each anchor the operating-anchors policy pins appears in exactly one of `CLAUDE.md` and the fragment, and no fragment rule exceeds the per-rule word cap its milestone sets.
+- [ ] The delivery prerequisite is identified by its allocated entity and its completion is verified before implementation.
+- [ ] Both hosts' upfront project instructions meet the ceiling; the policy catches regrowth and required-read indirection.
+- [ ] Both hosts reach task-relevant project guidance from a root-started session, without home-directory language imports.
+- [ ] Repository development guidance duplicates neither operating rules nor the selected language conventions.
+- [ ] Each moved pin is re-aimed or retired with its reason recorded.
+- [ ] Guidance references and enforcement pointers resolve.
+- [ ] Both hosts have before/after observations against the frozen post-delivery baseline, with task-loaded text reported separately.
+- [ ] Growth measurements and the commit-derived removal manifest are recorded.
+- [ ] G-0676 and G-0436 are closed against evidence of their claims.
+- [ ] If the fragment stage runs, both host renderings retain their routing and operating obligations without a second authored copy.
 
 ## Open questions
 
 | Question | Blocking? | Resolution path |
 |---|---|---|
-| Which finding messages already state the fix | no | the pointer-cut milestone produces the table |
-| Whether `aiwf update` leaves a nested `CLAUDE.md` untouched | no | verified at the re-home milestone; it maintains only the root import marker today |
+| Which entity owns delivery and migration | yes, before implementation | Allocate the follow-up to E-0093 next and replace the dependency description with its real id |
+| Which generated paths and blocks belong to each updater | yes, before M-0333 | Read the completed delivery implementation; use its ownership records |
+| Which diagnostics already state the remedy | no | M-0337 produces the audit |
+| Whether moving guidance preserves delivery and behavior | yes, before wrap | M-0335 and M-0338 record both hosts' observations |
 
 ## Risks
 
 | Risk | Impact | Mitigation |
 |---|---|---|
-| A cross-cutting rule re-homed under one directory is invisible to sessions that never read there | med | the after observation; the rule moves back to root |
-| A gotcha that is not a rule leaves the always-on set and is lost | med | each one lands in the skill for its task before its section is cut |
-| Additions queued in G-0235 and G-0370 regrow the set | med | the fence and the ceiling are the rules they fit or displace |
-| The anchors policy pins phrases the fragment rewrite changes | low | policy and fragment change in one commit |
+| A root-started host misses nested guidance | high | Explicit routing and observed reads before relevant edits for both hosts |
+| Upstream changes confound the reduction comparison | high | Freeze source revision and installed bytes across baseline and after runs |
+| A generated host copy is mistaken for a duplicate rule source | med | Judge ownership at source and rendered load per host |
+| New enforcement machinery outweighs the reduction | med | Reuse existing scans and report policy/test growth alongside prose savings |
+| A moved judgment rule loses effect | high | Keep its reasoning and compare behavior against the fixed rubric |
 
 ## Milestones
 
-- M-0333 — The fence: commit-seam gate, ceiling at current size, discoverability channel and principle text · depends on: —
-- M-0334 — The rubric, the baseline observation, the growth metrics · depends on: —
-- M-0335 — Re-home by directory; re-aim the pins; move the Go import; delete the dead imports · depends on: M-0333, M-0334
-- M-0336 — Delete copies: fragment duplicates, the Go section, the id asides · depends on: M-0335
-- M-0337 — Audit finding messages; cut chokepointed sections to pointers; ceiling to target · depends on: M-0336
-- M-0338 — The after observation and the growth re-run · depends on: M-0337
-- M-0339 — Rewrite the fragment; update the anchors policy · depends on: M-0338, and on its result
+- M-0333 — Fence repository guidance and measure upfront load for both hosts; delivery prerequisite required.
+- M-0334 — Freeze the post-delivery baseline and observe both hosts; delivery prerequisite required.
+- M-0335 — Relocate development guidance with verified routing for both hosts; depends on M-0333 and M-0334.
+- M-0336 — Remove copies while preserving project-local sources; depends on M-0335.
+- M-0337 — Improve diagnostics and reach the ceiling for both hosts; depends on M-0336.
+- M-0338 — Compare behavior and load against the frozen baseline; depends on M-0337.
+- M-0339 — Shorten the shared fragment only if both hosts retain its effect; depends on M-0338.
 
 ## References
 
-- G-0676 — how `CLAUDE.md` grows inside ordinary work; the fence closes it
-- ADR-0018 — the per-turn guidance fragment and its `CLAUDE.md` import
-- D-0070 — what a test may pin in shipped prose; bounds the fragment's own tests
-- D-0091 — no AC is evidenced by a sentence pinned in `CLAUDE.md`; enforcement diff-scoped, existing pins drained by the shrink
-- D-0089 — aiwf ships no language-specific guidance; language conventions come from the operator's dotfiles
-- `internal/policies/skill_edit_provenance_backstop.go` — the shape the commit-seam gate takes
-- `internal/policies/m0211_guidance_operating_anchors.go` — the anchors the fragment rewrite must keep
-- G-0436 — stale paths in `CLAUDE.md`, closed by the pointer cut
-- G-0235, G-0370 — queued additions to `CLAUDE.md` and the fragment
-- G-0668 — measured figures carry their command
-- `docs/design/growth.md`, `scripts/growth-report.py` — the central measurement record and its iteration log
+- E-0093 — supported Claude and Codex workflows; its delivery follow-up is the prerequisite to be allocated.
+- D-0089 — external language-content ownership and project-local delivery.
+- D-0091 — prose-presence evidence restriction; apply it to both hosts here.
+- D-0070 — limits on pins over shipped prose.
+- G-0676, G-0436 — the growth and stale-reference defects this epic addresses.
+- G-0668 — measurement records need reproducible commands.
+- `docs/design/growth.md`, `scripts/growth-report.py` — measurements and iteration log.
+- `internal/policies/skill_edit_provenance_backstop.go`, `internal/policies/m0211_guidance_operating_anchors.go` — existing enforcement seams.
