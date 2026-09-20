@@ -20,7 +20,7 @@ acs:
 
 ## Goal
 
-Rewrite the shipped fragment as one imperative plus one line of why per rule, keeping every pinned anchor, with `CLAUDE.md` and the fragment holding each anchor in exactly one place.
+Shorten the shared operating fragment while preserving its obligations and routing in both Claude and Codex renderings. Each rule retains one authored source and a concise reason.
 
 ## Closes
 
@@ -28,13 +28,13 @@ Rewrite the shipped fragment as one imperative plus one line of why per rule, ke
 
 ## Context
 
-The fragment ships to every consumer and is the one surface this epic touches that leaves the repository. M-0336 emptied `CLAUDE.md` of the fragment's rules from the repository side; this milestone tightens the fragment itself. It runs only if M-0338 found no lost effect; otherwise it is cancelled and the epic wraps without it.
+M-0336 removes independently authored copies from repository development guidance. This milestone changes the shared operating source only after M-0338 records no lost effect for both hosts. Rendered copies in host entry points are expected outputs, not additional authorship.
 
 ## Acceptance criteria
 
 ### AC-1 — Each pinned anchor appears in exactly one of CLAUDE.md and the fragment
 
-For each anchor in the operating-anchors ledger, its trigger phrases appear in the fragment source and in no `CLAUDE.md`. **Pass criterion**: the anchors policy, extended in M-0336, passes on both sides together after the rewrite. **Code references**: `internal/policies/m0211_guidance_operating_anchors.go`.
+Each operating anchor has one canonical source in the shared fragment and no independent copy in either host's development guidance. The rendered Claude and Codex artifacts must contain the expected source-derived instruction. **Pass criterion**: ownership-aware anchor checks reject an extra authored copy while accepting both expected renderings.
 
 ### AC-2 — No fragment rule exceeds the per-rule word cap
 
@@ -42,7 +42,7 @@ No top-level rule in the fragment exceeds the per-rule word cap this milestone s
 
 ### AC-3 — The operating-anchors policy passes against the rewritten fragment
 
-`PolicyM0211GuidanceOperatingAnchors` passes against the rewritten source, the anchor phrases updated in the same commit wherever a rewording required it. **Pass criterion**: the existing policy test is green at the commit that lands the rewrite.
+The operating-anchors policy and both host renderings pass against the rewritten source. Update source-dependent anchors together, check references and generated ownership, and repeat the affected loading/behavior observations for both hosts after rendering. A source-only green check does not establish host delivery.
 
 ## Constraints
 
@@ -58,9 +58,9 @@ No top-level rule in the fragment exceeds the per-rule word cap this milestone s
 
 ## Surfaces touched
 
-- `internal/skills/embedded-guidance/aiwf-guidance.md`
-- `internal/policies/m0211_guidance_operating_anchors.go`
-- `CHANGELOG.md`
+- Shared operating guidance and necessary host fragments.
+- The operating-anchors policy and rendering checks.
+- Generated artifacts refreshed through their owner, and CHANGELOG.md.
 
 ## Out of scope
 
