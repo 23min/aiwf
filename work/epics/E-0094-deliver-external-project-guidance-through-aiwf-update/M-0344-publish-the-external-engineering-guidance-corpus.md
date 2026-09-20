@@ -10,7 +10,7 @@ acs:
       status: met
     - id: AC-2
       title: The initial corpus preserves existing engineering guidance
-      status: open
+      status: met
     - id: AC-3
       title: The source can be consumed without aiwf tooling
       status: open
