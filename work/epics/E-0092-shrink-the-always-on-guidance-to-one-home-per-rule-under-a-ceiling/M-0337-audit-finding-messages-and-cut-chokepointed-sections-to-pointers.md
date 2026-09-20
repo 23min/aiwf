@@ -17,7 +17,7 @@ acs:
       title: Every guidance enforcement pointer resolves to a policy or finding code
       status: open
     - id: AC-4
-      title: Every repo path CLAUDE.md cites exists
+      title: Every repository path cited by development guidance exists
       status: open
     - id: AC-5
       title: The ceiling constant reaches its target
@@ -52,7 +52,7 @@ Every message the table marks as not stating the fix is changed to state it, and
 
 Every pointer in development guidance of the form "enforced by `<id>`" resolves to an existing policy id or finding code. **Pass criterion**: a relationship check derives the pointer set from the files and the id set from the code, and reports a pointer that resolves to neither; on the tree it reports none. **Code references**: a new policy under `internal/policies/`.
 
-### AC-4 — Every repo path CLAUDE.md cites exists
+### AC-4 — Every repository path cited by development guidance exists
 
 Every backticked repository-relative path cited in development guidance exists. **Pass criterion**: a relationship check reports a cited path absent from the tree; on the tree it reports none. **Edge cases**: a glob-shaped citation is matched as a glob; a placeholder in angle brackets is not a path; a path under a gitignored directory is checked on disk. **Code references**: the same policy; G-0436's two stale citations are the fixture.
 
