@@ -14,7 +14,7 @@ acs:
     - id: AC-2
       title: Synchronization preserves the installed project owner
       status: open
-      tdd_phase: red
+      tdd_phase: green
     - id: AC-3
       title: Compatibility distribution retains legacy content and personal settings
       status: open
