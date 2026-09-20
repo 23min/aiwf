@@ -12,7 +12,7 @@ acs:
       title: Guidance commits require a resolving entity trailer
       status: open
     - id: AC-3
-      title: A CLAUDE.md commit removing text without a disposition block fails the gate
+      title: Guidance removals require a disposition block
       status: open
     - id: AC-4
       title: The always-on set above the ceiling fails the policy
@@ -49,7 +49,7 @@ A commit changing repository guidance alongside unrelated implementation files f
 
 A development-guidance commit carrying no `aiwf-entity` trailer, or one whose value resolves to no entity, fails the gate with the commit and the value in the detail. **Pass criterion**: fixture commits for the missing and the unresolvable case each produce one violation; one naming a real entity produces none. **Edge cases**: a narrow-width legacy id resolves after canonicalization; an archived entity resolves, since the loader spans the archive; a composite `M-NNNN/AC-N` resolves to its milestone. **Code references**: the same policy, resolving through `tree.Load` and `Tree.ByID`.
 
-### AC-3 — A CLAUDE.md commit removing text without a disposition block fails the gate
+### AC-3 — Guidance removals require a disposition block
 
 A development-guidance commit whose diff removes lines and whose message body carries no disposition block fails the gate. A block is a `Removed:` line followed by a `Disposition:` line whose value is one of `copy of <path>`, `relocated to <path>`, `pointer to <id>`, or `deleted`. **Pass criterion**: a removing commit without a block, or with a `Disposition:` value outside the closed set, produces one violation; a pure addition needs no block; a removing commit with at least one well-formed block passes. The policy checks shape, not coverage; whether every removed passage has its block is held at review. **Edge cases**: a rewording is a removal plus an addition and needs a block; a block in a trailer position is still a block. **Code references**: the same policy.
 
