@@ -13,7 +13,7 @@ acs:
       status: met
     - id: AC-3
       title: The source can be consumed without aiwf tooling
-      status: open
+      status: met
 ---
 ## Goal
 
