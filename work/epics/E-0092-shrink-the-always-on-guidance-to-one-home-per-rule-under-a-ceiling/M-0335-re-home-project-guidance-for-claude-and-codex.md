@@ -1,6 +1,6 @@
 ---
 id: M-0335
-title: Re-home CLAUDE.md by directory and re-aim the pins
+title: Re-home project guidance for Claude and Codex
 status: draft
 parent: E-0092
 depends_on:
