@@ -6,6 +6,19 @@ parent: E-0094
 depends_on:
     - M-0344
 tdd: required
+acs:
+    - id: AC-1
+      title: Global entry points choose one engineering guidance source
+      status: open
+    - id: AC-2
+      title: Synchronization preserves the installed project owner
+      status: open
+    - id: AC-3
+      title: Compatibility distribution retains legacy content and personal settings
+      status: open
+    - id: AC-4
+      title: Fresh sessions demonstrate legacy fallback and exclusive project reads
+      status: open
 ---
 ## Goal
 
@@ -21,7 +34,21 @@ The corpus and installed-index ownership shape are defined. ai-dotfiles currentl
 
 ## Acceptance criteria
 
+### AC-1 — Global entry points choose one engineering guidance source
 
+Generated Claude and Codex instructions keep personal rules unconditional and route engineering reads to installed project guidance or legacy files. Include code-health in this boundary. Empty project selections and disabled maintenance retain project ownership; a missing project index retains legacy access. References: ai-dotfiles `build.sh`, source guidance modules, and generated instruction fixtures. Copilot behavior must not change incidentally when its current shared build input changes.
+
+### AC-2 — Synchronization preserves the installed project owner
+
+`dotfiles-sync` does not recreate legacy imports in an aiwf-owned repository and retains existing behavior elsewhere. Exercise managed index recognition, absent or unrelated indexes, nested working directories, foreign instructions, repeated runs, and shared-machine repositories with different owners. References: `bin/dotfiles-sync` and `test/dotfiles-sync.test.sh`. No automatic migration merely from a directory named `.guidance`.
+
+### AC-3 — Compatibility distribution retains legacy content and personal settings
+
+The bootstrap keeps legacy guidance readable at its existing locations while consuming the canonical corpus without a second independently maintained source. Existing personal preferences survive installation. Test the bootstrap in isolated homes and preserve other host outputs; document the compatible installation signal that aiwf's preflight can inspect. References: ai-dotfiles build/install paths, resolved at implementation start.
+
+### AC-4 — Fresh sessions demonstrate legacy fallback and exclusive project reads
+
+Record Claude and Codex reads in unmigrated, migrated, and explicitly empty-selection repositories on the same machine. Confirm personal instructions remain and the migrated case does not load the legacy engineering bundle. Test fixtures model the agreed installed-index shape. References: compatibility observation record in the milestone. File presence or assistant assertions alone do not establish the read path; report the actual observable evidence and limits.
 
 ## Constraints
 
