@@ -10,6 +10,7 @@ acs:
     - id: AC-1
       title: Global entry points choose one engineering guidance source
       status: open
+      tdd_phase: red
     - id: AC-2
       title: Synchronization preserves the installed project owner
       status: open
