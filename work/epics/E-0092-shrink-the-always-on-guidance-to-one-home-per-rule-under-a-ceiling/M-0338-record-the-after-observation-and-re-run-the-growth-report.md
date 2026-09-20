@@ -17,7 +17,7 @@ acs:
 
 ## Goal
 
-Run the rubric again on the shrunk guidance and re-run the growth report against the pre-epic baseline, so the epic's claim is judged against a prediction rather than read for a story.
+Run the rubric again on the shrunk guidance and re-run the growth report against the post-delivery, pre-reduction baseline, so the epic's claim is judged against a prediction rather than read for a story.
 
 ## Closes
 
@@ -25,17 +25,17 @@ Run the rubric again on the shrunk guidance and re-run the growth report against
 
 ## Context
 
-M-0334 wrote the rubric, ran the baseline, and stated the expected direction of each growth metric. M-0337 brought the always-on set to its target. Nothing has changed in the shipped fragment yet, so what this run measures is the repository's own guidance, and its result decides whether M-0339 runs.
+M-0334 fixes the post-delivery, pre-reduction baseline, rubric, source revision and host settings. Compare each host with its own baseline at M-0337's completion. Keep installed external guidance and personal overlays unchanged so the result measures this epic's reduction. The outcome determines whether M-0339 runs.
 
 ## Acceptance criteria
 
 ### AC-1 — The after observation is recorded against the same rubric
 
-The same tasks, run the same number of times, in a worktree at the commit that closed M-0337, judged blind against the rubric M-0334 committed. **Pass criterion**: Validation records, per task, the command, the expected count, the observed counts per run, and the environment, beside the baseline figures, with the rubric's commit sha cited. This is a record, met by the record.
+Repeat M-0334's tasks and run counts for both hosts at M-0337's completion, judged against the unchanged rubric. Record commands/prompts, expectations, observed reads and behavior, versions, checkout and guidance revisions. Compare each host against its own baseline, including root-started nested work, new files and post-compaction continuation. Unavailable observations remain outstanding. The fragment stage requires no observed lost effect in either host.
 
 ### AC-2 — The growth report is re-run against the pre-epic baseline and its row logged
 
-`scripts/growth-report.py` is run at HEAD and at `--at <pre-epic sha>`, and a row is appended to the iteration log in `docs/design/growth.md`. **Pass criterion**: the row carries the command; Validation states, per metric, the observed direction against the expectation M-0334 recorded, and names any that went the other way.
+Run the report at HEAD and at M-0334's frozen post-delivery, pre-reduction revision. Append the commands and results to the growth iteration log. Compare upfront counts per host, conditional inventory, observed task-loaded text and policy/test growth against the baseline expectations; name regressions. Do not use the pre-delivery snapshot as this comparison's baseline.
 
 ## Constraints
 
@@ -45,7 +45,8 @@ The same tasks, run the same number of times, in a worktree at the commit that c
 
 ## Design notes
 
-- The judgment that decides M-0339 is written here in one paragraph: lost effect, or none. Restoring a rule whose effect was lost is a targeted edit to its one home, recorded as a gap discovered in this epic, not a revert.
+- State the no-lost-effect judgment separately for each host; it is bounded by the recorded task set, not a universal compliance guarantee.
+- Correct lost routing or weakened rules at their canonical source and repeat affected observations before permitting the fragment stage.
 
 ## Surfaces touched
 
