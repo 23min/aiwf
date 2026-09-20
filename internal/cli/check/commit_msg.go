@@ -14,15 +14,16 @@ import (
 	"strings"
 
 	"github.com/23min/aiwf/internal/cli/cliutil"
+	"github.com/23min/aiwf/internal/config"
 	"github.com/23min/aiwf/internal/entity"
 	"github.com/23min/aiwf/internal/gitops"
 	"github.com/23min/aiwf/internal/skills"
 )
 
-// runCommitMsg refuses a commit message at composition time, on four
-// grounds, all of which cost a second here and an amend or a rebase once
-// the commit exists. Used by the `.git/hooks/commit-msg` hook installed
-// by aiwf init/update.
+// runCommitMsg refuses a commit message at composition time, on the
+// grounds below, all of which cost a second here and an amend or a rebase
+// once the commit exists. Used by the `.git/hooks/commit-msg` hook
+// installed by aiwf init/update.
 //
 //   - an aiwf-verb value outside the running binary's Cobra verb tree ∪
 //     the ritualVerbs allowlist;
@@ -30,7 +31,9 @@ import (
 //     trailer names something else, or nothing;
 //   - an aiwf trailer block git will not read, because a blank line
 //     leaves it out of the message's final paragraph;
-//   - a staged edit to the ritual authoring tree that names no entity.
+//   - a staged edit to the ritual authoring tree that names no entity;
+//   - a Co-Authored-By address the repo lists under
+//     provenance.refuse_coauthors, which is absent by default.
 //
 // root is the repo whose index the last of those reads; empty means the
 // process working directory, which is where git runs a hook.
@@ -88,6 +91,11 @@ func runCommitMsg(path, root string, registeredVerbs map[string]struct{}, stderr
 	if len(block) == 0 {
 		return cliutil.ExitOK
 	}
+
+	if code := checkRefusedCoauthor(root, block, stderr); code != cliutil.ExitOK {
+		return code
+	}
+
 	// Trailer keys are case-sensitive (`Aiwf-Verb` is silently
 	// ignored here; the trailer-keys policy polices casing elsewhere).
 	var bad []string
@@ -388,6 +396,41 @@ func checkShippedSurfaceOwner(root string, block []byte, stderr io.Writer) int {
 			"  Add: --trailer \"aiwf-entity: <id>\" naming the epic, milestone, gap or decision it belongs to.\n"+
 			"  No aiwf-verb is wanted — no aiwf verb commits source.\n",
 		strings.Join(staged, ", "))
+	return cliutil.ExitFindings
+}
+
+// checkRefusedCoauthor refuses a commit message whose `Co-Authored-By:` trailer
+// names an address the repo declared it does not record.
+//
+// The kernel records the agent that ran a verb in `aiwf-actor:` and keeps the
+// principal — always human — separate from it. Whether a non-human agent also
+// belongs in git's co-author namespace is a project's call rather than the
+// kernel's, so the addresses come from aiwf.yaml and a repo that names none is
+// untouched. Refusing at composition costs a retype; the CI-tier backstop that
+// judges landed commits costs an amend or a rebase.
+func checkRefusedCoauthor(root string, block []byte, stderr io.Writer) int {
+	cfg, err := config.Load(root)
+	if err != nil {
+		// A repo with no aiwf.yaml, or one whose config does not parse, has
+		// declared nothing to refuse. Config faults are reported by the verbs
+		// that need config to do their work; this one has nothing to do.
+		return cliutil.ExitOK
+	}
+	refused := cfg.RefusedCoauthors()
+	if len(refused) == 0 {
+		return cliutil.ExitOK
+	}
+	addr := gitops.RefusedCoauthorIn(string(block), refused)
+	if addr == "" {
+		return cliutil.ExitOK
+	}
+	_, _ = fmt.Fprintf(stderr,
+		"aiwf check: commit-msg refuses a Co-Authored-By trailer naming %s\n"+
+			"  aiwf.yaml lists this address under provenance.refuse_coauthors, so commits\n"+
+			"  here do not record it as a co-author.\n"+
+			"  Drop the Co-Authored-By line, or remove the address from that list if the\n"+
+			"  policy has changed.\n",
+		addr)
 	return cliutil.ExitFindings
 }
 

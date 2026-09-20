@@ -88,8 +88,10 @@ var fieldDescriptions = map[string]string{
 	"agents.<key>.model":  "Model alias this agent's card is materialized with (opus, sonnet, haiku, fable, inherit).",
 	"agents.<key>.effort": "Reasoning-effort level this agent's card is materialized with (low, medium, high, xhigh, max).",
 
-	"hooks":               "Per-hook consent registry for materialized Claude Code hooks aiwf ships (ADR-0032).",
-	"hooks.<key>.enabled": "Whether this hook is materialized and wired into .claude/settings.json (unset: undecided, gates via aiwf init/update).",
+	"provenance":                  "Policy for what a commit message records about who produced it.",
+	"provenance.refuse_coauthors": "Addresses the commit-msg hook refuses in a Co-Authored-By trailer (empty: refuse none).",
+	"hooks":                       "Per-hook consent registry for materialized Claude Code hooks aiwf ships (ADR-0032).",
+	"hooks.<key>.enabled":         "Whether this hook is materialized and wired into .claude/settings.json (unset: undecided, gates via aiwf init/update).",
 }
 
 // Schema walks the Config struct tree and returns one SchemaField per
