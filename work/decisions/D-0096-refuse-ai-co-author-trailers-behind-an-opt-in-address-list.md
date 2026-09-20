@@ -25,8 +25,10 @@ And if it does, is that aiwf's rule to impose on the repos it ships into?
   `provenance.refuse_coauthors` in `aiwf.yaml`: a list of addresses, absent by
   default, so a consumer repo is unaffected until it names one.
 - `internal/policies/coauthor_trailer_ban.go` judges the same property over a
-  commit range, reading the same config, so the two layers cannot disagree
-  about what the policy is.
+  commit range in aiwf's own repository. It reads the same config and the same
+  matcher, and it normalizes its input the way the hook's does — sharing the
+  list alone does not make the two agree, because a trailer value git folds
+  across lines is one message the two can read differently.
 - The list holds addresses an agent here actually writes, not every agent that
   might exist.
 
@@ -52,15 +54,30 @@ a second repo wanted the same refusal: that would have put the same shell script
 in two places, to drift a line at a time. One implementation behind a list serves
 both.
 
-The list is addresses rather than a boolean because the thing that varies between
-repos is which agents they use, and because only an address someone here writes
-can be measured. Shipping a match for an agent nobody here uses would ship a
-pattern that has never matched anything and could not be checked.
+The list is addresses rather than a boolean because nothing can compute the
+predicate a boolean would name. `refuse_coauthors: true` means "refuse every
+non-human co-author", and all either layer sees is one `Name <address>` pair —
+there is no way to tell a bot from a person. So a boolean necessarily degrades
+into a denylist compiled into the binary, which cannot be corrected without a
+release. A denylist in config is the only form with no false-positive floor,
+and a false positive here is a hard `git commit` failure.
+
+Name-patterns lose outright: display names are free text that changes per
+harness build, and a pattern on a vendor name matches a human who shares it.
+The address is the stable key.
 
 Both layers are kept because the hook runs only where it is installed, and only
 as the `aiwf` it shells. A clone that has not run `aiwf init`, a `--no-verify`
 commit, and a hook shelling a release older than the refusal all reach a landed
 commit past it; the range check covers all three.
+
+The range check is a Go policy rather than an `aiwf check` rule because of where
+each one runs, not because of what it can express: `aiwf check` judges commit
+ranges elsewhere — `RunProvenanceCheck` and `RunUntrailedAudit` both do — but it
+reaches this repo's history only through the pre-push hook, which shells whatever
+`aiwf` is installed. CI runs no repo-wide `aiwf check` at all. A policy test is
+compiled from the tree under test, so it is the one layer a stale binary cannot
+defeat — which is the third of the three routes above.
 
 ## Consequences
 
@@ -77,3 +94,12 @@ G-0254's own fix shape asked for a cutoff-SHA severity tier of the kind
 `trailer-verb-unknown` carries. That is not needed here: a diff-scoped policy
 judges a range rather than all of history, so pre-existing commits are outside
 the question instead of being excused by a tier.
+
+A denylist fails open on the address nobody has met yet. When an agent's
+attribution address changes, or a second agent arrives, the rule stops binding
+and nothing signals it — the cost of choosing the form with no false positives.
+Adding the address is the whole of the repair.
+
+The range check is aiwf's own CI policy and does not ship, so a consumer repo
+gets the hook alone: it binds only where `aiwf init` has wired it, and only as
+the `aiwf` on PATH.
