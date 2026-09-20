@@ -9,6 +9,19 @@ depends_on:
     - M-0346
     - M-0347
 tdd: advisory
+acs:
+    - id: AC-1
+      title: aiwf uses tracked guidance without superseded imports
+      status: open
+    - id: AC-2
+      title: Both hosts demonstrate relevant project reads in fresh sessions
+      status: open
+    - id: AC-3
+      title: Mixed repositories retain the correct guidance source
+      status: open
+    - id: AC-4
+      title: Growth measurements make the reduction prerequisite reproducible
+      status: open
 ---
 ## Goal
 
@@ -24,7 +37,21 @@ Corpus, compatibility routing, installation, and selection are available. This i
 
 ## Acceptance criteria
 
+### AC-1 — aiwf uses tracked guidance without superseded imports
 
+Select the packs required by its actual languages and engineering conventions, install through the new update path, preserve repository-specific rules, and remove superseded managed delivery. Verify tracked files in a clean checkout and that dotfiles synchronization does not restore legacy imports. References: `aiwf.yaml`, `.guidance/`, `AGENTS.md`, `CLAUDE.md`, and migration command records. Broad prose reduction remains E-0092's work.
+
+### AC-2 — Both hosts demonstrate relevant project reads in fresh sessions
+
+Observe root-started tasks touching nested files, new files, and unrelated prose, in a checkout without ai-dotfiles. Record project-override precedence, relevant reads, absence of legacy engineering reads, and limits of observable behavior. References: milestone observation record with tasks, expectations, actual observations, environment, host/model versions, and installed revision. Obtain separate approval for live service invocations.
+
+### AC-3 — Mixed repositories retain the correct guidance source
+
+Exercise the released combination against old-aiwf and non-aiwf projects alongside migrated projects. Include an incompatible personal installation, failed handover, empty installed selection, disabled maintenance, and update retries; confirm legacy access or exclusive project access as applicable. References: compatibility/integration fixtures plus an observation record for actual installed setup. Do not substitute local fixture success for distribution availability.
+
+### AC-4 — Growth measurements make the reduction prerequisite reproducible
+
+Record before/after commits, installed guidance revision, commands, expected outputs, observed growth results, and environment. Update E-0092 to identify E-0094 and its completed migration as the prerequisite; E-0092 still owns its own frozen behavioral baseline and ceiling. References: `docs/design/growth.md`, `scripts/growth-report.py`, and E-0092. Report global/personal loading separately from upfront and task-loaded project instructions.
 
 ## Constraints
 
