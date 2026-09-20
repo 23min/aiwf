@@ -11,7 +11,7 @@ acs:
       title: The after observation is recorded against the same rubric
       status: open
     - id: AC-2
-      title: The growth report is re-run against the pre-epic baseline and its row logged
+      title: Growth is compared with the frozen post-delivery baseline
       status: open
 ---
 
@@ -33,7 +33,7 @@ M-0334 fixes the post-delivery, pre-reduction baseline, rubric, source revision 
 
 Repeat M-0334's tasks and run counts for both hosts at M-0337's completion, judged against the unchanged rubric. Record commands/prompts, expectations, observed reads and behavior, versions, checkout and guidance revisions. Compare each host against its own baseline, including root-started nested work, new files and post-compaction continuation. Unavailable observations remain outstanding. The fragment stage requires no observed lost effect in either host.
 
-### AC-2 — The growth report is re-run against the pre-epic baseline and its row logged
+### AC-2 — Growth is compared with the frozen post-delivery baseline
 
 Run the report at HEAD and at M-0334's frozen post-delivery, pre-reduction revision. Append the commands and results to the growth iteration log. Compare upfront counts per host, conditional inventory, observed task-loaded text and policy/test growth against the baseline expectations; name regressions. Do not use the pre-delivery snapshot as this comparison's baseline.
 
