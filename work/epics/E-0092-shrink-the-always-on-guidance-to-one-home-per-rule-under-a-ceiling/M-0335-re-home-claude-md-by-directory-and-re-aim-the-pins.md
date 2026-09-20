@@ -24,7 +24,7 @@ acs:
 
 ## Goal
 
-Thin the root `CLAUDE.md` to what every session needs and move the rest under the directories it governs, where the harness loads it only when a session reads files there; re-aim the tests that pin moved passages.
+Thin both host entry points and move task-specific repository development rules into canonical project-local documents, with explicit routing that works from a root-started session.
 
 ## Closes
 
@@ -32,17 +32,17 @@ Thin the root `CLAUDE.md` to what every session needs and move the rest under th
 
 ## Context
 
-A subdirectory `CLAUDE.md` loads lazily and `@` imports resolve relative to the importing file, up to four hops (Claude Code memory documentation). Nearly all Go lives under `internal/`, with a handful of files under `cmd/`. The tests that pin root passages are the ones G-0676's floor command lists; each reads the root by path and must be re-aimed when its passage moves. The imported Go module belongs with the Go conventions, under `internal/`, and the Python and TypeScript imports load languages this repository does not use.
+E-0092's delivery prerequisite supplies selected language guidance in the repository. This milestone relocates aiwf-specific development rules. It must not assume Claude's nested-file loading is also Codex's loading mechanism. Go code, Python scripts and TypeScript tests each retain a route to their selected guidance.
 
 ## Acceptance criteria
 
 ### AC-1 — Root CLAUDE.md imports only the shipped fragment
 
-Root `CLAUDE.md`'s `@` import lines resolve to exactly one path, the shipped fragment. **Pass criterion**: a structural test over the root's import lines finds the fragment import and nothing else; no home-relative import remains at root. **Edge cases**: an `@` inside a code span is not an import. **Code references**: the ceiling policy's import resolver, reused.
+The root Claude entry point retains its operating-fragment import and concise project-local task routing, with no home-directory language imports. Codex has equivalent native routing without treating Claude import syntax as an automatic read. **Pass criterion**: structural checks resolve each route and reject a missing selected target; observed task-specific loading is covered by AC-2. Changes to generated blocks use their owning updater.
 
 ### AC-2 — Nested CLAUDE.md files exist under internal, cmd, docs, and work
 
-`internal/CLAUDE.md`, `cmd/CLAUDE.md`, `docs/CLAUDE.md`, and `work/CLAUDE.md` exist; `cmd/CLAUDE.md` imports `internal/CLAUDE.md` by relative path; `internal/CLAUDE.md` imports the operator's Go module. **Pass criterion**: a structural test over the four files' existence and their import lines. **Edge cases**: the relative import resolves from `cmd/`, not from the repository root. **Code references**: the same test.
+Place concise directory entry files under internal, cmd, docs and work for Claude, referencing canonical project-local development guidance. Give Codex explicit routes to those same canonical documents from its root entry point; do not depend on automatic discovery of descendants. Shared Go-development rules serve both internal and cmd without duplicating their prose. **Pass criterion**: check route resolution mechanically and record fresh root-started sessions for both hosts that read the relevant instructions before their first edit, including a new file. No project-language route depends on a home directory. File existence alone does not establish delivery.
 
 ### AC-3 — Every pin on a moved passage is re-aimed or retired with a recorded reason
 
@@ -50,26 +50,26 @@ Every test in the list G-0676's floor command produces, re-run at this milestone
 
 ### AC-4 — The ceiling constant steps down to the re-homed size
 
-The ceiling constant is lowered to the count the policy reports after the move. **Pass criterion**: the policy passes at the new constant and fails at the previous size; Validation records the command and both figures.
+Lower each host's ceiling to its measured upfront size after relocation. **Pass criterion**: the relocated tree passes at the new ceilings; fixtures restoring the old upfront payload fail when it is larger. Record commands, before/after counts and conditional-task loads. Files required upfront remain counted even when nested.
 
 ## Constraints
 
-- Content moves; nothing is reworded, and nothing is deleted except the two language imports, each with a `deleted` disposition.
-- Every `CLAUDE.md` commit is its own, with a disposition block per moved passage naming the file it moved to.
-- A pin is re-aimed, not rewritten; a retired pin's reason is recorded here.
-- What stays at root is what every session needs regardless of directory: the engineering principles, the commitments as a pointer, the worktree default, the validation cadence, the commit conventions, and the pointers the fence added.
-- One row appended to the iteration log in `docs/design/growth.md` when this lands.
+- Relocate rules without changing their meaning; language delivery has already migrated in the prerequisite.
+- Preserve source/output ownership and commit each logical guidance move with its dispositions.
+- Re-aim pins or retire them with reasons. Do not create duplicate prose merely to satisfy an old pin.
+- Keep universal collaboration and repository-entry instructions reachable before work.
+- Record the growth delta and both hosts' loading observations.
 
 ## Design notes
 
-- The partition: `internal/` takes the Go conventions, test discipline, coverage, CLI conventions, type design, verb design, and the enforcement map; `cmd/` re-imports it; `docs/` takes the documentation hierarchy and ADR authoring; `work/` takes the entity-authoring and id-collision material. Anything the reviewer cannot place stays at root.
-- The ceiling counts root plus repo-resolved imports, so the nested files are outside it by construction; their size is reported by the growth script, not capped.
-- `aiwf update`'s behaviour on a nested `CLAUDE.md` is verified here and recorded in Validation; it maintains only the root import marker today.
+- Partition aiwf-specific development material by task: Go implementation, CLI work, documentation, and entity authoring. Share a canonical document where directories need the same rules.
+- Directory placement alone does not remove a document from the upfront count; its required loading behavior determines that.
+- Exercise `aiwf update` in a disposable checkout and verify it preserves handwritten development guidance and regenerates the expected routes without restoring obsolete home-directory imports.
 
 ## Surfaces touched
 
-- `CLAUDE.md`, `internal/CLAUDE.md`, `cmd/CLAUDE.md`, `docs/CLAUDE.md`, `work/CLAUDE.md`
-- the pinning tests under `internal/policies/`
+- Both root host entry points, directory entry files, and canonical development guidance.
+- Existing pinning tests and guidance routing checks.
 
 ## Out of scope
 
@@ -88,7 +88,7 @@ The ceiling constant is lowered to the count the policy reports after the move. 
 ## References
 
 - G-0676 — the floor command that lists the pins
-- D-0089 — why the Go module import moves with the Go conventions
+- D-0089 — selected language conventions have an external source and tracked project delivery
 
 ## Release note
 
