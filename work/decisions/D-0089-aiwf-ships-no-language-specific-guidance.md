@@ -13,18 +13,20 @@ Where do language conventions (a formatter and lint set, test idioms, error wrap
 
 ## Decision
 
-aiwf ships no language-specific guidance. Conventions that are not aiwf-specific come from the operator's own tooling; here, the dotfiles repo whose modules the root `CLAUDE.md` imports. This repo's `CLAUDE.md` carries only what is specific to developing aiwf, and the shipped fragment carries only how to operate aiwf.
+aiwf owns no language-specific conventions in its embedded guidance. Language and engineering packs are authored in an external repository and become project policy through explicit selection. aiwf may detect languages using externally supplied patterns and deliver the selected packs as tracked project files. Consumers need neither aiwf nor ai-dotfiles merely to read those files.
+
+The shared aiwf operating fragment describes operating aiwf. Repository development guidance describes what is specific to developing this repository. Personal collaboration and machine/session preferences remain in ai-dotfiles.
 
 ## Reasoning
 
-- A language convention is a per-human preference about how code is written, not a property of the planning tree aiwf validates. Shipping it makes every consumer inherit one person's preferences.
-- aiwf is language-agnostic and public. Its always-on fragment reaches every consumer, Go or not, so a Go section there is dead weight for the rest and grows the load that E-0092's ceiling exists to cap.
-- A shipped on-demand skill per language loads only when the model judges it relevant, and would stand as a second source beside the module the operator already imports.
-- A materialized per-stack fragment gated by `aiwf.yaml` needs a materializer, a config key, and doctor and policy wiring, for a need no consumer has raised.
-- Both lost to a delivery that already exists and is already imported.
+- Language content and workflow machinery change for different reasons. Adding a language must require no aiwf code change or release.
+- Project selection makes opinionated conventions explicit; detecting Python does not select a package manager on the project's behalf.
+- Tracked project guidance reaches contributors, containers and worktrees without a home-directory import or editor synchronization.
+- A shared source can have generated host outputs without creating another authored copy. Readable installed files and observed model use remain separate claims.
 
 ## Consequences
 
-- The generic Go conventions section leaves `CLAUDE.md` under E-0092; the imported module remains the one source.
-- A third party using aiwf brings their own language conventions.
-- A request to add language content to the shipped fragment, for any language, is declined by this record.
+- E-0092 removes generic language restatements after the external-delivery follow-up to E-0093 has migrated this repository.
+- The delivery follow-up owns the small catalogue, simple detection patterns, explicit selection and upstream checks during `aiwf update`; the detailed design belongs there.
+- The language corpus is not embedded in aiwf. Its updater may materialize project-selected copies without owning their conventions.
+- Personal ai-dotfiles delivery must not be required for project language guidance. Project-specific exceptions remain project-authored material, separate from generated files.
