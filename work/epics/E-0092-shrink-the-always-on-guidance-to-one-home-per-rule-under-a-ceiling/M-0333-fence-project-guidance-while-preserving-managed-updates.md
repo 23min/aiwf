@@ -1,6 +1,6 @@
 ---
 id: M-0333
-title: 'Fence CLAUDE.md: one commit per edit, a ceiling, no discoverability channel'
+title: Fence project guidance while preserving managed updates
 status: draft
 parent: E-0092
 tdd: required
