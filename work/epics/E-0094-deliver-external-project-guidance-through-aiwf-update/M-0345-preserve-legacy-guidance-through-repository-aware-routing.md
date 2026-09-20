@@ -18,6 +18,7 @@ acs:
     - id: AC-3
       title: Compatibility distribution retains legacy content and personal settings
       status: open
+      tdd_phase: red
     - id: AC-4
       title: Fresh sessions demonstrate legacy fallback and exclusive project reads
       status: open
