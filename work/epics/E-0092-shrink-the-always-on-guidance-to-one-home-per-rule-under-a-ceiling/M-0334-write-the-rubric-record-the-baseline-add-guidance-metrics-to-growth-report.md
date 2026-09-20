@@ -18,7 +18,7 @@ acs:
 
 ## Goal
 
-Write the rubric and capture the before picture: how the assistant behaves against the judgment rules over a fixed task set, and the growth metrics at the pre-epic commit.
+Freeze the post-delivery, pre-reduction baseline and observe how Claude and Codex load and follow guidance on the same bounded task set.
 
 ## Closes
 
@@ -26,7 +26,7 @@ Write the rubric and capture the before picture: how the assistant behaves again
 
 ## Context
 
-M-0338 compares against what this milestone records, so the rubric has to exist before the first run and not change after. `docs/design/growth.md` and `scripts/growth-report.py` already hold the tree's growth metrics and an iteration log, and the script reconstructs any past commit with `--at`, so the pre-epic baseline is a run, not a memory.
+The delivery follow-up to E-0093 and this repository's migration must finish first. M-0338 compares against this milestone's committed rubric, source revision and checkout. The historical growth report remains useful, but it cannot reconstruct machine-local instructions or prove a host read a file; capture those observations explicitly.
 
 ## Acceptance criteria
 
@@ -36,24 +36,27 @@ This body's Design notes carry the rubric: a short task per judgment rule, the r
 
 ### AC-2 — The baseline observation is recorded with its command and environment
 
-Each rubric task is run several times in a worktree checked out at the pre-epic commit, so the guidance under test is exactly the pre-epic one, and violations are counted per the rubric by a judge who sees the anonymised transcript and the rubric only. **Pass criterion**: Validation records, per task, the command that started the session and the task text, the expected count, the observed counts per run, and the environment (model id, date, the worktree's commit). Also recorded: the expected direction, after the epic, of each growth metric AC-3 adds.
+Run each rubric task for both hosts in worktrees at the same post-delivery, pre-reduction commit. Record command/prompt, expectation, observed reads and behavior, host/model versions, date, checkout commit, guidance source revision and personal overlay. A judge receives the rubric and anonymised transcript. Record observed violations and unavailable evidence without treating file presence as a read. Freeze the installed guidance during the comparison and state the expected direction of each metric.
 
 ### AC-3 — Growth-report tracks always-on words and CLAUDE.md commit rate
 
-`scripts/growth-report.py` reports two more metrics: always-on words, defined as the ceiling policy defines its set, and `CLAUDE.md` commits in the trailing thirty days. **Pass criterion**: the script runs at HEAD and at `--at <pre-epic sha>` and prints both; the iteration log in `docs/design/growth.md` gains the pre-epic baseline row with the command that produced it; the always-on figure the script reports at HEAD is recorded beside the ceiling policy's figure, so a divergence between the two definitions is visible. **Code references**: `scripts/growth-report.py`; `docs/design/growth.md` §"Iteration log".
+Extend the report with upfront project words for each host, inventory sizes for conditional guidance, and trailing-thirty-day commits affecting either host's instructions. Use the same source-set definition as M-0333 and compare its counts against the policy. Report personal/global words and observed task-loaded words in the baseline record rather than claiming Git can reconstruct them. **Pass criterion**: run the report at HEAD and at the frozen baseline, test the metrics on fixtures, and append a dated baseline row with commands to the growth document.
 
 ## Constraints
 
-- The rubric is committed before any run and not edited afterwards; M-0338 cites its commit.
-- Runs happen in a worktree at the pre-epic commit, the parent of M-0333's first commit, recorded here by sha.
-- The growth script stays advisory; it measures and never gates.
-- Every figure recorded here carries its command (G-0668).
+- Commit the rubric before its first run and do not change it during comparison.
+- Record the post-delivery baseline commit before any reduction; use it for both hosts.
+- Keep host/model settings and personal overlays fixed between paired runs; disclose unavoidable changes as comparison limits.
+- No upstream refresh between before and after observations.
+- Growth reporting stays advisory. Every figure carries its command and environment.
 
 ## Design notes
 
-- The rubric's tasks, one per judgment rule: a small change with a natural stopping point part-way; three related fixes discovered together; a gap body edit; an AC promote with no test in hand; a design question carrying three decisions. The violations they tempt, in order: a suggested pause; a batched gate; a hand-edited entity file; an unevidenced promote; several decisions in one card.
-- Three runs per task is the floor. The result is a smoke test for a large effect in either direction, not a statistic.
-- The two growth metrics mirror the ceiling policy's definition in Python; the baseline row records both figures so drift between the implementations is a visible number rather than a silent one.
+- Judgment tasks cover continuation through a bounded task, approval for related local changes versus outward actions, a gap body edit, an AC promotion with inadequate evidence, and a design question with several decisions.
+- A declared, enumerated local reversible approval sequence is valid. A batch containing an outward action is a violation. Editing entity body prose for review is valid; hand-editing frontmatter or committing without the verb is not.
+- Guidance-loading tasks cover Go implementation, a Python script, TypeScript tests, prose-only work, and creating a new file. Start at repository root and observe whether relevant guidance is read before the first relevant edit; prose-only work should not require full language documents.
+- Repeat the task set for both hosts, including a continuation after compaction. Three runs per task is a smoke-test floor, not evidence of statistical significance.
+- Record installed files, observed reads and behavioral compliance as separate observations.
 
 ## Surfaces touched
 
@@ -67,8 +70,9 @@ Each rubric task is run several times in a worktree checked out at the pre-epic 
 
 ## Dependencies
 
-- none among the milestones; this runs before any cut
-- the pre-epic sha, recorded in Validation
+- E-0092's delivery and migration prerequisite, completed before this baseline.
+- M-0333's source-set definition must agree with the reported measure before the baseline is accepted.
+- The frozen checkout and guidance revisions, recorded in Validation.
 
 ## Coverage notes
 
