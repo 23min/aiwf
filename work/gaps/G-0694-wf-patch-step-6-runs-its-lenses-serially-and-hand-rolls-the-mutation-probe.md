@@ -1,7 +1,9 @@
 ---
 id: G-0694
 title: wf-patch step 6 runs its lenses serially and hand-rolls the mutation probe
-status: open
+status: addressed
+addressed_by_commit:
+    - 104e60be6
 ---
 ## What's missing
 
