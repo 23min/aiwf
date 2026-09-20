@@ -12,7 +12,7 @@ acs:
       title: Both root entry points route to project-local guidance
       status: open
     - id: AC-2
-      title: Nested CLAUDE.md files exist under internal, cmd, docs, and work
+      title: Both hosts read relevant guidance before root-started edits
       status: open
     - id: AC-3
       title: Every pin on a moved passage is re-aimed or retired with a recorded reason
@@ -40,7 +40,7 @@ E-0092's delivery prerequisite supplies selected language guidance in the reposi
 
 The root Claude entry point retains its operating-fragment import and concise project-local task routing, with no home-directory language imports. Codex has equivalent native routing without treating Claude import syntax as an automatic read. **Pass criterion**: structural checks resolve each route and reject a missing selected target; observed task-specific loading is covered by AC-2. Changes to generated blocks use their owning updater.
 
-### AC-2 — Nested CLAUDE.md files exist under internal, cmd, docs, and work
+### AC-2 — Both hosts read relevant guidance before root-started edits
 
 Place concise directory entry files under internal, cmd, docs and work for Claude, referencing canonical project-local development guidance. Give Codex explicit routes to those same canonical documents from its root entry point; do not depend on automatic discovery of descendants. Shared Go-development rules serve both internal and cmd without duplicating their prose. **Pass criterion**: check route resolution mechanically and record fresh root-started sessions for both hosts that read the relevant instructions before their first edit, including a new file. No project-language route depends on a home directory. File existence alone does not establish delivery.
 
