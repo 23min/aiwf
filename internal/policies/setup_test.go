@@ -31,6 +31,8 @@ import (
 //     drive the env-fed comment-history-attrition entry point.
 //   - TestPolicyTestExecutableWrite_Env — sets AIWF_COVERAGE_BASE to
 //     drive the env-fed test-executable-write entry point.
+//   - TestPolicyCoauthorTrailerBan_Env — sets AIWF_COVERAGE_BASE to
+//     drive the env-fed coauthor-trailer-ban entry point (G-0254).
 //
 // Every other Test* function reads-only against the shared *Tree (do
 // not mutate) or uses t.TempDir for fixture work.
