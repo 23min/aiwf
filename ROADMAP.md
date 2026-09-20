@@ -1292,14 +1292,14 @@ uniquely holds, and a release's notes rest on whoever cut it remembering.
 
 ### Goal
 
-Cut the instruction load a session reads before its task to a fixed ceiling, enforced by a policy test, with every rule kept in exactly one home and no operating rule lost.
+Reduce the project instructions Claude and Codex read before a task to a ceiling for each host, while keeping each rule in one canonical home and preserving its effect. Measure task-loaded guidance separately so relocation cannot masquerade as a reduction.
 
 | Milestone | Title | Status |
 |---|---|---|
-| M-0333 | Fence CLAUDE.md: one commit per edit, a ceiling, no discoverability channel | draft |
+| M-0333 | Fence project guidance while preserving managed updates | draft |
 | M-0334 | Write the rubric, record the baseline, add guidance metrics to growth-report | draft |
-| M-0335 | Re-home CLAUDE.md by directory and re-aim the pins | draft |
-| M-0336 | Delete the copies from CLAUDE.md | draft |
+| M-0335 | Re-home project guidance for Claude and Codex | draft |
+| M-0336 | Remove duplicated project guidance for both hosts | draft |
 | M-0337 | Audit finding messages and cut chokepointed sections to pointers | draft |
 | M-0338 | Record the after observation and re-run the growth report | draft |
 | M-0339 | Rewrite the fragment and update the anchors policy | draft |
@@ -1318,4 +1318,18 @@ and parallel implementation in separate worktrees.
 | M-0341 | Implement Codex artifacts with safe guidance ownership | done |
 | M-0342 | Enable host detection across setup refresh and diagnosis | done |
 | M-0343 | Verify host handoff parallel worktrees and container persistence | done |
+
+## E-0094 — Deliver external project guidance through aiwf update (proposed)
+
+### Goal
+
+Let maintainers use `aiwf init` and `aiwf update` to select, refresh, and deliver externally authored engineering guidance as tracked project policy for Claude and Codex. Contributors need neither aiwf nor ai-dotfiles nor VS Code synchronization to read that policy.
+
+| Milestone | Title | Status |
+|---|---|---|
+| M-0344 | Publish the external engineering guidance corpus | draft |
+| M-0345 | Preserve legacy guidance through repository-aware routing | draft |
+| M-0346 | Deliver explicitly selected project guidance through update | draft |
+| M-0347 | Suggest applicable guidance during init and update | draft |
+| M-0348 | Verify migration and establish the reduction prerequisite | draft |
 
