@@ -169,4 +169,5 @@ Observed CLI exit zero and a completed turn. The index-read command exited one w
 
 ## Reviewer notes
 
+- Independent full-surface review approved local wrap at ai-dotfiles `5a902aa`: shell suites, build, syntax and whitespace checks passed; recorded guidance reads and personal instructions match the native session evidence. No unresolved findings or deferrals remain. This verdict does not authorize publication or production installation.
 - D-0097 unreadable-index observations are recorded for both hosts. Claude exercised the earlier routing and warned before provisional advice; Codex exercised the clarified routing and included its warning with the finding. Neither observation establishes future model compliance.
