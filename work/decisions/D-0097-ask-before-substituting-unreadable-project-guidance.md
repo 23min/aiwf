@@ -16,8 +16,11 @@ substitute legacy engineering guidance to keep working?
 ## Decision
 
 Report the unreadable index and do not automatically fall back to legacy guidance.
-Continue work independent of the missing guidance. Ask the operator before
-proceeding with engineering work that depends on it.
+Warn that the project guidance could not be loaded. Clearly labelled provisional
+advice based on general knowledge may continue, provided the assistant states that
+it may conflict with the unreadable project rules and does not claim to follow
+them. Recommendations that depend on a project-specific rule require readable
+guidance or operator direction.
 
 ## Reasoning
 
@@ -25,7 +28,9 @@ An unreadable index does not establish that project ownership is absent. Legacy
 fallback could apply rules the repository deliberately replaced or excluded,
 including when its installed selection is empty. Automatic fallback would keep
 engineering work moving, but would silently choose policy on the operator's
-behalf. Continuing independent work preserves useful progress without that choice.
+behalf. A warning lets the operator distinguish general advice from advice grounded
+in the project's selected guidance, preserving useful progress without silently
+choosing a replacement policy.
 
 ## Consequences
 
