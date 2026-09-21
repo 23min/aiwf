@@ -152,3 +152,19 @@ Each inventory replaces only `.claude/skills/wf-patch/SKILL.md` and is sorted
 again. The expected hash was derived by verifying the pre-change Claude adapter
 against the stored hash, applying only the reviewed step 6 edit to those bytes,
 and hashing the result. All other records remain unchanged.
+
+## External guidance configuration exception
+
+M-0346 AC-1 adds the commented `enabled`, `source`, `packs`, and `ignored`
+settings and changes the `guidance` block description. The inventories accept
+those configuration-comment changes only; adapter and host instruction records
+remain pinned.
+
+Provenance: in the Linux development container on 2026-09-21, isolated `init
+--no-prompt` runs with the pre-change preflight binary reproduced the existing
+configuration hashes, both with and without `--enable-hook
+worktree-rituals-check.sh`. Replacing only the guidance description and inserting
+the four commented fields in those captured files produced the expected hashes.
+The candidate binary's files matched that independent text transformation.
+Only matching `aiwf.example.yaml` and scaffolded `aiwf.yaml` inventory records
+were replaced, and the inventories were sorted again.

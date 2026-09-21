@@ -719,13 +719,16 @@ func (c *Config) StatusMdAutoUpdate() bool {
 // generator can cite it instead of a bare literal hiding inside the getter).
 const DefaultStatusMdAutoUpdate = true
 
-// Guidance carries independent opt-outs for managed instructions in the
-// consumer's root CLAUDE.md and AGENTS.md. Each pointer is tristate:
-// nil defaults on, false opts out, and true explicitly opts in. Use the
-// Config getters rather than reading the pointers directly.
+// Guidance controls external project policy and host instruction wiring.
+// Boolean pointers default on when nil. A nil Packs leaves policy unadopted;
+// a non-nil empty list explicitly adopts no packs.
 type Guidance struct {
-	WireClaudeMd *bool `yaml:"wire_claudemd,omitempty"`
-	WireAgentsMd *bool `yaml:"wire_agentsmd,omitempty"`
+	Enabled      *bool     `yaml:"enabled,omitempty"`
+	Source       string    `yaml:"source,omitempty"`
+	Packs        *[]string `yaml:"packs,omitempty"`
+	Ignored      []string  `yaml:"ignored,omitempty"`
+	WireClaudeMd *bool     `yaml:"wire_claudemd,omitempty"`
+	WireAgentsMd *bool     `yaml:"wire_agentsmd,omitempty"`
 }
 
 // WireClaudeMd returns whether aiwf should maintain its guidance import
@@ -963,6 +966,9 @@ func (c *Config) Validate() error {
 		return err
 	}
 	if err := c.TDD.validate(); err != nil {
+		return err
+	}
+	if err := c.Guidance.validate(); err != nil {
 		return err
 	}
 	return c.validateAgents()

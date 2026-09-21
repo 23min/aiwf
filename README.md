@@ -233,6 +233,21 @@ the resolved checkout. `doctor` compares selected artifacts with their rendered
 expectations: verb-skill findings are errors; rituals, templates, role cards,
 and guidance are advisory. `doctor --check-rituals` also fails on ritual drift.
 These disk checks do not establish that a running model loaded the instructions.
+
+External engineering guidance has separate settings in the same `guidance` block:
+
+```yaml
+guidance:
+  enabled: true
+  source: https://github.com/23min/engineering-guidance.git
+  packs: [code-health, go/cobra]
+  ignored: [python/astral]
+```
+
+Maintenance defaults on and an omitted or empty `source` uses the default corpus.
+Pack ids are explicit project policy: omit `packs` (or use `null`) to leave policy
+unadopted; `packs: []` explicitly selects none. Selected and ignored ids must be
+unique and must not overlap. Existing host-wiring settings remain independent.
 `doctor --self-check` exercises the CLI against a throwaway repository.
 
 For parallel Claude and Codex implementation sessions, use separate branches and
