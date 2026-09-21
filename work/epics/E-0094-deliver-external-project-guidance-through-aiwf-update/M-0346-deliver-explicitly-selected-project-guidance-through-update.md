@@ -11,6 +11,7 @@ acs:
     - id: AC-1
       title: Explicit configuration controls maintenance without adopting policy
       status: open
+      tdd_phase: red
     - id: AC-2
       title: Update retrieves current guidance without a persistent cache
       status: open
