@@ -84,6 +84,8 @@ The external corpus and installed-index shape from the preceding delivery.
 
 ## Release note
 
+The ai-dotfiles compatibility update keeps personal instructions active while directing fresh Claude and Codex sessions to either legacy engineering guidance or an explicitly owned project guidance index. Legacy repositories retain their guidance; owned repositories, including empty selections, suppress legacy synchronization and hook injection. Installation preserves foreign instructions and settings, and a read-only checker exposes handover compatibility. Maintainers refresh committed legacy copies from the canonical guidance repository. Copilot retains its complete bundle; project installation and migration are delivered separately by M-0346.
+
 ## Decisions made during implementation
 
 - D-0097 — Unreadable project guidance requires operator direction before guidance-dependent work.
@@ -92,6 +94,14 @@ The external corpus and installed-index shape from the preceding delivery.
 - Compatibility is checked against Claude/Codex delivery visible in the invoking environment, irrespective of aiwf's selected artifact hosts. No ai-dotfiles installation is required when none is present. The signal covers the documented delivery contract, not other environments, arbitrary personal imports, Copilot, or already-running sessions. The executable contract and remediation are documented in the ai-dotfiles README.
 
 ## Validation
+
+### Wrap checks
+
+Observed on 2026-09-21 in the Linux devcontainer. In the ai-dotfiles milestone checkout at `735a129`, every `sh test/*.test.sh` suite passed, `sh build.sh` generated all host outputs successfully, `sh -n` accepted the changed POSIX shell scripts, and `git diff --check` reported no whitespace errors. The complete command output is retained locally in `/tmp/m0345-wrap-validation.log`. The repository defines no CI workflow or separate lint target; syntax validation and its shell suites are the available gates.
+
+Scoped doc-lint covered the changed README and shared routing fragment: named scripts exist, documented synchronization/checker options resolve through their help output, and local link, heading, and TODO scans found no mechanical drift. The README directs engineering edits upstream and compatibility refreshes through `refresh-guidance.sh`; its personal-rule and routing edit instructions remain local to ai-dotfiles.
+
+The aiwf planning tree reports no M-0345 findings and `aiwf check --since main` reports zero errors with the existing advisory TDD and archival warnings. `go build -o /tmp/aiwf-m0345-wrap ./cmd/aiwf` succeeded. `make check-fast` exited zero: all vet passes completed, golangci-lint reported `0 issues`, and the full Go test suite passed; output is retained locally in `/tmp/m0345-aiwf-check-fast.log`. The observational M-0345 AC-4 phase exception is recorded in commit `d0241412d`; it claims no red/green test cycle.
 
 ### Compatibility bootstrap and distribution
 
