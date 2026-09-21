@@ -48,11 +48,11 @@ Default to the agreed upstream with maintenance enabled; support one source over
 
 ### AC-2 — Update retrieves current guidance without a persistent cache
 
-Use a temporary Git clone of the source's default branch through existing credentials, validate the catalogue and every selected document, and clean temporary data on success, failure, and cancellation. Record the installed source commit; changing upstream is reflected on the next update. References: `internal/initrepo/` refresh integration and local-Git fixtures. Test unavailable sources, missing selections, malformed content, and unsafe paths without live network dependencies.
+Use a temporary Git clone of the source's default branch through existing credentials, validate the catalogue and every selected document, and clean temporary data on success, failure, and cancellation. Return validated selected content with the exact fetched source commit; repeated retrieval reflects changes to upstream. References: guidance retrieval for `internal/initrepo/` and local-Git fixtures. Test unavailable sources, missing selections, malformed content, and unsafe paths without live network dependencies.
 
 ### AC-3 — Installation preserves ownership and produces tracked project files
 
-Materialize selected documents and the index under `.guidance/`, preserve handwritten `project.md`, and generate concise routing for the selected hosts through existing wiring controls. Project overrides take precedence; unchanged inputs cause no diff. Reject foreign or edited generated outputs before replacement, including collisions, malformed managed blocks, and symlinks. References: `internal/skills/ownership.go`, `internal/initrepo/agents_guidance.go`, and refresh fixtures; reuse their suitable primitives without assuming the existing filename restrictions fit namespaced packs.
+Through `aiwf init` and `aiwf update`, materialize the retrieved selected documents and the index under `.guidance/`, preserve handwritten `project.md`, and generate concise routing for the selected hosts through existing wiring controls. Record the exact installed source commit in the index only on successful installation; integration tests verify that the next update installs changed upstream content and its revision. Project overrides take precedence; unchanged inputs cause no diff. Reject foreign or edited generated outputs before replacement, including collisions, malformed managed blocks, and symlinks. References: `internal/skills/ownership.go`, `internal/initrepo/agents_guidance.go`, and refresh fixtures; reuse their suitable primitives without assuming the existing filename restrictions fit namespaced packs.
 
 ### AC-4 — Failures and removal preserve a coherent installed selection
 
@@ -105,7 +105,7 @@ Corpus and compatible ai-dotfiles routing, including the ownership/preflight bou
 
 ## Deferrals
 
-- (none)
+- G-0702 — The configuration reference incorrectly requires `aiwf_version`.
 
 ## Reviewer notes
 
