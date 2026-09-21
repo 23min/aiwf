@@ -88,7 +88,7 @@ The ai-dotfiles compatibility update keeps personal instructions active while di
 
 ## Decisions made during implementation
 
-- D-0097 — Unreadable project guidance requires operator direction before guidance-dependent work.
+- D-0097 — An unreadable project index requires a warning and no legacy fallback; clearly labelled provisional general advice may continue.
 - ai-dotfiles maintainers refresh and commit legacy copies from the canonical engineering-guidance repository. Consumers install those committed copies; downloading the corpus is not a bootstrap dependency. Personal collaboration rules remain maintained in ai-dotfiles.
 - Foreign instruction files, symlinks, and personal guidance source locations remain active until their owner reconciles them. Installation refuses before rebuilding live outputs or rewiring those locations. Generated files explicitly owned by ai-dotfiles remain managed outputs.
 - Compatibility is checked against Claude/Codex delivery visible in the invoking environment, irrespective of aiwf's selected artifact hosts. No ai-dotfiles installation is required when none is present. The signal covers the documented delivery contract, not other environments, arbitrary personal imports, Copilot, or already-running sessions. The executable contract and remediation are documented in the ai-dotfiles README.
@@ -149,10 +149,19 @@ The initial `codex legacy` attempt also exited zero but both shell reads failed 
 
 Local evidence is under `/tmp/m0345-ac4-e2u9x6qc/observations/`: each session directory contains `command.json`, `events.jsonl`, `stderr.log`, `files.trace`, `exit-code.txt`, `summary.json`, and `evidence.md`. Native Claude records are under the fixture home's `.claude/projects`; Codex records use the isolated profile's `sessions` directory, with the failed attempt retained under the original fixture profile. The preparation and launch scripts are `/tmp/prepare-m0345-ac4.py` and `/tmp/run-m0345-ac4.py`. These are transient local artifacts; this milestone records the observation and its limits durably. Trace buffers were suppressed; the initial Claude legacy trace used raw read arguments, so its personal-content evidence comes from the native rendered attachment instead of syscall-path attribution.
 
+
+### Unreadable project index
+
+Observed on 2026-09-21 in the same Linux fixture environment with Claude CLI 2.1.278, model `claude-opus-5[1m]`, and ai-dotfiles routing from `735a129`. Command: `python3 /tmp/run-m0345-ac4.py claude unreadable`, with the same prompt, timeout, and budget as the other Claude observations. A regular `.guidance/index.md` with mode `000` raised `PermissionError` in a local read probe as UID 1000 before launch. Expected the assistant to report the unreadable index, retain personal instructions, and avoid legacy fallback; provisional general advice must be labelled as such and warn about unknown project rules.
+
+Observed exit zero and a successful CLI result, with reported usage cost $0.153289. The index Read returned `EACCES`. Claude reported that it could not establish the project's guidance ownership or rubric, labelled its review as based on standard Go idiom and the explicit request, and warned that findings might need reassessment against project rules. It then gave provisional error-handling and style advice and requested restored permissions or operator direction. Native rendered instructions retained the personal source content. No legacy engineering module reads or global rubric tool reads were observed; runtime skill discovery still read the global skill file. This distinguishes an unreadable index from the missing-index legacy baseline without claiming that the new routing wording has been exercised in a fresh session.
+
+Evidence is retained under `/tmp/m0345-ac4-e2u9x6qc/observations/claude-unreadable/`, including the raw events, file trace, final response, and personal-content comparison. The shared routing now explicitly permits the warned provisional advice described by D-0097; build and ownership tests verify generated delivery and synchronization behavior, not future model compliance. The Codex unreadable-index observation remains required.
+
 ## Deferrals
 
 - (none)
 
 ## Reviewer notes
 
-- D-0097 additionally requires fresh-session observations distinguishing an unreadable index from a missing one. The recorded selected/empty/legacy sessions do not establish that behavior. Those observations remain outstanding before milestone closure.
+- D-0097 requires fresh-session observations distinguishing an unreadable index from a missing one. The Claude unreadable-index observation is recorded above; the Codex observation remains outstanding before milestone closure.
