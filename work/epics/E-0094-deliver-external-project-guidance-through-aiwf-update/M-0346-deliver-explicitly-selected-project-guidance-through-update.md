@@ -1,7 +1,7 @@
 ---
 id: M-0346
 title: Deliver explicitly selected project guidance through update
-status: draft
+status: in_progress
 parent: E-0094
 depends_on:
     - M-0344
