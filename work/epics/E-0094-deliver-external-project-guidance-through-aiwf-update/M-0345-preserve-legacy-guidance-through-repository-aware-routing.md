@@ -1,7 +1,7 @@
 ---
 id: M-0345
 title: Preserve legacy guidance through repository-aware routing
-status: in_progress
+status: done
 parent: E-0094
 depends_on:
     - M-0344
