@@ -92,6 +92,7 @@ The ai-dotfiles compatibility update keeps personal instructions active while di
 - ai-dotfiles maintainers refresh and commit legacy copies from the canonical engineering-guidance repository. Consumers install those committed copies; downloading the corpus is not a bootstrap dependency. Personal collaboration rules remain maintained in ai-dotfiles.
 - Foreign instruction files, symlinks, and personal guidance source locations remain active until their owner reconciles them. Installation refuses before rebuilding live outputs or rewiring those locations. Generated files explicitly owned by ai-dotfiles remain managed outputs.
 - Compatibility is checked against Claude/Codex delivery visible in the invoking environment, irrespective of aiwf's selected artifact hosts. No ai-dotfiles installation is required when none is present. The signal covers the documented delivery contract, not other environments, arbitrary personal imports, Copilot, or already-running sessions. The executable contract and remediation are documented in the ai-dotfiles README.
+- When an ai-dotfiles host entry point or synchronization launcher is detected, every nonempty effective global instruction file must declare compatible routing, including custom Codex overrides. The owner reconciles personal content and engineering routing; the checker does not rewrite it. Without detectable ai-dotfiles, unrelated personal instructions remain allowed, so an isolated unmarked historical copy is outside the recognition guarantee. This global-file rule does not apply to handwritten `.guidance/project.md` preferences.
 
 ## Validation
 
@@ -116,6 +117,12 @@ Observed on 2026-09-20 in the Linux devcontainer as an unprivileged user, using 
 
 Independent review findings about override selection, ancestor accessibility, shared-directory writes, PATH-only synchronization, and personal-document type were reproduced and pinned in the tests above. The final full-surface review approved the implementation; its follow-up confirmed the final branch-audit test additions.
 
+
+### Conservative compatibility recognition
+
+Observed on 2026-09-21 in the Linux devcontainer using the ai-dotfiles milestone checkout. A frozen fixture reproduces the exact unmarked Codex bundle generated from ai-dotfiles revision `2552653`. Before the correction, `sh test/guidance-check.test.sh` failed with `FAIL: detected installation accepted an unmarked legacy override`. After the correction, the suite passed: detected installations reject unrecognized effective global files, including custom overrides and launcher-only detection, while empty files and custom instructions without detectable ai-dotfiles remain allowed. Every `test/*.test.sh` suite, changed-script `sh -n`, and `git diff --check` passed; command output is retained locally in `/tmp/m0345-conservative-validation.log`.
+
+Independent correction review approved the change after verifying the historical fixture byte-for-byte, testing paths containing spaces, checking that invocations preserve fixture bytes, and exercising custom Claude files, Codex overrides, and launcher-only detection. This is a scoped correction verdict, not milestone closure. The design review recommends keeping the checker structure; its isolated compression trial preserved the tests but provided no structural simplification worth replacing the implementation.
 
 ### Fresh-session guidance routing
 
@@ -148,4 +155,4 @@ Local evidence is under `/tmp/m0345-ac4-e2u9x6qc/observations/`: each session di
 
 ## Reviewer notes
 
-- (none)
+- D-0097 additionally requires fresh-session observations distinguishing an unreadable index from a missing one. The recorded selected/empty/legacy sessions do not establish that behavior. Those observations remain outstanding before milestone closure.
