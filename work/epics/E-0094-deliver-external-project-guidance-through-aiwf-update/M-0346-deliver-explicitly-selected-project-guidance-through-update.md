@@ -13,7 +13,7 @@ acs:
       status: met
       tdd_phase: done
     - id: AC-2
-      title: Update retrieves current guidance without a persistent cache
+      title: Retrieval validates current guidance without a persistent cache
       status: open
     - id: AC-3
       title: Installation preserves ownership and produces tracked project files
@@ -46,7 +46,7 @@ The external corpus and compatible ai-dotfiles delivery exist. This milestone se
 
 Default to the agreed upstream with maintenance enabled; support one source override, selected packs, ignored pack ids, and maintenance opt-out while preserving existing guidance fields and unrelated YAML. Distinguish absent selection from an explicitly adopted empty selection so an unconfigured noninteractive run cannot withdraw legacy guidance. Reject invalid or overlapping selected/ignored state with a remedy. References: `internal/config/config.go`, schema, examples, and init/update integration tests.
 
-### AC-2 — Update retrieves current guidance without a persistent cache
+### AC-2 — Retrieval validates current guidance without a persistent cache
 
 Use a temporary Git clone of the source's default branch through existing credentials, validate the catalogue and every selected document, and clean temporary data on success, failure, and cancellation. Return validated selected content with the exact fetched source commit; repeated retrieval reflects changes to upstream. References: guidance retrieval for `internal/initrepo/` and local-Git fixtures. Test unavailable sources, missing selections, malformed content, and unsafe paths without live network dependencies.
 
