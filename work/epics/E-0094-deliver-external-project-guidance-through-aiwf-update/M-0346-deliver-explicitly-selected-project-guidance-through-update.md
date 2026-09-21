@@ -10,7 +10,7 @@ tdd: required
 acs:
     - id: AC-1
       title: Explicit configuration controls maintenance without adopting policy
-      status: open
+      status: met
       tdd_phase: done
     - id: AC-2
       title: Update retrieves current guidance without a persistent cache
