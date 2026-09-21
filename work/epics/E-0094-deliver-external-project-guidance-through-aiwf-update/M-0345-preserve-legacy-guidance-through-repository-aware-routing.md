@@ -21,7 +21,7 @@ acs:
       tdd_phase: done
     - id: AC-4
       title: Fresh sessions demonstrate legacy fallback and exclusive project reads
-      status: open
+      status: met
       tdd_phase: done
 ---
 ## Goal
