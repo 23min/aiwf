@@ -156,7 +156,12 @@ Observed on 2026-09-21 in the same Linux fixture environment with Claude CLI 2.1
 
 Observed exit zero and a successful CLI result, with reported usage cost $0.153289. The index Read returned `EACCES`. Claude reported that it could not establish the project's guidance ownership or rubric, labelled its review as based on standard Go idiom and the explicit request, and warned that findings might need reassessment against project rules. It then gave provisional error-handling and style advice and requested restored permissions or operator direction. Native rendered instructions retained the personal source content. No legacy engineering module reads or global rubric tool reads were observed; runtime skill discovery still read the global skill file. This distinguishes an unreadable index from the missing-index legacy baseline without claiming that the new routing wording has been exercised in a fresh session.
 
-Evidence is retained under `/tmp/m0345-ac4-e2u9x6qc/observations/claude-unreadable/`, including the raw events, file trace, final response, and personal-content comparison. The shared routing now explicitly permits the warned provisional advice described by D-0097; build and ownership tests verify generated delivery and synchronization behavior, not future model compliance. The Codex unreadable-index observation remains required.
+Evidence is retained under `/tmp/m0345-ac4-e2u9x6qc/observations/claude-unreadable/`, including the raw events, file trace, final response, and personal-content comparison. The shared routing now explicitly permits the warned provisional advice described by D-0097; build and ownership tests verify generated delivery and synchronization behavior, not future model compliance. The Codex observation below exercises the clarified wording.
+
+
+Observed on 2026-09-21 in the same Linux fixture environment with Codex CLI 0.155.0, model `gpt-6-astra`. Command: `python3 /tmp/run-m0345-ac4.py codex unreadable`, retaining the read-only sandbox, three-minute timeout, and original review prompt. The isolated profile `/home/vscode/.cache/m0345-ac4-codex-clarified` contains generated instructions from ai-dotfiles `5a902aa`; the fixture home's legacy modules and global skill remain from `735a129`. Expected a warning, retained personal instructions, no legacy fallback, and explicitly provisional general advice under D-0097.
+
+Observed CLI exit zero and a completed turn. The index-read command exited one with `Permission denied`. Codex inspected the Go source and module, returned an error-handling finding, and warned in the same final response that project guidance could not be loaded and its provisional advice might conflict with project rules. Native `world_state.agents_md` contains the complete clarified manifest and personal source content. No command reads legacy engineering modules or the global rubric, and no positive legacy engineering module reads appear in the file trace. Runtime skill discovery read the global skill. Token usage, raw command results, manifest hash, native record location, and the final response are retained under `/tmp/m0345-ac4-e2u9x6qc/observations/codex-unreadable/`. This is evidence of observed behavior, not a guarantee of future compliance.
 
 ## Deferrals
 
@@ -164,4 +169,4 @@ Evidence is retained under `/tmp/m0345-ac4-e2u9x6qc/observations/claude-unreadab
 
 ## Reviewer notes
 
-- D-0097 requires fresh-session observations distinguishing an unreadable index from a missing one. The Claude unreadable-index observation is recorded above; the Codex observation remains outstanding before milestone closure.
+- D-0097 unreadable-index observations are recorded for both hosts. Claude exercised the earlier routing and warned before provisional advice; Codex exercised the clarified routing and included its warning with the finding. Neither observation establishes future model compliance.
