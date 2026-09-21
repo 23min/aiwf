@@ -1328,7 +1328,7 @@ Let maintainers use `aiwf init` and `aiwf update` to select, refresh, and delive
 | Milestone | Title | Status |
 |---|---|---|
 | M-0344 | Publish the external engineering guidance corpus | done |
-| M-0345 | Preserve legacy guidance through repository-aware routing | in_progress |
+| M-0345 | Preserve legacy guidance through repository-aware routing | done |
 | M-0346 | Deliver explicitly selected project guidance through update | draft |
 | M-0347 | Suggest applicable guidance during init and update | draft |
 | M-0348 | Verify migration and establish the reduction prerequisite | draft |
