@@ -1,7 +1,7 @@
 ---
 id: D-0098
 title: Finish interrupted guidance installation on the next update
-status: proposed
+status: accepted
 relates_to:
     - M-0346
     - E-0094
