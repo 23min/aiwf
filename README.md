@@ -276,11 +276,16 @@ repositories, and does not follow symbolic links. Output-like directory names
 such as `bin`, `build`, and `out` are not exclusions by themselves; use Git ignore
 rules for generated material there.
 
-Remove a pack from `packs` to retire its unmodified generated files, and add it to
-`ignored` to suppress future suggestions. Removing `packs` entirely leaves policy
-unadopted rather than retiring installed files; use `packs: []` for an explicitly
-empty selection. `enabled: false` preserves installed files and routing without
-downloading anything.
+Remove a pack from `packs` to retire its unmodified generated files on the next
+`aiwf update`, and add it to `ignored` to suppress future suggestions. To reconsider
+an ignored pack, remove its id from `ignored` and run `aiwf update`; matching packs
+become eligible for suggestions again. Removing only the selection can therefore
+produce a new suggestion. If you remove the last selected pack, keep `packs: []`:
+omitting `packs` entirely leaves policy unadopted rather than retiring installed
+files. Locally edited generated files block removal or replacement; preserve your
+changes in `.guidance/project.md` or reconcile the generated file before retrying.
+Handwritten overrides and unowned files are retained. `enabled: false` preserves
+installed files and routing without downloading anything.
 
 Commit `.guidance/index.md`, `.guidance/packs/`, `.guidance/.aiwf-owned`, and the
 managed routing blocks in `CLAUDE.md` and `AGENTS.md`. Keep handwritten exceptions
