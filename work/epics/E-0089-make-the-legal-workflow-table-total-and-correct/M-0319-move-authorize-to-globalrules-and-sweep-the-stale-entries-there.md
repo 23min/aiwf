@@ -18,6 +18,10 @@ Take `authorize` out of the cell table and express its kind restriction where it
 other rules already live, sweeping the retired entries sitting there while the file
 is open.
 
+## Closes
+
+- G-0417 — retire the unused branch error type and descriptor, and correct the spec and policy references.
+
 ## Context
 
 `authorize` binds a scope to a branch. It has no `FromState` semantics: its four
@@ -27,13 +31,11 @@ eight of its coordinates. Of the 50 undeclared coordinates measured on 2026-08-2
 29 are `authorize`.
 
 D-0077 rules that it leaves the cell table. The destination is not new:
-`GlobalRules()` already holds four `authorize` rules —
-`provenance-authorization-out-of-scope`, `branch-context-required`,
-`branch-not-found` and `rung-pair-illegal` — as cross-cutting preconditions with no
-cell coordinate, which is the shape ADR-0013 created. The four cells in `Rules()`
-are the outliers.
+`GlobalRules()` already holds authorization preconditions without a cell
+coordinate, which is the shape ADR-0013 created. The kind-restriction cells
+in `Rules()` belong with those global preconditions.
 
-Two of those global entries are already stale. G-0417 records that
+G-0417 records that
 `branch-not-found` was subsumed by `rung-pair-illegal` per D-0018, leaving a dead
 code path in `internal/verb/authorize.go` and entries citing the retired code in
 `GlobalRules()`, in `branch/rules.go`, and in a policy test's keyword map. Adding
@@ -67,10 +69,13 @@ the retired code across `internal/` returns nothing, and the command is recorded
 
 ## Design notes
 
-`GlobalRules()` holds four entries today, so this roughly doubles it. That is the
-intended direction under ADR-0013 — a precondition carrying no cell coordinate
-belongs there — and it is worth stating plainly, since a reader meeting a grown
-global list should not read it as the cell table leaking.
+A kind restriction is independent of entity status. Express it as a global
+precondition, retaining D-0007 as its source and exercising every excluded kind.
+Other global rules remain outside this milestone's scope.
+
+The branch-rule cleanup must align both the declared predicate and its error code
+with the rung-pair rule: a missing branch can be a valid future ritual branch, so
+nonexistence alone must not declare the request illegal.
 
 ## Out of scope
 
