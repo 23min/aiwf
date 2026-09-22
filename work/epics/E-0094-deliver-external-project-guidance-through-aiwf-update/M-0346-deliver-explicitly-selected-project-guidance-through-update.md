@@ -19,6 +19,7 @@ acs:
     - id: AC-3
       title: Installation preserves ownership and produces tracked project files
       status: open
+      tdd_phase: red
     - id: AC-4
       title: Failures and removal preserve a coherent installed selection
       status: open
