@@ -1,7 +1,7 @@
 ---
 id: M-0318
 title: Split every cell by target and correct the contradicted outcomes
-status: in_progress
+status: done
 parent: E-0089
 tdd: required
 acs:
