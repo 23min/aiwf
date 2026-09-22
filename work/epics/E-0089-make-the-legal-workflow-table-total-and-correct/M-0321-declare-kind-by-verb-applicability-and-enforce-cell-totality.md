@@ -34,9 +34,9 @@ other kinds have meaningful cancellation requests even where a particular status
 makes the request a refusal or a NoOp. Those statuses remain inside the table's
 coverage obligation.
 
-The table still omits cancellation coordinates whose behavior the kernel already
-implements. This milestone represents those requests and tests them through the
-existing drivers so the totality policy can hold without exemptions.
+Cancellation coordinates belong in the table even when their outcomes follow
+existing kernel behavior. The outcome drivers must exercise those requests so
+the totality policy holds without exemptions.
 
 ## Acceptance criteria
 
@@ -98,8 +98,9 @@ Measured on 2026-09-22 in the Linux amd64 devcontainer with Go 1.25.11,
 at epic commit `486820a00`. `go run bin/m0321-preflight.go` enumerated
 `entity.AllKinds()` plus the AC and TDD-phase sub-FSMs, their allowed states
 (including the empty phase), and `promote`/`cancel`, querying `spec.LookupRules`
-for each coordinate. The script is a session artifact; the totality policy will
-make this enumeration repeatable from committed source.
+for each coordinate. The script is a session artifact, now at
+`/tmp/aiwf-m0321-preflight.go`. The committed totality policy provides the
+repeatable applicable-coordinate enumeration recorded under Validation.
 
 Expected: locate every empty coordinate before deciding the implementation scope.
 Observed: 66 coordinates, 21 empty, all under `cancel`. The 5 TDD-phase coordinates
@@ -109,7 +110,79 @@ statuses, 2 terminal AC statuses, accepted decision, and deprecated contract.
 `go test -count=1 -parallel 8 -run 'TestCancel|TestAC.*Cancel' ./internal/verb`
 and `go test -count=1 -run '^TestCancelTarget$' ./internal/entity` were expected to
 pass and did (exit 0). These establish the existing cancellation baseline and
-state-aware target selection; the new per-cell tests must still exercise every
-added coordinate. `go build -o bin/aiwf-diag ./cmd/aiwf` also exited 0 as expected.
-The full non-race suite and lint passed for M-0320; no Go or build input has changed
-since that run.
+state-aware target selection; the per-cell driver measurements below establish
+coverage of the added coordinates. `go build -o bin/aiwf-diag ./cmd/aiwf` also exited 0 as expected.
+
+## Release note
+
+No user-facing behavior changed.
+
+## Validation
+
+Measured on 2026-09-22 in the Linux amd64 devcontainer with Go 1.25.11,
+on the milestone branch; implementation commits `b651a72a6` and `e2c228d3d`.
+
+- `go test -count=1 -parallel 8 -run '^TestM0321_AC1' ./internal/policies`:
+  expected the complete applicability table and validation fixtures to pass;
+  observed PASS. Fixtures cover missing, duplicate and unknown pairs, missing
+  reasons, and domain growth; the domain assertion rejects incorrect applicability.
+- `go test -count=1 -v -run '^TestM0321_AC2_ApplicableCoordinatesHaveRules$' ./internal/policies`:
+  expected no missing applicable coordinate and a reported count; observed PASS,
+  `checked 61 applicable coordinates`. Removing the last row is tested separately
+  for entity, AC-status and empty-phase coordinates; removing a companion row
+  preserves coverage.
+- `go test -json -count=1 -parallel 8 -run 'TestM0124_PositiveDriver_LegalCells|TestM0125_AC2_NegativeDriver_VerbTimeRejection|TestM0318_AC3_NoOpCells' ./internal/policies`:
+  expected all old requests to remain and every added row to execute. Comparing
+  passing subtest-name sets before and after the AC-2 implementation found no
+  removed request: positive cases 40 → 41, negative cases 62 → 63, NoOp cases
+  18 → 32. Both runs exited 0; the after selection also included `TestM0321_AC2`.
+  The added requests exercise deprecated-contract retirement, accepted-decision
+  refusal and terminal cancellation convergence. Logs are session artifacts at
+  `/tmp/aiwf-m0321-ac2-before.json` and `/tmp/aiwf-m0321-ac2-after.json`.
+- `make test`: expected the full non-race suite to pass; observed exit 0, all
+  packages passed. After helper lint fixes,
+  `go test -count=1 -parallel 8 ./internal/policies` passed in 36.890s.
+- `make vet`: expected ordinary, stress and testpins checks to pass; observed exit 0.
+- `GOLANGCI_LINT_CACHE="$(git rev-parse --absolute-git-dir)/golangci-lint-cache" golangci-lint run --allow-serial-runners`:
+  expected the full configured lint set to pass; observed exit 0, `0 issues.`
+  Serial runner mode accommodates concurrent worktree linting without disabling
+  checks. The aggregate `make check-fast` did not pass: its attempts encountered
+  a scratch Go file and then the shared linter lock. Its test, vet and lint
+  components passed separately after the scratch file moved outside the checkout.
+- `go build -o bin/aiwf-diag ./cmd/aiwf`: expected a successful build; observed exit 0.
+- `bin/aiwf-diag check --since 486820a00`: expected no new findings; observed
+  exit 0, 0 errors and 17 baseline warnings.
+- `git diff --check`: expected no whitespace errors; observed exit 0.
+
+The production additions are data and documentation, with no new runtime branch.
+The policy fixtures exercise applicability validation and all three state domains;
+the NoOp driver exercises both promote and cancel messages.
+
+`python3 /tmp/aiwf-m0321-ac1-probes.py` and
+`python3 /tmp/aiwf-m0321-ac2-probes.py` (including selected reruns) were expected to
+make deliberately broken implementations fail an intended assertion. All eight
+probes per AC were caught without compilation failures. AC-1 probes cover missing,
+duplicate and unknown pairs, blank reasons, both incorrect applicability
+polarities, and new kinds and verbs. AC-2 probes cover a missing row, reversed
+applicability filtering, omitted empty-phase and AC states, an incorrect contract
+target, disabled entity and AC terminal convergence, and an incorrect cancel
+message. These scripts and their logs are session artifacts; the standing checks
+are in `internal/policies/m0321_applicability_test.go`,
+`internal/policies/m0321_totality_test.go` and the existing outcome drivers.
+
+`gremlins unleash ./internal/workflows/spec/... --diff HEAD --workers 1 --timeout-coefficient 15`
+was expected to identify supported mutations during each AC's uncommitted source
+change. Both runs exited 0 with `No results to report`; static data produced no
+supported mutants. This is not mutation-coverage evidence.
+
+Full race/CI was not run at this local milestone boundary, per the repository's
+validation cadence.
+
+## Decisions made during implementation
+
+None beyond D-0077's applicability ruling and the existing cancellation behavior
+covered by ADR-0036 and the kernel's transition rules.
+
+## Deferrals
+
+None.
