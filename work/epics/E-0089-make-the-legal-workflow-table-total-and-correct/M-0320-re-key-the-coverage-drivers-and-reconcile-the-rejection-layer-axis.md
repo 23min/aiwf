@@ -12,7 +12,7 @@ acs:
       status: cancelled
     - id: AC-2
       title: Each cell's rejection layer matches where the kernel actually refuses
-      status: open
+      status: met
       tdd_phase: done
 ---
 ## Goal
