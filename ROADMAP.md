@@ -1242,7 +1242,7 @@ the moving verb owns — in either direction.
 | M-0316 | Kill the link primitive's surviving mutants | done |
 | M-0317 | Settle whether ADR-0033's docs delegation fires | done |
 
-## E-0089 — Make the legal-workflow table total and correct (active)
+## E-0089 — Make the legal-workflow table total and correct (done)
 
 ### Goal
 
