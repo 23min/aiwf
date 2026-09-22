@@ -26,34 +26,45 @@ import (
 // itself may be lost on power failure, leaving the old file intact.
 // Both match the canonical sequence G-0221 specifies.
 func AtomicWriteFile(path string, data []byte, perm os.FileMode) error {
+	tmp, err := StageAtomicWriteFile(path, data, perm)
+	if err != nil {
+		return err
+	}
+	if err := os.Rename(tmp, path); err != nil {
+		_ = os.Remove(tmp)
+		return fmt.Errorf("renaming %s -> %s: %w", tmp, path, err)
+	}
+	return nil
+}
+
+// StageAtomicWriteFile writes and syncs a sibling temporary file. The caller
+// must rename it onto path or remove it; staging a set before its first rename
+// lets multi-file writers validate and persist their recovery record first.
+func StageAtomicWriteFile(path string, data []byte, perm os.FileMode) (string, error) {
 	dir := filepath.Dir(path)
 	base := filepath.Base(path)
 	f, err := os.CreateTemp(dir, base+".aiwf-tmp-")
 	if err != nil {
-		return fmt.Errorf("creating temp file for %s: %w", path, err)
+		return "", fmt.Errorf("creating temp file for %s: %w", path, err)
 	}
 	tmp := f.Name()
 	if _, wErr := f.Write(data); wErr != nil { //coverage:ignore not portably triggerable: writing a fresh temp file fails only on disk-full / device errors
 		_ = f.Close()
 		_ = os.Remove(tmp)
-		return fmt.Errorf("writing %s: %w", tmp, wErr)
+		return "", fmt.Errorf("writing %s: %w", tmp, wErr)
 	}
 	if sErr := f.Sync(); sErr != nil { //coverage:ignore not portably triggerable: fsync on a healthy fd fails only on device errors
 		_ = f.Close()
 		_ = os.Remove(tmp)
-		return fmt.Errorf("syncing %s: %w", tmp, sErr)
+		return "", fmt.Errorf("syncing %s: %w", tmp, sErr)
 	}
 	if cErr := f.Close(); cErr != nil { //coverage:ignore not portably triggerable: close after a successful fsync fails only on device errors
 		_ = os.Remove(tmp)
-		return fmt.Errorf("closing %s: %w", tmp, cErr)
+		return "", fmt.Errorf("closing %s: %w", tmp, cErr)
 	}
 	if mErr := os.Chmod(tmp, perm); mErr != nil { //coverage:ignore not portably triggerable: chmod on an owned fresh temp file fails only if it is removed concurrently
 		_ = os.Remove(tmp)
-		return fmt.Errorf("chmod %s: %w", tmp, mErr)
+		return "", fmt.Errorf("chmod %s: %w", tmp, mErr)
 	}
-	if rErr := os.Rename(tmp, path); rErr != nil {
-		_ = os.Remove(tmp)
-		return fmt.Errorf("renaming %s -> %s: %w", tmp, path, rErr)
-	}
-	return nil
+	return tmp, nil
 }

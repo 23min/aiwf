@@ -479,13 +479,17 @@ func run(ctx context.Context, workdir string, args ...string) error {
 	cmd := exec.CommandContext(ctx, "git", args...)
 	cmd.Dir = workdir
 	cmd.Env = gitEnv()
+	return runCommand(cmd)
+}
+
+func runCommand(cmd *exec.Cmd) error {
 	out, err := cmd.CombinedOutput()
 	if err != nil {
 		var exitErr *exec.ExitError
 		if errors.As(err, &exitErr) {
-			return fmt.Errorf("git %s: %w\n%s", args[0], err, strings.TrimSpace(string(out)))
+			return fmt.Errorf("git %s: %w\n%s", cmd.Args[1], err, strings.TrimSpace(string(out)))
 		}
-		return fmt.Errorf("git %s: %w", args[0], err)
+		return fmt.Errorf("git %s: %w", cmd.Args[1], err)
 	}
 	return nil
 }

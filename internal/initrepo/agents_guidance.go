@@ -2,11 +2,9 @@ package initrepo
 
 import (
 	"context"
-	"errors"
 	"fmt"
 	"os"
 	"path/filepath"
-	"strings"
 
 	"github.com/23min/aiwf/internal/config"
 	"github.com/23min/aiwf/internal/pathutil"
@@ -62,46 +60,6 @@ func ensureAgentsGuidance(ctx context.Context, root string, cfg *config.Config, 
 	return StepResult{What: what, Action: action, Detail: "wired native guidance"}, nil
 }
 
-// spliceAgentsGuidance owns whole marker lines and their enclosed content.
-// Offsets preserve every byte outside that span, including the end line's
-// delimiter. Only standalone markers count; quoted prose is ordinary text.
 func spliceAgentsGuidance(content, body string) (string, error) {
-	start, end := -1, -1
-	offset := 0
-	for _, line := range strings.SplitAfter(content, "\n") {
-		trimmed := strings.TrimSpace(line)
-		switch trimmed {
-		case guidanceImportStartMarker:
-			if start >= 0 {
-				return "", errors.New("duplicate START")
-			}
-			start = offset
-		case guidanceImportEndMarker:
-			if end >= 0 {
-				return "", errors.New("duplicate END")
-			}
-			end = offset + len(strings.TrimSuffix(strings.TrimSuffix(line, "\n"), "\r"))
-		default:
-			if strings.HasPrefix(trimmed, "<!-- aiwf:guidance:") && strings.HasSuffix(trimmed, "-->") {
-				return "", errors.New("unrecognized marker")
-			}
-		}
-		offset += len(line)
-	}
-	block := guidanceImportStartMarker + "\n" + strings.TrimSuffix(body, "\n") + "\n" + guidanceImportEndMarker
-	switch {
-	case start < 0 && end < 0:
-		if content == "" {
-			return block + "\n", nil
-		}
-		separator := "\n\n"
-		if strings.HasSuffix(content, "\n") {
-			separator = "\n"
-		}
-		return content + separator + block + "\n", nil
-	case start < 0 || end < 0 || start >= end:
-		return "", errors.New("missing or reversed START/END")
-	default:
-		return content[:start] + block + content[end:], nil
-	}
+	return pathutil.SpliceManagedBlock(content, body, guidanceImportStartMarker, guidanceImportEndMarker, "<!-- aiwf:guidance:")
 }
