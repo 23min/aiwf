@@ -56,7 +56,7 @@ func TestM0318_AC3_TerminalStatusTargetsDeclared(t *testing.T) {
 func TestM0318_AC3_DeclaredOutcomeShape(t *testing.T) {
 	t.Parallel()
 	for _, r := range spec.Rules() {
-		if r.Verb != "authorize" && r.ToState == "" {
+		if r.ToState == "" {
 			t.Errorf("missing target: %+v", r)
 		}
 		if r.Outcome == spec.OutcomeNoOp && (r.ToState != r.FromState || r.ExpectedErrorCode != "" || r.RejectionLayer != spec.RejectionLayerNone || r.BlockingStrict) {

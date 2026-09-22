@@ -13,7 +13,7 @@ import (
 //   - Every (Kind, FromState) appearing in entity.transitions /
 //     entity.acTransitions / entity.tddPhaseTransitions has at least one
 //     corresponding cell.
-//   - Every top-level Cobra verb is referenced by at least one cell.
+//   - Every legality verb is referenced by a transition or global rule.
 //   - Every legality-pertinent finding code is referenced by at least one
 //     illegal-outcome cell.
 //   - Every Rule satisfies the schema invariants (Outcome != Unspecified;
@@ -29,7 +29,6 @@ func Rules() []Rule {
 	out = append(out, contractRules()...)
 	out = append(out, acRules()...)
 	out = append(out, tddPhaseRules()...)
-	out = append(out, authorizeKindRestrictionRules()...)
 	return out
 }
 
@@ -37,7 +36,7 @@ func Rules() []Rule {
 // transition cells (ADR-0013) — kept out of [Rules] so every
 // per-cell consumer (the m0124/m0125 coverage drivers, the coordinate-
 // resolution drift arms, key-uniqueness) iterates cells only, with no
-// per-rule exclusion. Only the code-oriented AC-5 drift arms union
+// per-rule exclusion. Code- and verb-oriented drift arms union
 // Rules() and GlobalRules().
 //
 // Each entry carries its own comment naming what it refuses and the
@@ -52,6 +51,19 @@ func Rules() []Rule {
 // ADR-0011 §"Scope".
 func GlobalRules() []Rule {
 	return []Rule{
+		// D-0007: autonomous-work scopes belong only to epics and milestones.
+		{
+			Verb: "authorize",
+			Preconditions: []Predicate{
+				{Subject: "self.kind", Op: "!=", Value: "epic"},
+				{Subject: "self.kind", Op: "!=", Value: "milestone"},
+			},
+			Outcome:           OutcomeIllegal,
+			ExpectedErrorCode: "authorize-kind-not-allowed",
+			RejectionLayer:    RejectionLayerVerbTime,
+			BlockingStrict:    true,
+			Sources:           RuleSource{Audit: []string{"R-AUDIT-0122"}, FP: []string{"R-FP-0133"}, Decision: "D-0007"},
+		},
 		{
 			Preconditions:     []Predicate{{Subject: "scope-reach", Op: "==", Value: "false"}},
 			Outcome:           OutcomeIllegal,
@@ -1441,53 +1453,6 @@ func tddPhaseRules() []Rule {
 			RejectionLayer:    RejectionLayerVerbTime,
 			BlockingStrict:    true,
 			Sources:           RuleSource{Audit: []string{"R-AUDIT-0047"}, FP: []string{"R-FP-0057"}},
-		},
-	}
-}
-
-// Q15 / D-0007: authorize refuses non-{epic, milestone} scope-entity kinds.
-// Four illegal cells, one per disallowed Kind.
-func authorizeKindRestrictionRules() []Rule {
-	return []Rule{
-		{
-			Kind:              entity.KindGap,
-			FromState:         "open",
-			Verb:              "authorize",
-			Outcome:           OutcomeIllegal,
-			ExpectedErrorCode: "authorize-kind-not-allowed",
-			RejectionLayer:    RejectionLayerVerbTime,
-			BlockingStrict:    true,
-			Sources:           RuleSource{Audit: []string{"R-AUDIT-0122"}, FP: []string{"R-FP-0133"}, Decision: "D-0007"},
-		},
-		{
-			Kind:              entity.KindDecision,
-			FromState:         "proposed",
-			Verb:              "authorize",
-			Outcome:           OutcomeIllegal,
-			ExpectedErrorCode: "authorize-kind-not-allowed",
-			RejectionLayer:    RejectionLayerVerbTime,
-			BlockingStrict:    true,
-			Sources:           RuleSource{Audit: []string{"R-AUDIT-0122"}, FP: []string{"R-FP-0133"}, Decision: "D-0007"},
-		},
-		{
-			Kind:              entity.KindContract,
-			FromState:         "proposed",
-			Verb:              "authorize",
-			Outcome:           OutcomeIllegal,
-			ExpectedErrorCode: "authorize-kind-not-allowed",
-			RejectionLayer:    RejectionLayerVerbTime,
-			BlockingStrict:    true,
-			Sources:           RuleSource{Audit: []string{"R-AUDIT-0122"}, FP: []string{"R-FP-0133"}, Decision: "D-0007"},
-		},
-		{
-			Kind:              entity.KindADR,
-			FromState:         "proposed",
-			Verb:              "authorize",
-			Outcome:           OutcomeIllegal,
-			ExpectedErrorCode: "authorize-kind-not-allowed",
-			RejectionLayer:    RejectionLayerVerbTime,
-			BlockingStrict:    true,
-			Sources:           RuleSource{Audit: []string{"R-AUDIT-0122"}, FP: []string{"R-FP-0133"}, Decision: "D-0007"},
 		},
 	}
 }
