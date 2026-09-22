@@ -164,3 +164,21 @@ reported `No results to report` before the implementation commit: static enum
 assignments produced no supported mutants. This is not mutation-coverage evidence.
 Full race/CI was not run at this local milestone boundary; it gates epic
 integration and push under the repository's validation cadence.
+
+## Reviewer notes
+
+Independent full-change review of `e11dc5343..819096a91`: approve, with no blocking
+findings or new deferrals. The reviewer reran the transition drivers, coverage
+checks, forced-gap backstop, and policy-change integration tests successfully.
+The review found no loss of requests or protection in the deleted harness
+machinery.
+
+No new module, core abstraction, interface or data model requires a separate
+design review. There is no new production logic to compress; the static rule
+corrections and tests for distinct behavioral obligations need no rewrite trial.
+
+Scoped doc-lint: no actionable findings. Changed planning documents have valid
+heading structure and local links, and the documented policy command resolves
+against CLI help. The removed-driver references in the entity-truth audit remain
+as measurements of the kernel commit explicitly named by that dated snapshot;
+rewriting them as measurements of the current tree would misstate their subject.
