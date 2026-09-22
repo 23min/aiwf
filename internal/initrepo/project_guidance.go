@@ -22,6 +22,10 @@ func ensureProjectGuidance(ctx context.Context, root string, cfg *config.Config,
 		step.Detail = fmt.Sprintf("guidance incomplete: %v", err)
 		return step
 	}
+	if err = projectguidance.CheckCompatibility(ctx); err != nil {
+		step.Detail = fmt.Sprintf("guidance incomplete: %v", err)
+		return step
+	}
 	var hosts []string
 	for _, host := range selection.Hosts {
 		if host == config.HostClaudeCode && opts.WireClaudeMd {

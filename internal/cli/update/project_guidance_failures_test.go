@@ -115,12 +115,16 @@ func guidanceInstallBaseline(t *testing.T, root, source string) string {
 }
 
 func TestRun_ProjectGuidanceFailuresPreserveInstallationAndContinue(t *testing.T) {
+	testsupport.IsolateGuidanceEnvironment(t)
 	for _, kind := range []string{"unavailable source", "invalid catalogue", "missing pack", "missing document", "edited document", "edited retired document", "first installation"} {
 		t.Run(kind, func(t *testing.T) {
 			root, source := freshInitializedRepo(t), testsupport.GuidanceSource(t)
 			guidanceConfig(t, root, source, "[sample/base]", true)
 			if kind != "first installation" {
 				guidanceInstallBaseline(t, root, source)
+			} else {
+				guidanceConfig(t, root, source, "[sample/base]", false)
+				guidanceUpdate(t, root)
 			}
 			switch kind {
 			case "unavailable source", "first installation":
@@ -161,6 +165,7 @@ func TestRun_ProjectGuidanceFailuresPreserveInstallationAndContinue(t *testing.T
 }
 
 func TestRun_ProjectGuidanceDisabledPreservesInstallationWithoutRetrieval(t *testing.T) {
+	testsupport.IsolateGuidanceEnvironment(t)
 	root, source := freshInitializedRepo(t), testsupport.GuidanceSource(t)
 	trace := filepath.Join(t.TempDir(), "git-trace")
 	t.Setenv("GIT_TRACE", trace)
@@ -187,6 +192,7 @@ func TestRun_ProjectGuidanceDisabledPreservesInstallationWithoutRetrieval(t *tes
 }
 
 func TestRun_ProjectGuidanceRemovalAndInterruptedRetry(t *testing.T) {
+	testsupport.IsolateGuidanceEnvironment(t)
 	for _, interrupted := range []bool{false, true} {
 		name := "normal removal"
 		if interrupted {

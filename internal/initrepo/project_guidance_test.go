@@ -56,7 +56,7 @@ func TestInit_ProjectGuidancePreservesExistingConfiguration(t *testing.T) {
 }
 
 func TestInit_InstallsExplicitProjectGuidance(t *testing.T) {
-	t.Parallel()
+	testsupport.IsolateGuidanceEnvironment(t)
 	root, source := freshGitRepo(t), testsupport.GuidanceSource(t)
 	cfg := "hosts: [claude-code, codex]\nguidance:\n  source: " + source + "\n  packs: [sample/base]\n"
 	if err := os.WriteFile(filepath.Join(root, config.FileName), []byte(cfg), 0o644); err != nil {
@@ -72,10 +72,9 @@ func TestInit_InstallsExplicitProjectGuidance(t *testing.T) {
 }
 
 func TestProjectGuidanceRefresh_ReportsFailuresWithoutClaimingInstallation(t *testing.T) {
-	t.Parallel()
+	testsupport.IsolateGuidanceEnvironment(t)
 	for _, kind := range []string{"cancelled inspection", "claude conflict", "codex conflict", "unavailable source", "installation conflict"} {
 		t.Run(kind, func(t *testing.T) {
-			t.Parallel()
 			root := t.TempDir()
 			selected := []string{"sample/base"}
 			cfg := &config.Config{Guidance: config.Guidance{Source: testsupport.GuidanceSource(t), Packs: &selected}}
@@ -115,10 +114,9 @@ func TestProjectGuidanceRefresh_ReportsFailuresWithoutClaimingInstallation(t *te
 }
 
 func TestProjectGuidanceRefresh_OptOutAndDryRun(t *testing.T) {
-	t.Parallel()
+	testsupport.IsolateGuidanceEnvironment(t)
 	for _, kind := range []string{"missing config", "unselected", "disabled", "dry run", "host wiring disabled"} {
 		t.Run(kind, func(t *testing.T) {
-			t.Parallel()
 			root := t.TempDir()
 			selected := []string{"sample/base"}
 			disabled := false

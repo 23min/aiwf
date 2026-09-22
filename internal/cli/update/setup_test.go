@@ -14,7 +14,10 @@ import (
 //   - TestRun_ProjectGuidanceFailuresPreserveInstallationAndContinue,
 //     TestRun_ProjectGuidanceDisabledPreservesInstallationWithoutRetrieval, and
 //     TestRun_ProjectGuidanceRemovalAndInterruptedRetry capture os.Stdout;
-//     the disabled-maintenance test also sets GIT_TRACE.
+//     these also isolate personal-guidance environment variables;
+//     the disabled-maintenance test sets GIT_TRACE.
+//   - TestRun_ProjectGuidanceTracksUpstreamAndConverges isolates personal settings.
+//   - TestRun_ProjectGuidanceHandover isolates personal settings and captures stdout.
 func TestMain(m *testing.M) {
 	os.Setenv("GIT_AUTHOR_NAME", "aiwf-test")
 	os.Setenv("GIT_AUTHOR_EMAIL", "test@example.com")

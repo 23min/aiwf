@@ -48,3 +48,28 @@ func guidanceGit(tb testing.TB, root string, args ...string) string {
 	}
 	return strings.TrimSpace(string(output))
 }
+
+// IsolateGuidanceEnvironment gives serial tests an empty personal-guidance
+// environment while retaining the real Git and shell process boundaries.
+func IsolateGuidanceEnvironment(tb testing.TB) string {
+	tb.Helper()
+	home := tb.TempDir()
+	bin := filepath.Join(home, "bin")
+	if err := os.Mkdir(bin, 0o755); err != nil { //coverage:ignore fresh private TempDir is writable; failure requires environmental filesystem failure
+		tb.Fatal(err)
+	}
+	for _, name := range []string{"git", "sh", "claude"} {
+		executable, err := exec.LookPath(name)
+		if err != nil {
+			continue
+		}
+		if err := os.Symlink(executable, filepath.Join(bin, name)); err != nil { //coverage:ignore fresh private directory has no conflicting entries; failure requires environmental filesystem failure
+			tb.Fatal(err)
+		}
+	}
+	tb.Setenv("HOME", home)
+	tb.Setenv("CODEX_HOME", filepath.Join(home, ".codex"))
+	tb.Setenv("CLAUDE_CONFIG_DIR", filepath.Join(home, ".claude"))
+	tb.Setenv("PATH", bin)
+	return bin
+}

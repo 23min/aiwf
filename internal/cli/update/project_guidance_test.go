@@ -69,7 +69,7 @@ func TestRun_ProjectGuidanceRejectsOverlapBeforeRefresh(t *testing.T) {
 }
 
 func TestRun_ProjectGuidanceTracksUpstreamAndConverges(t *testing.T) {
-	t.Parallel()
+	testsupport.IsolateGuidanceEnvironment(t)
 	root, source := freshInitializedRepo(t), testsupport.GuidanceSource(t)
 	cfg := "hosts: [claude-code, codex]\nguidance:\n  source: " + source + "\n  packs: [sample/base]\n"
 	if err := os.WriteFile(filepath.Join(root, config.FileName), []byte(cfg), 0o644); err != nil {

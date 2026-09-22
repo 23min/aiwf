@@ -189,7 +189,7 @@ func Install(ctx context.Context, root string, snapshot *Snapshot, opts InstallO
 }
 
 func planInstallation(ctx context.Context, root string, desired map[string][]byte, owned map[string]string, pending map[string]receipt) ([]installWrite, map[string]string, error) {
-	names := make(map[string]bool)
+	names := map[string]bool{"CLAUDE.md": true, "AGENTS.md": true}
 	for name := range desired {
 		names[name] = true
 	}
@@ -213,6 +213,14 @@ func planInstallation(ctx context.Context, root string, desired map[string][]byt
 		if err != nil {
 			return nil, nil, err
 		}
+		input := current
+		if hostFile(name) {
+			_, selected := desired[name]
+			input, err = replacementInput(name, current, selected)
+			if err != nil {
+				return nil, nil, err
+			}
+		}
 		currentOwned, err := ownedBytes(name, current)
 		if err != nil {
 			return nil, nil, err
@@ -234,7 +242,7 @@ func planInstallation(ctx context.Context, root string, desired map[string][]byt
 			continue
 		}
 		if selected && hostFile(name) {
-			replacement, err := pathutil.SpliceManagedBlock(string(current), string(target), routeStart, routeEnd, routePrefix)
+			replacement, err := pathutil.SpliceManagedBlock(string(input), string(target), routeStart, routeEnd, routePrefix)
 			if err != nil { //coverage:ignore ownedBytes already validated these same immutable current bytes and markers
 				return nil, nil, err
 			}
@@ -249,7 +257,7 @@ func planInstallation(ctx context.Context, root string, desired map[string][]byt
 			after = digest(targetOwned)
 			nextOwned[name] = after
 		}
-		if before == after {
+		if before == after && (!hostFile(name) || bytes.Equal(current, target)) {
 			continue
 		}
 		writes = append(writes, installWrite{path: name, content: target, mode: mode, receipt: receipt{Before: before, After: after}})

@@ -15,9 +15,10 @@ import (
 // Replaces the prior `freshGitRepo` t.Setenv block — incompatible
 // with t.Parallel adoption per M-0091.
 //
-// Serial tests: none. Every Test* function uses t.TempDir + a fresh
-// git init per test; git invocations are separate processes with
-// their own cwd, so concurrent execution is safe.
+// Serial: TestInit_InstallsExplicitProjectGuidance,
+// TestProjectGuidanceRefresh_ReportsFailuresWithoutClaimingInstallation, and
+// TestProjectGuidanceRefresh_OptOutAndDryRun isolate personal-guidance environment
+// variables. Other tests own separate repositories.
 func TestMain(m *testing.M) {
 	os.Setenv("GIT_AUTHOR_NAME", "aiwf-test")
 	os.Setenv("GIT_AUTHOR_EMAIL", "test@example.com")
