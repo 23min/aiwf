@@ -51,3 +51,7 @@ agents:
 hooks:
   worktree-rituals-check.sh:
     enabled: true
+# Tracked engineering guidance for both supported assistants.
+hosts: [claude-code, codex]
+guidance:
+  packs: [code-health, go/cobra, python/astral, typescript/npm-vitest]
