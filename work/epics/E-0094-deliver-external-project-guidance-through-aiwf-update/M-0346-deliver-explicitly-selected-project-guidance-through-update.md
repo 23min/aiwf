@@ -101,7 +101,7 @@ Corpus and compatible ai-dotfiles routing, including the ownership/preflight bou
 
 ## Decisions made during implementation
 
-- (none)
+- D-0098 — Finish interrupted guidance installation on the next update.
 
 ## Validation
 
