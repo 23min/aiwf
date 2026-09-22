@@ -18,7 +18,7 @@ acs:
       tdd_phase: done
     - id: AC-3
       title: Installation preserves ownership and produces tracked project files
-      status: open
+      status: met
       tdd_phase: done
     - id: AC-4
       title: Failures and removal preserve a coherent installed selection
