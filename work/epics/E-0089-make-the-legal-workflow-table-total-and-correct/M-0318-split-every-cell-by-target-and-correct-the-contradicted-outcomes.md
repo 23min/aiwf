@@ -12,7 +12,7 @@ acs:
     - id: AC-2
       title: Every legal cell's target agrees with entity.transitions, mechanically
       status: open
-      tdd_phase: green
+      tdd_phase: done
     - id: AC-3
       title: No declared outcome contradicts what the verb returns at that coordinate
       status: open
