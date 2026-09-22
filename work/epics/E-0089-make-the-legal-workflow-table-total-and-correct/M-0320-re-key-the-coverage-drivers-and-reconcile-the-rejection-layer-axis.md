@@ -21,10 +21,10 @@ cell's rejection layer names where the kernel actually refuses.
 
 ## Context
 
-M-0318 makes the positive driver consume each legal cell's declared target as part
-of splitting the table. Its coverage measurement is the baseline for this
-milestone. The negative driver still selects invocations independently of the
-cell's target; completing that migration must preserve coverage on both sides.
+M-0318 makes both drivers consume declared targets as a prerequisite to testing
+the split rows. Its coverage measurements provide this milestone's baseline.
+AC-1 verifies the completed migration against that baseline while AC-2 reconciles
+the rejection-layer axis; neither may lose an already exercised request.
 
 G-0166 names a second divergence the re-key is the moment to settle. Two cells
 declare `RejectionLayerCheckTime` — the gap `open → addressed` cell missing a
@@ -68,7 +68,7 @@ the answer, the axis needs a value for it rather than a choice between the two.
 ## Out of scope
 
 - Adding coverage for coordinates that had none — that is the totality milestone.
-- The `tdd_phase` same-phase question (G-0458).
+- TDD phase convergence (G-0458) — implemented and tested by M-0318.
 
 ## Dependencies
 
