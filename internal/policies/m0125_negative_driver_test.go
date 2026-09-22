@@ -1,6 +1,7 @@
 package policies
 
 import (
+	"bytes"
 	"strings"
 	"testing"
 
@@ -9,35 +10,14 @@ import (
 	"github.com/23min/aiwf/internal/workflows/spec"
 )
 
-// TestM0125_AC2_NegativeDriver_VerbTimeRejection exercises every
-// Illegal cell with RejectionLayer == VerbTime by driving the real
-// `aiwf` binary through a subprocess against a per-cell fixture. For
-// each cell the driver:
-//
-//   - Builds the fixture and brings the subject entity to the cell's
-//     FromState (reusing AC-1's precondition pipeline).
-//   - Captures the HEAD SHA before the cell-under-test invocation.
-//   - Executes the verb via testutil.RunBin, expecting non-zero exit.
-//   - Confirms HEAD is unchanged after rejection (the verb's commit
-//     never landed — kernel-level rollback).
-//   - Confirms the error output names the right rejection reason via
-//     the kernel-side substring mapping below.
-//
-// The substring map is the test's side of the rule's `ExpectedErrorCode`
-// — the kernel emits human-readable error text, not literal rule codes,
-// so this map translates the spec's logical code to a kernel-emitted
-// substring. A kernel error-message change that drops the substring
-// fails the test loudly; this is intentional (we want to know when the
-// kernel rephrases an enforcement boundary).
-//
-// Coverage commitment: every verb-time Illegal cell yields one subtest.
-// Check-time cells have their own driver; the coverage meta-policy checks
-// both enumerators against the table.
+// TestM0125_AC2_NegativeDriver_VerbTimeRejection drives every illegal
+// transition through the real binary without force. The declared layer,
+// refusal reason, and unchanged HEAD and files must agree with the result.
 func TestM0125_AC2_NegativeDriver_VerbTimeRejection(t *testing.T) {
 	t.Parallel()
 	testutil.SkipIfShortOrUnsupported(t)
 
-	cases := enumerateVerbTimeIllegalCases(t)
+	cases := enumerateIllegalCases(t)
 	if len(cases) == 0 {
 		t.Fatal("no verb-time Illegal cells enumerated from spec.Rules()")
 	}
@@ -45,110 +25,23 @@ func TestM0125_AC2_NegativeDriver_VerbTimeRejection(t *testing.T) {
 		t.Errorf("expected at least 27 verb-time Illegal cells, got %d (spec shrank?)", len(cases))
 	}
 
-	// Sanity-check ac2KnownImplGaps keys against the enumeration:
-	// detect map staleness if predicate authoring changes shift cell
-	// names (subtest names derive from illegalCaseName + precondition
-	// signature). A skip referencing a non-existent cell is a silent
-	// regression — the supposed-to-be-skipped cell would run unguarded.
-	liveNames := make(map[string]bool, len(cases))
-	for _, tc := range cases {
-		liveNames[tc.name] = true
-	}
-	for name := range ac2KnownImplGaps {
-		if !liveNames[name] {
-			t.Errorf("ac2KnownImplGaps key %q does not match any verb-time Illegal cell name; map went stale (predicate authoring change?)", name)
-		}
-	}
-
 	for _, tc := range cases {
 		tc := tc
 		t.Run(tc.name, func(t *testing.T) {
 			t.Parallel()
-			if gap, ok := ac2KnownImplGaps[tc.name]; ok {
-				// Staleness teeth (M-0125/AC-2 retrofit, symmetric to
-				// AC-3's runNegativeCheckTimeCell impl-gap branch).
-				// The cell's spec axis is VerbTime but the kernel
-				// currently does NOT reject — the gap tracks the
-				// missing chokepoint. Drive the verb and assert it
-				// STILL succeeds (gap is still open). If the kernel
-				// learns to reject (gap closes), the verb fails, the
-				// assertion fires red, and the operator is forced to
-				// remove the entry so the cell graduates to
-				// end-to-end coverage via runNegativeVerbTimeCell.
-				runImplGapStalenessVerbTime(t, tc, gap)
-				return
+			if tc.rule.RejectionLayer != spec.RejectionLayerVerbTime {
+				t.Errorf("cell %s declares rejection layer %v; its ordinary request must refuse before writing", tc.name, tc.rule.RejectionLayer)
+			}
+			if len(errorSubstringsFor(tc.rule.ExpectedErrorCode)) == 0 {
+				t.Errorf("cell %s has no refusal-message assertion for %q", tc.name, tc.rule.ExpectedErrorCode)
 			}
 			runNegativeVerbTimeCell(t, tc)
 		})
 	}
 }
 
-// ac2KnownImplGaps lists Illegal cells whose spec.RejectionLayer is
-// VerbTime but where the kernel currently does not enforce the
-// rejection at verb-time. Each entry pins the gap entity that tracks
-// the impl work needed to close the divergence. When a gap is
-// addressed (the kernel learns to reject at verb-time) the
-// corresponding entry here is removed; the cell's subtest then
-// participates in coverage automatically. New impl gaps surfacing in
-// the future get filed and added here in the same commit.
-//
-// Discovered by M-0125's negative-driver dry-run against the kernel:
-// the cells listed succeed when they should fail. They are NOT spec
-// errors — the spec was deliberately authored to mark these as
-// verb-time chokepoints (per D-0003, D-0004, D-0007, and the audit
-// catalog citations on each cell).
-var ac2KnownImplGaps = map[string]string{
-	// The four cancel-cascade cells (epic-cancel-non-terminal-children
-	// ×2 FromStates, milestone-cancel-non-terminal-acs ×2 FromStates,
-	// tracked by G-0139 via D-0003 + D-0004) graduated to live coverage
-	// in M-0139: verb.Cancel now refuses with the structured codes. Their
-	// entries were removed here; the cells run through
-	// runNegativeVerbTimeCell, asserting the refusal end-to-end via the
-	// errorSubstringsFor mappings below.
-	//
-	// adr-accepted-cancel graduated to live coverage when G-0163 landed:
-	// CancelTarget(ADR/Decision, accepted) now returns "" instead of the
-	// FSM-illegal "rejected", and verb.Cancel surfaces "no cancel target"
-	// — which errorSubstringsFor("fsm-transition-illegal") matches.
-	//
-	// ac-evidence-missing (formerly tracked here as "ac-open-promote" via
-	// G-0140) was removed rather than closed: D-0038 rejected the
-	// --evidence flag mechanism, so the spec cell is gone and there is no
-	// entry to carry.
-}
-
-func enumerateVerbTimeIllegalCases(t *testing.T) []illegalCase {
-	t.Helper()
-	var out []illegalCase
-	rules := spec.Rules()
-	for i := range rules {
-		rule := rules[i]
-		if rule.Outcome != spec.OutcomeIllegal || rule.RejectionLayer != spec.RejectionLayerVerbTime {
-			continue
-		}
-		out = append(out, illegalCase{name: illegalCaseName(rule), rule: rule})
-	}
-	return out
-}
-
-// errorSubstringsFor maps the spec's ExpectedErrorCode to one or more
-// kernel-emitted phrasings the verb-time error message may contain.
-// Test passes if the output contains AT LEAST ONE of the listed
-// substrings (logical OR). The kernel does not emit the rule codes as
-// literal strings (those are spec/check identifiers); instead each
-// rejection path produces a Go error with hand-rolled wording. One
-// spec code can correspond to several kernel error phrasings — e.g.
-// fsm-transition-illegal surfaces as both "cannot transition to" (non-
-// terminal-with-no-edge) and "no cancel target" (terminal-state cancel).
-//
-// Only codes whose cells run today appear here. Codes whose cells are
-// currently skipped under ac2KnownImplGaps (epic/milestone cancel-non-
-// terminal-children/acs) intentionally have no entry — there's no live
-// test to anchor the substring choice. When a
-// gap closes and the cell un-skips, the case is added in the same
-// commit (the unmapped-code branch falls through to "non-zero exit +
-// rollback only," which would let the test pass on wrong-reason
-// rejection — adding the case is required for full assertion strength).
+// errorSubstringsFor maps each declared refusal code to the kernel's
+// operator-facing refusal text. The driver rejects codes without a mapping.
 func errorSubstringsFor(code string) []string {
 	switch code {
 	case "fsm-transition-illegal":
@@ -160,6 +53,8 @@ func errorSubstringsFor(code string) []string {
 			// there, so that phrasing is a NoOp message, and matching it
 			// would bless a NoOp as a valid refusal.
 		}
+	case "gap-addressed-has-resolver", "acs-tdd-audit":
+		return []string{code}
 	case "milestone-done-incomplete-acs":
 		return []string{"open AC", "incomplete"}
 	case "adr-supersession-mutual":
@@ -192,11 +87,7 @@ func runNegativeVerbTimeCell(t *testing.T, tc illegalCase) {
 		f.SatisfyPredicate(t, p, id, &evalCtx)
 	}
 
-	headBefore, err := testutil.RunGit(f.Root, "rev-parse", "HEAD")
-	if err != nil {
-		t.Fatalf("rev-parse HEAD before: %v\n%s", err, headBefore)
-	}
-	headBefore = strings.TrimSpace(headBefore)
+	before := fixtureGitSnapshot(t, f.Root)
 
 	args := buildIllegalVerbArgs(t, tc, id, evalCtx)
 	out, runErr := testutil.RunBin(t, f.Root, "", nil, args...)
@@ -219,14 +110,8 @@ func runNegativeVerbTimeCell(t *testing.T, tc illegalCase) {
 		}
 	}
 
-	headAfter, err := testutil.RunGit(f.Root, "rev-parse", "HEAD")
-	if err != nil {
-		t.Fatalf("rev-parse HEAD after: %v\n%s", err, headAfter)
-	}
-	headAfter = strings.TrimSpace(headAfter)
-	if headBefore != headAfter {
-		t.Errorf("HEAD moved from %s to %s after expected-rejection verb\nargs: %v\noutput:\n%s",
-			headBefore, headAfter, args, out)
+	if !bytes.Equal(before, fixtureGitSnapshot(t, f.Root)) {
+		t.Errorf("HEAD or project files changed after refusal\nargs: %v\noutput:\n%s", args, out)
 	}
 }
 
@@ -243,71 +128,3 @@ func buildIllegalVerbArgs(t *testing.T, tc illegalCase, id string, ctx spec.Eval
 	t.Fatalf("buildIllegalVerbArgs: unsupported verb %q", tc.rule.Verb)
 	return nil
 }
-
-// runImplGapStalenessVerbTime drives a cell tracked by an entry in
-// ac2KnownImplGaps and asserts the verb STILL succeeds — the kernel
-// currently does NOT reject this Illegal cell at verb-time (the gap
-// tracks the missing chokepoint). If the kernel learns to reject
-// (the tracked gap closes), the verb starts failing, the assertion
-// fires red, and the operator is forced to remove the
-// ac2KnownImplGaps entry so the cell graduates to end-to-end coverage.
-//
-// Symmetric to AC-3's runNegativeCheckTimeCell impl-gap branch, just
-// inverted:
-//
-//   - AC-3 impl-gap cells: kernel rejects when spec says CheckTime is
-//     the chokepoint (the kernel is stricter than spec). Staleness =
-//     "verb still rejects."
-//   - AC-2 impl-gap cells: kernel does NOT reject when spec says
-//     VerbTime is the chokepoint (the kernel is more permissive than
-//     spec). Staleness = "verb still succeeds."
-//
-// Replaces the previous t.Skipf path (no per-cell assertion) so the
-// divergence-tracking is two-way: ac2KnownImplGaps entries can become
-// stale (closed gap) and the test surfaces the staleness rather than
-// silently continuing to skip.
-func runImplGapStalenessVerbTime(t *testing.T, tc illegalCase, gap string) {
-	t.Helper()
-	f := cellcoverage.NewCellFixture(t)
-	opts := deriveBringOpts(tc.rule)
-	id := bringEntityForCell(t, f, tc.rule, opts)
-
-	// Optional per-cell fixture customization: avoids incidental
-	// projection-finding rejections that would obscure the
-	// gap-tracked chokepoint's status. Runs after bringEntityForCell
-	// and before SatisfyPredicate / verb drive.
-	if setup, ok := ac2ImplGapFixtureSetup[tc.name]; ok {
-		setup(t, f, id)
-	}
-
-	evalCtx := spec.EvalContext{}
-	for _, p := range tc.rule.Preconditions {
-		f.SatisfyPredicate(t, p, id, &evalCtx)
-	}
-
-	args := buildIllegalVerbArgs(t, tc, id, evalCtx)
-	out, verbErr := testutil.RunBin(t, f.Root, "", nil, args...)
-	if verbErr != nil {
-		t.Errorf("ac2KnownImplGaps[%q] (tracking %s) is stale: verb returned non-zero, meaning the kernel has learned to reject this cell at verb-time. Remove the entry from ac2KnownImplGaps and the cell will be exercised end-to-end by runNegativeVerbTimeCell.\nargs: %v\nverb output:\n%s", tc.name, gap, args, out)
-	}
-}
-
-// ac2ImplGapFixtureSetup holds optional per-cell fixture
-// customization for ac2KnownImplGaps cells whose default fixture
-// state triggers an incidental rejection (typically a projection-
-// finding rejection in finalizeACPlan) that would mask the
-// gap-tracked chokepoint's actual status. The customization runs
-// after bringEntityForCell and before SatisfyPredicate / verb drive.
-//
-// Most ac2KnownImplGaps cells don't need this (their default fixture
-// reaches the verb cleanly); they have no entry here and the
-// staleness assertion runs unmodified.
-//
-// History: introduced during the AC-4 retrofit (replacing t.Skipf with
-// staleness teeth surfaced a case — ac-open-promote, tracking the
-// since-abandoned G-0140 — where the default fixture triggered an
-// incidental acs-tdd-audit projection rejection that masked the
-// gap-tracked chokepoint's actual status. That entry is gone along with
-// G-0140; the map stays as the general mechanism for the next case that
-// needs it.
-var ac2ImplGapFixtureSetup = map[string]func(t *testing.T, f *cellcoverage.CellFixture, id string){}

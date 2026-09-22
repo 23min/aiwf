@@ -24,14 +24,10 @@ simply wrong. Enumerating every (Kind, FromState, legality verb) coordinate agai
 purpose from one nobody considered. `promote` is complete at 33 of 33; every hole
 is `cancel` (21) or `authorize` (29).
 
-Worse than the holes is what the declared cells say. All 15 terminal-state
-`promote` coordinates are declared illegal, while M-0281/AC-1 makes a promote to
-the entity's current status a NoOp that exits 0 (G-0631). Two cells declare
-check-time rejection where the kernel refuses at verb time (G-0166). Two more cite
-a finding code that was retired (G-0417). In each case the spec kept an answer the
-kernel had moved past, and the drift policy did not notice because its arms compare
-coordinates, kinds, states and codes — never a declared outcome against what the
-verb returns.
+A populated coordinate is not enough: its declared outcome must match the
+request's actual result. M-0318 owns target-specific outcomes, M-0319 owns global
+rule placement and finding-code cleanup, and M-0320 owns rejection-layer agreement.
+Their behavior checks complement the drift policy's structural comparisons.
 
 D-0077 settles the shape of the fix. The target joins the cell key, so a NoOp is
 expressible and an illegal transition from the same origin stays separately
@@ -108,7 +104,6 @@ Observable at epic close. Milestone acceptance criteria carry the mechanical bar
 | Question | Blocking? | Resolution path |
 |---|---|---|
 | Does a rendered reference ship from this table, or does the table stay a code-side artifact? | no | Decided in the milestone that would build it, before the code lands. |
-| Do the two check-time cells keep that axis, or does the spec follow the kernel to verb-time? | yes, for the driver milestone | Answered by that milestone against G-0166's evidence. |
 | How large does the table get once cells split by target? | no | Measured by the first milestone; the estimate of roughly 120–180 is not evidence. |
 
 ## Risks
@@ -131,8 +126,8 @@ terms of it, and the render lands last, when there is a total table to render.
 - `M-0319` — move `authorize` to `GlobalRules()` and sweep the stale entries
   already there; independent of the key change and runnable in either order ·
   depends on: —
-- `M-0320` — re-key the coverage drivers and settle whether each cell's rejection
-  layer names where the kernel actually refuses · depends on: `M-0318`
+- `M-0320` — reconcile rejection layers and measure coverage preservation after
+  the driver migration owned by M-0318 · depends on: `M-0318`
 - `M-0321` — declare kind-by-verb applicability and make a missing cell at an
   applicable coordinate a policy failure · depends on: `M-0318`, `M-0319`
 - `M-0322` — decide the rendered legality reference and ship it if taken;
@@ -148,7 +143,7 @@ terms of it, and the render lands last, when there is a total table to render.
 - G-0631 — terminal-state promote declared illegal where the kernel returns NoOp
 - G-0160 — per-edge drift unpoliced; its fix outline names this epic's approach
 - G-0417 — stale finding-code entries in the table `authorize` moves into
-- G-0166 — cells declaring check-time rejection that the kernel refuses at verb time
+- G-0166 — data-field mutation coverage; remains outside the status-transition scope
 - G-0458 — the `tdd_phase` same-phase rule implemented by M-0318
 - `internal/workflows/spec/` — the table; `internal/policies/m0123*`, `m0124*`,
   `m0125*` — the drift and coverage machinery

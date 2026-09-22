@@ -58,7 +58,8 @@ const (
 )
 
 // RejectionLayer names where in the kernel pipeline an illegal cell is
-// rejected. Verb-time rejections are returned by the verb itself (non-zero
+// rejected for its ordinary, unforced request. A check rule may also protect
+// persisted state without changing that request's layer. Verb-time rejections are returned by the verb itself (non-zero
 // exit, no commit, no side effect); check-time rejections are surfaced as
 // findings by aiwf check (the verb may have succeeded structurally).
 //

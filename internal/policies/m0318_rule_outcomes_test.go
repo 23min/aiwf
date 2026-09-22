@@ -125,14 +125,6 @@ func fixtureGitSnapshot(t *testing.T, root string) []byte {
 	return out.Bytes()
 }
 
-func TestM0318_AC3_CheckTimeCellsAlsoRefuseUnforcedVerb(t *testing.T) {
-	t.Parallel()
-	testutil.SkipIfShortOrUnsupported(t)
-	for _, tc := range enumerateCheckTimeIllegalCases(t) {
-		t.Run(tc.name, func(t *testing.T) { t.Parallel(); runNegativeVerbTimeCell(t, tc) })
-	}
-}
-
 func TestM0318_AC3_NegativePromoteUsesDeclaredTarget(t *testing.T) {
 	t.Parallel()
 	for _, tc := range enumerateIllegalCases(t) {
