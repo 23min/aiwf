@@ -27,6 +27,7 @@ and correct the cells whose declared outcome the kernel contradicts.
 
 - G-0631 — distinguish same-state NoOp outcomes from illegal target transitions.
 - G-0160 — enforce agreement between declared targets and the FSM's allowed edges.
+- G-0458 — converge repeated TDD phases without discarding supplied metrics.
 
 ## Context
 
@@ -62,10 +63,13 @@ allow fails, and an FSM edge with no cell fails. Adding an edge to
 ### AC-3 — No declared outcome contradicts what the verb returns at that coordinate
 
 For every cell, the outcome the table declares matches what the verb does. A cell
-declaring illegal at a coordinate where the verb exits 0 fails. The 15
-terminal-state `promote` coordinates carry a NoOp cell toward their own state and
-an illegal cell toward every other target, and the count of corrected cells is
-recorded with the command that produced it.
+declaring illegal at a coordinate where the verb exits 0 fails. Terminal entity
+and AC status `promote` coordinates carry a NoOp cell toward their own state and
+an illegal cell toward every other target. The corrected count is measured and
+recorded with its command. Every recognized TDD phase also carries separate
+self-target outcomes: NoOp without metrics, refusal with supplied metrics, including
+explicit zero counts. Blank metrics text means no payload. The committed-content
+claim guard runs before convergence; real phase advances retain their metrics.
 
 ## Constraints
 
@@ -80,9 +84,9 @@ recorded with the command that produced it.
 
 ## Design notes
 
-Target selection belongs to the table. The positive driver consumes each declared
-target so splitting a cell cannot multiply its test cases by re-expanding the FSM.
-M-0320 retains the negative-driver migration and rejection-layer reconciliation.
+Target selection belongs to the table. Both drivers consume declared targets so
+splitting a cell cannot multiply its test cases by re-expanding the FSM. M-0320 retains rejection-layer reconciliation and the final
+coverage comparison against this milestone's measurements.
 
 ## Coverage measurement
 
@@ -122,12 +126,70 @@ Expected: a missing-cell failure. Observed: exit 1 with
 `FSM edge (epic, "active", "proposed") has no legal rule`.
 The overlay leaves the checked-out FSM unchanged.
 
+## Outcome measurement and row judgments
+
+Measured 2026-09-22 in the same Linux amd64 / Go 1.25.11 worktree:
+
+```bash
+go test -json -count=1 -parallel 8 \
+  -run 'TestG0458|TestM0318_AC3|TestM0124_PositiveDriver_LegalCells|TestM0125_AC2_NegativeDriver_VerbTimeRejection|TestM0125_AC3_NegativeDriver_CheckTimeRejection' \
+  ./internal/policies
+```
+
+Expected: declared outcomes match the real binary, terminal status targets are
+complete, and every previously exercised request remains covered. Observed:
+exit 0. Counting passing subtests in the JSON output yielded:
+
+| Driver | Before split | After outcome correction |
+|---|---:|---:|
+| Positive legal cells | 40 | 40 |
+| Verb-time rejection | 28 | 64 |
+| Check-time rejection | 2 | 2 |
+| NoOp | 0 | 18 |
+
+Positive subtest names were unchanged. For negative cases, mapping each baseline
+case to its former requested target and matching the new target-bearing name
+found no missing request. Both check-time-declared rows also refused the unforced
+verb in a separate outcome check; reconciling their rejection-layer labels belongs
+to M-0320.
+
+The NoOp driver measures **18 self-target outcomes**: the original 15 terminal
+coordinates and the three nonterminal TDD phases. It checks exit 0,
+the convergence message, unchanged HEAD, and unchanged tracked and untracked
+project file bytes (excluding ignored runtime artifacts). Its mutation probes
+caught both an unexpected commit and an uncommitted new file.
+
+The explicit judged rows in `internal/workflows/spec/rules.go` comprise 18 NoOps
+and 66 illegal rows. Their rulings are:
+
+- Terminal entity and AC statuses: the self-target converges; every other status
+  in the kind's domain is refused. The NoOp and negative drivers exercise every
+  listed target against the real binary.
+- Epic closure with nonterminal children, milestone closure with open ACs, ADR
+  supersession without its reciprocal reference, gap resolution without a
+  resolver, and AC completion without the required TDD phase: the guarded target
+  is refused. Each target is explicit, so a refusal at another target cannot
+  stand in for it.
+- TDD phase `done` to another declared phase is refused by its FSM. Every
+  recognized phase has one self-target NoOp row without metrics and one refusal
+  row with metrics; `self.tests` carries that request context.
+- The four wrong-kind `authorize` rows retain their verdict and binary coverage;
+  M-0319 owns moving them out of the cell table.
+
+The phase decision is implemented under G-0458 here rather than deferred to
+E-0074. Same-phase metrics are refused even under force; real advances continue
+through the existing event and metrics-trailer path. Lookup and the ADR-0038
+claim guard precede convergence, and absent or unrecognized phases cannot converge.
+
+## Decisions made during implementation
+
+- ADR-0050 — repeated TDD phases converge without metrics and refuse supplied metrics.
+
 ## Out of scope
 
 - Applicability and totality enforcement — its own milestone.
 - The `authorize` cells — moved out of the table by its own milestone, so this one
   leaves them where they are.
-- The `tdd_phase` same-phase question (G-0458).
 
 ## Dependencies
 
