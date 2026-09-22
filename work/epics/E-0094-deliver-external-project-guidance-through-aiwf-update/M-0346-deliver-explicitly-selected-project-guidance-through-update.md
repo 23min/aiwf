@@ -23,7 +23,7 @@ acs:
     - id: AC-4
       title: Failures and removal preserve a coherent installed selection
       status: open
-      tdd_phase: green
+      tdd_phase: done
     - id: AC-5
       title: Legacy handover never activates a second guidance corpus
       status: open
