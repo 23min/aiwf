@@ -18,6 +18,7 @@ acs:
     - id: AC-3
       title: Noninteractive runs suggest without silently adopting policy
       status: open
+      tdd_phase: red
     - id: AC-4
       title: Configuration edits support removal and reconsideration
       status: open
