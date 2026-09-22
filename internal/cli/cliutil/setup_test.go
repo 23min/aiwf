@@ -8,6 +8,12 @@ import (
 )
 
 // Serial tests (do NOT call t.Parallel):
+//   - TestGuidancePrompt_InstallsCompletedSelectionThroughInitAndRefresh,
+//     TestGuidancePrompt_FailurePreservesInstalledPolicy,
+//     TestGuidancePrompt_NoSelectionLeavesLegacyOwnership (guidance_test.go) —
+//     isolate process-wide guidance environment with t.Setenv.
+//   - TestGuidanceSelection_RealTerminalThroughInitAndUpdate
+//     (guidance_terminal_linux_test.go) — isolates environment and replaces os.Stdin.
 //   - TestResolveActorWithSource_TargetRepository (actor_test.go) — changes
 //     cwd and Git config environment to distinguish two repositories.
 //   - TestOutputFormat_EmitHelpers (outputformat_test.go) — redirects the

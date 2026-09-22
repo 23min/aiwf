@@ -45,7 +45,7 @@ func NewCmd() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "update",
 		Short: "Refresh framework artifacts for selected hosts and core Git hooks",
-		Long:  "Refresh selected-host skills, templates, supported agents, and guidance, plus core aiwf artifacts and Git hooks. Existing unselected host artifacts are retained. With guidance.packs explicitly configured and maintenance enabled, download the guidance source default branch on demand and refresh tracked .guidance files and selected-host routing. Selection is never re-detected. Local edits require reconciliation; rerun update to finish an interrupted installation. This command never commits or pushes." + cliutil.HostSetupHelp,
+		Long:  "Refresh selected-host skills, templates, supported agents, and guidance, plus core aiwf artifacts and Git hooks. Existing unselected host artifacts are retained. With guidance.packs explicitly configured and maintenance enabled, download the guidance source default branch on demand and refresh tracked .guidance files and selected-host routing. Interactive runs suggest applicable unselected, unignored packs; Enter means not now. Choices are saved only after all prompts finish. Existing selections are retained. Local edits require reconciliation; rerun update to finish an interrupted installation. This command never commits or pushes." + cliutil.HostSetupHelp,
 		Example: `  # Refresh skills + hooks against the current binary version
   aiwf update
 
@@ -124,6 +124,7 @@ func Run(root string, statusline bool, scope string, wireSettings, allowUntagged
 	}
 
 	refresh, err := initrepo.RefreshArtifacts(context.Background(), rootDir, initrepo.RefreshOptions{
+		SelectGuidance:     cliutil.GuidanceSelector(false),
 		RequireClaude:      statusline || remove || len(enableHooks) > 0,
 		StatusMdAutoUpdate: cfg.StatusMdAutoUpdate(),
 		WireClaudeMd:       cfg.WireClaudeMd(),

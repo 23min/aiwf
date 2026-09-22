@@ -1,6 +1,8 @@
 package testsupport
 
 import (
+	"encoding/json"
+	"fmt"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -8,13 +10,20 @@ import (
 	"testing"
 )
 
-// GuidanceSource creates a local corpus with one explicitly selectable pack.
-func GuidanceSource(tb testing.TB) string {
+// GuidanceSource creates a local corpus with one pack and optional filename patterns.
+func GuidanceSource(tb testing.TB, detect ...string) string {
 	tb.Helper()
+	if detect == nil {
+		detect = []string{}
+	}
+	patterns, err := json.Marshal(detect)
+	if err != nil { //coverage:ignore a slice of strings is always JSON-encodable
+		tb.Fatal(err)
+	}
 	root := tb.TempDir()
 	guidanceGit(tb, root, "init", "-q", "-b", "main")
 	files := map[string]string{
-		"catalogue.json":             `{"packs":[{"id":"sample/base","description":"Sample project guidance","files":["packs/sample/base/guide.md"],"detect":[]}]}`,
+		"catalogue.json":             fmt.Sprintf(`{"packs":[{"id":"sample/base","description":"Sample project guidance","files":["packs/sample/base/guide.md"],"detect":%s}]}`, patterns),
 		"packs/sample/base/guide.md": "# Sample guidance\nInitial upstream content.\n",
 	}
 	for name, content := range files {
@@ -53,6 +62,22 @@ func guidanceGit(tb testing.TB, root string, args ...string) string {
 // environment while retaining the real Git and shell process boundaries.
 func IsolateGuidanceEnvironment(tb testing.TB) string {
 	tb.Helper()
+	var bin string
+	for _, entry := range GuidanceEnvironment(tb) {
+		key, value, _ := strings.Cut(entry, "=")
+		tb.Setenv(key, value)
+		if key == "PATH" {
+			bin = value
+		}
+	}
+	return bin
+}
+
+// GuidanceEnvironment returns personal-guidance environment overrides for child
+// processes. Each caller gets a private home and a PATH containing real Git/shell
+// executables but no personal dotfiles installers.
+func GuidanceEnvironment(tb testing.TB) []string {
+	tb.Helper()
 	home := tb.TempDir()
 	bin := filepath.Join(home, "bin")
 	if err := os.Mkdir(bin, 0o755); err != nil { //coverage:ignore fresh private TempDir is writable; failure requires environmental filesystem failure
@@ -67,9 +92,5 @@ func IsolateGuidanceEnvironment(tb testing.TB) string {
 			tb.Fatal(err)
 		}
 	}
-	tb.Setenv("HOME", home)
-	tb.Setenv("CODEX_HOME", filepath.Join(home, ".codex"))
-	tb.Setenv("CLAUDE_CONFIG_DIR", filepath.Join(home, ".claude"))
-	tb.Setenv("PATH", bin)
-	return bin
+	return []string{"HOME=" + home, "CODEX_HOME=" + filepath.Join(home, ".codex"), "CLAUDE_CONFIG_DIR=" + filepath.Join(home, ".claude"), "PATH=" + bin}
 }

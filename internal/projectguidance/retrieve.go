@@ -25,7 +25,17 @@ func Retrieve(ctx context.Context, source string, selected []string) (*Snapshot,
 	return retrieve(ctx, source, selected, "")
 }
 
-func retrieve(ctx context.Context, source string, selected []string, tempParent string) (snapshot *Snapshot, err error) {
+func retrieve(ctx context.Context, source string, selected []string, tempParent string) (*Snapshot, error) {
+	return retrieveWithSelection(ctx, source, func(Catalogue) ([]string, error) { return selected, nil }, tempParent)
+}
+
+// RetrieveWithSelection keeps one source revision available while the caller
+// chooses packs. Only the chosen documents are validated and returned.
+func RetrieveWithSelection(ctx context.Context, source string, selectPacks func(Catalogue) ([]string, error)) (*Snapshot, error) {
+	return retrieveWithSelection(ctx, source, selectPacks, "")
+}
+
+func retrieveWithSelection(ctx context.Context, source string, selectPacks func(Catalogue) ([]string, error), tempParent string) (snapshot *Snapshot, err error) {
 	temp, err := os.MkdirTemp(tempParent, "aiwf-guidance-")
 	if err != nil {
 		return nil, fmt.Errorf("creating temporary guidance directory: %w", err)
@@ -55,6 +65,10 @@ func retrieve(ctx context.Context, source string, selected []string, tempParent 
 	catalogue, err := parseCatalogue(raw)
 	if err != nil {
 		return nil, fmt.Errorf("validating catalogue.json; repair the source catalogue: %w", err)
+	}
+	selected, err := selectPacks(catalogue)
+	if err != nil {
+		return nil, fmt.Errorf("selecting project guidance: %w", err)
 	}
 	available := make(map[string]Pack, len(catalogue.Packs))
 	for _, pack := range catalogue.Packs {

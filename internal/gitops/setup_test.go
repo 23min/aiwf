@@ -18,6 +18,8 @@ import (
 // between m.Run and os.Exit because os.Exit runs no deferred calls.
 //
 // Serial tests:
+//   - TestProjectFiles_ReportsIgnoredListFailure (project_files_test.go) —
+//     uses t.Setenv to install a Git process stand-in.
 //   - TestCurrentBranch_GitAbsentFromPATH (refs_test.go) — uses
 //     t.Setenv("PATH", ...), which panics under t.Parallel.
 //

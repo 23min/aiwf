@@ -24,6 +24,7 @@ import (
 	"github.com/23min/aiwf/internal/config"
 	"github.com/23min/aiwf/internal/gitops"
 	"github.com/23min/aiwf/internal/pathutil"
+	"github.com/23min/aiwf/internal/projectguidance"
 	"github.com/23min/aiwf/internal/skills"
 )
 
@@ -360,6 +361,7 @@ type Result struct {
 // version are we on" (`aiwf version`); a stored pin produced
 // chronic doctor noise without serving its intended purpose.
 type Options struct {
+	SelectGuidance projectguidance.Selector
 	// RequireClaude validates an explicit Claude hook or statusline request.
 	RequireClaude bool
 	ActorOverride string
@@ -380,6 +382,7 @@ type Options struct {
 // SkipHooks omits both pre-push and pre-commit installation
 // entirely (init's `--skip-hook` flag forwards into this field).
 type RefreshOptions struct {
+	SelectGuidance projectguidance.Selector
 	// RequireClaude validates an explicit Claude hook or statusline request.
 	RequireClaude      bool
 	DryRun             bool
@@ -454,6 +457,7 @@ func Init(ctx context.Context, root string, opts Options) (*Result, error) {
 	}
 
 	refresh, err := refreshArtifacts(ctx, root, cfg, selection, RefreshOptions{
+		SelectGuidance:     opts.SelectGuidance,
 		DryRun:             opts.DryRun,
 		SkipHooks:          opts.SkipHook,
 		StatusMdAutoUpdate: statusMdAutoUpdate,

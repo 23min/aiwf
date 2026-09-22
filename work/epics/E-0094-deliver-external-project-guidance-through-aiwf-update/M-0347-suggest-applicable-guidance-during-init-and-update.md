@@ -9,16 +9,20 @@ tdd: required
 acs:
     - id: AC-1
       title: External patterns explain applicable pack suggestions
-      status: open
+      status: met
+      tdd_phase: done
     - id: AC-2
       title: Interactive choices persist the maintainer's intent
-      status: open
+      status: met
+      tdd_phase: done
     - id: AC-3
       title: Noninteractive runs suggest without silently adopting policy
-      status: open
+      status: met
+      tdd_phase: done
     - id: AC-4
       title: Configuration edits support removal and reconsideration
-      status: open
+      status: met
+      tdd_phase: done
 ---
 ## Goal
 
@@ -80,11 +84,37 @@ Complete explicit-selection delivery.
 
 ## Release note
 
+`aiwf init` and `aiwf update` suggest applicable engineering-guidance packs using
+filename patterns from the external catalogue and explain each match. Interactive
+runs offer select, not now, or ignore; completed choices are saved together and
+selected guidance is installed in the same invocation. Noninteractive runs report
+suggestions without adopting policy and refresh explicit selections even before
+matching source files exist. Configuration edits support removal and
+reconsideration while protecting locally edited guidance. Guidance, hook, and
+contract edits reject non-UTF-8 and multi-document YAML without changing the file.
+
 ## Decisions made during implementation
 
-- (none)
+- D-0099 — Defines the file exclusions used by guidance detection.
+- D-0100 — Defines when interactive guidance choices are saved.
 
 ## Validation
+
+Observed on 2026-09-22 in the Linux devcontainer, on the milestone branch:
+
+| Command | Expected | Observed |
+| --- | --- | --- |
+| `make check-fast` | Vet, full configured lint, and full test suite pass. | Exit 0; lint reported `0 issues.`; all test packages passed. |
+| `go build -o /tmp/aiwf-m0347-review ./cmd/aiwf` | Build succeeds. | Exit 0. |
+| `go test -race ./internal/aiwfyaml ./internal/cli/cliutil ./internal/testsupport ./internal/gitops` | Configuration editing, interactive choices, Git discovery, and shared fixtures pass with race detection. | Exit 0; every named package reported `ok`. |
+| `go test -race ./internal/cli/update -run TestBinary_GuidanceConfigurationRemovalAndReconsideration -count=1` | Configuration removal and reconsideration pass through the real CLI binary. | Exit 0; package reported `ok`. |
+| `/tmp/aiwf-m0347-review show M-0347` | Every criterion is met with phase done; no milestone findings. | Expected states; `Findings: (none)`. |
+| `/tmp/aiwf-m0347-review check --since origin/main` | No error findings. | Exit 0; `15 findings (0 errors, 15 warnings)`, concerning advisory TDD history and pending archival outside this milestone. |
+
+The full test suite includes real-terminal and non-TTY subprocess fixtures.
+M-0347 AC-4 adds tests and user help for existing behavior; its approved TDD
+exception is recorded in the phase-promotion commit, without a claimed red/green
+implementation cycle.
 
 ## Deferrals
 
@@ -92,4 +122,11 @@ Complete explicit-selection delivery.
 
 ## Reviewer notes
 
-- (none)
+Independent code review approves the milestone. The design review recommends
+retaining the catalogue callback and completed-session persistence boundaries;
+compression trials did not justify a broader rewrite. The shared configuration
+editor requires one UTF-8 YAML document, so unsupported inputs are refused before
+an editable document is created. Encoding conversion and YAML-stream editing are
+not supported.
+
+Scoped doc-lint: clean. No unresolved review findings or deliberate deferrals.

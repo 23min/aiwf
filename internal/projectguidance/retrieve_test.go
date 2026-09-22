@@ -279,6 +279,8 @@ printf survived > "$AIWF_TEST_SURVIVED"
 `)); err != nil {
 		t.Fatal(err)
 	}
+	// The SSH transport is the local cancellation fixture, never a network client.
+	t.Setenv("GIT_ALLOW_PROTOCOL", "ssh")
 	t.Setenv("GIT_SSH_COMMAND", filepath.Join(bin, "ssh"))
 	t.Setenv("GIT_SSH_VARIANT", "ssh")
 	t.Setenv("AIWF_TEST_READY", fifo)
@@ -333,4 +335,35 @@ func TestRetrieve_MultiplePacksAndDocuments(t *testing.T) {
 	if diff := cmp.Diff(wantPacks, got.Catalogue.Packs); diff != "" {
 		t.Fatal(diff)
 	}
+}
+
+func TestRetrieveWithSelection_UsesOneRevisionAndCleansUp(t *testing.T) {
+	t.Parallel()
+	source := sourceRepo(t)
+	before := git(t, source, "rev-parse", "HEAD")
+	got, err := RetrieveWithSelection(t.Context(), source, func(c Catalogue) ([]string, error) {
+		if c.Packs[0].ID != "go/cobra" {
+			t.Fatalf("catalogue: %+v", c)
+		}
+		write(t, source, "packs/go/cobra/guide.md", "# Changed upstream\n")
+		git(t, source, "commit", "-qam", "new revision")
+		return []string{"go/cobra"}, nil
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if got.Commit != before || string(got.Documents["packs/go/cobra/guide.md"]) != "# Go\nUse Cobra.\n" {
+		t.Fatalf("selection refetched a different revision: %+v", got)
+	}
+}
+
+func TestRetrieveWithSelection_InterruptedChoiceCleansTemporarySource(t *testing.T) {
+	t.Parallel()
+	source, temp := sourceRepo(t), t.TempDir()
+	sentinel := errors.New("choice interrupted")
+	got, err := retrieveWithSelection(t.Context(), source, func(Catalogue) ([]string, error) { return nil, sentinel }, temp)
+	if got != nil || !errors.Is(err, sentinel) {
+		t.Fatalf("interruption: %+v, %v", got, err)
+	}
+	assertEmpty(t, temp)
 }
