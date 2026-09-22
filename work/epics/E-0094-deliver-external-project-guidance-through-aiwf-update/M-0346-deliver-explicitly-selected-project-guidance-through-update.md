@@ -14,7 +14,7 @@ acs:
       tdd_phase: done
     - id: AC-2
       title: Retrieval validates current guidance without a persistent cache
-      status: open
+      status: met
       tdd_phase: done
     - id: AC-3
       title: Installation preserves ownership and produces tracked project files
