@@ -21,7 +21,7 @@ acs:
       tdd_phase: done
     - id: AC-4
       title: Configuration edits support removal and reconsideration
-      status: open
+      status: met
       tdd_phase: done
 ---
 ## Goal
