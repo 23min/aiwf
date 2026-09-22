@@ -90,7 +90,8 @@ runs offer select, not now, or ignore; completed choices are saved together and
 selected guidance is installed in the same invocation. Noninteractive runs report
 suggestions without adopting policy and refresh explicit selections even before
 matching source files exist. Configuration edits support removal and
-reconsideration while protecting locally edited guidance.
+reconsideration while protecting locally edited guidance. Guidance, hook, and
+contract edits reject non-UTF-8 and multi-document YAML without changing the file.
 
 ## Decisions made during implementation
 
@@ -105,7 +106,7 @@ Observed on 2026-09-22 in the Linux devcontainer, on the milestone branch:
 | --- | --- | --- |
 | `make check-fast` | Vet, full configured lint, and full test suite pass. | Exit 0; lint reported `0 issues.`; all test packages passed. |
 | `go build -o /tmp/aiwf-m0347-review ./cmd/aiwf` | Build succeeds. | Exit 0. |
-| `go test -race -parallel 8 ./internal/aiwfyaml ./internal/cli/cliutil ./internal/testsupport ./internal/gitops` | Configuration editing, interactive choices, Git discovery, and shared fixtures pass with race detection. | Exit 0; every named package reported `ok`. |
+| `go test -race ./internal/aiwfyaml ./internal/cli/cliutil ./internal/testsupport ./internal/gitops` | Configuration editing, interactive choices, Git discovery, and shared fixtures pass with race detection. | Exit 0; every named package reported `ok`. |
 | `go test -race ./internal/cli/update -run TestBinary_GuidanceConfigurationRemovalAndReconsideration -count=1` | Configuration removal and reconsideration pass through the real CLI binary. | Exit 0; package reported `ok`. |
 | `/tmp/aiwf-m0347-review show M-0347` | Every criterion is met with phase done; no milestone findings. | Expected states; `Findings: (none)`. |
 | `/tmp/aiwf-m0347-review check --since origin/main` | No error findings. | Exit 0; `15 findings (0 errors, 15 warnings)`, concerning advisory TDD history and pending archival outside this milestone. |
@@ -121,13 +122,11 @@ implementation cycle.
 
 ## Reviewer notes
 
-Independent code review found inherited YAML guidance being shadowed during
-selection, lost document-end comments, persistence after a final buffered read
-error, and inherited Git transport settings bypassing test isolation. Regression
-tests pin refusal without configuration changes, comment preservation, read-error
-rollback, and offline transport enforcement. Serial-test inventories identify the
-process-wide fixture changes.
+Independent code review approves the milestone. The design review recommends
+retaining the catalogue callback and completed-session persistence boundaries;
+compression trials did not justify a broader rewrite. The shared configuration
+editor requires one UTF-8 YAML document, so unsupported inputs are refused before
+an editable document is created. Encoding conversion and YAML-stream editing are
+not supported.
 
-The independent design review recommends retaining the catalogue callback and
-completed-session persistence boundaries. Compression trials did not justify a
-broader rewrite. A fresh review of the complete milestone diff is pending.
+Scoped doc-lint: clean. No unresolved review findings or deliberate deferrals.
