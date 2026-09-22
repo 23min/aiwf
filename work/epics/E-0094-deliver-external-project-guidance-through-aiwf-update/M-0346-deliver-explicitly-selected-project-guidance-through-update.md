@@ -31,6 +31,7 @@ acs:
     - id: AC-6
       title: Both hosts and local diagnostics expose the installed policy
       status: open
+      tdd_phase: red
 ---
 ## Goal
 
