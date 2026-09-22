@@ -1,7 +1,7 @@
 ---
 id: ADR-0050
 title: Converge repeated TDD phases without discarding metrics
-status: proposed
+status: accepted
 ---
 > **Date:** 2026-09-22 · **Decided by:** Peter Bruinsma
 
