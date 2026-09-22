@@ -20,6 +20,11 @@ acs:
 Put the target in the cell key so the table can say where a verb takes an entity,
 and correct the cells whose declared outcome the kernel contradicts.
 
+## Closes
+
+- G-0631 — distinguish same-state NoOp outcomes from illegal target transitions.
+- G-0160 — enforce agreement between declared targets and the FSM's allowed edges.
+
 ## Context
 
 `Rule` carries `Kind`, `FromState` and `Verb` and no target. One cell therefore
