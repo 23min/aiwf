@@ -11,6 +11,7 @@ acs:
     - id: AC-1
       title: The kind-by-verb applicability table is total over every pair, enforced
       status: open
+      tdd_phase: red
     - id: AC-2
       title: An applicable coordinate with no cell fails a policy
       status: open
