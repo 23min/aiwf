@@ -96,3 +96,49 @@ None. Independent of the key change and runnable in either order.
 - ADR-0013 — global rules as the home for coordinate-free preconditions
 - G-0417 — the stale entries and dead code swept here
 - D-0018 — the supersession that retired `branch-not-found`
+
+## Release note
+
+No user-facing behavior changes. The workflow specification represents authorization
+as a global precondition and describes branch refusal using the kernel's rung-pair
+rule; unused branch-error declarations are removed.
+
+## Decisions made during implementation
+
+None — the design notes determine the implementation.
+
+## Deferrals
+
+None within this milestone's scope.
+
+## Validation
+
+Measured on 2026-09-22 in the Linux amd64 devcontainer with Go 1.25.11,
+on the milestone branch:
+
+- `make check-fast` — expected all vet, lint, and non-race test gates to pass;
+  observed exit 0, `0 issues.`, and all packages passing. This includes vet
+  with the ordinary, `stress`, and `testpins` builds.
+- `go build -o bin/aiwf-diag ./cmd/aiwf` — expected a successful build;
+  observed exit 0.
+- `bin/aiwf-diag check --since 7ea5ab831` — expected no new findings;
+  observed 0 errors and 16 existing warnings: pending archival and advisory
+  TDD records outside this milestone.
+- `rg -n 'branch-not-found|PreflightBranchNotFound' internal/` — expected
+  no matches (exit 1); observed no output and exit 1.
+- The authorization tests assert that excluded kinds receive the kind-specific
+  refusal without changing HEAD or project files. Predicate evaluation covers
+  every entity kind; removing the global restriction or changing its exclusions
+  makes the assertions fail. Removing the runtime kind guard also fails the
+  CLI assertions, even when another guard refuses the request.
+- The branch-rule test asserts the rung-pair predicates and error code, a single
+  global rung-pair rule, and no branch-existence restriction. Isolated Go-overlay
+  probes restored the existence rule, changed the branch predicate, and changed
+  the branch error code; each failed the intended assertion.
+- The changed production control flow adds the `self.kind` evaluator arm;
+  tests exercise both inequality outcomes. The branch cleanup adds no executable
+  conditional branches. The existing authorization tests still pass for legal
+  future branches, illegal rung pairs, missing context, and force overrides.
+
+The full race/CI gate is reserved for epic integration or push under the repository's
+validation cadence; it was not run for this milestone's local commits.
