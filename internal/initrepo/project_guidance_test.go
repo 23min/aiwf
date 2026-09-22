@@ -7,6 +7,8 @@ import (
 	"io/fs"
 	"os"
 	"path/filepath"
+	"slices"
+	"strings"
 	"testing"
 
 	"github.com/23min/aiwf/internal/config"
@@ -157,6 +159,56 @@ func TestProjectGuidanceRefresh_OptOutAndDryRun(t *testing.T) {
 			for _, name := range []string{"CLAUDE.md", "AGENTS.md"} {
 				if _, err := os.Stat(filepath.Join(root, name)); !errors.Is(err, fs.ErrNotExist) {
 					t.Fatalf("unexpected %s: %v", name, err)
+				}
+			}
+		})
+	}
+}
+
+func TestProjectGuidanceRefresh_RoutesOnlySelectedWiredHosts(t *testing.T) {
+	testsupport.IsolateGuidanceEnvironment(t)
+	for _, tc := range []struct {
+		name          string
+		hosts         []config.Host
+		claude, codex bool
+	}{
+		{"claude only", []config.Host{config.HostClaudeCode}, true, true},
+		{"codex only", []config.Host{config.HostCodex}, true, true},
+		{"neither", nil, true, true},
+		{"claude opted out", []config.Host{config.HostClaudeCode, config.HostCodex}, false, true},
+		{"codex opted out", []config.Host{config.HostClaudeCode, config.HostCodex}, true, false},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			root := t.TempDir()
+			packs := []string{"sample/base"}
+			cfg := &config.Config{Guidance: config.Guidance{Source: testsupport.GuidanceSource(t), Packs: &packs, WireAgentsMd: &tc.codex}}
+			step := ensureProjectGuidance(t.Context(), root, cfg, config.HostSelection{Hosts: tc.hosts}, RefreshOptions{WireClaudeMd: tc.claude})
+			if step == nil || step.Action != ActionUpdated {
+				t.Fatalf("install: %+v", step)
+			}
+			for _, host := range []struct {
+				host config.Host
+				file string
+				wire bool
+			}{{config.HostClaudeCode, "CLAUDE.md", tc.claude}, {config.HostCodex, "AGENTS.md", tc.codex}} {
+				content, err := os.ReadFile(filepath.Join(root, host.file))
+				want := host.wire && slices.Contains(tc.hosts, host.host)
+				if !want {
+					if !errors.Is(err, fs.ErrNotExist) {
+						t.Fatalf("unselected %s written: %v", host.file, err)
+					}
+					continue
+				}
+				if err != nil {
+					t.Fatal(err)
+				}
+				for _, path := range []string{".guidance/project.md", ".guidance/index.md"} {
+					if !strings.Contains(string(content), "]("+path+")") {
+						t.Errorf("%s does not link %s", host.file, path)
+					}
+				}
+				if strings.Contains(string(content), "Initial upstream content.") {
+					t.Fatal("corpus concatenated into routing")
 				}
 			}
 		})

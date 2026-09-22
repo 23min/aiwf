@@ -45,6 +45,10 @@ type receipt struct {
 	TempDigest string `json:"temp_digest,omitempty"`
 }
 
+func (r receipt) recognizes(value string) bool {
+	return value == r.Before || value == r.After
+}
+
 type installWrite struct {
 	path    string
 	content []byte
@@ -221,6 +225,22 @@ func planInstallation(ctx context.Context, root string, desired map[string][]byt
 				return nil, nil, err
 			}
 		}
+		target, selected := desired[name]
+		if hostFile(name) && !selected {
+			// Retain the recorded digest so reselecting the host still detects edits.
+			if prior, known := owned[name]; known {
+				nextOwned[name] = prior
+			} else if interrupted, recovering := pending[name]; recovering && interrupted.After != "" {
+				nextOwned[name] = interrupted.After
+			}
+			if interrupted, recovering := pending[name]; recovering {
+				block, blockErr := ownedBytes(name, current)
+				if blockErr == nil && block != nil && interrupted.recognizes(digest(block)) {
+					nextOwned[name] = digest(block)
+				}
+			}
+			continue
+		}
 		currentOwned, err := ownedBytes(name, current)
 		if err != nil {
 			return nil, nil, err
@@ -231,15 +251,8 @@ func planInstallation(ctx context.Context, root string, desired map[string][]byt
 		}
 		prior, known := owned[name]
 		interrupted, recovering := pending[name]
-		if before != "" && (!known || before != prior) && (!recovering || (before != interrupted.Before && before != interrupted.After)) {
+		if before != "" && (!known || before != prior) && (!recovering || !interrupted.recognizes(before)) {
 			return nil, nil, fmt.Errorf("%w: %s is foreign or locally edited; preserve your changes in project.md or reconcile the generated file before retrying", ErrInstallConflict, name)
-		}
-		target, selected := desired[name]
-		if hostFile(name) && !selected {
-			if before != "" {
-				nextOwned[name] = before
-			}
-			continue
 		}
 		if selected && hostFile(name) {
 			replacement, err := pathutil.SpliceManagedBlock(string(input), string(target), routeStart, routeEnd, routePrefix)

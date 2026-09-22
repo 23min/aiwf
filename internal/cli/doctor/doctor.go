@@ -286,6 +286,7 @@ func DoctorReport(rootDir string, opts DoctorOptions) (lines []string, problems 
 
 	if configErr == nil || errors.Is(configErr, config.ErrNotFound) {
 		lines, problems = appendHostsReport(lines, problems, rootDir, cfg, selection)
+		lines, problems = appendProjectGuidanceReport(lines, problems, rootDir, cfg, selection)
 	} else {
 		lines = append(lines, label("hosts:")+"not checked: invalid configuration")
 	}
