@@ -12,6 +12,7 @@ Coordinate coverage means at least one row per applicable origin and verb;
 it does not mean every possible target, argument or invocation is listed.
 A missing request is not permission. Legal rows remain subject to their
 conditions and the global restrictions below. All predicates in a row must hold.
+Read all rows for a request; a Legal row is not standalone permission.
 
 The target is the requested target, not a claim that a refused request reaches it.
 Legal means a mutation; NoOp means success without mutation; Illegal means refusal.
