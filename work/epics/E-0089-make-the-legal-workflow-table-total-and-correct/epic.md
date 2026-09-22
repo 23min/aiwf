@@ -1,7 +1,7 @@
 ---
 id: E-0089
 title: Make the legal-workflow table total and correct
-status: proposed
+status: active
 ---
 ## Goal
 
