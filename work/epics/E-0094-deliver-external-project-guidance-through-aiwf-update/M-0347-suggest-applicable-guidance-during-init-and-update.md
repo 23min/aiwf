@@ -14,7 +14,7 @@ acs:
     - id: AC-2
       title: Interactive choices persist the maintainer's intent
       status: open
-      tdd_phase: green
+      tdd_phase: done
     - id: AC-3
       title: Noninteractive runs suggest without silently adopting policy
       status: open
