@@ -104,6 +104,70 @@ It listed only the decision and this milestone spec; no render code was committe
 The renderer's implementation begins after that acceptance. This criterion records
 a sequencing observation, not a red/green code property.
 
+## Release note
+
+The repository now provides a generated workflow legality reference showing
+declared transitions, their conditions and outcomes, applicability exclusions,
+and global restrictions. Its freshness test rejects changes that leave the
+committed reference out of sync with the specification. Regenerate it with
+`go run ./cmd/workflow-reference` from the repository root.
+
+## Validation
+
+Measured on 2026-09-22 in the Linux amd64 devcontainer with Go 1.25.11, on this
+milestone's branch. Source under test is committed at `1de39375c`.
+
+- `make test`: expected all packages to pass; final run exited 0. The initial
+  run failed `TestPolicy_LayeringDirection` because the development command
+  lacked a tier; the command is registered and the final policy suite passed.
+- `make vet`: expected no diagnostics; ordinary, stress-tagged and testpins-tagged
+  vet all exited 0.
+- `GOLANGCI_LINT_CACHE="$(git rev-parse --absolute-git-dir)/golangci-lint-cache" golangci-lint run --allow-serial-runners`:
+  expected no findings; exited 0 with `0 issues.`
+- `go build -o bin/aiwf-diag ./cmd/aiwf` and
+  `go build -o /tmp/aiwf-m0322-generator ./cmd/workflow-reference`:
+  expected successful builds; both exited 0.
+- `/tmp/aiwf-m0322-generator --out /tmp/aiwf-m0322-fresh-render.md` followed by
+  `cmp docs/reference/workflow-legality.md /tmp/aiwf-m0322-fresh-render.md`:
+  expected identical bytes; both exited 0. Repeated generation was identical.
+  Running the binary with an unknown flag returned usage exit 2; a destination
+  with a missing parent returned internal-error exit 3 and an `--out` remedy.
+- `go test -count=1 ./internal/workflows/spec ./cmd/workflow-reference`:
+  expected the renderer and generator checks to pass; exited 0. Tests compare
+  exact rows within each table, preserve conditions and refusal metadata,
+  distinguish empty binary operands from unary operators, escape table content,
+  and compare committed bytes to a fresh render. Generator tests cover repeated
+  replacement, invocation errors, write failure, help, and cancellation that
+  preserves the destination. The focused coverage profile reports 100% statement
+  coverage for renderer functions and command `run`; `main`'s exit delegation
+  was exercised through the built binary, outside that profile.
+- A copied reference with a hand edit was supplied to the freshness test through
+  a Go overlay. `go test -overlay <overlay> -count=1 -run '^TestReferenceMatchesCommittedDocument$' ./internal/workflows/spec`
+  was expected to fail; it reported `workflow reference is stale` and exited 1.
+  The committed document was not modified by this probe.
+- `python3 /tmp/aiwf-m0322-probes.py`: expected each injected defect to fail an
+  assertion without a compilation error; all probes did. They removed conditions,
+  globals, applicability or a declaration; changed a NoOp or requested target;
+  wrote empty output; and ignored cancellation. The probe script and logs are
+  session-local artifacts, not permanent repository checks.
+- Package-scoped `gremlins unleash` with `--workers 1 --timeout-coefficient 15`
+  killed every mutant in the new renderer and generator. The spec run also
+  exercised existing code: it reported 28 killed, 0 lived and 3 uncovered mutants
+  in existing lookup code; the command run reported 3 killed, 0 lived and 0
+  uncovered. Diff-scoped runs reported no results and provide no mutation evidence.
+- Generated Markdown was inspected directly and converted to HTML with the
+  repository's goldmark/GFM dependency. HTML parsing found the expected table
+  widths and declaration counts, resolved both document links, and preserved
+  `self.tests == ""` visibly. No browser executable or browser tool was available;
+  browser visual inspection was not performed.
+- `bin/aiwf-diag check --since 4cd8342e1` after the AC promotions: expected no
+  errors; exited 0 with 0 errors and 20 warnings. These comprise the existing
+  archive and advisory-TDD warnings, the active epic having no remaining draft
+  milestone, and advisory-TDD warnings for this milestone's met criteria. No TDD
+  phase events were recorded; the milestone uses advisory TDD.
+
+Full race/CI validation was not run at this local milestone boundary.
+
 ## Deferrals
 
 None.
