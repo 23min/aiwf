@@ -16,16 +16,15 @@ acs:
 ---
 ## Goal
 
-Re-key the positive and negative cell drivers onto the target, and settle whether
-each cell's rejection layer names where the kernel actually refuses.
+Complete the coverage drivers' use of declared targets, and settle whether each
+cell's rejection layer names where the kernel actually refuses.
 
 ## Context
 
-M-0124 and M-0125 drive per-cell coverage from `(Kind, FromState, Verb)`. Once the
-target joins the key they must follow, and the follow is not mechanical: M-0124
-derives targets from `entity.AllowedTransitions` today because the cell did not
-carry them, and that derivation becomes redundant — or wrong — when the cell names
-its own target.
+M-0318 makes the positive driver consume each legal cell's declared target as part
+of splitting the table. Its coverage measurement is the baseline for this
+milestone. The negative driver still selects invocations independently of the
+cell's target; completing that migration must preserve coverage on both sides.
 
 G-0166 names a second divergence the re-key is the moment to settle. Two cells
 declare `RejectionLayerCheckTime` — the gap `open → addressed` cell missing a
