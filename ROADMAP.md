@@ -1253,7 +1253,7 @@ that the kernel contradicts.
 
 | Milestone | Title | Status |
 |---|---|---|
-| M-0318 | Split every cell by target and correct the contradicted outcomes | in_progress |
+| M-0318 | Split every cell by target and correct the contradicted outcomes | done |
 | M-0319 | Move authorize to GlobalRules and sweep the stale entries there | draft |
 | M-0320 | Re-key the coverage drivers and reconcile the rejection-layer axis | draft |
 | M-0321 | Declare kind-by-verb applicability and enforce cell totality | draft |
