@@ -111,12 +111,11 @@ Projects can explicitly select external engineering-guidance packs in `aiwf.yaml
 
 ## Validation
 
-Observed on 2026-09-22 in the Linux development container, on the milestone branch with implementation through `e830eae99`. Commands below ran from the milestone checkout. The implementation gate is reused because no production code changed after it; subsequent test-strengthening changes passed focused tests, lint, and the package race run below.
+Observed on 2026-09-22 in the Linux development container, in the milestone checkout. Full-suite, lint, race, build, and self-check results below cover the reviewed source and test changes.
 
 | Command | Expected | Observed |
 | --- | --- | --- |
 | `make check-fast` | Vet, full configured lint, and the full test suite pass. | Exit 0; lint reported `0 issues.`; test packages passed. |
-| `make lint` | Final test additions satisfy the same lint gate. | Exit 0; `0 issues.` |
 | `go test -race ./internal/config ./internal/gitops ./internal/pathutil ./internal/projectguidance ./internal/initrepo ./internal/skills ./internal/cli/update ./internal/cli/doctor` | Changed delivery packages pass with race instrumentation. | Exit 0; every named package reported `ok`. |
 | `go build -o /tmp/aiwf-m0346-wrap ./cmd/aiwf` | Current CLI builds. | Exit 0. |
 | `/tmp/aiwf-m0346-wrap doctor --self-check` | CLI lifecycle checks pass in a throwaway repository. | Exit 0; `self-check passed (29 steps).` |
@@ -129,6 +128,7 @@ The executable evidence covers these claims:
 - Installer and update fixtures verify unchanged-input convergence, override preservation, ownership conflicts, removal, and recovery after interrupted publication (`internal/projectguidance/install_test.go`, `install_faults_test.go`, and `internal/cli/update/project_guidance_failures_test.go`).
 - Compatibility and handover fixtures distinguish supported installed delivery from incompatible or ambiguous legacy setups, preserve blocked installations, and replace recognized imports in the same host file (`internal/projectguidance/compatibility_test.go`, `handover_test.go`, and `internal/cli/update/project_guidance_handover_test.go`).
 - Host-routing and diagnostic fixtures verify individual host selection and opt-outs, retained edited routes, local revision/damage reporting, and tracked guidance in clones and worktrees (`internal/initrepo/project_guidance_test.go`, `internal/cli/doctor/project_guidance_test.go`, and `internal/projectguidance/retained_host_test.go`).
+- Successful update and convergence leave project HEAD unchanged and issue neither Git commit nor push commands; Git tracing has a positive retrieval control (`internal/cli/update/project_guidance_test.go`). Deliberately injected commit and push operations each make that test fail. The retained refresh dry-run test fails when its early-return guard is removed.
 
 These are local fixture and generated-artifact checks. Fresh assistant-session observations and migration of aiwf itself remain the claims of M-0348; this milestone does not establish that a running assistant read the generated instructions. The full `make ci` integration gate remains for integration into mainline or a push, per repository validation cadence.
 
@@ -138,4 +138,6 @@ These are local fixture and generated-artifact checks. Fresh assistant-session o
 
 ## Reviewer notes
 
-- (none)
+- Code review: approve. Installer/recovery design: keep. Scoped documentation lint: clean.
+- Preflight, staging, publication, and recovery remain separate because their failures impose different preservation and retry obligations. Combining these stages for line-count reduction does not justify weakening those boundaries.
+- Serialization and block-splicing helper errors remain propagated; suppressing their error returns solely because current callers avoid those failures would weaken the helper contracts.
