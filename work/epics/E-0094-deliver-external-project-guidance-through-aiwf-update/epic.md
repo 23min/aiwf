@@ -49,10 +49,10 @@ Language conventions change independently of workflow machinery. Keep their cont
 
 ### Migration and measurement
 
-- Deliver an ai-dotfiles compatibility update before migrating repositories. Its global host entry points retain personal rules and a short routing instruction, with engineering guidance, including code-health, outside unconditional global content. Keep the legacy guidance files available. Retain a compatible distribution from the canonical external source rather than independently editing two corpora.
-- Route by installed project ownership: an aiwf-managed `.guidance/index.md` selects project guidance exclusively; without it, use legacy ai-dotfiles guidance. An explicitly empty installed selection still owns project policy and must not trigger fallback. Disabled maintenance does not change installed ownership. This routing is an assistant instruction to read files, not a native conditional import; verify both hosts in fresh sessions.
-- Teach `dotfiles-sync` the same ownership check so it does not recreate legacy imports in migrated repositories. Preserve its existing delivery for unmigrated repositories, including old-aiwf and non-aiwf consumers. Changing global loading to explicit legacy reads must preserve access and be observed; do not claim identical loading behavior.
-- Before project handover, check for incompatible ai-dotfiles delivery, including the unconditional global Codex bundle. If present, report that ai-dotfiles needs updating and leave guidance migration incomplete with legacy delivery intact. The aiwf binary upgrade and unrelated update work may proceed. Do not silently rewrite personal configuration or install a second active corpus.
+- Keep global Claude and Codex instructions personal-only, including for non-coding tasks. Engineering guidance, engineering skills, and routing to them belong in repositories. Deliver legacy repository-local guidance through ai-dotfiles synchronization so old-aiwf and non-aiwf consumers need no aiwf upgrade. Retain a compatible distribution from the canonical external source rather than independently editing two corpora.
+- Synchronization respects installed project ownership: an aiwf-managed `.guidance/index.md` selects aiwf project delivery exclusively; otherwise ai-dotfiles maintains the legacy repository-local delivery. An explicitly empty installed selection still owns project policy and must not trigger legacy replacement. Disabled maintenance does not change installed ownership. Assistant instructions route to engineering files within the repository; no global project/legacy router is required.
+- Teach `dotfiles-sync` the same ownership check so it does not recreate legacy delivery in migrated repositories. Prepare repository-local replacements before removing global engineering delivery from a shared installation. Preserve legacy access throughout that transition, including old-aiwf and non-aiwf consumers; a bootstrap update must not silently remove guidance from repositories still relying on global inputs. Verify the changed loading behavior rather than claiming it is identical.
+- Before project handover, check for incompatible ai-dotfiles delivery, including global engineering bundles, imports, routers and skills. If present, report the required reconciliation and leave migration incomplete with legacy delivery intact. The aiwf binary upgrade and unrelated update work may proceed. Do not silently rewrite personal configuration or install a second active corpus. Changes to host-shared instructions require their own approval and verified legacy-repository preparation.
 - After validating replacements and compatibility, install project guidance and host routing and remove recognized legacy managed imports. The installed index records ownership; no separate migration registry or launcher wrapper. Define interruption recovery together with materialization so failed handover does not strand a repository between owners. Existing sessions containing legacy instructions need restarting before verifying exclusive project delivery.
 - Verify Claude and Codex from a checkout without ai-dotfiles, including root-started tasks on nested files, new files, and unrelated prose. Record observed reads and behavior separately from installation checks.
 - Measure growth before and after delivery/migration. Link the allocated prerequisite into E-0092 so its reduction baseline follows this work. Broad deduplication and compression remain E-0092's responsibility.
@@ -88,8 +88,8 @@ Language conventions change independently of workflow machinery. Keep their cont
 - [ ] Repeated unchanged updates preserve bytes, handwritten overrides, and unrelated configuration and instructions.
 - [ ] aiwf and its personal-bootstrap integration use the new delivery boundary, with growth measurements and E-0092 prerequisite linkage recorded.
 - [ ] Updating ai-dotfiles preserves guidance for old-aiwf and non-aiwf consumers; migration of one repository on a shared machine does not withdraw guidance from another. Failed installation leaves legacy delivery usable.
-- [ ] Successful migration leaves one active engineering-guidance path per repository. Both hosts exercise legacy fallback and exclusive project routing; empty installed selections and disabled maintenance do not re-enable legacy guidance.
-- [ ] Incompatible personal delivery blocks guidance handover with an actionable diagnostic while allowing the binary upgrade and unrelated update work; personal files are not silently rewritten.
+- [ ] Successful migration leaves one active repository-local engineering-guidance path per repository. Both hosts exercise legacy local delivery and exclusive aiwf project delivery; empty installed selections and disabled maintenance do not re-enable legacy delivery.
+- [ ] Incompatible personal delivery blocks guidance handover with an actionable diagnostic while allowing the binary upgrade and unrelated update work; personal files are not silently rewritten. Global instructions remain personal-only and require no engineering discovery or reads, including for non-coding tasks outside repositories.
 
 ## Open questions
 
@@ -118,6 +118,7 @@ Language conventions change independently of workflow machinery. Keep their cont
 
 ## References
 
+- ADR-0051 — personal-only global instructions and repository-local engineering delivery.
 - E-0093 — supported hosts and existing delivery foundation.
 - E-0092 — post-delivery guidance reduction and frozen baseline.
 - D-0089 — proposed external content-ownership boundary.
