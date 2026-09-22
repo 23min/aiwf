@@ -16,7 +16,7 @@ acs:
     - id: AC-3
       title: No declared outcome contradicts what the verb returns at that coordinate
       status: open
-      tdd_phase: red
+      tdd_phase: green
 ---
 ## Goal
 
