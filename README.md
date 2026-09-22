@@ -249,16 +249,20 @@ Maintenance defaults on and an omitted or empty `source` uses the default corpus
 Pack ids are explicit project policy: omit `packs` (or use `null`) to leave policy
 unadopted; `packs: []` explicitly selects none. Selected and ignored ids must be
 unique and must not overlap. Existing host-wiring settings remain independent.
-After choosing catalogue ids, run `aiwf update`. Each enabled update with an
-explicit selection downloads the source's current default-branch revision into a
-temporary directory, validates the selected packs, and refreshes `.guidance/`.
+After choosing catalogue ids, run `aiwf update`. Enabled init and update retrieve
+the source's current default-branch revision into a temporary directory for
+suggestions and refresh any explicit selection in `.guidance/`.
 There is no persistent download cache. Interactive init and update also suggest
 applicable packs using the external catalogue's filename patterns. Each prompt
 shows the pack description and a matching file: select adds it to `packs`, ignore
 adds it to `ignored`, and Enter means not now. Selected and ignored packs are not
 prompted again. Choices are saved together only after every prompt finishes;
 interruption saves none of that session's choices. Init's `--no-prompt` suppresses
-these prompts as well as hook consent. Noninteractive runs do not adopt policy.
+these prompts as well as hook consent. Noninteractive runs report applicable
+unselected, unignored packs with matching evidence and configuration instructions;
+they refresh explicit selections without adopting new policy. Selected packs with
+no current matching files are reported and retained, so you can select guidance
+before adding project source files.
 
 Completed choices are saved before installation. If validation or installation
 fails, the desired selection remains in configuration while the previously

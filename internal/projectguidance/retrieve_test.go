@@ -279,6 +279,8 @@ printf survived > "$AIWF_TEST_SURVIVED"
 `)); err != nil {
 		t.Fatal(err)
 	}
+	// The SSH transport is the local cancellation fixture, never a network client.
+	t.Setenv("GIT_ALLOW_PROTOCOL", "ssh")
 	t.Setenv("GIT_SSH_COMMAND", filepath.Join(bin, "ssh"))
 	t.Setenv("GIT_SSH_VARIANT", "ssh")
 	t.Setenv("AIWF_TEST_READY", fifo)

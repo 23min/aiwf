@@ -40,6 +40,8 @@ var gitLocatorEnvVars = []string{
 var gitTestConfig = [][2]string{
 	{"gc.auto", "0"},
 	{"gc.autoDetach", "false"},
+	{"protocol.allow", "never"},
+	{"protocol.file.allow", "always"},
 }
 
 // HardenGitTestEnv prepares the process environment so test fixtures
@@ -50,6 +52,7 @@ var gitTestConfig = [][2]string{
 //   - Unsets the git locator vars (GIT_DIR/GIT_INDEX_FILE/...) a parent
 //     git hook exports, which would otherwise steer fixture git
 //     commands into the parent repo's gitdir/index (G-0250).
+//   - Allows only local-file Git transport so unit tests cannot fetch live sources.
 //   - Forces gc.auto=0 / gc.autoDetach=false for every child git via
 //     GIT_CONFIG_COUNT, so background auto-gc cannot race fixture
 //     commits or TempDir cleanup under load (G-0251).

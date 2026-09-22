@@ -3,6 +3,8 @@
 package cliutil_test
 
 import (
+	"bytes"
+	"errors"
 	"fmt"
 	"os"
 	"path/filepath"
@@ -11,6 +13,7 @@ import (
 	"golang.org/x/sys/unix"
 
 	"github.com/23min/aiwf/internal/cli/cliutil"
+	"github.com/23min/aiwf/internal/cli/cliutil/testutil"
 	"github.com/23min/aiwf/internal/cli/initcmd"
 	"github.com/23min/aiwf/internal/cli/update"
 	"github.com/23min/aiwf/internal/config"
@@ -21,7 +24,7 @@ import (
 func TestGuidanceSelection_RealTerminalThroughInitAndUpdate(t *testing.T) {
 	// Serial: replaces process stdin with an actual terminal.
 	testsupport.IsolateGuidanceEnvironment(t)
-	for _, verb := range []string{"init", "update"} {
+	for _, verb := range []string{"init", "update", "init-no-prompt"} {
 		t.Run(verb, func(t *testing.T) {
 			master, err := os.OpenFile("/dev/ptmx", os.O_RDWR, 0)
 			if err != nil {
@@ -43,9 +46,6 @@ func TestGuidanceSelection_RealTerminalThroughInitAndUpdate(t *testing.T) {
 			previous := os.Stdin
 			os.Stdin = slave
 			defer func() { os.Stdin = previous }()
-			if cliutil.GuidanceSelector(true) != nil {
-				t.Fatal("no-prompt allowed terminal interaction")
-			}
 			root, source := t.TempDir(), testsupport.GuidanceSource(t, "*.xyz")
 			if err = gitops.Init(t.Context(), root); err != nil {
 				t.Fatal(err)
@@ -60,13 +60,24 @@ func TestGuidanceSelection_RealTerminalThroughInitAndUpdate(t *testing.T) {
 				t.Fatal(err)
 			}
 			var rc int
-			if verb == "init" {
-				rc = initcmd.Run(root, "", false, true, false, "", false, false, false, nil, nil)
-			} else {
-				rc = update.Run(root, false, "", false, false, false, false, nil, nil)
-			}
+			output := testutil.CaptureStderr(t, func() {
+				if verb != "update" {
+					rc = initcmd.Run(root, "", false, true, false, "", false, false, verb == "init-no-prompt", nil, nil)
+				} else {
+					rc = update.Run(root, false, "", false, false, false, false, nil, nil)
+				}
+			})
 			if rc != cliutil.ExitOK {
 				t.Fatalf("%s exit %d", verb, rc)
+			}
+			if verb == "init-no-prompt" {
+				if !bytes.Contains(output, []byte("Suggested guidance sample/base")) {
+					t.Fatalf("no-prompt omitted suggestion: %s", output)
+				}
+				if _, err = os.Stat(filepath.Join(root, ".guidance", "index.md")); !errors.Is(err, os.ErrNotExist) {
+					t.Fatalf("no-prompt adopted policy: %v", err)
+				}
+				return
 			}
 			installed, err := os.ReadFile(filepath.Join(root, ".guidance", "packs", "sample", "base", "guide.md"))
 			if err != nil || string(installed) != "# Sample guidance\nInitial upstream content.\n" {
