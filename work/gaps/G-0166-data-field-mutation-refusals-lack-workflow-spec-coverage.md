@@ -1,6 +1,6 @@
 ---
 id: G-0166
-title: RejectionLayerCheckTime cells rejected at verb-time by kernel
+title: Data-field mutation refusals lack workflow-spec coverage
 status: open
 priority: low
 discovered_in: M-0125
