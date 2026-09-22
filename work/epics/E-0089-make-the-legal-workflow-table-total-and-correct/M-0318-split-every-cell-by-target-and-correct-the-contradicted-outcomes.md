@@ -203,3 +203,52 @@ it establishes.
 - G-0160 — the per-edge drift AC-2 closes
 - M-0281 — the same-state NoOp convention the table must now express
 - `internal/workflows/spec/spec.go`, `rules.go`; `internal/policies/m0123_ac2_rules_test.go`
+
+## Release note
+
+Repeating an AC's recorded TDD phase without test metrics now succeeds without
+creating a commit. Supplying metrics on a repeat is refused, including explicit
+zero counts, so a successful retry cannot silently discard test evidence.
+
+## Validation
+
+Measured 2026-09-22 in the E-0089 Linux amd64 worktree with Go 1.25.11.
+The implementation tested is commit `70146b9b3`; subsequent changes are planning
+records only.
+
+| Command | Expected | Observed |
+|---|---|---|
+| `make check-fast` | All vet, lint and nonrace tests pass | Exit 0; lint reported `0 issues.` and all test packages passed |
+| `CGO_ENABLED=0 go build -o bin/aiwf-diag ./cmd/aiwf` | Binary builds | Exit 0 |
+| `go test -race -count=1 -parallel 8 -run TestPromoteACPhase ./internal/verb` | Phase regressions pass with race detection | Exit 0; package passed |
+| `bin/aiwf-diag check --since main` | No error-severity findings | Exit 0; zero errors and 14 warnings, including archive-sweep-pending |
+
+The coverage measurements above record the cell drivers and their before/after
+comparison. Mutation probes rejected missing target rows, incorrect outcomes,
+unexpected NoOp commits and file writes, dropped metrics, invalid-phase convergence,
+and bypassed claim guards. The full race and CI gate belongs to epic integration
+and push; it has not been run for this local milestone wrap.
+
+## Deferrals
+
+No additional defects are deferred. The already scoped rejection-layer discrepancy
+G-0166 belongs to M-0320; moving the authorize rules belongs to M-0319.
+
+## Reviewer notes
+
+Independent code-quality review: approve. The release note, validation evidence,
+and deferrals agree with the implementation and their cited records.
+
+Independent design review: keep. Explicit table declarations must remain separate
+from the FSM so new edges cannot update both sides of the drift check. An isolated
+comparison-helper trial passed `make check-fast` but exchanged contextual row and
+verb diagnostics for a generic set diff. The limited reduction does not justify
+that tradeoff; the production implementation remains unchanged.
+
+The supplemental test of unforced refusal for check-time-labelled cells bridges
+the rejection-axis discrepancy. It retires when M-0320 assigns those rows to the
+ordinary verb-time negative driver. The remaining table and driver policies are
+owned by the workflow-spec surface and retire when that surface is replaced;
+phase convergence checks are owned by ADR-0050's behavior.
+
+Scoped doc-lint: no findings in the milestone's changed narrative files.
