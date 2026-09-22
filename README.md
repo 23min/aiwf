@@ -305,12 +305,17 @@ block guidance refresh. Move custom policy into `.guidance/project.md` or restor
 the generated content before retrying. Unsafe paths and legacy imports still
 require reconciliation even when a host is unselected.
 
-Recognized ai-dotfiles engineering imports are replaced only when replacement
-routing is enabled in the same host file. Ambiguous or handwritten legacy imports
-require owner reconciliation. Detected ai-dotfiles installations must supply a
+Recognized ai-dotfiles engineering imports and its generated repository-local
+route are replaced only when replacement routing is enabled in the same host file.
+Ambiguous or handwritten legacy references require owner reconciliation. Unreferenced
+legacy copies under `.ai-dotfiles/` are left in place; they no longer supply guidance
+through the removed route. Detected ai-dotfiles installations must supply a
 successful `dotfiles-guidance-check`; update ai-dotfiles or reconcile the personal
-overlay when this check refuses. Other repositories keep their existing delivery
-until they adopt project guidance themselves.
+overlay when this check refuses. Global Claude/Codex instructions should contain
+only personal preferences. Before removing global engineering inputs, the maintainer
+must prepare dependent legacy repositories through ai-dotfiles synchronization and
+explicitly confirm that handover in ai-dotfiles. Other repositories need no aiwf
+upgrade to retain repository-local legacy delivery.
 
 If installation is interrupted, `.guidance/.aiwf-pending` records the incomplete
 update. Rerun `aiwf update` to finish with the current selection and upstream
