@@ -8,6 +8,7 @@ acs:
     - id: AC-1
       title: Rule carries a target and the enforced uniqueness key includes it
       status: open
+      tdd_phase: red
     - id: AC-2
       title: Every legal cell's target agrees with entity.transitions, mechanically
       status: open
