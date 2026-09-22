@@ -88,3 +88,22 @@ decision.
 - `docs/workflows.md`, `docs/design/legal-workflows-audit.md`,
   `docs/design/legal-workflows-first-principles.md` — the surfaces the decision must
   account for
+
+## Decisions made during implementation
+
+D-0101 — publish the generated reference through repository development tooling;
+its scope and documentation consequences are owned by that decision.
+
+## AC-1 observation
+
+Measured on 2026-09-22 in the Linux amd64 devcontainer, on this milestone's branch.
+`git log -4 --oneline` showed decision creation at `f4621d379` followed by
+acceptance at `d68ec03b9`. At that accepted commit,
+`git diff 4cd8342e1 HEAD --name-only` was expected to show planning files only.
+It listed only the decision and this milestone spec; no render code was committed.
+The renderer's implementation begins after that acceptance. This criterion records
+a sequencing observation, not a red/green code property.
+
+## Deferrals
+
+None.
