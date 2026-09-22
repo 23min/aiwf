@@ -58,13 +58,11 @@ this epic implements it.
   the kernel actually refuses.
 - **Decide whether to render the table** as a generated reference, and ship it if
   the decision says so.
+- **Resolve TDD phase convergence** under G-0458 in M-0318: a repeated phase
+  converges without metrics and refuses supplied metrics rather than losing evidence.
 
 ## Out of scope
 
-- **The `tdd_phase` same-phase question.** G-0458 holds it, and it is a genuine open
-  design question rather than a mechanical repeat: phase promotion carries a
-  `--tests` payload and reads back as the evidence that the test came first. This
-  epic makes a NoOp expressible in the table; it does not decide that case.
 - **Widening the table past status-transition verbs.** The path-changing verbs have
   no legality model, and whether they should is a separate question that E-0088's
   findings inform.
@@ -75,8 +73,8 @@ this epic implements it.
 
 ## Constraints
 
-- **D-0077 is the specification.** A claim here that D-0077 does not carry is a
-  defect in one of the two.
+- **D-0077 specifies the table redesign.** The separately selected G-0458
+  phase-convergence rule extends the behavior represented by that table.
 - **Every hole is closed by a ruling, not by a default.** A cell written because the
   grid demanded one, without an argument for its outcome, is worse than the silence
   it replaced — it reads as a decision.
@@ -101,7 +99,7 @@ Observable at epic close. Milestone acceptance criteria carry the mechanical bar
       demonstrated by a check that compares the two rather than by inspection.
 - [ ] `authorize` appears in no cell; its kind restriction is expressed in
       `GlobalRules()` and still fails when removed.
-- [ ] G-0631, G-0160, G-0417 and G-0166 are each closed or explicitly re-scoped with
+- [ ] G-0631, G-0160, G-0417, G-0166 and G-0458 are each closed or explicitly re-scoped with
       the reason.
 - [ ] The render decision is recorded, and the render ships if it was taken.
 
@@ -120,7 +118,7 @@ Observable at epic close. Milestone acceptance criteria carry the mechanical bar
 | The mechanical pass silently fills rows that deserved a ruling | high | The pass emits only cells derivable from `entity.transitions`; every other row is listed for hand-ruling and the count is recorded. |
 | Splitting cells breaks the coverage drivers in ways that hide coverage loss | high | The driver milestone re-measures per-cell coverage before and after, and totality becomes a policy rather than a property of the driver. |
 | The table grows enough that reading it stops being useful | med | The render exists for readers; the table is for machines. If the render is declined, the size argument is recorded against that decision. |
-| Closing four gaps in one epic lets one of them be quietly dropped | med | Each named gap is a success criterion, closed or re-scoped with a reason. |
+| Closing several gaps in one epic lets one of them be quietly dropped | med | Each named gap is a success criterion, closed or re-scoped with a reason. |
 
 ## Milestones
 
@@ -151,6 +149,6 @@ terms of it, and the render lands last, when there is a total table to render.
 - G-0160 — per-edge drift unpoliced; its fix outline names this epic's approach
 - G-0417 — stale finding-code entries in the table `authorize` moves into
 - G-0166 — cells declaring check-time rejection that the kernel refuses at verb time
-- G-0458 — the `tdd_phase` same-phase question, out of scope and left with its owner
+- G-0458 — the `tdd_phase` same-phase rule implemented by M-0318
 - `internal/workflows/spec/` — the table; `internal/policies/m0123*`, `m0124*`,
   `m0125*` — the drift and coverage machinery
