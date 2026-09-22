@@ -87,24 +87,22 @@ this epic implements it.
 
 Observable at epic close. Milestone acceptance criteria carry the mechanical bar.
 
-- [ ] Every applicable (Kind, FromState, Verb) coordinate carries at least one cell,
+- [x] Every applicable (Kind, FromState, Verb) coordinate carries at least one cell,
       enforced by a policy that fails when one does not.
-- [ ] Every cell names its target, and the enforced uniqueness key includes it.
-- [ ] The kind-by-verb applicability table is total over every pair, enforced.
-- [ ] No declared outcome contradicts what the verb returns at that coordinate,
+- [x] Every cell names its target, and the enforced uniqueness key includes it.
+- [x] The kind-by-verb applicability table is total over every pair, enforced.
+- [x] No declared outcome contradicts what the verb returns at that coordinate,
       demonstrated by a check that compares the two rather than by inspection.
-- [ ] `authorize` appears in no cell; its kind restriction is expressed in
+- [x] `authorize` appears in no cell; its kind restriction is expressed in
       `GlobalRules()` and still fails when removed.
-- [ ] G-0631, G-0160, G-0417, G-0166 and G-0458 are each closed or explicitly re-scoped with
+- [x] G-0631, G-0160, G-0417, G-0166 and G-0458 are each closed or explicitly re-scoped with
       the reason.
-- [ ] The render decision is recorded, and the render ships if it was taken.
+- [x] The render decision is recorded, and the render ships if it was taken.
 
 ## Open questions
 
-| Question | Blocking? | Resolution path |
-|---|---|---|
-| Does a rendered reference ship from this table, or does the table stay a code-side artifact? | no | Decided in the milestone that would build it, before the code lands. |
-| How large does the table get once cells split by target? | no | Measured by the first milestone; the estimate of roughly 120–180 is not evidence. |
+None remain within this epic's scope. D-0101 owns the publication decision;
+M-0318's outcome measurement records the target split's size.
 
 ## Risks
 
@@ -139,7 +137,7 @@ terms of it, and the render lands last, when there is a total table to render.
 - ADR-0011 — the three-pass methodology that produced the table
 - ADR-0013 — global rules as the home for preconditions carrying no cell coordinate
 - D-0007 — the `authorize` kind restriction being moved
-- M-0281 — the same-state NoOp convention the table does not yet express
+- M-0281 — the same-state NoOp convention
 - G-0631 — terminal-state promote declared illegal where the kernel returns NoOp
 - G-0160 — per-edge drift unpoliced; its fix outline names this epic's approach
 - G-0417 — stale finding-code entries in the table `authorize` moves into
