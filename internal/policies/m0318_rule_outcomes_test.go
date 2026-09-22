@@ -89,7 +89,11 @@ func TestM0318_AC3_NoOpCells(t *testing.T) {
 			if err != nil {
 				t.Fatalf("NoOp exited nonzero: %v\n%s", err, out)
 			}
-			if !strings.Contains(out, "nothing to change") {
+			message := "nothing to change"
+			if r.Verb == "cancel" {
+				message = "nothing to cancel"
+			}
+			if !strings.Contains(out, message) {
 				t.Errorf("NoOp message missing: %s", out)
 			}
 			if after := fixtureGitSnapshot(t, f.Root); !bytes.Equal(before, after) {
