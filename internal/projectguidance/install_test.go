@@ -130,20 +130,6 @@ func TestInstall_ConflictsDoNotChangeGuidance(t *testing.T) {
 	}
 }
 
-func TestInstall_DryRunDoesNotWrite(t *testing.T) {
-	t.Parallel()
-	snapshot, opts := installationFixture(t)
-	opts.DryRun = true
-	root := t.TempDir()
-	changed, err := Install(t.Context(), root, snapshot, opts)
-	if err != nil || !changed {
-		t.Fatalf("dry run: %v, %v", changed, err)
-	}
-	if len(readTree(t, root)) != 0 {
-		t.Fatal("dry run wrote files")
-	}
-}
-
 func TestInstall_EmptySelectionStillOwnsPolicy(t *testing.T) {
 	t.Parallel()
 	snapshot, opts := installationFixture(t)

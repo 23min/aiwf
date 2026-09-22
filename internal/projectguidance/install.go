@@ -35,7 +35,6 @@ type InstallOptions struct {
 	Source    string
 	Selected  []string
 	HostFiles []string
-	DryRun    bool
 }
 
 type receipt struct {
@@ -182,9 +181,6 @@ func Install(ctx context.Context, root string, snapshot *Snapshot, opts InstallO
 	}
 	if len(writes) == 0 && pending == nil {
 		return false, nil
-	}
-	if opts.DryRun {
-		return true, nil
 	}
 	if err := applyInstallation(ctx, root, writes, nextOwned, pending); err != nil {
 		return false, fmt.Errorf("guidance installation incomplete; rerun aiwf update to finish: %w", err)
