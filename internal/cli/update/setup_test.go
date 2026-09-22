@@ -11,6 +11,10 @@ import (
 //   - TestRefreshStatuslineInPlace_PrintsLedgerForUnmarkedCopy
 //     (refresh_statusline_test.go): swaps $HOME via t.Setenv and captures
 //     os.Stdout — both process-globals.
+//   - TestRun_ProjectGuidanceFailuresPreserveInstallationAndContinue,
+//     TestRun_ProjectGuidanceDisabledPreservesInstallationWithoutRetrieval, and
+//     TestRun_ProjectGuidanceRemovalAndInterruptedRetry capture os.Stdout;
+//     the disabled-maintenance test also sets GIT_TRACE.
 func TestMain(m *testing.M) {
 	os.Setenv("GIT_AUTHOR_NAME", "aiwf-test")
 	os.Setenv("GIT_AUTHOR_EMAIL", "test@example.com")
