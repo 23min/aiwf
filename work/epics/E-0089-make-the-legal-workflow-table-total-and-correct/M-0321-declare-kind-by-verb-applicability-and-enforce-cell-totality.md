@@ -186,3 +186,25 @@ covered by ADR-0036 and the kernel's transition rules.
 ## Deferrals
 
 None.
+
+## Reviewer notes
+
+Independent full-change code review: approve, no blocking findings or untracked
+defects. Independent design review of the applicability model: keep. The separate,
+explicit declaration makes a missing transition distinguishable from an excluded
+verb domain without introducing a registry or mutable shared state.
+
+Keep the explicit applicability-validation guards. Their distinct diagnostics and
+separate completeness walk are load-bearing; a switch-based equivalent saves one
+formatted line without a meaningful simplification. Existing drift arms remain
+under the epic's constraint, retaining their other schema and reverse-drift duties.
+
+The applicability and coordinate-totality policies own the new structural
+obligations until their table/domain model is replaced. The current exclusion
+assertion changes only with a deliberate verb-domain change; the existing outcome
+drivers own each declared request until that request's semantics change or it is
+removed.
+
+Scoped doc-lint: clean. Referenced source paths and links resolve; no removed
+feature, new orphan document, documentation marker, stale invocation or heading
+structure finding was identified in the milestone's documentation scope.
