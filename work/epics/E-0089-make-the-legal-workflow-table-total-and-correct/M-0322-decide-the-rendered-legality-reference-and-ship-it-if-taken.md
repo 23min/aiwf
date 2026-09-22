@@ -12,7 +12,7 @@ acs:
       status: met
     - id: AC-2
       title: If taken, the committed render matches a fresh render, enforced
-      status: open
+      status: met
 ---
 ## Goal
 
