@@ -11,7 +11,7 @@ acs:
       tdd_phase: done
     - id: AC-2
       title: The retired finding-code entries and their dead constructors are gone
-      status: open
+      status: met
       tdd_phase: done
 ---
 ## Goal
