@@ -2,7 +2,7 @@ package aiwfyaml
 
 import "unicode/utf8"
 
-// yamlLines retains separators and follows yaml.v3's is_break/skip_line rules,
+// yamlLines retains UTF-8 separators and follows yaml.v3's is_break/skip_line rules,
 // so byte ranges agree with the parser's one-based node line numbers.
 func yamlLines(raw []byte) [][]byte {
 	var lines [][]byte

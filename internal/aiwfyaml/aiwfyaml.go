@@ -1,37 +1,7 @@
-// Package aiwfyaml reads and surgically edits two blocks of the
-// consumer repo's aiwf.yaml — `contracts:` and `areas:` — without
-// disturbing the rest of the file.
-//
-// It owns those two stretches of YAML and leaves everything else
-// byte-for-byte alone. Comments, blank lines, key ordering, and
-// indentation outside the edited region survive every programmatic
-// mutation. The two blocks differ in HOW they are edited: `contracts:`
-// is regenerated and spliced as a whole block (its structure is
-// canonicalized on write), whereas `areas:` is edited SURGICALLY —
-// `aiwf rename-area` rewrites only the renamed member's name token
-// (RenameAreaMember), so comments and sibling keys INSIDE the areas
-// block survive too (E-0044, M-0195).
-//
-// Two responsibilities:
-//
-//  1. Parse aiwf.yaml, yield the typed Contracts block (or nil if
-//     the block is absent), and the source bytes plus the byte range
-//     occupied by `contracts:`. The structural validation rules
-//     documented in docs/archive/pocv3/contracts-plan.md §5 are applied here:
-//     - every entries[].validator must reference a key in validators;
-//     - every entries[].id must match `C-NNN`;
-//     - anchors and aliases anywhere inside the contracts: subtree
-//     are a hard error;
-//     - unknown fields anywhere in the block are a hard error.
-//     Path existence (schema, fixtures) is *not* checked here —
-//     those checks happen at verify time.
-//
-//  2. Splice an updated Contracts block back into the source. The
-//     splice is textual: the engine re-marshals only the contracts:
-//     block and replaces the corresponding byte range. Bytes before
-//     and after that range are untouched. This is the load-bearing
-//     guarantee the verbs in §6 of the contracts plan rely on so
-//     the LLM can be told "the engine never rewrites your YAML".
+// Package aiwfyaml reads aiwf.yaml and edits contract registrations, hook
+// decisions, area members, and guidance selections. It validates the contracts
+// block while reading. Each Doc mutation method documents its edit granularity
+// and preservation rules; guidance selection may re-encode the whole document.
 package aiwfyaml
 
 import (
