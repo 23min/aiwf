@@ -26,7 +26,7 @@ acs:
       tdd_phase: done
     - id: AC-5
       title: Legacy handover never activates a second guidance corpus
-      status: open
+      status: met
       tdd_phase: done
     - id: AC-6
       title: Both hosts and local diagnostics expose the installed policy
