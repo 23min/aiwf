@@ -92,6 +92,54 @@ All preceding deliveries, with the actual compatible distributions available for
 
 ## Validation
 
+### AC-1 — migration observation
+
+Observed on 2026-09-22 in the Linux devcontainer. Migration commit:
+`9f817fa5b34cdcc4e0a065f7f7e78a54a030ad83`. The diagnostic binary
+`/tmp/aiwf-m0348-review --version` reported
+`v0.37.1-0.20260922200201-4bd58809979e+dirty`; installed ai-dotfiles was
+`73d46b2f54821a0b03187b04343347248e08540b`.
+
+- **Installation:** `/tmp/aiwf-m0348-review update --root /tmp/m0348-ac1-1dev6k_w/repo`
+  was run in a disposable local clone with the selected packs. Expected successful
+  project installation and replacement of managed legacy imports; observed exit 0
+  and installed corpus revision `9c9ca4b3681ca4cb8798e5af9e9124b1e761526b`.
+  The reviewed migration outputs were applied to the authoring checkout. Its
+  pre-existing native workflow block and ignore-file edits remained uncommitted.
+  Statusline refresh was skipped because the diagnostic version could not be
+  ordered against the installed release; it was not part of this migration.
+- **Selection:** tracked sources include Go, Python scripts, and Playwright
+  TypeScript. The JavaScript suggestion matched Playwright's `package.json`,
+  without tracked JavaScript source; no additional JavaScript pack was selected.
+  Project exceptions retain `CLAUDE.md` as their canonical source through
+  `.guidance/project.md`.
+- **Handover:** from the authoring checkout, ran
+  `~/.local/bin/dotfiles-sync --root "$PWD"` and
+  `~/.local/bin/dotfiles-sync --check --root "$PWD"`.
+  Expected no legacy restoration; both exited 0 and reported project guidance
+  ownership with legacy synchronization skipped. Python SHA-256 assertions over
+  the root files, configuration, ignore file, and every `.guidance` file passed
+  before/after byte equality. Root-file assertions found no legacy engineering
+  imports. Original pending content matched its saved SHA-256 values.
+- **Clean delivery:** `git clone --quiet --no-hardlinks --single-branch` of the
+  authoring checkout into `/tmp/m0348-ac1-committed-klktnnkc/repo` completed
+  successfully. Expected a clean checkout containing the committed guidance;
+  `git status --porcelain` was empty. Python assertions verified each installed
+  index/pack SHA-256 against `.guidance/.aiwf-owned`. Every pack also byte-matched
+  `git show <installed-revision>:<pack-path>` in the corpus checkout. An export of
+  the candidate Git tree, with no personal dotfiles copied, had resolving local
+  guidance links, both host routes, project overrides, and no pending installation.
+  `git rev-parse HEAD^{tree}` after committing matched that verified candidate tree.
+- **Review and checks:** independent review approved the exact migration patch
+  with no findings. `git diff --check` passed;
+  `/tmp/aiwf-m0348-review check --since origin/main` reported 0 errors and the
+  existing 17 warnings. No Go/build inputs changed, so the full code suite was
+  not repeated for this configuration and generated-content adoption.
+
+These observations establish delivery and handover in the migrated checkout.
+They do not establish live assistant reads, migration of other checkouts, or
+instruction-load reduction; those remain separate criteria.
+
 ## Deferrals
 
 - (none)
