@@ -33,7 +33,7 @@ Migrate aiwf itself, verify both hosts and legacy coexistence, and leave E-0092 
 
 ## Context
 
-Corpus, compatibility routing, installation, and selection are available. This is adoption and observation work, not a second implementation of delivery.
+Corpus, project installation, and selection are available. Reconcile ai-dotfiles with personal-only global instructions and repository-local engineering delivery before shared installation handover. Reuse the existing synchronization and aiwf materialization paths; do not introduce another delivery framework.
 
 ## Acceptance criteria
 
@@ -43,11 +43,11 @@ Select the packs required by its actual languages and engineering conventions, i
 
 ### AC-2 — Both hosts demonstrate relevant project reads in fresh sessions
 
-Observe root-started tasks touching nested files, new files, and unrelated prose, in a checkout without ai-dotfiles. Record project-override precedence, relevant reads, absence of legacy engineering reads, and limits of observable behavior. References: milestone observation record with tasks, expectations, actual observations, environment, host/model versions, and installed revision. Obtain separate approval for live service invocations.
+Observe root-started tasks touching nested files, new files, and unrelated prose, in a checkout without ai-dotfiles. Include non-coding tasks outside repositories and verify that personal-only globals require no engineering discovery or reads. Record project-override precedence, relevant reads, absence of legacy engineering reads, and limits of observable behavior. References: milestone observation record with tasks, expectations, actual observations, environment, host/model versions, and installed revision. Obtain separate approval for live service invocations.
 
 ### AC-3 — Mixed repositories retain the correct guidance source
 
-Exercise the released combination against old-aiwf and non-aiwf projects alongside migrated projects. Include an incompatible personal installation, failed handover, empty installed selection, disabled maintenance, and update retries; confirm legacy access or exclusive project access as applicable. References: compatibility/integration fixtures plus an observation record for actual installed setup. Do not substitute local fixture success for distribution availability.
+Implement and test personal-only global Claude/Codex outputs, repository-local legacy engineering delivery through ai-dotfiles synchronization, and the matching handover checks. Account for globally installed engineering skills as well as instruction files. Prepare legacy repositories before any approved removal of shared global engineering delivery. Exercise the released combination against old-aiwf and non-aiwf projects alongside migrated projects. Include an incompatible personal installation, failed handover, empty installed selection, disabled maintenance, and update retries; confirm legacy repository-local access or exclusive aiwf project access as applicable. Preserve personal rules; do not treat a global project/legacy router as a completed migration. References: compatibility/integration fixtures plus an observation record for actual installed setup. Do not substitute local fixture success for distribution availability.
 
 ### AC-4 — Growth measurements make the reduction prerequisite reproducible
 
@@ -55,7 +55,7 @@ Record before/after commits, installed guidance revision, commands, expected out
 
 ## Constraints
 
-TDD is advisory for adoption and live observations; any logic defect found uses test-first fixes. Do not mark observational criteria met with file-existence proxies. Keep normal approval gates for commits and publication.
+TDD is advisory for adoption and live observations; new synchronization, generation and compatibility logic uses test-first development. Do not mark observational criteria met with file-existence proxies. Keep normal approval gates for commits and publication.
 
 ## Design notes
 
@@ -63,7 +63,7 @@ E-0094 supplies delivery and migration. E-0092 supplies the subsequent reduction
 
 ## Surfaces touched
 
-aiwf project configuration and host files, installed guidance, growth records, and E-0092 prerequisite text.
+ai-dotfiles personal instruction generation, repository synchronization and compatibility checks; aiwf project configuration and host files, installed guidance, growth records, and E-0092 prerequisite text.
 
 ## Out of scope
 
@@ -88,7 +88,7 @@ All preceding deliveries, with the actual compatible distributions available for
 
 ## Decisions made during implementation
 
-- (none)
+- ADR-0051 — personal-only global instructions and repository-local engineering delivery.
 
 ## Validation
 
