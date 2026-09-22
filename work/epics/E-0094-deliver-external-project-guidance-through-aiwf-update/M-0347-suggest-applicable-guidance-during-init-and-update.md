@@ -1,7 +1,7 @@
 ---
 id: M-0347
 title: Suggest applicable guidance during init and update
-status: draft
+status: in_progress
 parent: E-0094
 depends_on:
     - M-0346
