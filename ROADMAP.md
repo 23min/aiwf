@@ -1257,7 +1257,7 @@ that the kernel contradicts.
 | M-0319 | Move authorize to GlobalRules and sweep the stale entries there | done |
 | M-0320 | Re-key the coverage drivers and reconcile the rejection-layer axis | done |
 | M-0321 | Declare kind-by-verb applicability and enforce cell totality | done |
-| M-0322 | Decide the rendered legality reference and ship it if taken | draft |
+| M-0322 | Decide the rendered legality reference and ship it if taken | in_progress |
 
 ## E-0090 — Make closing an epic a sovereign act and give scopes an operator-driven end (done)
 
