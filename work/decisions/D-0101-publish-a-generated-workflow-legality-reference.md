@@ -1,7 +1,7 @@
 ---
 id: D-0101
 title: Publish a generated workflow legality reference
-status: proposed
+status: accepted
 relates_to:
     - E-0089
     - M-0322
