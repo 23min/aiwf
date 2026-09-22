@@ -30,7 +30,7 @@ acs:
       tdd_phase: done
     - id: AC-6
       title: Both hosts and local diagnostics expose the installed policy
-      status: open
+      status: met
       tdd_phase: done
 ---
 ## Goal
