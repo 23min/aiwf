@@ -47,7 +47,6 @@ var noopExemptVerbs = []struct {
 	// OPEN entries. These are NOT by-design exemptions — each records a
 	// deferred decision, and each is the reason this chokepoint reports green
 	// with a known hole. Every one was measured, not assumed.
-	{"PromoteACPhase", "OPEN, tracked in G-0458: same-phase input refuses via the TDD-phase FSM (measured: exit 1, no commit). Unlike the status case, the phase ladder is audit-bearing evidence and the verb carries a --tests payload, so convergence needs a deliberate metrics carve-out rather than a mechanical repeat — resolve by converting with that carve-out, or by rewriting this entry with a by-design reason"},
 	{"AcknowledgeMistag", "OPEN, tracked in G-0459: an identical re-run appends a duplicate audit commit (measured). check.WalkAcknowledgedMistags already walks HEAD for these commits, so the dedup capability exists and is simply unused — the closest analogue to the guard acknowledge-illegal received"},
 	{"PromoteAuditOnly", "OPEN, tracked in G-0459: an identical re-run appends a duplicate audit commit (measured). The verb's precondition is that the entity already sits at the target state, so a duplicate guard must key on an existing audit RECORD, not on entity state"},
 	{"PromoteACPhaseAuditOnly", "OPEN, tracked in G-0459: shares PromoteAuditOnly's measured duplicate-record behavior"},

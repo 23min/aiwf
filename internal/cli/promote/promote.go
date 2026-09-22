@@ -10,6 +10,7 @@ import (
 
 	"github.com/23min/aiwf/internal/cli/cliutil"
 	"github.com/23min/aiwf/internal/entity"
+	"github.com/23min/aiwf/internal/gitops"
 	"github.com/23min/aiwf/internal/tree"
 	"github.com/23min/aiwf/internal/verb"
 )
@@ -42,6 +43,10 @@ func NewCmd(correlationID string) *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "promote <id> [new-status]",
 		Short: "Advance an entity's status (or AC tdd_phase via --phase)",
+		Long: `Advance an entity's status or an acceptance criterion's TDD phase.
+Repeating a recorded TDD phase without test metrics succeeds without a commit.
+A same-phase request carrying --tests is refused, including explicit zero counts;
+omit --tests to converge, or supply metrics with a real phase change.`,
 		Example: `  # Move an epic from proposed to active
   aiwf promote E-01 active
 
@@ -177,6 +182,11 @@ func Run(args []string, actor, principal, root, reason,
 		metrics, mErr := cliutil.ParseTestsFlag(tests, "aiwf promote")
 		if mErr != nil {
 			return cliutil.ExitUsage
+		}
+		// Explicit zero counts still carry a metrics request, even though
+		// their trailer representation is empty.
+		if metrics == nil && strings.TrimSpace(tests) != "" {
+			metrics = &gitops.TestMetrics{}
 		}
 		var result *verb.Result
 		var vErr error

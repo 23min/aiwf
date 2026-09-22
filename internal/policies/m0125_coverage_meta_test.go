@@ -26,7 +26,7 @@ import (
 //  3. A cell whose Outcome was retyped from Legal to Illegal but
 //     missed the corresponding RejectionLayer assignment.
 //
-// Identity is cellKey (Kind, FromState, Verb, preconditions-sig) —
+// Identity is cellKey (Kind, FromState, Verb, ToState, preconditions-sig) —
 // the same disambiguator M-0124's positive coverage meta-test uses.
 // The structural invariants on Illegal cells (RejectionLayer non-zero,
 // ExpectedErrorCode non-empty) are enforced separately by M-0123's
@@ -81,7 +81,7 @@ func TestM0125_AC4_NoExtraIllegalEnumerations(t *testing.T) {
 // enumerations. t.Run on a duplicate name silently shadows the second
 // subtest under most test runners — the result is reported but the
 // disambiguation is lost. illegalCaseName composes
-// (Kind, FromState, Verb) with preconditionSignature; this test
+// (Kind, FromState, Verb, ToState) with preconditionSignature; this test
 // confirms the signature is sufficient.
 func TestM0125_AC4_IllegalSubtestNamesUnique(t *testing.T) {
 	t.Parallel()

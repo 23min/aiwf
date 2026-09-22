@@ -22,6 +22,7 @@
 //   - Outcome == OutcomeIllegal implies RejectionLayer != RejectionLayerNone.
 //   - RejectionLayer == RejectionLayerVerbTime implies BlockingStrict == true.
 //   - Outcome == OutcomeLegal implies ExpectedErrorCode == "".
+//   - Outcome == OutcomeNoOp implies ToState == FromState and no rejection metadata.
 //   - Sources.Decision (when non-empty) resolves to a planning-tree entity.
 //   - (Kind, FromState, Verb, ToState, Outcome, Preconditions) uniquely keys each Rule.
 package spec
@@ -40,7 +41,8 @@ const (
 	KindTDDPhase entity.Kind = "tdd-phase"
 )
 
-// Outcome is the legal/illegal axis of a Rule cell.
+// Outcome distinguishes a legal mutation, an illegal request, and convergence
+// without a mutation (NoOp).
 //
 // The zero value OutcomeUnspecified is a sentinel that surfaces "forgot to
 // set Outcome on a Rule literal" bugs at drift-policy time (the policy test
@@ -52,6 +54,7 @@ const (
 	OutcomeUnspecified Outcome = iota
 	OutcomeLegal
 	OutcomeIllegal
+	OutcomeNoOp
 )
 
 // RejectionLayer names where in the kernel pipeline an illegal cell is
@@ -60,7 +63,7 @@ const (
 // findings by aiwf check (the verb may have succeeded structurally).
 //
 // The zero value RejectionLayerNone is meaningful — it applies to legal
-// cells (where the field is irrelevant). The drift policy asserts that
+// and NoOp cells (where the field is irrelevant). The drift policy asserts that
 // illegal cells carry a non-zero RejectionLayer.
 type RejectionLayer int
 
@@ -112,7 +115,7 @@ type RuleSource struct {
 // Rule is one legality cell in the spec table.
 //
 // Keyed by (Kind, FromState, Verb, ToState, Outcome, Preconditions).
-// ToState names the transition's target. Outcome carries Legal/Illegal; for
+// ToState names the requested target. Outcome carries Legal, Illegal or NoOp; for
 // Illegal cells, RejectionLayer + BlockingStrict + ExpectedErrorCode pin
 // the rejection mode. Preconditions narrow when the cell applies (e.g., a
 // legal-only-if-children-all-terminal precondition pairs with a companion

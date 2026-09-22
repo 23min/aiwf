@@ -314,6 +314,9 @@ func TestSatisfyPredicate(t *testing.T) {
 		pred       spec.Predicate
 		evalCtx    spec.EvalContext // ctx passed to EvaluatePredicate (typically empty for entity-side atoms)
 	}{
+		{"tests-present", spec.KindAC, "open", spec.Predicate{Subject: "self.tests", Op: "non-empty"}, spec.EvalContext{}},
+		{"tests-absent", spec.KindAC, "open", spec.Predicate{Subject: "self.tests", Op: "==", Value: ""}, spec.EvalContext{TestMetrics: "pass=0"}},
+
 		// self.addressed_by non-empty / == ""
 		{"addressed_by-non-empty", entity.KindGap, "open", spec.Predicate{Subject: "self.addressed_by", Op: "non-empty"}, spec.EvalContext{}},
 		{"addressed_by-empty", entity.KindGap, "open", spec.Predicate{Subject: "self.addressed_by", Op: "==", Value: ""}, spec.EvalContext{}},

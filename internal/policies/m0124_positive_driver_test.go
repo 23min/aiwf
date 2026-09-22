@@ -194,6 +194,7 @@ func runPositiveCell(t *testing.T, tc positiveCase) {
 // the fixture. resolverID populates `--by` for gap.addressed;
 // supersedingID populates `--superseded-by` for adr.superseded.
 type extraArgs struct {
+	testMetrics   string
 	resolverID    string
 	supersedingID string
 }
@@ -406,7 +407,11 @@ func buildVerbArgs(t *testing.T, tc positiveCase, id string, extras extraArgs) [
 		return []string{"cancel", id}
 	case "promote":
 		if tc.rule.Kind == spec.KindTDDPhase {
-			return []string{"promote", id, "--phase", tc.target}
+			args := []string{"promote", id, "--phase", tc.target}
+			if extras.testMetrics != "" {
+				args = append(args, "--tests", extras.testMetrics)
+			}
+			return args
 		}
 		args := []string{"promote", id, tc.target}
 		if extras.resolverID != "" {

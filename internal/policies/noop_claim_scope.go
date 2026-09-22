@@ -85,6 +85,7 @@ var noOpClaimScopes = []claimScope{
 	{"SetArea", claimScopeTargetEntity, "converges on the target's stored area field"},
 	{"MilestoneTDD", claimScopeTargetEntity, "converges on the milestone's stored tdd policy"},
 	{"MilestoneDependsOn", claimScopeTargetEntity, "converges on the milestone's stored depends_on list"},
+	{"PromoteACPhase", claimScopeTargetEntity, "converges on an AC's stored TDD phase in the parent milestone file, only without supplied test metrics"},
 	{"promoteAC", claimScopeTargetEntity, "converges on an AC's stored status, which lives in the parent milestone's file"},
 	{"cancelAC", claimScopeTargetEntity, "converges on an AC's stored status being terminal, read from the parent milestone's file"},
 	{"renameAC", claimScopeTargetEntity, "converges on an AC's stored title and its body heading, both in the parent milestone's file"},

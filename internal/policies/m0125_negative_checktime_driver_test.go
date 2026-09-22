@@ -114,7 +114,7 @@ var ac3KnownImplGaps = map[string]string{
 	// gate; the gate fires on any error-severity finding in the
 	// projected post-state, and acs-tdd-audit under tdd:required is
 	// error-severity. The illegal state never lands on disk.
-	"ac-open-promote-ptddeqrequired-tddphasenedone": "G-0166",
+	"ac-open-promote-to-met-ptddeqrequired-tddphasenedone": "G-0166",
 }
 
 // ac3ForceBypass lists Illegal cells whose verb-time guard is
@@ -137,7 +137,7 @@ var ac3ForceBypass = map[string]string{
 	// HasErrors check. --force --reason "<rationale>" passes both
 	// gates and the verb writes the illegal state, then aiwf check
 	// fires the rule post-write.
-	"gap-open-promote": "G-0166",
+	"gap-open-promote-to-addressed": "G-0166",
 }
 
 func enumerateCheckTimeIllegalCases(t *testing.T) []illegalCase {
@@ -173,7 +173,7 @@ func runNegativeCheckTimeCell(t *testing.T, tc illegalCase) {
 	_, isImplGap := ac3KnownImplGaps[tc.name]
 	_, isForceBypass := ac3ForceBypass[tc.name]
 
-	args := buildIllegalVerbArgs(t, tc, id)
+	args := buildIllegalVerbArgs(t, tc, id, evalCtx)
 	if isForceBypass {
 		args = append(args, "--force", "--reason", "AC-3 check-time driver: bypass --force-skippable verb-time guard to exercise the post-write check rule")
 	}

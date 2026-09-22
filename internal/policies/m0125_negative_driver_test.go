@@ -6,7 +6,6 @@ import (
 
 	"github.com/23min/aiwf/internal/cellcoverage"
 	"github.com/23min/aiwf/internal/cli/cliutil/testutil"
-	"github.com/23min/aiwf/internal/entity"
 	"github.com/23min/aiwf/internal/workflows/spec"
 )
 
@@ -31,12 +30,9 @@ import (
 // fails the test loudly; this is intentional (we want to know when the
 // kernel rephrases an enforcement boundary).
 //
-// Coverage commitment: every verb-time Illegal cell in spec.Rules()
-// yields one subtest; M-0123 phase 1 pinned the floor at 27 cells
-// (15 explicit OutcomeIllegal struct literals carrying
-// RejectionLayer: RejectionLayerVerbTime + 12 terminalIllegal helper
-// invocations; the 2 RejectionLayerCheckTime cells are out of scope
-// here and covered by AC-3).
+// Coverage commitment: every verb-time Illegal cell yields one subtest.
+// Check-time cells have their own driver; the coverage meta-policy checks
+// both enumerators against the table.
 func TestM0125_AC2_NegativeDriver_VerbTimeRejection(t *testing.T) {
 	t.Parallel()
 	testutil.SkipIfShortOrUnsupported(t)
@@ -159,6 +155,7 @@ func errorSubstringsFor(code string) []string {
 		return []string{
 			"cannot transition to", // non-terminal & terminal cases both
 			"no cancel target",     // CancelTarget returns "" for terminal
+			"--tests requires a phase change",
 			// No arm for "is already at terminal status": cancel converges
 			// there, so that phrasing is a NoOp message, and matching it
 			// would bless a NoOp as a valid refusal.
@@ -192,12 +189,7 @@ func runNegativeVerbTimeCell(t *testing.T, tc illegalCase) {
 	id := bringEntityForCell(t, f, tc.rule, opts)
 
 	evalCtx := spec.EvalContext{}
-	// All live Illegal-cell predicates today flow through SatisfyPredicate
-	// directly — no Illegal cell uses self.target-state or carries the
-	// non-empty form of self.addressed_by / self.superseded_by, so the
-	// M-0124 driver's verb-arg-shaping switch isn't needed here. If a
-	// future Illegal cell introduces such a precondition, copy the
-	// shape from m0124_positive_driver_test.go::runPositiveCell.
+	// Predicates populate entity state and request context for the shared argument builder.
 	for _, p := range tc.rule.Preconditions {
 		f.SatisfyPredicate(t, p, id, &evalCtx)
 	}
@@ -208,7 +200,7 @@ func runNegativeVerbTimeCell(t *testing.T, tc illegalCase) {
 	}
 	headBefore = strings.TrimSpace(headBefore)
 
-	args := buildIllegalVerbArgs(t, tc, id)
+	args := buildIllegalVerbArgs(t, tc, id, evalCtx)
 	out, runErr := testutil.RunBin(t, f.Root, "", nil, args...)
 
 	if runErr == nil {
@@ -240,15 +232,8 @@ func runNegativeVerbTimeCell(t *testing.T, tc illegalCase) {
 	}
 }
 
-// buildIllegalVerbArgs constructs the CLI args for a verb-time Illegal
-// cell. No live Illegal cell uses verb-arg-shaped preconditions
-// (self.target-state / self.addressed_by:non-empty /
-// self.superseded_by:non-empty), so this is simpler than M-0124's
-// buildVerbArgs — there are no `--by` / `--superseded-by` flag paths
-// here. If a future Illegal cell introduces such a precondition,
-// re-introduce the extras/evalCtx parameters and copy the shape from
-// m0124_positive_driver_test.go::buildVerbArgs.
-func buildIllegalVerbArgs(t *testing.T, tc illegalCase, id string) []string {
+// buildIllegalVerbArgs uses the declared target and metrics request context.
+func buildIllegalVerbArgs(t *testing.T, tc illegalCase, id string, ctx spec.EvalContext) []string {
 	t.Helper()
 	switch tc.rule.Verb {
 	case "cancel":
@@ -256,103 +241,11 @@ func buildIllegalVerbArgs(t *testing.T, tc illegalCase, id string) []string {
 	case "authorize":
 		return []string{"authorize", id, "--to", "ai/claude"}
 	case "promote":
-		if tc.rule.Kind == spec.KindTDDPhase {
-			return []string{"promote", id, "--phase", anyOtherTDDPhase(tc.rule.FromState)}
-		}
-		return []string{"promote", id, deriveIllegalPromoteTarget(t, tc.rule)}
+		return buildVerbArgs(t, positiveCase{rule: tc.rule, target: tc.rule.ToState}, id,
+			extraArgs{testMetrics: ctx.TestMetrics})
 	}
 	t.Fatalf("buildIllegalVerbArgs: unsupported verb %q", tc.rule.Verb)
 	return nil
-}
-
-// promoteTargetOverride pins the illegal-promote target for cells whose
-// default pick (deriveIllegalPromoteTarget's allowed[0]) would not
-// actually reach the cell's precondition-gated refusal. Most cells
-// don't need this — e.g. epic-promote-non-terminal-children's guard
-// covers every terminal target reachable from "active", so
-// allowed[0]=="done" already trips it. Only add an entry when the
-// default pick provably misses the guard the cell exists to exercise.
-var promoteTargetOverride = map[string]string{
-	// milestone-draft-promote-anychildacstatuseqopen (G-0335): draft's
-	// allowed[0] is "in_progress", which MilestonePromoteNonTerminalACsError's
-	// guard (scoped to newStatus == cancelled) never sees — and which
-	// is itself refused first by the unrelated G-0269 activating-branch
-	// guard, masking the cell under test entirely. Force the target to
-	// "cancelled" so the driver actually exercises the AC guard.
-	"milestone-draft-promote-anychildacstatuseqopen": string(entity.StatusCancelled),
-}
-
-// deriveIllegalPromoteTarget picks the target for an Illegal promote
-// cell. promoteTargetOverride wins first for cells that need a specific
-// target. Otherwise the first FSM-allowed transition wins (covers cells
-// where the FromState is non-terminal and the cell's other precondition
-// triggers rejection — e.g. ADR.accepted with self.superseded_by==""
-// rejects on the verb's --superseded-by-required guard before FSM check
-// fires). Otherwise: a kind-domain status (terminal-FromState cells —
-// any target trips fsm-transition-illegal).
-func deriveIllegalPromoteTarget(t *testing.T, rule spec.Rule) string {
-	t.Helper()
-	if target, ok := promoteTargetOverride[illegalCaseName(rule)]; ok {
-		return target
-	}
-	allowed := entity.AllowedTransitions(rule.Kind, entity.Status(rule.FromState))
-	if len(allowed) > 0 {
-		return string(allowed[0])
-	}
-	// Terminal FromState: no legal outgoing transition, so any target trips
-	// fsm-transition-illegal — but the target must differ from FromState. A
-	// same-status promote is now a NoOp (M-0281/AC-1), not a rejection, so a
-	// self-target would exit 0 and no longer exercise the rejection this cell
-	// pins. anyKindDomainStatus coincides with FromState only for gap
-	// (addressed); the guard swaps in a different domain status there.
-	target := anyKindDomainStatus(t, rule.Kind)
-	if target == rule.FromState {
-		target = anyKindDomainStatusExcept(t, rule.Kind, rule.FromState)
-	}
-	return target
-}
-
-// anyKindDomainStatusExcept returns a status in the kind's domain that is
-// not `except`. Used by deriveIllegalPromoteTarget for a terminal-FromState
-// cell whose representative domain status equals the FromState — any other
-// status of the kind trips fsm-transition-illegal just as well, while
-// avoiding the same-status NoOp path (M-0281/AC-1).
-func anyKindDomainStatusExcept(t *testing.T, k entity.Kind, except string) string {
-	t.Helper()
-	for _, s := range entity.AllowedStatuses(k) {
-		if string(s) != except {
-			return string(s)
-		}
-	}
-	t.Fatalf("anyKindDomainStatusExcept: kind %q has no status other than %q", k, except)
-	return ""
-}
-
-func anyKindDomainStatus(t *testing.T, k entity.Kind) string {
-	t.Helper()
-	switch k {
-	case entity.KindEpic:
-		return string(entity.StatusActive)
-	case entity.KindMilestone:
-		return string(entity.StatusInProgress)
-	case entity.KindADR, entity.KindDecision:
-		return string(entity.StatusAccepted)
-	case entity.KindGap:
-		return string(entity.StatusAddressed)
-	case entity.KindContract:
-		return string(entity.StatusAccepted)
-	case spec.KindAC:
-		return string(entity.StatusMet)
-	}
-	t.Fatalf("anyKindDomainStatus: no domain status for kind %q", k)
-	return ""
-}
-
-func anyOtherTDDPhase(current string) string {
-	if current == entity.TDDPhaseDone {
-		return entity.TDDPhaseRed
-	}
-	return entity.TDDPhaseDone
 }
 
 // runImplGapStalenessVerbTime drives a cell tracked by an entry in
@@ -396,7 +289,7 @@ func runImplGapStalenessVerbTime(t *testing.T, tc illegalCase, gap string) {
 		f.SatisfyPredicate(t, p, id, &evalCtx)
 	}
 
-	args := buildIllegalVerbArgs(t, tc, id)
+	args := buildIllegalVerbArgs(t, tc, id, evalCtx)
 	out, verbErr := testutil.RunBin(t, f.Root, "", nil, args...)
 	if verbErr != nil {
 		t.Errorf("ac2KnownImplGaps[%q] (tracking %s) is stale: verb returned non-zero, meaning the kernel has learned to reject this cell at verb-time. Remove the entry from ac2KnownImplGaps and the cell will be exercised end-to-end by runNegativeVerbTimeCell.\nargs: %v\nverb output:\n%s", tc.name, gap, args, out)
