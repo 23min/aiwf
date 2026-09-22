@@ -1,6 +1,8 @@
 package testsupport
 
 import (
+	"encoding/json"
+	"fmt"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -8,13 +10,20 @@ import (
 	"testing"
 )
 
-// GuidanceSource creates a local corpus with one explicitly selectable pack.
-func GuidanceSource(tb testing.TB) string {
+// GuidanceSource creates a local corpus with one pack and optional filename patterns.
+func GuidanceSource(tb testing.TB, detect ...string) string {
 	tb.Helper()
+	if detect == nil {
+		detect = []string{}
+	}
+	patterns, err := json.Marshal(detect)
+	if err != nil { //coverage:ignore a slice of strings is always JSON-encodable
+		tb.Fatal(err)
+	}
 	root := tb.TempDir()
 	guidanceGit(tb, root, "init", "-q", "-b", "main")
 	files := map[string]string{
-		"catalogue.json":             `{"packs":[{"id":"sample/base","description":"Sample project guidance","files":["packs/sample/base/guide.md"],"detect":[]}]}`,
+		"catalogue.json":             fmt.Sprintf(`{"packs":[{"id":"sample/base","description":"Sample project guidance","files":["packs/sample/base/guide.md"],"detect":%s}]}`, patterns),
 		"packs/sample/base/guide.md": "# Sample guidance\nInitial upstream content.\n",
 	}
 	for name, content := range files {

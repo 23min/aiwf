@@ -43,7 +43,7 @@ func NewCmd() *cobra.Command {
 		Short: "One-time setup: aiwf.yaml, scaffolding, skills, pre-push hook",
 		Long: `One-time setup: writes aiwf.yaml, scaffolds entity directories, materializes skills, appends to .gitignore, wires selected host guidance, and installs the pre-push hook.
 
-Safe to re-run: init refreshes derived artifacts and preserves user-owned content. Existing aiwf.yaml is preserved apart from legacy-key cleanup and hook consent decisions. Host hooks and statusline setup retain their separate consent rules. Existing user Git hooks are chained through .local files; collisions require manual resolution.` + cliutil.HostSetupHelp,
+Safe to re-run: init refreshes derived artifacts and preserves user-owned content. Existing aiwf.yaml is preserved apart from legacy-key cleanup, hook consent, and completed interactive guidance choices. Interactive guidance offers select, not now (Enter), or ignore; interruption saves none of those choices. Host hooks and statusline setup retain their separate consent rules. Existing user Git hooks are chained through .local files; collisions require manual resolution.` + cliutil.HostSetupHelp,
 		Example: `  # Scaffold a fresh consumer repo (run once)
   aiwf init
 
@@ -78,7 +78,7 @@ Safe to re-run: init refreshes derived artifacts and preserves user-owned conten
 	cmd.Flags().BoolVar(&allowUntagged, "allow-untagged-statusline", false, "write the statusline script even when this binary's version is untagged (a dev/worktree build), without interactive confirmation (G-0367)")
 	cmd.Flags().StringArrayVar(&enableHooks, "enable-hook", nil, "consent to enabling the named registry hook without an interactive prompt (repeatable; non-TTY consent per ADR-0032)")
 	_ = cmd.RegisterFlagCompletionFunc("enable-hook", cliutil.CompleteHookNames)
-	cmd.Flags().BoolVar(&noPrompt, "no-prompt", false, "never prompt for hook consent; leave undecided hooks undecided (surfaced by `aiwf doctor`) instead of hanging where no human can answer, e.g. a devcontainer postCreateCommand (G-0446)")
+	cmd.Flags().BoolVar(&noPrompt, "no-prompt", false, "never prompt for hook consent or guidance selection; leave undecided choices unchanged")
 	return cmd
 }
 
@@ -113,10 +113,11 @@ func Run(root, actor string, dryRun, skipHook, statusline bool, scope string, wi
 	}
 
 	res, err := initrepo.Init(context.Background(), rootDir, initrepo.Options{
-		RequireClaude: statusline || len(enableHooks) > 0,
-		ActorOverride: actor,
-		DryRun:        dryRun,
-		SkipHook:      skipHook,
+		SelectGuidance: cliutil.GuidanceSelector(noPrompt),
+		RequireClaude:  statusline || len(enableHooks) > 0,
+		ActorOverride:  actor,
+		DryRun:         dryRun,
+		SkipHook:       skipHook,
 	})
 	if err != nil {
 		cliutil.Errorf("aiwf init: %v\n", err)
