@@ -12,7 +12,7 @@ tdd: advisory
 acs:
     - id: AC-1
       title: aiwf uses tracked guidance without superseded imports
-      status: open
+      status: met
     - id: AC-2
       title: Both hosts demonstrate relevant project reads in fresh sessions
       status: open
