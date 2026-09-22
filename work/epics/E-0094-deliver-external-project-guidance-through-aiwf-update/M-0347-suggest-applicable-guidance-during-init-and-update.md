@@ -13,7 +13,7 @@ acs:
       tdd_phase: done
     - id: AC-2
       title: Interactive choices persist the maintainer's intent
-      status: open
+      status: met
       tdd_phase: done
     - id: AC-3
       title: Noninteractive runs suggest without silently adopting policy
