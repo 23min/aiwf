@@ -14,6 +14,10 @@ func TestSetGuidanceSelection_PreservesUnrelatedFields(t *testing.T) {
 		"hosts: []\nguidance: {source: local, custom: kept}\nother: value\n",
 		"{hosts: [], guidance: {source: local, custom: kept}, other: value}\n",
 		"hosts: []\nother: value",
+		"guidance: {source: local, custom: kept}\n<<: {guidance: {source: inherited}}\nother: value\n",
+		"defaults: &defaults {hosts: []}\n<<: *defaults\nother: value\n",
+		"...key: literal\nother: value\n",
+		"custom: |\n  ... scalar content\nother: value\n",
 		"hosts: []\nother: value\n... # document end\n",
 		"",
 	} {
@@ -72,7 +76,7 @@ func TestSetGuidanceSelection_IgnoreDoesNotAdoptAndEmptyStaysExplicit(t *testing
 
 func TestSetGuidanceSelection_RefusesSharedValuesWithoutChangingDocument(t *testing.T) {
 	t.Parallel()
-	for _, raw := range []string{"base: &g {source: local}\nguidance: *g\n", "guidance: &g {source: local}\nother: *g\n", "guidance: scalar\n"} {
+	for _, raw := range []string{"base: &g {source: local}\nguidance: *g\n", "guidance: &g {source: local}\nother: *g\n", "guidance: scalar\n", "<<: {guidance: {source: local}}\nhosts: []\n", "defaults: &defaults {hosts: []}\n<<: *defaults\nhosts: []\nhosts: []\n", "defaults: &defaults\n  guidance: {source: /local/corpus, wire_agentsmd: false}\n<<: *defaults\nhosts: []\n"} {
 		doc, _, err := ReadBytes([]byte(raw))
 		if err != nil {
 			t.Fatal(err)
@@ -141,5 +145,46 @@ func TestSetGuidanceSelection_PreservesOuterBytesWhenGuidanceFirst(t *testing.T)
 	}
 	if !strings.HasSuffix(string(doc.Bytes()), suffix) {
 		t.Fatalf("reformatted unrelated fields: %s", doc.Bytes())
+	}
+}
+
+func TestSetGuidanceSelection_PreservesDocumentEnd(t *testing.T) {
+	t.Parallel()
+	const suffix = "... # preserve end comment\n# after document\n"
+	for _, prefix := range []string{"---\nhosts: []\n", "guidance: {}\n", "{guidance: {}}\n", "hosts: []\n# footer\n", "guidance: {}\n# footer\n"} {
+		t.Run(prefix, func(t *testing.T) {
+			t.Parallel()
+			doc, _, err := ReadBytes([]byte(prefix + suffix))
+			if err != nil {
+				t.Fatal(err)
+			}
+			if err := doc.SetGuidanceSelection(nil, []string{"ignored"}); err != nil {
+				t.Fatal(err)
+			}
+			if !strings.HasSuffix(string(doc.Bytes()), suffix) {
+				t.Fatalf("lost document end: %s", doc.Bytes())
+			}
+			if strings.Contains(prefix, "# footer") && strings.Count(string(doc.Bytes()), "# footer") != 1 {
+				t.Fatalf("lost or duplicated footer: %s", doc.Bytes())
+			}
+			var got struct{ Guidance struct{ Ignored []string } }
+			if err := yaml.Unmarshal(doc.Bytes(), &got); err != nil || len(got.Guidance.Ignored) != 1 {
+				t.Fatalf("selection outside document: %s (%v)", doc.Bytes(), err)
+			}
+		})
+	}
+}
+
+func TestSetGuidanceSelection_PreservesBareDocumentEnd(t *testing.T) {
+	t.Parallel()
+	doc, _, err := ReadBytes([]byte("guidance: {}\n..."))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := doc.SetGuidanceSelection(nil, []string{"ignored"}); err != nil {
+		t.Fatal(err)
+	}
+	if !strings.HasSuffix(string(doc.Bytes()), "\n...") {
+		t.Fatalf("lost bare document end: %s", doc.Bytes())
 	}
 }

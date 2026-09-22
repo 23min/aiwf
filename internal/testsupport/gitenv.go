@@ -67,6 +67,8 @@ var gitTestConfig = [][2]string{
 // requires this call in every exec-bearing internal/* package's
 // TestMain.
 func HardenGitTestEnv() {
+	// The transport environment allowlist takes precedence over Git config.
+	_ = os.Setenv("GIT_ALLOW_PROTOCOL", "file")
 	scrubGitLocatorEnv()
 	disableGitAutoGC()
 }

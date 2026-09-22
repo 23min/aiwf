@@ -3,6 +3,7 @@ package testsupport
 import (
 	"os"
 	"os/exec"
+	"path/filepath"
 	"strconv"
 	"strings"
 	"testing"
@@ -22,7 +23,18 @@ func TestHardenGitTestEnv(t *testing.T) {
 		}
 	}
 
+	// A helper stand-in keeps the bypass probe offline even if hardening fails.
+	t.Setenv("GIT_ALLOW_PROTOCOL", "https")
+	helpers := t.TempDir()
+	if err := WriteExecutable(filepath.Join(helpers, "git-remote-https"), []byte("#!/bin/sh\necho REMOTE_HELPER_REACHED >&2\nexit 1\n")); err != nil {
+		t.Fatal(err)
+	}
+	t.Setenv("GIT_EXEC_PATH", helpers)
 	HardenGitTestEnv()
+	output, err := exec.CommandContext(t.Context(), "git", "ls-remote", "https://example.invalid/repo").CombinedOutput()
+	if err == nil || !strings.Contains(string(output), "transport 'https' not allowed") {
+		t.Errorf("inherited transport override bypassed restriction: %s (%v)", output, err)
+	}
 
 	for _, v := range gitLocatorEnvVars {
 		if got, ok := os.LookupEnv(v); ok {

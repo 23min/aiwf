@@ -32,8 +32,8 @@ func GuidanceSelector(noPrompt bool) projectguidance.Selector {
 	return (GuidancePrompt{In: os.Stdin, Out: os.Stderr}).Select
 }
 
-// Select saves a completed prompt session once. EOF, read/write failure, or
-// cancellation leaves both configuration and the caller's selection unchanged.
+// Select saves a completed prompt session once. Incomplete input, read/write
+// failure, or cancellation leaves configuration and the caller's selection unchanged.
 func (p GuidancePrompt) Select(ctx context.Context, root string, catalogue projectguidance.Catalogue, cfg *config.Config) error {
 	matches, err := projectguidance.Detect(ctx, root, catalogue)
 	if err != nil {
@@ -77,6 +77,9 @@ func (p GuidancePrompt) Select(ctx context.Context, root string, catalogue proje
 			}
 			break
 		}
+	}
+	if err = scanner.Err(); err != nil {
+		return fmt.Errorf("reading guidance choice: %w", err)
 	}
 	if cancelErr := ctx.Err(); cancelErr != nil {
 		return cancelErr

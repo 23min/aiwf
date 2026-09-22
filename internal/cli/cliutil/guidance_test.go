@@ -391,3 +391,53 @@ func TestGuidancePrompt_NoSelectionLeavesLegacyOwnership(t *testing.T) {
 		})
 	}
 }
+
+func TestGuidancePrompt_FinalAnswerReadFailureDiscardsChoices(t *testing.T) {
+	t.Parallel()
+	root, cfg, catalogue := guidancePromptFixture(t)
+	catalogue.Packs = catalogue.Packs[2:3]
+	before, err := os.ReadFile(filepath.Join(root, config.FileName))
+	if err != nil {
+		t.Fatal(err)
+	}
+	original := cfg.Guidance
+	sentinel := errors.New("final read failed")
+	prompt := GuidancePrompt{In: finalGuidanceAnswer{sentinel}, Out: io.Discard}
+	if err = prompt.Select(t.Context(), root, catalogue, cfg); !errors.Is(err, sentinel) {
+		t.Errorf("read failure: %v", err)
+	}
+	after, err := os.ReadFile(filepath.Join(root, config.FileName))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !bytes.Equal(before, after) {
+		t.Errorf("failed input persisted: %s", after)
+	}
+	if diff := cmp.Diff(original, cfg.Guidance); diff != "" {
+		t.Error(diff)
+	}
+}
+
+type finalGuidanceAnswer struct{ err error }
+
+func (r finalGuidanceAnswer) Read(p []byte) (int, error) { return copy(p, "s\n"), r.err }
+
+func TestGuidancePrompt_FinalAnswerWithEOFSavesChoices(t *testing.T) {
+	t.Parallel()
+	root, cfg, catalogue := guidancePromptFixture(t)
+	catalogue.Packs = catalogue.Packs[2:3]
+	prompt := GuidancePrompt{In: finalGuidanceAnswer{io.EOF}, Out: io.Discard}
+	if err := prompt.Select(t.Context(), root, catalogue, cfg); err != nil {
+		t.Fatal(err)
+	}
+	loaded, err := config.Load(root)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if diff := cmp.Diff([]string{"existing", "first"}, *loaded.Guidance.Packs); diff != "" {
+		t.Fatal(diff)
+	}
+	if diff := cmp.Diff(loaded.Guidance, cfg.Guidance); diff != "" {
+		t.Fatal(diff)
+	}
+}
