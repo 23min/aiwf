@@ -8,7 +8,7 @@ acs:
     - id: AC-1
       title: authorize appears in no cell and its kind restriction still fails when removed
       status: open
-      tdd_phase: green
+      tdd_phase: done
     - id: AC-2
       title: The retired finding-code entries and their dead constructors are gone
       status: open
