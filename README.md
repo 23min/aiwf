@@ -269,7 +269,8 @@ fails, the desired selection remains in configuration while the previously
 installed guidance remains available; the update reports the failure. Expand YAML
 anchors or aliases in `guidance` before using interactive selection. Other fields
 and comments are preserved; adding a guidance block or editing a flow-style root
-mapping may reformat the document.
+mapping may reformat the document. Saving guidance choices requires a single UTF-8
+YAML document; unsupported files are refused without being changed.
 
 Detection respects Git ignore rules, skips dependency/cache directories and nested
 repositories, and does not follow symbolic links. Output-like directory names

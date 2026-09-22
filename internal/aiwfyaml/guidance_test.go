@@ -188,22 +188,3 @@ func TestSetGuidanceSelection_PreservesBareDocumentEnd(t *testing.T) {
 		t.Fatalf("lost bare document end: %s", doc.Bytes())
 	}
 }
-
-func TestSetGuidanceSelection_RejectsAdditionalDocumentsWithoutChangingBytes(t *testing.T) {
-	t.Parallel()
-	for _, suffix := range []string{"---\nother: value\n", "...\n---\n", "---\ninvalid: [\n"} {
-		for _, prefix := range []string{"hosts: []\n", "guidance: {}\n"} {
-			raw := prefix + suffix
-			doc, _, err := ReadBytes([]byte(raw))
-			if err != nil {
-				t.Fatal(err)
-			}
-			if err := doc.SetGuidanceSelection(nil, []string{"ignored"}); err == nil || !strings.Contains(err.Error(), "single YAML document") {
-				t.Errorf("expected actionable single-document refusal, got %v", err)
-			}
-			if string(doc.Bytes()) != raw {
-				t.Errorf("refused edit changed input: %q", doc.Bytes())
-			}
-		}
-	}
-}

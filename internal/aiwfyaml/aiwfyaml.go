@@ -6,7 +6,9 @@ package aiwfyaml
 
 import (
 	"bytes"
+	"errors"
 	"fmt"
+	"io"
 	"os"
 	"regexp"
 	"strings"
@@ -99,14 +101,19 @@ func Read(path string) (*Doc, *Contracts, error) {
 }
 
 // ReadBytes is Read for an in-memory byte slice. Useful for tests
-// and for callers that already have the file content. Editing requires UTF-8.
+// and for callers that already have the file content. Editing requires a single UTF-8 YAML document.
 func ReadBytes(raw []byte) (*Doc, *Contracts, error) {
 	if !utf8.Valid(raw) {
 		return nil, nil, fmt.Errorf("cannot edit configuration: save aiwf.yaml as UTF-8 and retry")
 	}
 	var root yaml.Node
-	if err := yaml.Unmarshal(raw, &root); err != nil {
+	decoder := yaml.NewDecoder(bytes.NewReader(raw))
+	if err := decoder.Decode(&root); err != nil && !errors.Is(err, io.EOF) {
 		return nil, nil, fmt.Errorf("parsing aiwf.yaml: %w", err)
+	}
+	var extra yaml.Node
+	if err := decoder.Decode(&extra); !errors.Is(err, io.EOF) {
+		return nil, nil, fmt.Errorf("cannot edit configuration: aiwf.yaml must contain a single YAML document; remove additional documents and retry")
 	}
 	doc := &Doc{
 		raw:         raw,

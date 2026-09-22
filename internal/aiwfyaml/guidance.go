@@ -2,9 +2,7 @@ package aiwfyaml
 
 import (
 	"bytes"
-	"errors"
 	"fmt"
-	"io"
 
 	"gopkg.in/yaml.v3"
 )
@@ -15,13 +13,8 @@ import (
 // editing a flow-style root re-encodes the document, retaining fields and comments.
 func (d *Doc) SetGuidanceSelection(selected *[]string, ignored []string) error {
 	var document yaml.Node
-	decoder := yaml.NewDecoder(bytes.NewReader(d.raw))
-	if err := decoder.Decode(&document); err != nil && !errors.Is(err, io.EOF) { //coverage:ignore Doc.raw is already parsed by ReadBytes; public edits emit valid YAML
+	if err := yaml.Unmarshal(d.raw, &document); err != nil { //coverage:ignore Doc.raw is already parsed by ReadBytes; public edits emit valid YAML
 		return fmt.Errorf("reading guidance configuration: %w", err)
-	}
-	var extra yaml.Node
-	if err := decoder.Decode(&extra); !errors.Is(err, io.EOF) {
-		return fmt.Errorf("cannot edit guidance: aiwf.yaml must contain a single YAML document; remove additional documents before selecting packs")
 	}
 	top := &yaml.Node{Kind: yaml.MappingNode, Tag: "!!map"}
 	if len(document.Content) > 0 {

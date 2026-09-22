@@ -726,10 +726,19 @@ contracts:
 
 func TestRead_RejectsMultiDocumentStream(t *testing.T) {
 	t.Parallel()
-	src := baseConfig + "\n---\ndocument_two: yes\n"
-	_, _, err := ReadBytes([]byte(src))
-	if err == nil {
-		t.Skip("multi-document streams are silently accepted today (yaml.v3 reads only the first doc); skip until we decide whether to harden this")
+	for _, suffix := range []string{"---\nother: value\n", "...\n---\n", "---\ninvalid: [\n"} {
+		raw := baseConfig + suffix
+		input := []byte(raw)
+		doc, contracts, err := ReadBytes(input)
+		if err == nil || !strings.Contains(err.Error(), "single YAML document") {
+			t.Errorf("expected single-document refusal, got %v", err)
+		}
+		if string(input) != raw {
+			t.Error("refusal changed input bytes")
+		}
+		if doc != nil || contracts != nil {
+			t.Error("multi-document input produced an editable document")
+		}
 	}
 }
 
