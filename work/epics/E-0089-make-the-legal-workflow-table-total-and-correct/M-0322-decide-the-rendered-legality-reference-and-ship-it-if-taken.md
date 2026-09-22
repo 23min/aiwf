@@ -171,3 +171,14 @@ Full race/CI validation was not run at this local milestone boundary.
 ## Deferrals
 
 None.
+
+## Reviewer notes
+
+Independent code review of the full milestone through `906fa597d`: approve, with
+no blocking findings. Independent design review: keep. Explicit enum switches
+retain the relationship between named values and labels; shorter ordinal-indexed
+arrays add coupling without simplifying the rendering boundary.
+
+The reference's instruction to consider every row for a request clarifies the
+reading boundary in D-0101 without introducing a rule-resolution precedence.
+Scoped doc-lint: clean for the changed documentation surface.
