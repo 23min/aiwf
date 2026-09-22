@@ -16,6 +16,18 @@ section in this file.
 
 ## [Unreleased]
 
+### Changed — E-0089: make TDD phase retries preserve evidence and publish workflow legality
+
+Repeating an AC's recorded TDD phase without test metrics now succeeds without
+creating a commit. Supplying metrics on a repeat is refused, including explicit
+zero counts, so a successful retry cannot silently discard test evidence.
+
+The repository provides a generated workflow legality reference at
+`docs/reference/workflow-legality.md`, showing declared transitions, conditions,
+outcomes, applicability exclusions and global restrictions. A freshness test
+rejects drift from the specification; regenerate it from the repository root with
+`go run ./cmd/workflow-reference`.
+
 ### Added — G-0254: refuse an AI `Co-Authored-By:` trailer, behind an opt-in address list
 
 `aiwf.yaml` gains `provenance.refuse_coauthors`, a list of addresses that may

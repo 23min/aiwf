@@ -1,9 +1,11 @@
 ---
 id: G-0417
 title: Dead branch-not-found code and stale rung-pair-illegal spec-table entries
-status: open
+status: addressed
 priority: low
 discovered_in: M-0161
+addressed_by_commit:
+    - db692f28b
 ---
 ## What's missing
 

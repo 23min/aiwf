@@ -21,7 +21,7 @@ Most existing tools optimise for one of those concerns and ignore the others. Is
 
 Markdown files are the source of truth; `git log` is the audit trail; `aiwf check` is the validator. No server, no API key, no separate database. The framework is deliberately minimal: it does not try to be a project-management tool, and the AI hosts (Claude Code and Codex) sees the planning state through materialized skills, not a custom protocol.
 
-For the lifecycle diagrams and the per-kind state machines, see [`docs/overview.md`](docs/overview.md). For worked walk-throughs of typical sessions and example AI prompts, see [`docs/workflows.md`](docs/workflows.md). For the design closure that produced this shape, see [`docs/design/design-decisions.md`](docs/design/design-decisions.md). The historical session/iteration narrative is archived at [`docs/archive/pocv3/poc-plan-pre-migration.md`](docs/archive/pocv3/poc-plan-pre-migration.md); current in-flight work lives in the entity tree under `work/` (run `aiwf status`).
+For the lifecycle diagrams and the per-kind state machines, see [`docs/overview.md`](docs/overview.md). For worked walk-throughs of typical sessions and example AI prompts, see [`docs/workflows.md`](docs/workflows.md). For declared transitions, their conditions and global restrictions, see the [generated workflow legality reference](docs/reference/workflow-legality.md). For the design closure that produced this shape, see [`docs/design/design-decisions.md`](docs/design/design-decisions.md). The historical session/iteration narrative is archived at [`docs/archive/pocv3/poc-plan-pre-migration.md`](docs/archive/pocv3/poc-plan-pre-migration.md); current in-flight work lives in the entity tree under `work/` (run `aiwf status`).
 
 ---
 

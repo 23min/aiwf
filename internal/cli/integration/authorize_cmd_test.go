@@ -293,22 +293,9 @@ func TestRunAuthorize_AITarget_OnNonRitualBranch_NoBranch_Refuses(t *testing.T) 
 	}
 }
 
-// TestRunAuthorize_AITarget_BranchMissing_Refuses (M-0103/AC-2,
-// narrowed by M-0104/AC-4 then again by M-0105/AC-6; cli-layer
-// seam): drive `aiwf authorize <id> --to ai/<agent> --branch <typo>`
-// through the binary against a repo that has no branch by that name.
-// Asserts the CLI's `git show-ref --verify` gather flows through to
-// the preflight, which refuses with branch-not-found. Pins the
-// --branch + branchExists → opts.BranchExists → preflight propagation.
-//
-// Two carve-outs narrow the AC-2 refusal scope:
-//   - M-0104/AC-4: main + ritual --branch → accept.
-//   - M-0105/AC-6: ritual current + ritual --branch → accept.
-//
-// To keep this AC-2 test pinning the general refusal outside both
-// carve-outs, explicitly check out a non-main, non-ritual feature
-// branch. The missing-branch refusal stands deterministically
-// regardless of git init.defaultBranch.
+// TestRunAuthorize_AITarget_BranchMissing_Refuses checks the CLI seam:
+// authorizing an epic target from a non-ritual current branch refuses
+// with the rung-pair code, even when the target branch is absent.
 func TestRunAuthorize_AITarget_BranchMissing_Refuses(t *testing.T) {
 	t.Parallel()
 	bin := testutil.AiwfBinary(t)
@@ -352,8 +339,7 @@ func TestRunAuthorize_AITarget_BranchMissing_Refuses(t *testing.T) {
 		t.Fatalf("expected non-zero exit; output:\n%s", out)
 	}
 	// M-0161/AC-2: ("", "epic") is not in the legal rung-pair set
-	// → rung-pair-illegal. Subsumes the prior branch-not-found
-	// semantics for the (non-ritual current, ritual target) case.
+	// → rung-pair-illegal.
 	if !strings.Contains(out, "rung-pair-illegal") {
 		t.Errorf("expected rung-pair-illegal code; got:\n%s", out)
 	}

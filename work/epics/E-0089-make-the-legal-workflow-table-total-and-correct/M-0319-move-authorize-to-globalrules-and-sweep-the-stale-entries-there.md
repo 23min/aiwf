@@ -1,22 +1,28 @@
 ---
 id: M-0319
 title: Move authorize to GlobalRules and sweep the stale entries there
-status: draft
+status: done
 parent: E-0089
 tdd: required
 acs:
     - id: AC-1
       title: authorize appears in no cell and its kind restriction still fails when removed
-      status: open
+      status: met
+      tdd_phase: done
     - id: AC-2
       title: The retired finding-code entries and their dead constructors are gone
-      status: open
+      status: met
+      tdd_phase: done
 ---
 ## Goal
 
 Take `authorize` out of the cell table and express its kind restriction where its
 other rules already live, sweeping the retired entries sitting there while the file
 is open.
+
+## Closes
+
+- G-0417 — retire the unused branch error type and descriptor, and correct the spec and policy references.
 
 ## Context
 
@@ -27,13 +33,11 @@ eight of its coordinates. Of the 50 undeclared coordinates measured on 2026-08-2
 29 are `authorize`.
 
 D-0077 rules that it leaves the cell table. The destination is not new:
-`GlobalRules()` already holds four `authorize` rules —
-`provenance-authorization-out-of-scope`, `branch-context-required`,
-`branch-not-found` and `rung-pair-illegal` — as cross-cutting preconditions with no
-cell coordinate, which is the shape ADR-0013 created. The four cells in `Rules()`
-are the outliers.
+`GlobalRules()` already holds authorization preconditions without a cell
+coordinate, which is the shape ADR-0013 created. The kind-restriction cells
+in `Rules()` belong with those global preconditions.
 
-Two of those global entries are already stale. G-0417 records that
+G-0417 records that
 `branch-not-found` was subsumed by `rung-pair-illegal` per D-0018, leaving a dead
 code path in `internal/verb/authorize.go` and entries citing the retired code in
 `GlobalRules()`, in `branch/rules.go`, and in a policy test's keyword map. Adding
@@ -67,10 +71,13 @@ the retired code across `internal/` returns nothing, and the command is recorded
 
 ## Design notes
 
-`GlobalRules()` holds four entries today, so this roughly doubles it. That is the
-intended direction under ADR-0013 — a precondition carrying no cell coordinate
-belongs there — and it is worth stating plainly, since a reader meeting a grown
-global list should not read it as the cell table leaking.
+A kind restriction is independent of entity status. Express it as a global
+precondition, retaining D-0007 as its source and exercising every excluded kind.
+Other global rules remain outside this milestone's scope.
+
+The branch-rule cleanup must align both the declared predicate and its error code
+with the rung-pair rule: a missing branch can be a valid future ritual branch, so
+nonexistence alone must not declare the request illegal.
 
 ## Out of scope
 
@@ -89,3 +96,55 @@ None. Independent of the key change and runnable in either order.
 - ADR-0013 — global rules as the home for coordinate-free preconditions
 - G-0417 — the stale entries and dead code swept here
 - D-0018 — the supersession that retired `branch-not-found`
+
+## Release note
+
+No user-facing behavior changes. The workflow specification represents authorization
+as a global precondition and describes branch refusal using the kernel's rung-pair
+rule; unused branch-error declarations are removed.
+
+## Decisions made during implementation
+
+None — the design notes determine the implementation.
+
+## Deferrals
+
+None within this milestone's scope.
+
+## Validation
+
+Measured on 2026-09-22 in the Linux amd64 devcontainer with Go 1.25.11,
+on the milestone branch:
+
+- `make check-fast` — expected all vet, lint, and non-race test gates to pass;
+  observed exit 0, `0 issues.`, and all packages passing. This includes vet
+  with the ordinary, `stress`, and `testpins` builds.
+- `go build -o bin/aiwf-diag ./cmd/aiwf` — expected a successful build;
+  observed exit 0.
+- `bin/aiwf-diag check --since 7ea5ab831` — expected no new findings;
+  observed 0 errors and 16 existing warnings: pending archival and advisory
+  TDD records outside this milestone.
+- `rg -n 'branch-not-found|PreflightBranchNotFound' internal/` — expected
+  no matches (exit 1); observed no output and exit 1.
+- The authorization tests assert that excluded kinds receive the kind-specific
+  refusal without changing HEAD or project files. Predicate evaluation covers
+  every entity kind; removing the global restriction or changing its exclusions
+  makes the assertions fail. Removing the runtime kind guard also fails the
+  CLI assertions, even when another guard refuses the request.
+- The branch-rule test asserts the rung-pair predicates and error code, a single
+  global rung-pair rule, and no branch-existence restriction. Isolated Go-overlay
+  probes restored the existence rule, changed the branch predicate, and changed
+  the branch error code; each failed the intended assertion.
+- The changed production control flow adds the `self.kind` evaluator arm;
+  tests exercise both inequality outcomes. The branch cleanup adds no executable
+  conditional branches. The existing authorization tests still pass for legal
+  future branches, illegal rung pairs, missing context, and force overrides.
+
+The full race/CI gate is reserved for epic integration or push under the repository's
+validation cadence; it was not run for this milestone's local commits.
+
+## Reviewer notes
+
+Independent full-surface review: approve, with no blocking findings or untracked
+issues. Scoped doc-lint: clean. No new module, abstraction, or state shape requires
+a separate design-reconstruction review.

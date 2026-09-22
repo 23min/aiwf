@@ -1,6 +1,7 @@
 package promote_test
 
 import (
+	"strings"
 	"testing"
 
 	"github.com/23min/aiwf/internal/cli/cliutil"
@@ -152,14 +153,29 @@ func TestRun_ResolveActorFailure(t *testing.T) {
 // transition, so a --tests value (implying a test cycle ran) is a
 // usage error.
 func TestRun_PhaseAuditOnlyRejectsTests(t *testing.T) {
-	t.Parallel()
-	root := t.TempDir()
-	rc := runArgs{
-		args: []string{"M-0001/AC-1"}, actor: "human/test", root: root,
-		reason: "already advanced by hand", phase: "green",
-		tests: "pass=1 fail=0 skip=0 total=1", auditOnly: true,
-	}.run()
-	if rc != cliutil.ExitUsage {
-		t.Errorf("rc = %d, want ExitUsage", rc)
+	// Serial: CaptureStderr replaces the process-wide stderr handle.
+	for _, tc := range []struct {
+		name  string
+		tests string
+	}{
+		{"nonzero metrics", "pass=1 fail=0 skip=0 total=1"},
+		{"explicit zero metrics", "pass=0 fail=0 skip=0 total=0"},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			var rc int
+			stderr := testutil.CaptureStderr(t, func() {
+				rc = runArgs{
+					args: []string{"M-0001/AC-1"}, actor: "human/test", root: t.TempDir(),
+					reason: "already advanced by hand", phase: "green",
+					tests: tc.tests, auditOnly: true,
+				}.run()
+			})
+			if rc != cliutil.ExitUsage {
+				t.Errorf("rc = %d, want ExitUsage", rc)
+			}
+			if !strings.Contains(string(stderr), "--tests is not allowed with --audit-only") {
+				t.Errorf("stderr = %q, want the metrics/audit-only refusal", stderr)
+			}
+		})
 	}
 }

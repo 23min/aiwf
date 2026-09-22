@@ -8,7 +8,7 @@ status: proposed
 Finish the same-state convergence M-0281 started, so the convention the kernel
 advertises holds everywhere it claims to.
 
-Addresses G-0458, G-0459, G-0460 and G-0461.
+Addresses G-0459, G-0460 and G-0461. M-0318 under E-0089 owns G-0458.
 
 ## Context
 
@@ -27,25 +27,20 @@ by-design reason rather than a NoOp assertion changes no behavior and adds no
 test, so the rewrite branch needs its own evidence bar to satisfy the
 mechanical-evidence rule.
 
-One ordering edge runs out of this epic and into another. `PromoteACPhase` —
-G-0458's target — writes frontmatter, so it falls inside E-0075's route list and
-under that epic's first decision, which settles where a frontmatter precondition
-sits relative to the same-state comparison. ADR-0038 settles it as two seams: a
-commit-side guard at the top of `verb.Apply`, and a claim-side guard in each
-verb's prelude that runs ahead of its same-state comparison.
+TDD phase convergence (G-0458) belongs to M-0318 under E-0089. This epic
+retains the event-recording decisions and remaining convergence exemptions.
 
 ## Scope
 
-The six OPEN entries. Only one ordering edge is internal — G-0460 before the
-`Authorize` entry; the other four are independent and can land in any order or
-in parallel.
+The remaining OPEN entries. G-0460 gates the `Authorize` entry; the other
+convergence work can proceed independently of that decision.
 
 **Make the bar mechanical, first.** Until a test reads the allowlist's `Reason`
 strings, "no OPEN entries" is unenforced and each subsequent closure is
 self-reported. The policy scans *exported* entry points, so an unexported
 composite branch is invisible to it and needs its own test.
 
-**G-0459 — four of the six entries.** Five event-shaped verbs append a fresh
+**G-0459 — event-recording entries.** Five event-shaped verbs append a fresh
 record on an identical re-run: `acknowledge mistag`, `authorize --to`,
 `promote --audit-only`, `promote <id>/AC-N --phase --audit-only`, and
 `cancel --audit-only`. `acknowledge illegal` already received a HEAD-walk
@@ -90,25 +85,18 @@ to the most-recently-opened scope deterministically, and `verb.Allow` implements
 exactly that. So resolution is not ambiguous and there is no missing invariant to
 establish. The open question is whether an *exactly-duplicate* re-grant is a
 distinct event or a same-state input — which is answerable directly, and does not
-gate the other five entries. G-0460 also asks for a check rule so an
+gate the other entries. G-0460 also asks for a check rule so an
 already-divergent tree is reported rather than silently carried; that is in
 scope.
 
-**Last, G-0458** — `promote <id>/AC-N --phase <same-phase>` refuses via the
-TDD-phase FSM. This is a decision, not a defect: the phase ladder is audit-bearing
-evidence and the verb carries a `--tests` payload, so convergence needs a
-deliberate metrics carve-out rather than a mechanical repeat. Resolve by
-converting with that carve-out, or by rewriting the allowlist entry with a
-by-design reason. It goes last because it cannot be decided by implementing it.
-
 ## Out of scope
 
+- **TDD phase convergence (G-0458)** — owned by M-0318 under E-0089.
 - **Write-scope preconditions** — whether a verb should run at all against a
   frontmatter-dirty entity (G-0463, G-0466), tracked as E-0075. Same layer,
   different axis, kept separate so a broad precondition change does not ride along
-  with mechanical dedup work. The one coupling that is not separable runs the
-  other way and is stated in *Context*: ADR-0038 settles where that precondition
-  sits.
+  with mechanical dedup work. ADR-0038 defines the claim guard that any new
+  convergence path must respect.
 - **Prelude error-envelope uniformity** (G-0456). Shares the word "uniformity" and
   nothing else.
 - **Rewriting duplicate records already in history.** These guards prevent new
@@ -130,9 +118,6 @@ by-design reason. It goes last because it cannot be decided by implementing it.
   behavior of `acknowledge illegal` — a re-run with a corrected `--reason`
   dropped, because the guard keys on the SHA alone — is the failure mode any new
   guard has to answer for rather than inherit.
-- `PromoteACPhase` writes frontmatter, so ADR-0038's claim-side guard applies to
-  it: the precondition runs in the verb's prelude, ahead of the same-state
-  comparison a convergence guard would add.
 
 ## Success criteria
 
@@ -153,7 +138,7 @@ by-design reason. It goes last because it cannot be decided by implementing it.
 - [ ] `aiwf acknowledge illegal <sha> --for-entity <id>` with a composite id
       suppresses the finding it names, or refuses — it no longer records an
       audit commit that suppresses nothing.
-- [ ] G-0458, G-0459, G-0460 and G-0461 are promoted to `addressed`.
+- [ ] G-0459, G-0460 and G-0461 are promoted to `addressed`.
 
 ## Open questions
 
@@ -161,8 +146,7 @@ by-design reason. It goes last because it cannot be decided by implementing it.
 |---|---|---|
 | What the duplicate guard keys on for the `--audit-only` trio, whose entire payload is `--reason` | yes | decided at milestone-planning; the answer also determines whether `acknowledge illegal`'s existing SHA-only guard changes |
 | Which key ack ingest and ack lookup agree on — roll up at ingest, roll up at emit, or look up both | yes | G-0461 leans roll-up-at-ingest; settled together with the guard key above, since both write the same map |
-| Whether an exactly-duplicate `authorize --to` re-grant is a distinct event or a same-state input | yes, for the `Authorize` entry only | G-0460; does not gate the other five entries |
-| Whether `promote <id>/AC-N --phase <same-phase>` converges with a metrics carve-out or keeps a by-design refusal | yes, for that entry only | G-0458; cannot be decided by implementing it, so it is decided before it is scheduled |
+| Whether an exactly-duplicate `authorize --to` re-grant is a distinct event or a same-state input | yes, for the `Authorize` entry only | G-0460; does not gate the other entries |
 
 ## Risks
 
@@ -170,7 +154,6 @@ by-design reason. It goes last because it cannot be decided by implementing it.
 |---|---|---|
 | A duplicate guard keyed so as to ignore `--reason` silently discards a corrected reason, reproducing in three more verbs the defect measured in `acknowledge illegal` | high | the key is an explicit open question resolved before implementation, not a port of the existing guard |
 | A by-design rewrite of an allowlist entry changes no behavior, so it lands with no test and leaves the bar unenforced | medium | the mechanical bar lands first, before any entry is rewritten |
-| A convergence guard on `PromoteACPhase` interacts with E-0075's frontmatter precondition, and the two are designed against different assumptions | medium | ADR-0038 fixes both seams, so the convergence guard is designed against a known shape rather than in parallel with it; G-0458 stays scheduled last |
 | Rolling ack keys up at ingest changes the verb's own duplicate-guard read path, which looks the composite spelling up first and falls back to the parent | medium | verified: with the composite key gone the guard still finds the parent-scoped cover — that fallback exists precisely because the two sides disagree about width — but the binding it reports back changes from the AC to its parent, and that value is what the NoOp message names. The cost is an operator-visible message, not a missed guard, and the ingest option is chosen with it in view |
 
 ## Milestones
@@ -187,13 +170,10 @@ deliverables, in execution order:
 - Duplicate guards for the `--audit-only` trio, keyed per the decision above.
 - The `authorize --to` re-grant per G-0460's decision, plus the check rule for a
   tree that already carries duplicate active scopes.
-- `promote <id>/AC-N --phase` — convert with a metrics carve-out, or rewrite the
-  allowlist entry with a by-design reason. Last, because it cannot be decided by
-  implementing it.
 
 ## References
 
-- G-0458 — `promote --phase <same-phase>` refuses rather than converging
+- G-0458 — phase convergence, owned by M-0318 under E-0089
 - G-0459 — event-shaped verbs append a fresh record on an identical re-run
 - G-0460 — a repeat `authorize --to` leaves two simultaneously-active scopes
 - G-0461 — composite `--for-entity` acks never suppress the rule they target
