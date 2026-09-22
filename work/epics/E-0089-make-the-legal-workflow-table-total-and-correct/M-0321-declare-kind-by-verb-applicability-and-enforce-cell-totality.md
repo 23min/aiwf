@@ -1,7 +1,7 @@
 ---
 id: M-0321
 title: Declare kind-by-verb applicability and enforce cell totality
-status: in_progress
+status: done
 parent: E-0089
 depends_on:
     - M-0318
