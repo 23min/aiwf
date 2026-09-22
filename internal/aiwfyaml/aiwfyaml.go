@@ -513,14 +513,12 @@ func decodeContracts(n *yaml.Node) (*Contracts, error) {
 }
 
 // blockByteRange returns the half-open [start, end) byte interval
-// occupied by the contracts: key/value pair in raw. The interval
-// covers the line containing the `contracts:` key down to (but not
-// including) the next top-level key, or to EOF when contracts: is
-// the last top-level key.
+// occupied by a top-level key/value pair in raw. The interval covers
+// the key's line down to (but not including) the next top-level key,
+// or to EOF when the key is last.
 //
-// Comments above `contracts:` (yaml.v3's HeadComment) are *outside*
-// the block per the §5 contract — the splice starts at the
-// `contracts:` line itself so those comments survive untouched.
+// Comments above the key (yaml.v3's HeadComment) are outside the block:
+// the splice starts at the key's line so those comments survive untouched.
 // Likewise, a HeadComment on the next top-level key belongs to that
 // next key, so the splice stops at the comment, not at the key line.
 func blockByteRange(raw []byte, top, keyNode *yaml.Node, keyIdx int) (start, end int, err error) {
@@ -532,10 +530,19 @@ func blockByteRange(raw []byte, top, keyNode *yaml.Node, keyIdx int) (start, end
 	if keyIdx+2 < len(top.Content) {
 		nextKey := top.Content[keyIdx+2]
 		endLine := nextKey.Line
-		if hc := strings.TrimSpace(nextKey.HeadComment); hc != "" {
-			endLine -= countLines(nextKey.HeadComment)
-			if endLine < 1 {
-				endLine = 1
+		// yaml.v3 normalizes blank lines in comments. Count comment lines,
+		// then locate them in the original bytes to retain the next key's notes.
+		comments := 0
+		for _, line := range strings.Split(nextKey.HeadComment, "\n") {
+			if strings.TrimSpace(line) != "" {
+				comments++
+			}
+		}
+		lines := bytes.Split(raw, []byte("\n"))
+		for comments > 0 {
+			endLine--
+			if len(bytes.TrimSpace(lines[endLine-1])) > 0 {
+				comments--
 			}
 		}
 		end, err = lineToByteOffset(raw, endLine)
@@ -564,20 +571,6 @@ func lineToByteOffset(raw []byte, line int) (int, error) {
 		}
 	}
 	return len(raw), nil
-}
-
-// countLines returns the number of newline-separated lines in s.
-// Empty string is zero lines; a non-empty string with no newline is
-// one line; a trailing newline counts the line it terminates.
-func countLines(s string) int {
-	if s == "" {
-		return 0
-	}
-	n := strings.Count(s, "\n")
-	if !strings.HasSuffix(s, "\n") {
-		n++
-	}
-	return n
 }
 
 // marshalContractsBlock serializes c as a YAML fragment beginning
