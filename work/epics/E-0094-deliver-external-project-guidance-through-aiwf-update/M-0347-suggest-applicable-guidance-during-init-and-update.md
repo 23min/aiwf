@@ -10,7 +10,7 @@ acs:
     - id: AC-1
       title: External patterns explain applicable pack suggestions
       status: open
-      tdd_phase: red
+      tdd_phase: green
     - id: AC-2
       title: Interactive choices persist the maintainer's intent
       status: open
