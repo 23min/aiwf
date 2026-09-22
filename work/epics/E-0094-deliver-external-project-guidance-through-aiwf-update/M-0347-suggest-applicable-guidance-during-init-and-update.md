@@ -104,11 +104,11 @@ Observed on 2026-09-22 in the Linux devcontainer, on the milestone branch:
 | Command | Expected | Observed |
 | --- | --- | --- |
 | `make check-fast` | Vet, full configured lint, and full test suite pass. | Exit 0; lint reported `0 issues.`; all test packages passed. |
-| `go build -o /tmp/aiwf-m0347-ac4 ./cmd/aiwf` | Build succeeds. | Exit 0. |
-| `go test -race ./internal/cli/cliutil ./internal/cli/initcmd ./internal/cli/update ./internal/testsupport` | Changed CLI paths and shared fixtures pass with race detection. | Exit 0; every named package reported `ok`. |
+| `go build -o /tmp/aiwf-m0347-review ./cmd/aiwf` | Build succeeds. | Exit 0. |
+| `go test -race -parallel 8 ./internal/aiwfyaml ./internal/cli/cliutil ./internal/testsupport ./internal/gitops` | Configuration editing, interactive choices, Git discovery, and shared fixtures pass with race detection. | Exit 0; every named package reported `ok`. |
 | `go test -race ./internal/cli/update -run TestBinary_GuidanceConfigurationRemovalAndReconsideration -count=1` | Configuration removal and reconsideration pass through the real CLI binary. | Exit 0; package reported `ok`. |
-| `/tmp/aiwf-m0347-ac4 show M-0347` | Every criterion is met with phase done; no milestone findings. | Expected states; `Findings: (none)`. |
-| `/tmp/aiwf-m0347-ac4 check --since origin/main` | No error findings. | Exit 0; `15 findings (0 errors, 15 warnings)`, concerning advisory TDD history and pending archival outside this milestone. |
+| `/tmp/aiwf-m0347-review show M-0347` | Every criterion is met with phase done; no milestone findings. | Expected states; `Findings: (none)`. |
+| `/tmp/aiwf-m0347-review check --since origin/main` | No error findings. | Exit 0; `15 findings (0 errors, 15 warnings)`, concerning advisory TDD history and pending archival outside this milestone. |
 
 The full test suite includes real-terminal and non-TTY subprocess fixtures.
 M-0347 AC-4 adds tests and user help for existing behavior; its approved TDD
@@ -121,4 +121,13 @@ implementation cycle.
 
 ## Reviewer notes
 
-Independent review pending.
+Independent code review found inherited YAML guidance being shadowed during
+selection, lost document-end comments, persistence after a final buffered read
+error, and inherited Git transport settings bypassing test isolation. Regression
+tests pin refusal without configuration changes, comment preservation, read-error
+rollback, and offline transport enforcement. Serial-test inventories identify the
+process-wide fixture changes.
+
+The independent design review recommends retaining the catalogue callback and
+completed-session persistence boundaries. Compression trials did not justify a
+broader rewrite. A fresh review of the complete milestone diff is pending.
