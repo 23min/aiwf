@@ -1,6 +1,8 @@
 package policies
 
 import (
+	"fmt"
+	"slices"
 	"testing"
 
 	"github.com/23min/aiwf/internal/entity"
@@ -82,35 +84,30 @@ func TestM0123_AC2_IllegalImpliesErrorCode(t *testing.T) {
 	}
 }
 
-// TestM0123_AC2_KeyUnique asserts (Kind, FromState, Verb, Outcome) tuples
-// are unique. Two cells with the same key+outcome would be a duplicate-row
-// bug; complementary cells with different Outcomes for the same key are
-// allowed (the preconditioned-legal-and-illegal pair pattern).
+// TestM0123_AC2_KeyUnique enforces transition identity while allowing
+// complementary outcomes and distinct preconditions at the same transition.
 func TestM0123_AC2_KeyUnique(t *testing.T) {
 	t.Parallel()
 
-	type key struct {
-		Kind      entity.Kind
-		FromState string
-		Verb      string
-		Outcome   spec.Outcome
+	if err := checkRuleKeys(spec.Rules()); err != nil {
+		t.Fatal(err)
 	}
-	seen := map[key]int{}
-	for i, r := range spec.Rules() {
-		k := key{r.Kind, r.FromState, r.Verb, r.Outcome}
-		if prev, ok := seen[k]; ok {
-			// Two rules with the same key + outcome — only allowed if their
-			// preconditions distinguish them (in which case they're not
-			// "duplicates" in the operational sense). Assert at least the
-			// preconditions slice differs.
-			prevRule := spec.Rules()[prev]
-			if predicateSliceEqual(prevRule.Preconditions, r.Preconditions) {
-				t.Errorf("Rules()[%d] and Rules()[%d] are duplicates: (Kind=%q, FromState=%q, Verb=%q, Outcome=%d) with identical Preconditions",
-					prev, i, r.Kind, r.FromState, r.Verb, r.Outcome)
+}
+
+func checkRuleKeys(rules []spec.Rule) error {
+	for i := range rules {
+		r := &rules[i]
+		for j := range rules[:i] {
+			prev := &rules[j]
+			if r.Kind == prev.Kind && r.FromState == prev.FromState &&
+				r.Verb == prev.Verb && r.ToState == prev.ToState && r.Outcome == prev.Outcome &&
+				slices.Equal(r.Preconditions, prev.Preconditions) {
+				return fmt.Errorf("rules %d and %d duplicate (Kind=%q, FromState=%q, Verb=%q, ToState=%q, Outcome=%d) with identical preconditions",
+					j, i, r.Kind, r.FromState, r.Verb, r.ToState, r.Outcome)
 			}
 		}
-		seen[k] = i
 	}
+	return nil
 }
 
 // TestM0123_AC2_EveryEntityFSMFromStateCovered asserts every (Kind, FromState)
@@ -205,18 +202,4 @@ func TestM0123_AC2_DecisionSourcesPopulatedForFPOnlyAndConflict(t *testing.T) {
 				i, r.Kind, r.FromState, r.Verb, r.Sources.Decision)
 		}
 	}
-}
-
-// predicateSliceEqual compares two []Predicate slices by value.
-// Returns true iff lengths and every element match field-by-field.
-func predicateSliceEqual(a, b []spec.Predicate) bool {
-	if len(a) != len(b) {
-		return false
-	}
-	for i := range a {
-		if a[i].Subject != b[i].Subject || a[i].Op != b[i].Op || a[i].Value != b[i].Value {
-			return false
-		}
-	}
-	return true
 }

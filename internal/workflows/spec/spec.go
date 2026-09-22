@@ -22,8 +22,9 @@
 //   - Outcome == OutcomeIllegal implies RejectionLayer != RejectionLayerNone.
 //   - RejectionLayer == RejectionLayerVerbTime implies BlockingStrict == true.
 //   - Outcome == OutcomeLegal implies ExpectedErrorCode == "".
+//   - Outcome == OutcomeNoOp implies ToState == FromState and no rejection metadata.
 //   - Sources.Decision (when non-empty) resolves to a planning-tree entity.
-//   - The (Kind, FromState, Verb) triple uniquely keys each Rule.
+//   - (Kind, FromState, Verb, ToState, Outcome, Preconditions) uniquely keys each Rule.
 package spec
 
 import (
@@ -40,7 +41,8 @@ const (
 	KindTDDPhase entity.Kind = "tdd-phase"
 )
 
-// Outcome is the legal/illegal axis of a Rule cell.
+// Outcome distinguishes a legal mutation, an illegal request, and convergence
+// without a mutation (NoOp).
 //
 // The zero value OutcomeUnspecified is a sentinel that surfaces "forgot to
 // set Outcome on a Rule literal" bugs at drift-policy time (the policy test
@@ -52,6 +54,7 @@ const (
 	OutcomeUnspecified Outcome = iota
 	OutcomeLegal
 	OutcomeIllegal
+	OutcomeNoOp
 )
 
 // RejectionLayer names where in the kernel pipeline an illegal cell is
@@ -60,7 +63,7 @@ const (
 // findings by aiwf check (the verb may have succeeded structurally).
 //
 // The zero value RejectionLayerNone is meaningful — it applies to legal
-// cells (where the field is irrelevant). The drift policy asserts that
+// and NoOp cells (where the field is irrelevant). The drift policy asserts that
 // illegal cells carry a non-zero RejectionLayer.
 type RejectionLayer int
 
@@ -111,7 +114,8 @@ type RuleSource struct {
 
 // Rule is one legality cell in the spec table.
 //
-// Keyed by (Kind, FromState, Verb). Outcome carries Legal/Illegal; for
+// Keyed by (Kind, FromState, Verb, ToState, Outcome, Preconditions).
+// ToState names the requested target. Outcome carries Legal, Illegal or NoOp; for
 // Illegal cells, RejectionLayer + BlockingStrict + ExpectedErrorCode pin
 // the rejection mode. Preconditions narrow when the cell applies (e.g., a
 // legal-only-if-children-all-terminal precondition pairs with a companion
@@ -121,14 +125,14 @@ type RuleSource struct {
 // ids), FP (R-FP-NNNN ids), Decision (D-NNNN, populated only for FP-only and
 // Conflict classes).
 //
-// Cross-cutting precondition rules that are NOT (Kind, FromState, Verb)
-// cells (ADR-0013, e.g. the scope-reach rule) live in [GlobalRules], a
+// Cross-cutting precondition rules without a transition coordinate
+// (ADR-0013, e.g. the scope-reach rule) live in [GlobalRules], a
 // separate accessor — they are deliberately absent from [Rules] so every
 // per-cell consumer iterates cells only, with no per-rule exclusion. Only
 // the code-oriented AC-5 drift arms union the two.
 //
-// ID (optional, added by M-0158) carries an explicit string identifier for
-// cells that live outside the (Kind, FromState, Verb) keyspace — layer-4
+// ID carries an explicit string identifier for
+// cells that live outside the transition keyspace — layer-4
 // branch-choreography cells (e.g. `branch-cell-1`, `branch-cell-override-
 // preflight`). Layers 1–3 leave ID empty and continue to be keyed by the
 // natural tuple; their tests and meta-policies are unaffected. The ID is
@@ -139,6 +143,7 @@ type Rule struct {
 	Kind              entity.Kind
 	FromState         string
 	Verb              string
+	ToState           string
 	Preconditions     []Predicate
 	Outcome           Outcome
 	ExpectedErrorCode string
@@ -148,8 +153,7 @@ type Rule struct {
 }
 
 // AntiRule catalogs a pattern that the kernel deliberately does NOT police.
-// Anti-rules clarify scope by negation; they are not cells in the (Kind,
-// FromState, Verb) keyed Rule table.
+// Anti-rules clarify scope by negation; they are not transition cells.
 //
 // Pass C's anti-rule meta-policy: a candidate becomes an anti-rule only
 // when reconciliation surfaces a plausibly-mis-assumed pattern. Examples

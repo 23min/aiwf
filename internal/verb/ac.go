@@ -251,6 +251,20 @@ func PromoteACPhase(ctx context.Context, t *tree.Tree, compositeID, newPhase, ac
 	if err != nil {
 		return nil, err
 	}
+	if claimErr := guardClaim(ctx, t.Root, compositeID, parent.Path); claimErr != nil {
+		return nil, claimErr
+	}
+	// Convergence records no phase event. Supplied metrics require a real
+	// transition so a successful response cannot silently discard evidence.
+	if ac.TDDPhase == newPhase && entity.IsAllowedTDDPhase(newPhase) {
+		if tests != nil {
+			return nil, &fsmTransitionIllegalError{msg: fmt.Sprintf("%s is already at TDD phase %s; --tests requires a phase change; omit --tests to converge without recording metrics", compositeID, newPhase)}
+		}
+		return &Result{
+			NoOp:        true,
+			NoOpMessage: fmt.Sprintf("%s is already at TDD phase %s; nothing to change", compositeID, newPhase),
+		}, nil
+	}
 	if !force {
 		if !entity.IsLegalTDDPhaseTransition(ac.TDDPhase, newPhase) {
 			return nil, &fsmTransitionIllegalError{msg: fmt.Sprintf("AC tdd_phase %q cannot transition to %q (allowed under FSM: see tddPhaseTransitions)", ac.TDDPhase, newPhase)}

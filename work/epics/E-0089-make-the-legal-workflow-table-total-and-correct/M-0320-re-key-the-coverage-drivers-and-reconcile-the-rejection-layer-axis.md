@@ -16,16 +16,15 @@ acs:
 ---
 ## Goal
 
-Re-key the positive and negative cell drivers onto the target, and settle whether
-each cell's rejection layer names where the kernel actually refuses.
+Complete the coverage drivers' use of declared targets, and settle whether each
+cell's rejection layer names where the kernel actually refuses.
 
 ## Context
 
-M-0124 and M-0125 drive per-cell coverage from `(Kind, FromState, Verb)`. Once the
-target joins the key they must follow, and the follow is not mechanical: M-0124
-derives targets from `entity.AllowedTransitions` today because the cell did not
-carry them, and that derivation becomes redundant — or wrong — when the cell names
-its own target.
+M-0318 makes both drivers consume declared targets as a prerequisite to testing
+the split rows. Its coverage measurements provide this milestone's baseline.
+AC-1 verifies the completed migration against that baseline while AC-2 reconciles
+the rejection-layer axis; neither may lose an already exercised request.
 
 G-0166 names a second divergence the re-key is the moment to settle. Two cells
 declare `RejectionLayerCheckTime` — the gap `open → addressed` cell missing a
@@ -69,7 +68,7 @@ the answer, the axis needs a value for it rather than a choice between the two.
 ## Out of scope
 
 - Adding coverage for coordinates that had none — that is the totality milestone.
-- The `tdd_phase` same-phase question (G-0458).
+- TDD phase convergence (G-0458) — implemented and tested by M-0318.
 
 ## Dependencies
 

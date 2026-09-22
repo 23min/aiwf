@@ -1,8 +1,6 @@
 package policies
 
 import (
-	"fmt"
-	"strings"
 	"testing"
 
 	"github.com/23min/aiwf/internal/cellcoverage"
@@ -23,12 +21,8 @@ import (
 // an (Subject, Op, Value) combination the helper can't materialize,
 // this test fails with a precise pointer to the broken atom.
 //
-// Coverage commitment: every Illegal cell in spec.Rules() yields one
-// subtest; the audit-catalog inventory pins the expected count
-// (currently 29 per M-0123 phase 1, computed across 12 terminalIllegal
-// invocations + 17 explicit struct literals). Failure of the floor
-// assertion below catches "Illegal cells silently disappeared from
-// spec" — the drift protection for negative coverage.
+// Every Illegal cell yields one fixture subtest, including each explicit
+// target at a shared origin.
 func TestM0125_AC1_FixtureSatisfiesIllegalPreconditions(t *testing.T) {
 	t.Parallel()
 
@@ -68,17 +62,10 @@ func enumerateIllegalCases(t *testing.T) []illegalCase {
 	return out
 }
 
-// illegalCaseName mirrors caseName from m0124_positive_driver_test.go
-// but drops the target component — Illegal cells don't reach a target,
-// the verb gets rejected. preconditionSignature still disambiguates
-// cells sharing (Kind, FromState, Verb).
+// illegalCaseName includes the requested target even though rejection prevents
+// reaching it. Different requests at one origin can have different outcomes.
 func illegalCaseName(rule spec.Rule) string {
-	name := fmt.Sprintf("%s-%s-%s", rule.Kind, rule.FromState, rule.Verb)
-	if sig := preconditionSignature(rule); sig != "" {
-		name = name + "-" + sig
-	}
-	name = strings.ReplaceAll(name, "/", "-")
-	return name
+	return caseName(rule, rule.ToState)
 }
 
 // satisfyIllegalPreconditions runs the precondition pipeline for one

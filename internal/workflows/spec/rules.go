@@ -5,10 +5,9 @@ import (
 	"github.com/23min/aiwf/internal/entity"
 )
 
-// Rules returns the closed-set legal-workflow table. Per M-0123 phase 1
-// concretization, every cell encodes one (Kind, FromState, Verb, Outcome)
-// position. Cells may overlap on (Kind, FromState, Verb) — the (key,
-// Outcome) tuple is what's required to be unique.
+// Rules returns the closed-set legal-workflow table. The enforced identity is
+// (Kind, FromState, Verb, ToState, Outcome, Preconditions); distinct outcomes
+// and preconditions may describe the same transition.
 //
 // Drift policies under internal/policies/ assert:
 //   - Every (Kind, FromState) appearing in entity.transitions /
@@ -35,7 +34,7 @@ func Rules() []Rule {
 }
 
 // GlobalRules returns the cross-cutting precondition rules that are NOT
-// (Kind, FromState, Verb) cells (ADR-0013) — kept out of [Rules] so every
+// transition cells (ADR-0013) — kept out of [Rules] so every
 // per-cell consumer (the m0124/m0125 coverage drivers, the coordinate-
 // resolution drift arms, key-uniqueness) iterates cells only, with no
 // per-rule exclusion. Only the code-oriented AC-5 drift arms union
@@ -140,37 +139,6 @@ func GlobalRules() []Rule {
 	}
 }
 
-// terminalIllegal is the common shape for the per-(kind, terminal-state) cell
-// that pins "this state is terminal; FSM-transition verbs from here are
-// illegal." Encodes the no-outgoing-transitions truth in the spec so the
-// drift policy's "every (Kind, FromState) covered" check holds without
-// implicit reasoning about FSM closure.
-//
-// The cell scopes to transitions that would change status. Promoting a
-// terminal entity to a *different* status is illegal (fsm-transition-illegal);
-// promoting to the *same* status is a NoOp, not a rejection (M-0281/AC-1), so
-// this cell states the dominant truth rather than the whole one.
-//
-// That is a deliberate coarseness, not a limit of the schema: Rule.Preconditions
-// carries a `self.target-state` subject — live on the two AC cells that gate a
-// `deferred` target below — and cell identity folds in a precondition
-// signature, so the distinction is expressible today. Splitting it would
-// multiply cells across every terminal state of every kind and churn the
-// coverage set the drift policy pins, for a distinction the verb layer already
-// enforces and tests. The AC terminal cells carry the identical boundary.
-func terminalIllegal(k entity.Kind, state string, sources RuleSource) Rule {
-	return Rule{
-		Kind:              k,
-		FromState:         state,
-		Verb:              "promote",
-		Outcome:           OutcomeIllegal,
-		ExpectedErrorCode: "fsm-transition-illegal",
-		RejectionLayer:    RejectionLayerVerbTime,
-		BlockingStrict:    true,
-		Sources:           sources,
-	}
-}
-
 // Epic FSM cells: proposed → {active, cancelled}; active → {done, cancelled}.
 // Plus the Q5 / D-0003 preconditioned-cancel illegal cell.
 // Plus terminal-state coverage (done, cancelled) per R-FP-0005, R-FP-0006.
@@ -181,6 +149,15 @@ func epicRules() []Rule {
 			Kind:      entity.KindEpic,
 			FromState: "proposed",
 			Verb:      "promote",
+			ToState:   "active",
+			Outcome:   OutcomeLegal,
+			Sources:   RuleSource{Audit: []string{"R-AUDIT-0001"}, FP: []string{"R-FP-0001"}},
+		},
+		{
+			Kind:      entity.KindEpic,
+			FromState: "proposed",
+			Verb:      "promote",
+			ToState:   "cancelled",
 			Outcome:   OutcomeLegal,
 			Sources:   RuleSource{Audit: []string{"R-AUDIT-0001"}, FP: []string{"R-FP-0001"}},
 		},
@@ -189,6 +166,7 @@ func epicRules() []Rule {
 			Kind:      entity.KindEpic,
 			FromState: "proposed",
 			Verb:      "cancel",
+			ToState:   "cancelled",
 			Outcome:   OutcomeLegal,
 			Sources:   RuleSource{Audit: []string{"R-AUDIT-0002"}, FP: []string{"R-FP-0002"}},
 		},
@@ -197,6 +175,15 @@ func epicRules() []Rule {
 			Kind:      entity.KindEpic,
 			FromState: "active",
 			Verb:      "promote",
+			ToState:   "done",
+			Outcome:   OutcomeLegal,
+			Sources:   RuleSource{Audit: []string{"R-AUDIT-0003"}, FP: []string{"R-FP-0003"}},
+		},
+		{
+			Kind:      entity.KindEpic,
+			FromState: "active",
+			Verb:      "promote",
+			ToState:   "cancelled",
 			Outcome:   OutcomeLegal,
 			Sources:   RuleSource{Audit: []string{"R-AUDIT-0003"}, FP: []string{"R-FP-0003"}},
 		},
@@ -205,6 +192,7 @@ func epicRules() []Rule {
 			Kind:      entity.KindEpic,
 			FromState: "active",
 			Verb:      "cancel",
+			ToState:   "cancelled",
 			Outcome:   OutcomeLegal,
 			Sources:   RuleSource{Audit: []string{"R-AUDIT-0004"}, FP: []string{"R-FP-0004"}},
 		},
@@ -214,6 +202,7 @@ func epicRules() []Rule {
 			Kind:              entity.KindEpic,
 			FromState:         "proposed",
 			Verb:              "cancel",
+			ToState:           "cancelled",
 			Preconditions:     []Predicate{{Subject: "any-child.status", Op: "∉", Value: "milestone-terminal-set"}},
 			Outcome:           OutcomeIllegal,
 			ExpectedErrorCode: "epic-cancel-non-terminal-children",
@@ -225,6 +214,7 @@ func epicRules() []Rule {
 			Kind:              entity.KindEpic,
 			FromState:         "active",
 			Verb:              "cancel",
+			ToState:           "cancelled",
 			Preconditions:     []Predicate{{Subject: "any-child.status", Op: "∉", Value: "milestone-terminal-set"}},
 			Outcome:           OutcomeIllegal,
 			ExpectedErrorCode: "epic-cancel-non-terminal-children",
@@ -255,6 +245,18 @@ func epicRules() []Rule {
 			Kind:              entity.KindEpic,
 			FromState:         "active",
 			Verb:              "promote",
+			ToState:           "done",
+			Preconditions:     []Predicate{{Subject: "any-child.status", Op: "∉", Value: "milestone-terminal-set"}},
+			Outcome:           OutcomeIllegal,
+			ExpectedErrorCode: "epic-promote-non-terminal-children",
+			RejectionLayer:    RejectionLayerVerbTime,
+			BlockingStrict:    true,
+		},
+		{
+			Kind:              entity.KindEpic,
+			FromState:         "active",
+			Verb:              "promote",
+			ToState:           "cancelled",
 			Preconditions:     []Predicate{{Subject: "any-child.status", Op: "∉", Value: "milestone-terminal-set"}},
 			Outcome:           OutcomeIllegal,
 			ExpectedErrorCode: "epic-promote-non-terminal-children",
@@ -262,8 +264,88 @@ func epicRules() []Rule {
 			BlockingStrict:    true,
 		},
 		// Terminals: done and cancelled have no outgoing transitions.
-		terminalIllegal(entity.KindEpic, "done", RuleSource{Audit: []string{"R-AUDIT-0005"}, FP: []string{"R-FP-0005"}}),
-		terminalIllegal(entity.KindEpic, "cancelled", RuleSource{Audit: []string{"R-AUDIT-0005"}, FP: []string{"R-FP-0006"}}),
+		{
+			Kind:              entity.KindEpic,
+			FromState:         "done",
+			Verb:              "promote",
+			ToState:           "proposed",
+			Outcome:           OutcomeIllegal,
+			ExpectedErrorCode: "fsm-transition-illegal",
+			RejectionLayer:    RejectionLayerVerbTime,
+			BlockingStrict:    true,
+			Sources:           RuleSource{Audit: []string{"R-AUDIT-0005"}, FP: []string{"R-FP-0005"}},
+		},
+		{
+			Kind:              entity.KindEpic,
+			FromState:         "done",
+			Verb:              "promote",
+			ToState:           "active",
+			Outcome:           OutcomeIllegal,
+			ExpectedErrorCode: "fsm-transition-illegal",
+			RejectionLayer:    RejectionLayerVerbTime,
+			BlockingStrict:    true,
+			Sources:           RuleSource{Audit: []string{"R-AUDIT-0005"}, FP: []string{"R-FP-0005"}},
+		},
+		{
+			Kind:      entity.KindEpic,
+			FromState: "done",
+			Verb:      "promote",
+			ToState:   "done",
+			Outcome:   OutcomeNoOp,
+			Sources:   RuleSource{Audit: []string{"R-AUDIT-0005"}, FP: []string{"R-FP-0005"}},
+		},
+		{
+			Kind:              entity.KindEpic,
+			FromState:         "done",
+			Verb:              "promote",
+			ToState:           "cancelled",
+			Outcome:           OutcomeIllegal,
+			ExpectedErrorCode: "fsm-transition-illegal",
+			RejectionLayer:    RejectionLayerVerbTime,
+			BlockingStrict:    true,
+			Sources:           RuleSource{Audit: []string{"R-AUDIT-0005"}, FP: []string{"R-FP-0005"}},
+		},
+		{
+			Kind:              entity.KindEpic,
+			FromState:         "cancelled",
+			Verb:              "promote",
+			ToState:           "proposed",
+			Outcome:           OutcomeIllegal,
+			ExpectedErrorCode: "fsm-transition-illegal",
+			RejectionLayer:    RejectionLayerVerbTime,
+			BlockingStrict:    true,
+			Sources:           RuleSource{Audit: []string{"R-AUDIT-0005"}, FP: []string{"R-FP-0006"}},
+		},
+		{
+			Kind:              entity.KindEpic,
+			FromState:         "cancelled",
+			Verb:              "promote",
+			ToState:           "active",
+			Outcome:           OutcomeIllegal,
+			ExpectedErrorCode: "fsm-transition-illegal",
+			RejectionLayer:    RejectionLayerVerbTime,
+			BlockingStrict:    true,
+			Sources:           RuleSource{Audit: []string{"R-AUDIT-0005"}, FP: []string{"R-FP-0006"}},
+		},
+		{
+			Kind:              entity.KindEpic,
+			FromState:         "cancelled",
+			Verb:              "promote",
+			ToState:           "done",
+			Outcome:           OutcomeIllegal,
+			ExpectedErrorCode: "fsm-transition-illegal",
+			RejectionLayer:    RejectionLayerVerbTime,
+			BlockingStrict:    true,
+			Sources:           RuleSource{Audit: []string{"R-AUDIT-0005"}, FP: []string{"R-FP-0006"}},
+		},
+		{
+			Kind:      entity.KindEpic,
+			FromState: "cancelled",
+			Verb:      "promote",
+			ToState:   "cancelled",
+			Outcome:   OutcomeNoOp,
+			Sources:   RuleSource{Audit: []string{"R-AUDIT-0005"}, FP: []string{"R-FP-0006"}},
+		},
 	}
 }
 
@@ -277,6 +359,15 @@ func milestoneRules() []Rule {
 			Kind:      entity.KindMilestone,
 			FromState: "draft",
 			Verb:      "promote",
+			ToState:   "in_progress",
+			Outcome:   OutcomeLegal,
+			Sources:   RuleSource{Audit: []string{"R-AUDIT-0006"}, FP: []string{"R-FP-0009"}},
+		},
+		{
+			Kind:      entity.KindMilestone,
+			FromState: "draft",
+			Verb:      "promote",
+			ToState:   "cancelled",
 			Outcome:   OutcomeLegal,
 			Sources:   RuleSource{Audit: []string{"R-AUDIT-0006"}, FP: []string{"R-FP-0009"}},
 		},
@@ -285,6 +376,7 @@ func milestoneRules() []Rule {
 			Kind:      entity.KindMilestone,
 			FromState: "draft",
 			Verb:      "cancel",
+			ToState:   "cancelled",
 			Outcome:   OutcomeLegal,
 			Sources:   RuleSource{Audit: []string{"R-AUDIT-0007"}, FP: []string{"R-FP-0010"}},
 		},
@@ -293,29 +385,42 @@ func milestoneRules() []Rule {
 			Kind:          entity.KindMilestone,
 			FromState:     "in_progress",
 			Verb:          "promote",
+			ToState:       "done",
+			Preconditions: []Predicate{{Subject: "all-children-acs.status", Op: "!=", Value: "open"}},
+			Outcome:       OutcomeLegal,
+			Sources:       RuleSource{Audit: []string{"R-AUDIT-0008", "R-AUDIT-0049", "R-AUDIT-0081"}, FP: []string{"R-FP-0011", "R-FP-0061"}},
+		},
+		{
+			Kind:          entity.KindMilestone,
+			FromState:     "in_progress",
+			Verb:          "promote",
+			ToState:       "cancelled",
 			Preconditions: []Predicate{{Subject: "all-children-acs.status", Op: "!=", Value: "open"}},
 			Outcome:       OutcomeLegal,
 			Sources:       RuleSource{Audit: []string{"R-AUDIT-0008", "R-AUDIT-0049", "R-AUDIT-0081"}, FP: []string{"R-FP-0011", "R-FP-0061"}},
 		},
 		// in_progress → done illegal companion: any open AC fires
-		// milestone-done-incomplete-acs. Also the abstract cell for
-		// in_progress → cancelled with an open AC (G-0335): the cell
-		// model has no ToState dimension, so both concrete refusals
-		// — this check-rule-driven one for `done`, and
-		// verb.MilestonePromoteNonTerminalACsError
-		// (milestone-promote-non-terminal-acs) for `cancelled` — key
-		// to this one (Kind, FromState, Verb, Preconditions, Outcome)
-		// tuple; only one ExpectedErrorCode fits, so it stays the
-		// longer-standing `done` code. The `draft` cell below carries
-		// milestone-promote-non-terminal-acs for the coverage drift
-		// test, since draft has no such collision.
+		// milestone-done-incomplete-acs.
 		{
 			Kind:              entity.KindMilestone,
 			FromState:         "in_progress",
 			Verb:              "promote",
+			ToState:           "done",
 			Preconditions:     []Predicate{{Subject: "any-child-ac.status", Op: "==", Value: "open"}},
 			Outcome:           OutcomeIllegal,
 			ExpectedErrorCode: check.CodeMilestoneDoneIncompleteACs,
+			RejectionLayer:    RejectionLayerVerbTime,
+			BlockingStrict:    true,
+			Sources:           RuleSource{Audit: []string{"R-AUDIT-0049", "R-AUDIT-0081"}, FP: []string{"R-FP-0061"}},
+		},
+		{
+			Kind:              entity.KindMilestone,
+			FromState:         "in_progress",
+			Verb:              "promote",
+			ToState:           "cancelled",
+			Preconditions:     []Predicate{{Subject: "any-child-ac.status", Op: "==", Value: "open"}},
+			Outcome:           OutcomeIllegal,
+			ExpectedErrorCode: "milestone-promote-non-terminal-acs",
 			RejectionLayer:    RejectionLayerVerbTime,
 			BlockingStrict:    true,
 			Sources:           RuleSource{Audit: []string{"R-AUDIT-0049", "R-AUDIT-0081"}, FP: []string{"R-FP-0061"}},
@@ -325,6 +430,7 @@ func milestoneRules() []Rule {
 			Kind:      entity.KindMilestone,
 			FromState: "in_progress",
 			Verb:      "cancel",
+			ToState:   "cancelled",
 			Outcome:   OutcomeLegal,
 			Sources:   RuleSource{Audit: []string{"R-AUDIT-0009"}, FP: []string{"R-FP-0012"}},
 		},
@@ -333,6 +439,7 @@ func milestoneRules() []Rule {
 			Kind:              entity.KindMilestone,
 			FromState:         "draft",
 			Verb:              "cancel",
+			ToState:           "cancelled",
 			Preconditions:     []Predicate{{Subject: "any-child-ac.status", Op: "==", Value: "open"}},
 			Outcome:           OutcomeIllegal,
 			ExpectedErrorCode: "milestone-cancel-non-terminal-acs",
@@ -344,6 +451,7 @@ func milestoneRules() []Rule {
 			Kind:              entity.KindMilestone,
 			FromState:         "in_progress",
 			Verb:              "cancel",
+			ToState:           "cancelled",
 			Preconditions:     []Predicate{{Subject: "any-child-ac.status", Op: "==", Value: "open"}},
 			Outcome:           OutcomeIllegal,
 			ExpectedErrorCode: "milestone-cancel-non-terminal-acs",
@@ -351,19 +459,12 @@ func milestoneRules() []Rule {
 			BlockingStrict:    true,
 			Sources:           RuleSource{FP: []string{"R-FP-0064"}, Decision: "D-0004"},
 		},
-		// G-0335: promote refuses reaching `cancelled` the same way
-		// cancel does, when any AC is open — the two surfaces used to
-		// disagree on this transition (mirrors G-0393's epic-level
-		// promote/cancel convergence, cells above). Only a `draft` cell
-		// is added here: the cell model has no ToState dimension, so
-		// `in_progress` can't carry a second cell for this — that key
-		// is already claimed by the `done`-target illegal companion
-		// two cells above (same Kind/FromState/Verb/Precondition/Outcome
-		// tuple), which its own comment now cross-references.
+		// Promotion to cancelled refuses while any AC is open.
 		{
 			Kind:              entity.KindMilestone,
 			FromState:         "draft",
 			Verb:              "promote",
+			ToState:           "cancelled",
 			Preconditions:     []Predicate{{Subject: "any-child-ac.status", Op: "==", Value: "open"}},
 			Outcome:           OutcomeIllegal,
 			ExpectedErrorCode: "milestone-promote-non-terminal-acs",
@@ -371,8 +472,88 @@ func milestoneRules() []Rule {
 			BlockingStrict:    true,
 		},
 		// Terminals: done and cancelled.
-		terminalIllegal(entity.KindMilestone, "done", RuleSource{Audit: []string{"R-AUDIT-0010"}, FP: []string{"R-FP-0013"}}),
-		terminalIllegal(entity.KindMilestone, "cancelled", RuleSource{Audit: []string{"R-AUDIT-0010"}, FP: []string{"R-FP-0014"}}),
+		{
+			Kind:              entity.KindMilestone,
+			FromState:         "done",
+			Verb:              "promote",
+			ToState:           "draft",
+			Outcome:           OutcomeIllegal,
+			ExpectedErrorCode: "fsm-transition-illegal",
+			RejectionLayer:    RejectionLayerVerbTime,
+			BlockingStrict:    true,
+			Sources:           RuleSource{Audit: []string{"R-AUDIT-0010"}, FP: []string{"R-FP-0013"}},
+		},
+		{
+			Kind:              entity.KindMilestone,
+			FromState:         "done",
+			Verb:              "promote",
+			ToState:           "in_progress",
+			Outcome:           OutcomeIllegal,
+			ExpectedErrorCode: "fsm-transition-illegal",
+			RejectionLayer:    RejectionLayerVerbTime,
+			BlockingStrict:    true,
+			Sources:           RuleSource{Audit: []string{"R-AUDIT-0010"}, FP: []string{"R-FP-0013"}},
+		},
+		{
+			Kind:      entity.KindMilestone,
+			FromState: "done",
+			Verb:      "promote",
+			ToState:   "done",
+			Outcome:   OutcomeNoOp,
+			Sources:   RuleSource{Audit: []string{"R-AUDIT-0010"}, FP: []string{"R-FP-0013"}},
+		},
+		{
+			Kind:              entity.KindMilestone,
+			FromState:         "done",
+			Verb:              "promote",
+			ToState:           "cancelled",
+			Outcome:           OutcomeIllegal,
+			ExpectedErrorCode: "fsm-transition-illegal",
+			RejectionLayer:    RejectionLayerVerbTime,
+			BlockingStrict:    true,
+			Sources:           RuleSource{Audit: []string{"R-AUDIT-0010"}, FP: []string{"R-FP-0013"}},
+		},
+		{
+			Kind:              entity.KindMilestone,
+			FromState:         "cancelled",
+			Verb:              "promote",
+			ToState:           "draft",
+			Outcome:           OutcomeIllegal,
+			ExpectedErrorCode: "fsm-transition-illegal",
+			RejectionLayer:    RejectionLayerVerbTime,
+			BlockingStrict:    true,
+			Sources:           RuleSource{Audit: []string{"R-AUDIT-0010"}, FP: []string{"R-FP-0014"}},
+		},
+		{
+			Kind:              entity.KindMilestone,
+			FromState:         "cancelled",
+			Verb:              "promote",
+			ToState:           "in_progress",
+			Outcome:           OutcomeIllegal,
+			ExpectedErrorCode: "fsm-transition-illegal",
+			RejectionLayer:    RejectionLayerVerbTime,
+			BlockingStrict:    true,
+			Sources:           RuleSource{Audit: []string{"R-AUDIT-0010"}, FP: []string{"R-FP-0014"}},
+		},
+		{
+			Kind:              entity.KindMilestone,
+			FromState:         "cancelled",
+			Verb:              "promote",
+			ToState:           "done",
+			Outcome:           OutcomeIllegal,
+			ExpectedErrorCode: "fsm-transition-illegal",
+			RejectionLayer:    RejectionLayerVerbTime,
+			BlockingStrict:    true,
+			Sources:           RuleSource{Audit: []string{"R-AUDIT-0010"}, FP: []string{"R-FP-0014"}},
+		},
+		{
+			Kind:      entity.KindMilestone,
+			FromState: "cancelled",
+			Verb:      "promote",
+			ToState:   "cancelled",
+			Outcome:   OutcomeNoOp,
+			Sources:   RuleSource{Audit: []string{"R-AUDIT-0010"}, FP: []string{"R-FP-0014"}},
+		},
 	}
 }
 
@@ -388,6 +569,15 @@ func adrRules() []Rule {
 			Kind:      entity.KindADR,
 			FromState: "proposed",
 			Verb:      "promote",
+			ToState:   "accepted",
+			Outcome:   OutcomeLegal,
+			Sources:   RuleSource{Audit: []string{"R-AUDIT-0011"}, FP: []string{"R-FP-0016"}},
+		},
+		{
+			Kind:      entity.KindADR,
+			FromState: "proposed",
+			Verb:      "promote",
+			ToState:   "rejected",
 			Outcome:   OutcomeLegal,
 			Sources:   RuleSource{Audit: []string{"R-AUDIT-0011"}, FP: []string{"R-FP-0016"}},
 		},
@@ -396,6 +586,7 @@ func adrRules() []Rule {
 			Kind:      entity.KindADR,
 			FromState: "proposed",
 			Verb:      "cancel",
+			ToState:   "rejected",
 			Outcome:   OutcomeLegal,
 			Sources:   RuleSource{Audit: []string{"R-AUDIT-0012"}, FP: []string{"R-FP-0017"}},
 		},
@@ -407,6 +598,7 @@ func adrRules() []Rule {
 			Kind:          entity.KindADR,
 			FromState:     "accepted",
 			Verb:          "promote",
+			ToState:       "superseded",
 			Preconditions: []Predicate{{Subject: "self.superseded_by", Op: "non-empty"}},
 			Outcome:       OutcomeLegal,
 			Sources:       RuleSource{Audit: []string{"R-AUDIT-0013"}, FP: []string{"R-FP-0018"}},
@@ -418,6 +610,7 @@ func adrRules() []Rule {
 			Kind:              entity.KindADR,
 			FromState:         "accepted",
 			Verb:              "promote",
+			ToState:           "superseded",
 			Preconditions:     []Predicate{{Subject: "self.superseded_by", Op: "==", Value: ""}},
 			Outcome:           OutcomeIllegal,
 			ExpectedErrorCode: check.CodeADRSupersessionMutual,
@@ -430,6 +623,7 @@ func adrRules() []Rule {
 			Kind:              entity.KindADR,
 			FromState:         "accepted",
 			Verb:              "cancel",
+			ToState:           "rejected",
 			Outcome:           OutcomeIllegal,
 			ExpectedErrorCode: "fsm-transition-illegal",
 			RejectionLayer:    RejectionLayerVerbTime,
@@ -437,8 +631,88 @@ func adrRules() []Rule {
 			Sources:           RuleSource{Audit: []string{"R-AUDIT-0014"}, FP: []string{"R-FP-0021"}},
 		},
 		// Terminals: superseded and rejected.
-		terminalIllegal(entity.KindADR, "superseded", RuleSource{Audit: []string{"R-AUDIT-0014"}, FP: []string{"R-FP-0019"}}),
-		terminalIllegal(entity.KindADR, "rejected", RuleSource{Audit: []string{"R-AUDIT-0014"}, FP: []string{"R-FP-0020"}}),
+		{
+			Kind:              entity.KindADR,
+			FromState:         "superseded",
+			Verb:              "promote",
+			ToState:           "proposed",
+			Outcome:           OutcomeIllegal,
+			ExpectedErrorCode: "fsm-transition-illegal",
+			RejectionLayer:    RejectionLayerVerbTime,
+			BlockingStrict:    true,
+			Sources:           RuleSource{Audit: []string{"R-AUDIT-0014"}, FP: []string{"R-FP-0019"}},
+		},
+		{
+			Kind:              entity.KindADR,
+			FromState:         "superseded",
+			Verb:              "promote",
+			ToState:           "accepted",
+			Outcome:           OutcomeIllegal,
+			ExpectedErrorCode: "fsm-transition-illegal",
+			RejectionLayer:    RejectionLayerVerbTime,
+			BlockingStrict:    true,
+			Sources:           RuleSource{Audit: []string{"R-AUDIT-0014"}, FP: []string{"R-FP-0019"}},
+		},
+		{
+			Kind:      entity.KindADR,
+			FromState: "superseded",
+			Verb:      "promote",
+			ToState:   "superseded",
+			Outcome:   OutcomeNoOp,
+			Sources:   RuleSource{Audit: []string{"R-AUDIT-0014"}, FP: []string{"R-FP-0019"}},
+		},
+		{
+			Kind:              entity.KindADR,
+			FromState:         "superseded",
+			Verb:              "promote",
+			ToState:           "rejected",
+			Outcome:           OutcomeIllegal,
+			ExpectedErrorCode: "fsm-transition-illegal",
+			RejectionLayer:    RejectionLayerVerbTime,
+			BlockingStrict:    true,
+			Sources:           RuleSource{Audit: []string{"R-AUDIT-0014"}, FP: []string{"R-FP-0019"}},
+		},
+		{
+			Kind:              entity.KindADR,
+			FromState:         "rejected",
+			Verb:              "promote",
+			ToState:           "proposed",
+			Outcome:           OutcomeIllegal,
+			ExpectedErrorCode: "fsm-transition-illegal",
+			RejectionLayer:    RejectionLayerVerbTime,
+			BlockingStrict:    true,
+			Sources:           RuleSource{Audit: []string{"R-AUDIT-0014"}, FP: []string{"R-FP-0020"}},
+		},
+		{
+			Kind:              entity.KindADR,
+			FromState:         "rejected",
+			Verb:              "promote",
+			ToState:           "accepted",
+			Outcome:           OutcomeIllegal,
+			ExpectedErrorCode: "fsm-transition-illegal",
+			RejectionLayer:    RejectionLayerVerbTime,
+			BlockingStrict:    true,
+			Sources:           RuleSource{Audit: []string{"R-AUDIT-0014"}, FP: []string{"R-FP-0020"}},
+		},
+		{
+			Kind:              entity.KindADR,
+			FromState:         "rejected",
+			Verb:              "promote",
+			ToState:           "superseded",
+			Outcome:           OutcomeIllegal,
+			ExpectedErrorCode: "fsm-transition-illegal",
+			RejectionLayer:    RejectionLayerVerbTime,
+			BlockingStrict:    true,
+			Sources:           RuleSource{Audit: []string{"R-AUDIT-0014"}, FP: []string{"R-FP-0020"}},
+		},
+		{
+			Kind:      entity.KindADR,
+			FromState: "rejected",
+			Verb:      "promote",
+			ToState:   "rejected",
+			Outcome:   OutcomeNoOp,
+			Sources:   RuleSource{Audit: []string{"R-AUDIT-0014"}, FP: []string{"R-FP-0020"}},
+		},
 	}
 }
 
@@ -451,6 +725,7 @@ func gapRules() []Rule {
 			Kind:          entity.KindGap,
 			FromState:     "open",
 			Verb:          "promote",
+			ToState:       "addressed",
 			Preconditions: []Predicate{{Subject: "self.addressed_by", Op: "non-empty"}},
 			Outcome:       OutcomeLegal,
 			Sources:       RuleSource{Audit: []string{"R-AUDIT-0015", "R-AUDIT-0089"}, FP: []string{"R-FP-0023", "R-FP-0087"}},
@@ -460,6 +735,7 @@ func gapRules() []Rule {
 			Kind:              entity.KindGap,
 			FromState:         "open",
 			Verb:              "promote",
+			ToState:           "addressed",
 			Preconditions:     []Predicate{{Subject: "self.addressed_by", Op: "==", Value: ""}},
 			Outcome:           OutcomeIllegal,
 			ExpectedErrorCode: check.CodeGapAddressedHasResolver,
@@ -472,12 +748,71 @@ func gapRules() []Rule {
 			Kind:      entity.KindGap,
 			FromState: "open",
 			Verb:      "cancel",
+			ToState:   "wontfix",
 			Outcome:   OutcomeLegal,
 			Sources:   RuleSource{Audit: []string{"R-AUDIT-0016"}, FP: []string{"R-FP-0024"}},
 		},
 		// Terminals: addressed and wontfix.
-		terminalIllegal(entity.KindGap, "addressed", RuleSource{Audit: []string{"R-AUDIT-0017"}, FP: []string{"R-FP-0025"}}),
-		terminalIllegal(entity.KindGap, "wontfix", RuleSource{Audit: []string{"R-AUDIT-0017"}, FP: []string{"R-FP-0026"}}),
+		{
+			Kind:              entity.KindGap,
+			FromState:         "addressed",
+			Verb:              "promote",
+			ToState:           "open",
+			Outcome:           OutcomeIllegal,
+			ExpectedErrorCode: "fsm-transition-illegal",
+			RejectionLayer:    RejectionLayerVerbTime,
+			BlockingStrict:    true,
+			Sources:           RuleSource{Audit: []string{"R-AUDIT-0017"}, FP: []string{"R-FP-0025"}},
+		},
+		{
+			Kind:      entity.KindGap,
+			FromState: "addressed",
+			Verb:      "promote",
+			ToState:   "addressed",
+			Outcome:   OutcomeNoOp,
+			Sources:   RuleSource{Audit: []string{"R-AUDIT-0017"}, FP: []string{"R-FP-0025"}},
+		},
+		{
+			Kind:              entity.KindGap,
+			FromState:         "addressed",
+			Verb:              "promote",
+			ToState:           "wontfix",
+			Outcome:           OutcomeIllegal,
+			ExpectedErrorCode: "fsm-transition-illegal",
+			RejectionLayer:    RejectionLayerVerbTime,
+			BlockingStrict:    true,
+			Sources:           RuleSource{Audit: []string{"R-AUDIT-0017"}, FP: []string{"R-FP-0025"}},
+		},
+		{
+			Kind:              entity.KindGap,
+			FromState:         "wontfix",
+			Verb:              "promote",
+			ToState:           "open",
+			Outcome:           OutcomeIllegal,
+			ExpectedErrorCode: "fsm-transition-illegal",
+			RejectionLayer:    RejectionLayerVerbTime,
+			BlockingStrict:    true,
+			Sources:           RuleSource{Audit: []string{"R-AUDIT-0017"}, FP: []string{"R-FP-0026"}},
+		},
+		{
+			Kind:              entity.KindGap,
+			FromState:         "wontfix",
+			Verb:              "promote",
+			ToState:           "addressed",
+			Outcome:           OutcomeIllegal,
+			ExpectedErrorCode: "fsm-transition-illegal",
+			RejectionLayer:    RejectionLayerVerbTime,
+			BlockingStrict:    true,
+			Sources:           RuleSource{Audit: []string{"R-AUDIT-0017"}, FP: []string{"R-FP-0026"}},
+		},
+		{
+			Kind:      entity.KindGap,
+			FromState: "wontfix",
+			Verb:      "promote",
+			ToState:   "wontfix",
+			Outcome:   OutcomeNoOp,
+			Sources:   RuleSource{Audit: []string{"R-AUDIT-0017"}, FP: []string{"R-FP-0026"}},
+		},
 	}
 }
 
@@ -489,6 +824,15 @@ func decisionRules() []Rule {
 			Kind:      entity.KindDecision,
 			FromState: "proposed",
 			Verb:      "promote",
+			ToState:   "accepted",
+			Outcome:   OutcomeLegal,
+			Sources:   RuleSource{Audit: []string{"R-AUDIT-0018"}, FP: []string{"R-FP-0028"}},
+		},
+		{
+			Kind:      entity.KindDecision,
+			FromState: "proposed",
+			Verb:      "promote",
+			ToState:   "rejected",
 			Outcome:   OutcomeLegal,
 			Sources:   RuleSource{Audit: []string{"R-AUDIT-0018"}, FP: []string{"R-FP-0028"}},
 		},
@@ -496,6 +840,7 @@ func decisionRules() []Rule {
 			Kind:      entity.KindDecision,
 			FromState: "proposed",
 			Verb:      "cancel",
+			ToState:   "rejected",
 			Outcome:   OutcomeLegal,
 			Sources:   RuleSource{Audit: []string{"R-AUDIT-0019"}, FP: []string{"R-FP-0029"}},
 		},
@@ -503,12 +848,93 @@ func decisionRules() []Rule {
 			Kind:      entity.KindDecision,
 			FromState: "accepted",
 			Verb:      "promote",
+			ToState:   "superseded",
 			Outcome:   OutcomeLegal,
 			Sources:   RuleSource{Audit: []string{"R-AUDIT-0020"}, FP: []string{"R-FP-0030"}},
 		},
 		// Terminals: superseded and rejected.
-		terminalIllegal(entity.KindDecision, "superseded", RuleSource{Audit: []string{"R-AUDIT-0021"}, FP: []string{"R-FP-0031"}}),
-		terminalIllegal(entity.KindDecision, "rejected", RuleSource{Audit: []string{"R-AUDIT-0021"}, FP: []string{"R-FP-0032"}}),
+		{
+			Kind:              entity.KindDecision,
+			FromState:         "superseded",
+			Verb:              "promote",
+			ToState:           "proposed",
+			Outcome:           OutcomeIllegal,
+			ExpectedErrorCode: "fsm-transition-illegal",
+			RejectionLayer:    RejectionLayerVerbTime,
+			BlockingStrict:    true,
+			Sources:           RuleSource{Audit: []string{"R-AUDIT-0021"}, FP: []string{"R-FP-0031"}},
+		},
+		{
+			Kind:              entity.KindDecision,
+			FromState:         "superseded",
+			Verb:              "promote",
+			ToState:           "accepted",
+			Outcome:           OutcomeIllegal,
+			ExpectedErrorCode: "fsm-transition-illegal",
+			RejectionLayer:    RejectionLayerVerbTime,
+			BlockingStrict:    true,
+			Sources:           RuleSource{Audit: []string{"R-AUDIT-0021"}, FP: []string{"R-FP-0031"}},
+		},
+		{
+			Kind:      entity.KindDecision,
+			FromState: "superseded",
+			Verb:      "promote",
+			ToState:   "superseded",
+			Outcome:   OutcomeNoOp,
+			Sources:   RuleSource{Audit: []string{"R-AUDIT-0021"}, FP: []string{"R-FP-0031"}},
+		},
+		{
+			Kind:              entity.KindDecision,
+			FromState:         "superseded",
+			Verb:              "promote",
+			ToState:           "rejected",
+			Outcome:           OutcomeIllegal,
+			ExpectedErrorCode: "fsm-transition-illegal",
+			RejectionLayer:    RejectionLayerVerbTime,
+			BlockingStrict:    true,
+			Sources:           RuleSource{Audit: []string{"R-AUDIT-0021"}, FP: []string{"R-FP-0031"}},
+		},
+		{
+			Kind:              entity.KindDecision,
+			FromState:         "rejected",
+			Verb:              "promote",
+			ToState:           "proposed",
+			Outcome:           OutcomeIllegal,
+			ExpectedErrorCode: "fsm-transition-illegal",
+			RejectionLayer:    RejectionLayerVerbTime,
+			BlockingStrict:    true,
+			Sources:           RuleSource{Audit: []string{"R-AUDIT-0021"}, FP: []string{"R-FP-0032"}},
+		},
+		{
+			Kind:              entity.KindDecision,
+			FromState:         "rejected",
+			Verb:              "promote",
+			ToState:           "accepted",
+			Outcome:           OutcomeIllegal,
+			ExpectedErrorCode: "fsm-transition-illegal",
+			RejectionLayer:    RejectionLayerVerbTime,
+			BlockingStrict:    true,
+			Sources:           RuleSource{Audit: []string{"R-AUDIT-0021"}, FP: []string{"R-FP-0032"}},
+		},
+		{
+			Kind:              entity.KindDecision,
+			FromState:         "rejected",
+			Verb:              "promote",
+			ToState:           "superseded",
+			Outcome:           OutcomeIllegal,
+			ExpectedErrorCode: "fsm-transition-illegal",
+			RejectionLayer:    RejectionLayerVerbTime,
+			BlockingStrict:    true,
+			Sources:           RuleSource{Audit: []string{"R-AUDIT-0021"}, FP: []string{"R-FP-0032"}},
+		},
+		{
+			Kind:      entity.KindDecision,
+			FromState: "rejected",
+			Verb:      "promote",
+			ToState:   "rejected",
+			Outcome:   OutcomeNoOp,
+			Sources:   RuleSource{Audit: []string{"R-AUDIT-0021"}, FP: []string{"R-FP-0032"}},
+		},
 	}
 }
 
@@ -522,6 +948,15 @@ func contractRules() []Rule {
 			Kind:      entity.KindContract,
 			FromState: "proposed",
 			Verb:      "promote",
+			ToState:   "accepted",
+			Outcome:   OutcomeLegal,
+			Sources:   RuleSource{Audit: []string{"R-AUDIT-0022"}, FP: []string{"R-FP-0035"}},
+		},
+		{
+			Kind:      entity.KindContract,
+			FromState: "proposed",
+			Verb:      "promote",
+			ToState:   "rejected",
 			Outcome:   OutcomeLegal,
 			Sources:   RuleSource{Audit: []string{"R-AUDIT-0022"}, FP: []string{"R-FP-0035"}},
 		},
@@ -530,6 +965,7 @@ func contractRules() []Rule {
 			Kind:      entity.KindContract,
 			FromState: "proposed",
 			Verb:      "cancel",
+			ToState:   "rejected",
 			Outcome:   OutcomeLegal,
 			Sources:   RuleSource{Audit: []string{"R-AUDIT-0023"}, FP: []string{"R-FP-0036"}},
 		},
@@ -538,6 +974,15 @@ func contractRules() []Rule {
 			Kind:      entity.KindContract,
 			FromState: "accepted",
 			Verb:      "promote",
+			ToState:   "deprecated",
+			Outcome:   OutcomeLegal,
+			Sources:   RuleSource{Audit: []string{"R-AUDIT-0024"}, FP: []string{"R-FP-0037"}},
+		},
+		{
+			Kind:      entity.KindContract,
+			FromState: "accepted",
+			Verb:      "promote",
+			ToState:   "rejected",
 			Outcome:   OutcomeLegal,
 			Sources:   RuleSource{Audit: []string{"R-AUDIT-0024"}, FP: []string{"R-FP-0037"}},
 		},
@@ -546,6 +991,7 @@ func contractRules() []Rule {
 			Kind:      entity.KindContract,
 			FromState: "accepted",
 			Verb:      "cancel",
+			ToState:   "rejected",
 			Outcome:   OutcomeLegal,
 			Sources:   RuleSource{Audit: []string{"R-AUDIT-0025"}, FP: []string{"R-FP-0045"}, Decision: "D-0002"},
 		},
@@ -554,23 +1000,123 @@ func contractRules() []Rule {
 			Kind:      entity.KindContract,
 			FromState: "deprecated",
 			Verb:      "promote",
+			ToState:   "retired",
 			Outcome:   OutcomeLegal,
 			Sources:   RuleSource{Audit: []string{"R-AUDIT-0026"}, FP: []string{"R-FP-0039"}},
 		},
 		// Terminals: retired and rejected.
-		terminalIllegal(entity.KindContract, "retired", RuleSource{Audit: []string{"R-AUDIT-0027"}, FP: []string{"R-FP-0040"}}),
-		terminalIllegal(entity.KindContract, "rejected", RuleSource{Audit: []string{"R-AUDIT-0027"}, FP: []string{"R-FP-0041"}}),
+		{
+			Kind:              entity.KindContract,
+			FromState:         "retired",
+			Verb:              "promote",
+			ToState:           "proposed",
+			Outcome:           OutcomeIllegal,
+			ExpectedErrorCode: "fsm-transition-illegal",
+			RejectionLayer:    RejectionLayerVerbTime,
+			BlockingStrict:    true,
+			Sources:           RuleSource{Audit: []string{"R-AUDIT-0027"}, FP: []string{"R-FP-0040"}},
+		},
+		{
+			Kind:              entity.KindContract,
+			FromState:         "retired",
+			Verb:              "promote",
+			ToState:           "accepted",
+			Outcome:           OutcomeIllegal,
+			ExpectedErrorCode: "fsm-transition-illegal",
+			RejectionLayer:    RejectionLayerVerbTime,
+			BlockingStrict:    true,
+			Sources:           RuleSource{Audit: []string{"R-AUDIT-0027"}, FP: []string{"R-FP-0040"}},
+		},
+		{
+			Kind:              entity.KindContract,
+			FromState:         "retired",
+			Verb:              "promote",
+			ToState:           "deprecated",
+			Outcome:           OutcomeIllegal,
+			ExpectedErrorCode: "fsm-transition-illegal",
+			RejectionLayer:    RejectionLayerVerbTime,
+			BlockingStrict:    true,
+			Sources:           RuleSource{Audit: []string{"R-AUDIT-0027"}, FP: []string{"R-FP-0040"}},
+		},
+		{
+			Kind:      entity.KindContract,
+			FromState: "retired",
+			Verb:      "promote",
+			ToState:   "retired",
+			Outcome:   OutcomeNoOp,
+			Sources:   RuleSource{Audit: []string{"R-AUDIT-0027"}, FP: []string{"R-FP-0040"}},
+		},
+		{
+			Kind:              entity.KindContract,
+			FromState:         "retired",
+			Verb:              "promote",
+			ToState:           "rejected",
+			Outcome:           OutcomeIllegal,
+			ExpectedErrorCode: "fsm-transition-illegal",
+			RejectionLayer:    RejectionLayerVerbTime,
+			BlockingStrict:    true,
+			Sources:           RuleSource{Audit: []string{"R-AUDIT-0027"}, FP: []string{"R-FP-0040"}},
+		},
+		{
+			Kind:              entity.KindContract,
+			FromState:         "rejected",
+			Verb:              "promote",
+			ToState:           "proposed",
+			Outcome:           OutcomeIllegal,
+			ExpectedErrorCode: "fsm-transition-illegal",
+			RejectionLayer:    RejectionLayerVerbTime,
+			BlockingStrict:    true,
+			Sources:           RuleSource{Audit: []string{"R-AUDIT-0027"}, FP: []string{"R-FP-0041"}},
+		},
+		{
+			Kind:              entity.KindContract,
+			FromState:         "rejected",
+			Verb:              "promote",
+			ToState:           "accepted",
+			Outcome:           OutcomeIllegal,
+			ExpectedErrorCode: "fsm-transition-illegal",
+			RejectionLayer:    RejectionLayerVerbTime,
+			BlockingStrict:    true,
+			Sources:           RuleSource{Audit: []string{"R-AUDIT-0027"}, FP: []string{"R-FP-0041"}},
+		},
+		{
+			Kind:              entity.KindContract,
+			FromState:         "rejected",
+			Verb:              "promote",
+			ToState:           "deprecated",
+			Outcome:           OutcomeIllegal,
+			ExpectedErrorCode: "fsm-transition-illegal",
+			RejectionLayer:    RejectionLayerVerbTime,
+			BlockingStrict:    true,
+			Sources:           RuleSource{Audit: []string{"R-AUDIT-0027"}, FP: []string{"R-FP-0041"}},
+		},
+		{
+			Kind:              entity.KindContract,
+			FromState:         "rejected",
+			Verb:              "promote",
+			ToState:           "retired",
+			Outcome:           OutcomeIllegal,
+			ExpectedErrorCode: "fsm-transition-illegal",
+			RejectionLayer:    RejectionLayerVerbTime,
+			BlockingStrict:    true,
+			Sources:           RuleSource{Audit: []string{"R-AUDIT-0027"}, FP: []string{"R-FP-0041"}},
+		},
+		{
+			Kind:      entity.KindContract,
+			FromState: "rejected",
+			Verb:      "promote",
+			ToState:   "rejected",
+			Outcome:   OutcomeNoOp,
+			Sources:   RuleSource{Audit: []string{"R-AUDIT-0027"}, FP: []string{"R-FP-0041"}},
+		},
 	}
 }
 
 // AC sub-FSM cells: open → {met, deferred, cancelled}; met → {deferred, cancelled}.
-// Q1 (deferred is terminal) is captured by absence of outgoing cells.
+// Q1 (deferred is terminal) permits no state-changing legal cell.
 //
-// Q2 (AC self-promote) is no longer "illegal globally". Since M-0281/AC-9 a
-// composite promote to the status already recorded converges to a NoOp above
-// the FSM consult, so the absence of FromState-to-same-state cells records that
-// no such *transition* exists — not that the request is refused. The terminal
-// illegal cells below inherit the same boundary; see the note on them.
+// Terminal status requests converge on the current status and reject other
+// targets; the explicit rows distinguish those outcomes.
 func acRules() []Rule {
 	return []Rule{
 		// open → met. The Legal cell is split on parent.tdd: when the
@@ -584,6 +1130,7 @@ func acRules() []Rule {
 			Kind:      KindAC,
 			FromState: "open",
 			Verb:      "promote",
+			ToState:   "met",
 			Preconditions: []Predicate{
 				{Subject: "parent.tdd", Op: "!=", Value: "required"},
 			},
@@ -594,6 +1141,7 @@ func acRules() []Rule {
 			Kind:      KindAC,
 			FromState: "open",
 			Verb:      "promote",
+			ToState:   "met",
 			Preconditions: []Predicate{
 				{Subject: "parent.tdd", Op: "==", Value: "required"},
 				{Subject: "self.tdd_phase", Op: "==", Value: "done"},
@@ -606,17 +1154,16 @@ func acRules() []Rule {
 			Kind:      KindAC,
 			FromState: "open",
 			Verb:      "promote",
-			Preconditions: []Predicate{
-				{Subject: "self.target-state", Op: "==", Value: "deferred"},
-			},
-			Outcome: OutcomeLegal,
-			Sources: RuleSource{Audit: []string{"R-AUDIT-0035"}, FP: []string{"R-FP-0047"}},
+			ToState:   "deferred",
+			Outcome:   OutcomeLegal,
+			Sources:   RuleSource{Audit: []string{"R-AUDIT-0035"}, FP: []string{"R-FP-0047"}},
 		},
 		// open → cancelled
 		{
 			Kind:      KindAC,
 			FromState: "open",
 			Verb:      "cancel",
+			ToState:   "cancelled",
 			Outcome:   OutcomeLegal,
 			Sources:   RuleSource{Audit: []string{"R-AUDIT-0036"}, FP: []string{"R-FP-0048"}},
 		},
@@ -625,46 +1172,104 @@ func acRules() []Rule {
 			Kind:      KindAC,
 			FromState: "met",
 			Verb:      "promote",
-			Preconditions: []Predicate{
-				{Subject: "self.target-state", Op: "==", Value: "deferred"},
-			},
-			Outcome: OutcomeLegal,
-			Sources: RuleSource{Audit: []string{"R-AUDIT-0037"}, FP: []string{"R-FP-0049"}},
+			ToState:   "deferred",
+			Outcome:   OutcomeLegal,
+			Sources:   RuleSource{Audit: []string{"R-AUDIT-0037"}, FP: []string{"R-FP-0049"}},
 		},
 		// met → cancelled (scope-change after the fact)
 		{
 			Kind:      KindAC,
 			FromState: "met",
 			Verb:      "cancel",
+			ToState:   "cancelled",
 			Outcome:   OutcomeLegal,
 			Sources:   RuleSource{Audit: []string{"R-AUDIT-0038"}, FP: []string{"R-FP-0050"}},
 		},
-		// Q1: deferred is terminal — explicit illegal cell for clarity.
+		// Q1: deferred is terminal — self-convergence and other-target refusals.
 		//
-		// Same scope boundary as terminalIllegal, for the same reason — see
-		// its doc comment. Applies to the `cancelled` cell below too.
+		// The self-target converges; every other target is refused.
 		{
 			Kind:              KindAC,
 			FromState:         "deferred",
 			Verb:              "promote",
+			ToState:           "open",
 			Outcome:           OutcomeIllegal,
 			ExpectedErrorCode: "fsm-transition-illegal",
 			RejectionLayer:    RejectionLayerVerbTime,
 			BlockingStrict:    true,
 			Sources:           RuleSource{Audit: []string{"R-AUDIT-0039"}, FP: []string{"R-FP-0051"}},
 		},
-		// cancelled is terminal (AC FSM symmetric with deferred) — explicit
-		// illegal cell so M-0123/AC-5's impl→spec coverage holds for every
-		// AC FSM state. Surfaced by the drift test during AC-5 authoring.
+		{
+			Kind:              KindAC,
+			FromState:         "deferred",
+			Verb:              "promote",
+			ToState:           "met",
+			Outcome:           OutcomeIllegal,
+			ExpectedErrorCode: "fsm-transition-illegal",
+			RejectionLayer:    RejectionLayerVerbTime,
+			BlockingStrict:    true,
+			Sources:           RuleSource{Audit: []string{"R-AUDIT-0039"}, FP: []string{"R-FP-0051"}},
+		},
+		{
+			Kind:      KindAC,
+			FromState: "deferred",
+			Verb:      "promote",
+			ToState:   "deferred",
+			Outcome:   OutcomeNoOp,
+			Sources:   RuleSource{Audit: []string{"R-AUDIT-0039"}, FP: []string{"R-FP-0051"}},
+		},
+		{
+			Kind:              KindAC,
+			FromState:         "deferred",
+			Verb:              "promote",
+			ToState:           "cancelled",
+			Outcome:           OutcomeIllegal,
+			ExpectedErrorCode: "fsm-transition-illegal",
+			RejectionLayer:    RejectionLayerVerbTime,
+			BlockingStrict:    true,
+			Sources:           RuleSource{Audit: []string{"R-AUDIT-0039"}, FP: []string{"R-FP-0051"}},
+		},
+		// Cancelled has the same terminal behavior as deferred.
 		{
 			Kind:              KindAC,
 			FromState:         "cancelled",
 			Verb:              "promote",
+			ToState:           "open",
 			Outcome:           OutcomeIllegal,
 			ExpectedErrorCode: "fsm-transition-illegal",
 			RejectionLayer:    RejectionLayerVerbTime,
 			BlockingStrict:    true,
 			Sources:           RuleSource{Audit: []string{"R-AUDIT-0036"}, FP: []string{"R-FP-0048"}},
+		},
+		{
+			Kind:              KindAC,
+			FromState:         "cancelled",
+			Verb:              "promote",
+			ToState:           "met",
+			Outcome:           OutcomeIllegal,
+			ExpectedErrorCode: "fsm-transition-illegal",
+			RejectionLayer:    RejectionLayerVerbTime,
+			BlockingStrict:    true,
+			Sources:           RuleSource{Audit: []string{"R-AUDIT-0036"}, FP: []string{"R-FP-0048"}},
+		},
+		{
+			Kind:              KindAC,
+			FromState:         "cancelled",
+			Verb:              "promote",
+			ToState:           "deferred",
+			Outcome:           OutcomeIllegal,
+			ExpectedErrorCode: "fsm-transition-illegal",
+			RejectionLayer:    RejectionLayerVerbTime,
+			BlockingStrict:    true,
+			Sources:           RuleSource{Audit: []string{"R-AUDIT-0036"}, FP: []string{"R-FP-0048"}},
+		},
+		{
+			Kind:      KindAC,
+			FromState: "cancelled",
+			Verb:      "promote",
+			ToState:   "cancelled",
+			Outcome:   OutcomeNoOp,
+			Sources:   RuleSource{Audit: []string{"R-AUDIT-0036"}, FP: []string{"R-FP-0048"}},
 		},
 		// AC met under tdd:required requires phase=done per R-FP-0060 / R-AUDIT-0073.
 		// Encoded as a precondition on met-from-open and as a check-time finding.
@@ -672,6 +1277,7 @@ func acRules() []Rule {
 			Kind:              KindAC,
 			FromState:         "open",
 			Verb:              "promote",
+			ToState:           "met",
 			Preconditions:     []Predicate{{Subject: "parent.tdd", Op: "==", Value: "required"}, {Subject: "self.tdd_phase", Op: "!=", Value: "done"}},
 			Outcome:           OutcomeIllegal,
 			ExpectedErrorCode: check.CodeACsTDDAudit,
@@ -687,9 +1293,86 @@ func acRules() []Rule {
 func tddPhaseRules() []Rule {
 	return []Rule{
 		{
+			Kind:          KindTDDPhase,
+			FromState:     "red",
+			Verb:          "promote",
+			ToState:       "red",
+			Preconditions: []Predicate{{Subject: "self.tests", Op: "==", Value: ""}},
+			Outcome:       OutcomeNoOp,
+		},
+		{
+			Kind:              KindTDDPhase,
+			FromState:         "red",
+			Verb:              "promote",
+			ToState:           "red",
+			Preconditions:     []Predicate{{Subject: "self.tests", Op: "non-empty"}},
+			Outcome:           OutcomeIllegal,
+			ExpectedErrorCode: "fsm-transition-illegal",
+			RejectionLayer:    RejectionLayerVerbTime,
+			BlockingStrict:    true,
+		},
+		{
+			Kind:          KindTDDPhase,
+			FromState:     "green",
+			Verb:          "promote",
+			ToState:       "green",
+			Preconditions: []Predicate{{Subject: "self.tests", Op: "==", Value: ""}},
+			Outcome:       OutcomeNoOp,
+		},
+		{
+			Kind:              KindTDDPhase,
+			FromState:         "green",
+			Verb:              "promote",
+			ToState:           "green",
+			Preconditions:     []Predicate{{Subject: "self.tests", Op: "non-empty"}},
+			Outcome:           OutcomeIllegal,
+			ExpectedErrorCode: "fsm-transition-illegal",
+			RejectionLayer:    RejectionLayerVerbTime,
+			BlockingStrict:    true,
+		},
+		{
+			Kind:          KindTDDPhase,
+			FromState:     "refactor",
+			Verb:          "promote",
+			ToState:       "refactor",
+			Preconditions: []Predicate{{Subject: "self.tests", Op: "==", Value: ""}},
+			Outcome:       OutcomeNoOp,
+		},
+		{
+			Kind:              KindTDDPhase,
+			FromState:         "refactor",
+			Verb:              "promote",
+			ToState:           "refactor",
+			Preconditions:     []Predicate{{Subject: "self.tests", Op: "non-empty"}},
+			Outcome:           OutcomeIllegal,
+			ExpectedErrorCode: "fsm-transition-illegal",
+			RejectionLayer:    RejectionLayerVerbTime,
+			BlockingStrict:    true,
+		},
+		{
+			Kind:          KindTDDPhase,
+			FromState:     "done",
+			Verb:          "promote",
+			ToState:       "done",
+			Preconditions: []Predicate{{Subject: "self.tests", Op: "==", Value: ""}},
+			Outcome:       OutcomeNoOp,
+		},
+		{
+			Kind:              KindTDDPhase,
+			FromState:         "done",
+			Verb:              "promote",
+			ToState:           "done",
+			Preconditions:     []Predicate{{Subject: "self.tests", Op: "non-empty"}},
+			Outcome:           OutcomeIllegal,
+			ExpectedErrorCode: "fsm-transition-illegal",
+			RejectionLayer:    RejectionLayerVerbTime,
+			BlockingStrict:    true,
+		},
+		{
 			Kind:      KindTDDPhase,
 			FromState: "",
 			Verb:      "promote",
+			ToState:   "red",
 			Outcome:   OutcomeLegal,
 			Sources:   RuleSource{Audit: []string{"R-AUDIT-0042"}},
 		},
@@ -697,6 +1380,7 @@ func tddPhaseRules() []Rule {
 			Kind:      KindTDDPhase,
 			FromState: "red",
 			Verb:      "promote",
+			ToState:   "green",
 			Outcome:   OutcomeLegal,
 			Sources:   RuleSource{Audit: []string{"R-AUDIT-0043"}, FP: []string{"R-FP-0054"}},
 		},
@@ -704,6 +1388,15 @@ func tddPhaseRules() []Rule {
 			Kind:      KindTDDPhase,
 			FromState: "green",
 			Verb:      "promote",
+			ToState:   "refactor",
+			Outcome:   OutcomeLegal,
+			Sources:   RuleSource{Audit: []string{"R-AUDIT-0044", "R-AUDIT-0045"}, FP: []string{"R-FP-0055"}},
+		},
+		{
+			Kind:      KindTDDPhase,
+			FromState: "green",
+			Verb:      "promote",
+			ToState:   "done",
 			Outcome:   OutcomeLegal,
 			Sources:   RuleSource{Audit: []string{"R-AUDIT-0044", "R-AUDIT-0045"}, FP: []string{"R-FP-0055"}},
 		},
@@ -711,14 +1404,38 @@ func tddPhaseRules() []Rule {
 			Kind:      KindTDDPhase,
 			FromState: "refactor",
 			Verb:      "promote",
+			ToState:   "done",
 			Outcome:   OutcomeLegal,
 			Sources:   RuleSource{Audit: []string{"R-AUDIT-0046"}, FP: []string{"R-FP-0056"}},
 		},
-		// Q2: TDD-phase done is terminal — explicit illegal cell.
+		// TDD-phase done refuses every other phase.
 		{
 			Kind:              KindTDDPhase,
 			FromState:         "done",
 			Verb:              "promote",
+			ToState:           "red",
+			Outcome:           OutcomeIllegal,
+			ExpectedErrorCode: "fsm-transition-illegal",
+			RejectionLayer:    RejectionLayerVerbTime,
+			BlockingStrict:    true,
+			Sources:           RuleSource{Audit: []string{"R-AUDIT-0047"}, FP: []string{"R-FP-0057"}},
+		},
+		{
+			Kind:              KindTDDPhase,
+			FromState:         "done",
+			Verb:              "promote",
+			ToState:           "green",
+			Outcome:           OutcomeIllegal,
+			ExpectedErrorCode: "fsm-transition-illegal",
+			RejectionLayer:    RejectionLayerVerbTime,
+			BlockingStrict:    true,
+			Sources:           RuleSource{Audit: []string{"R-AUDIT-0047"}, FP: []string{"R-FP-0057"}},
+		},
+		{
+			Kind:              KindTDDPhase,
+			FromState:         "done",
+			Verb:              "promote",
+			ToState:           "refactor",
 			Outcome:           OutcomeIllegal,
 			ExpectedErrorCode: "fsm-transition-illegal",
 			RejectionLayer:    RejectionLayerVerbTime,

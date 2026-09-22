@@ -1035,7 +1035,7 @@ G-0230, narrowed to its NoOp-convergence half.
 Finish the same-state convergence M-0281 started, so the convention the kernel
 advertises holds everywhere it claims to.
 
-Addresses G-0458, G-0459, G-0460 and G-0461.
+Addresses G-0459, G-0460 and G-0461. M-0318 under E-0089 owns G-0458.
 
 _No milestones yet._
 
@@ -1242,7 +1242,7 @@ the moving verb owns — in either direction.
 | M-0316 | Kill the link primitive's surviving mutants | done |
 | M-0317 | Settle whether ADR-0033's docs delegation fires | done |
 
-## E-0089 — Make the legal-workflow table total and correct (proposed)
+## E-0089 — Make the legal-workflow table total and correct (active)
 
 ### Goal
 
@@ -1253,7 +1253,7 @@ that the kernel contradicts.
 
 | Milestone | Title | Status |
 |---|---|---|
-| M-0318 | Split every cell by target and correct the contradicted outcomes | draft |
+| M-0318 | Split every cell by target and correct the contradicted outcomes | in_progress |
 | M-0319 | Move authorize to GlobalRules and sweep the stale entries there | draft |
 | M-0320 | Re-key the coverage drivers and reconcile the rejection-layer axis | draft |
 | M-0321 | Declare kind-by-verb applicability and enforce cell totality | draft |
@@ -1319,7 +1319,7 @@ and parallel implementation in separate worktrees.
 | M-0342 | Enable host detection across setup refresh and diagnosis | done |
 | M-0343 | Verify host handoff parallel worktrees and container persistence | done |
 
-## E-0094 — Deliver external project guidance through aiwf update (proposed)
+## E-0094 — Deliver external project guidance through aiwf update (active)
 
 ### Goal
 
