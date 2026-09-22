@@ -27,9 +27,10 @@ and the two catalogs under `docs/design/`, which are working papers whose struct
 is pinned but whose claims are held by nothing.
 
 Once the table is total and target-bearing it can answer the question directly, and
-a generated document cannot drift from it by construction. `aiwf render roadmap
---write` already establishes that shape: derived view, regenerated rather than
-maintained, committed and compared in CI.
+a generated document can be checked against it. `aiwf render roadmap --write`
+provides a precedent for a derived view that is regenerated rather than maintained.
+This milestone adds a fresh-render comparison for the legality reference if the
+decision is to ship it.
 
 D-0077 deliberately leaves shipping the render open. That is why the decision is
 this milestone's first criterion rather than an assumption in its goal — a render
