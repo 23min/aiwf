@@ -142,3 +142,9 @@ on the milestone branch:
 
 The full race/CI gate is reserved for epic integration or push under the repository's
 validation cadence; it was not run for this milestone's local commits.
+
+## Reviewer notes
+
+Independent full-surface review: approve, with no blocking findings or untracked
+issues. Scoped doc-lint: clean. No new module, abstraction, or state shape requires
+a separate design-reconstruction review.
