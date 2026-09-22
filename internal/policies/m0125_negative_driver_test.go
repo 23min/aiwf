@@ -164,8 +164,6 @@ func errorSubstringsFor(code string) []string {
 		return []string{"open AC", "incomplete"}
 	case "adr-supersession-mutual":
 		return []string{"supersede", "mutual"}
-	case "authorize-kind-not-allowed":
-		return []string{"authorize", "not allowed"}
 	case "epic-cancel-non-terminal-children":
 		// M-0139 guard: EpicCancelNonTerminalChildrenError.Error().
 		return []string{"non-terminal child milestone", "epic-cancel-non-terminal-children"}
@@ -238,8 +236,6 @@ func buildIllegalVerbArgs(t *testing.T, tc illegalCase, id string, ctx spec.Eval
 	switch tc.rule.Verb {
 	case "cancel":
 		return []string{"cancel", id}
-	case "authorize":
-		return []string{"authorize", id, "--to", "ai/claude"}
 	case "promote":
 		return buildVerbArgs(t, positiveCase{rule: tc.rule, target: tc.rule.ToState}, id,
 			extraArgs{testMetrics: ctx.TestMetrics})

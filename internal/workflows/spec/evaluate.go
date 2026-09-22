@@ -42,9 +42,9 @@ type EvalContext struct {
 }
 
 // EvaluatePredicate reports whether p holds against e in t, with
-// verb-invocation context ctx. The closed (Subject, Op) vocabulary
-// covered here is the vocabulary used by Rules():
+// verb-invocation context ctx. It supports these entity and request predicates:
 //
+//	self.kind != <kind>
 //	self.tests == "" / self.tests non-empty (supplied --tests payload)
 //	self.target-state == <state>
 //	self.addressed_by non-empty
@@ -70,6 +70,8 @@ type EvalContext struct {
 // New named sets land here as the spec grows.
 func EvaluatePredicate(p Predicate, e *entity.Entity, t *tree.Tree, ctx EvalContext) (bool, error) {
 	switch p.Subject {
+	case "self.kind":
+		return cmpString(p.Op, string(e.Kind), p.Value)
 	case "self.tests":
 		return cmpString(p.Op, strings.TrimSpace(ctx.TestMetrics), p.Value)
 	case "self.target-state":
