@@ -555,6 +555,10 @@ func refreshArtifacts(ctx context.Context, root string, cfg *config.Config, sele
 		}
 	}
 
+	if step := ensureProjectGuidance(ctx, root, cfg, selection, opts); step != nil {
+		steps = append(steps, *step)
+	}
+
 	legacyStep, err := ensureLegacyActorClean(root, opts.DryRun)
 	if err != nil {
 		return nil, err

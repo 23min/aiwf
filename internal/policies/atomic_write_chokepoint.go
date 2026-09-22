@@ -83,6 +83,7 @@ func PolicyAtomicWriteChokepoint(root string) ([]Violation, error) {
 		// os.MkdirTemp dir, fed to `aiwf add ac --body-file` — never a
 		// persisted entity file itself.
 		"internal/stresstest/archive_during_active_scope.go": "writes confined to the scenario's own disposable temp dir; scratch AC-body fixture data, never a persisted entity file",
+		"internal/testsupport/guidance.go":                   "writes local Git corpus fixtures only into testing.TB.TempDir; no persistent project state",
 		// WriteExecutable writes a test stand-in into the caller's own
 		// t.TempDir, never persisted state — and atomic-replace is the
 		// wrong shape here twice over: the write is guarded by

@@ -11,6 +11,7 @@ import (
 	"github.com/23min/aiwf/internal/cli/cliutil"
 	"github.com/23min/aiwf/internal/cli/update"
 	"github.com/23min/aiwf/internal/config"
+	"github.com/23min/aiwf/internal/testsupport"
 )
 
 func TestRun_ProjectGuidancePreservesConfigurationAndLegacyOwnership(t *testing.T) {
@@ -63,6 +64,39 @@ func TestRun_ProjectGuidanceRejectsOverlapBeforeRefresh(t *testing.T) {
 		got, err := os.ReadFile(filepath.Join(root, name))
 		if err != nil || !bytes.Equal(got, want) {
 			t.Fatalf("%s changed on rejected configuration: %s (%v)", name, got, err)
+		}
+	}
+}
+
+func TestRun_ProjectGuidanceTracksUpstreamAndConverges(t *testing.T) {
+	t.Parallel()
+	root, source := freshInitializedRepo(t), testsupport.GuidanceSource(t)
+	cfg := "hosts: [claude-code, codex]\nguidance:\n  source: " + source + "\n  packs: [sample/base]\n"
+	if err := os.WriteFile(filepath.Join(root, config.FileName), []byte(cfg), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	for _, content := range []string{"# First upstream revision\n", "# Second upstream revision\n"} {
+		if err := os.WriteFile(filepath.Join(source, "packs", "sample", "base", "guide.md"), []byte(content), 0o644); err != nil {
+			t.Fatal(err)
+		}
+		commit := testsupport.CommitGuidanceSource(t, source)
+		if rc := update.Run(root, false, "", false, false, false, false, nil, nil); rc != cliutil.ExitOK {
+			t.Fatalf("update exit %d", rc)
+		}
+		installed, err := os.ReadFile(filepath.Join(root, ".guidance", "packs", "sample", "base", "guide.md"))
+		if err != nil || string(installed) != content {
+			t.Fatalf("installed = %s, %v", installed, err)
+		}
+		index, err := os.ReadFile(filepath.Join(root, ".guidance", "index.md"))
+		if err != nil || !bytes.Contains(index, []byte(commit)) {
+			t.Fatalf("index revision: %s, %v", index, err)
+		}
+		if rc := update.Run(root, false, "", false, false, false, false, nil, nil); rc != cliutil.ExitOK {
+			t.Fatalf("repeat update exit %d", rc)
+		}
+		repeated, err := os.ReadFile(filepath.Join(root, ".guidance", "index.md"))
+		if err != nil || !bytes.Equal(index, repeated) {
+			t.Fatalf("unchanged upstream changed index: %s, %v", repeated, err)
 		}
 	}
 }
