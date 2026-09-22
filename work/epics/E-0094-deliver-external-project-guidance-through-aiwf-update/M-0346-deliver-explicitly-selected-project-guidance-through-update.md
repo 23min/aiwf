@@ -64,7 +64,7 @@ Fetch, validation, missing-pack, and conflict failures leave all installed guida
 
 ### AC-5 — Legacy handover never activates a second guidance corpus
 
-Compatible setups and machines without ai-dotfiles can adopt project guidance. Incompatible personal delivery blocks handover with actionable remediation and preserves legacy delivery; binary upgrade and unrelated refresh work can continue. Successful handover removes recognized legacy managed imports and records project ownership only with usable replacement routing. Test explicitly empty selections and retry after interruption. References: init/update integration and the compatibility signal established by the preceding delivery.
+Compatible setups and machines without ai-dotfiles can adopt project guidance. Incompatible personal delivery blocks handover with actionable remediation and preserves legacy delivery; binary upgrade and unrelated refresh work can continue. Successful handover replaces recognized legacy managed imports with usable project routing in the same host file. When no legacy imports need replacement, both host routes may remain disabled while selected guidance files and the index are installed. Test explicitly empty selections and retry after interruption. References: init/update integration and the compatibility signal established by the preceding delivery.
 
 ### AC-6 — Both hosts and local diagnostics expose the installed policy
 
