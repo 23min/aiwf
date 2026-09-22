@@ -13,7 +13,7 @@ acs:
     - id: AC-2
       title: Each cell's rejection layer matches where the kernel actually refuses
       status: open
-      tdd_phase: green
+      tdd_phase: done
 ---
 ## Goal
 
