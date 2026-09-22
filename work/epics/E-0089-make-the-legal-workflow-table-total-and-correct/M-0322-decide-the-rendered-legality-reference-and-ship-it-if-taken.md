@@ -9,7 +9,7 @@ tdd: advisory
 acs:
     - id: AC-1
       title: The render decision lands before any render code
-      status: open
+      status: met
     - id: AC-2
       title: If taken, the committed render matches a fresh render, enforced
       status: open
