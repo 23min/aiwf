@@ -12,7 +12,7 @@ acs:
     - id: AC-2
       title: The retired finding-code entries and their dead constructors are gone
       status: open
-      tdd_phase: red
+      tdd_phase: green
 ---
 ## Goal
 
