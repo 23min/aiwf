@@ -78,7 +78,7 @@ func TestM0158_AC2_CornerCellOutcomesMatchEpic(t *testing.T) {
 // TestM0158_AC2_IllegalCellsCarryExpectedErrorCode asserts that
 // every Illegal corner-case cell carries an ExpectedErrorCode
 // matching the cell's actual kernel emission point. The triplet
-// (branch-context-required, branch-not-found, isolation-escape)
+// (branch-context-required, rung-pair-illegal, isolation-escape)
 // covers the layer-4 illegal cells; a regression that left an
 // Illegal cell's code empty would surface here.
 func TestM0158_AC2_IllegalCellsCarryExpectedErrorCode(t *testing.T) {
@@ -86,7 +86,7 @@ func TestM0158_AC2_IllegalCellsCarryExpectedErrorCode(t *testing.T) {
 
 	wantCode := map[int]string{
 		1:  "branch-context-required",
-		2:  "branch-not-found",
+		2:  "rung-pair-illegal",
 		4:  "isolation-escape",
 		7:  "isolation-escape",
 		12: "isolation-escape",

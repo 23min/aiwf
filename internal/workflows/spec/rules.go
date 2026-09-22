@@ -43,12 +43,6 @@ func Rules() []Rule {
 // record that authorizes it; the cells are the enumeration, so no
 // index of them is kept here to drift out of step with the slice
 // below.
-//
-// The two M-0103 entries are scaffold-quality: they pin the codes into
-// the bidirectional drift net so M-0123/AC-5's legality-codes-referenced
-// arm is satisfied. The layer-4 consolidation milestone (M-0158)
-// elaborates them into the full branch-choreography cell set per
-// ADR-0011 §"Scope".
 func GlobalRules() []Rule {
 	return []Rule{
 		// D-0007: autonomous-work scopes belong only to epics and milestones.
@@ -81,19 +75,6 @@ func GlobalRules() []Rule {
 			},
 			Outcome:           OutcomeIllegal,
 			ExpectedErrorCode: "branch-context-required",
-			RejectionLayer:    RejectionLayerVerbTime,
-			BlockingStrict:    true,
-			Sources:           RuleSource{Decision: "ADR-0010"},
-		},
-		{
-			Verb: "authorize",
-			Preconditions: []Predicate{
-				{Subject: "target-agent-role", Op: "==", Value: "ai"},
-				{Subject: "branch-flag-resolves", Op: "==", Value: "false"},
-				{Subject: "force", Op: "==", Value: "false"},
-			},
-			Outcome:           OutcomeIllegal,
-			ExpectedErrorCode: "branch-not-found",
 			RejectionLayer:    RejectionLayerVerbTime,
 			BlockingStrict:    true,
 			Sources:           RuleSource{Decision: "ADR-0010"},

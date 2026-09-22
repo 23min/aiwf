@@ -46,13 +46,6 @@ func (e *AuthorizeKindError) Code() string { return CodeAuthorizeKindNotAllowed.
 // ADR-0010). Class is [codes.ClassLegality].
 var CodePreflightBranchContextRequired = codes.Code{ID: "branch-context-required", Class: codes.ClassLegality}
 
-// CodePreflightBranchNotFound is the typed kernel-code descriptor
-// carried by [PreflightBranchNotFoundError] when aiwf authorize refuses
-// opening a scope on an ai/* agent because --branch <name> was passed
-// but no local branch by that name exists (M-0103 / ADR-0010). Class is
-// [codes.ClassLegality].
-var CodePreflightBranchNotFound = codes.Code{ID: "branch-not-found", Class: codes.ClassLegality}
-
 // CodePreflightRungPair is the typed kernel-code descriptor carried by
 // [PreflightRungPairError] when aiwf authorize refuses opening a scope
 // on an ai/* agent because the (CurrentBranch rung, --branch rung) pair
@@ -101,28 +94,6 @@ func (e *PreflightBranchContextRequiredError) Error() string {
 // Code returns CodePreflightBranchContextRequired's ID, satisfying [entity.Coded].
 func (e *PreflightBranchContextRequiredError) Code() string {
 	return CodePreflightBranchContextRequired.ID
-}
-
-// PreflightBranchNotFoundError reports an aiwf authorize refused
-// because the AI-target preflight (M-0103) was given --branch <name>
-// but the named branch does not exist locally. Implements [entity.Coded]
-// via Code; carries CodePreflightBranchNotFound.
-type PreflightBranchNotFoundError struct {
-	// Branch is the --branch value that did not resolve under refs/heads/.
-	Branch string
-}
-
-// Error implements error.
-func (e *PreflightBranchNotFoundError) Error() string {
-	return fmt.Sprintf(
-		"aiwf authorize: --branch %q refers to a non-existent local branch (%s). Pass a name that resolves under refs/heads/, or omit --branch to use the current checkout (which must already be on a ritual-shape branch). From `main` or a ritual-shape current branch (epic/milestone/patch), naming a ritual-shape future --branch is accepted (the step-7 pattern of aiwfx-start-epic per M-0104/AC-4 — or step-4 of aiwfx-start-milestone per M-0105/AC-6). To override this preflight as a sovereign act, use `--force --reason \"...\"`.",
-		e.Branch, CodePreflightBranchNotFound.ID,
-	)
-}
-
-// Code returns CodePreflightBranchNotFound's ID, satisfying [entity.Coded].
-func (e *PreflightBranchNotFoundError) Code() string {
-	return CodePreflightBranchNotFound.ID
 }
 
 // PreflightRungPairError reports an aiwf authorize refused because the
@@ -387,8 +358,7 @@ func authorizeOpen(e *entity.Entity, actor string, opts AuthorizeOptions) (*Resu
 	// chokepoint that M-0106 (post-hoc finding) and the rituals
 	// (M-0104 / M-0105) rely on. Two signals satisfy the gate:
 	//
-	//   - opts.Branch is set and opts.BranchExists is true (the caller
-	//     explicitly named an existing local branch), OR
+	//   - opts.Branch names a legal next rung from opts.CurrentBranch, OR
 	//   - opts.Branch is empty and opts.CurrentBranch matches a ritual
 	//     shape per internal/branchparse/ (the current checkout is
 	//     already a ritual branch).
@@ -405,28 +375,9 @@ func authorizeOpen(e *entity.Entity, actor string, opts AuthorizeOptions) (*Resu
 	if strings.HasPrefix(agent, "ai/") && !opts.Force {
 		branchExplicit := strings.TrimSpace(opts.Branch)
 		if branchExplicit != "" {
-			// M-0161/AC-2 (G-0201): single rung-pair check replaces
-			// the loose pre-AC-2 future-binding carve-out (which
-			// accepted any "current is ritual or trunk + target is
-			// ritual" combination when BranchExists=false, and
-			// silently accepted everything when BranchExists=true).
-			// The new predicate runs REGARDLESS of BranchExists so
-			// (X, trunk) cells where --branch IS the trunk's local
-			// branch refuse correctly (AI work targeting trunk is
-			// verboten per ADR-0010).
-			//
-			// LegalRungPair recognizes the 4 legitimate ritual
-			// flows: trunk→epic (aiwfx-start-epic), epic→milestone
-			// (aiwfx-start-milestone), milestone→patch and
-			// epic→patch (wf-patch under either parent rung). All
-			// other pairs — same-rung typos, up-the-tree shapes,
-			// trunk-target shapes, non-ritual current, non-ritual
-			// target — refuse.
-			//
-			// Subsumes the prior PreflightBranchNotFoundError path:
-			// a non-existent + non-ritual --branch (e.g.,
-			// --branch garbage) classifies as targetRung="" → not
-			// in the legal set → PreflightRungPairError fires.
+			// LegalRungPair checks the current and target branch shapes.
+			// Branch existence does not affect legality: a valid future
+			// branch can be bound before the ritual creates it.
 			currentRung := branchparse.RungOf(opts.CurrentBranch, opts.TrunkShort)
 			targetRung := branchparse.RungOf(branchExplicit, opts.TrunkShort)
 			if !branchparse.LegalRungPair(currentRung, targetRung) {
@@ -437,15 +388,6 @@ func authorizeOpen(e *entity.Entity, actor string, opts AuthorizeOptions) (*Resu
 					TargetRung:    targetRung,
 				}
 			}
-			// The pre-AC-2 "branch must exist locally" check is
-			// retained for legal rung pairs: if the operator is on
-			// a legitimate ritual current AND named a legitimate
-			// ritual target, but the target doesn't exist yet,
-			// that's the future-binding carve-out (aiwfx-start-epic
-			// step 7 / aiwfx-start-milestone step 4) — accept and
-			// stamp the trailer. The trailer-emission code below
-			// already handles this. Nothing more to do.
-			_ = opts.BranchExists
 		} else {
 			if branchparse.ParseEntityFromBranch(opts.CurrentBranch) == "" {
 				return nil, &PreflightBranchContextRequiredError{
