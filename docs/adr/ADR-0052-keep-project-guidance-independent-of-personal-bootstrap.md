@@ -2,6 +2,8 @@
 id: ADR-0052
 title: Keep project guidance independent of personal bootstrap
 status: accepted
+supersedes:
+    - ADR-0051
 ---
 > **Date:** 2026-09-22 · **Decided by:** Peter Bruinsma
 

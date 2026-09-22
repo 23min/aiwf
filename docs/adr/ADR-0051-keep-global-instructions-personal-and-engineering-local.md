@@ -1,7 +1,8 @@
 ---
 id: ADR-0051
 title: Keep global instructions personal and engineering local
-status: accepted
+status: superseded
+superseded_by: ADR-0052
 ---
 > **Date:** 2026-09-22 · **Decided by:** Peter Bruinsma
 
