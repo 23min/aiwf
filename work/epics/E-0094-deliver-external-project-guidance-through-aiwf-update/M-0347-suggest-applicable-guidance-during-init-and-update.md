@@ -84,11 +84,36 @@ Complete explicit-selection delivery.
 
 ## Release note
 
+`aiwf init` and `aiwf update` suggest applicable engineering-guidance packs using
+filename patterns from the external catalogue and explain each match. Interactive
+runs offer select, not now, or ignore; completed choices are saved together and
+selected guidance is installed in the same invocation. Noninteractive runs report
+suggestions without adopting policy and refresh explicit selections even before
+matching source files exist. Configuration edits support removal and
+reconsideration while protecting locally edited guidance.
+
 ## Decisions made during implementation
 
 - D-0099 — Defines the file exclusions used by guidance detection.
+- D-0100 — Defines when interactive guidance choices are saved.
 
 ## Validation
+
+Observed on 2026-09-22 in the Linux devcontainer, on the milestone branch:
+
+| Command | Expected | Observed |
+| --- | --- | --- |
+| `make check-fast` | Vet, full configured lint, and full test suite pass. | Exit 0; lint reported `0 issues.`; all test packages passed. |
+| `go build -o /tmp/aiwf-m0347-ac4 ./cmd/aiwf` | Build succeeds. | Exit 0. |
+| `go test -race ./internal/cli/cliutil ./internal/cli/initcmd ./internal/cli/update ./internal/testsupport` | Changed CLI paths and shared fixtures pass with race detection. | Exit 0; every named package reported `ok`. |
+| `go test -race ./internal/cli/update -run TestBinary_GuidanceConfigurationRemovalAndReconsideration -count=1` | Configuration removal and reconsideration pass through the real CLI binary. | Exit 0; package reported `ok`. |
+| `/tmp/aiwf-m0347-ac4 show M-0347` | Every criterion is met with phase done; no milestone findings. | Expected states; `Findings: (none)`. |
+| `/tmp/aiwf-m0347-ac4 check --since origin/main` | No error findings. | Exit 0; `15 findings (0 errors, 15 warnings)`, concerning advisory TDD history and pending archival outside this milestone. |
+
+The full test suite includes real-terminal and non-TTY subprocess fixtures.
+M-0347 AC-4 adds tests and user help for existing behavior; its approved TDD
+exception is recorded in the phase-promotion commit, without a claimed red/green
+implementation cycle.
 
 ## Deferrals
 
@@ -96,4 +121,4 @@ Complete explicit-selection delivery.
 
 ## Reviewer notes
 
-- (none)
+Independent review pending.
