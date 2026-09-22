@@ -10,6 +10,7 @@ import (
 	"os"
 	"regexp"
 	"strings"
+	"unicode/utf8"
 
 	"gopkg.in/yaml.v3"
 
@@ -98,8 +99,11 @@ func Read(path string) (*Doc, *Contracts, error) {
 }
 
 // ReadBytes is Read for an in-memory byte slice. Useful for tests
-// and for callers that already have the file content.
+// and for callers that already have the file content. Editing requires UTF-8.
 func ReadBytes(raw []byte) (*Doc, *Contracts, error) {
+	if !utf8.Valid(raw) {
+		return nil, nil, fmt.Errorf("cannot edit configuration: save aiwf.yaml as UTF-8 and retry")
+	}
 	var root yaml.Node
 	if err := yaml.Unmarshal(raw, &root); err != nil {
 		return nil, nil, fmt.Errorf("parsing aiwf.yaml: %w", err)
