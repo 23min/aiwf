@@ -170,7 +170,7 @@ func layerTier(pkg string) (tier int, known bool) {
 		"internal/entityview":
 		return 4, true
 	case "internal/tree", "internal/scope", "internal/trunk",
-		"internal/manifest", "internal/recipe", "internal/skills":
+		"internal/manifest", "internal/recipe", "internal/skills", "internal/projectguidance":
 		return 5, true
 	case "internal/entity", "internal/gitops", "internal/aiwfyaml", "internal/config":
 		return 6, true

@@ -71,8 +71,6 @@ func (g Guidance) validate() error {
 	if g.Source != "" && strings.TrimSpace(g.Source) == "" {
 		return fmt.Errorf("%w: guidance.source is blank; omit it for the default source or supply a Git repository", ErrInvalidGuidance)
 	}
-	// The external catalogue defines lowercase, hyphen-separated id segments.
-	pattern := regexp.MustCompile(`^[a-z0-9]+(-[a-z0-9]+)*(/[a-z0-9]+(-[a-z0-9]+)*)*$`)
 	selected := []string(nil)
 	if g.Packs != nil {
 		selected = *g.Packs
@@ -83,7 +81,7 @@ func (g Guidance) validate() error {
 		ids []string
 	}{{"packs", selected}, {"ignored", g.Ignored}} {
 		for _, id := range group.ids {
-			if !pattern.MatchString(id) {
+			if !ValidGuidancePackID(id) {
 				return fmt.Errorf("%w: guidance.%s contains invalid pack id %q; use lowercase catalogue ids such as go/cobra", ErrInvalidGuidance, group.key, id)
 			}
 			if prior, ok := seen[id]; ok {
@@ -93,4 +91,9 @@ func (g Guidance) validate() error {
 		}
 	}
 	return nil
+}
+
+// ValidGuidancePackID checks the shared configuration and catalogue id grammar.
+func ValidGuidancePackID(id string) bool {
+	return regexp.MustCompile(`^[a-z0-9]+(-[a-z0-9]+)*(/[a-z0-9]+(-[a-z0-9]+)*)*$`).MatchString(id)
 }
