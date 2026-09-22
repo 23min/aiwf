@@ -83,7 +83,7 @@ Complete explicit-selection delivery.
 
 ## Decisions made during implementation
 
-- (none)
+- D-0099 — Defines the file exclusions used by guidance detection.
 
 ## Validation
 
