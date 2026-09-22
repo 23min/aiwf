@@ -105,6 +105,7 @@ Corpus and compatible ai-dotfiles routing, including the ownership/preflight bou
 ## Decisions made during implementation
 
 - D-0098 — Finish interrupted guidance installation on the next update.
+- Preserve an edited engineering route for an unselected host without blocking shared-pack refresh. Doctor warns about the retained edit; reselecting the host requires reconciliation. Legacy imports and unsafe instruction paths still block handover.
 
 ## Validation
 
