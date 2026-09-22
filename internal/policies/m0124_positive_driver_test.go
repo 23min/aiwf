@@ -19,24 +19,11 @@ import (
 // TestM0124_PositiveDriver_LegalCells exercises every Legal cell in
 // spec.Rules() through the real `aiwf` binary against a per-cell
 // fixture. The driver derives the verb invocation (positional args,
-// flags) from the cell's (Kind, FromState, Verb, Preconditions) plus
-// the FSM's allowed targets, executes via subprocess, and asserts
+// flags) from the cell's (Kind, FromState, Verb, ToState, Preconditions),
+// executes via subprocess, and asserts
 // (a) exit 0, (b) the entity reached the expected post-state, and
 // (c) HEAD carries the expected `aiwf-verb` and `aiwf-entity`
 // trailers.
-//
-// Per-cell target derivation:
-//
-//   - `self.target-state == X` precondition pins target = X.
-//   - Verb == "cancel" → target = entity.CancelTarget(kind, from).
-//   - Promote on AC.open with a `parent.tdd` precondition → target = met.
-//   - Promote on Gap.open with `self.addressed_by non-empty` → target =
-//     addressed (verb takes --by to populate the field atomically with
-//     the transition).
-//   - Promote on TDD-phase cells → next phase via tddPhaseTransitions.
-//   - Otherwise: every reachable state in entity.AllowedTransitions
-//     (multi-target cells like (epic, active, promote) expand into one
-//     subtest per target).
 //
 // Fixture setup is in-process via cellcoverage; the cell-under-test
 // runs via testutil.RunBin (the integration seam matters there).
@@ -46,7 +33,7 @@ func TestM0124_PositiveDriver_LegalCells(t *testing.T) {
 
 	cases := enumerateLegalCases(t)
 	if len(cases) == 0 {
-		t.Fatal("no Legal cells enumerated from spec.Rules(); expected ~30")
+		t.Fatal("no Legal cells enumerated from spec.Rules()")
 	}
 
 	for _, tc := range cases {
@@ -76,14 +63,9 @@ func enumerateLegalCases(t *testing.T) []positiveCase {
 		if rule.Outcome != spec.OutcomeLegal {
 			continue
 		}
-		targets := deriveLegalTargets(t, rule)
-		if len(targets) == 0 {
-			t.Fatalf("no targets derived for Legal cell %+v", rule)
-		}
-		for _, tgt := range targets {
-			name := caseName(rule, tgt)
-			out = append(out, positiveCase{name: name, rule: rule, target: tgt})
-		}
+		out = append(out, positiveCase{
+			name: caseName(rule, rule.ToState), rule: rule, target: rule.ToState,
+		})
 	}
 	return out
 }
@@ -150,74 +132,6 @@ func shortAtom(p spec.Predicate) string {
 	val := strings.ReplaceAll(p.Value, "_", "")
 	val = strings.ReplaceAll(val, "-", "")
 	return subj + op + val
-}
-
-func deriveLegalTargets(t *testing.T, rule spec.Rule) []string {
-	t.Helper()
-	for _, p := range rule.Preconditions {
-		if p.Subject == "self.target-state" && p.Op == "==" {
-			return []string{p.Value}
-		}
-	}
-	switch rule.Verb {
-	case "cancel":
-		// AC cancel is sub-kind; CancelTarget covers top-level kinds
-		// only. The AC FSM lands cancel at "cancelled" regardless of
-		// from-state.
-		if rule.Kind == spec.KindAC {
-			return []string{string(entity.StatusCancelled)}
-		}
-		tgt := entity.CancelTarget(rule.Kind, entity.Status(rule.FromState))
-		if tgt == "" {
-			t.Fatalf("CancelTarget returned empty for (%s, %s)", rule.Kind, rule.FromState)
-		}
-		return []string{string(tgt)}
-	case "promote":
-		return derivePromoteTargets(t, rule)
-	}
-	t.Fatalf("deriveLegalTargets: unsupported verb %q for cell %+v", rule.Verb, rule)
-	return nil
-}
-
-func derivePromoteTargets(t *testing.T, rule spec.Rule) []string {
-	t.Helper()
-	switch rule.Kind {
-	case entity.KindGap:
-		for _, p := range rule.Preconditions {
-			if p.Subject == "self.addressed_by" && p.Op == "non-empty" {
-				return []string{string(entity.StatusAddressed)}
-			}
-		}
-	case spec.KindAC:
-		for _, p := range rule.Preconditions {
-			if p.Subject == "parent.tdd" {
-				return []string{string(entity.StatusMet)}
-			}
-		}
-	case spec.KindTDDPhase:
-		return tddPhaseTargetsFromState(t, rule.FromState)
-	}
-	tgts := entity.AllowedTransitions(rule.Kind, entity.Status(rule.FromState))
-	if len(tgts) == 0 {
-		t.Fatalf("AllowedTransitions(%s, %s) returned empty for Legal cell %+v", rule.Kind, rule.FromState, rule)
-	}
-	return entity.StatusStrings(tgts)
-}
-
-func tddPhaseTargetsFromState(t *testing.T, fromPhase string) []string {
-	t.Helper()
-	switch fromPhase {
-	case "":
-		return []string{entity.TDDPhaseRed}
-	case entity.TDDPhaseRed:
-		return []string{entity.TDDPhaseGreen}
-	case entity.TDDPhaseGreen:
-		return []string{entity.TDDPhaseRefactor, entity.TDDPhaseDone}
-	case entity.TDDPhaseRefactor:
-		return []string{entity.TDDPhaseDone}
-	}
-	t.Fatalf("tddPhaseTargetsFromState: unsupported phase %q", fromPhase)
-	return nil
 }
 
 func runPositiveCell(t *testing.T, tc positiveCase) {

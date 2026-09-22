@@ -7,24 +7,24 @@ import (
 	"github.com/23min/aiwf/internal/workflows/spec"
 )
 
-// TestM0123_AC4_LookupRulesHitSingle asserts a (Kind, FromState, Verb) key
-// with one matching cell returns a slice of length 1.
-//
-// Fixture: (KindEpic, "proposed", "promote") — the legal proposed → active
-// ratification cell (epicRules() entry; R-AUDIT-0001 / R-FP-0001).
-func TestM0123_AC4_LookupRulesHitSingle(t *testing.T) {
+// TestM0123_AC4_LookupRulesSpansTargets pins the plural lookup: a query
+// by origin and verb returns every matching target.
+func TestM0123_AC4_LookupRulesSpansTargets(t *testing.T) {
 	t.Parallel()
 
 	got := spec.LookupRules(entity.KindEpic, "proposed", "promote")
-	if len(got) != 1 {
-		t.Fatalf("LookupRules(KindEpic, proposed, promote) length: want 1, got %d", len(got))
+	if len(got) != 2 {
+		t.Fatalf("LookupRules(KindEpic, proposed, promote): want 2 cells, got %d", len(got))
 	}
-	r := got[0]
-	if r.Kind != entity.KindEpic || r.FromState != "proposed" || r.Verb != "promote" {
-		t.Errorf("LookupRules returned non-matching cell: Kind=%q FromState=%q Verb=%q", r.Kind, r.FromState, r.Verb)
+	targets := map[string]bool{}
+	for _, r := range got {
+		if r.Kind != entity.KindEpic || r.FromState != "proposed" || r.Verb != "promote" || r.Outcome != spec.OutcomeLegal {
+			t.Errorf("LookupRules returned non-matching cell: %+v", r)
+		}
+		targets[r.ToState] = true
 	}
-	if r.Outcome != spec.OutcomeLegal {
-		t.Errorf("Expected OutcomeLegal for proposed → active ratification, got Outcome=%d", r.Outcome)
+	if !targets["active"] || !targets["cancelled"] {
+		t.Errorf("LookupRules targets: got %v, want active and cancelled", targets)
 	}
 }
 
