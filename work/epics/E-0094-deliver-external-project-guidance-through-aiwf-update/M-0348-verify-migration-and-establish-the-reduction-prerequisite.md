@@ -47,7 +47,7 @@ Observe root-started tasks touching nested files, new files, and unrelated prose
 
 ### AC-3 — Mixed repositories retain the correct guidance source
 
-Implement and test personal-only global Claude/Codex outputs, repository-local legacy engineering delivery through ai-dotfiles synchronization, and the matching handover checks. Account for globally installed engineering skills as well as instruction files. Prepare legacy repositories before any approved removal of shared global engineering delivery. Exercise the released combination against old-aiwf and non-aiwf projects alongside migrated projects. Include an incompatible personal installation, failed handover, empty installed selection, disabled maintenance, and update retries; confirm legacy repository-local access or exclusive aiwf project access as applicable. Preserve personal rules; do not treat a global project/legacy router as a completed migration. References: compatibility/integration fixtures plus an observation record for actual installed setup. Do not substitute local fixture success for distribution availability.
+Complete the ai-dotfiles integration and test personal-only global Claude/Codex outputs, repository-local legacy engineering delivery, and aiwf handover checks. The ai-dotfiles maintainer owns its configuration and synchronization mechanism; use its [installation documentation](https://github.com/23min/ai-dotfiles#readme) as the integration reference. Account for globally installed engineering skills as well as instruction files. Verify ai-dotfiles synchronization prepares legacy repositories on use; do not bulk-modify sibling repositories. Before any approved removal of shared global engineering delivery, verify startup setup in the environments using it, including native hook trust and enablement. Verify its diagnostics for missing helpers and failed synchronization. Test that installation and opening one repository leave unopened repositories untouched, and that sessions outside Git create no project files. Do not infer startup readiness from hook-file existence or the handover compatibility check. Exercise the released combination against old-aiwf and non-aiwf projects alongside migrated projects. Include an incompatible personal installation, failed handover, empty installed selection, disabled maintenance, and update retries; confirm legacy repository-local access or exclusive aiwf project access as applicable. Preserve personal rules; do not treat a global project/legacy router as a completed migration. References: compatibility/integration fixtures plus an observation record for actual installed setup. Do not substitute local fixture success for distribution availability.
 
 ### AC-4 — Growth measurements make the reduction prerequisite reproducible
 
@@ -88,7 +88,7 @@ All preceding deliveries, with the actual compatible distributions available for
 
 ## Decisions made during implementation
 
-- ADR-0051 — personal-only global instructions and repository-local engineering delivery.
+- ADR-0052 — project guidance ownership and the personal-bootstrap boundary.
 
 ## Validation
 
