@@ -14,7 +14,7 @@ acs:
       tdd_phase: done
     - id: AC-2
       title: An applicable coordinate with no cell fails a policy
-      status: open
+      status: met
       tdd_phase: done
 ---
 ## Goal
