@@ -1,7 +1,7 @@
 ---
 id: D-0099
 title: Use Git ignore rules and dependency exclusions for detection
-status: proposed
+status: accepted
 relates_to:
     - M-0347
     - E-0094
