@@ -29,16 +29,13 @@ and correct the cells whose declared outcome the kernel contradicts.
 
 ## Context
 
-`Rule` carries `Kind`, `FromState` and `Verb` and no target. One cell therefore
-covers every target reachable from that origin, which makes some coordinates
-inexpressible: `epic|done|promote` is illegal toward `cancelled` and a NoOp toward
-`done`, and the single declared outcome — illegal — is wrong for the second
-(G-0631).
+The target distinguishes outcomes at the same origin and verb: promoting an epic
+from `done` to `cancelled` is illegal, while promoting it to `done` is a NoOp
+(G-0631). D-0077 puts that distinction in the cell key.
 
-D-0077 rules that the target joins the key. G-0160 reached the same place from the
-coverage side: without a target on the cell, a new FSM edge to an existing state
-gets no coverage and no drift signal, and its fix outline names splitting cells per
-target as the remedy.
+G-0160 names the missing per-edge drift check. Comparing the table's explicit
+targets with the FSM makes a new edge require a declaration in the table; a driver
+that derives its targets from the FSM cannot enforce that independent agreement.
 
 Measured 2026-08-24: 61 cells over 99 coordinates, all 15 terminal-state `promote`
 coordinates declared illegal. The expansion is bounded because the target is
@@ -82,11 +79,47 @@ recorded with the command that produced it.
 
 ## Design notes
 
-The enforced key today is (`Kind`, `FromState`, `Verb`, `Outcome`) plus
-preconditions — `m0123_ac2` permits complementary cells at one coordinate — while
-`spec.go`'s package documentation claims the triple alone. AC-1 settles that
-disagreement in passing rather than leaving two contradictory statements about the
-same invariant.
+Target selection belongs to the table. The positive driver consumes each declared
+target so splitting a cell cannot multiply its test cases by re-expanding the FSM.
+M-0320 retains the negative-driver migration and rejection-layer reconciliation.
+
+## Coverage measurement
+
+Measured 2026-09-22 in the E-0089 worktree on Linux amd64 with Go 1.25.11. Run the
+same command before the legal-row split and against the AC-2 implementation:
+
+```bash
+go test -json -count=1 -parallel 8 \
+  -run 'TestM0124_PositiveDriver_LegalCells|TestM0125_AC2_NegativeDriver_VerbTimeRejection|TestM0125_AC3_NegativeDriver_CheckTimeRejection' \
+  ./internal/policies
+```
+
+Expected: every driver passes, with no previously covered subtest removed.
+Observed: both runs exited 0. Counted JSON events with `Action == "pass"` and a
+`Test` containing `/`, grouped by the parent test name:
+
+| Driver | Before | After |
+|---|---:|---:|
+| Positive legal cells | 40 | 40 |
+| Verb-time rejection | 28 | 28 |
+| Check-time rejection | 2 | 2 |
+
+The sets of passing subtest names were identical: no additions or removals.
+The one-off FSM-derived expansion emitted 40 explicit legal rows from 31 coarse
+rows. These are coverage measurements, not the corrected-outcome count AC-3 owns.
+
+The bidirectional check was also run with a Go overlay adding `proposed` to the
+epic `active` state's allowed targets in `internal/entity/transition.go`:
+
+```bash
+go test -overlay=/tmp/aiwf-m0318-ac2-vacuity-yrekd4zv/added-fsm-edge.json \
+  -count=1 -parallel 8 \
+  -run '^TestM0318_AC2_LegalTargetsAgreeWithFSM$' ./internal/policies
+```
+
+Expected: a missing-cell failure. Observed: exit 1 with
+`FSM edge (epic, "active", "proposed") has no legal rule`.
+The overlay leaves the checked-out FSM unchanged.
 
 ## Out of scope
 
