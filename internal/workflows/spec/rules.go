@@ -5,10 +5,9 @@ import (
 	"github.com/23min/aiwf/internal/entity"
 )
 
-// Rules returns the closed-set legal-workflow table. Per M-0123 phase 1
-// concretization, every cell encodes one (Kind, FromState, Verb, Outcome)
-// position. Cells may overlap on (Kind, FromState, Verb) — the (key,
-// Outcome) tuple is what's required to be unique.
+// Rules returns the closed-set legal-workflow table. The enforced identity is
+// (Kind, FromState, Verb, ToState, Outcome, Preconditions); distinct outcomes
+// and preconditions may describe the same transition.
 //
 // Drift policies under internal/policies/ assert:
 //   - Every (Kind, FromState) appearing in entity.transitions /
@@ -35,7 +34,7 @@ func Rules() []Rule {
 }
 
 // GlobalRules returns the cross-cutting precondition rules that are NOT
-// (Kind, FromState, Verb) cells (ADR-0013) — kept out of [Rules] so every
+// transition cells (ADR-0013) — kept out of [Rules] so every
 // per-cell consumer (the m0124/m0125 coverage drivers, the coordinate-
 // resolution drift arms, key-uniqueness) iterates cells only, with no
 // per-rule exclusion. Only the code-oriented AC-5 drift arms union
@@ -298,17 +297,7 @@ func milestoneRules() []Rule {
 			Sources:       RuleSource{Audit: []string{"R-AUDIT-0008", "R-AUDIT-0049", "R-AUDIT-0081"}, FP: []string{"R-FP-0011", "R-FP-0061"}},
 		},
 		// in_progress → done illegal companion: any open AC fires
-		// milestone-done-incomplete-acs. Also the abstract cell for
-		// in_progress → cancelled with an open AC (G-0335): the cell
-		// model has no ToState dimension, so both concrete refusals
-		// — this check-rule-driven one for `done`, and
-		// verb.MilestonePromoteNonTerminalACsError
-		// (milestone-promote-non-terminal-acs) for `cancelled` — key
-		// to this one (Kind, FromState, Verb, Preconditions, Outcome)
-		// tuple; only one ExpectedErrorCode fits, so it stays the
-		// longer-standing `done` code. The `draft` cell below carries
-		// milestone-promote-non-terminal-acs for the coverage drift
-		// test, since draft has no such collision.
+		// milestone-done-incomplete-acs.
 		{
 			Kind:              entity.KindMilestone,
 			FromState:         "in_progress",
@@ -351,15 +340,7 @@ func milestoneRules() []Rule {
 			BlockingStrict:    true,
 			Sources:           RuleSource{FP: []string{"R-FP-0064"}, Decision: "D-0004"},
 		},
-		// G-0335: promote refuses reaching `cancelled` the same way
-		// cancel does, when any AC is open — the two surfaces used to
-		// disagree on this transition (mirrors G-0393's epic-level
-		// promote/cancel convergence, cells above). Only a `draft` cell
-		// is added here: the cell model has no ToState dimension, so
-		// `in_progress` can't carry a second cell for this — that key
-		// is already claimed by the `done`-target illegal companion
-		// two cells above (same Kind/FromState/Verb/Precondition/Outcome
-		// tuple), which its own comment now cross-references.
+		// Promotion to cancelled refuses while any AC is open.
 		{
 			Kind:              entity.KindMilestone,
 			FromState:         "draft",

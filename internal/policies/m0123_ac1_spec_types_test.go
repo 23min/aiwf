@@ -8,19 +8,11 @@ import (
 	"github.com/23min/aiwf/internal/workflows/spec"
 )
 
-// TestM0123_AC1_SpecRuleStructShape asserts the spec.Rule struct carries the
-// nine fields concretized in M-0123 phase 1, in declaration order. This is
-// the load-bearing structural assertion for the Rule type — phase 2's cell
-// authors and drift policies all depend on this shape.
+// TestM0123_AC1_SpecRuleStructShape pins the schema used by cell authors
+// and drift policies.
 func TestM0123_AC1_SpecRuleStructShape(t *testing.T) {
 	t.Parallel()
 
-	// Field 0 (ID) was added by M-0158 for layer-4 branch-choreography
-	// cells that live outside the (Kind, FromState, Verb) keyspace.
-	// Layers 1–3 leave ID empty (zero-value) and continue to use the
-	// natural tuple; only layer-4 cells in branch.Rules() populate it.
-	// The shape extension is the deliberate kernel change M-0158
-	// makes; this test is updated to match.
 	expected := []struct {
 		name string
 		typ  reflect.Type
@@ -29,6 +21,7 @@ func TestM0123_AC1_SpecRuleStructShape(t *testing.T) {
 		{"Kind", reflect.TypeOf(entity.Kind(""))},
 		{"FromState", reflect.TypeOf("")},
 		{"Verb", reflect.TypeOf("")},
+		{"ToState", reflect.TypeOf("")},
 		{"Preconditions", reflect.TypeOf([]spec.Predicate(nil))},
 		{"Outcome", reflect.TypeOf(spec.Outcome(0))},
 		{"ExpectedErrorCode", reflect.TypeOf("")},
