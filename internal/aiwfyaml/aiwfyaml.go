@@ -533,12 +533,12 @@ func blockByteRange(raw []byte, top, keyNode *yaml.Node, keyIdx int) (start, end
 		// yaml.v3 normalizes blank lines in comments. Count comment lines,
 		// then locate them in the original bytes to retain the next key's notes.
 		comments := 0
-		for _, line := range strings.Split(nextKey.HeadComment, "\n") {
-			if strings.TrimSpace(line) != "" {
+		for _, line := range yamlLines([]byte(nextKey.HeadComment)) {
+			if len(bytes.TrimSpace(line)) > 0 {
 				comments++
 			}
 		}
-		lines := bytes.Split(raw, []byte("\n"))
+		lines := yamlLines(raw)
 		for comments > 0 {
 			endLine--
 			if len(bytes.TrimSpace(lines[endLine-1])) > 0 {
@@ -561,14 +561,12 @@ func lineToByteOffset(raw []byte, line int) (int, error) {
 	if line <= 1 {
 		return 0, nil
 	}
-	current := 1
-	for i, b := range raw {
-		if b == '\n' {
-			current++
-			if current == line {
-				return i + 1, nil
-			}
+	offset := 0
+	for i, rawLine := range yamlLines(raw) {
+		if i+1 == line {
+			return offset, nil
 		}
+		offset += len(rawLine)
 	}
 	return len(raw), nil
 }

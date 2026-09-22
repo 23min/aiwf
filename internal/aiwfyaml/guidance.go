@@ -122,8 +122,9 @@ func setGuidanceIDs(mapping *yaml.Node, key string, ids []string) {
 // YAML document-end markers start in column one and require a separator.
 func guidanceDocumentEnd(raw []byte) int {
 	offset := 0
-	for _, line := range bytes.SplitAfter(raw, []byte("\n")) {
-		if bytes.HasPrefix(line, []byte("...")) && (len(line) == 3 || bytes.ContainsAny(line[3:4], " \t\r\n")) {
+	for _, line := range yamlLines(raw) {
+		content := bytes.TrimRight(line, "\r\n\u0085\u2028\u2029")
+		if bytes.HasPrefix(content, []byte("...")) && (len(content) == 3 || bytes.ContainsAny(content[3:4], " \t")) {
 			return offset
 		}
 		offset += len(line)
