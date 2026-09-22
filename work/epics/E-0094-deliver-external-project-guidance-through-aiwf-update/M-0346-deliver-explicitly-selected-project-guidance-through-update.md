@@ -15,7 +15,7 @@ acs:
     - id: AC-2
       title: Retrieval validates current guidance without a persistent cache
       status: open
-      tdd_phase: red
+      tdd_phase: green
     - id: AC-3
       title: Installation preserves ownership and produces tracked project files
       status: open
