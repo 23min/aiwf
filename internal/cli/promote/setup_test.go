@@ -8,6 +8,7 @@ import (
 )
 
 // Serial tests (do NOT call t.Parallel):
+//   - TestRun_PhaseAuditOnlyRejectsTests — captures process-global stderr.
 //   - TestRun_ResolveActorFailure (promote_error_paths_test.go) — via
 //     testutil.BrokenGitIdentity, uses t.Setenv (HOME, XDG_CONFIG_HOME,
 //     GIT_CONFIG_NOSYSTEM), which panics under t.Parallel.
