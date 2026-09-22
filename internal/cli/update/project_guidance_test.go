@@ -6,11 +6,13 @@ import (
 	"io/fs"
 	"os"
 	"path/filepath"
+	"strings"
 	"testing"
 
 	"github.com/23min/aiwf/internal/cli/cliutil"
 	"github.com/23min/aiwf/internal/cli/update"
 	"github.com/23min/aiwf/internal/config"
+	"github.com/23min/aiwf/internal/gitops"
 	"github.com/23min/aiwf/internal/testsupport"
 )
 
@@ -75,11 +77,20 @@ func TestRun_ProjectGuidanceTracksUpstreamAndConverges(t *testing.T) {
 	if err := os.WriteFile(filepath.Join(root, config.FileName), []byte(cfg), 0o644); err != nil {
 		t.Fatal(err)
 	}
+	if err := gitops.CommitAllowEmpty(t.Context(), root, "fixture baseline", "", nil); err != nil {
+		t.Fatal(err)
+	}
+	before, headErr := gitops.ResolveCommitSHA(t.Context(), root, "HEAD")
+	if headErr != nil {
+		t.Fatal(headErr)
+	}
 	for _, content := range []string{"# First upstream revision\n", "# Second upstream revision\n"} {
 		if err := os.WriteFile(filepath.Join(source, "packs", "sample", "base", "guide.md"), []byte(content), 0o644); err != nil {
 			t.Fatal(err)
 		}
 		commit := testsupport.CommitGuidanceSource(t, source)
+		trace := filepath.Join(t.TempDir(), "git-trace")
+		t.Setenv("GIT_TRACE", trace)
 		if rc := update.Run(root, false, "", false, false, false, false, nil, nil); rc != cliutil.ExitOK {
 			t.Fatalf("update exit %d", rc)
 		}
@@ -98,5 +109,22 @@ func TestRun_ProjectGuidanceTracksUpstreamAndConverges(t *testing.T) {
 		if err != nil || !bytes.Equal(index, repeated) {
 			t.Fatalf("unchanged upstream changed index: %s, %v", repeated, err)
 		}
+		after, headErr := gitops.ResolveCommitSHA(t.Context(), root, "HEAD")
+		if headErr != nil || after != before {
+			t.Fatalf("update changed HEAD: %s -> %s (%v)", before, after, headErr)
+		}
+		events, traceErr := os.ReadFile(trace)
+		if traceErr != nil {
+			t.Fatal(traceErr)
+		}
+		if !strings.Contains(string(events), "built-in: git clone") {
+			t.Fatal("trace did not observe guidance retrieval")
+		}
+		for _, forbidden := range []string{"built-in: git commit", "built-in: git push"} {
+			if strings.Contains(string(events), forbidden) {
+				t.Fatalf("update ran forbidden Git operation %q", forbidden)
+			}
+		}
+		t.Setenv("GIT_TRACE", "")
 	}
 }
