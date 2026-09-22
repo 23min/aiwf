@@ -1,7 +1,7 @@
 ---
 id: M-0319
 title: Move authorize to GlobalRules and sweep the stale entries there
-status: in_progress
+status: done
 parent: E-0089
 tdd: required
 acs:
