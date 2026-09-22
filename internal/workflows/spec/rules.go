@@ -19,6 +19,9 @@ import (
 //   - Every Rule satisfies the schema invariants (Outcome != Unspecified;
 //     Illegal ⇒ RejectionLayer non-zero; VerbTime ⇒ BlockingStrict;
 //     Legal ⇒ ExpectedErrorCode empty; Sources.Decision resolves).
+//
+// Terminal cancellation preserves the current status under ADR-0036. Those
+// NoOp rows describe convergence, not an edge in the FSM catalogs.
 func Rules() []Rule {
 	var out []Rule
 	out = append(out, epicRules()...)
@@ -339,6 +342,8 @@ func epicRules() []Rule {
 			Outcome:   OutcomeNoOp,
 			Sources:   RuleSource{Audit: []string{"R-AUDIT-0005"}, FP: []string{"R-FP-0006"}},
 		},
+		{Kind: entity.KindEpic, FromState: "done", Verb: "cancel", ToState: "done", Outcome: OutcomeNoOp},
+		{Kind: entity.KindEpic, FromState: "cancelled", Verb: "cancel", ToState: "cancelled", Outcome: OutcomeNoOp},
 	}
 }
 
@@ -547,6 +552,8 @@ func milestoneRules() []Rule {
 			Outcome:   OutcomeNoOp,
 			Sources:   RuleSource{Audit: []string{"R-AUDIT-0010"}, FP: []string{"R-FP-0014"}},
 		},
+		{Kind: entity.KindMilestone, FromState: "done", Verb: "cancel", ToState: "done", Outcome: OutcomeNoOp},
+		{Kind: entity.KindMilestone, FromState: "cancelled", Verb: "cancel", ToState: "cancelled", Outcome: OutcomeNoOp},
 	}
 }
 
@@ -706,6 +713,8 @@ func adrRules() []Rule {
 			Outcome:   OutcomeNoOp,
 			Sources:   RuleSource{Audit: []string{"R-AUDIT-0014"}, FP: []string{"R-FP-0020"}},
 		},
+		{Kind: entity.KindADR, FromState: "superseded", Verb: "cancel", ToState: "superseded", Outcome: OutcomeNoOp},
+		{Kind: entity.KindADR, FromState: "rejected", Verb: "cancel", ToState: "rejected", Outcome: OutcomeNoOp},
 	}
 }
 
@@ -806,6 +815,8 @@ func gapRules() []Rule {
 			Outcome:   OutcomeNoOp,
 			Sources:   RuleSource{Audit: []string{"R-AUDIT-0017"}, FP: []string{"R-FP-0026"}},
 		},
+		{Kind: entity.KindGap, FromState: "addressed", Verb: "cancel", ToState: "addressed", Outcome: OutcomeNoOp},
+		{Kind: entity.KindGap, FromState: "wontfix", Verb: "cancel", ToState: "wontfix", Outcome: OutcomeNoOp},
 	}
 }
 
@@ -927,6 +938,19 @@ func decisionRules() []Rule {
 			ToState:   "rejected",
 			Outcome:   OutcomeNoOp,
 			Sources:   RuleSource{Audit: []string{"R-AUDIT-0021"}, FP: []string{"R-FP-0032"}},
+		},
+		{Kind: entity.KindDecision, FromState: "superseded", Verb: "cancel", ToState: "superseded", Outcome: OutcomeNoOp},
+		{Kind: entity.KindDecision, FromState: "rejected", Verb: "cancel", ToState: "rejected", Outcome: OutcomeNoOp},
+		{
+			Kind:              entity.KindDecision,
+			FromState:         "accepted",
+			Verb:              "cancel",
+			ToState:           "rejected",
+			Outcome:           OutcomeIllegal,
+			ExpectedErrorCode: "fsm-transition-illegal",
+			RejectionLayer:    RejectionLayerVerbTime,
+			BlockingStrict:    true,
+			Sources:           RuleSource{Audit: []string{"R-AUDIT-0020", "R-AUDIT-0029"}, FP: []string{"R-FP-0033"}},
 		},
 	}
 }
@@ -1101,6 +1125,16 @@ func contractRules() []Rule {
 			ToState:   "rejected",
 			Outcome:   OutcomeNoOp,
 			Sources:   RuleSource{Audit: []string{"R-AUDIT-0027"}, FP: []string{"R-FP-0041"}},
+		},
+		{Kind: entity.KindContract, FromState: "retired", Verb: "cancel", ToState: "retired", Outcome: OutcomeNoOp},
+		{Kind: entity.KindContract, FromState: "rejected", Verb: "cancel", ToState: "rejected", Outcome: OutcomeNoOp},
+		{
+			Kind:      entity.KindContract,
+			FromState: "deprecated",
+			Verb:      "cancel",
+			ToState:   "retired",
+			Outcome:   OutcomeLegal,
+			Sources:   RuleSource{Audit: []string{"R-AUDIT-0026"}, FP: []string{"R-FP-0039"}},
 		},
 	}
 }
@@ -1278,6 +1312,8 @@ func acRules() []Rule {
 			BlockingStrict:    true,
 			Sources:           RuleSource{Audit: []string{"R-AUDIT-0073"}, FP: []string{"R-FP-0060"}},
 		},
+		{Kind: KindAC, FromState: "deferred", Verb: "cancel", ToState: "deferred", Outcome: OutcomeNoOp},
+		{Kind: KindAC, FromState: "cancelled", Verb: "cancel", ToState: "cancelled", Outcome: OutcomeNoOp},
 	}
 }
 

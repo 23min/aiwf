@@ -18,6 +18,8 @@
 // spec amendment) are the expected cadence.
 //
 // Schema invariants enforced by drift policies in internal/policies/:
+//   - Applicabilities declares every kind/transition-verb pair with reasons for exclusions.
+//   - Every state of an applicable kind/verb pair is represented in Rules.
 //   - Outcome != OutcomeUnspecified for every cell.
 //   - Outcome == OutcomeIllegal implies RejectionLayer != RejectionLayerNone.
 //   - RejectionLayer == RejectionLayerVerbTime implies BlockingStrict == true.
@@ -129,8 +131,8 @@ type RuleSource struct {
 // Cross-cutting precondition rules without a transition coordinate
 // (ADR-0013, e.g. the scope-reach rule) live in [GlobalRules], a
 // separate accessor — they are deliberately absent from [Rules] so every
-// per-cell consumer iterates cells only, with no per-rule exclusion. Only
-// the code-oriented AC-5 drift arms union the two.
+// per-cell consumer iterates cells only, with no per-rule exclusion. The
+// code- and verb-oriented AC-5 drift arms union the two.
 //
 // ID carries an explicit string identifier for
 // cells that live outside the transition keyspace — layer-4
