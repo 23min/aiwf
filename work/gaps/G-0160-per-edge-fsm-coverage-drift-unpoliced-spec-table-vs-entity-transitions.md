@@ -35,4 +35,4 @@ M-0124 (reviewer-agent audit pre-merge).
 
 ## Status
 
-`open`.
+The frontmatter records the current status.
