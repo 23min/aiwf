@@ -17,8 +17,8 @@ acs:
 ---
 ## Goal
 
-Complete the coverage drivers' use of declared targets, and settle whether each
-cell's rejection layer names where the kernel actually refuses.
+Align each cell's rejection layer with the kernel's refusal and preserve the
+requests exercised by the coverage drivers.
 
 ## Context
 
@@ -28,20 +28,19 @@ The driver migration is covered by M-0318's completed criteria. This milestone
 reconciles the rejection-layer axis and compares exercised requests against the
 recorded baseline; it must not lose coverage when a cell changes drivers.
 
-G-0166 names a second divergence the re-key is the moment to settle. Two cells
-declare `RejectionLayerCheckTime` — the gap `open → addressed` cell missing a
-resolver, and the AC `open → met` cell under `tdd: required` — while the kernel
-refuses both at verb time, one via a hand-rolled guard in `promote.go`, one via a
-pre-write projection in `ac.go`. The gap argues the kernel being stricter is
-design-aligned; what is not aligned is the table claiming an axis the kernel does
-not use, because M-0125's check-time driver expects the verb to succeed first.
+The gap `open → addressed` request without a resolver and the AC `open → met`
+request under `tdd: required` without phase `done` are refused before writing.
+Their declared rejection layer must reflect that ordinary request. A check rule
+can independently protect persisted state introduced through another path; that
+backstop does not make the ordinary request a check-time rejection.
 
 ## Acceptance criteria
 
 ### AC-1 — Both coverage drivers key on the target, with coverage measured before and after
 
 The driver migration and its test-first record belong to M-0318/AC-2 and
-M-0318/AC-3. This criterion duplicates that completed implementation. The
+M-0318/AC-3. This criterion duplicates that completed implementation; the human approved its
+cancellation during the M-0320 startup review on 2026-09-22. The
 before-and-after coverage comparison remains required under AC-2 and the
 no-silent-coverage-loss constraint below.
 
@@ -49,8 +48,8 @@ no-silent-coverage-loss constraint below.
 
 For every illegal cell, the declared rejection layer agrees with where the kernel
 refuses — a cell declaring check-time rejection at a coordinate the verb refuses
-before writing fails. The two cells G-0166 names are corrected, or the gap is
-re-scoped with the argument for why the axis should stay as declared.
+before writing fails. This includes gap resolution without a resolver and marking
+an AC met under required TDD without phase done.
 
 Measure per-request driver coverage before and after the layer correction using
 the same command, record the results and environment, and account for every
@@ -84,14 +83,14 @@ checks independently; no combined layer value is needed.
 ## References
 
 - D-0077 — the ruling behind the key change
-- G-0166 — the rejection-layer divergence AC-2 settles
+- G-0166 — data-field mutation coverage outside this milestone
 - `internal/policies/m0124_positive_driver_test.go`, `m0125_negative_driver_test.go`
 
 ## Deferrals
 
 - G-0166 — modeling `milestone tdd` data-field mutations remains outside the
-  status-transition table. Correcting its transition cells does not close this
-  remainder; the gap must retain that scope at wrap.
+  status-transition table. The gap remains open because representing changes to a
+  policy field alongside AC sub-state needs a separate modeling decision.
 
 ## Coverage baseline
 
@@ -114,3 +113,54 @@ the transition driver in M-0319; their dedicated binary tests retain coverage.
 The check-time driver's passing cases do not both demonstrate post-write
 rejection: the gap case uses force, and the AC case asserts verb-time refusal.
 The layer correction must preserve these actual requests, not merely their count.
+
+## Release note
+
+No user-facing behavior changed. The workflow specification and its coverage
+checks agree with the kernel's existing refusal behavior.
+
+## Validation
+
+Measured on 2026-09-22 in the Linux amd64 devcontainer with Go 1.25.11,
+on the M-0320 branch. Implementation commit: `51dc6263e`.
+
+- `go test -count=1 -parallel 8 -run 'TestM012[45]|TestM0318|TestM0320' ./internal/policies`:
+  expected all selected tests to pass; observed exit 0.
+- `make check-fast`: expected vet, lint and the full non-race suite to pass;
+  observed exit 0, lint reporting `0 issues`, and every test package passing.
+- `go build -o bin/aiwf-diag ./cmd/aiwf`: expected a successful build; observed exit 0.
+- `bin/aiwf-diag check --since e11dc5343`: expected no new findings; observed
+  exit 0, no errors and the 17 baseline warnings.
+- `git diff --check`: expected no whitespace errors; observed exit 0.
+
+The exact Coverage baseline command was repeated after implementation, with
+exit 0 expected and observed. Comparing passing JSON subtest names showed the
+40 positive and 4 authorization request sets unchanged. The 60 ordinary negative
+requests plus 2 supplemental unforced requests exactly matched the unified
+negative driver's 62 requests, with none missing or extra. Both former check-time
+cell names occur in that driver. Counts alone do not establish preservation of
+the forced request: `TestM0320_AC2_ForcedGapResolutionRetainsCheckBackstop`, selected
+by the focused command above, separately passed a successful forced resolution
+followed by a resolver finding bound to the affected entity.
+
+Production changes are static layer assignments and their definition; no runtime
+branch changed. The negative driver checks the refusal reason and unchanged HEAD
+and project files. Coverage count-map equality checks missing, extra and duplicate
+enumeration; unique names and the skip ban remain independent checks.
+
+Vacuity measurements used Go overlays, without modifying the shared checkout:
+`python3 /tmp/aiwf-m0320-probes.py` and
+`python3 /tmp/aiwf-m0320-extra-probes.py`. Expected each mutant to fail its intended
+assertion, without compilation errors; all nine did. The probes changed the layer,
+disabled either refusal guard, removed the resolver backstop, substituted an
+unrelated refusal, wrote a file before refusal, omitted a cell, added an extra
+legal cell, and attached the finding to the wrong entity. The extra-cell probe
+checks the protection retained when the separate no-extra test was removed.
+Scripts and logs are session artifacts under `/tmp`; the standing assertions live
+in the committed tests.
+
+`gremlins unleash ./internal/workflows/spec/... --diff HEAD --workers 1 --timeout-coefficient 15`
+reported `No results to report` before the implementation commit: static enum
+assignments produced no supported mutants. This is not mutation-coverage evidence.
+Full race/CI was not run at this local milestone boundary; it gates epic
+integration and push under the repository's validation cadence.
