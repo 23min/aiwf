@@ -27,11 +27,9 @@ func ParseKind(s string) (entity.Kind, bool) {
 // one-line error to stderr (prefixed with verbLabel) and returns the
 // parse error so the dispatcher exits with cliutil.ExitUsage.
 //
-// The "metrics parsed to zero" defensive branch returns (nil, nil) —
-// gitops.ParseStrictTestMetrics returns the zero TestMetrics for empty
-// input, but here the trimmed input was non-empty so this shouldn't
-// fire. If it does, treat the flag as not set to avoid emitting a
-// meaningless trailer.
+// Explicit zero counts also return (nil, nil), since they produce no
+// metrics trailers. Callers that distinguish an omitted payload from
+// supplied zero counts must retain that distinction from the raw flag.
 func ParseTestsFlag(raw, verbLabel string) (*gitops.TestMetrics, error) {
 	if strings.TrimSpace(raw) == "" {
 		return nil, nil

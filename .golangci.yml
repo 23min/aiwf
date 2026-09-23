@@ -180,6 +180,9 @@ linters:
         path: _test\.go
       - linters: [forbidigo]
         path: cmd/aiwf/main\.go
+      # Development generator entry point: only main exits the process.
+      - linters: [forbidigo]
+        path: cmd/workflow-reference/main\.go
       - linters: [forbidigo]
         path: cmd/stresstest/main\.go
       - linters: [forbidigo]

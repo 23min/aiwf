@@ -1,11 +1,13 @@
 ---
 id: G-0160
 title: per-edge FSM coverage drift unpoliced (spec table vs entity.transitions)
-status: open
+status: addressed
 prior_ids:
     - G-0155
 priority: low
 discovered_in: M-0124
+addressed_by_commit:
+    - 917e386b5
 ---
 ## Problem
 
@@ -35,4 +37,4 @@ M-0124 (reviewer-agent audit pre-merge).
 
 ## Status
 
-`open`.
+The frontmatter records the current status.

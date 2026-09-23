@@ -175,8 +175,7 @@ func TestBranchExists_True(t *testing.T) {
 }
 
 // TestBranchExists_False (M-0103/AC-2): the helper returns false for
-// a name that doesn't resolve under refs/heads/ — the verb refuses
-// with branch-not-found.
+// a name that does not resolve under refs/heads/.
 func TestBranchExists_False(t *testing.T) {
 	t.Parallel()
 	root := mustNewGitRepo(t)
@@ -188,8 +187,7 @@ func TestBranchExists_False(t *testing.T) {
 }
 
 // TestBranchExists_EmptyName: when --branch wasn't passed, branch is
-// empty; the helper short-circuits to false so the verb's preflight
-// takes the implicit-current-branch path instead of branch-not-found.
+// empty; the helper short-circuits to false.
 func TestBranchExists_EmptyName(t *testing.T) {
 	t.Parallel()
 	root := mustNewGitRepo(t)

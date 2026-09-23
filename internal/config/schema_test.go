@@ -68,6 +68,8 @@ func TestSchema_EnumeratesEveryYAMLField(t *testing.T) {
 		{Path: "agents.<key>.effort", Type: "string"},
 		{Path: "hooks", Type: "map[string]config.Hook"},
 		{Path: "hooks.<key>.enabled", Type: "*bool"},
+		{Path: "provenance", Type: "config.Provenance"},
+		{Path: "provenance.refuse_coauthors", Type: "[]string"},
 	}
 
 	got := Schema()

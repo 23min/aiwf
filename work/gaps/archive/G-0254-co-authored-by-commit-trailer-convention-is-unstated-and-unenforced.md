@@ -1,8 +1,10 @@
 ---
 id: G-0254
 title: Co-Authored-By commit-trailer convention is unstated and unenforced
-status: open
+status: addressed
 priority: medium
+addressed_by_commit:
+    - c0e24433bada81686af3d478e807d5664888cc62
 ---
 ## What's wrong
 
@@ -44,7 +46,7 @@ tool) extend to the git `Co-Authored-By` trailer?**
   model — then add it *consistently*, and CLAUDE.md should say so.
 
 Resolve as a `D-NNN` (it may touch
-[`docs/design/provenance-model.md`](../../docs/design/provenance-model.md)),
+[`docs/design/provenance-model.md`](../../../docs/design/provenance-model.md)),
 document the outcome in CLAUDE.md §"Commit conventions", then back it with a
 chokepoint so it stops depending on LLM recall.
 

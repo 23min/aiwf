@@ -7,24 +7,9 @@ import (
 	"github.com/23min/aiwf/internal/workflows/spec"
 )
 
-// TestM0124_AC4_LegalCellsAllCovered asserts that every Legal cell
-// in spec.Rules() is enumerated by AC-3's enumerateLegalCases
-// helper. The chokepoint catches two drift modes:
-//
-//  1. New Legal cells added to Rules() that the driver's target-
-//     derivation logic doesn't recognize — enumerateLegalCases
-//     would skip them (or t.Fatal at runtime; this gives a clearer
-//     compile-time-style message).
-//  2. Future refactors of enumerateLegalCases that accidentally
-//     filter cells out — the explicit set-membership check
-//     surfaces the drop here rather than as silent missing
-//     coverage.
-//
-// Identity is the (Kind, FromState, Verb, Preconditions-fingerprint)
-// quadruple — the same disambiguator AC-3's case-name function
-// uses. Two distinct Legal cells with overlapping (Kind, FromState,
-// Verb) but different preconditions (e.g. the AC.met split on
-// parent.tdd) count as distinct cells; both must be enumerated.
+// TestM0124_AC4_LegalCellsAllCovered asserts that every Legal cell is
+// enumerated by the driver. Coverage identity includes the declared target
+// and precondition signature so split cells cannot hide one another.
 func TestM0124_AC4_LegalCellsAllCovered(t *testing.T) {
 	t.Parallel()
 
@@ -84,21 +69,31 @@ func TestM0124_AC4_SubtestNamesUnique(t *testing.T) {
 	}
 }
 
-// TestM0124_AC4_EveryCaseHasTargets asserts no enumerated case
-// carries an empty target. The target is derived from
-// `self.target-state` precondition (when present), entity.CancelTarget,
-// or entity.AllowedTransitions; a missing derivation would either
-// t.Fatal in enumerateLegalCases (caught) or — if defensive code
-// changes — produce a case with target=="". This pins the invariant
-// at the meta-level so a future refactor can't introduce a silent
-// gap.
+// TestM0124_AC4_EveryCaseHasTargets asserts each driver case executes the
+// cell's non-empty declared target.
 func TestM0124_AC4_EveryCaseHasTargets(t *testing.T) {
 	t.Parallel()
 
 	for _, c := range enumerateLegalCases(t) {
-		if c.target == "" {
-			t.Errorf("case %q has empty target — derivation failure", c.name)
+		if c.target == "" || c.target != c.rule.ToState {
+			t.Errorf("case %q target=%q, want the cell's declared target %q", c.name, c.target, c.rule.ToState)
 		}
+	}
+}
+
+func TestM0124_AC4_LegalCellKeysUnique(t *testing.T) {
+	t.Parallel()
+
+	seen := map[string]bool{}
+	for _, rule := range spec.Rules() {
+		if rule.Outcome != spec.OutcomeLegal {
+			continue
+		}
+		key := cellKey(rule)
+		if seen[key] {
+			t.Errorf("distinct legal cells share coverage key %q", key)
+		}
+		seen[key] = true
 	}
 }
 
@@ -114,7 +109,7 @@ func enumeratedCellKeys(t *testing.T) map[string]bool {
 	return out
 }
 
-// cellKey is the (Kind, FromState, Verb, preconditions) identity of
+// cellKey is the (Kind, FromState, Verb, ToState, preconditions) identity of
 // a spec cell — the smallest tuple that distinguishes overlapping
 // Legal cells (e.g. AC.met's split on parent.tdd). Uses
 // preconditionSignature from the driver test file for the
@@ -125,7 +120,7 @@ func cellKey(rule spec.Rule) string {
 	if from == "" {
 		from = "empty"
 	}
-	key := fmt.Sprintf("%s/%s/%s", rule.Kind, from, rule.Verb)
+	key := fmt.Sprintf("%s/%s/%s/%s", rule.Kind, from, rule.Verb, rule.ToState)
 	if sig := preconditionSignature(rule); sig != "" {
 		key += "[" + sig + "]"
 	}

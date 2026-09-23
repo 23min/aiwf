@@ -3,6 +3,7 @@
 0644 02a958a0c386cd9716af125233ff3fa0ccad8c3830319675115813fb2de61dd6 .claude/skills/aiwf-reallocate/SKILL.md
 0644 096fceaaa41f584deda34368ab3c7d598c385638f1ad73c54d78598dc3408d4c .claude/skills/wf-property-test/SKILL.md
 0644 0ac0b36f7f6230ec3e35767ede67fe8dbed67eec8520099226f0f52c659a6822 .claude/skills/aiwfx-record-gap/SKILL.md
+0644 0b08f65d0dad1ade861ffe266efdd7ee4fdfe476d4a8ccb07c7fe24d7714f17b aiwf.example.yaml
 0644 0c8260c422311c32bf0a45956ca92592bd11607c309819226373af30b9d34f81 .claude/skills/aiwf-add/SKILL.md
 0644 16211003b72bec774ac2d0092b321b65d57c9a48af4fb9a4cdac621f4eb30a7c .claude/agents/builder.md
 0644 194891ebbedce46737533f303c2f22f989b0d4acfa035090afce6ff9f2602aa1 .claude/skills/aiwf-worktree/SKILL.md
@@ -22,6 +23,7 @@
 0644 59ed01ac5e0dfef0d9736500319c749aa448a1ae0a045da8f36727ebc48c0b5d .claude/skills/wf-codebase-health/SKILL.md
 0644 5a4cb52538cfa56e60c7ebdc78f7a542075e3dd14217454c9f1a2096d6d4378d .claude/skills/aiwfx-plan-epic/SKILL.md
 0644 5e9c3d4227cdabf0b27f75b72d6119397d28c3022c3ccb367c837e415ce06bb8 .claude/templates/epic-spec.md
+0644 61cc30323e05d62425397f25207384b0f2106804342fec2daf33d90d62c8de81 .claude/skills/aiwf-promote/SKILL.md
 0644 6911c113e853749d07c7413c25a0de1bdcb78dd040f64a2e754ca73122672773 .claude/agents/deployer.md
 0644 6bdfc41abff485a99560f065f6a812533aae4e27ceaebc266715afb6bddc5aa7 .claude/skills/aiwfx-wrap-milestone/SKILL.md
 0644 6eb8ef56c1088bba816bff4f32019dc06da5c4132fd3f43da302f77cf6d9b192 .claude/templates/milestone-spec.md
@@ -42,10 +44,8 @@
 0644 9bcf991dec935d2c38387a44a242b102180604e22dbae7d595ef5fbb1396601d .claude/aiwf-guidance.md
 0644 a313c51937d01fc4c7aa632f6b367f2381c7edfca4067a3872b4c09fdf850f4a .claude/skills/aiwf-personal/SKILL.md
 0644 a64f3998ec5327666fc5ff356e366f27fca590c0fd4fed0b04a73a35918959f0 .claude/skills/.aiwf-owned
-0644 a974e3d800674e505da286393ad90b54f01ad97d4561cec71c51250c31b5dbd5 aiwf.example.yaml
 0644 aa8849ac527f6e8de0f477db0ffa5307ec2212edd087e6d6601b4b64ff29faac .claude/skills/aiwf-render/SKILL.md
 0644 b316a0c76cfd26f533b829cbbdcea66a7c590b55c17ecf339170cf2202828dc3 .claude/skills/aiwf-history/SKILL.md
-0644 b6f8615d114e56023f3144b360401418723379b6ce2b0e6df1f402bdff6dd11d .claude/skills/aiwf-promote/SKILL.md
 0644 b7357134d273b3b89f17b15abcbc4ac6b03ff83d68b6666bd97224745fc8b73b .claude/skills/wf-tdd-cycle/SKILL.md
 0644 be2ea37d2dfeafa272214ab96a01aa1e8bc6e096a3cab2a2baf23c44a8b5f2c7 .claude/skills/aiwfx-wrap-epic/SKILL.md
 0644 c01c7278c1e41423b3879c96dcccf9848a367346ebaebf98730794ce7405c86f .claude/skills/aiwf-rename/SKILL.md
@@ -62,6 +62,6 @@
 0644 fad0e67abd5c8c9f42ceb60447f48a8ec528c0c27c699bb4bdff68fd5a8626e3 .claude/skills/aiwf-status/SKILL.md
 0644 fe3fa87d57849d66d5251c759de5044cef4e56b73b4cef425e9df46528e3b7c7 .claude/skills/aiwf-list/SKILL.md
 0755 1ed7a42008fbf8b4a7443dd125a90be40a315d4f7e870372552c99ecfb6cc916 git-hooks/pre-push
-0755 44ea06400d712af906af2ea75496ed038197016ebe31f1d54cf80983dcd42557 git-hooks/commit-msg
+0755 a4abd1afd32f16900d3a659bc529ade4691ac9d71c8bbb3953278e8c703d24be git-hooks/commit-msg
 0755 e0e5e067f7f89fe4c7bca6f3ba28b228edb6349af188c8fc0f83bdce896b5338 git-hooks/pre-commit
 0755 edcc657806cf002aba91bf17c1c8972385ede4667e7c362b9979bf0bedc63422 git-hooks/post-commit

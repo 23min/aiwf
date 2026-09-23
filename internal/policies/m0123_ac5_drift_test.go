@@ -144,7 +144,7 @@ var nonLegalityVerbAllowlist = map[string]string{
 }
 
 // TestM0123_AC5_ImplToSpec_VerbsCovered asserts every top-level Cobra verb
-// is either referenced by ≥1 Rule (FSM-driving / legality-pertinent) or
+// is either referenced by a transition or global rule, or
 // listed in nonLegalityVerbAllowlist with a rationale.
 //
 // The verb set is sourced via findTopLevelVerbs (the existing AST walker
@@ -159,7 +159,7 @@ func TestM0123_AC5_ImplToSpec_VerbsCovered(t *testing.T) {
 	}
 
 	verbsInSpec := map[string]bool{}
-	for _, r := range spec.Rules() {
+	for _, r := range append(spec.Rules(), spec.GlobalRules()...) {
 		verbsInSpec[r.Verb] = true
 	}
 
@@ -170,7 +170,7 @@ func TestM0123_AC5_ImplToSpec_VerbsCovered(t *testing.T) {
 		if _, allowlisted := nonLegalityVerbAllowlist[verb]; allowlisted {
 			continue
 		}
-		t.Errorf("top-level Cobra verb %q is not referenced by any spec.Rules() cell AND has no nonLegalityVerbAllowlist entry — either wire it into spec.Rules() with a Kind/FromState cell or add an allowlist entry with a one-line rationale", verb)
+		t.Errorf("top-level Cobra verb %q is not referenced by Rules() or GlobalRules() AND has no nonLegalityVerbAllowlist entry — declare its legality rule or add an allowlist entry with a rationale", verb)
 	}
 }
 

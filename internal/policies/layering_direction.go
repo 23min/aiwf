@@ -140,7 +140,7 @@ var layeringAllowlist = map[string]string{
 // or sideways (see PolicyLayeringDirection).
 func layerTier(pkg string) (tier int, known bool) {
 	switch pkg {
-	case "cmd/aiwf":
+	case "cmd/aiwf", "cmd/workflow-reference":
 		return 0, true
 	// internal/stresstest is the correctness stress harness's own
 	// package tree (E-0062): a standalone dev tool driving compiled

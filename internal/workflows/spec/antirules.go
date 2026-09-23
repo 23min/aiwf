@@ -2,7 +2,7 @@ package spec
 
 // AntiRules returns the closed-set catalog of patterns the kernel
 // deliberately does NOT police. Anti-rules clarify scope by negation; they
-// are not (Kind, FromState, Verb)-keyed cells in Rules().
+// are not transition cells in Rules().
 //
 // The list comprises eleven Pass B §10 entries (R-FP-0166..R-FP-0176) plus
 // one Q10 addition (ANTI-0012, the zero-milestone-active legality), per

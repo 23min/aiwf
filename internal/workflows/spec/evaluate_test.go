@@ -79,6 +79,12 @@ func TestEvaluatePredicate(t *testing.T) {
 		{"target-state-eq-positive", Predicate{Subject: "self.target-state", Op: "==", Value: "deferred"}, milestoneDraft, EvalContext{TargetState: "deferred"}, true, ""},
 		{"target-state-eq-negative", Predicate{Subject: "self.target-state", Op: "==", Value: "deferred"}, milestoneDraft, EvalContext{TargetState: "met"}, false, ""},
 
+		{"tests-whitespace-is-absent", Predicate{Subject: "self.tests", Op: "==", Value: ""}, milestoneDraft, EvalContext{TestMetrics: " \t "}, true, ""},
+		{"tests-absent", Predicate{Subject: "self.tests", Op: "==", Value: ""}, milestoneDraft, EvalContext{}, true, ""},
+		{"tests-explicit-zero-is-present", Predicate{Subject: "self.tests", Op: "==", Value: ""}, milestoneDraft, EvalContext{TestMetrics: "pass=0"}, false, ""},
+		{"tests-present", Predicate{Subject: "self.tests", Op: "non-empty"}, milestoneDraft, EvalContext{TestMetrics: "pass=0"}, true, ""},
+		{"tests-not-present", Predicate{Subject: "self.tests", Op: "non-empty"}, milestoneDraft, EvalContext{}, false, ""},
+
 		// self.addressed_by non-empty / == ""
 		{"addressed_by-non-empty-positive", Predicate{Subject: "self.addressed_by", Op: "non-empty"}, gapWithResolver, EvalContext{}, true, ""},
 		{"addressed_by-non-empty-negative", Predicate{Subject: "self.addressed_by", Op: "non-empty"}, gapNoResolver, EvalContext{}, false, ""},

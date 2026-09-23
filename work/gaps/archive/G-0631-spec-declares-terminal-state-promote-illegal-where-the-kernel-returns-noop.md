@@ -1,8 +1,10 @@
 ---
 id: G-0631
 title: Spec declares terminal-state promote illegal where the kernel returns NoOp
-status: open
+status: addressed
 priority: high
+addressed_by_commit:
+    - 70146b9b3
 ---
 ## What's missing
 
