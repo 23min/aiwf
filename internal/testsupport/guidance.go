@@ -28,10 +28,10 @@ func GuidanceSource(tb testing.TB, detect ...string) string {
 	}
 	for name, content := range files {
 		path := filepath.Join(root, filepath.FromSlash(name))
-		if err := os.MkdirAll(filepath.Dir(path), 0o755); err != nil {
+		if err := os.MkdirAll(filepath.Dir(path), 0o755); err != nil { //coverage:ignore fresh private TempDir is writable; failure requires environmental filesystem failure
 			tb.Fatal(err)
 		}
-		if err := os.WriteFile(path, []byte(content), 0o644); err != nil {
+		if err := os.WriteFile(path, []byte(content), 0o644); err != nil { //coverage:ignore fresh private TempDir is writable; failure requires environmental filesystem failure
 			tb.Fatal(err)
 		}
 	}
@@ -52,7 +52,7 @@ func guidanceGit(tb testing.TB, root string, args ...string) string {
 	cmd := exec.CommandContext(tb.Context(), "git", args...)
 	cmd.Dir = root
 	output, err := cmd.CombinedOutput()
-	if err != nil {
+	if err != nil { //coverage:ignore every invocation is constructed here against a fixture repo this file just created; a failure means the fixture is broken, which is what the report says
 		tb.Fatalf("fixture git %v: %v\n%s", args, err, output)
 	}
 	return strings.TrimSpace(string(output))
