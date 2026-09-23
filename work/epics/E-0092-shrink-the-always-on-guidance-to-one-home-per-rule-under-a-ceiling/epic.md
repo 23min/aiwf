@@ -29,7 +29,7 @@ A check-backed rule can become a short pointer once its diagnostic states the re
 
 ## Out of scope
 
-- External source selection, language detection, pack selection, upstream refresh and tracked-output delivery; the separate delivery epic owns them.
+- External source selection, language detection, pack selection, upstream refresh and tracked-output delivery; E-0094 owns them.
 - Authoring language conventions inside aiwf or requiring VS Code/ai-dotfiles to supply project guidance.
 - Personal collaboration preferences and machine/session configuration in ai-dotfiles.
 - Entity templates and general changes to ritual or verb skill bodies, except references that must follow relocated guidance.
