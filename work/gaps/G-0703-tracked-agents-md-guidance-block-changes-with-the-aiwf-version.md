@@ -1,9 +1,11 @@
 ---
 id: G-0703
 title: Tracked AGENTS.md guidance block changes with the aiwf version
-status: open
+status: addressed
 priority: high
 discovered_in: M-0348
+addressed_by_commit:
+    - 6a3c8536623bca1170d780637f3bd04f2509f9d5
 ---
 ## What's missing
 
