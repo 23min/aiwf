@@ -60,14 +60,14 @@ against open gaps and accepted decisions. Owned items are listed once under
 
 | | |
 |---|---|
-| Reachability hits, tests as roots | 2 (both owned, G-0417) |
-| Production functions reachable only from tests | **41**, plus one whole package |
+| Reachability hits, tests as roots | 0 |
+| Production functions reachable only from tests | **39**, plus one whole package |
 | Clone pairs at threshold 100, exclusions lifted | 7 (5 production, all owned, G-0472) |
-| Defects, unowned | **4** (all derived) |
-| Dead paths and dropped data flow, unowned | **17** |
+| Defects, unowned | 0 |
+| Dead paths and dropped data flow, unowned | **14** |
 | Convergent duplication, milestone-shaped, unowned | 7 |
 | Convergent duplication, patch-shaped, unowned | 12 per-package bundles |
-| Tracked records whose premise has changed | 5 |
+| Tracked records whose premise has changed | 4 |
 
 Most of this predates the 2026-08-05 sweep. That pass ran the two mechanical
 lenses and a light reasoning pass; this one is the first to run the data-flow
@@ -115,8 +115,8 @@ and declared unreachable in two.
 - **A binary-roots reachability policy.** `deadcode ./cmd/aiwf ./cmd/stresstest`
   in CI with an allowlist naming the deliberate test seams (D-0062's coherence
   specs, ADR-0014 §4's `Target`, G-0195's `CanonicalTrailerKeys` mirror). It
-  would have caught 41 functions and one package. Cost once; the allowlist is
-  the retirement trigger.
+  would have caught every function in B4 and the package in B2. Cost once; the
+  allowlist is the retirement trigger.
 - **Bans for the two most-copied predicates.** No `strings.HasPrefix(x, "human/")`
   outside one helper; no `exec.Command("git", …)` outside `gitops` without an
   allowlist entry. The same shape as the atomic-write and logging chokepoints.
@@ -144,10 +144,6 @@ and declared unreachable in two.
   alternative considered was importing `cliutil`. `gitops.HasHEAD` landed eleven
   days later in a package `entityview` already imports. The premise no longer
   holds; re-decide.
-- **G-0417**: unchanged, but the same rung-pair change that made
-  `PreflightBranchNotFoundError` dead also made `AuthorizeOptions.BranchExists`
-  dead in the verb (`internal/verb/authorize.go:445` discards it; the CLI still
-  spawns `git show-ref` to compute it). Neither G-0417 nor D-0018 names the field.
 - **G-0590**: its body says the HTML path renders the ack reason; `HistoryRow.Reason`
   is produced at `internal/cli/render/resolver.go:664` and read by no template.
 - **G-0472 / G-0473 / G-0533**: unchanged. All five production clone pairs still
@@ -158,14 +154,6 @@ and declared unreachable in two.
 
 Locations are `file:line` as read at `b10eb2676`. Size is the disposal shape a
 reader would expect — patch or milestone — not a commitment.
-
-### A — defects
-
-**A3. Doctor's binary-staleness check hardcodes `origin/main`.** *Derived.*
-`internal/cli/doctor/binary_staleness.go:58` uses `refs/remotes/origin/main`
-where `cfg.AllocateTrunkRef()` is the source. A repository using a different
-trunk can miss the stale-binary advisory or compare against the wrong ref.
-Patch; overlaps E-0093's doctor changes.
 
 ### B — dead paths and dropped data flow
 
@@ -192,14 +180,14 @@ its own tests reach it. Patch: delete with tests.
 unconditionally; the projection excludes `body-prose-id` via
 `skipDuringProjection` (`common.go:267`) instead. Patch.
 
-**B4. Forty-one production functions reachable only from tests.** *Verified*
+**B4. Thirty-nine production functions reachable only from tests.** *Verified*
 (`deadcode` from the binaries' roots, test-support packages excluded).
 
 | package | functions | disposition |
 |---|---|---|
 | `internal/scope` | `LoadScope`, `IsLegalScopeTransition`, `classifyTransition`, `indexTrailers` | B1 |
 | `internal/gitops` | `Mv`, `Add`, `Commit`, `CommitAllowEmpty`, `HeadSubject`, `HeadBody`, `HeadTrailers`, `HasRemotes`, `CanonicalTrailerKeys`, `SortedTrailers` | `CanonicalTrailerKeys` is G-0195's mirror guard; the rest unowned |
-| `internal/verb` | `AddAC` (the CLI calls `AddACBatch`), `AsCoherenceError`, `declaredCoherenceRules`, `declaredForcePredicatedRules`, `declaredCoherenceTrailerAxis`, `PreflightBranchNotFoundError.{Error,Code}` | coherence trio owned by D-0062; `Preflight*` by G-0417; `AddAC`, `AsCoherenceError` unowned |
+| `internal/verb` | `AddAC` (the CLI calls `AddACBatch`), `AsCoherenceError`, `declaredCoherenceRules`, `declaredForcePredicatedRules`, `declaredCoherenceTrailerAxis` | coherence trio owned by D-0062; `AddAC`, `AsCoherenceError` unowned |
 | `internal/trunk` | `LocalRefIDs`, `RemoteRefIDs`, `LocalRefHits`, `RemoteRefHits`, `Result.IDStrings` | accessors with no production reader |
 | `internal/skills` | `GuidanceBytes`, `StatuslineBytes`, `Materialize`, `MaterializeTo` | `MaterializeTo` is ADR-0014 §4's `Target` seam; the byte accessors are policy-test inputs |
 | `internal/cli/cliutil` | `ReorderFlagsFirst`, `flagName`, `IsVerbGroup` | unowned |
@@ -291,7 +279,9 @@ never see them. Patch.
 (`verbenvelope.go:36`) likewise. Patch.
 
 **B17. Small unconsumed values**, one bundle: `applyTx.ctx`
-(`internal/verb/apply.go:124`); `AuthorizeOptions.BranchExists` (see G-0417 above);
+(`internal/verb/apply.go:124`); `AuthorizeOptions.BranchExists` (the verb never
+reads it; `internal/cli/authorize/authorize.go:381` still spawns `git show-ref`
+to fill it);
 `AllowResult.Reason` (`allow.go:177`, the consumer reads `Err`);
 `gitops.Worktree.HeadSHA`, `repolock.Lock.path`, `gitops.errBlobReaderClosed`
 (documented for `errors.Is`, unexported), `pathutil.ErrNotAbsolute`;
@@ -581,13 +571,13 @@ places and the ledger names where it does not.
 | G2 reversible | Strong | every verb doc answers "what undoes this"; LIFO undo journal (D-0029); Weak: dry-run is a separate implementation in three `initrepo` steps (B13) |
 | G3 observable | Weak | four read verbs invisible to the diagnostic log (D9) |
 | H1 reuse | **Weak** | helpers exist and are bypassed at six, eight, nine and thirteen sites (D7, D8, D9, D2) |
-| H2 no dead weight | **Weak** | 41 test-only production functions (B4), one unlinked package (B2), `PlannedFiles` (B3), a dozen unread view-model fields (B7), no-op flags (B8), `gitEnv()` (B17) |
+| H2 no dead weight | **Weak** | test-only production functions (B4), one unlinked package (B2), `PlannedFiles` (B3), a dozen unread view-model fields (B7), no-op flags (B8), `gitEnv()` (B17) |
 | H3 additions carry | Weak | per-subject mandates with no retirement: `terminalStatusesForKind`'s same-commit note (D1), the `ackedSHAs` consumer roster (`acks.go:17-45`), per-scenario `*ExpectedWarnings` (D-0063, accepted), each new policy hand-wired three times (D-0025, accepted) |
 
 ## Already tracked
 
 Owned by an open gap or an accepted decision and not repeated above:
-G-0417 (dead `branch-not-found` code, retained per D-0018); G-0453, G-0454, G-0455
+G-0453, G-0454, G-0455
 (the G-0447 remainder); G-0472, G-0473, G-0533 (the `dupl` families and catalogue;
 E-0077's cancellation records that two of the four collapses are not worth doing);
 G-0477 (dead guard in `isTopLevelActorLine`); G-0672 (the two git range scans);
@@ -632,3 +622,8 @@ under *Scope and method*. No fixes were applied in the same pass, so every
 citation reflects the tree as read. The August 2026 sweep that produced G-0472,
 G-0473 and G-0533 is the previous snapshot; the finding classes it did not run
 are named under *Headline*.
+
+Fixed entries were deleted as they landed. The two reachability rows and the
+unowned counts in *Headline* were re-measured on 2026-09-23 at `4bd588099`
+(`deadcode` v0.40.0, same flags and roots); every other count and every
+`file:line` citation is as read at `b10eb2676`.
