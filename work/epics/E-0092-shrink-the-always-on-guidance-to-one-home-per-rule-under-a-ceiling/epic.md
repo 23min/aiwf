@@ -12,13 +12,13 @@ Reduce the project instructions Claude and Codex read before a task to a ceiling
 
 E-0093 establishes the two supported hosts. Their entry points and loading mechanisms differ, so a filename-only measure cannot describe the instruction load of both. An instruction to read an entire document before any work belongs in the upfront load even when the host does not import that document automatically.
 
-Repository development rules, aiwf operating guidance, and project-adopted language conventions have different owners. The delivery follow-up to E-0093 will establish tracked project guidance from an external source and migrate this repository off home-directory language imports. This epic reduces the resulting instructions; it does not implement that delivery system.
+Repository development rules, aiwf operating guidance, and project-adopted language conventions have different owners. E-0094 establishes tracked project guidance from an external source and migrates this repository off home-directory language imports. This epic reduces the resulting instructions; it does not implement that delivery system.
 
 A check-backed rule can become a short pointer once its diagnostic states the remedy. Judgment rules need their reasoning retained and their effect observed. G-0676 identifies how root guidance grows during ordinary work; the fence addresses that growth before the reduction starts. Python scripts and TypeScript tests remain legitimate consumers of language guidance alongside Go code.
 
 ## Scope
 
-- **Delivery prerequisite.** The separate follow-up to E-0093 must complete external guidance delivery and this repository's migration before implementation here. Its implementation and pre/post growth measurements belong to that epic.
+- **Delivery prerequisite.** E-0094 must complete external guidance delivery and this repository's migration before implementation here. Its migration has landed and its growth measurements are recorded under M-0348; its implementation and those measurements belong to that epic.
 - **The fence, M-0333.** Cover both host entry points and the canonical repository-development documents they route to. Preserve generated-block ownership and permit one guidance change to update its source and derived outputs together.
 - **The baseline, M-0334.** Freeze a post-delivery, pre-reduction commit and guidance revision. Record both hosts' upfront load, task-loaded guidance, and behavior against the same tasks.
 - **Relocation, M-0335.** Give task-specific development rules project-local homes reachable from either host, including a session started at the repository root. Re-aim or retire affected pins with reasons.
@@ -54,7 +54,7 @@ A check-backed rule can become a short pointer once its diagnostic states the re
 
 ## Success criteria
 
-- [ ] The delivery prerequisite is identified by its allocated entity and its completion is verified before implementation.
+- [ ] E-0094 is named as the delivery prerequisite and its completion is verified before implementation.
 - [ ] Both hosts' upfront project instructions meet the ceiling; the policy catches regrowth and required-read indirection.
 - [ ] Both hosts reach task-relevant project guidance from a root-started session, without home-directory language imports.
 - [ ] Repository development guidance duplicates neither operating rules nor the selected language conventions.
@@ -69,7 +69,6 @@ A check-backed rule can become a short pointer once its diagnostic states the re
 
 | Question | Blocking? | Resolution path |
 |---|---|---|
-| Which entity owns delivery and migration | yes, before implementation | Allocate the follow-up to E-0093 next and replace the dependency description with its real id |
 | Which generated paths and blocks belong to each updater | yes, before M-0333 | Read the completed delivery implementation; use its ownership records |
 | Which diagnostics already state the remedy | no | M-0337 produces the audit |
 | Whether moving guidance preserves delivery and behavior | yes, before wrap | M-0335 and M-0338 record both hosts' observations |
@@ -86,8 +85,8 @@ A check-backed rule can become a short pointer once its diagnostic states the re
 
 ## Milestones
 
-- M-0333 — Fence repository guidance and measure upfront load for both hosts; delivery prerequisite required.
-- M-0334 — Freeze the post-delivery baseline and observe both hosts; delivery prerequisite required.
+- M-0333 — Fence repository guidance and measure upfront load for both hosts; E-0094 required.
+- M-0334 — Freeze the post-delivery baseline and observe both hosts; E-0094 required.
 - M-0335 — Relocate development guidance with verified routing for both hosts; depends on M-0333 and M-0334.
 - M-0336 — Remove copies while preserving project-local sources; depends on M-0335.
 - M-0337 — Improve diagnostics and reach the ceiling for both hosts; depends on M-0336.
@@ -96,7 +95,8 @@ A check-backed rule can become a short pointer once its diagnostic states the re
 
 ## References
 
-- E-0093 — supported Claude and Codex workflows; its delivery follow-up is the prerequisite to be allocated.
+- E-0093 — supported Claude and Codex workflows.
+- E-0094 — the delivery prerequisite: external guidance delivery and this repository's migration off home-directory language imports.
 - D-0089 — external language-content ownership and project-local delivery.
 - D-0091 — prose-presence evidence restriction; apply it to both hosts here.
 - D-0070 — limits on pins over shipped prose.
