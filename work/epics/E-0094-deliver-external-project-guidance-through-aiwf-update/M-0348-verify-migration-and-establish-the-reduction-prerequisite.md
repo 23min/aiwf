@@ -140,6 +140,103 @@ These observations establish delivery and handover in the migrated checkout.
 They do not establish live assistant reads, migration of other checkouts, or
 instruction-load reduction; those remain separate criteria.
 
+### AC-2 — host observations
+
+Observed on 2026-09-22 and 2026-09-23 in the Linux devcontainer. Every run
+started at the root of a clean clone of the migrated checkout at commit
+`9f817fa5b34cdcc4e0a065f7f7e78a54a030ad83`, carrying no repository-local
+ai-dotfiles, with installed guidance revision
+`9c9ca4b3681ca4cb8798e5af9e9124b1e761526b`. The installed personal setup was
+personal-only throughout: the global Claude instruction file carries the
+personal-only marker and imports one collaboration fragment, and the legacy
+language packs remain on disk beneath the personal agents directory, unimported.
+Host versions: Codex CLI 0.156.0 with `gpt-6-astra`; Claude Code 2.1.278 with
+`claude-sonnet-5`. Raw event streams and answers were captured to session-local
+temporary directories, which do not survive the machine; what a later reader
+needs to re-run is recorded here.
+
+The nested-Go task, issued verbatim to both hosts: *plan a small change to
+`internal/version/version.go` adding diagnostic logging around its remote
+version lookup; do not implement, modify files, access the network or run
+tests; inspect the repository as needed and explain where the diagnostic logs
+go by default, how logging is enabled, and which validation commands apply;
+list the instruction files actually consulted.* Expected in each case: the
+session discovers the project override, the index and the packs relevant to the
+task, applies the project logging rule over the general Go pack's stderr
+convention, reads no legacy engineering guidance, and leaves the checkout
+unchanged. Tool events, not the assistant's claimed read list, were the evidence.
+
+- **Codex, nested Go.** `codex exec --cd <clone> --sandbox read-only
+  --ephemeral --json --model gpt-6-astra -c model_reasoning_effort="medium"`.
+  Exit 0 in 50.4 seconds. Completed-command events carry actual reads of
+  `CLAUDE.md`, `.guidance/project.md`, `.guidance/index.md`, the code-health
+  guide and the Go guide, followed by logger source and `go.mod`. The answer
+  applies the project rule over the pack: logging off by default, enabled
+  through the environment knobs or the YAML block, default XDG-state-home file
+  destination, stderr only when explicitly configured. No observed command
+  reads legacy engineering files. `git status --porcelain` stayed empty.
+- **Claude, nested Go, effort `xhigh`.** `claude --print --output-format
+  stream-json --verbose --permission-mode dontAsk --tools Read,Glob,Grep
+  --allowedTools Read,Glob,Grep --strict-mcp-config --mcp-config
+  '{"mcpServers":{}}'`, prompt on stdin, effort resolved from installed
+  settings. The run did not complete: a 180-second outer timeout fired and the
+  stream's terminating event is `error_during_execution` after 28 turns, so it
+  reports nothing about the answer. The host injected three instruction files —
+  the personal-only global, its collaboration fragment, and the project
+  `CLAUDE.md` at 66,036 bytes carrying the managed engineering-guidance block.
+  No legacy engineering pack was injected. No tool input named `.guidance`, the
+  pending-install marker, or the legacy trees.
+- **Claude, nested Go, effort `medium`.** Same argv with `--effort medium`,
+  matching the Codex arm's reasoning effort; the prompt was byte-identical to
+  the run above. Exit 0 in 85.4 seconds, 14 turns. Again no `.guidance` read.
+  Project-override precedence nonetheless reached the answer correctly: opt-in,
+  off by default, the environment knobs and YAML block as the enablers, the
+  XDG-state-home daily file as the default destination, stderr as an explicit
+  choice only, and the repository's own validation cadence. Asked which
+  instruction files it consulted, it named the project `CLAUDE.md` and
+  ADR-0017 and nothing else — the claim matches the tool events, so there is
+  no overclaim to discount.
+- **Claude, Python task, effort `medium`.** The same harness against a task
+  whose answer the project instruction file does not contain: plan a `--json`
+  output mode for `scripts/growth-report.py` and explain which formatting,
+  linting, type-checking and test conventions apply. The checkout carries no
+  Python tooling configuration, no Makefile target and no CI step for it, so the
+  only source in the tree is the Python pack. Exit 0 in 29.4 seconds. Tool calls
+  two through six of thirteen are the block's own sequence, executed before the
+  answer formed: the pending-marker check, `.guidance/project.md`,
+  `.guidance/index.md`, then the Python pack. The answer names that pack's
+  toolchain, and then weighs it against the repository — observing that no
+  configuration or target wires it here and that the script is in fact exercised
+  by a Go-side policy test — rather than importing tooling the repository does
+  not use.
+
+Both hosts therefore demonstrate relevant project reads. On Claude the reads
+are need-driven rather than unconditional: skipped where the project
+instruction file already answers, which is what the managed block itself
+prescribes when it gives handwritten overrides precedence over pack guidance,
+and performed in the prescribed order where only a pack answers. Position in
+the host file does not drive this. A fixture experiment — a throwaway clone
+with the block moved from the end of the project instruction file to just below
+its opening paragraph, every other input byte-identical to the second Claude
+run — bought a pending-marker check but no directed reads, while the Python
+task drew the full sequence from the block's committed position at the end of
+the file. That fixture carries an edit no committed tree has and is recorded
+here only for what it rules out.
+
+Limits. Installed personal globals remained present: these are clones without
+repository-local ai-dotfiles, not a machine lacking ai-dotfiles. Tool events
+establish explicit reads, not instructions the host injects automatically.
+Claude tool access was restricted to reading, globbing and grepping, so a read
+outside the working directory would have been refused — but none was attempted,
+so refusal masks nothing. The clones were never updated after cloning, so the
+gitignored materialized host artifact the project instruction file imports was
+absent and its import line stood unresolved; these sessions ran without aiwf's
+own workflow guidance. A task straddling the two shapes, where the project
+instruction file partly answers and a pack would complete it, is untested and is
+the case most likely to behave differently. New files, unrelated prose, and
+non-coding tasks outside repositories remain open observations under this
+criterion.
+
 ## Deferrals
 
 - (none)
