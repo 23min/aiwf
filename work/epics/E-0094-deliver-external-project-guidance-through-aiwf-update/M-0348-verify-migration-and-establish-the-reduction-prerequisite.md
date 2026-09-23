@@ -94,6 +94,12 @@ All preceding deliveries, with the actual compatible distributions available for
 
 ## Release note
 
+Nothing here changes what a consumer of aiwf observes. This milestone moved
+aiwf's own repository onto the project-guidance delivery the epic ships —
+selected packs, a tracked `.guidance/` tree, host routing in both instruction
+files — and verified that delivery, including against a binary installed from
+the published module rather than built from source.
+
 ## Decisions made during implementation
 
 - ADR-0052 — project guidance ownership and the personal-bootstrap boundary.
@@ -415,6 +421,21 @@ the figures above are today's, and the claim they support — that the global
 surface carries no engineering guidance — rests on the AC-2 session
 observations rather than on a historical byte count. Byte counts are a measure
 of what a host is handed, not of what a model attends to.
+
+### Wrap gates
+
+`make check-fast` exited 0 with no failing package. `aiwf check` reported 0
+errors; its warnings are the `acs-tdd-audit` advisory raised once per criterion
+met under `tdd: advisory` without a recorded phase, the pending archive sweep,
+and the epic's absent drafted milestone.
+
+The full `make ci` gate last ran green on the commit carrying this milestone's
+only source change. Nothing matching the build-input set — Go sources, the
+module files, the Makefile, the workflow definitions — has changed since, so
+that run still describes this tree; the commits after it carry configuration,
+generated host wiring and entity markdown. The merge that integrates this branch
+is into the epic branch rather than mainline, whose gate is `make check-fast`
+above, with the pre-push hook and CI-on-push as its net.
 
 ## Deferrals
 
