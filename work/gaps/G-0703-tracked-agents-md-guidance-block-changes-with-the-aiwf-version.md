@@ -14,13 +14,13 @@ tracked file comes back modified with no content change behind it.
 
 `internal/initrepo/agents_guidance.go:40` passes `version.Current().Version`
 into `skills.RenderCodexGuidance`, whose output is inlined into `AGENTS.md`. The
-Claude route calls the sibling `skills.RenderGuidance` from
-`internal/cli/doctor/guidance.go:18` and lands its output in
-`.claude/aiwf-guidance.md`, which is gitignored, so the same stamp there is
+Claude route stamps the same version through `skills.MaterializeGuidance`
+(`internal/skills/guidance.go`), called from `internal/initrepo/initrepo.go`,
+which writes `.claude/aiwf-guidance.md`; that file is gitignored, so the same stamp there is
 invisible to git. The tracked surface is what differs between the two hosts, not
 the stamping.
 
-Measured on Linux against two clean clones of the same commit:
+Measured on Linux against two clean clones of commit `4f8ec4d445e08edf06dc388e9d3b8fb8839e7bf8`:
 
 ```
 $ aiwf update --root <clone-a>            # binary that generated the committed block
