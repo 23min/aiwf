@@ -15,7 +15,7 @@ acs:
       status: met
     - id: AC-2
       title: Both hosts demonstrate relevant project reads in fresh sessions
-      status: open
+      status: met
     - id: AC-3
       title: Mixed repositories retain the correct guidance source
       status: open
