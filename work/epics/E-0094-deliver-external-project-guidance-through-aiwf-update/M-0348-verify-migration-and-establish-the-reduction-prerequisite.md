@@ -1,7 +1,7 @@
 ---
 id: M-0348
 title: Verify migration and establish the reduction prerequisite
-status: in_progress
+status: done
 parent: E-0094
 depends_on:
     - M-0344
