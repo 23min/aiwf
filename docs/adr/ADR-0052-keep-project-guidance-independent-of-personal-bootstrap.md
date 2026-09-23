@@ -67,4 +67,4 @@ bootstrap's documented behavior rather than prescribing its implementation here.
 - ADR-0051 — the personal-only boundary retained by this replacement.
 - E-0094 — external project guidance delivery.
 - M-0348 — migration and coexistence verification.
-- D-0089 — proposed external content ownership and tracked project policy.
+- D-0089 — external content ownership and tracked project policy.
