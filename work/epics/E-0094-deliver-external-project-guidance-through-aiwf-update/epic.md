@@ -1,7 +1,7 @@
 ---
 id: E-0094
 title: Deliver external project guidance through aiwf update
-status: active
+status: done
 ---
 ## Goal
 
