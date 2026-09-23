@@ -47,7 +47,15 @@ From a session started at the repository root in a checkout without ai-dotfiles,
 
 ### AC-3 — Mixed repositories retain the correct guidance source
 
-Complete the ai-dotfiles integration and test personal-only global Claude/Codex outputs, repository-local legacy engineering delivery, and aiwf handover checks. The ai-dotfiles maintainer owns its configuration and synchronization mechanism; use its [installation documentation](https://github.com/23min/ai-dotfiles#readme) as the integration reference. Account for globally installed engineering skills as well as instruction files. Verify ai-dotfiles synchronization prepares legacy repositories on use; do not bulk-modify sibling repositories. Before any approved removal of shared global engineering delivery, verify startup setup in the environments using it, including native hook trust and enablement. Verify its diagnostics for missing helpers and failed synchronization. Test that installation and opening one repository leave unopened repositories untouched, and that sessions outside Git create no project files. Do not infer startup readiness from hook-file existence or the handover compatibility check. Exercise the released combination against old-aiwf and non-aiwf projects alongside migrated projects. Include an incompatible personal installation, failed handover, empty installed selection, disabled maintenance, and update retries; confirm legacy repository-local access or exclusive aiwf project access as applicable. Preserve personal rules; do not treat a global project/legacy router as a completed migration. References: compatibility/integration fixtures plus an observation record for actual installed setup. Do not substitute local fixture success for distribution availability.
+A migrated repository reaches aiwf-delivered guidance and only that, while old-aiwf and non-aiwf repositories keep their existing route and are not adopted into one. Verify that against the released combination rather than local fixtures: delivery is what this criterion claims, so local fixture success does not stand in for distribution availability.
+
+Establish the failure rule once rather than once per trigger. Every guidance failure — an incompatible personal installation, an unavailable checker, an ambiguous or interrupted handover, an unreachable source — reports its reason, preserves the installed guidance and its recorded revision, and leaves unrelated update work to continue. Cite the test-first coverage from the delivery milestones that pins it. Staging those instances live re-demonstrates what the tests already assert and catches no later regression, so it is not required here; record which triggers were consolidated to the rule and why.
+
+Verify by observation only what a test cannot reach: the released combination against each repository kind, configuration honoured as written for an explicitly empty selection and for disabled maintenance, and one repository's installation leaving unopened repositories untouched. Do not infer startup readiness from hook-file existence or from the handover compatibility check.
+
+Preserve personal rules; do not treat a global project/legacy router as a completed migration. The ai-dotfiles maintainer owns its configuration and synchronization mechanism; use its [installation documentation](https://github.com/23min/ai-dotfiles#readme) as the integration reference, and do not bulk-modify sibling repositories. Verifying startup setup in the environments using shared global engineering delivery, including native hook trust and enablement, is a precondition on removing that delivery — an action this milestone neither performs nor approves.
+
+Record the observations, the consolidation, and the limits of what was observed. References: the delivery milestones' failure-path tests plus an observation record for the released combination. Obtain separate approval for live service invocations.
 
 ### AC-4 — Growth measurements make the reduction prerequisite reproducible
 
@@ -316,9 +324,34 @@ that path, and it is generic upgrade-verb behaviour with nothing
 guidance-specific in it. E-0094's code has had no CI run, because the Go
 workflow filters pushes to the trunk and one branch prefix, so pushing this
 milestone branch ran the secret scan alone; local full-gate runs are green on
-the commit under test, which is parity with CI rather than CI itself. The
-incompatible personal installation and failed handover cases named in the
-criterion are not covered here and remain open.
+the commit under test, which is parity with CI rather than CI itself.
+
+**Isolation.** With a target repository, a pre-existing aiwf repository and a
+plain Git repository side by side, `aiwf init` and `aiwf update` were run
+against the target alone. The target gained its guidance tree; a SHA-256 taken
+over every non-Git file in each bystander was unchanged on both. aiwf acts only
+on the root it is given.
+
+**Failure triggers consolidated to one rule.** `CheckCompatibility` returns a
+single sentinel reached by four detectors, and its caller funnels every guidance
+failure — instruction inspection, compatibility, host refusal, retrieval — into
+one outcome: the step is reported skipped with its reason, returned rather than
+raised, so unrelated update work continues. The criterion's separately named
+cases are triggers of that one rule, and each is pinned by a test written under
+a test-first milestone: the installed checker and the missing-checker legacy
+detection in the compatibility tests; ambiguous handover refused before any
+write, and an interrupted handover recovered with a changed selection, in the
+handover tests; an empty pending record recovered in the install-fault tests;
+and failure reported without claiming installation in the refresh tests. Staging
+those live would re-demonstrate what the tests assert while catching no later
+regression, so they were not run as observations. Configuration honoured as
+written was observed live above for both an explicitly empty selection and
+disabled maintenance.
+
+**Not covered.** Startup setup in the environments using shared global
+engineering delivery is unverified here. That verification is a precondition on
+removing that delivery, which this milestone neither performs nor approves — the
+home-directory language files remain present and merely unimported.
 
 ### AC-4 — growth measurements and the reduction prerequisite
 
