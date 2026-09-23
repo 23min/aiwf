@@ -45,8 +45,11 @@ mechanism and migration procedure.
   their delivery is the personal-bootstrap maintainer's responsibility.
 - Compatibility checks establish the handover conditions they inspect; they do
   not certify delivery in other environments or prove an assistant read guidance.
-- E-0094 and M-0348 verify the integration with ai-dotfiles. Its hook configuration,
-  startup behavior and trust controls remain documented in that repository.
+- E-0094 and M-0348 verify aiwf's side of the integration with ai-dotfiles:
+  that its synchronization respects aiwf ownership, and that an incomplete
+  handover leaves legacy delivery intact. Delivery to repositories aiwf does not
+  own, and the bootstrap's hook configuration, startup behavior and trust
+  controls, are verified and documented in that repository.
 
 ## Validation
 
