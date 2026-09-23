@@ -398,6 +398,11 @@ func (f *CellFixture) SatisfyPredicate(t *testing.T, p spec.Predicate, entityID 
 	// through to the silent-drift guard with a misleading
 	// "fixture does not satisfy ..." message.
 	switch p.Subject {
+	case "self.tests":
+		evalCtx.TestMetrics = p.Value
+		if p.Op == "non-empty" {
+			evalCtx.TestMetrics = "pass=0"
+		}
 	case "self.target-state":
 		switch p.Op {
 		case "==":

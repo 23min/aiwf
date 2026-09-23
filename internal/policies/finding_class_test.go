@@ -96,7 +96,7 @@ func TestM0140_AC3_M0138LegalityCodesRoundTrip(t *testing.T) {
 		t.Fatalf("collectImplFindingCodes: %v", err)
 	}
 
-	rules := spec.Rules()
+	rules := append(spec.Rules(), spec.GlobalRules()...)
 	for _, code := range []string{"fsm-transition-illegal", "authorize-kind-not-allowed"} {
 		// Impl side: the descriptor marks it ClassLegality.
 		if got := implCodes[code]; got != codes.ClassLegality {

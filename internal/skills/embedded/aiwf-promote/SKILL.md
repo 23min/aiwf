@@ -19,6 +19,10 @@ aiwf promote <M-NNNN>/AC-N <new-status>  # AC status (composite id)
 aiwf promote <M-NNNN>/AC-N --phase <p>   # AC tdd_phase (mutex with positional state)
 ```
 
+To repeat a recorded TDD phase, omit `--tests`: the command reports the phase is
+already recorded and commits nothing. Supply `--tests` only with a phase change;
+same-phase requests carrying metrics, including explicit zero counts, are refused.
+
 ## Allowed status sets
 
 | Kind | Statuses |

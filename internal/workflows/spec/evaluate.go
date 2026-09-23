@@ -2,6 +2,7 @@ package spec
 
 import (
 	"fmt"
+	"strings"
 
 	"github.com/23min/aiwf/internal/entity"
 	"github.com/23min/aiwf/internal/tree"
@@ -24,6 +25,8 @@ import (
 // which is itself constrained per the M-0123 body's predicate-
 // vocabulary commitment.
 type EvalContext struct {
+	// TestMetrics is the supplied --tests text; blank means no metrics payload.
+	TestMetrics string
 	TargetState string
 	AC          *entity.AcceptanceCriterion
 
@@ -39,10 +42,10 @@ type EvalContext struct {
 }
 
 // EvaluatePredicate reports whether p holds against e in t, with
-// verb-invocation context ctx. The closed (Subject, Op) vocabulary
-// covered here is exactly what appears in Rules() at the M-0124 ship
-// boundary:
+// verb-invocation context ctx. It supports these entity and request predicates:
 //
+//	self.kind != <kind>
+//	self.tests == "" / self.tests non-empty (supplied --tests payload)
 //	self.target-state == <state>
 //	self.addressed_by non-empty
 //	self.addressed_by == ""
@@ -67,6 +70,10 @@ type EvalContext struct {
 // New named sets land here as the spec grows.
 func EvaluatePredicate(p Predicate, e *entity.Entity, t *tree.Tree, ctx EvalContext) (bool, error) {
 	switch p.Subject {
+	case "self.kind":
+		return cmpString(p.Op, string(e.Kind), p.Value)
+	case "self.tests":
+		return cmpString(p.Op, strings.TrimSpace(ctx.TestMetrics), p.Value)
 	case "self.target-state":
 		return cmpString(p.Op, ctx.TargetState, p.Value)
 	case "self.addressed_by":

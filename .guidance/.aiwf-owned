@@ -1,0 +1,10 @@
+{
+  ".guidance/index.md": "efa3f88097d10dd6257422e4d7b78b52e631b38efe3425cb4155adcc83d529dc",
+  ".guidance/packs/code-health/guide.md": "cf83d247fbfa0c3d60ae89b242517b648f3a31cadbd1a3f6dadd3ad8f821e4fd",
+  ".guidance/packs/code-health/rubric.md": "200bfee291a02acb9f404abad7844d4d0c3077f6c7f38354ee7ecf79b8f79228",
+  ".guidance/packs/go/cobra/guide.md": "140c1cdbd1aaa85ff2269858cd53879e5aa804a44f036c55db92ec59b07166a6",
+  ".guidance/packs/python/astral/guide.md": "189088b62adf9d5de90dadcb8b194f2bd9f12d3985350946e8b0ba72bda38e80",
+  ".guidance/packs/typescript/npm-vitest/guide.md": "f7a5987cb6f8c301726f71c9c8e4771d2de340b1e2a99ecd4080616d32063fb3",
+  "AGENTS.md": "e771a670becdd6d95cfadf5617a940284fb2a15c8f46680a55782604ca30bd52",
+  "CLAUDE.md": "e771a670becdd6d95cfadf5617a940284fb2a15c8f46680a55782604ca30bd52"
+}

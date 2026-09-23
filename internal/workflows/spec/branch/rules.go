@@ -45,15 +45,15 @@ func Rules() []spec.Rule {
 			BlockingStrict:    true,
 			Sources:           spec.RuleSource{Decision: "ADR-0010"},
 		},
-		// branch-cell-2 — Corner case 2: AI authorize --branch <typo>.
-		// Preflight refuses with branch-not-found. Test:
+		// branch-cell-2 — Corner case 2: AI authorize with an illegal rung pair.
+		// Preflight refuses with rung-pair-illegal. Test:
 		// TestAuthorize_Open_AITarget_BranchMissing_Refuses + CLI seam.
 		{
 			ID:                "branch-cell-2",
 			Verb:              "authorize",
-			Preconditions:     []spec.Predicate{{Subject: "target-agent-role", Op: "==", Value: "ai"}, {Subject: "branch-flag-resolves", Op: "==", Value: "false"}, {Subject: "force", Op: "==", Value: "false"}},
+			Preconditions:     []spec.Predicate{{Subject: "target-agent-role", Op: "==", Value: "ai"}, {Subject: "rung-pair-legal", Op: "==", Value: "false"}, {Subject: "force", Op: "==", Value: "false"}},
 			Outcome:           spec.OutcomeIllegal,
-			ExpectedErrorCode: "branch-not-found",
+			ExpectedErrorCode: "rung-pair-illegal",
 			RejectionLayer:    spec.RejectionLayerVerbTime,
 			BlockingStrict:    true,
 			Sources:           spec.RuleSource{Decision: "ADR-0010"},
@@ -143,7 +143,7 @@ func Rules() []spec.Rule {
 
 		// branch-cell-override-preflight — M-0103 preflight override:
 		// `aiwf authorize <id> --to ai/<x> --force --reason "..."`
-		// bypasses the branch-context-required and branch-not-found
+		// bypasses the branch-context-required and rung-pair-illegal
 		// refusals. Gated by the trailer-shape rule (--force requires
 		// human/ actor + non-empty --reason). Test:
 		// TestAuthorize_Open_AITarget_ForceReasonBypassesPreflight +

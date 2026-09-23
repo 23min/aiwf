@@ -90,6 +90,7 @@ type Config struct {
 	Logging           Logging          `yaml:"logging,omitempty"`
 	Agents            map[string]Agent `yaml:"agents,omitempty"`
 	Hooks             map[string]Hook  `yaml:"hooks,omitempty"`
+	Provenance        Provenance       `yaml:"provenance,omitempty"`
 }
 
 // Member is a single declared workstream area (E-0044, M-0179): a Name (the
@@ -559,6 +560,43 @@ func (c *Config) TrunkBranchShortName() string {
 type HTML struct {
 	OutDir       string `yaml:"out_dir,omitempty"`
 	CommitOutput bool   `yaml:"commit_output,omitempty"`
+}
+
+// Provenance carries the repo's policy on what a commit message records
+// about who produced it.
+//
+// RefuseCoauthors lists the addresses the commit-msg hook refuses in a
+// `Co-Authored-By:` trailer. The kernel separates the principal, who is
+// accountable, from the agent that ran the verb, and records the agent in
+// `aiwf-actor:`; whether a non-human agent also belongs in git's co-author
+// namespace is a project's call rather than the kernel's, so nothing is
+// refused until a repo names an address here.
+//
+// Addresses are compared case-insensitively. RFC 5321 makes only the domain
+// case-insensitive, but no mail system in practice distinguishes local parts
+// by case, and a trailer written with different capitalization names the same
+// account — so comparing case-sensitively would refuse one spelling and pass
+// the other.
+type Provenance struct {
+	RefuseCoauthors []string `yaml:"refuse_coauthors,omitempty"`
+}
+
+// RefusedCoauthors returns the configured addresses as a lookup set,
+// lowercased for comparison. A nil Config, an absent `provenance:` block
+// and an empty list all yield an empty set, which every caller reads as
+// "this repo refuses no co-author".
+func (c *Config) RefusedCoauthors() map[string]bool {
+	if c == nil || len(c.Provenance.RefuseCoauthors) == 0 {
+		return nil
+	}
+	set := make(map[string]bool, len(c.Provenance.RefuseCoauthors))
+	for _, addr := range c.Provenance.RefuseCoauthors {
+		addr = strings.ToLower(strings.TrimSpace(addr))
+		if addr != "" {
+			set[addr] = true
+		}
+	}
+	return set
 }
 
 // DefaultHTMLOutDir is the path the renderer falls back to when

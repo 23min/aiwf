@@ -351,32 +351,9 @@ func TestAuthorize_Open_AITarget_DetachedHEAD_RitualBranch_RungPairError(t *test
 	}
 }
 
-// TestAuthorize_Open_AITarget_BranchMissing_Refuses (M-0103/AC-2,
-// narrowed by M-0104/AC-4 then again by M-0105/AC-6): opening a
-// scope on ai/<agent> with --branch <name> where the named branch
-// does not exist locally (BranchExists=false) refuses with
-// PreflightBranchNotFoundError. The error carries the
-// branch-not-found code; the message names --force --reason as the
-// override.
-//
-// Two carve-outs have narrowed the refusal scope:
-//   - M-0104/AC-4: CurrentBranch=="main" + ritual --branch → accept
-//     (the step-7 sovereign authorize of aiwfx-start-epic).
-//   - M-0105/AC-6: ritual CurrentBranch + ritual --branch → accept
-//     (the step-4 sovereign authorize of aiwfx-start-milestone, on
-//     the parent epic branch with a future milestone --branch).
-//
-// To keep this AC-2 test pinning the general "missing → refuse"
-// rule OUTSIDE both carve-outs, CurrentBranch is pinned to a
-// non-main, non-ritual shape (a plain feature branch). The
-// missing-branch refusal stands regardless of --branch's shape.
-//
-// M-0161/AC-2 (G-0201) replaced the pre-AC-2 PreflightBranchNotFoundError
-// refusal with PreflightRungPairError — the (non-ritual feature
-// branch, epic) pair is now refused as ("", "epic") rung-pair-illegal,
-// not as branch-not-found. The semantic is the same (verb refuses,
-// names the override path, names the branches involved); the failure
-// classification is finer.
+// TestAuthorize_Open_AITarget_BranchMissing_Refuses checks that a
+// non-ritual current branch cannot authorize an epic target. The
+// rung-pair refusal names both branches and the sovereign override.
 func TestAuthorize_Open_AITarget_BranchMissing_Refuses(t *testing.T) {
 	t.Parallel()
 	r := newRunner(t)
@@ -609,7 +586,7 @@ func TestAuthorize_Open_AITarget_NonRitualNonMainCurrent_BranchMissing_Refuses(t
 		t.Fatalf("expected refusal for non-ritual non-main current + ritual target; got plan=%+v", res.Plan)
 	}
 	// M-0161/AC-2: ("", "epic") is not legal; rung-pair-illegal
-	// fires (subsumes the prior branch-not-found semantics).
+	// fires.
 	if code, ok := entity.Code(err); !ok || code != verb.CodePreflightRungPair.ID {
 		t.Errorf("entity.Code(err) = (%q, %v), want (%q, true)", code, ok, verb.CodePreflightRungPair.ID)
 	}
@@ -640,7 +617,7 @@ func TestAuthorize_Open_AITarget_MainPlusNonRitualMissingBranch_Refuses(t *testi
 		t.Fatalf("expected refusal for main+non-ritual-target; got plan=%+v", res.Plan)
 	}
 	// M-0161/AC-2: ("trunk", "") is not legal; rung-pair-illegal
-	// fires. Subsumes the prior branch-not-found semantics.
+	// fires.
 	if code, ok := entity.Code(err); !ok || code != verb.CodePreflightRungPair.ID {
 		t.Errorf("entity.Code(err) = (%q, %v), want (%q, true)", code, ok, verb.CodePreflightRungPair.ID)
 	}

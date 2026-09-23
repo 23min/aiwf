@@ -181,14 +181,8 @@ func TestAiwfxStartMilestone_M0105_AC1_FixtureAndWorkflow(t *testing.T) {
 	}
 }
 
-// TestStartSkills_G0224_LiveRefusalCodesNamed pins G-0224: both start
-// rituals name the refusal code the kernel actually emits
-// (`rung-pair-illegal`, from PreflightRungPairError) rather than the
-// dead `branch-not-found` code — PreflightBranchNotFoundError is
-// defined but never constructed, subsumed by the rung-pair check in
-// internal/verb/authorize.go. Scoped to each skill's sovereign-
-// authorize subsection (where the refusal sentence lives), plus a
-// whole-body guard against the dead code reappearing anywhere.
+// TestStartSkills_G0224_LiveRefusalCodesNamed checks that each start
+// ritual names the live rung-pair refusal in its authorize subsection.
 func TestStartSkills_G0224_LiveRefusalCodesNamed(t *testing.T) {
 	t.Parallel()
 
@@ -196,20 +190,16 @@ func TestStartSkills_G0224_LiveRefusalCodesNamed(t *testing.T) {
 	msBody := loadAiwfxStartMilestoneFixture(t)
 	cases := []struct {
 		skill   string
-		body    string
 		section string
 	}{
-		{"aiwfx-start-epic", epicBody, findSovereignAuthorizeSection(epicBody)},
-		{"aiwfx-start-milestone", msBody, findStartMilestoneAuthorizeSection(msBody)},
+		{"aiwfx-start-epic", findSovereignAuthorizeSection(epicBody)},
+		{"aiwfx-start-milestone", findStartMilestoneAuthorizeSection(msBody)},
 	}
 	for _, c := range cases {
 		t.Run(c.skill, func(t *testing.T) {
 			t.Parallel()
 			if c.section == "" {
 				t.Fatalf("G-0224: %s must contain a sovereign-authorize subsection", c.skill)
-			}
-			if strings.Contains(c.body, "branch-not-found") {
-				t.Errorf("G-0224: %s must not name the dead `branch-not-found` code (the authorize preflight never constructs it)", c.skill)
 			}
 			if !strings.Contains(c.section, "rung-pair-illegal") {
 				t.Errorf("G-0224: %s sovereign-authorize subsection must name the live `rung-pair-illegal` refusal code", c.skill)

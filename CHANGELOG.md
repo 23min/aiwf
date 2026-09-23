@@ -16,6 +16,37 @@ section in this file.
 
 ## [Unreleased]
 
+### Changed — E-0089: make TDD phase retries preserve evidence and publish workflow legality
+
+Repeating an AC's recorded TDD phase without test metrics now succeeds without
+creating a commit. Supplying metrics on a repeat is refused, including explicit
+zero counts, so a successful retry cannot silently discard test evidence.
+
+The repository provides a generated workflow legality reference at
+`docs/reference/workflow-legality.md`, showing declared transitions, conditions,
+outcomes, applicability exclusions and global restrictions. A freshness test
+rejects drift from the specification; regenerate it from the repository root with
+`go run ./cmd/workflow-reference`.
+
+### Added — G-0254: refuse an AI `Co-Authored-By:` trailer, behind an opt-in address list
+
+`aiwf.yaml` gains `provenance.refuse_coauthors`, a list of addresses that may
+not appear in a `Co-Authored-By:` trailer. The `commit-msg` hook refuses one at
+composition, where the repair is a retype rather than an amend. The list is
+absent by default and an unconfigured repo is unaffected; a co-author the list
+does not name is never matched.
+
+Whether a non-human agent belongs in git's co-author namespace is a project's
+call: aiwf records the agent that ran a verb in `aiwf-actor:` and keeps the
+accountable principal separate from it, and this ships that reading as an
+option rather than imposing it.
+
+The hook is the whole of what a consumer repo gets, and it binds only where
+`aiwf init` has wired it and only as the `aiwf` on PATH. aiwf's own repository
+additionally runs `coauthor-trailer-ban`, a CI policy that judges the same
+property over a pushed commit range, reading the same config; that policy lives
+in aiwf's test tree and does not ship. See D-0096.
+
 ### Fixed — G-0694: concurrent patch reviews and harness-first mutation checks
 
 `wf-patch` dispatches applicable review lenses concurrently when the host supports

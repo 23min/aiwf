@@ -21,7 +21,7 @@ Most existing tools optimise for one of those concerns and ignore the others. Is
 
 Markdown files are the source of truth; `git log` is the audit trail; `aiwf check` is the validator. No server, no API key, no separate database. The framework is deliberately minimal: it does not try to be a project-management tool, and the AI hosts (Claude Code and Codex) sees the planning state through materialized skills, not a custom protocol.
 
-For the lifecycle diagrams and the per-kind state machines, see [`docs/overview.md`](docs/overview.md). For worked walk-throughs of typical sessions and example AI prompts, see [`docs/workflows.md`](docs/workflows.md). For the design closure that produced this shape, see [`docs/design/design-decisions.md`](docs/design/design-decisions.md). The historical session/iteration narrative is archived at [`docs/archive/pocv3/poc-plan-pre-migration.md`](docs/archive/pocv3/poc-plan-pre-migration.md); current in-flight work lives in the entity tree under `work/` (run `aiwf status`).
+For the lifecycle diagrams and the per-kind state machines, see [`docs/overview.md`](docs/overview.md). For worked walk-throughs of typical sessions and example AI prompts, see [`docs/workflows.md`](docs/workflows.md). For declared transitions, their conditions and global restrictions, see the [generated workflow legality reference](docs/reference/workflow-legality.md). For the design closure that produced this shape, see [`docs/design/design-decisions.md`](docs/design/design-decisions.md). The historical session/iteration narrative is archived at [`docs/archive/pocv3/poc-plan-pre-migration.md`](docs/archive/pocv3/poc-plan-pre-migration.md); current in-flight work lives in the entity tree under `work/` (run `aiwf status`).
 
 ---
 
@@ -305,12 +305,17 @@ block guidance refresh. Move custom policy into `.guidance/project.md` or restor
 the generated content before retrying. Unsafe paths and legacy imports still
 require reconciliation even when a host is unselected.
 
-Recognized ai-dotfiles engineering imports are replaced only when replacement
-routing is enabled in the same host file. Ambiguous or handwritten legacy imports
-require owner reconciliation. Detected ai-dotfiles installations must supply a
+Recognized ai-dotfiles engineering imports and its generated repository-local
+route are replaced only when replacement routing is enabled in the same host file.
+Ambiguous or handwritten legacy references require owner reconciliation. Unreferenced
+legacy copies under `.ai-dotfiles/` are left in place; they no longer supply guidance
+through the removed route. Detected ai-dotfiles installations must supply a
 successful `dotfiles-guidance-check`; update ai-dotfiles or reconcile the personal
-overlay when this check refuses. Other repositories keep their existing delivery
-until they adopt project guidance themselves.
+overlay when this check refuses. Global Claude/Codex instructions should contain
+only personal preferences. Before removing global engineering inputs, the maintainer
+must prepare dependent legacy repositories through ai-dotfiles synchronization and
+explicitly confirm that handover in ai-dotfiles. Other repositories need no aiwf
+upgrade to retain repository-local legacy delivery.
 
 If installation is interrupted, `.guidance/.aiwf-pending` records the incomplete
 update. Rerun `aiwf update` to finish with the current selection and upstream

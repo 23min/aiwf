@@ -1,9 +1,11 @@
 ---
 id: G-0458
 title: 'AC tdd_phase same-phase input: converge to NoOp or keep refusing'
-status: open
+status: addressed
 priority: medium
 discovered_in: M-0281
+addressed_by_commit:
+    - 70146b9b3
 ---
 ## What's missing
 
