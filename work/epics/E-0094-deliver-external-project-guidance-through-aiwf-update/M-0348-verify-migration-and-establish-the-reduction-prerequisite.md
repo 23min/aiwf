@@ -237,6 +237,72 @@ the case most likely to behave differently. New files, unrelated prose, and
 non-coding tasks outside repositories remain open observations under this
 criterion.
 
+### AC-3 — distribution and mixed-repository observations
+
+Observed on 2026-09-23 in the Linux devcontainer. The binary under test was not
+built from the working tree: `go install github.com/23min/aiwf/cmd/aiwf@5b1127c25`,
+the install path the README documents, resolved through the real module proxy
+and served the pushed commit as `v0.37.1-0.20260923015904-5b1127c25fc5`. `GOBIN`
+pointed at a scratch directory, so the globally installed release stayed at
+v0.37.0; that was confirmed before and after. The installed binary carries the
+feature — `update --help` documents the guidance flow and its generated example
+config exposes the host and guidance keys.
+
+Distribution availability of the corpus itself is established by AC-1, which
+fetched revision `9c9ca4b3681ca4cb8798e5af9e9124b1e761526b` from the real
+external source rather than a fixture. Expected in each case below: the
+installed binary behaves as the epic specifies for that repository kind, judged
+on filesystem and git state rather than the command's own summary.
+
+- **Migrated project.** A clean clone carrying selected packs and tracked
+  guidance. `aiwf update` exited 0; the recorded source revision and a SHA-256
+  taken over every installed guidance file were unchanged, and the handwritten
+  project override survived.
+- **Old-aiwf project.** Initialised by the released v0.37.0, then updated by the
+  binary under test. Exit 0, no guidance directory created and no guidance
+  policy adopted, with applicable packs reported and none selected — the
+  specified behaviour for a non-interactive run.
+- **Non-aiwf Git repository.** Exit 3 reporting no configuration found, and
+  nothing created.
+- **Empty installed selection.** With packs explicitly set to the empty list,
+  exit 0: the guidance directory and its index exist with no packs directory,
+  and the routing block is wired into the Claude host file. An explicitly empty
+  selection is adopted as empty rather than ignored, and legacy delivery is not
+  re-enabled.
+- **Disabled maintenance.** With maintenance off and a pack still listed, exit 0
+  in under a second, no upstream access in the log, and no guidance directory
+  written.
+- **Assistant session outside Git.** The ai-dotfiles startup hook run in a
+  non-Git directory exited 0, emitted nothing on either stream, and created no
+  files. This is the criterion's own claim. Running an aiwf verb there tests a
+  different claim and is recorded as a finding instead, not as evidence for this
+  one.
+
+**Fixed point under the updater.** The migration commit captured the guidance
+tree and its routing but not the Codex host artifacts' wiring, so update rewrote
+the ignore file and the Codex instruction file on every clean clone. Committing
+that generated wiring closes it: a fresh clone of the result, updated by the
+same binary, now reports no tracked change at all. This is the property the epic
+claims for repeated unchanged updates, measured rather than asserted.
+
+**Finding — a lockfile survives outside a repository.** `aiwf update` in a
+non-Git directory exits reporting no configuration found and leaves an empty
+`.aiwf.lock` behind; `aiwf init` does the same, failing instead on actor
+resolution. The lock is taken before the root is validated, so a directory that
+is not an aiwf project keeps the artifact. The released v0.37.0 reproduces it
+identically, so it is not introduced here, and a Git repository without
+configuration does not reproduce it — only the non-Git path does.
+
+Limits. `aiwf upgrade` selecting a new version is not exercised: the verb skips
+prerelease and pseudo-versions by design, so only a real release tag reaches
+that path, and it is generic upgrade-verb behaviour with nothing
+guidance-specific in it. E-0094's code has had no CI run, because the Go
+workflow filters pushes to the trunk and one branch prefix, so pushing this
+milestone branch ran the secret scan alone; local full-gate runs are green on
+the commit under test, which is parity with CI rather than CI itself. The
+incompatible personal installation and failed handover cases named in the
+criterion are not covered here and remain open.
+
 ## Deferrals
 
 - (none)
