@@ -43,7 +43,7 @@ Select the packs required by its actual languages and engineering conventions, i
 
 ### AC-2 — Both hosts demonstrate relevant project reads in fresh sessions
 
-Observe root-started tasks touching nested files, new files, and unrelated prose, in a checkout without ai-dotfiles. Include non-coding tasks outside repositories and verify that personal-only globals require no engineering discovery or reads. Record project-override precedence, relevant reads, absence of legacy engineering reads, and limits of observable behavior. References: milestone observation record with tasks, expectations, actual observations, environment, host/model versions, and installed revision. Obtain separate approval for live service invocations.
+From a session started at the repository root in a checkout without ai-dotfiles, both hosts reach project-local guidance when the task needs it and apply project overrides over pack guidance. Establish that rule rather than enumerate task shapes: observe both of its directions with tasks chosen to differ in whether a pack carries the answer — guidance read when only a pack answers it, and not read when the project override already does, which is what the routing prescribes. Verify that personal-only globals inject no engineering guidance and prompt no engineering discovery, and that no legacy engineering file is read or attempted. Record project-override precedence, the observed reads, the absence of legacy reads, which task shapes were exercised and which were judged to be further inputs to the same rule, and the limits of observable behavior. References: milestone observation record with tasks, expectations, actual observations, environment, host/model versions, and installed revision. Obtain separate approval for live service invocations.
 
 ### AC-3 — Mixed repositories retain the correct guidance source
 
@@ -233,9 +233,26 @@ gitignored materialized host artifact the project instruction file imports was
 absent and its import line stood unresolved; these sessions ran without aiwf's
 own workflow guidance. A task straddling the two shapes, where the project
 instruction file partly answers and a pack would complete it, is untested and is
-the case most likely to behave differently. New files, unrelated prose, and
-non-coding tasks outside repositories remain open observations under this
-criterion.
+the case most likely to behave differently.
+
+**Task shapes exercised, and those consolidated.** The rule this criterion
+reaches for is that a host reads project guidance when the task needs it and not
+otherwise. Two task shapes pin it, because they differ in the one variable that
+decides the outcome: a task the project instruction file already answers, and a
+task only a pack answers. Both directions were observed on Claude, and the
+first on Codex.
+
+Three further shapes were judged to be additional inputs to that same rule
+rather than additional rules, and were not run as sessions. Prose-only
+avoidance is already visible in the runs above: the Go task read no Python
+pack, and the instruction-file-answerable task read no pack at all. Personal-only
+globals carrying no engineering guidance is established by measurement rather
+than inference — every transcript's injected-instruction list held the personal
+file and its one collaboration fragment and nothing else. The setting that
+clause names, a session outside any repository, was exercised directly against
+the ai-dotfiles startup hook, which in a non-Git directory exited 0, emitted
+nothing, and created no files. A new-file task remains unobserved; it is the same rule with no existing
+file to imitate, and that is the whole of what distinguishes it.
 
 ### AC-3 — distribution and mixed-repository observations
 
