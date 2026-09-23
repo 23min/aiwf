@@ -303,6 +303,69 @@ the commit under test, which is parity with CI rather than CI itself. The
 incompatible personal installation and failed handover cases named in the
 criterion are not covered here and remain open.
 
+### AC-4 — growth measurements and the reduction prerequisite
+
+Observed on 2026-09-23 in the Linux devcontainer. Before commit
+`1b2fd9a1df03e79eda2f921c6569d6244675872e`; after commit
+`9f817fa5b34cdcc4e0a065f7f7e78a54a030ad83`, the migration itself. Installed
+guidance revision `9c9ca4b3681ca4cb8798e5af9e9124b1e761526b`.
+
+**Apparatus growth.** `scripts/growth-report.py --at <after> --baseline <before>`.
+Expected the migration to add no production, test or policy apparatus, since it
+changes configuration, tracked guidance and host instruction files rather than
+code. Observed every metric the report tracks unchanged at 1.00x, at identical
+absolute values on both sides — production and test lines, the policy corpus and
+its chokepoint count, entity files and body words, shipped skill and guidance
+words, and docs narrative words. Measuring against the current branch head
+instead would not isolate the migration, because the head carries a trunk merge
+of unrelated work; the range above is the migration commit and its parent.
+
+The report measures code, the policy corpus, entities and documentation. It does
+not measure instruction load, which is the quantity the reduction epic is
+concerned with, so that is measured directly below rather than inferred from it.
+
+**Instruction load, by how it reaches a session.** Bytes on disk, measured at
+the commits above.
+
+- *Global and personal, loaded in every session in every repository*: the
+  personal instruction file at 151 bytes plus the one collaboration fragment it
+  imports at 3,641. It carries the personal-only marker and imports no
+  engineering guidance, which the AC-2 observations confirm behaviourally — no
+  engineering pack was injected into any session, on either host.
+- *Upfront project instructions*: this repository's Claude instruction file,
+  66,109 bytes before and 66,589 after. The migration removed a five-line
+  generated block carrying three home-directory language imports and added the
+  nine-line routing block, a net 480 bytes. The separate always-on aiwf fragment
+  it imports, 13,433 bytes, is unchanged by the migration.
+- *Language guidance that was upfront and no longer is*: the three imported
+  language files, 2,051 + 1,214 + 1,067 = 4,332 bytes, resolved into every
+  session before the migration and into none after it.
+- *Task-loaded project guidance*: the override at 327 bytes, the index at 840,
+  and five pack documents totalling 12,502 — 13,669 bytes reachable on demand,
+  of which a session loads only what its task needs. AC-2 observed both
+  directions of that: a task the instruction file already answered drew no pack
+  read, and a task only a pack could answer drew the index and that pack.
+
+So upfront instruction bytes fell by 3,852 — 4,332 leaving, 480 arriving — while
+the corpus reachable on demand grew to 13,669, adding a cross-language guide and
+rubric that had no place in the previous upfront path at all.
+
+**Corpus fidelity.** Each migrated language pack is byte-identical to the
+home-directory file it replaces, by SHA-256. The scope requirement to preserve
+wording holds as an equality rather than an impression.
+
+**Prerequisite.** E-0092 is updated in the same change to name E-0094 as its
+delivery prerequisite in place of the generic reference it carried from before
+E-0094 was allocated. E-0092 keeps its own frozen behavioural baseline and
+ceiling; nothing here sets them.
+
+Limits. The personal instruction file and its fragment live outside this
+repository, so their pre-migration sizes are not recoverable from git history;
+the figures above are today's, and the claim they support — that the global
+surface carries no engineering guidance — rests on the AC-2 session
+observations rather than on a historical byte count. Byte counts are a measure
+of what a host is handed, not of what a model attends to.
+
 ## Deferrals
 
 - (none)
