@@ -9,7 +9,6 @@ import (
 	"github.com/23min/aiwf/internal/config"
 	"github.com/23min/aiwf/internal/pathutil"
 	"github.com/23min/aiwf/internal/skills"
-	"github.com/23min/aiwf/internal/version"
 )
 
 // ensureAgentsGuidance maintains native Codex instructions only when selected
@@ -37,8 +36,8 @@ func ensureAgentsGuidance(ctx context.Context, root string, cfg *config.Config, 
 			return StepResult{}, fmt.Errorf("reading AGENTS.md: %w", err)
 		}
 	}
-	body, err := skills.RenderCodexGuidance(version.Current().Version)
-	if err != nil { //coverage:ignore malformed immutable linker stamps are exercised in TestEnsureAgentsGuidance_InvalidBuildStampPreservesFile via a separately linked subprocess
+	body, err := skills.RenderCodexGuidance()
+	if err != nil { //coverage:ignore compiled-in guidance cannot fail to render
 		return StepResult{}, fmt.Errorf("rendering AGENTS.md guidance: %w", err)
 	}
 	rebuilt, err := spliceAgentsGuidance(string(content), string(body))

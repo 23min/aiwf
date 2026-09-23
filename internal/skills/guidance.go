@@ -19,6 +19,11 @@ var guidanceEmbed []byte
 // string at materialization time (M-0163/AC-2).
 const guidanceVersionSentinel = "__AIWF_VERSION__"
 
+// guidanceVersionStamp is the header's version field. The Codex block
+// omits it: that block lives in the tracked AGENTS.md, where a stamp
+// would change with every writer's version while the guidance did not.
+const guidanceVersionStamp = " aiwf-version: " + guidanceVersionSentinel
+
 // GuidanceFile is the host-relative path of the materialized consumer
 // CLAUDE.md guidance fragment. Unlike the scaffold-once statusline, it
 // is byte-refreshed on every `aiwf init` / `aiwf update` (M-0163).
@@ -38,9 +43,11 @@ func RenderGuidance(ver string) ([]byte, error) {
 }
 
 // RenderCodexGuidance returns native instructions for an AGENTS.md block,
-// resolving canonical paths against the Codex layout.
-func RenderCodexGuidance(ver string) ([]byte, error) {
-	return renderGuidance(guidanceEmbed, ver, CodexRenderBindings())
+// resolving canonical paths against the Codex layout. The output carries
+// no version, so every aiwf release writing the same guidance writes the
+// same bytes.
+func RenderCodexGuidance() ([]byte, error) {
+	return renderGuidance(bytes.Replace(guidanceEmbed, []byte(guidanceVersionStamp), nil, 1), "", CodexRenderBindings())
 }
 
 func renderGuidance(source []byte, ver string, bindings RenderBindings) ([]byte, error) {
