@@ -18,7 +18,7 @@ acs:
       status: met
     - id: AC-3
       title: Mixed repositories retain the correct guidance source
-      status: open
+      status: met
     - id: AC-4
       title: Growth measurements make the reduction prerequisite reproducible
       status: met
