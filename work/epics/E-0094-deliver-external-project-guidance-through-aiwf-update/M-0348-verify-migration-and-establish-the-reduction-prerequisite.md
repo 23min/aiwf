@@ -251,22 +251,41 @@ the case most likely to behave differently.
 
 **Task shapes exercised, and those consolidated.** The rule this criterion
 reaches for is that a host reads project guidance when the task needs it and not
-otherwise. Two task shapes pin it, because they differ in the one variable that
-decides the outcome: a task the project instruction file already answers, and a
-task only a pack answers. Both directions were observed on Claude, and the
-first on Codex.
+otherwise. Its two directions are what pin it, and the tasks exercising them
+differ in the one variable that decides the outcome: whether a pack carries the
+answer. Both directions were observed on Claude against an existing nested file.
+On Codex the first drew the full pack sequence rather than declining it, so the
+read-only-when-needed half of the rule is pinned on Claude alone.
 
-Three further shapes were judged to be additional inputs to that same rule
-rather than additional rules, and were not run as sessions. Prose-only
-avoidance is already visible in the runs above: the Go task read no Python
-pack, and the instruction-file-answerable task read no pack at all. Personal-only
-globals carrying no engineering guidance is established by measurement rather
-than inference — every transcript's injected-instruction list held the personal
-file and its one collaboration fragment and nothing else. The setting that
-clause names, a session outside any repository, was exercised directly against
-the ai-dotfiles startup hook, which in a non-Git directory exited 0, emitted
-nothing, and created no files. A new-file task remains unobserved; it is the same rule with no existing
-file to imitate, and that is the whole of what distinguishes it.
+Two further shapes the criterion names were exercised rather than consolidated:
+
+- **New-file task, Claude, effort `medium`.** Plan a new `scripts/guidance-audit.py`
+  and name the conventions and validation commands that apply to a file that does
+  not exist yet. Python, so the answer is reachable only through the pack: the
+  repository carries no Python tooling configuration, no Makefile target and no CI
+  step, and the instruction file says nothing about Python. Exit 0 in 32.7 seconds,
+  14 tool calls. The first call globbed `.guidance/**`, before anything else;
+  calls three through five read the Python pack, the project override and the
+  index. The sibling scripts under `scripts/` were read afterwards, so guidance
+  led and imitation supplemented it rather than standing in for it — which was the
+  failure this shape was chosen to expose. The pack's toolchain reached the answer,
+  weighed as before against a repository that wires none of it.
+- **Prose-only task, Claude, effort `medium`.** Plan an addition to a design
+  document, with no code in the task. Exit 0 in 25.1 seconds, 11 tool calls. It
+  read the target document, the project override and the index — and then **no
+  pack at all**: not the Go, Python or TypeScript guide, nor the cross-language
+  rubric. Consulting the routing and declining every pack as irrelevant is what
+  the criterion's avoidance clause claims, observed rather than inferred.
+
+One shape was judged an additional input to the same rule rather than an
+additional rule, and was not run as a session. Personal-only globals carrying no
+engineering guidance is established by measurement rather than inference — every
+transcript's injected-instruction list held the personal file and its one
+collaboration fragment and nothing else. The setting that clause names, a session
+outside any repository, was exercised directly against the ai-dotfiles startup
+hook, which in a non-Git directory exited 0, emitted nothing, and created no
+files. Both channels by which engineering guidance could reach such a session are
+therefore measured; what is not measured is an assistant session in that setting.
 
 ### AC-3 — distribution and mixed-repository observations
 
@@ -312,9 +331,14 @@ on filesystem and git state rather than the command's own summary.
 **Fixed point under the updater.** The migration commit captured the guidance
 tree and its routing but not the Codex host artifacts' wiring, so update rewrote
 the ignore file and the Codex instruction file on every clean clone. Committing
-that generated wiring closes it: a fresh clone of the result, updated by the
-same binary, now reports no tracked change at all. This is the property the epic
-claims for repeated unchanged updates, measured rather than asserted.
+that generated wiring closes the per-clone rewrite: a fresh clone of the
+result, updated by the binary that generated it, reports no tracked change.
+The measurement is scoped to that binary and does not reach the epic's general
+claim for repeated unchanged updates. The managed block in the Codex
+instruction file embeds the generating binary's version, and that file is
+tracked, so an update run from any other version rewrites the stamp line and
+leaves the tree dirty — reproduced against both a differently stamped build and
+the installed release.
 
 **Finding — a lockfile survives outside a repository.** `aiwf update` in a
 non-Git directory exits reporting no configuration found and leaves an empty
@@ -339,7 +363,7 @@ over every non-Git file in each bystander was unchanged on both. aiwf acts only
 on the root it is given.
 
 **Failure triggers consolidated to one rule.** `CheckCompatibility` returns a
-single sentinel reached by four detectors, and its caller funnels every guidance
+single sentinel reached by every detector in it, and its caller funnels every guidance
 failure — instruction inspection, compatibility, host refusal, retrieval — into
 one outcome: the step is reported skipped with its reason, returned rather than
 raised, so unrelated update work continues. The criterion's separately named
@@ -426,8 +450,8 @@ of what a host is handed, not of what a model attends to.
 
 `make check-fast` exited 0 with no failing package. `aiwf check` reported 0
 errors; its warnings are the `acs-tdd-audit` advisory raised once per criterion
-met under `tdd: advisory` without a recorded phase, the pending archive sweep,
-and the epic's absent drafted milestone.
+met under `tdd: advisory` without a recorded phase, the pending archive sweep
+with the per-entity finding behind it, and the epic's absent drafted milestone.
 
 The full `make ci` gate last ran green on the commit carrying this milestone's
 only source change. Nothing matching the build-input set — Go sources, the
