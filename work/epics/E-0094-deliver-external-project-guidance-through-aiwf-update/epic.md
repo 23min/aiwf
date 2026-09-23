@@ -9,7 +9,7 @@ Let maintainers use `aiwf init` and `aiwf update` to select, refresh, and delive
 
 ## Context
 
-E-0093 provides the existing host-delivery foundation. D-0089 records the proposed external content-ownership boundary. This epic delivers and migrates project guidance before E-0092 freezes its baseline and reduces instruction load.
+E-0093 provides the existing host-delivery foundation. D-0089 records the external content-ownership boundary. This epic delivers and migrates project guidance before E-0092 freezes its baseline and reduces instruction load.
 
 Language conventions change independently of workflow machinery. Keep their content and detection patterns outside aiwf; aiwf owns selection, retrieval, and project delivery. Adapt the existing ai-dotfiles detector without retaining a dependency on a local dotfiles checkout.
 
@@ -77,19 +77,19 @@ Language conventions change independently of workflow machinery. Keep their cont
 
 ## Success criteria
 
-- [ ] The external source contains the existing engineering/language corpus, separated from personal settings, with usable descriptions and detection patterns.
-- [ ] Default-enabled init/update suggest applicable packs while explicit selection, not now, ignore, and noninteractive operation preserve maintainer control.
-- [ ] Adding an external language pack and detection patterns requires no aiwf code change.
-- [ ] Enabled update checks upstream on demand without a persistent cache and records the installed commit in the tracked index.
-- [ ] Fetch, validation, missing-pack, and local-edit failures preserve the installed guidance set and report the failure while unrelated update work continues.
-- [ ] Persistent removal and re-enabling suggestions work through `packs` and `ignored`; absent language files never silently remove a selection.
-- [ ] Disabled maintenance leaves installed policy and routing usable without network checks or suggestions.
+- [x] The external source contains the existing engineering/language corpus, separated from personal settings, with usable descriptions and detection patterns.
+- [x] Default-enabled init/update suggest applicable packs while explicit selection, not now, ignore, and noninteractive operation preserve maintainer control.
+- [x] Adding an external language pack and detection patterns requires no aiwf code change.
+- [x] Enabled update checks upstream on demand without a persistent cache and records the installed commit in the tracked index.
+- [x] Fetch, validation, missing-pack, and local-edit failures preserve the installed guidance set and report the failure while unrelated update work continues.
+- [x] Persistent removal and re-enabling suggestions work through `packs` and `ignored`; absent language files never silently remove a selection.
+- [x] Disabled maintenance leaves installed policy and routing usable without network checks or suggestions.
 - [ ] Both hosts reach shared project-local guidance and respect project overrides in the exercised root/nested/new-file tasks; prose-only tasks avoid irrelevant language reads.
-- [ ] Repeated unchanged updates preserve bytes, handwritten overrides, and unrelated configuration and instructions.
-- [ ] aiwf and its personal-bootstrap integration use the new delivery boundary, with growth measurements and E-0092 prerequisite linkage recorded.
-- [ ] aiwf installation and migration of one repository do not modify other repositories, and aiwf does not adopt old-aiwf or non-aiwf repositories into project delivery. Failed compatibility preflight leaves legacy global instructions active. Delivering local guidance to old-aiwf and non-aiwf repositories belongs to ai-dotfiles and is verified there.
-- [ ] Successful migration leaves one active repository-local engineering-guidance path in the migrated repository. Both hosts exercise exclusive aiwf project delivery; empty installed selections and disabled maintenance do not re-enable legacy delivery.
-- [ ] Incompatible personal delivery blocks guidance handover with an actionable diagnostic while allowing the binary upgrade and unrelated update work; personal files are not silently rewritten. Global instructions remain personal-only and require no engineering discovery or reads, including for non-coding tasks outside repositories.
+- [x] Repeated unchanged updates preserve bytes, handwritten overrides, and unrelated configuration and instructions.
+- [x] aiwf and its personal-bootstrap integration use the new delivery boundary, with growth measurements and E-0092 prerequisite linkage recorded.
+- [x] aiwf installation and migration of one repository do not modify other repositories, and aiwf does not adopt old-aiwf or non-aiwf repositories into project delivery. Failed compatibility preflight leaves legacy global instructions active. Delivering local guidance to old-aiwf and non-aiwf repositories belongs to ai-dotfiles and is verified there.
+- [x] Successful migration leaves one active repository-local engineering-guidance path in the migrated repository. Both hosts exercise exclusive aiwf project delivery; empty installed selections and disabled maintenance do not re-enable legacy delivery.
+- [x] Incompatible personal delivery blocks guidance handover with an actionable diagnostic while allowing the binary upgrade and unrelated update work; personal files are not silently rewritten. Global instructions remain personal-only and require no engineering discovery or reads, including for non-coding tasks outside repositories.
 
 ## Open questions
 
@@ -121,7 +121,7 @@ Language conventions change independently of workflow machinery. Keep their cont
 - ADR-0052 — project guidance ownership and the personal-bootstrap boundary.
 - E-0093 — supported hosts and existing delivery foundation.
 - E-0092 — post-delivery guidance reduction and frozen baseline.
-- D-0089 — proposed external content-ownership boundary.
+- D-0089 — external content-ownership boundary.
 - ADR-0014 — existing managed host delivery; reconcile this external tracked-policy scope with its distribution boundary.
 - `internal/skills/render.go`, `internal/skills/ownership.go`, `internal/initrepo/agents_guidance.go` — existing delivery seams to assess for reuse.
 - `docs/design/growth.md`, `scripts/growth-report.py` — growth measurements.
