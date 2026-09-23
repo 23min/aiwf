@@ -21,7 +21,7 @@ acs:
       status: open
     - id: AC-4
       title: Growth measurements make the reduction prerequisite reproducible
-      status: open
+      status: met
 ---
 ## Goal
 
