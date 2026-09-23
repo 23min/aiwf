@@ -378,9 +378,17 @@ regression, so they were not run as observations. Configuration honoured as
 written was observed live above for both an explicitly empty selection and
 disabled maintenance.
 
-**Not covered.** Startup setup in the environments using shared global
-engineering delivery is unverified here. That verification is a precondition on
-removing that delivery, which this milestone neither performs nor approves — the
+**Not covered, and why it is not aiwf's to cover.** Whether an old-aiwf or
+non-aiwf repository receives its local guidance when opened is legacy-repository
+synchronization, which ADR-0052 assigns to the personal-bootstrap maintainer
+along with the statement that the bootstrap's own documentation owns its delivery
+mechanism. aiwf cannot verify it because aiwf does not perform it. The epic's
+success criterion naming it is therefore satisfied against that project's
+documented behaviour rather than here.
+
+Startup setup in the environments using shared global engineering delivery is
+likewise unverified here, and is in any case a precondition on removing that
+delivery — an action this milestone neither performs nor approves. The
 home-directory language files remain present and merely unimported.
 
 ### AC-4 — growth measurements and the reduction prerequisite
@@ -463,7 +471,22 @@ above, with the pre-push hook and CI-on-push as its net.
 
 ## Deferrals
 
-- (none)
+- G-0703 — the managed guidance block aiwf writes into the tracked Codex
+  instruction file embeds the rendering binary's version, so an update from any
+  other version rewrites that line and leaves the tree modified with no content
+  change behind it. Found by this milestone's verification, in delivery shipped
+  by an earlier one; filed at high priority rather than fixed here, since the
+  change lands in the Codex guidance renderer and needs its own branch and test.
+- The epic's success criterion that old-aiwf and non-aiwf repositories receive
+  local guidance when opened is verified against the personal-bootstrap
+  project's own documentation, per ADR-0052's assignment of legacy-repository
+  synchronization to its maintainer. It goes unticked here because aiwf does not
+  perform that delivery and cannot observe it.
+- The epic's success criterion that global instructions require no engineering
+  discovery, including for non-coding tasks outside repositories, is evidenced by
+  measuring both channels that could carry such guidance — the global files'
+  contents and the startup hook's behaviour in a non-Git directory — rather than
+  by an assistant session in that setting. The setting itself is unexercised.
 
 ## Reviewer notes
 
