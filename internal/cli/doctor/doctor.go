@@ -177,9 +177,12 @@ var subIndent = strings.Repeat(" ", labelWidth)
 // process state but does not refresh host artifacts. The error count (what doctor's exit code weighs) is the
 // number of SeverityError entries; warnings are advisory.
 func DoctorReport(rootDir string, opts DoctorOptions) (lines []string, problems []Problem) {
+	cfg, configErr := config.Load(rootDir)
+	trunkRef, _ := cfg.AllocateTrunkRef()
+
 	current := version.Current()
 	binaryRow := label("binary:") + renderBinaryVersion(current)
-	binaryRow += binaryStaleness(context.Background(), rootDir, current, version.ModulePath())
+	binaryRow += binaryStaleness(context.Background(), rootDir, trunkRef, current, version.ModulePath())
 	lines = append(lines, binaryRow)
 
 	if opts.CheckLatest {
@@ -187,7 +190,6 @@ func DoctorReport(rootDir string, opts DoctorOptions) (lines []string, problems 
 	}
 
 	// env: line — informational, never increments problems. M-0135/AC-1.
-	cfg, configErr := config.Load(rootDir)
 	selection := config.HostSelection{}
 	if configErr == nil || errors.Is(configErr, config.ErrNotFound) {
 		var selectionErr error

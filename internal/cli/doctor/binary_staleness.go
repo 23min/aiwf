@@ -12,8 +12,9 @@ import (
 )
 
 // binaryStaleness returns a suffix string for the doctor `binary:`
-// row when the running binary's source SHA differs from
-// refs/remotes/origin/main in the kernel checkout under rootDir.
+// row when the running binary's source SHA differs from trunkRef (the
+// configured `allocate.trunk`, default refs/remotes/origin/main) in the
+// kernel checkout under rootDir.
 // Returns "" (no suffix) when the check should be silent — Lane B per
 // G-0176: kernel-developer-side only.
 //
@@ -27,14 +28,14 @@ import (
 //   - expectedModule == "" (binary lacks build info)
 //   - rootDir's go.mod module path != expectedModule (downstream
 //     consumer repo; the check is kernel-developer-only)
-//   - refs/remotes/origin/main is absent (fresh clone, no fetch yet,
+//   - trunkRef is absent (fresh clone, no fetch yet,
 //     or detached state); degrade silently — mirrors how the latest:
 //     row handles GOPROXY unreachability.
 //
 // The check is N=0 strict per design: any SHA mismatch triggers the
 // suffix. The suffix is advisory only; the row's problem count is
 // unaffected.
-func binaryStaleness(ctx context.Context, rootDir string, info version.Info, expectedModule string) string {
+func binaryStaleness(ctx context.Context, rootDir, trunkRef string, info version.Info, expectedModule string) string {
 	if info.Version == version.DevelVersion || info.Version == "" {
 		return ""
 	}
@@ -55,23 +56,22 @@ func binaryStaleness(ctx context.Context, rootDir string, info version.Info, exp
 	if err != nil || rootModule != expectedModule {
 		return ""
 	}
-	ref := "refs/remotes/origin/main"
-	exists, err := gitops.HasRef(ctx, rootDir, ref)
+	exists, err := gitops.HasRef(ctx, rootDir, trunkRef)
 	if err != nil || !exists {
 		return ""
 	}
-	mainSHA, err := gitops.ShortSHA(ctx, rootDir, ref, 12)
+	trunkSHA, err := gitops.ShortSHA(ctx, rootDir, trunkRef, 12)
 	if err != nil {
 		//coverage:ignore environmental git failure between HasRef and
 		// ShortSHA — reachable only via TOCTOU on the ref between two
 		// git subprocesses; not exercisable without intrusive mocking.
 		return ""
 	}
-	if mainSHA == pseudoSHA {
+	if trunkSHA == pseudoSHA {
 		return ""
 	}
 	return fmt.Sprintf(" (stale: pseudo-base SHA %s differs from %s %s; run `make install` to refresh)",
-		pseudoSHA, ref, mainSHA)
+		pseudoSHA, trunkRef, trunkSHA)
 }
 
 // readModulePath parses the `module <path>` line from rootDir/go.mod.

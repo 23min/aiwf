@@ -8,6 +8,7 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/23min/aiwf/internal/config"
 	"github.com/23min/aiwf/internal/gitops"
 	"github.com/23min/aiwf/internal/version"
 )
@@ -71,7 +72,7 @@ func TestBinaryStaleness_SkipsByShape(t *testing.T) {
 	for _, tc := range cases {
 		t.Run(tc.name, func(t *testing.T) {
 			t.Parallel()
-			got := binaryStaleness(ctx, root, tc.info, "github.com/23min/aiwf")
+			got := binaryStaleness(ctx, root, config.DefaultAllocateTrunk, tc.info, "github.com/23min/aiwf")
 			if got != "" {
 				t.Errorf("binaryStaleness(%s) = %q, want \"\"", tc.name, got)
 			}
@@ -89,7 +90,7 @@ func TestBinaryStaleness_SkipsOutOfTree(t *testing.T) {
 	ctx := context.Background()
 	pseudoVersion := "v0.0.0-20260503120000-abcdef123456"
 	info := version.Info{Version: pseudoVersion}
-	got := binaryStaleness(ctx, root, info, "github.com/23min/aiwf")
+	got := binaryStaleness(ctx, root, config.DefaultAllocateTrunk, info, "github.com/23min/aiwf")
 	if got != "" {
 		t.Errorf("binaryStaleness out-of-tree = %q, want \"\"", got)
 	}
@@ -113,7 +114,7 @@ func TestBinaryStaleness_SkipsWhenOriginMainAbsent(t *testing.T) {
 	mustGit(t, ctx, root, "commit", "-q", "-m", "initial")
 	// No update-ref — origin/main does not exist.
 	info := version.Info{Version: "v0.0.0-20260503120000-abcdef123456"}
-	got := binaryStaleness(ctx, root, info, "github.com/23min/aiwf")
+	got := binaryStaleness(ctx, root, config.DefaultAllocateTrunk, info, "github.com/23min/aiwf")
 	if got != "" {
 		t.Errorf("binaryStaleness no-origin-main = %q, want \"\"", got)
 	}
@@ -127,7 +128,7 @@ func TestBinaryStaleness_OkWhenSHAsMatch(t *testing.T) {
 	ctx := context.Background()
 	// Construct a pseudo-version that ends in the real origin/main SHA.
 	info := version.Info{Version: "v0.0.0-20260503120000-" + sha}
-	got := binaryStaleness(ctx, root, info, "github.com/23min/aiwf")
+	got := binaryStaleness(ctx, root, config.DefaultAllocateTrunk, info, "github.com/23min/aiwf")
 	if got != "" {
 		t.Errorf("binaryStaleness sha-match = %q, want \"\"", got)
 	}
@@ -148,7 +149,7 @@ func TestBinaryStaleness_StaleSuffix(t *testing.T) {
 		t.Fatalf("fixture collision: binarySHA == mainSHA %q", mainSHA)
 	}
 	info := version.Info{Version: "v0.0.0-20260503120000-" + binarySHA}
-	got := binaryStaleness(ctx, root, info, "github.com/23min/aiwf")
+	got := binaryStaleness(ctx, root, config.DefaultAllocateTrunk, info, "github.com/23min/aiwf")
 	if got == "" {
 		t.Fatal("binaryStaleness stale = \"\", want suffix")
 	}
@@ -177,7 +178,7 @@ func TestBinaryStaleness_SkipsOnMissingGoMod(t *testing.T) {
 	ctx := context.Background()
 	root := t.TempDir() // bare tempdir — no git init, no go.mod
 	info := version.Info{Version: "v0.0.0-20260503120000-abcdef123456"}
-	got := binaryStaleness(ctx, root, info, "github.com/23min/aiwf")
+	got := binaryStaleness(ctx, root, config.DefaultAllocateTrunk, info, "github.com/23min/aiwf")
 	if got != "" {
 		t.Errorf("binaryStaleness no-go.mod = %q, want \"\"", got)
 	}
@@ -196,7 +197,7 @@ func TestBinaryStaleness_SkipsOnMalformedGoMod(t *testing.T) {
 		t.Fatalf("write go.mod: %v", err)
 	}
 	info := version.Info{Version: "v0.0.0-20260503120000-abcdef123456"}
-	got := binaryStaleness(ctx, root, info, "github.com/23min/aiwf")
+	got := binaryStaleness(ctx, root, config.DefaultAllocateTrunk, info, "github.com/23min/aiwf")
 	if got != "" {
 		t.Errorf("binaryStaleness malformed-go.mod = %q, want \"\"", got)
 	}
@@ -210,8 +211,25 @@ func TestBinaryStaleness_SkipsOnEmptyExpectedModule(t *testing.T) {
 	root, _ := initRepoWithMain(t, "github.com/23min/aiwf")
 	ctx := context.Background()
 	info := version.Info{Version: "v0.0.0-20260503120000-abcdef123456"}
-	got := binaryStaleness(ctx, root, info, "")
+	got := binaryStaleness(ctx, root, config.DefaultAllocateTrunk, info, "")
 	if got != "" {
 		t.Errorf("binaryStaleness empty-expected-module = %q, want \"\"", got)
+	}
+}
+
+// TestBinaryStaleness_ComparesConfiguredTrunk confirms the check reads
+// the trunk it is handed rather than assuming origin/main: with only a
+// non-default trunk ref present, a mismatch is reported against it.
+func TestBinaryStaleness_ComparesConfiguredTrunk(t *testing.T) {
+	t.Parallel()
+	root, trunkSHA := initRepoWithMain(t, "github.com/23min/aiwf")
+	ctx := context.Background()
+	const trunkRef = "refs/remotes/origin/trunk"
+	mustGit(t, ctx, root, "update-ref", trunkRef, "HEAD")
+	mustGit(t, ctx, root, "update-ref", "-d", "refs/remotes/origin/main")
+	info := version.Info{Version: "v0.0.0-20260503120000-abcdef123456"}
+	got := binaryStaleness(ctx, root, trunkRef, info, "github.com/23min/aiwf")
+	if !strings.Contains(got, trunkRef+" "+trunkSHA) {
+		t.Errorf("suffix %q does not report the configured trunk %s at %s", got, trunkRef, trunkSHA)
 	}
 }
