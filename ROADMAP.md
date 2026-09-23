@@ -1331,5 +1331,5 @@ Let maintainers use `aiwf init` and `aiwf update` to select, refresh, and delive
 | M-0345 | Preserve legacy guidance through repository-aware routing | done |
 | M-0346 | Deliver explicitly selected project guidance through update | done |
 | M-0347 | Suggest applicable guidance during init and update | done |
-| M-0348 | Verify migration and establish the reduction prerequisite | draft |
+| M-0348 | Verify migration and establish the reduction prerequisite | done |
 
