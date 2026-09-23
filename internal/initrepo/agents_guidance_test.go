@@ -70,7 +70,7 @@ func TestEnsureAgentsGuidance_RefusesAmbiguousMarkers(t *testing.T) {
 
 func TestEnsureAgentsGuidance_CreatesOrRefreshesNativeInstructions(t *testing.T) {
 	t.Parallel()
-	body, err := skills.RenderCodexGuidance(version.Current().Version)
+	body, err := skills.RenderCodexGuidance()
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -281,24 +281,37 @@ func assertAgentsFile(t *testing.T, path, want string, mode fs.FileMode) {
 	}
 }
 
-// The version comes from the linker, so exercise a malformed build stamp in a
-// separate test binary without mutating shared package state.
-func TestEnsureAgentsGuidance_InvalidBuildStampPreservesFile(t *testing.T) {
+// agentsRootEnv hands the stamped child test binary the repository its parent
+// prepared.
+const agentsRootEnv = "AIWF_TEST_AGENTS_GUIDANCE_ROOT"
+
+// An update run by a binary of another version leaves the tracked AGENTS.md
+// block unchanged. The version comes from the linker, so the second writer
+// runs in a separately stamped test binary.
+func TestEnsureAgentsGuidance_OtherVersionPreservesFile(t *testing.T) {
 	t.Parallel()
-	const stamp = "{{aiwf:unknown}}"
-	if version.Current().Version != stamp {
-		cmd := exec.CommandContext(context.Background(), "go", "test", "-run=^TestEnsureAgentsGuidance_InvalidBuildStampPreservesFile$", "-ldflags=-X github.com/23min/aiwf/internal/version.Stamp="+stamp, ".")
-		if out, err := cmd.CombinedOutput(); err != nil {
-			t.Fatalf("stamped test binary: %v\n%s", err, out)
+	const stamp = "v9.9.9"
+	if version.Current().Version == stamp {
+		step, err := ensureAgentsGuidance(context.Background(), os.Getenv(agentsRootEnv), nil, false)
+		if err != nil || step.Action != ActionPreserved {
+			t.Fatalf("other-version update = %+v, %v", step, err)
 		}
 		return
 	}
 	root := t.TempDir()
 	path := filepath.Join(root, "AGENTS.md")
 	writeAgentsFixture(t, path, "user guidance", 0o640)
-	_, err := ensureAgentsGuidance(context.Background(), root, nil, false)
-	if !errors.Is(err, skills.ErrUnknownRenderBinding) || !strings.Contains(err.Error(), "AGENTS.md") {
-		t.Fatalf("render error = %v", err)
+	if _, err := ensureAgentsGuidance(context.Background(), root, nil, false); err != nil {
+		t.Fatal(err)
 	}
-	assertAgentsFile(t, path, "user guidance", 0o640)
+	want, err := os.ReadFile(path)
+	if err != nil {
+		t.Fatal(err)
+	}
+	cmd := exec.CommandContext(context.Background(), "go", "test", "-count=1", "-run=^TestEnsureAgentsGuidance_OtherVersionPreservesFile$", "-ldflags=-X github.com/23min/aiwf/internal/version.Stamp="+stamp, ".")
+	cmd.Env = append(os.Environ(), agentsRootEnv+"="+root)
+	if out, err := cmd.CombinedOutput(); err != nil {
+		t.Fatalf("stamped test binary: %v\n%s", err, out)
+	}
+	assertAgentsFile(t, path, string(want), 0o640)
 }

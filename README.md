@@ -211,7 +211,8 @@ marketplace install or separate plugin step; artifact versions follow the binary
 | Standing guidance | `.claude/aiwf-guidance.md`, imported by root `CLAUDE.md` | Native managed block in root `AGENTS.md` |
 | Lifecycle hooks and statusline | Existing consent and opt-in rules | Not installed |
 
-Generated artifacts are gitignored. User-owned files and content
+Generated framework artifacts are gitignored. Project engineering guidance described
+below is intended to be committed. User-owned files and content
 outside managed root guidance blocks are preserved; ownership collisions and
 unsafe instruction paths are reported instead of overwritten. Root guidance is
 wired by default for selected hosts. To manage either instruction file yourself:
@@ -233,6 +234,95 @@ the resolved checkout. `doctor` compares selected artifacts with their rendered
 expectations: verb-skill findings are errors; rituals, templates, role cards,
 and guidance are advisory. `doctor --check-rituals` also fails on ritual drift.
 These disk checks do not establish that a running model loaded the instructions.
+
+External engineering guidance has separate settings in the same `guidance` block:
+
+```yaml
+guidance:
+  enabled: true
+  source: https://github.com/23min/engineering-guidance.git
+  packs: [code-health, go/cobra]
+  ignored: [python/astral]
+```
+
+Maintenance defaults on and an omitted or empty `source` uses the default corpus.
+Pack ids are explicit project policy: omit `packs` (or use `null`) to leave policy
+unadopted; `packs: []` explicitly selects none. Selected and ignored ids must be
+unique and must not overlap. Existing host-wiring settings remain independent.
+After choosing catalogue ids, run `aiwf update`. Enabled init and update retrieve
+the source's current default-branch revision into a temporary directory for
+suggestions and refresh any explicit selection in `.guidance/`.
+There is no persistent download cache. Interactive init and update also suggest
+applicable packs using the external catalogue's filename patterns. Each prompt
+shows the pack description and a matching file: select adds it to `packs`, ignore
+adds it to `ignored`, and Enter means not now. Selected and ignored packs are not
+prompted again. Choices are saved together only after every prompt finishes;
+interruption saves none of that session's choices. Init's `--no-prompt` suppresses
+these prompts as well as hook consent. Noninteractive runs report applicable
+unselected, unignored packs with matching evidence and configuration instructions;
+they refresh explicit selections without adopting new policy. Selected packs with
+no current matching files are reported and retained, so you can select guidance
+before adding project source files.
+
+Completed choices are saved before installation. If validation or installation
+fails, the desired selection remains in configuration while the previously
+installed guidance remains available; the update reports the failure. Expand YAML
+anchors or aliases in `guidance` before using interactive selection. Other fields
+and comments are preserved; adding a guidance block or editing a flow-style root
+mapping may reformat the document. Saving guidance choices requires a single UTF-8
+YAML document; unsupported files are refused without being changed.
+
+Detection respects Git ignore rules, skips dependency/cache directories and nested
+repositories, and does not follow symbolic links. Output-like directory names
+such as `bin`, `build`, and `out` are not exclusions by themselves; use Git ignore
+rules for generated material there.
+
+Remove a pack from `packs` to retire its unmodified generated files on the next
+`aiwf update`, and add it to `ignored` to suppress future suggestions. To reconsider
+an ignored pack, remove its id from `ignored` and run `aiwf update`; matching packs
+become eligible for suggestions again. Removing only the selection can therefore
+produce a new suggestion. If you remove the last selected pack, keep `packs: []`:
+omitting `packs` entirely leaves policy unadopted rather than retiring installed
+files. Locally edited generated files block removal or replacement; preserve your
+changes in `.guidance/project.md` or reconcile the generated file before retrying.
+Handwritten overrides and unowned files are retained. `enabled: false` preserves
+installed files and routing without downloading anything.
+
+Commit `.guidance/index.md`, `.guidance/packs/`, `.guidance/.aiwf-owned`, and the
+managed routing blocks in `CLAUDE.md` and `AGENTS.md`. Keep handwritten exceptions
+in `.guidance/project.md` and commit that file too. Assistants are instructed to
+read those overrides first, then the index and task-relevant packs; supporting
+rubrics remain on demand. These repository files travel with clones and
+worktrees; reading them needs neither aiwf nor a personal dotfiles installation.
+`aiwf update` never commits or pushes them.
+
+Host selection and wiring opt-outs also apply to engineering guidance. Selecting
+neither host still installs the index and packs. Unselected host files stay
+untouched. An edited engineering block in an unselected host does not block pack
+refresh, but `aiwf doctor` warns about it; selecting that host again requires
+reconciliation. Edited selected blocks or generated pack files are preserved and
+block guidance refresh. Move custom policy into `.guidance/project.md` or restore
+the generated content before retrying. Unsafe paths and legacy imports still
+require reconciliation even when a host is unselected.
+
+Recognized ai-dotfiles engineering imports and its generated repository-local
+route are replaced only when replacement routing is enabled in the same host file.
+Ambiguous or handwritten legacy references require owner reconciliation. Unreferenced
+legacy copies under `.ai-dotfiles/` are left in place; they no longer supply guidance
+through the removed route. Detected ai-dotfiles installations must supply a
+successful `dotfiles-guidance-check`; update ai-dotfiles or reconcile the personal
+overlay when this check refuses. Global Claude/Codex instructions should contain
+only personal preferences. Before removing global engineering inputs, the maintainer
+must prepare dependent legacy repositories through ai-dotfiles synchronization and
+explicitly confirm that handover in ai-dotfiles. Other repositories need no aiwf
+upgrade to retain repository-local legacy delivery.
+
+If installation is interrupted, `.guidance/.aiwf-pending` records the incomplete
+update. Rerun `aiwf update` to finish with the current selection and upstream
+revision; it does not roll back. Do not commit or use a partial pack set.
+`aiwf doctor` checks local ownership, reports missing or modified artifacts and
+the revision recorded in an intact installed index. It does not fetch guidance or
+claim upstream freshness, and disk checks do not prove an assistant read a pack.
 `doctor --self-check` exercises the CLI against a throwaway repository.
 
 For parallel Claude and Codex implementation sessions, use separate branches and

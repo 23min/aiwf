@@ -1,7 +1,7 @@
 ---
 id: M-0346
 title: Deliver explicitly selected project guidance through update
-status: draft
+status: done
 parent: E-0094
 depends_on:
     - M-0344
@@ -10,22 +10,28 @@ tdd: required
 acs:
     - id: AC-1
       title: Explicit configuration controls maintenance without adopting policy
-      status: open
+      status: met
+      tdd_phase: done
     - id: AC-2
-      title: Update retrieves current guidance without a persistent cache
-      status: open
+      title: Retrieval validates current guidance without a persistent cache
+      status: met
+      tdd_phase: done
     - id: AC-3
       title: Installation preserves ownership and produces tracked project files
-      status: open
+      status: met
+      tdd_phase: done
     - id: AC-4
       title: Failures and removal preserve a coherent installed selection
-      status: open
+      status: met
+      tdd_phase: done
     - id: AC-5
       title: Legacy handover never activates a second guidance corpus
-      status: open
+      status: met
+      tdd_phase: done
     - id: AC-6
       title: Both hosts and local diagnostics expose the installed policy
-      status: open
+      status: met
+      tdd_phase: done
 ---
 ## Goal
 
@@ -45,13 +51,13 @@ The external corpus and compatible ai-dotfiles delivery exist. This milestone se
 
 Default to the agreed upstream with maintenance enabled; support one source override, selected packs, ignored pack ids, and maintenance opt-out while preserving existing guidance fields and unrelated YAML. Distinguish absent selection from an explicitly adopted empty selection so an unconfigured noninteractive run cannot withdraw legacy guidance. Reject invalid or overlapping selected/ignored state with a remedy. References: `internal/config/config.go`, schema, examples, and init/update integration tests.
 
-### AC-2 — Update retrieves current guidance without a persistent cache
+### AC-2 — Retrieval validates current guidance without a persistent cache
 
-Use a temporary Git clone of the source's default branch through existing credentials, validate the catalogue and every selected document, and clean temporary data on success, failure, and cancellation. Record the installed source commit; changing upstream is reflected on the next update. References: `internal/initrepo/` refresh integration and local-Git fixtures. Test unavailable sources, missing selections, malformed content, and unsafe paths without live network dependencies.
+Use a temporary Git clone of the source's default branch through existing credentials, validate the catalogue and every selected document, and clean temporary data on success, failure, and cancellation. Return validated selected content with the exact fetched source commit; repeated retrieval reflects changes to upstream. References: guidance retrieval for `internal/initrepo/` and local-Git fixtures. Test unavailable sources, missing selections, malformed content, and unsafe paths without live network dependencies.
 
 ### AC-3 — Installation preserves ownership and produces tracked project files
 
-Materialize selected documents and the index under `.guidance/`, preserve handwritten `project.md`, and generate concise routing for the selected hosts through existing wiring controls. Project overrides take precedence; unchanged inputs cause no diff. Reject foreign or edited generated outputs before replacement, including collisions, malformed managed blocks, and symlinks. References: `internal/skills/ownership.go`, `internal/initrepo/agents_guidance.go`, and refresh fixtures; reuse their suitable primitives without assuming the existing filename restrictions fit namespaced packs.
+Through `aiwf init` and `aiwf update`, materialize the retrieved selected documents and the index under `.guidance/`, preserve handwritten `project.md`, and generate concise routing for the selected hosts through existing wiring controls. Record the exact installed source commit in the index only on successful installation; integration tests verify that the next update installs changed upstream content and its revision. Project overrides take precedence; unchanged inputs cause no diff. Reject foreign or edited generated outputs before replacement, including collisions, malformed managed blocks, and symlinks. References: `internal/skills/ownership.go`, `internal/initrepo/agents_guidance.go`, and refresh fixtures; reuse their suitable primitives without assuming the existing filename restrictions fit namespaced packs.
 
 ### AC-4 — Failures and removal preserve a coherent installed selection
 
@@ -59,7 +65,7 @@ Fetch, validation, missing-pack, and conflict failures leave all installed guida
 
 ### AC-5 — Legacy handover never activates a second guidance corpus
 
-Compatible setups and machines without ai-dotfiles can adopt project guidance. Incompatible personal delivery blocks handover with actionable remediation and preserves legacy delivery; binary upgrade and unrelated refresh work can continue. Successful handover removes recognized legacy managed imports and records project ownership only with usable replacement routing. Test explicitly empty selections and retry after interruption. References: init/update integration and the compatibility signal established by the preceding delivery.
+Compatible setups and machines without ai-dotfiles can adopt project guidance. Incompatible personal delivery blocks handover with actionable remediation and preserves legacy delivery; binary upgrade and unrelated refresh work can continue. Successful handover replaces recognized legacy managed imports with usable project routing in the same host file. When no legacy imports need replacement, both host routes may remain disabled while selected guidance files and the index are installed. Test explicitly empty selections and retry after interruption. References: init/update integration and the compatibility signal established by the preceding delivery.
 
 ### AC-6 — Both hosts and local diagnostics expose the installed policy
 
@@ -96,16 +102,42 @@ Corpus and compatible ai-dotfiles routing, including the ownership/preflight bou
 
 ## Release note
 
+Projects can explicitly select external engineering-guidance packs in `aiwf.yaml` and refresh them through `aiwf init` or `aiwf update`. Guidance is downloaded on demand and materialized as repository files with Claude and Codex routing, project overrides, ownership checks, and interrupted-update recovery. Compatible legacy handover replaces recognized imports without enabling a second corpus. `aiwf doctor` reports local installation state and damage without claiming upstream freshness. Unconfigured projects retain their existing guidance delivery; updates never commit or push the generated files.
+
 ## Decisions made during implementation
 
-- (none)
+- D-0098 — Finish interrupted guidance installation on the next update.
+- Preserve an edited engineering route for an unselected host without blocking shared-pack refresh. Doctor warns about the retained edit; reselecting the host requires reconciliation. Legacy imports and unsafe instruction paths still block handover.
 
 ## Validation
 
+Observed on 2026-09-22 in the Linux development container, in the milestone checkout. Full-suite, lint, race, build, and self-check results below cover the reviewed source and test changes.
+
+| Command | Expected | Observed |
+| --- | --- | --- |
+| `make check-fast` | Vet, full configured lint, and the full test suite pass. | Exit 0; lint reported `0 issues.`; test packages passed. |
+| `go test -race ./internal/config ./internal/gitops ./internal/pathutil ./internal/projectguidance ./internal/initrepo ./internal/skills ./internal/cli/update ./internal/cli/doctor` | Changed delivery packages pass with race instrumentation. | Exit 0; every named package reported `ok`. |
+| `go build -o /tmp/aiwf-m0346-wrap ./cmd/aiwf` | Current CLI builds. | Exit 0. |
+| `/tmp/aiwf-m0346-wrap doctor --self-check` | CLI lifecycle checks pass in a throwaway repository. | Exit 0; `self-check passed (29 steps).` |
+| `/tmp/aiwf-m0346-wrap check --since origin/main` | No error findings; provenance scope explicit. | Exit 0; `15 findings (0 errors, 15 warnings)`; warnings concern advisory TDD records and archival backlog. |
+
+The executable evidence covers these claims:
+
+- Configuration round trips distinguish omitted and empty selection, preserve opt-outs, and reject invalid or overlapping ids (`internal/config/project_guidance_test.go`).
+- Local-Git retrieval fixtures verify exact source revision, updated upstream content, catalogue/document validation, cancellation, and temporary-data cleanup (`internal/projectguidance/retrieve_test.go`, `catalogue_test.go`).
+- Installer and update fixtures verify unchanged-input convergence, override preservation, ownership conflicts, removal, and recovery after interrupted publication (`internal/projectguidance/install_test.go`, `install_faults_test.go`, and `internal/cli/update/project_guidance_failures_test.go`).
+- Compatibility and handover fixtures distinguish supported installed delivery from incompatible or ambiguous legacy setups, preserve blocked installations, and replace recognized imports in the same host file (`internal/projectguidance/compatibility_test.go`, `handover_test.go`, and `internal/cli/update/project_guidance_handover_test.go`).
+- Host-routing and diagnostic fixtures verify individual host selection and opt-outs, retained edited routes, local revision/damage reporting, and tracked guidance in clones and worktrees (`internal/initrepo/project_guidance_test.go`, `internal/cli/doctor/project_guidance_test.go`, and `internal/projectguidance/retained_host_test.go`).
+- Successful update and convergence leave project HEAD unchanged and issue neither Git commit nor push commands; Git tracing has a positive retrieval control (`internal/cli/update/project_guidance_test.go`). Deliberately injected commit and push operations each make that test fail. The retained refresh dry-run test fails when its early-return guard is removed.
+
+These are local fixture and generated-artifact checks. Fresh assistant-session observations and migration of aiwf itself remain the claims of M-0348; this milestone does not establish that a running assistant read the generated instructions. The full `make ci` integration gate remains for integration into mainline or a push, per repository validation cadence.
+
 ## Deferrals
 
-- (none)
+- G-0702 — The configuration reference incorrectly requires `aiwf_version`.
 
 ## Reviewer notes
 
-- (none)
+- Code review: approve. Installer/recovery design: keep. Scoped documentation lint: clean.
+- Preflight, staging, publication, and recovery remain separate because their failures impose different preservation and retry obligations. Combining these stages for line-count reduction does not justify weakening those boundaries.
+- Serialization and block-splicing helper errors remain propagated; suppressing their error returns solely because current callers avoid those failures would weaken the helper contracts.

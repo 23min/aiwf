@@ -1,45 +1,18 @@
-// Package aiwfyaml reads and surgically edits two blocks of the
-// consumer repo's aiwf.yaml — `contracts:` and `areas:` — without
-// disturbing the rest of the file.
-//
-// It owns those two stretches of YAML and leaves everything else
-// byte-for-byte alone. Comments, blank lines, key ordering, and
-// indentation outside the edited region survive every programmatic
-// mutation. The two blocks differ in HOW they are edited: `contracts:`
-// is regenerated and spliced as a whole block (its structure is
-// canonicalized on write), whereas `areas:` is edited SURGICALLY —
-// `aiwf rename-area` rewrites only the renamed member's name token
-// (RenameAreaMember), so comments and sibling keys INSIDE the areas
-// block survive too (E-0044, M-0195).
-//
-// Two responsibilities:
-//
-//  1. Parse aiwf.yaml, yield the typed Contracts block (or nil if
-//     the block is absent), and the source bytes plus the byte range
-//     occupied by `contracts:`. The structural validation rules
-//     documented in docs/archive/pocv3/contracts-plan.md §5 are applied here:
-//     - every entries[].validator must reference a key in validators;
-//     - every entries[].id must match `C-NNN`;
-//     - anchors and aliases anywhere inside the contracts: subtree
-//     are a hard error;
-//     - unknown fields anywhere in the block are a hard error.
-//     Path existence (schema, fixtures) is *not* checked here —
-//     those checks happen at verify time.
-//
-//  2. Splice an updated Contracts block back into the source. The
-//     splice is textual: the engine re-marshals only the contracts:
-//     block and replaces the corresponding byte range. Bytes before
-//     and after that range are untouched. This is the load-bearing
-//     guarantee the verbs in §6 of the contracts plan rely on so
-//     the LLM can be told "the engine never rewrites your YAML".
+// Package aiwfyaml reads aiwf.yaml and edits contract registrations, hook
+// decisions, area members, and guidance selections. It validates the contracts
+// block while reading. Each Doc mutation method documents its edit granularity
+// and preservation rules; guidance selection may re-encode the whole document.
 package aiwfyaml
 
 import (
 	"bytes"
+	"errors"
 	"fmt"
+	"io"
 	"os"
 	"regexp"
 	"strings"
+	"unicode/utf8"
 
 	"gopkg.in/yaml.v3"
 
@@ -128,11 +101,19 @@ func Read(path string) (*Doc, *Contracts, error) {
 }
 
 // ReadBytes is Read for an in-memory byte slice. Useful for tests
-// and for callers that already have the file content.
+// and for callers that already have the file content. Editing requires a single UTF-8 YAML document.
 func ReadBytes(raw []byte) (*Doc, *Contracts, error) {
+	if !utf8.Valid(raw) {
+		return nil, nil, fmt.Errorf("cannot edit configuration: save aiwf.yaml as UTF-8 and retry")
+	}
 	var root yaml.Node
-	if err := yaml.Unmarshal(raw, &root); err != nil {
+	decoder := yaml.NewDecoder(bytes.NewReader(raw))
+	if err := decoder.Decode(&root); err != nil && !errors.Is(err, io.EOF) {
 		return nil, nil, fmt.Errorf("parsing aiwf.yaml: %w", err)
+	}
+	var extra yaml.Node
+	if err := decoder.Decode(&extra); !errors.Is(err, io.EOF) {
+		return nil, nil, fmt.Errorf("cannot edit configuration: aiwf.yaml must contain a single YAML document; remove additional documents and retry")
 	}
 	doc := &Doc{
 		raw:         raw,
@@ -513,14 +494,12 @@ func decodeContracts(n *yaml.Node) (*Contracts, error) {
 }
 
 // blockByteRange returns the half-open [start, end) byte interval
-// occupied by the contracts: key/value pair in raw. The interval
-// covers the line containing the `contracts:` key down to (but not
-// including) the next top-level key, or to EOF when contracts: is
-// the last top-level key.
+// occupied by a top-level key/value pair in raw. The interval covers
+// the key's line down to (but not including) the next top-level key,
+// or to EOF when the key is last.
 //
-// Comments above `contracts:` (yaml.v3's HeadComment) are *outside*
-// the block per the §5 contract — the splice starts at the
-// `contracts:` line itself so those comments survive untouched.
+// Comments above the key (yaml.v3's HeadComment) are outside the block:
+// the splice starts at the key's line so those comments survive untouched.
 // Likewise, a HeadComment on the next top-level key belongs to that
 // next key, so the splice stops at the comment, not at the key line.
 func blockByteRange(raw []byte, top, keyNode *yaml.Node, keyIdx int) (start, end int, err error) {
@@ -532,10 +511,19 @@ func blockByteRange(raw []byte, top, keyNode *yaml.Node, keyIdx int) (start, end
 	if keyIdx+2 < len(top.Content) {
 		nextKey := top.Content[keyIdx+2]
 		endLine := nextKey.Line
-		if hc := strings.TrimSpace(nextKey.HeadComment); hc != "" {
-			endLine -= countLines(nextKey.HeadComment)
-			if endLine < 1 {
-				endLine = 1
+		// yaml.v3 normalizes blank lines in comments. Count comment lines,
+		// then locate them in the original bytes to retain the next key's notes.
+		comments := 0
+		for _, line := range yamlLines([]byte(nextKey.HeadComment)) {
+			if len(bytes.TrimSpace(line)) > 0 {
+				comments++
+			}
+		}
+		lines := yamlLines(raw)
+		for comments > 0 {
+			endLine--
+			if len(bytes.TrimSpace(lines[endLine-1])) > 0 {
+				comments--
 			}
 		}
 		end, err = lineToByteOffset(raw, endLine)
@@ -554,30 +542,14 @@ func lineToByteOffset(raw []byte, line int) (int, error) {
 	if line <= 1 {
 		return 0, nil
 	}
-	current := 1
-	for i, b := range raw {
-		if b == '\n' {
-			current++
-			if current == line {
-				return i + 1, nil
-			}
+	offset := 0
+	for i, rawLine := range yamlLines(raw) {
+		if i+1 == line {
+			return offset, nil
 		}
+		offset += len(rawLine)
 	}
 	return len(raw), nil
-}
-
-// countLines returns the number of newline-separated lines in s.
-// Empty string is zero lines; a non-empty string with no newline is
-// one line; a trailing newline counts the line it terminates.
-func countLines(s string) int {
-	if s == "" {
-		return 0
-	}
-	n := strings.Count(s, "\n")
-	if !strings.HasSuffix(s, "\n") {
-		n++
-	}
-	return n
 }
 
 // marshalContractsBlock serializes c as a YAML fragment beginning

@@ -19,6 +19,7 @@ import (
 // Git identity vars are not seeded: no test here commits.
 //
 // Serial tests:
+//   - TestIsolateGuidanceEnvironment replaces personal profile variables and PATH.
 //   - TestRunWithClaudeOnPATH_* changes PATH or TMPDIR.
 //   - TestHardenGitTestEnv (gitenv_test.go) mutates process env
 //     (t.Setenv + raw os.Setenv of GIT_CONFIG_*).

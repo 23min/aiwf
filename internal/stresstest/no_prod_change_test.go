@@ -11,20 +11,11 @@ import (
 	"github.com/google/go-cmp/cmp"
 )
 
-// no_prod_change_test.go — M-0242/AC-3: pins the claim that AC-1's
-// (LockKillScenario) and AC-2's (MidWriteKillScenario) detection
-// mechanisms require zero changes to internal/repolock or
-// internal/pathutil. The mechanical evidence: parse each production
-// file's top-level declarations and assert the exported surface is
-// exactly the pre-existing set the probes depend on — Acquire,
-// ErrBusy, Lock (and its Release method) for repolock; nothing at all
-// for pathutil, since AC-2 only globs for the ".aiwf-tmp-" filename
-// convention AtomicWriteFile's own doc comment already documents,
-// never importing the package. A future edit that needed a NEW
-// exported symbol to make either probe work would grow this set and
-// fail here — the harness's own claim staying honest, not a repo-wide
-// policy (a legitimate future repolock/pathutil change for an
-// unrelated reason is expected to leave this set alone).
+// The stress probes must work without dedicated production hooks. This guard
+// pins the reviewed exported surface of the production files they observe;
+// unrelated API additions require review and an explicit baseline update.
+// LockKillScenario uses repolock's public lock API. MidWriteKillScenario observes
+// AtomicWriteFile's documented temporary filenames without importing pathutil.
 func TestNoNewExportsInRepolockOrPathutil(t *testing.T) {
 	t.Parallel()
 	tests := []struct {
@@ -45,7 +36,7 @@ func TestNoNewExportsInRepolockOrPathutil(t *testing.T) {
 		{
 			name: "atomic.go — AC-2 observes AtomicWriteFile's temp-file side effect from outside; it never calls the function",
 			path: "../pathutil/atomic.go",
-			want: []string{"AtomicWriteFile"},
+			want: []string{"AtomicWriteFile", "StageAtomicWriteFile"},
 		},
 	}
 

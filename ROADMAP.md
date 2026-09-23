@@ -1319,7 +1319,7 @@ and parallel implementation in separate worktrees.
 | M-0342 | Enable host detection across setup refresh and diagnosis | done |
 | M-0343 | Verify host handoff parallel worktrees and container persistence | done |
 
-## E-0094 — Deliver external project guidance through aiwf update (active)
+## E-0094 — Deliver external project guidance through aiwf update (done)
 
 ### Goal
 
@@ -1327,9 +1327,9 @@ Let maintainers use `aiwf init` and `aiwf update` to select, refresh, and delive
 
 | Milestone | Title | Status |
 |---|---|---|
-| M-0344 | Publish the external engineering guidance corpus | draft |
-| M-0345 | Preserve legacy guidance through repository-aware routing | draft |
-| M-0346 | Deliver explicitly selected project guidance through update | draft |
-| M-0347 | Suggest applicable guidance during init and update | draft |
-| M-0348 | Verify migration and establish the reduction prerequisite | draft |
+| M-0344 | Publish the external engineering guidance corpus | done |
+| M-0345 | Preserve legacy guidance through repository-aware routing | done |
+| M-0346 | Deliver explicitly selected project guidance through update | done |
+| M-0347 | Suggest applicable guidance during init and update | done |
+| M-0348 | Verify migration and establish the reduction prerequisite | done |
 

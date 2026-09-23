@@ -16,6 +16,55 @@ section in this file.
 
 ## [Unreleased]
 
+### Added — E-0094: deliver external engineering guidance as tracked project policy
+
+- Projects can select engineering-guidance packs from an external source in
+  `aiwf.yaml` (`guidance.packs`, with `guidance.ignored` for suggestions to
+  suppress). `aiwf init` and `aiwf update` download the selected packs on
+  demand from the source's default branch and write them as tracked files under
+  `.guidance/`, with an index recording the installed commit, and routing blocks
+  in `CLAUDE.md` and `AGENTS.md` that tell Claude and Codex to read the
+  maintainer's own `.guidance/project.md` overrides first, when that file
+  exists, and then only the packs a task needs. aiwf never writes
+  `.guidance/project.md`. The default source is `23min/engineering-guidance`;
+  `guidance.source` overrides it. No persistent cache is kept, and update never
+  commits or pushes the generated files.
+- With maintenance enabled, which is the default, every `aiwf init` and
+  `aiwf update` clones the source's default branch into a temporary directory,
+  whether or not any packs are selected, to compute suggestions. An unreachable
+  source is reported as a skipped guidance step and the rest of the command
+  continues; `guidance.enabled: false` stops the download.
+- A failed download, an invalid or missing pack, or a locally edited generated
+  file leaves the installed guidance and its recorded commit unchanged; the
+  reason is reported and the rest of the update continues. An interrupted
+  installation is finished by the next update. Setting `guidance.enabled: false`
+  stops refreshes and suggestions while the installed guidance stays in use.
+  `aiwf doctor` reports the installed selection, missing files and edited owned
+  content, without claiming the installation is current with its source.
+- `aiwf init` and `aiwf update` suggest packs whose file patterns, taken from
+  the external catalogue, match the repository, and say what matched.
+  Interactive runs offer select, not now, or ignore, and save the choices once
+  all prompts finish. Noninteractive runs only report suggestions and keep
+  refreshing existing selections.
+- An `aiwf.yaml` that is not UTF-8, or that holds more than one YAML document,
+  is now refused without being changed — by guidance, hook and contract edits,
+  and also by `aiwf check`, the `aiwf contract` commands and `aiwf rename-area`.
+  Because `aiwf check` runs as the pre-push hook, a repository with such a file
+  cannot push until the file is saved as a single UTF-8 document.
+- Projects that have not selected packs keep their existing guidance delivery.
+  When a repository adopts aiwf guidance, recognized ai-dotfiles engineering
+  imports are replaced only after a compatibility check of the environment
+  running the command passes, so handover does not leave a recognized
+  ai-dotfiles import beside aiwf's routing in the same host file.
+
+### Fixed — G-0703: the aiwf guidance block in AGENTS.md no longer carries the aiwf version
+
+The header comment of the managed aiwf guidance block in `AGENTS.md` no longer
+includes the version of the aiwf binary that wrote it, so running `aiwf update`
+with a different aiwf version no longer modifies this tracked file when the
+guidance itself is unchanged. The first update after upgrading removes the
+`aiwf-version:` field from that header once.
+
 ### Changed — E-0089: make TDD phase retries preserve evidence and publish workflow legality
 
 Repeating an AC's recorded TDD phase without test metrics now succeeds without

@@ -77,11 +77,12 @@ func TestHostFragments_SelectNativeSourcesAndPreserveSharedBytes(t *testing.T) {
 				want := paths.Replace(substitute.Replace(string(source.Content)))
 				var got []byte
 				if source.Name == GuidanceFile {
-					want = strings.ReplaceAll(want, guidanceVersionSentinel, "fragment-test")
 					if host == "claude" {
+						want = strings.ReplaceAll(want, guidanceVersionSentinel, "fragment-test")
 						got, err = RenderGuidance("fragment-test")
 					} else {
-						got, err = RenderCodexGuidance("fragment-test")
+						want = strings.Replace(want, guidanceVersionStamp, "", 1)
+						got, err = RenderCodexGuidance()
 					}
 				} else {
 					got, err = os.ReadFile(filepath.Join(root, bindings.Target.SkillsDir, source.Name, "SKILL.md"))

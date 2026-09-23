@@ -1,7 +1,7 @@
 ---
 id: M-0348
 title: Verify migration and establish the reduction prerequisite
-status: draft
+status: done
 parent: E-0094
 depends_on:
     - M-0344
@@ -12,16 +12,16 @@ tdd: advisory
 acs:
     - id: AC-1
       title: aiwf uses tracked guidance without superseded imports
-      status: open
+      status: met
     - id: AC-2
       title: Both hosts demonstrate relevant project reads in fresh sessions
-      status: open
+      status: met
     - id: AC-3
       title: Mixed repositories retain the correct guidance source
-      status: open
+      status: met
     - id: AC-4
       title: Growth measurements make the reduction prerequisite reproducible
-      status: open
+      status: met
 ---
 ## Goal
 
@@ -33,7 +33,7 @@ Migrate aiwf itself, verify both hosts and legacy coexistence, and leave E-0092 
 
 ## Context
 
-Corpus, compatibility routing, installation, and selection are available. This is adoption and observation work, not a second implementation of delivery.
+Corpus, project installation, and selection are available. Reconcile ai-dotfiles with personal-only global instructions and repository-local engineering delivery before shared installation handover. Reuse the existing synchronization and aiwf materialization paths; do not introduce another delivery framework.
 
 ## Acceptance criteria
 
@@ -43,11 +43,19 @@ Select the packs required by its actual languages and engineering conventions, i
 
 ### AC-2 — Both hosts demonstrate relevant project reads in fresh sessions
 
-Observe root-started tasks touching nested files, new files, and unrelated prose, in a checkout without ai-dotfiles. Record project-override precedence, relevant reads, absence of legacy engineering reads, and limits of observable behavior. References: milestone observation record with tasks, expectations, actual observations, environment, host/model versions, and installed revision. Obtain separate approval for live service invocations.
+From a session started at the repository root in a checkout without ai-dotfiles, both hosts reach project-local guidance when the task needs it and apply project overrides over pack guidance. Establish that rule rather than enumerate task shapes: observe both of its directions with tasks chosen to differ in whether a pack carries the answer — guidance read when only a pack answers it, and not read when the project override already does, which is what the routing prescribes. Verify that personal-only globals inject no engineering guidance and prompt no engineering discovery, and that no legacy engineering file is read or attempted. Record project-override precedence, the observed reads, the absence of legacy reads, which task shapes were exercised and which were judged to be further inputs to the same rule, and the limits of observable behavior. References: milestone observation record with tasks, expectations, actual observations, environment, host/model versions, and installed revision. Obtain separate approval for live service invocations.
 
 ### AC-3 — Mixed repositories retain the correct guidance source
 
-Exercise the released combination against old-aiwf and non-aiwf projects alongside migrated projects. Include an incompatible personal installation, failed handover, empty installed selection, disabled maintenance, and update retries; confirm legacy access or exclusive project access as applicable. References: compatibility/integration fixtures plus an observation record for actual installed setup. Do not substitute local fixture success for distribution availability.
+A migrated repository reaches aiwf-delivered guidance and only that, while old-aiwf and non-aiwf repositories keep their existing route and are not adopted into one. Verify that against the released combination rather than local fixtures: delivery is what this criterion claims, so local fixture success does not stand in for distribution availability.
+
+Establish the failure rule once rather than once per trigger. Every guidance failure — an incompatible personal installation, an unavailable checker, an ambiguous or interrupted handover, an unreachable source — reports its reason, preserves the installed guidance and its recorded revision, and leaves unrelated update work to continue. Cite the test-first coverage from the delivery milestones that pins it. Staging those instances live re-demonstrates what the tests already assert and catches no later regression, so it is not required here; record which triggers were consolidated to the rule and why.
+
+Verify by observation only what a test cannot reach: the released combination against each repository kind, configuration honoured as written for an explicitly empty selection and for disabled maintenance, and one repository's installation leaving unopened repositories untouched. Do not infer startup readiness from hook-file existence or from the handover compatibility check.
+
+Preserve personal rules; do not treat a global project/legacy router as a completed migration. The ai-dotfiles maintainer owns its configuration and synchronization mechanism; use its [installation documentation](https://github.com/23min/ai-dotfiles#readme) as the integration reference, and do not bulk-modify sibling repositories. Verifying startup setup in the environments using shared global engineering delivery, including native hook trust and enablement, is a precondition on removing that delivery — an action this milestone neither performs nor approves.
+
+Record the observations, the consolidation, and the limits of what was observed. References: the delivery milestones' failure-path tests plus an observation record for the released combination. Obtain separate approval for live service invocations.
 
 ### AC-4 — Growth measurements make the reduction prerequisite reproducible
 
@@ -55,7 +63,7 @@ Record before/after commits, installed guidance revision, commands, expected out
 
 ## Constraints
 
-TDD is advisory for adoption and live observations; any logic defect found uses test-first fixes. Do not mark observational criteria met with file-existence proxies. Keep normal approval gates for commits and publication.
+TDD is advisory for adoption and live observations; new synchronization, generation and compatibility logic uses test-first development. Do not mark observational criteria met with file-existence proxies. Keep normal approval gates for commits and publication.
 
 ## Design notes
 
@@ -63,7 +71,7 @@ E-0094 supplies delivery and migration. E-0092 supplies the subsequent reduction
 
 ## Surfaces touched
 
-aiwf project configuration and host files, installed guidance, growth records, and E-0092 prerequisite text.
+ai-dotfiles personal instruction generation, repository synchronization and compatibility checks; aiwf project configuration and host files, installed guidance, growth records, and E-0092 prerequisite text.
 
 ## Out of scope
 
@@ -86,16 +94,439 @@ All preceding deliveries, with the actual compatible distributions available for
 
 ## Release note
 
+Nothing here changes what a consumer of aiwf observes. This milestone moved
+aiwf's own repository onto the project-guidance delivery the epic ships —
+selected packs, a tracked `.guidance/` tree, host routing in both instruction
+files — and verified that delivery, including against a binary installed from
+the published module rather than built from source.
+
 ## Decisions made during implementation
 
-- (none)
+- ADR-0052 — project guidance ownership and the personal-bootstrap boundary.
 
 ## Validation
 
+### AC-1 — migration observation
+
+Observed on 2026-09-22 in the Linux devcontainer. Migration commit:
+`9f817fa5b34cdcc4e0a065f7f7e78a54a030ad83`. The diagnostic binary
+`/tmp/aiwf-m0348-review --version` reported
+`v0.37.1-0.20260922200201-4bd58809979e+dirty`; installed ai-dotfiles was
+`73d46b2f54821a0b03187b04343347248e08540b`.
+
+- **Installation:** `/tmp/aiwf-m0348-review update --root /tmp/m0348-ac1-1dev6k_w/repo`
+  was run in a disposable local clone with the selected packs. Expected successful
+  project installation and replacement of managed legacy imports; observed exit 0
+  and installed corpus revision `9c9ca4b3681ca4cb8798e5af9e9124b1e761526b`.
+  The reviewed migration outputs were applied to the authoring checkout. Its
+  pre-existing native workflow block and ignore-file edits remained uncommitted.
+  Statusline refresh was skipped because the diagnostic version could not be
+  ordered against the installed release; it was not part of this migration.
+- **Selection:** tracked sources include Go, Python scripts, and Playwright
+  TypeScript. The JavaScript suggestion matched Playwright's `package.json`,
+  without tracked JavaScript source; no additional JavaScript pack was selected.
+  Project exceptions retain `CLAUDE.md` as their canonical source through
+  `.guidance/project.md`.
+- **Handover:** from the authoring checkout, ran
+  `~/.local/bin/dotfiles-sync --root "$PWD"` and
+  `~/.local/bin/dotfiles-sync --check --root "$PWD"`.
+  Expected no legacy restoration; both exited 0 and reported project guidance
+  ownership with legacy synchronization skipped. Python SHA-256 assertions over
+  the root files, configuration, ignore file, and every `.guidance` file passed
+  before/after byte equality. Root-file assertions found no legacy engineering
+  imports. Original pending content matched its saved SHA-256 values.
+- **Clean delivery:** `git clone --quiet --no-hardlinks --single-branch` of the
+  authoring checkout into `/tmp/m0348-ac1-committed-klktnnkc/repo` completed
+  successfully. Expected a clean checkout containing the committed guidance;
+  `git status --porcelain` was empty. Python assertions verified each installed
+  index/pack SHA-256 against `.guidance/.aiwf-owned`. Every pack also byte-matched
+  `git show <installed-revision>:<pack-path>` in the corpus checkout. An export of
+  the candidate Git tree, with no personal dotfiles copied, had resolving local
+  guidance links, both host routes, project overrides, and no pending installation.
+  `git rev-parse HEAD^{tree}` after committing matched that verified candidate tree.
+- **Review and checks:** independent review approved the exact migration patch
+  with no findings. `git diff --check` passed;
+  `/tmp/aiwf-m0348-review check --since origin/main` reported 0 errors and the
+  existing 17 warnings. No Go/build inputs changed, so the full code suite was
+  not repeated for this configuration and generated-content adoption.
+
+These observations establish delivery and handover in the migrated checkout.
+They do not establish live assistant reads, migration of other checkouts, or
+instruction-load reduction; those remain separate criteria.
+
+### AC-2 — host observations
+
+Observed on 2026-09-22 and 2026-09-23 in the Linux devcontainer. Every run
+except the fixture experiment described below started at the root of a clean clone of the migrated checkout at commit
+`9f817fa5b34cdcc4e0a065f7f7e78a54a030ad83`, carrying no repository-local
+ai-dotfiles, with installed guidance revision
+`9c9ca4b3681ca4cb8798e5af9e9124b1e761526b`. The installed personal setup was
+personal-only throughout: the global Claude instruction file carries the
+personal-only marker and imports one collaboration fragment, and the legacy
+language packs remain on disk beneath the personal agents directory, unimported.
+Host versions: Codex CLI 0.156.0 with `gpt-6-astra`; Claude Code 2.1.278 with
+`claude-sonnet-5`. Raw event streams and answers were captured to session-local
+temporary directories, which do not survive the machine; what a later reader
+needs to re-run is recorded here.
+
+The nested-Go task, issued verbatim to both hosts: *plan a small change to
+`internal/version/version.go` adding diagnostic logging around its remote
+version lookup; do not implement, modify files, access the network or run
+tests; inspect the repository as needed and explain where the diagnostic logs
+go by default, how logging is enabled, and which validation commands apply;
+list the instruction files actually consulted.* Expected in each case: the
+session discovers the project override, the index and the packs relevant to the
+task, applies the project logging rule over the general Go pack's stderr
+convention, reads no legacy engineering guidance, and leaves the checkout
+unchanged. Tool events, not the assistant's claimed read list, were the evidence.
+
+- **Codex, nested Go.** `codex exec --cd <clone> --sandbox read-only
+  --ephemeral --json --model gpt-6-astra -c model_reasoning_effort="medium"`.
+  Exit 0 in 50.4 seconds. Completed-command events carry actual reads of
+  `CLAUDE.md`, `.guidance/project.md`, `.guidance/index.md`, the code-health
+  guide and the Go guide, followed by logger source and `go.mod`. The answer
+  applies the project rule over the pack: logging off by default, enabled
+  through the environment knobs or the YAML block, default XDG-state-home file
+  destination, stderr only when explicitly configured. No observed command
+  reads legacy engineering files. `git status --porcelain` stayed empty.
+- **Claude, nested Go, effort `xhigh`.** `claude --print --output-format
+  stream-json --verbose --permission-mode dontAsk --tools Read,Glob,Grep
+  --allowedTools Read,Glob,Grep --strict-mcp-config --mcp-config
+  '{"mcpServers":{}}'`, prompt on stdin, effort resolved from installed
+  settings. The run did not complete: a 180-second outer timeout fired and the
+  stream's terminating event is `error_during_execution` after 28 turns, so it
+  reports nothing about the answer. The host injected three instruction files —
+  the personal-only global, its collaboration fragment, and the project
+  `CLAUDE.md` at 66,036 bytes carrying the managed engineering-guidance block.
+  No legacy engineering pack was injected. No tool input named `.guidance`, the
+  pending-install marker, or the legacy trees.
+- **Claude, nested Go, effort `medium`.** Same argv with `--effort medium`,
+  matching the Codex arm's reasoning effort; the prompt was byte-identical to
+  the run above. Exit 0 in 85.4 seconds, 14 turns. Again no `.guidance` read.
+  Project-override precedence nonetheless reached the answer correctly: opt-in,
+  off by default, the environment knobs and YAML block as the enablers, the
+  XDG-state-home daily file as the default destination, stderr as an explicit
+  choice only, and the repository's own validation cadence. Asked which
+  instruction files it consulted, it named the project `CLAUDE.md` and
+  ADR-0017 and nothing else — the claim matches the tool events, so there is
+  no overclaim to discount.
+- **Claude, Python task, effort `medium`.** The same harness against a task
+  whose answer the project instruction file does not contain: plan a `--json`
+  output mode for `scripts/growth-report.py` and explain which formatting,
+  linting, type-checking and test conventions apply. The checkout carries no
+  Python tooling configuration, no Makefile target and no CI step for it, so the
+  only source in the tree is the Python pack. Exit 0 in 29.4 seconds. Tool calls
+  two through six of thirteen are the block's own sequence, executed before the
+  answer formed: the pending-marker check, `.guidance/project.md`,
+  `.guidance/index.md`, then the Python pack. The answer names that pack's
+  toolchain, and then weighs it against the repository — observing that no
+  configuration or target wires it here and that the script is in fact exercised
+  by a Go-side policy test — rather than importing tooling the repository does
+  not use.
+
+Both hosts therefore demonstrate relevant project reads. On Claude the reads
+are need-driven rather than unconditional: skipped where the project
+instruction file already answers, which is what the managed block itself
+prescribes when it gives handwritten overrides precedence over pack guidance,
+and performed where only a pack answers. The Python-script run read the
+override, the index and then the pack, in the block's order. The new-file run
+below did not follow it; neither Claude run that read a pack read the
+code-health primer, which the index asks for on code changes, while the Codex
+run did. Position in
+the host file does not drive this. A fixture experiment — a throwaway clone
+with the block moved from the end of the project instruction file to just below
+its opening paragraph, every other input byte-identical to the second Claude
+run — bought a pending-marker check but no directed reads, while the Python
+task drew the full sequence from the block's committed position at the end of
+the file. That fixture carries an edit no committed tree has and is recorded
+here only for what it rules out.
+
+Limits. Installed personal globals remained present: these are clones without
+repository-local ai-dotfiles, not a machine lacking ai-dotfiles. Tool events
+establish explicit reads, not instructions the host injects automatically.
+Claude tool access was restricted to reading, globbing and grepping. One read
+outside the working directory was attempted: the prose-only run's third call
+named `.guidance` under a different scratch clone's path, which did not exist,
+and the host reported a missing file rather than a refusal. Whether an existing
+path outside the working directory would have been refused is untested. No
+attempted read, in any run, named a legacy engineering path. The clones were never updated after cloning, so the
+gitignored materialized host artifact the project instruction file imports was
+absent and its import line stood unresolved; these sessions ran without aiwf's
+own workflow guidance. A task straddling the two shapes, where the project
+instruction file partly answers and a pack would complete it, is untested and is
+the case most likely to behave differently.
+
+**Task shapes exercised, and those consolidated.** The rule this criterion
+reaches for is that a host reads project guidance when the task needs it and not
+otherwise. Its two directions are what pin it, and the tasks exercising them
+differ in the one variable that decides the outcome: whether a pack carries the
+answer. Both directions were observed on Claude against an existing nested file.
+On Codex the first drew the full pack sequence rather than declining it, so the
+read-only-when-needed half of the rule is pinned on Claude alone.
+
+Two further shapes the criterion names were exercised rather than consolidated:
+
+- **New-file task, Claude, effort `medium`.** Plan a new `scripts/guidance-audit.py`
+  and name the conventions and validation commands that apply to a file that does
+  not exist yet. Python, so the answer is reachable only through the pack: the
+  repository carries no Python tooling configuration, no Makefile target and no CI
+  step, and the instruction file says nothing about Python. Exit 0 in 32.7 seconds,
+  14 tool calls. The first response globbed `.guidance/**` and `scripts/**`
+  together. The second read four files together: the Python pack, the project
+  override, the index and the sibling `scripts/growth-report.py`. So guidance and
+  the sibling script were consulted at the same time, and the pack was reached
+  through the directory listing rather than through the index, ahead of the
+  override and index the expectations placed before it. What establishes that
+  guidance rather than imitation supplied the answer is content, not order:
+  neither sibling script nor the instruction file names uv, Ruff, ty, mypy or
+  pytest, and the answer's toolchain is the pack's, weighed as before against a
+  repository that wires none of it.
+- **Prose-only task, Claude, effort `medium`.** Plan an addition to a design
+  document, with no code in the task. Exit 0 in 25.1 seconds, 11 tool calls. It
+  read the target document, the project override and the index — and then **no
+  pack at all**: not the Go, Python or TypeScript guide, nor the cross-language
+  rubric. Consulting the routing and declining every pack as irrelevant is what
+  the criterion's avoidance clause claims, observed rather than inferred. Two
+  confounds qualify it. The task was about guidance delivery, so the override
+  and index are also the task's own subject matter. And before declining, the
+  session read this milestone's specification, whose criterion names unrelated
+  prose as a tested shape.
+
+Both runs used `--effort medium` on the command line; the event stream carries
+no effort field. Each clone's `git status --porcelain` was empty before and after
+at head `9f817fa5b34cdcc4e0a065f7f7e78a54a030ad83`. The ai-dotfiles startup hook
+wrote its gitignored health file into each clone's `.claude/` directory, as it
+does in every session.
+
+One shape was judged an additional input to the same rule rather than an
+additional rule, and was not run as a session. Personal-only globals carrying no
+engineering guidance is established by measurement rather than inference. Every
+Claude transcript's injected-instruction list held the personal file, its one
+collaboration fragment and the project instruction file, and nothing else of
+global origin. Codex's event stream does not show injected instructions, so its
+global file was measured instead: `~/.codex/AGENTS.md` links to a 3,757-byte
+file, last written before the Codex run, carrying the personal-only marker, with
+a body byte-identical to the collaboration fragment and no engineering content.
+Global skills, the third channel, were measured on 2026-09-23: the personal
+agents skill directory is empty, Claude's holds only account-synced document and
+utility skills, and Codex's holds only its bundled system skills — none carries
+engineering guidance. The setting that clause names, a session outside any
+repository, was exercised directly against the ai-dotfiles startup hook, which in
+a non-Git directory exited 0, emitted nothing, and created no files. Every channel
+by which engineering guidance could reach such a session is therefore measured;
+what is not measured is an assistant session in that setting.
+
+### AC-3 — distribution and mixed-repository observations
+
+Observed on 2026-09-23 in the Linux devcontainer. The binary under test was not
+built from the working tree: `go install github.com/23min/aiwf/cmd/aiwf@5b1127c25`,
+the install path the README documents, resolved through the real module proxy
+and served the pushed commit as `v0.37.1-0.20260923015904-5b1127c25fc5`. `GOBIN`
+pointed at a scratch directory, so the globally installed release stayed at
+v0.37.0; that was confirmed before and after. The installed binary carries the
+feature — `update --help` documents the guidance flow and its generated example
+config exposes the host and guidance keys.
+
+Distribution availability of the corpus itself is established by AC-1, which
+fetched revision `9c9ca4b3681ca4cb8798e5af9e9124b1e761526b` from the real
+external source rather than a fixture. Expected in each case below: the
+installed binary behaves as the epic specifies for that repository kind, judged
+on filesystem and git state rather than the command's own summary.
+
+- **Migrated project.** A clean clone carrying selected packs and tracked
+  guidance. `aiwf update` exited 0; the recorded source revision and a SHA-256
+  taken over every installed guidance file were unchanged, and the handwritten
+  project override survived.
+- **Old-aiwf project.** Initialised by the released v0.37.0, then updated by the
+  binary under test. Exit 0, no guidance directory created and no guidance
+  policy adopted, with applicable packs reported and none selected — the
+  specified behaviour for a non-interactive run.
+- **Non-aiwf Git repository.** Exit 3 reporting no configuration found, and
+  nothing created.
+- **Empty installed selection.** With packs explicitly set to the empty list,
+  exit 0: the guidance directory and its index exist with no packs directory,
+  and the routing block is wired into the Claude host file. An explicitly empty
+  selection is adopted as empty rather than ignored, and legacy delivery is not
+  re-enabled.
+- **Disabled maintenance.** With maintenance off and a pack still listed, exit 0
+  in under a second, no upstream access in the log, and no guidance directory
+  written.
+- **Assistant session outside Git.** The ai-dotfiles startup hook run in a
+  non-Git directory exited 0, emitted nothing on either stream, and created no
+  files. This is the criterion's own claim. Running an aiwf verb there tests a
+  different claim and is recorded as a finding instead, not as evidence for this
+  one.
+
+**Fixed point under the updater.** The migration commit captured the guidance
+tree and its routing but not the Codex host artifacts' wiring, so update rewrote
+the ignore file and the Codex instruction file on every clean clone. Committing
+that generated wiring closes the per-clone rewrite: a fresh clone of the
+result, updated by the binary that generated it, reports no tracked change.
+The measurement is scoped to that binary and does not reach the epic's general
+claim for repeated unchanged updates. The managed block in the Codex
+instruction file embeds the generating binary's version, and that file is
+tracked, so an update run from any other version rewrites the stamp line and
+leaves the tree dirty — reproduced against both a differently stamped build and
+the installed release, and tracked as G-0703.
+
+**Finding — a lockfile survives outside a repository.** `aiwf update` in a
+non-Git directory exits reporting no configuration found and leaves an empty
+`.aiwf.lock` behind; `aiwf init` does the same, failing instead on actor
+resolution. The lock is taken before the root is validated, so a directory that
+is not an aiwf project keeps the artifact. The released v0.37.0 reproduces it
+identically, so it is not introduced here, and a Git repository without
+configuration does not reproduce it — only the non-Git path does.
+
+Limits. `aiwf upgrade` selecting a new version is not exercised: the verb skips
+prerelease and pseudo-versions by design, so only a real release tag reaches
+that path, and it is generic upgrade-verb behaviour with nothing
+guidance-specific in it. E-0094's code has had no CI run, because the Go
+workflow filters pushes to the trunk and one branch prefix, so pushing this
+milestone branch ran the secret scan alone; local full-gate runs are green on
+the commit under test, which is parity with CI rather than CI itself.
+
+**Isolation.** With a target repository, a pre-existing aiwf repository and a
+plain Git repository side by side, `aiwf init` and `aiwf update` were run
+against the target alone. The target gained its guidance tree; a SHA-256 taken
+over every non-Git file in each bystander was unchanged on both. aiwf acts only
+on the root it is given.
+
+**Failure triggers consolidated to one rule.** `CheckCompatibility` returns a
+single sentinel reached by every detector in it, and its caller funnels every guidance
+failure — instruction inspection, compatibility, host refusal, retrieval — into
+one outcome: the step is reported skipped with its reason, returned rather than
+raised, so unrelated update work continues. The criterion's separately named
+cases are triggers of that one rule, and each is pinned by a test written under
+a test-first milestone: the installed checker and the missing-checker legacy
+detection in the compatibility tests; ambiguous handover refused before any
+write, and an interrupted handover recovered with a changed selection, in the
+handover tests; an empty pending record recovered in the install-fault tests;
+and failure reported without claiming installation in the refresh tests. Staging
+those live would re-demonstrate what the tests assert while catching no later
+regression, so they were not run as observations. Configuration honoured as
+written was observed live above for both an explicitly empty selection and
+disabled maintenance.
+
+**Outside aiwf's verification.** Whether an old-aiwf or non-aiwf repository
+receives its local guidance when opened is legacy-repository synchronization.
+ADR-0052 leaves that synchronization to the personal-bootstrap maintainer and
+states that delivery to repositories aiwf does not own is verified in that
+repository; E-0094's success criteria say the same. This milestone makes no
+observation of it. What aiwf owes those repositories is observed above: the
+binary under test adopted neither kind, and left bystander repositories
+untouched.
+
+Startup setup in the environments using shared global engineering delivery is
+likewise unverified here, and is in any case a precondition on removing that
+delivery — an action this milestone neither performs nor approves. The
+home-directory language files remain present and merely unimported.
+
+### AC-4 — growth measurements and the reduction prerequisite
+
+Observed on 2026-09-23 in the Linux devcontainer. Before commit
+`1b2fd9a1df03e79eda2f921c6569d6244675872e`; after commit
+`9f817fa5b34cdcc4e0a065f7f7e78a54a030ad83`, the migration itself. Installed
+guidance revision `9c9ca4b3681ca4cb8798e5af9e9124b1e761526b`.
+
+**Apparatus growth.** `scripts/growth-report.py --at <after> --baseline <before>`.
+Expected the migration to add no production, test or policy apparatus, since it
+changes configuration, tracked guidance and host instruction files rather than
+code. Observed every metric the report tracks unchanged at 1.00x, at identical
+absolute values on both sides — production and test lines, the policy corpus and
+its chokepoint count, entity files and body words, shipped skill and guidance
+words, and docs narrative words. Measuring against the current branch head
+instead would not isolate the migration, because the head carries a trunk merge
+of unrelated work; the range above is the migration commit and its parent.
+
+The report measures code, the policy corpus, entities and documentation. It does
+not measure instruction load, which is the quantity the reduction epic is
+concerned with, so that is measured directly below rather than inferred from it.
+
+**Instruction load, by how it reaches a session.** Bytes on disk, measured at
+the commits above.
+
+- *Global and personal, loaded in every session in every repository*: the
+  personal instruction file at 151 bytes plus the one collaboration fragment it
+  imports at 3,641. It carries the personal-only marker and imports no
+  engineering guidance. The AC-2 observations confirm this behaviourally on
+  Claude, where no engineering pack appeared among any session's injected
+  instructions; on Codex, whose event stream does not show injected
+  instructions, the global file was measured directly instead.
+- *Upfront project instructions*: this repository's Claude instruction file,
+  66,109 bytes before and 66,589 after. The migration removed a five-line
+  generated block carrying three home-directory language imports and added the
+  nine-line routing block, a net 480 bytes. The separate always-on aiwf fragment
+  it imports, 13,433 bytes, is unchanged by the migration.
+- *Language guidance that was upfront and no longer is*: the three imported
+  language files, 2,051 + 1,214 + 1,067 = 4,332 bytes, resolved into every
+  session before the migration and into none after it.
+- *Task-loaded project guidance*: the override at 327 bytes, the index at 840,
+  and five pack documents totalling 12,502 — 13,669 bytes reachable on demand,
+  of which a session loads only what its task needs. AC-2 observed both
+  directions of that: a task the instruction file already answered drew no pack
+  read, and a task only a pack could answer drew the index and that pack.
+
+So upfront instruction bytes fell by 3,852 — 4,332 leaving, 480 arriving — while
+the corpus reachable on demand grew to 13,669, adding a cross-language guide and
+rubric that had no place in the previous upfront path at all.
+
+**Corpus fidelity.** Each migrated language pack is byte-identical to the
+home-directory file it replaces, by SHA-256. The scope requirement to preserve
+wording holds as an equality rather than an impression.
+
+**Prerequisite.** E-0092 is updated in the same change to name E-0094 as its
+delivery prerequisite in place of the generic reference it carried from before
+E-0094 was allocated. E-0092 keeps its own frozen behavioural baseline and
+ceiling; nothing here sets them.
+
+Limits. The personal instruction file and its fragment live outside this
+repository, so their pre-migration sizes are not recoverable from git history;
+the figures above are today's, and the claim they support — that the global
+surface carries no engineering guidance — rests on the AC-2 Claude session
+observations and the Codex global-file measurement rather than on a historical
+byte count. Byte counts are a measure
+of what a host is handed, not of what a model attends to.
+
+### Wrap gates
+
+`make check-fast` exited 0 with no failing package. `aiwf check` reported 0
+errors; its warnings are the `acs-tdd-audit` advisory raised once per criterion
+met under `tdd: advisory` without a recorded phase, the pending archive sweep
+with the per-entity finding behind it, and the epic's absent drafted milestone.
+
+The full `make ci` gate last ran green on the commit carrying this milestone's
+only source change. Nothing matching the build-input set — Go sources, the
+module files, the Makefile, the workflow definitions — has changed since, so
+that run still describes this tree; the commits after it carry configuration,
+generated host wiring and entity markdown. The merge that integrates this branch
+is into the epic branch rather than mainline, whose gate is `make check-fast`
+above, with the pre-push hook and CI-on-push as its net.
+
 ## Deferrals
 
-- (none)
+- G-0703 — the managed guidance block aiwf writes into the tracked Codex
+  instruction file embeds the rendering binary's version, so an update from any
+  other version rewrites that line and leaves the tree modified with no content
+  change behind it. Found by this milestone's verification, in delivery shipped
+  by an earlier one; filed at high priority rather than fixed here, since the
+  change lands in the Codex guidance renderer and needs its own branch and test.
+- The epic's success criterion that global instructions require no engineering
+  discovery, including for non-coding tasks outside repositories, is evidenced by
+  measuring every channel that could carry such guidance — the global
+  instruction files, the global skill directories and the startup hook's
+  behaviour in a non-Git directory — rather than
+  by an assistant session in that setting. The setting itself is unexercised.
 
 ## Reviewer notes
 
-- (none)
+- Deciding review over the full change-set, run against a freshly built binary,
+  requested changes on prose only; code, trailers, `aiwf check` and
+  `make check-fast` were clean. Every finding was corrected in this body or in
+  G-0703. The one consequential finding was the boundary with ai-dotfiles:
+  ADR-0052 and E-0094 had named this milestone as the verifier of legacy
+  repository delivery, which aiwf does not perform. The maintainer ruled that
+  delivery ai-dotfiles' to verify, and ADR-0052 and E-0094 now say so.
+- Commit `53563b516`'s message calls the byte-identical re-update the property
+  the epic claims; the measurement is scoped to one binary, as the validation
+  above and G-0703 record. The message is left as written rather than rebasing
+  the commits above it.
