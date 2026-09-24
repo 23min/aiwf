@@ -15,17 +15,22 @@ import (
 // PolicyGuidanceCeiling holds each host's handwritten primed load at or
 // under its ceiling. The primed load is what a host reads before any
 // task: its entry point outside aiwf's managed blocks, plus every
-// document a required read reaches. The managed blocks — the aiwf
-// fragment and the routing block — are measured as a separate figure and
-// not held here; the fragment is reduced only by its own milestone.
+// document a required read reaches — the project router the routing block
+// sends it to first among them. The managed blocks and the pack index are
+// aiwf's output and are measured as a separate figure, not held here; the
+// fragment is reduced only by its own milestone.
 //
 // The measure is an explicit model of this repository's routing, not an
-// inspection of a model's context. Claude loads an `@` import on its own,
-// so an import is a required read without further declaration. Every
-// other reference from primed text is classified in guidanceReadTable as
-// a required or a conditional read, and a reference the table does not
-// classify is reported rather than silently counted as either: a new
-// "read X in full" cannot enter the primed load unseen.
+// inspection of a model's context. A reference is a markdown link, in any
+// CommonMark form, or an `@` import in prose; a path named any other way —
+// in backticks, or in a sentence — is not one, and a "read X in full"
+// written that way is outside the model. Claude loads an import on its
+// own, so an import is a required read without further declaration. A
+// link from a host entry point's handwritten text must be classified in
+// guidanceReadTable as a required or a conditional read, and one the table
+// does not classify is reported rather than silently counted as either. A
+// link from the router is conditional unless the table says otherwise,
+// since routing on demand is its job. Every target must exist.
 //
 // The ceiling is internal to this repository; consumers get none
 // (ADR-0053).
@@ -42,6 +47,9 @@ const (
 	readRequired readKind = iota + 1
 	// readConditional is a reference read only when a task needs it.
 	readConditional
+	// readGenerated is a required read of a document aiwf generates, so
+	// its words join the aiwf-generated figure rather than the ceiling.
+	readGenerated
 )
 
 // guidanceRef is one reference, from the document that makes it to the
@@ -65,15 +73,21 @@ type guidanceLoad struct {
 // host's measured handwritten primed load; E-0092's later milestones
 // lower them.
 var guidanceHosts = []guidanceHost{
-	{Name: "claude-code", Entry: fenceClaudeMD, Ceiling: 9489},
-	{Name: "codex", Entry: fenceAgentsMD, Ceiling: 9618},
+	{Name: "claude-code", Entry: fenceClaudeMD, Ceiling: 9559},
+	{Name: "codex", Entry: fenceAgentsMD, Ceiling: 9688},
 }
 
 // guidanceReadTable classifies every reference primed text makes today.
-// AGENTS.md's preamble requires reading CLAUDE.md in full, so for Codex
-// that read is primed; every reference CLAUDE.md makes is read when a
-// task needs it.
+// Both routing blocks send the host to the project router first and then
+// the pack index before any task, so the router is primed and the index,
+// which aiwf generates, joins the generated figure. AGENTS.md's preamble
+// requires reading CLAUDE.md in full, so for Codex that read is primed;
+// every reference CLAUDE.md makes is read when a task needs it.
 var guidanceReadTable = map[guidanceRef]readKind{
+	{From: fenceClaudeMD, To: fenceRouter}:                                                                                 readRequired,
+	{From: fenceAgentsMD, To: fenceRouter}:                                                                                 readRequired,
+	{From: fenceClaudeMD, To: ".guidance/index.md"}:                                                                        readGenerated,
+	{From: fenceAgentsMD, To: ".guidance/index.md"}:                                                                        readGenerated,
 	{From: fenceAgentsMD, To: fenceClaudeMD}:                                                                               readRequired,
 	{From: fenceClaudeMD, To: ".claude/hooks/validate-agent-isolation.sh"}:                                                 readConditional,
 	{From: fenceClaudeMD, To: ".devcontainer/README.md"}:                                                                   readConditional,
@@ -116,7 +130,7 @@ func guidanceCeilingViolations(read func(string) (string, bool), hosts []guidanc
 			out = append(out, Violation{
 				Policy: "guidance-ceiling",
 				File:   h.Entry,
-				Detail: fmt.Sprintf("%s's handwritten primed load is %d words, above its ceiling of %d (aiwf-generated load %d, reported separately); move text on demand behind the project router or cut it, rather than raising the ceiling.", h.Name, load.Handwritten, h.Ceiling, load.Generated),
+				Detail: fmt.Sprintf("%s's handwritten primed load is %d words, above its ceiling of %d (aiwf-generated load %d, reported separately); move text into an on-demand document the project router links to, or cut it, rather than raising the ceiling.", h.Name, load.Handwritten, h.Ceiling, load.Generated),
 			})
 		}
 	}
@@ -137,6 +151,44 @@ func measureGuidanceLoad(read func(string) (string, bool), entry string, table m
 
 	seen := map[string]bool{entry: true}
 	queue := []string{entry}
+	follow := func(doc string, ref guidanceReference) {
+		kind := ref.kind
+		if kind == 0 {
+			kind = table[guidanceRef{From: doc, To: ref.to}]
+		}
+		// Routing on demand is the router's job, so a link from it is
+		// conditional unless the table declares otherwise.
+		if kind == 0 && doc == fenceRouter {
+			kind = readConditional
+		}
+		content, exists := read(ref.to)
+		if !exists {
+			out = append(out, Violation{Policy: "guidance-ceiling", File: ref.to, Detail: fmt.Sprintf("%s references %s, which does not exist; routing that resolves nowhere is reported rather than left out of the measure.", doc, ref.to)})
+			return
+		}
+		switch kind {
+		case readRequired:
+			if !seen[ref.to] {
+				seen[ref.to] = true
+				load.RequiredReads = append(load.RequiredReads, ref.to)
+				queue = append(queue, ref.to)
+			}
+		case readGenerated:
+			if !seen[ref.to] {
+				seen[ref.to] = true
+				load.RequiredReads = append(load.RequiredReads, ref.to)
+				load.Generated += len(strings.Fields(content))
+			}
+		case readConditional:
+		default:
+			out = append(out, Violation{Policy: "guidance-ceiling", File: ref.to, Detail: fmt.Sprintf("%s references %s from primed text, and guidanceReadTable does not classify it; add it as a required read (primed) or a conditional one (on demand).", doc, ref.to)})
+		}
+	}
+	// The routing block is aiwf's, but where it sends the host is read
+	// before the task: its links are classified like handwritten ones.
+	for _, ref := range guidanceReferences(entry, routeBlockText(entryContent)) {
+		follow(entry, ref)
+	}
 	for len(queue) > 0 {
 		doc := queue[0]
 		queue = queue[1:]
@@ -147,28 +199,21 @@ func measureGuidanceLoad(read func(string) (string, bool), entry string, table m
 		}
 		load.Handwritten += len(strings.Fields(withoutImports(text)))
 		for _, ref := range guidanceReferences(doc, text) {
-			kind := ref.kind
-			if kind == 0 {
-				kind = table[guidanceRef{From: doc, To: ref.to}]
-			}
-			if _, exists := read(ref.to); !exists {
-				out = append(out, Violation{Policy: "guidance-ceiling", File: ref.to, Detail: fmt.Sprintf("%s references %s, which does not exist; routing that resolves nowhere is reported rather than left out of the measure.", doc, ref.to)})
-				continue
-			}
-			switch kind {
-			case readRequired:
-				if !seen[ref.to] {
-					seen[ref.to] = true
-					load.RequiredReads = append(load.RequiredReads, ref.to)
-					queue = append(queue, ref.to)
-				}
-			case readConditional:
-			default:
-				out = append(out, Violation{Policy: "guidance-ceiling", File: ref.to, Detail: fmt.Sprintf("%s references %s from primed text, and guidanceReadTable does not classify it; add it as a required read (primed) or a conditional one (on demand).", doc, ref.to)})
-			}
+			follow(doc, ref)
 		}
 	}
 	return load, out
+}
+
+// routeBlockText returns the content of a host entry point's routing
+// block, or "" when it has none.
+func routeBlockText(content string) string {
+	start, end, prefix := projectguidance.RouteMarkers()
+	from, to, err := pathutil.ManagedBlockSpan(content, start, end, prefix)
+	if err != nil || from < 0 {
+		return ""
+	}
+	return strings.TrimSuffix(strings.TrimPrefix(content[from:to], start), end)
 }
 
 // guidanceReference is one reference found in text. kind is readRequired

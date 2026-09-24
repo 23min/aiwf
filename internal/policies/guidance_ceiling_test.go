@@ -5,6 +5,7 @@ import (
 	"testing"
 
 	"github.com/23min/aiwf/internal/initrepo"
+	"github.com/23min/aiwf/internal/projectguidance"
 )
 
 // ceilingReader serves a fixture file set; a path absent from the map is
@@ -199,15 +200,18 @@ func TestPolicy_GuidanceCeiling(t *testing.T) {
 	runPolicy(t, PolicyGuidanceCeiling)
 }
 
-// TestRepoGuidanceReader pins the live reader: a tracked file reads from
-// disk, a missing one reports absent, and the materialized Claude
-// fragment — gitignored, so absent in CI — reads as the embedded source
-// rendered, which is what the import loads.
+// TestRepoGuidanceReader pins the reader: a file reads from disk, a
+// missing one reports absent, and the materialized Claude fragment —
+// gitignored, so absent in CI — reads as the embedded source rendered,
+// which is what the import loads.
 func TestRepoGuidanceReader(t *testing.T) {
 	t.Parallel()
-	read := repoGuidanceReader(repoRoot(t))
-	if content, ok := read("CLAUDE.md"); !ok || content == "" {
-		t.Error("CLAUDE.md must read from disk")
+	root := t.TempDir()
+	writeFile := repoFileWriter(t, root)
+	writeFile("CLAUDE.md", "fixture rules\n")
+	read := repoGuidanceReader(root)
+	if content, ok := read("CLAUDE.md"); !ok || content != "fixture rules\n" {
+		t.Errorf("CLAUDE.md = %q, %v; want the file on disk", content, ok)
 	}
 	if _, ok := read("no/such/file.md"); ok {
 		t.Error("a missing file must read as absent")
@@ -320,5 +324,61 @@ func TestRepoGuidanceReader_DirectoryExists(t *testing.T) {
 	t.Parallel()
 	if content, ok := repoGuidanceReader(repoRoot(t))("docs/adr"); !ok || content != "" {
 		t.Errorf("docs/adr = %q, %v; want an existing directory with no text", content, ok)
+	}
+}
+
+// TestMeasureGuidanceLoad_FollowsTheRoutingBlock pins that the routing
+// block's destinations are read before any task: the project router joins
+// the handwritten load, the generated pack index the generated one, and
+// what the router links to is classified like any other reference.
+func TestMeasureGuidanceLoad_FollowsTheRoutingBlock(t *testing.T) {
+	t.Parallel()
+	rStart, rEnd, _ := projectguidance.RouteMarkers()
+	files := map[string]string{
+		"CLAUDE.md":            words(10) + "\n\n" + rStart + "\nRead [p](.guidance/project.md) then [i](.guidance/index.md).\n" + rEnd + "\n",
+		".guidance/project.md": words(7) + " [t](../docs/testing.md)",
+		".guidance/index.md":   words(30),
+		"docs/testing.md":      words(500),
+	}
+	table := map[guidanceRef]readKind{
+		{From: "CLAUDE.md", To: ".guidance/project.md"}:       readRequired,
+		{From: "CLAUDE.md", To: ".guidance/index.md"}:         readGenerated,
+		{From: ".guidance/project.md", To: "docs/testing.md"}: readConditional,
+	}
+	load, vs := measureGuidanceLoad(ceilingReader(files), "CLAUDE.md", table)
+	if len(vs) != 0 {
+		t.Fatalf("violations: %+v", vs)
+	}
+	// 10 handwritten + the router's 7 words and its one link word; the
+	// block's own 4 words plus the index's 30 are generated.
+	if load.Handwritten != 18 || load.Generated != 34 {
+		t.Errorf("load = %+v, want 18 handwritten and 34 generated", load)
+	}
+}
+
+// TestMeasureGuidanceLoad_RouterLinksDefaultToConditional pins the split
+// rule: a link from the router is conditional unless the table declares
+// it, while one from a host entry point's handwritten text must be
+// classified; a router link must still resolve.
+func TestMeasureGuidanceLoad_RouterLinksDefaultToConditional(t *testing.T) {
+	t.Parallel()
+	rStart, rEnd, _ := projectguidance.RouteMarkers()
+	files := map[string]string{
+		"CLAUDE.md":            "[h](host-link.md)\n\n" + rStart + "\n[p](.guidance/project.md)\n" + rEnd + "\n",
+		".guidance/project.md": "[a](../docs/a.md) [gone](../docs/gone.md)",
+		"docs/a.md":            words(500),
+		"host-link.md":         words(5),
+	}
+	table := map[guidanceRef]readKind{{From: "CLAUDE.md", To: ".guidance/project.md"}: readRequired}
+	load, vs := measureGuidanceLoad(ceilingReader(files), "CLAUDE.md", table)
+	var got []string
+	for _, v := range vs {
+		got = append(got, v.File)
+	}
+	if want := []string{"host-link.md", "docs/gone.md"}; !equalStrings(got, want) {
+		t.Errorf("violation files = %v, want %v", got, want)
+	}
+	if load.Handwritten != 3 {
+		t.Errorf("handwritten = %d, want 3: a router link reads nothing into the primed load", load.Handwritten)
 	}
 }
