@@ -1,7 +1,9 @@
 ---
 id: G-0707
 title: Operator-facing Go text illustrates ids below canonical width
-status: open
+status: addressed
+addressed_by_commit:
+    - 2e4e1e1dd
 ---
 ## What's missing
 
