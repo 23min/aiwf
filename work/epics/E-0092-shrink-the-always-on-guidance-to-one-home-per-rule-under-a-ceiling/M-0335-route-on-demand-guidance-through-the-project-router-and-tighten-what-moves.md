@@ -4,8 +4,8 @@ title: Route on-demand guidance through the project router and tighten what move
 status: draft
 parent: E-0092
 depends_on:
-    - M-0333
-    - M-0334
+    - M-0349
+    - M-0336
 tdd: required
 acs:
     - id: AC-1
