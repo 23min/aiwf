@@ -1,8 +1,10 @@
 ---
 id: G-0685
 title: The pre-push hook judges the checked-out branch, not the refs being pushed
-status: open
+status: addressed
 discovered_in: M-0331
+addressed_by_commit:
+    - fb0a398c0
 ---
 ## What's missing
 
