@@ -112,6 +112,7 @@ func TestGuidanceFence_CommitScope(t *testing.T) {
 	tests := []struct {
 		name   string
 		change func(w func(string, string), git func(...string) string)
+		body   string
 		want   []string
 	}{
 		{
@@ -181,6 +182,8 @@ func TestGuidanceFence_CommitScope(t *testing.T) {
 				git("mv", fenceRoutedDoc, "docs/dev/tests.md")
 				w(fenceProjectDoc, "# Project guidance\n\nFor tests read [testing](../docs/dev/tests.md).\n")
 			},
+			// The route line is reworded, so the commit records where it went.
+			body: "Removed: the old route\nDisposition: relocated to docs/dev/tests.md",
 		},
 		{
 			name: "renaming a routed document beside a code edit refuses the code file",
@@ -197,7 +200,7 @@ func TestGuidanceFence_CommitScope(t *testing.T) {
 			t.Parallel()
 			root, runGit, writeFile, base := guidanceFenceFixture(t)
 			tt.change(writeFile, runGit)
-			commitOwned(runGit, "docs(guidance): change")
+			commitOwned(runGit, "docs(guidance): change\n\n"+tt.body)
 			if got := fenceViolationFiles(t, root, base); !equalStrings(got, tt.want) {
 				t.Errorf("violation files = %v, want %v", got, tt.want)
 			}
@@ -254,7 +257,7 @@ func TestGuidanceFence_DeletionAndBase(t *testing.T) {
 		root, runGit, writeFile, base := guidanceFenceFixture(t)
 		runGit("rm", "-q", fenceRoutedDoc)
 		writeFile(fenceCodeFile, "package app\n\nvar x = 1\n")
-		commitOwned(runGit, "docs(guidance): drop a document")
+		commitOwned(runGit, "docs(guidance): drop a document\n\nRemoved: the testing document\nDisposition: deleted")
 		if got, want := fenceViolationFiles(t, root, base), []string{fenceCodeFile}; !equalStrings(got, want) {
 			t.Errorf("violation files = %v, want %v", got, want)
 		}
@@ -505,5 +508,115 @@ func TestGuidanceFence_TreeLoadFailure(t *testing.T) {
 	t.Cleanup(func() { _ = os.Chmod(denied, 0o755) })
 	if _, err := guidanceFenceViolations(root, base); err == nil {
 		t.Fatal("want an error when the planning tree cannot be read, got nil")
+	}
+}
+
+// TestDispositionBlocks pins M-0333 AC-3's block grammar: a Removed: line
+// immediately followed by a Disposition: line, whose value is one of the
+// closed set. The check is shape only; whether the named path or id
+// exists is held at review.
+func TestDispositionBlocks(t *testing.T) {
+	t.Parallel()
+	tests := []struct {
+		name            string
+		body            string
+		wellFormed, bad int
+	}{
+		{name: "copy of", body: "Removed: the rule\nDisposition: copy of internal/skills/embedded-guidance/aiwf-guidance.md\n", wellFormed: 1},
+		{name: "relocated to", body: "Removed: the rule\nDisposition: relocated to docs/dev/testing.md\n", wellFormed: 1},
+		{name: "pointer to", body: "Removed: the rule\nDisposition: pointer to shipped-prose-assertion\n", wellFormed: 1},
+		{name: "deleted", body: "Removed: the rule\nDisposition: deleted\n", wellFormed: 1},
+		{name: "a value outside the set is malformed", body: "Removed: the rule\nDisposition: moved somewhere\n", bad: 1},
+		{name: "a form missing its target is malformed", body: "Removed: the rule\nDisposition: copy of\n", bad: 1},
+		{name: "Removed without a following Disposition is malformed", body: "Removed: the rule\n\nDisposition: deleted\n", bad: 1},
+		{name: "a Disposition with no Removed is not a block", body: "Disposition: deleted\n"},
+		{name: "two blocks both count", body: "Removed: a\nDisposition: deleted\nRemoved: b\nDisposition: relocated to x.md\n", wellFormed: 2},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+			good, bad := dispositionBlocks(tt.body)
+			if good != tt.wellFormed || len(bad) != tt.bad {
+				t.Errorf("dispositionBlocks = %d well-formed, %v malformed; want %d, %d", good, bad, tt.wellFormed, tt.bad)
+			}
+		})
+	}
+}
+
+// TestDetectGuidanceFence_Disposition is M-0333 AC-3's rule: a guidance
+// commit that removes text records at least one well-formed disposition
+// block, and a malformed block is refused.
+func TestDetectGuidanceFence_Disposition(t *testing.T) {
+	t.Parallel()
+	commit := func(removes bool, body string) []fenceCommit {
+		return []fenceCommit{{SHA: "cccccccccc", Entity: "M-0312", Guidance: []string{"CLAUDE.md"}, Removes: removes, Body: body}}
+	}
+	tests := []struct {
+		name string
+		in   []fenceCommit
+		want int
+	}{
+		{name: "a removal with no block fires once", in: commit(true, "docs: cut\n"), want: 1},
+		{name: "a removal with a malformed block fires once", in: commit(true, "Removed: x\nDisposition: gone\n"), want: 1},
+		{name: "a removal with a well-formed block is silent", in: commit(true, "Removed: x\nDisposition: deleted\n")},
+		{name: "a pure addition needs no block", in: commit(false, "docs: add\n")},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+			if got := detectGuidanceFence(tt.in, resolvesOnly("M-0312")); len(got) != tt.want {
+				t.Errorf("got %d violations %+v, want %d", len(got), got, tt.want)
+			}
+		})
+	}
+}
+
+// TestGuidanceFence_DispositionSeam drives M-0333 AC-3 through git: a
+// rewording is a removal plus an addition, a block written as trailers is
+// still a block, and a removal inside a managed block is generated output
+// the fence does not judge.
+func TestGuidanceFence_DispositionSeam(t *testing.T) {
+	t.Parallel()
+	reworded := fenceHostFile("# Dev rules\n\nKeep it boring.\n", "@.claude/aiwf-guidance.md", "route v1")
+	tests := []struct {
+		name  string
+		write func(w func(string, string))
+		extra []string
+		want  []string
+	}{
+		{
+			name:  "a rewording without a block fires",
+			write: func(w func(string, string)) { w("CLAUDE.md", reworded) },
+			want:  []string{"CLAUDE.md"},
+		},
+		{
+			name:  "a block in trailer position is a block",
+			write: func(w func(string, string)) { w("CLAUDE.md", reworded) },
+			extra: []string{"--trailer", "Removed: keep it simple", "--trailer", "Disposition: deleted"},
+		},
+		{
+			name:  "removing a routed document without a block fires",
+			write: func(w func(string, string)) { w(fenceRoutedDoc, "# Testing\n") },
+			want:  []string{fenceRoutedDoc},
+		},
+		{
+			name: "a removal inside a managed block is not judged",
+			write: func(w func(string, string)) {
+				w("AGENTS.md", fenceHostFile(fenceAgentsText, "", "route v1"))
+				w(fenceFragmentSrc, "")
+			},
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+			root, runGit, writeFile, base := guidanceFenceFixture(t)
+			tt.write(writeFile)
+			runGit("add", "-A")
+			runGit(append([]string{"commit", "-q", "-m", "docs(guidance): change", "--trailer", "aiwf-entity: " + provFixtureEntityID}, tt.extra...)...)
+			if got := fenceViolationFiles(t, root, base); !equalStrings(got, tt.want) {
+				t.Errorf("violation files = %v, want %v", got, tt.want)
+			}
+		})
 	}
 }

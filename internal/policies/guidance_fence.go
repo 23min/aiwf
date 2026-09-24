@@ -25,8 +25,9 @@ import (
 // router .guidance/project.md, or a document that router links to — is
 // its own logical change, so it may carry only related guidance files,
 // the guidance source and the outputs generated from it, and
-// configuration; and it names the entity it belongs to in an
-// aiwf-entity trailer that resolves in the tree.
+// configuration; it names the entity it belongs to in an aiwf-entity
+// trailer that resolves in the tree; and when it removes a handwritten
+// line — a rewording included — its message records a disposition block.
 //
 // A change confined to a managed block is generated output and is judged
 // through the source that renders it, not here. Merge commits add no
@@ -52,6 +53,7 @@ const (
 	fenceGuidanceSrc  = "internal/skills/embedded-guidance/"
 	fenceRecSep       = "\x1e"
 	fenceFldSep       = "\x1f"
+	fenceBodySep      = "\x1d"
 	fenceRouterLinkRE = `\[[^\]]*\]\(([^)\s]+)\)`
 )
 
@@ -65,6 +67,8 @@ type fenceCommit struct {
 	Entity    string
 	Guidance  []string
 	Unrelated []string
+	Removes   bool
+	Body      string
 }
 
 // guidanceFenceViolations is the IO core: it reduces every commit in
@@ -125,6 +129,23 @@ func detectGuidanceFence(commits []fenceCommit, resolves func(string) bool) []Vi
 				Detail: fmt.Sprintf("commit %s changes handwritten guidance (%s) under aiwf-entity: %s, which resolves to no entity in the tree; name an entity that exists.", shortSkillSHA(c.SHA), strings.Join(c.Guidance, ", "), id),
 			})
 		}
+		if c.Removes {
+			good, bad := dispositionBlocks(c.Body)
+			switch {
+			case len(bad) > 0:
+				out = append(out, Violation{
+					Policy: "guidance-fence",
+					File:   c.Guidance[0],
+					Detail: fmt.Sprintf("commit %s removes handwritten guidance and carries a malformed disposition block (%s); a block is a Removed: line followed by Disposition: copy of <path>, relocated to <path>, pointer to <id>, or deleted.", shortSkillSHA(c.SHA), strings.Join(bad, "; ")),
+				})
+			case good == 0:
+				out = append(out, Violation{
+					Policy: "guidance-fence",
+					File:   c.Guidance[0],
+					Detail: fmt.Sprintf("commit %s removes handwritten guidance (%s) but its message carries no disposition block; add a Removed: line followed by Disposition: copy of <path>, relocated to <path>, pointer to <id>, or deleted.", shortSkillSHA(c.SHA), strings.Join(c.Guidance, ", ")),
+				})
+			}
+		}
 		for _, p := range c.Unrelated {
 			out = append(out, Violation{
 				Policy: "guidance-fence",
@@ -154,7 +175,7 @@ type fenceChange struct {
 // anything; the rest read their content through one cat-file pump.
 func fenceCommitsInRange(root, baseRef string) ([]fenceCommit, error) {
 	cmd := exec.Command("git", "-c", "core.quotePath=false", "-c", "diff.renames=true", "log",
-		"--format="+fenceRecSep+"%H %P"+fenceFldSep+"%(trailers:key="+gitops.TrailerEntity+",valueonly,separator="+fenceFldSep+")", "--name-status", baseRef+"..HEAD")
+		"--format="+fenceRecSep+"%H %P"+fenceFldSep+"%(trailers:key="+gitops.TrailerEntity+",valueonly,separator="+fenceFldSep+")"+fenceBodySep+"%B"+fenceBodySep, "--name-status", baseRef+"..HEAD")
 	cmd.Dir = root
 	out, err := cmd.CombinedOutput()
 	if err != nil {
@@ -168,10 +189,16 @@ func fenceCommitsInRange(root, baseRef string) ([]fenceCommit, error) {
 	cl := &fenceClassifier{reader: reader, revisions: map[string]fenceRevision{}}
 	var commits []fenceCommit
 	for _, rec := range strings.Split(string(out), fenceRecSep) {
-		lines := strings.Split(strings.TrimSpace(rec), "\n")
-		header := strings.Split(lines[0], fenceFldSep)
+		// A record is the header line, the message body, and the
+		// --name-status lines, the body fenced by its own separator since
+		// it spans lines.
+		parts := strings.SplitN(rec, fenceBodySep, 3)
+		if len(parts) < 3 {
+			continue
+		}
+		header := strings.Split(strings.TrimSpace(parts[0]), fenceFldSep)
 		revs := strings.Fields(header[0])
-		changes := parseFenceChanges(lines[1:])
+		changes := parseFenceChanges(strings.Split(parts[2], "\n"))
 		if len(revs) == 0 || !touchesMarkdown(changes) {
 			continue
 		}
@@ -190,6 +217,7 @@ func fenceCommitsInRange(root, baseRef string) ([]fenceCommit, error) {
 		if len(header) > 1 {
 			c.Entity = strings.TrimSpace(header[1])
 		}
+		c.Body = parts[1]
 		commits = append(commits, c)
 	}
 	return commits, nil
@@ -258,12 +286,13 @@ func (cl *fenceClassifier) classify(sha, parent string, changes []fenceChange) (
 	for _, ch := range changes {
 		guidance := before.isGuidance(ch.Old) || after.isGuidance(ch.New)
 		if guidance {
-			changed, err := cl.handwrittenChanged(parent, sha, ch)
+			changed, removes, err := cl.handwrittenChanged(parent, sha, ch)
 			if err != nil { //coverage:ignore propagates a cat-file pump failure
 				return c, err
 			}
 			if changed {
 				c.Guidance = append(c.Guidance, fenceReportPath(ch))
+				c.Removes = c.Removes || removes
 				continue
 			}
 		}
@@ -354,9 +383,10 @@ func routedDocuments(router string) []string {
 
 // show returns a file's content at rev, or "" when it is absent there.
 // The empty revision is a root commit's missing parent, where every file
-// is absent.
+// is absent, and the empty path is the missing side of an addition or a
+// deletion — which must not reach cat-file, where `rev:` names the tree.
 func (cl *fenceClassifier) show(rev, p string) (string, error) {
-	if rev == "" {
+	if rev == "" || p == "" {
 		return "", nil
 	}
 	content, err := cl.reader.Read(rev, p)
@@ -370,26 +400,92 @@ func (cl *fenceClassifier) show(rev, p string) (string, error) {
 }
 
 // handwrittenChanged reports whether a guidance pair's handwritten
-// content differs across the commit. For a host entry point that is the
-// file outside its managed blocks; any other guidance document is
-// handwritten throughout, so any change to it — a rename included —
-// counts.
-func (cl *fenceClassifier) handwrittenChanged(parent, sha string, ch fenceChange) (bool, error) {
-	if ch.Old != ch.New {
-		return true, nil
-	}
+// content differs across the commit, and whether the change removes a
+// line. For a host entry point the handwritten content is the file
+// outside its managed blocks; any other guidance document is handwritten
+// throughout, so any change to it — a rename included — counts.
+func (cl *fenceClassifier) handwrittenChanged(parent, sha string, ch fenceChange) (changed, removes bool, err error) {
 	before, err := cl.show(parent, ch.Old)
 	if err != nil { //coverage:ignore propagates a cat-file pump failure
-		return false, err
+		return false, false, err
 	}
 	after, err := cl.show(sha, ch.New)
 	if err != nil { //coverage:ignore propagates a cat-file pump failure
-		return false, err
+		return false, false, err
 	}
 	if ch.New == fenceClaudeMD || ch.New == fenceAgentsMD {
-		return handwrittenText(before) != handwrittenText(after), nil
+		before, after = handwrittenText(before), handwrittenText(after)
 	}
-	return before != after, nil
+	return ch.Old != ch.New || before != after, removesLine(before, after), nil
+}
+
+// removesLine reports whether some non-blank line of before is missing
+// from after, counting repeats. A rewording removes its old line; a line
+// moved within the file removes nothing.
+func removesLine(before, after string) bool {
+	kept := map[string]int{}
+	for _, l := range strings.Split(after, "\n") {
+		kept[strings.TrimSpace(l)]++
+	}
+	for _, l := range strings.Split(before, "\n") {
+		l = strings.TrimSpace(l)
+		if l == "" {
+			continue
+		}
+		if kept[l] == 0 {
+			return true
+		}
+		kept[l]--
+	}
+	return false
+}
+
+// Disposition-block grammar. A block is a Removed: line immediately
+// followed by a Disposition: line; the value is one of the closed set.
+const (
+	fenceRemovedKey     = "Removed:"
+	fenceDispositionKey = "Disposition:"
+)
+
+var fenceDispositionForms = []string{"copy of ", "relocated to ", "pointer to "}
+
+// dispositionBlocks scans a commit message for disposition blocks and
+// returns how many are well-formed and the malformed ones. It checks
+// shape only: whether a named path or id exists, and whether every
+// removed passage has its block, is held at review.
+func dispositionBlocks(body string) (wellFormed int, malformed []string) {
+	lines := strings.Split(body, "\n")
+	for i, l := range lines {
+		if !strings.HasPrefix(strings.TrimSpace(l), fenceRemovedKey) {
+			continue
+		}
+		next := ""
+		if i+1 < len(lines) {
+			next = strings.TrimSpace(lines[i+1])
+		}
+		value, ok := strings.CutPrefix(next, fenceDispositionKey)
+		switch {
+		case !ok:
+			malformed = append(malformed, strings.TrimSpace(l)+" (no Disposition: line follows)")
+		case validDisposition(strings.TrimSpace(value)):
+			wellFormed++
+		default:
+			malformed = append(malformed, next)
+		}
+	}
+	return wellFormed, malformed
+}
+
+func validDisposition(v string) bool {
+	if v == "deleted" {
+		return true
+	}
+	for _, form := range fenceDispositionForms {
+		if target, ok := strings.CutPrefix(v, form); ok && strings.TrimSpace(target) != "" {
+			return true
+		}
+	}
+	return false
 }
 
 // handwrittenText is a host entry point with its managed blocks removed.

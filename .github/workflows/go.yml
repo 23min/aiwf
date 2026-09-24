@@ -148,8 +148,8 @@ jobs:
       #     trailer, or one naming an id that resolves to no entity.
       #     Diff-scoped on the base ref.
       #   - Guidance fence (E-0092): fail if a commit changing handwritten
-      #     guidance also carries unrelated files, or names no entity
-      #     that resolves.
+      #     guidance also carries unrelated files, names no entity that
+      #     resolves, or removes text without a disposition block.
       #     Diff-scoped on the base ref.
       # The base is the merge-base with origin/main on a PR, or
       # github.event.before on a trunk push; an all-zero before-SHA (a

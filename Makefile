@@ -155,8 +155,8 @@ test-cov:
 # allowlist check, and the skill-edit provenance backstop (G-0220 /
 # D-0071 — a ritual SKILL.md edit must ride a commit whose aiwf-entity
 # trailer names a real entity), and the guidance fence (E-0092 — a
-# commit changing handwritten guidance carries only related files and
-# names a real entity). It
+# commit changing handwritten guidance carries only related files,
+# names a real entity, and records a disposition for text it removes). It
 # generates a fresh atomic-mode profile, then delegates to
 # coverage-gate-only. The diff-scoped gates compare the base against the
 # working tree, so uncommitted changes are in scope and you need not
