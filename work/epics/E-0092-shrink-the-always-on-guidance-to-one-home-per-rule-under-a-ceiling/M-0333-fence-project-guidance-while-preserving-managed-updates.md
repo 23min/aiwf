@@ -31,7 +31,7 @@ Fence changes to both hosts' project instructions and their canonical developmen
 
 ## Closes
 
-- G-0676 — the four surfaces that let `CLAUDE.md` grow inside ordinary work; three close here, and the fourth (D-0091's scan) lands as AC-6.
+- G-0676 — all four surfaces that let `CLAUDE.md` grow inside ordinary work: the commit seam (AC-1 to AC-3), the discoverability channel list and the principle text (AC-5), and the AC-evidence rule's scope (AC-6).
 
 ## Context
 
@@ -113,7 +113,9 @@ A test file added or modified in the gate's range that reads a document in the d
 
 ## Decisions made during implementation
 
-- (none)
+- D-0091 accepted before implementation; AC-6 enforces an accepted decision.
+- The principle text rides with AC-5: removing "this file" from §"Engineering principles" is a separate trailered commit, and AC-5's test asserts the absence.
+- D-0091's two statements in `CLAUDE.md` — the AC-evidence section and the substring-assertion bullet stating the extended scope — ride with AC-6 as separate trailered commits. They are held at review, since D-0091 rules out pinning them.
 
 ## Validation
 
