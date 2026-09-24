@@ -19,7 +19,7 @@ acs:
       tdd_phase: done
     - id: AC-4
       title: The always-on set above the ceiling fails the policy
-      status: open
+      status: met
       tdd_phase: done
     - id: AC-5
       title: Finding codes and config fields remain discoverable outside guidance
