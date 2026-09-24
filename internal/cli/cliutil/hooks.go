@@ -47,7 +47,7 @@ func GateHookDecisions(hooks []skills.HookDef, enableHooks []string, formatJSON,
 		switch {
 		case enable[h.Name]:
 			decisions[h.Name] = true
-		case interactive: //coverage:ignore go test's stdin is never a real TTY, so this arm never taken under any automated test — the same untestable-without-a-fake-tty gap RunStatuslineScaffoldForVersion's identical promptYN branch has (no pty library in this repo's dependencies); the surrounding non-interactive condition is covered by NonTTYLeavesUndecided/FormatJSONLeavesUndecided/NoPromptLeavesUndecided
+		case interactive:
 			decisions[h.Name] = promptYN(fmt.Sprintf("Enable hook %q — %s?", h.Name, h.Description))
 		default:
 			// Undecided: omit from the map so it surfaces as a doctor

@@ -40,12 +40,13 @@ func NewCmd() *cobra.Command {
 		allowUntagged bool
 		remove        bool
 		force         bool
+		noPrompt      bool
 		enableHooks   []string
 	)
 	cmd := &cobra.Command{
 		Use:   "update",
 		Short: "Refresh framework artifacts for selected hosts and core Git hooks",
-		Long:  "Refresh selected-host skills, templates, supported agents, and guidance, plus core aiwf artifacts and Git hooks. Existing unselected host artifacts are retained. With maintenance enabled, download the guidance source default branch on demand, whether or not packs are selected, to suggest applicable packs; with guidance.packs explicitly configured, also refresh tracked .guidance files and selected-host routing. guidance.enabled: false stops the download. Interactive runs suggest applicable unselected, unignored packs; Enter means not now. Choices are saved only after all prompts finish. Existing selections are retained. Local edits require reconciliation; rerun update to finish an interrupted installation. This command never commits or pushes." + cliutil.HostSetupHelp,
+		Long:  "Refresh selected-host skills, templates, supported agents, and guidance, plus core aiwf artifacts and Git hooks. Existing unselected host artifacts are retained. With maintenance enabled, download the guidance source default branch on demand, whether or not packs are selected, to suggest applicable packs; with guidance.packs explicitly configured, also refresh tracked .guidance files and selected-host routing. guidance.enabled: false stops the download. Interactive runs suggest applicable unselected, unignored packs; Enter means not now. --no-prompt reports suggestions and leaves undecided hooks unchanged instead of prompting, even on a terminal. Choices are saved only after all prompts finish. Existing selections are retained. Local edits require reconciliation; rerun update to finish an interrupted installation. This command never commits or pushes." + cliutil.HostSetupHelp,
 		Example: `  # Refresh skills + hooks against the current binary version
   aiwf update
 
@@ -64,7 +65,7 @@ func NewCmd() *cobra.Command {
 		SilenceErrors: true,
 		SilenceUsage:  true,
 		RunE: func(c *cobra.Command, args []string) error {
-			return cliutil.WrapExitCode(Run(root, statusline, scope, wireSettings, allowUntagged, remove, force, enableHooks, skills.ShippedHooks))
+			return cliutil.WrapExitCode(Run(root, statusline, scope, wireSettings, allowUntagged, remove, force, noPrompt, enableHooks, skills.ShippedHooks))
 		},
 	}
 	cmd.Flags().StringVar(&root, "root", "", "consumer repo root")
@@ -78,6 +79,7 @@ func NewCmd() *cobra.Command {
 	cmd.Flags().BoolVar(&allowUntagged, "allow-untagged-statusline", false, "write the statusline script even when this binary's version is untagged (a dev/worktree build), without interactive confirmation (G-0367)")
 	cmd.Flags().BoolVar(&remove, "remove", false, "remove the --scope statusline's script + statusLine settings key (mutually exclusive with --statusline)")
 	cmd.Flags().BoolVar(&force, "force", false, "with --remove, delete the script/settings key even if it does not look aiwf-authored")
+	cmd.Flags().BoolVar(&noPrompt, "no-prompt", false, "never prompt for hook consent or guidance selection; leave undecided choices unchanged")
 	cmd.Flags().StringArrayVar(&enableHooks, "enable-hook", nil, "consent to enabling the named registry hook without an interactive prompt (repeatable; non-TTY consent per ADR-0032)")
 	_ = cmd.RegisterFlagCompletionFunc("enable-hook", cliutil.CompleteHookNames)
 	return cmd
@@ -98,8 +100,9 @@ func NewCmd() *cobra.Command {
 // hook absent from the existing aiwf.yaml's hooks: map is gated
 // (enableHooks bypasses the interactive prompt for the named ones); every
 // already-decided hook syncs forward unchanged, with no re-prompt
-// (M-0235/AC-3).
-func Run(root string, statusline bool, scope string, wireSettings, allowUntagged, remove, force bool, enableHooks []string, hooks []skills.HookDef) int {
+// (M-0235/AC-3). noPrompt suppresses both the guidance and the hook-consent
+// prompt even on a terminal, leaving undecided choices unchanged.
+func Run(root string, statusline bool, scope string, wireSettings, allowUntagged, remove, force, noPrompt bool, enableHooks []string, hooks []skills.HookDef) int {
 	if statusline && remove {
 		cliutil.Errorln("aiwf update: --statusline and --remove are mutually exclusive")
 		return cliutil.ExitUsage
@@ -124,7 +127,7 @@ func Run(root string, statusline bool, scope string, wireSettings, allowUntagged
 	}
 
 	refresh, err := initrepo.RefreshArtifacts(context.Background(), rootDir, initrepo.RefreshOptions{
-		SelectGuidance:     cliutil.GuidanceSelector(false),
+		SelectGuidance:     cliutil.GuidanceSelector(noPrompt),
 		RequireClaude:      statusline || remove || len(enableHooks) > 0,
 		StatusMdAutoUpdate: cfg.StatusMdAutoUpdate(),
 		WireClaudeMd:       cfg.WireClaudeMd(),
@@ -174,7 +177,7 @@ func Run(root string, statusline bool, scope string, wireSettings, allowUntagged
 	cliutil.Println("\naiwf update: done.")
 
 	if len(hooks) > 0 {
-		if rc := gateAndSyncHookDecisions(rootDir, hooks, enableHooks); rc != cliutil.ExitOK { //coverage:ignore gateAndSyncHookDecisions's own failure paths are unit-tested directly (TestGateAndSyncHookDecisions_MissingAiwfYamlReturnsInternal, TestGateAndSyncHookDecisions_UnknownFieldInExistingHooksBlockReturnsInternal); triggering one from here would require config.Load (already run above) to succeed while aiwfyaml.Read on the same path fails, which its own contract precludes
+		if rc := gateAndSyncHookDecisions(rootDir, hooks, enableHooks, noPrompt); rc != cliutil.ExitOK { //coverage:ignore gateAndSyncHookDecisions's own failure paths are unit-tested directly (TestGateAndSyncHookDecisions_MissingAiwfYamlReturnsInternal, TestGateAndSyncHookDecisions_UnknownFieldInExistingHooksBlockReturnsInternal); triggering one from here would require config.Load (already run above) to succeed while aiwfyaml.Read on the same path fails, which its own contract precludes
 			return rc
 		}
 		if rc := cliutil.SyncHookMaterialization(rootDir, skills.ClaudeTarget, hooks); rc != cliutil.ExitOK { //coverage:ignore SyncHookMaterialization's own failure paths are unit-tested directly against the function itself; triggering one from here would require the aiwf.yaml gateAndSyncHookDecisions just wrote successfully to become unreadable before this call, which its own contract precludes

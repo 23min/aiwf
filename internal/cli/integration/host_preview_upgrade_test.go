@@ -131,6 +131,23 @@ func TestHostLifecycle_UpgradeReexecResolvesCheckoutHosts(t *testing.T) {
 	}
 }
 
+// TestHostLifecycle_UpgradeNoPromptReachesReexecutedUpdate runs upgrade with
+// --no-prompt through the real re-exec: the re-executed update must accept the
+// forwarded flag and complete.
+func TestHostLifecycle_UpgradeNoPromptReachesReexecutedUpdate(t *testing.T) {
+	t.Parallel()
+	testutil.SkipIfShortOrUnsupported(t)
+	binary := testutil.BuildBinary(t, t.TempDir())
+	root, home := t.TempDir(), t.TempDir()
+	path := hostLifecyclePATH(t, binary, nil)
+	hostLifecycleRun(t, root, home, path, "git", "init", "-q", "-b", "main")
+	claudeBaselineWrite(t, root, "aiwf.yaml", "hosts: []\n")
+	output := hostUpgradeRun(t, binary, root, home, path, false, 0, "upgrade", "--version", "v0.1.0", "--no-prompt")
+	if !strings.Contains(output, "update --root "+root+" --no-prompt\n") {
+		t.Fatalf("upgrade did not re-execute update with --no-prompt:\n%s", output)
+	}
+}
+
 func TestHostLifecycle_UpgradePropagatesRefreshAndExecFailures(t *testing.T) {
 	t.Parallel()
 	testutil.SkipIfShortOrUnsupported(t)
