@@ -8,7 +8,7 @@ acs:
     - id: AC-1
       title: Guidance commits reject unrelated changes and allow managed outputs
       status: open
-      tdd_phase: green
+      tdd_phase: done
     - id: AC-2
       title: Guidance commits require a resolving entity trailer
       status: open
