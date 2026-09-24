@@ -25,13 +25,13 @@ Run the rubric again on the shrunk guidance and re-run the growth report against
 
 ## Context
 
-M-0334 fixes the post-delivery, pre-reduction baseline, rubric, source revision and host settings. Compare each host with its own baseline at M-0337's completion. Keep installed external guidance and personal overlays unchanged so the result measures this epic's reduction. The outcome determines whether M-0339 runs.
+M-0334 fixes the post-delivery, pre-reduction baseline, rubric, source revision and host settings. Compare each host with its own baseline at M-0337's completion. Keep installed external guidance and personal overlays unchanged so the result measures this epic's reduction; `guidance.enabled` stays `false` until this milestone completes. The outcome determines whether M-0339 runs.
 
 ## Acceptance criteria
 
 ### AC-1 — The after observation is recorded against the same rubric
 
-Repeat M-0334's tasks and run counts for both hosts at M-0337's completion, judged against the unchanged rubric. Record commands/prompts, expectations, observed reads and behavior, versions, checkout and guidance revisions. Compare each host against its own baseline, including root-started nested work, new files and post-compaction continuation. Unavailable observations remain outstanding. The fragment stage requires no observed lost effect in either host.
+Repeat M-0334's tasks and run counts for both hosts at M-0337's completion, judged against the unchanged rubric. Record commands/prompts, expectations, observed reads and behavior, versions, checkout and guidance revisions. Compare each host against its own baseline, including root-started nested work, new files and post-compaction continuation, and every judgment rule M-0349's inventory merged or tightened. Confirm that each host now reaches on-demand guidance through `.guidance/project.md` for the tasks that need it. Unavailable observations remain outstanding. The fragment stage requires no observed lost effect in either host.
 
 ### AC-2 — Growth is compared with the frozen post-delivery baseline
 
