@@ -31,7 +31,7 @@ func TestRun_ProjectGuidancePreservesConfigurationAndLegacyOwnership(t *testing.
 			if err := os.WriteFile(filepath.Join(root, "CLAUDE.md"), legacy, 0o644); err != nil {
 				t.Fatal(err)
 			}
-			if rc := update.Run(root, false, "", false, false, false, false, nil, nil); rc != cliutil.ExitOK {
+			if rc := update.Run(root, false, "", false, false, false, false, false, nil, nil); rc != cliutil.ExitOK {
 				t.Fatalf("update exit %d", rc)
 			}
 			for name, want := range map[string][]byte{config.FileName: original, "CLAUDE.md": legacy} {
@@ -59,7 +59,7 @@ func TestRun_ProjectGuidanceRejectsOverlapBeforeRefresh(t *testing.T) {
 	if err := os.WriteFile(example, []byte("unchanged\n"), 0o644); err != nil {
 		t.Fatal(err)
 	}
-	if rc := update.Run(root, false, "", false, false, false, false, nil, nil); rc != cliutil.ExitInternal {
+	if rc := update.Run(root, false, "", false, false, false, false, false, nil, nil); rc != cliutil.ExitInternal {
 		t.Fatalf("invalid configuration exit %d", rc)
 	}
 	for name, want := range map[string][]byte{config.FileName: original, config.ExampleFileName: []byte("unchanged\n")} {
@@ -91,7 +91,7 @@ func TestRun_ProjectGuidanceTracksUpstreamAndConverges(t *testing.T) {
 		commit := testsupport.CommitGuidanceSource(t, source)
 		trace := filepath.Join(t.TempDir(), "git-trace")
 		t.Setenv("GIT_TRACE", trace)
-		if rc := update.Run(root, false, "", false, false, false, false, nil, nil); rc != cliutil.ExitOK {
+		if rc := update.Run(root, false, "", false, false, false, false, false, nil, nil); rc != cliutil.ExitOK {
 			t.Fatalf("update exit %d", rc)
 		}
 		installed, err := os.ReadFile(filepath.Join(root, ".guidance", "packs", "sample", "base", "guide.md"))
@@ -102,7 +102,7 @@ func TestRun_ProjectGuidanceTracksUpstreamAndConverges(t *testing.T) {
 		if err != nil || !bytes.Contains(index, []byte(commit)) {
 			t.Fatalf("index revision: %s, %v", index, err)
 		}
-		if rc := update.Run(root, false, "", false, false, false, false, nil, nil); rc != cliutil.ExitOK {
+		if rc := update.Run(root, false, "", false, false, false, false, false, nil, nil); rc != cliutil.ExitOK {
 			t.Fatalf("repeat update exit %d", rc)
 		}
 		repeated, err := os.ReadFile(filepath.Join(root, ".guidance", "index.md"))

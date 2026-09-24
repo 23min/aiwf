@@ -257,8 +257,9 @@ applicable packs using the external catalogue's filename patterns. Each prompt
 shows the pack description and a matching file: select adds it to `packs`, ignore
 adds it to `ignored`, and Enter means not now. Selected and ignored packs are not
 prompted again. Choices are saved together only after every prompt finishes;
-interruption saves none of that session's choices. Init's `--no-prompt` suppresses
-these prompts as well as hook consent. Noninteractive runs report applicable
+interruption saves none of that session's choices. `--no-prompt` on init or update
+suppresses these prompts as well as hook consent, and `aiwf upgrade --no-prompt`
+passes it to the update step. Noninteractive runs report applicable
 unselected, unignored packs with matching evidence and configuration instructions;
 they refresh explicit selections without adopting new policy. Selected packs with
 no current matching files are reported and retained, so you can select guidance
