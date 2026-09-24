@@ -16,6 +16,8 @@ section in this file.
 
 ## [Unreleased]
 
+## [0.38.0] — 2026-09-24
+
 ### Added — E-0094: deliver external engineering guidance as tracked project policy
 
 - Projects can select engineering-guidance packs from an external source in
@@ -102,6 +104,12 @@ in aiwf's test tree and does not ship. See D-0096.
 parallel agents, gathers their findings before editing, and directs test-sufficiency
 review to the project's mutation harness, preferring its diff-scoped command.
 Mutation runs use an isolated checkout containing the staged changes.
+
+### Fixed — `aiwf doctor` checks binary staleness against the configured trunk
+
+The stale-binary advisory always compared against `origin/main`. It now uses
+the trunk ref set by `allocate.trunk` in `aiwf.yaml`, like every other trunk
+reader; without a readable `aiwf.yaml` it keeps the `origin/main` default.
 
 ## [0.37.0] — 2026-09-19
 
