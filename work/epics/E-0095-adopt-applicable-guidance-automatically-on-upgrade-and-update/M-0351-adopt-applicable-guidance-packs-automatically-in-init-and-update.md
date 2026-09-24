@@ -8,6 +8,9 @@ acs:
     - id: AC-1
       title: Unset selection adopts every applicable pack without a terminal
       status: open
+    - id: AC-2
+      title: Update adds newly applicable packs and never removes one
+      status: open
 ---
 ## Goal
 
@@ -26,6 +29,10 @@ Detection, retrieval, validation, installation, host routing and legacy handover
 ### AC-1 — Unset selection adopts every applicable pack without a terminal
 
 **Pass criterion**: `aiwf update` in a repository whose `aiwf.yaml` has no `guidance` block, against a local catalogue with packs matching and not matching the repository's tracked files, leaves `guidance.packs` listing exactly the matching packs, their files under `.guidance/`, and the engineering-guidance route in each selected host's instruction file, with stdin not a terminal. **Edge cases**: a pack that matches every tracked file; a repository matching no pack (no `guidance.packs` written, nothing installed); nested and gitignored files, which detection already includes and excludes. **Code references**: adoption in `internal/initrepo/project_guidance.go`; binary-level tests beside `internal/cli/update/project_guidance_test.go`.
+
+### AC-2 — Update adds newly applicable packs and never removes one
+
+**Pass criterion**: with `guidance.packs` already listing an installed pack, adding tracked files matching a further pack and running `aiwf update` appends that pack to `guidance.packs` and installs it, and a selected pack whose files no longer match stays selected and installed. **Edge cases**: an explicitly empty `guidance.packs: []` gains newly matching packs; order of existing entries is preserved; a second run with no new matches writes nothing. **Code references**: the adoption function beside `internal/initrepo/project_guidance.go`, with a table-driven unit test and a binary-level update test.
 
 ## Constraints
 
