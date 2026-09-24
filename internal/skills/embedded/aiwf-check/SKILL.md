@@ -29,7 +29,7 @@ aiwf check --shape-only     # tree-discipline rule only; used by the pre-commit 
 | Hook | What it runs | What it catches |
 |---|---|---|
 | `pre-commit` | `aiwf check --shape-only` | Stray files under `work/` (`unexpected-tree-file`). Fast LLM-loop signal — the bad commit never lands. Agent-agnostic (any client running `git commit` triggers it). Blocks when `aiwf.yaml: tree.strict: true` makes the finding an error, or when `aiwf.yaml` itself cannot be read (the same refusal the full check gives); otherwise warns and proceeds. |
-| `pre-push` | Full `aiwf check` | Everything else: frontmatter shape, refs resolve, FSM, provenance, contract config. Audit chokepoint where push-blocking is appropriate; tolerant of WIP between commits. |
+| `pre-push` | Refuses any pushed ref whose commit is not the checked-out commit, then runs full `aiwf check` | Everything else: frontmatter shape, refs resolve, FSM, provenance, contract config. Audit chokepoint where push-blocking is appropriate; tolerant of WIP between commits. |
 
 `--shape-only` skips the trunk read, provenance walk, and contract validation, so the pre-commit hook stays fast and never blocks on transient WIP findings. Use it directly only when you want the fast subset; for normal validation, plain `aiwf check` is the right invocation.
 

@@ -16,6 +16,17 @@ section in this file.
 
 ## [Unreleased]
 
+### Fixed — G-0685: the pre-push hook no longer passes a branch it did not check
+
+The pre-push hook refuses to push any ref whose commit is not the checked-out
+commit, and names each one. `aiwf check` judges the checked-out branch
+and working tree, so `git push origin <other-branch>` from another checkout used to
+print `ok — no findings` for commits it never examined. Push a branch from a checkout
+of it and a tag from a checkout of its commit; a ref no checkout can sit at, such as
+`refs/notes/*`, needs `--no-verify`. Deleting a remote branch is not refused, a tag is
+judged by the commit it points at, and a `pre-push.local` hook still receives git's
+list of pushed refs on stdin. Run `aiwf update` to install the new hook.
+
 ### Fixed — G-0666: a long line in an entity body no longer hides the content around it
 
 `aiwf check` and `aiwf add` no longer report a body section as empty when a line
