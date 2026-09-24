@@ -23,7 +23,7 @@ ADR-0054 replaces explicit selection with add-only automatic adoption, removes t
 
 ## Out of scope
 
-- A `--no-prompt` flag for `aiwf update`'s hook-consent prompt. Removing the guidance prompt leaves hook consent as the only prompt `update` can raise; that remaining gap is tracked separately.
+- A `--no-prompt` flag for `aiwf update`'s hook-consent prompt. Removing the guidance prompt leaves hook consent as the only prompt `update` can raise; that remaining gap is G-0708.
 - Automatic removal of packs whose detection no longer matches. Removal stays a recorded `guidance.ignored` choice.
 - Changes to the external catalogue's packs or detection patterns, which the catalogue repository owns.
 - Changes to ai-dotfiles synchronization or its session hook; ADR-0052 assigns those to the personal-bootstrap maintainer.
