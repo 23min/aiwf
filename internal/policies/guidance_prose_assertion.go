@@ -59,10 +59,8 @@ func namesGuidancePath(s string, routed map[string]bool) bool {
 // judge.
 func guidanceSurface(namesPath func(string) bool, ledger map[string]string) proseSurface {
 	return proseSurface{
-		policy:       "guidance-prose-assertion",
-		namesPath:    namesPath,
-		rooted:       true,
-		presenceOnly: true,
+		kind:      repositoryGuidance,
+		namesPath: namesPath,
 		exempt: func(fn string) bool {
 			_, ok := ledger[fn]
 			return ok
@@ -116,7 +114,7 @@ func guidanceProseViolations(root, base string, ledger map[string]string) ([]Vio
 	var out []Violation
 	for _, d := range ordered {
 		found, err := scanPackageFor(root, d, surface)
-		if err != nil { //coverage:ignore git lists a changed test file only when it can read the file, and so the directory holding it
+		if err != nil {
 			return nil, err
 		}
 		for _, f := range found {
@@ -138,17 +136,29 @@ func changedTestFiles(root, base string) (map[string]bool, error) {
 	} {
 		cmd := exec.Command("git", args...)
 		cmd.Dir = root
-		raw, err := cmd.CombinedOutput()
+		// Stdout only: a warning git prints must not be read as a path.
+		raw, err := cmd.Output()
 		if err != nil {
-			return nil, fmt.Errorf("git %s in %s: %w\n%s", strings.Join(args, " "), root, err, raw)
+			return nil, fmt.Errorf("git %s in %s: %w\n%s", strings.Join(args, " "), root, err, stderrOf(err))
 		}
 		for _, line := range strings.Split(string(raw), "\n") {
-			if line = strings.TrimSpace(line); strings.HasSuffix(line, "_test.go") {
+			if line = strings.TrimSpace(line); strings.HasSuffix(line, "_test.go") && !inSkippedDir(line) {
 				out[line] = true
 			}
 		}
 	}
 	return out, nil
+}
+
+// inSkippedDir reports whether a repo-relative path sits under a directory
+// testPackageDirs does not walk, so both scans judge the same files.
+func inSkippedDir(p string) bool {
+	for _, seg := range strings.Split(path.Dir(p), "/") {
+		if skippedTestDirs[seg] {
+			return true
+		}
+	}
+	return false
 }
 
 // guidanceProseFlaggedTests scans every test package with no ledger and
@@ -162,7 +172,7 @@ func guidanceProseFlaggedTests(root string) (map[string]bool, error) {
 	out := map[string]bool{}
 	for _, d := range dirs {
 		found, err := scanPackageFor(root, d, surface)
-		if err != nil { //coverage:ignore testPackageDirs just read every one of these directories
+		if err != nil {
 			return nil, err
 		}
 		for _, f := range found {

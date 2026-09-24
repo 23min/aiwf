@@ -275,10 +275,11 @@ func guidanceProseFiles(t *testing.T, root, base string) []string {
 	return violationFiles(vs)
 }
 
-// TestGuidanceProseLedger_NoStaleEntries holds the ledger to shrinking:
-// every entry must name a test the scan still flags over the whole tree,
-// so retiring a pin forces its entry's deletion. New entries are held at
-// review, as the firing-fixture ledger's are.
+// TestGuidanceProseLedger_NoStaleEntries holds the ledger to the tree in
+// both directions: every entry must name a test the scan still flags over
+// the whole tree, so retiring a pin forces its entry's deletion, and every
+// flagged test must be an entry. New entries are held at review, as the
+// firing-fixture ledger's are.
 func TestGuidanceProseLedger_NoStaleEntries(t *testing.T) {
 	t.Parallel()
 	flagged, err := guidanceProseFlaggedTests(repoRoot(t))
@@ -288,6 +289,14 @@ func TestGuidanceProseLedger_NoStaleEntries(t *testing.T) {
 	for name := range guidanceProseLedger {
 		if !flagged[name] {
 			t.Errorf("ledger entry %s names no prose-presence pin over development guidance; delete the entry", name)
+		}
+	}
+	// The other direction: a pin created by a change outside its own test
+	// file — a constant moved to name CLAUDE.md — escapes the diff-scoped
+	// gate, and is caught here instead.
+	for name := range flagged {
+		if _, ok := guidanceProseLedger[name]; !ok {
+			t.Errorf("%s pins development-guidance prose and is not in the ledger; state its claim as a relationship check or an observation", name)
 		}
 	}
 }
@@ -320,30 +329,40 @@ func TestGuidanceProseAssertion_WiredIntoCoverageGate(t *testing.T) {
 	}
 }
 
-// TestConditionPolarity pins how a condition reads against a phrase: which
-// spellings mean "the phrase is absent" when the condition is true.
+// TestConditionPolarity pins how a condition reads against a phrase: it
+// is evaluated with the call at its not-found value, on either side of a
+// comparison, and anything else is unknown.
 func TestConditionPolarity(t *testing.T) {
 	t.Parallel()
 	tests := []struct {
-		cond   string
-		absent bool
+		cond string
+		want polarity
 	}{
-		{`strings.Contains(d, "x")`, false},
-		{`!strings.Contains(d, "x")`, true},
-		{`strings.Contains(d, "x") == false`, true},
-		{`strings.Contains(d, "x") != true`, true},
-		{`strings.Contains(d, "x") == true`, false},
-		{`strings.Contains(d, "x") != false`, false},
-		{`strings.Index(d, "x") == -1`, true},
-		{`strings.Index(d, "x") <= -1`, true},
-		{`strings.Index(d, "x") != -1`, false},
-		{`strings.Index(d, "x") > -1`, false},
-		{`strings.Index(d, "x") < 0`, true},
-		{`strings.Index(d, "x") >= 0`, false},
-		{`strings.Count(d, "x") == 0`, true},
-		{`strings.Count(d, "x") > 0`, false},
-		{`!(strings.Contains(d, "x") && ok)`, true},
-		{`strings.Index(d, "x") > limit`, false},
+		{`strings.Contains(d, "x")`, polPresent},
+		{`!strings.Contains(d, "x")`, polAbsent},
+		{`strings.Contains(d, "x") == false`, polAbsent},
+		{`false == strings.Contains(d, "x")`, polAbsent},
+		{`strings.Contains(d, "x") != true`, polAbsent},
+		{`strings.Contains(d, "x") == true`, polPresent},
+		{`strings.Index(d, "x") == -1`, polAbsent},
+		{`-1 == strings.Index(d, "x")`, polAbsent},
+		{`strings.Index(d, "x") != -1`, polPresent},
+		{`strings.Index(d, "x") < 0`, polAbsent},
+		{`strings.Index(d, "x") >= 0`, polPresent},
+		{`strings.Index(d, "x") != 0`, polAbsent},
+		{`strings.Index(d, "x") == 0`, polPresent},
+		{`strings.Count(d, "x") == 0`, polAbsent},
+		{`0 == strings.Count(d, "x")`, polAbsent},
+		{`strings.Count(d, "x") < 1`, polAbsent},
+		{`strings.Count(d, "x") != 1`, polAbsent},
+		{`strings.Count(d, "x") >= 1`, polPresent},
+		{`0 < strings.Count(d, "x")`, polPresent},
+		{`strings.Count(d, "x") == 0x0`, polAbsent},
+		{`!(strings.Contains(d, "x") && ok)`, polAbsent},
+		{`strings.Index(d, "x") > limit`, polUnknown},
+		{`strings.Contains(d, "x") != tc.want`, polUnknown},
+		{`strings.Count(d, "x") > 99999999999999999999`, polUnknown},
+		{`strings.Contains(d, "x") + 1`, polPresent},
 	}
 	for _, tt := range tests {
 		t.Run(tt.cond, func(t *testing.T) {
@@ -352,7 +371,7 @@ func TestConditionPolarity(t *testing.T) {
 			if err != nil {
 				t.Fatal(err)
 			}
-			got := map[*ast.CallExpr]bool{}
+			got := map[*ast.CallExpr]polarity{}
 			conditionPolarity(e, false, got)
 			var verdict *ast.CallExpr
 			for ce := range got {
@@ -363,15 +382,122 @@ func TestConditionPolarity(t *testing.T) {
 			if verdict == nil {
 				t.Fatal("no strings call recorded")
 			}
-			if got[verdict] != tt.absent {
-				t.Errorf("true when absent = %v, want %v", got[verdict], tt.absent)
+			if got[verdict] != tt.want {
+				t.Errorf("polarity = %v, want %v", got[verdict], tt.want)
 			}
 		})
 	}
 }
 
-// TestGuidanceProseAssertion_Errors covers the paths that cannot answer:
-// a base naming no commit and a tree whose walk fails. The entry point no-ops without a base.
+// TestGuidanceProseAssertion_PathShapes pins the path forms the table
+// discipline produces: a path named before it is rooted, a table row, and
+// a root handed back by a helper that does not read the file itself.
+func TestGuidanceProseAssertion_PathShapes(t *testing.T) {
+	t.Parallel()
+	tests := []struct {
+		name, body string
+	}{
+		{
+			name: "a local path rooted at the read",
+			body: `func TestPin(t *testing.T) {
+	p := "CLAUDE.md"
+	data, _ := os.ReadFile(filepath.Join(repoRoot(t), p))
+	if !strings.Contains(string(data), "keep this sentence") {
+		t.Error("missing")
+	}
+}`,
+		},
+		{
+			name: "a table row rooted at the read",
+			body: `func TestPin(t *testing.T) {
+	tests := []struct{ path, phrase string }{{"CLAUDE.md", "keep this sentence"}}
+	root := repoRoot(t)
+	for _, tc := range tests {
+		data, _ := os.ReadFile(filepath.Join(root, tc.path))
+		if !strings.Contains(string(data), "keep this sentence") {
+			t.Error("missing")
+		}
+	}
+}`,
+		},
+		{
+			name: "a table row handed to a reader that roots it",
+			body: `func readRepoFile(t *testing.T, rel string) string {
+	raw, _ := os.ReadFile(filepath.Join(repoRoot(t), rel))
+	return string(raw)
+}
+
+func TestPin(t *testing.T) {
+	for _, tc := range []struct{ path string }{{"CLAUDE.md"}} {
+		if !strings.Contains(readRepoFile(t, tc.path), "keep this sentence") {
+			t.Error("missing")
+		}
+	}
+}`,
+		},
+		{
+			name: "a root from a helper that does not read",
+			body: `func sharedRoot(t *testing.T) (string, int) {
+	return repoRoot(t), 0
+}
+
+func TestPin(t *testing.T) {
+	root, _ := sharedRoot(t)
+	data, _ := os.ReadFile(filepath.Join(root, "CLAUDE.md"))
+	if !strings.Contains(string(data), "keep this sentence") {
+		t.Error("missing")
+	}
+}`,
+		},
+		{
+			name: "a presence assertion written with the call on the right",
+			body: `func TestPin(t *testing.T) {
+	if false == strings.Contains(readClaude(t), "keep this sentence") {
+		t.Error("missing")
+	}
+}`,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+			fset, files, paths := parseSyntheticPackage(t, map[string]string{
+				"header.go": guidanceFixtureHeader,
+				"a_test.go": "package pkg\n\n" + tt.body + "\n",
+			})
+			if got := detectGuidanceProseAssertions(fset, files, paths, fixtureNamesGuidance, nil); len(got) == 0 {
+				t.Error("want the pin reported, got none")
+			}
+		})
+	}
+}
+
+// TestDetectProseAssertions_LocalVarHoldsTheDocument pins, on the shipped
+// surface, that a local var initialized from a read carries the document
+// to the assertion.
+func TestDetectProseAssertions_LocalVarHoldsTheDocument(t *testing.T) {
+	t.Parallel()
+	fset, files, paths := parseSyntheticPackage(t, map[string]string{
+		"header.go": fixtureHeader,
+		"a_test.go": `package pkg
+
+func TestPin(t *testing.T) {
+	var body = readSkill(t, ritualPath)
+	section := extractMarkdownSection(body, 2, "Steps")
+	if !strings.Contains(section, "keep this sentence") {
+		t.Error("missing")
+	}
+}
+`,
+	})
+	if got := detectProseAssertions(fset, files, paths); len(got) == 0 {
+		t.Error("want the pin reported, got none")
+	}
+}
+
+// TestGuidanceProseAssertion_Errors covers the paths that cannot answer: a
+// base naming no commit, an unparseable test file, and a tree whose walk
+// fails. A file under testdata is a fixture and is not read. The entry point no-ops without a base.
 func TestGuidanceProseAssertion_Errors(t *testing.T) {
 	t.Parallel()
 	root, runGit, writeFile, _ := skillFixtureBase(t)
@@ -379,8 +505,23 @@ func TestGuidanceProseAssertion_Errors(t *testing.T) {
 	writeFile(".guidance/project.md", "Read [t](../docs/dev/testing.md).\n")
 	runGit("add", "-A")
 	runGit("commit", "-q", "-m", "seed")
+	base := trimLine(runGit("rev-parse", "HEAD"))
 	if _, err := guidanceProseViolations(root, "deadbeefdeadbeefdeadbeefdeadbeefdeadbeef", nil); err == nil {
 		t.Error("a base naming no commit: want an error")
+	}
+	writeFile("pkg/testdata/broken_test.go", "package pkg\n\nfunc TestX(t *testing.T) {\n")
+	if _, err := guidanceProseViolations(root, base, nil); err != nil {
+		t.Errorf("a broken file under testdata is a fixture, not a test: %v", err)
+	}
+	writeFile("pkg/wip_test.go", "package pkg\n\nfunc TestWIP(t *testing.T) {\n")
+	if _, err := guidanceProseViolations(root, base, nil); err == nil {
+		t.Error("an unparseable changed test file: want an error")
+	}
+	if _, err := guidanceProseFlaggedTests(root); err == nil {
+		t.Error("an unparseable test file in the tree: want an error")
+	}
+	if err := os.Remove(filepath.Join(root, "pkg", "wip_test.go")); err != nil {
+		t.Fatal(err)
 	}
 	if !repoNamesGuidance(root)("docs/dev/testing.md") {
 		t.Error("a routed document must name guidance")
