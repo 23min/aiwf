@@ -138,7 +138,7 @@ func (e *PreflightRungPairError) Error() string {
 		)
 	}
 	return fmt.Sprintf(
-		"aiwf authorize: (%s, %s) is not a legal ritual rung pair (%s) — current branch %q (rung: %s) cannot authorize work targeting %q (rung: %s). Legal rung pairs: (trunk, epic), (epic, milestone), (milestone, patch), (epic, patch) — see ADR-0010. To override this preflight as a sovereign act, use `--force --reason \"<one-sentence justification>\"`.",
+		"aiwf authorize: (%s, %s) is not a legal ritual rung pair (%s) — current branch %q (rung: %s) cannot authorize work targeting %q (rung: %s). Legal rung pairs: (trunk, epic), (epic, milestone), (milestone, patch), (epic, patch). To override this preflight as a sovereign act, use `--force --reason \"<one-sentence justification>\"`.",
 		curr, targ, CodePreflightRungPair.ID, e.CurrentBranch, curr, e.TargetBranch, targ,
 	)
 }

@@ -83,7 +83,7 @@ var fieldDescriptions = map[string]string{
 	"worktree":     "Default placement for the git worktrees the start rituals create.",
 	"worktree.dir": "Repo-relative directory ritual worktrees are placed under (default .claude/worktrees).",
 
-	"logging":             "Opt-in diagnostic-logging configuration (ADR-0017); absent or empty leaves logging disabled unless AIWF_LOG is set.",
+	"logging":             "Opt-in diagnostic-logging configuration; absent or empty leaves logging disabled unless AIWF_LOG is set.",
 	"logging.level":       "Diagnostic log level: debug, info, warn, or error (unset here and via AIWF_LOG: logging stays disabled).",
 	"logging.format":      "Diagnostic log record format: text or json (default text).",
 	"logging.destination": "Diagnostic log destination: stderr, an absolute file path, or unset for the default XDG-state-home daily-rotated file.",
@@ -94,7 +94,7 @@ var fieldDescriptions = map[string]string{
 
 	"provenance":                  "Policy for what a commit message records about who produced it.",
 	"provenance.refuse_coauthors": "Addresses the commit-msg hook refuses in a Co-Authored-By trailer (empty: refuse none).",
-	"hooks":                       "Per-hook consent registry for materialized Claude Code hooks aiwf ships (ADR-0032).",
+	"hooks":                       "Per-hook consent registry for materialized Claude Code hooks aiwf ships.",
 	"hooks.<key>.enabled":         "Whether this hook is materialized and wired into .claude/settings.json (unset: undecided, gates via aiwf init/update).",
 }
 

@@ -55,13 +55,13 @@ satisfied is not refused: re-setting the level already recorded, or
 writes no commit. The change reverses totally via the same
 verb: a set reverses with --clear, a reset with the prior level.`,
 		Example: `  # Set a gap's priority
-  aiwf set-priority G-0001 urgent
+  aiwf set-priority G-NNNN urgent
 
   # Change it to another level
-  aiwf set-priority G-0001 medium
+  aiwf set-priority G-NNNN medium
 
   # Clear it back to unset
-  aiwf set-priority G-0001 --clear`,
+  aiwf set-priority G-NNNN --clear`,
 		Args:          cobra.RangeArgs(1, 2),
 		SilenceErrors: true,
 		SilenceUsage:  true,

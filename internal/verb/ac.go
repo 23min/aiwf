@@ -392,7 +392,7 @@ func renameAC(ctx context.Context, t *tree.Tree, compositeID, newTitle, actor st
 func lookupAC(t *tree.Tree, compositeID string) (parent *entity.Entity, ac entity.AcceptanceCriterion, err error) {
 	parentID, subID, ok := entity.ParseCompositeID(compositeID)
 	if !ok {
-		return nil, entity.AcceptanceCriterion{}, fmt.Errorf("%q is not a valid composite id (M-NNN/AC-N)", compositeID)
+		return nil, entity.AcceptanceCriterion{}, fmt.Errorf("%q is not a valid composite id (M-NNNN/AC-N)", compositeID)
 	}
 	parent = t.ByID(parentID)
 	if parent == nil {

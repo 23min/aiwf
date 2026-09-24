@@ -542,7 +542,7 @@ func requireResolverForResolutionClass(k entity.Kind, newStatus entity.Status, o
 		}
 	case k == entity.KindADR && newStatus == entity.StatusSuperseded:
 		if opts.SupersededBy == "" {
-			return fmt.Errorf("promoting an ADR to %q requires --superseded-by <ADR-id> so the adr-supersession-mutual rule is satisfied; pass --force to override", entity.StatusSuperseded)
+			return fmt.Errorf("promoting an ADR to %q requires --superseded-by <adr-id> so the adr-supersession-mutual rule is satisfied; pass --force to override", entity.StatusSuperseded)
 		}
 	}
 	return nil

@@ -85,9 +85,9 @@ func NewCmd(correlationID string) *cobra.Command {
   aiwf list --kind milestone --status draft
 
   # Children of a specific epic
-  aiwf list --kind milestone --parent E-13
+  aiwf list --kind milestone --parent E-NNNN
 
-  # Include terminal-status entities (forward-compat with ADR-0004)
+  # Include terminal-status entities (hidden by default)
   aiwf list --archived
 
   # JSON envelope for downstream tooling
@@ -117,9 +117,9 @@ func NewCmd(correlationID string) *cobra.Command {
 	cmd.Flags().StringVar(&root, "root", "", "consumer repo root (default: discover via aiwf.yaml)")
 	cmd.Flags().StringVar(&kind, "kind", "", "filter by entity kind (epic, milestone, adr, gap, decision, contract)")
 	cmd.Flags().StringVar(&status, "status", "", "filter by entity status (kind-aware)")
-	cmd.Flags().StringVar(&parent, "parent", "", "filter to entities whose parent is this id (e.g., milestones under E-13)")
-	cmd.Flags().StringVar(&area, "area", "", "filter to entities whose effective area equals this workstream tag (E-0043)")
-	cmd.Flags().StringVar(&priority, "priority", "", "filter to gaps/decisions whose priority equals this closed-set level (urgent|high|medium|low) (G-0078, E-0066)")
+	cmd.Flags().StringVar(&parent, "parent", "", "filter to entities whose parent is this id (e.g., milestones under E-NNNN)")
+	cmd.Flags().StringVar(&area, "area", "", "filter to entities whose effective area equals this workstream tag")
+	cmd.Flags().StringVar(&priority, "priority", "", "filter to gaps/decisions whose priority equals this closed-set level (urgent|high|medium|low)")
 	cmd.Flags().BoolVar(&archived, "archived", false, "include terminal-status entities (default: hide them)")
 	cmd.Flags().StringVar(&format, "format", "text", "output format: text or json")
 	cmd.Flags().BoolVar(&pretty, "pretty", false, "indent JSON output (only with --format=json)")

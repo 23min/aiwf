@@ -280,7 +280,7 @@ worktrees[].is_trunk identifies the configured trunk checkout.`,
   # when stdout is a TTY narrower than the row)
   aiwf status --no-trunc
 
-  # Worktree-organized view (G-0122): per-worktree section with full
+  # Worktree-organized view: per-worktree section with full
   # epic expansion when a worktree is on an epic branch
   aiwf status --worktrees`,
 		Args:          cobra.NoArgs,
@@ -292,11 +292,11 @@ worktrees[].is_trunk identifies the configured trunk checkout.`,
 	}
 	cmd.Flags().StringVar(&root, "root", "", "consumer repo root (default: discover via aiwf.yaml)")
 	cmd.Flags().StringVar(&format, "format", "text", "output format: text, json, or md")
-	cmd.Flags().StringVar(&area, "area", "", "scope the snapshot to one workstream by effective area (E-0043)")
-	cmd.Flags().StringVar(&priority, "priority", "", "scope open gaps/decisions to this closed-set priority level (urgent|high|medium|low) (G-0078, E-0066)")
+	cmd.Flags().StringVar(&area, "area", "", "scope the snapshot to one workstream by effective area")
+	cmd.Flags().StringVar(&priority, "priority", "", "scope open gaps/decisions to this closed-set priority level (urgent|high|medium|low)")
 	cmd.Flags().BoolVar(&pretty, "pretty", false, "indent JSON output (only with --format=json)")
 	cmd.Flags().BoolVar(&noTrunc, "no-trunc", false, "do not truncate long titles when stdout is a terminal narrower than the row")
-	cmd.Flags().BoolVar(&worktrees, "worktrees", false, "render worktree-organized layout: per-worktree section, epic expansion, stale/trunk catch-alls (G-0122)")
+	cmd.Flags().BoolVar(&worktrees, "worktrees", false, "render worktree-organized layout: per-worktree section, epic expansion, stale/trunk catch-alls")
 	_ = cmd.RegisterFlagCompletionFunc("format", cobra.FixedCompletions(
 		[]string{"text", "json", "md"},
 		cobra.ShellCompDirectiveNoFileComp,

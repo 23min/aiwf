@@ -180,7 +180,7 @@ func TestRun_DoctorSelfCheck_Passes(t *testing.T) {
 		"ok    check",
 		"ok    doctor",
 		// M-0152: doctor verifies the materialized rituals.
-		"ok    doctor verifies rituals materialized (ADR-0014 §5)",
+		"ok    doctor verifies rituals materialized",
 	} {
 		if !strings.Contains(out, label) {
 			t.Errorf("output missing %q:\n%s", label, out)
@@ -831,9 +831,9 @@ exit 0
 	lines, _ := doctor.DoctorReport(root, doctor.DoctorOptions{})
 	joined := strings.Join(lines, "\n")
 	for _, want := range []string{
-		"hook:         ok (/bin/sh; pre-G-0135 shape, run `aiwf update`",
-		"pre-commit:   ok (/bin/sh; pre-G-0135 shape, run `aiwf update`",
-		"post-commit:  ok (/bin/sh; pre-G-0135 shape, run `aiwf update`",
+		"hook:         ok (/bin/sh; older hook shape with a baked binary path; run `aiwf update`",
+		"pre-commit:   ok (/bin/sh; older hook shape with a baked binary path; run `aiwf update`",
+		"post-commit:  ok (/bin/sh; older hook shape with a baked binary path; run `aiwf update`",
 	} {
 		if !strings.Contains(joined, want) {
 			t.Errorf("expected line containing %q in doctor report:\n%s", want, joined)

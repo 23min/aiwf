@@ -326,7 +326,7 @@ func (a Areas) validate() error {
 		// an entity carries `area: global` is the affirmative escape valve,
 		// not a member set that shadows the sentinel.
 		if name == entity.AreaGlobal {
-			return fmt.Errorf("areas.members may not declare the reserved %q area; it is the cross-cutting sentinel (ADR-0021)", entity.AreaGlobal)
+			return fmt.Errorf("areas.members may not declare the reserved %q area; it is the cross-cutting sentinel", entity.AreaGlobal)
 		}
 		if seen[name] {
 			return fmt.Errorf("areas.members contains duplicate member %q", name)
