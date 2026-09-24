@@ -6,6 +6,25 @@ parent: E-0092
 depends_on:
     - M-0333
 tdd: required
+acs:
+    - id: AC-1
+      title: aiwf check refuses an instruction-file commit carrying unrelated files
+      status: open
+    - id: AC-2
+      title: aiwf check refuses an instruction-file commit without a resolving entity
+      status: open
+    - id: AC-3
+      title: aiwf check refuses an instruction-file removal without a disposition block
+      status: open
+    - id: AC-4
+      title: The fence is an error by default and an aiwf.yaml setting turns it off
+      status: open
+    - id: AC-5
+      title: The fence's finding codes and setting are discoverable
+      status: open
+    - id: AC-6
+      title: This repository runs the kernel fence in place of its internal one
+      status: open
 ---
 ## Goal
 
@@ -20,6 +39,18 @@ Make every aiwf repository fence edits to its handwritten instruction files by d
 ADR-0053 decides the rule and its boundaries. M-0333 built the same three rules as an internal policy over this repository's commit range, and its pure core, classification and fixtures are the starting point. `aiwf check` already judges unpushed commits for `provenance-untrailered-entity-commit`, resolving the range from `--since`, else `@{u}..HEAD`, else reporting `provenance-untrailered-scope-undefined`; the fence uses the same range and the same skip.
 
 ## Acceptance criteria
+
+### AC-1 — aiwf check refuses an instruction-file commit carrying unrelated files
+
+### AC-2 — aiwf check refuses an instruction-file commit without a resolving entity
+
+### AC-3 — aiwf check refuses an instruction-file removal without a disposition block
+
+### AC-4 — The fence is an error by default and an aiwf.yaml setting turns it off
+
+### AC-5 — The fence's finding codes and setting are discoverable
+
+### AC-6 — This repository runs the kernel fence in place of its internal one
 
 ## Constraints
 
