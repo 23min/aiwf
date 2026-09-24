@@ -7,6 +7,22 @@ depends_on:
     - M-0333
     - M-0334
 tdd: advisory
+acs:
+    - id: AC-1
+      title: The inventory lists every rule in the guidance set once, with its current homes
+      status: open
+    - id: AC-2
+      title: Every rule carries one disposition from the closed set
+      status: open
+    - id: AC-3
+      title: Every conflict is decided by the maintainer and recorded
+      status: open
+    - id: AC-4
+      title: The on-demand documents and the router are specified
+      status: open
+    - id: AC-5
+      title: Each host's handwritten primed ceiling is set from the primed rules
+      status: open
 ---
 ## Goal
 
@@ -21,6 +37,16 @@ List every guidance rule in this repository once, with where it lives today, and
 M-0333's fence is in place and M-0334 has recorded the baseline, so nothing here changes guidance text; this milestone produces the table the later milestones carry out. The guidance set is the one M-0333 defines — the root `CLAUDE.md` and `AGENTS.md`, `.guidance/project.md` and what it routes to — compared against the shipped aiwf fragment (`internal/skills/embedded-guidance/aiwf-guidance.md`) and the selected packs under `.guidance/packs/`, which are canonical homes for the rules they carry.
 
 ## Acceptance criteria
+
+### AC-1 — The inventory lists every rule in the guidance set once, with its current homes
+
+### AC-2 — Every rule carries one disposition from the closed set
+
+### AC-3 — Every conflict is decided by the maintainer and recorded
+
+### AC-4 — The on-demand documents and the router are specified
+
+### AC-5 — Each host's handwritten primed ceiling is set from the primed rules
 
 ## Constraints
 
