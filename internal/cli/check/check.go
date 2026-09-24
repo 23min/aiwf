@@ -57,7 +57,7 @@ func NewCmd(correlationID string) *cobra.Command {
 	cmd.Flags().BoolVar(&pretty, "pretty", false, "indent JSON output (only with --format=json)")
 	cmd.Flags().StringVar(&since, "since", "", "explicit base ref for the provenance audit's commit range, including the untrailered-entity audit and the dropped-body-section gate (default: @{u} when set, else skipped)")
 	cmd.Flags().BoolVar(&shapeOnly, "shape-only", false, "run only the tree-discipline rule (skips trunk read, provenance audit, contract validation); used by the pre-commit hook for a fast LLM-loop check")
-	cmd.Flags().BoolVar(&fast, "fast", false, "run the in-memory content rules (refs, status, ids, cycles, body-prose, ACs) plus tree-discipline, skipping the trunk read / provenance / FSM-history / metrics / contract-validation layer; render-safe (sub-second) for the statusline health glyph and CI pre-flight (G-0290)")
+	cmd.Flags().BoolVar(&fast, "fast", false, "run the in-memory content rules (refs, status, ids, cycles, body-prose, ACs) plus tree-discipline, skipping the trunk read / provenance / FSM-history / metrics / contract-validation layer")
 	cmd.Flags().BoolVar(&verbose, "verbose", false, "print one line per warning instance instead of the per-code summary; errors are always per-instance regardless")
 	cmd.Flags().StringVar(&commitMsg, "commit-msg", "", "validate aiwf-verb trailers in the named commit-message file and exit; refuses values outside the Cobra verb tree ∪ ritualVerbs (used by the .git/hooks/commit-msg hook installed by aiwf init/update — G-0218)")
 	cliutil.RegisterFormatCompletion(cmd)
@@ -347,10 +347,8 @@ func Run(root, format string, pretty bool, since string, shapeOnly, fast, verbos
 // full pre-push check still catches. Folding the in-memory half in is a
 // tracked follow-up.
 //
-// It is the render-safe content-health surface G-0290 needs: the
-// statusline runs it on a TTL cache to drive the ⚠ health glyph, and
-// CI scripts can use it as a fast pre-flight. The full `aiwf check`
-// pre-push hook remains the authoritative gate.
+// It is a subset of the full `aiwf check`, which the pre-push hook runs
+// and which remains the authoritative gate.
 //
 // Exit codes match `aiwf check`'s contract: 0 ok, 1 findings (errors
 // present), 3 internal.

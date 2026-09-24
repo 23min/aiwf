@@ -16,6 +16,20 @@ section in this file.
 
 ## [Unreleased]
 
+### Fixed — G-0674: `--principal` help names the rule instead of an internal label
+
+Every verb's `--principal` help now says what the flag requires: a non-human
+`--actor` needs it, and also needs an active `aiwf authorize` scope that reaches the
+entity. It no longer cites an internal iteration label a reader cannot look up, and
+the verbs share one copy of the text. `aiwf import`'s `--principal` help likewise
+drops an internal label and says it checks only that the principal is set
+coherently, not an authorization scope.
+
+### Fixed — G-0692: `aiwf check --fast` help no longer names consumers that do not exist
+
+The `--fast` flag's help no longer says it serves the statusline health glyph and a CI
+pre-flight; neither invokes it.
+
 ### Fixed — G-0695: a withdrawn acceptance criterion no longer blocks starting its milestone
 
 `aiwf promote <milestone> in_progress` no longer refuses because a cancelled or
