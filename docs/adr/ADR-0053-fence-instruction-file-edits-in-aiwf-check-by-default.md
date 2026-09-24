@@ -1,7 +1,7 @@
 ---
 id: ADR-0053
 title: Fence instruction-file edits in aiwf check by default
-status: proposed
+status: accepted
 ---
 > **Date:** 2026-09-24 · **Decided by:** Peter Bruinsma (human), while starting E-0092
 
