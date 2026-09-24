@@ -35,6 +35,7 @@ ADR-0054 replaces explicit selection with add-only automatic adoption, removes t
 - `guidance.enabled: false` suppresses detection, adoption and refresh.
 - `aiwf.yaml` edits preserve unrelated fields and comments.
 - Every report line and help string is reachable through `--help` or an embedded skill.
+- Leave the shared guidance fragment, the installed file layout, the owned set and the routing block format unchanged; E-0092 rewrites the fragment and fences commits around that layout.
 
 ## Success criteria
 
