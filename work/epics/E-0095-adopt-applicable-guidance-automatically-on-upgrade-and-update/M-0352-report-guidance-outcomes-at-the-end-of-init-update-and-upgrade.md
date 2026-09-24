@@ -6,6 +6,10 @@ parent: E-0095
 depends_on:
     - M-0351
 tdd: required
+acs:
+    - id: AC-1
+      title: Update ends with a guidance section of adopted, installed and ignored packs
+      status: open
 ---
 ## Goal
 
@@ -20,6 +24,10 @@ Every `aiwf init`, `aiwf update` and `aiwf upgrade` run ends with a guidance sec
 Guidance outcomes surface today as one step-ledger line whose wording ("no project guidance selected; existing delivery retained") does not say whether guidance is adopted, and whose blocked cases read as `guidance incomplete: …` among unrelated steps. `aiwf doctor` describes the same state in clearer terms from its own code in `internal/cli/doctor/project_guidance.go`. With adoption automatic after the previous milestone, the report is the maintainer's only per-run view of what changed.
 
 ## Acceptance criteria
+
+### AC-1 — Update ends with a guidance section of adopted, installed and ignored packs
+
+**Pass criterion**: a successful `aiwf update` ends with a guidance section listing the packs adopted in this run, the installed packs with the installed source commit, and the ignored packs, each list present even when empty. **Edge cases**: first adoption; a run adopting nothing new; a repository matching no pack; `guidance.enabled: false`, reported as maintenance disabled with the installed set unchanged. **Code references**: the report renderer beside `internal/cli/cliutil/guidance_report.go`; binary-level tests in `internal/cli/update`.
 
 ## Constraints
 
