@@ -23,7 +23,7 @@ acs:
       tdd_phase: done
     - id: AC-5
       title: Finding codes and config fields remain discoverable outside guidance
-      status: open
+      status: met
       tdd_phase: done
     - id: AC-6
       title: New prose-presence assertions over development guidance fail the gate
