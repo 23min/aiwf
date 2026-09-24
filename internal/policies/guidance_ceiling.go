@@ -3,7 +3,6 @@ package policies
 import (
 	"fmt"
 	"os"
-	"path"
 	"path/filepath"
 	"strings"
 
@@ -103,9 +102,16 @@ var guidanceReadTable = map[guidanceRef]readKind{
 // findings and a handwritten load above its ceiling.
 func guidanceCeilingViolations(read func(string) (string, bool), hosts []guidanceHost, table map[guidanceRef]readKind) []Violation {
 	var out []Violation
+	// A routing finding in a document both hosts read is one finding.
+	reported := map[Violation]bool{}
 	for _, h := range hosts {
 		load, vs := measureGuidanceLoad(read, h.Entry, table)
-		out = append(out, vs...)
+		for _, v := range vs {
+			if !reported[v] {
+				reported[v] = true
+				out = append(out, v)
+			}
+		}
 		if load.Handwritten > h.Ceiling {
 			out = append(out, Violation{
 				Policy: "guidance-ceiling",
@@ -174,34 +180,23 @@ type guidanceReference struct {
 }
 
 // guidanceReferences returns the imports and markdown links in text,
-// resolved against the directory of the document making them. A link
-// with a scheme, a bare anchor, and an import from outside the
-// repository — personal or global material — are not references into
-// the repository and are left out.
+// resolved as resolveReference describes. An import is a filesystem path, so
+// one under the home directory or absolute is personal or global material,
+// outside the repository, and left out; a link with a leading slash is
+// repository-rooted.
 func guidanceReferences(doc, text string) []guidanceReference {
 	var out []guidanceReference
-	for _, target := range importTargets(text) {
+	for _, target := range markdownImports(text) {
 		if strings.HasPrefix(target, "~") || strings.HasPrefix(target, "/") {
 			continue
 		}
-		out = append(out, guidanceReference{to: path.Clean(path.Join(path.Dir(doc), target)), kind: readRequired})
-	}
-	for _, m := range fenceRouterLink.FindAllStringSubmatch(text, -1) {
-		target, _, _ := strings.Cut(m[1], "#")
-		if target == "" || strings.Contains(target, ":") {
-			continue
+		if p, ok := resolveReference(doc, target); ok {
+			out = append(out, guidanceReference{to: p, kind: readRequired})
 		}
-		out = append(out, guidanceReference{to: path.Clean(path.Join(path.Dir(doc), target))})
 	}
-	return out
-}
-
-// importTargets returns the paths of the `@path` import lines in text.
-func importTargets(text string) []string {
-	var out []string
-	for _, line := range strings.Split(text, "\n") {
-		if target, ok := strings.CutPrefix(strings.TrimSpace(line), "@"); ok && target != "" && !strings.ContainsAny(target, " \t") {
-			out = append(out, target)
+	for _, target := range markdownLinks(text) {
+		if p, ok := resolveReference(doc, target); ok {
+			out = append(out, guidanceReference{to: p})
 		}
 	}
 	return out
@@ -234,7 +229,7 @@ func generatedWords(read func(string) (string, bool), content string) int {
 		}
 		block := strings.TrimSuffix(strings.TrimPrefix(content[start:end], markers[0]), markers[1])
 		n += len(strings.Fields(withoutImports(block)))
-		for _, target := range importTargets(block) {
+		for _, target := range markdownImports(block) {
 			if imported, ok := read(target); ok {
 				n += len(strings.Fields(imported))
 			}
@@ -245,14 +240,19 @@ func generatedWords(read func(string) (string, bool), content string) int {
 
 // repoGuidanceReader reads this repository's files from disk. The
 // materialized Claude fragment is gitignored, so absent in CI; it reads as
-// the embedded source rendered, which is what the import loads.
+// the embedded source rendered, which is what the import loads. A
+// directory exists and holds no text of its own.
 func repoGuidanceReader(root string) func(string) (string, bool) {
 	return func(p string) (string, bool) {
 		if p == skills.GuidanceFile {
 			rendered, err := skills.RenderGuidance("")
 			return string(rendered), err == nil
 		}
-		content, err := os.ReadFile(filepath.Join(root, filepath.FromSlash(p)))
+		full := filepath.Join(root, filepath.FromSlash(p))
+		if info, err := os.Stat(full); err == nil && info.IsDir() {
+			return "", true
+		}
+		content, err := os.ReadFile(full)
 		if err != nil {
 			return "", false
 		}

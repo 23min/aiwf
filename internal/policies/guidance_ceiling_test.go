@@ -235,3 +235,90 @@ func TestMeasureGuidanceLoad_OutsideTheRepository(t *testing.T) {
 		t.Errorf("a missing entry point: violations %+v, want one on AGENTS.md", vs)
 	}
 }
+
+// TestMeasureGuidanceLoad_ReferenceForms pins the reference forms the
+// model reads as CommonMark and Claude Code read them: an import inline in
+// prose is a required read, one inside a code block is not; reference-style,
+// titled and angle-bracket links are links; a directory exists.
+func TestMeasureGuidanceLoad_ReferenceForms(t *testing.T) {
+	t.Parallel()
+	tests := []struct {
+		name        string
+		claude      string
+		handwritten int
+		violations  []string
+	}{
+		{
+			name:        "an inline import is a required read",
+			claude:      "See @big.md for details.\n",
+			handwritten: 4 + 100,
+		},
+		{
+			name:        "an import inside a code block is not",
+			claude:      "Example:\n\n```\n@big.md\n```\n",
+			handwritten: 3,
+		},
+		{
+			name:        "a reference-style link is a link the table must classify",
+			claude:      "Read [the doc][d].\n\n[d]: new.md\n",
+			handwritten: 5,
+			violations:  []string{"new.md"},
+		},
+		{
+			name:        "a titled link is a link the table must classify",
+			claude:      "Read [the doc](new.md \"title\").\n",
+			handwritten: 4,
+			violations:  []string{"new.md"},
+		},
+		{
+			name:        "an angle-bracket target resolves",
+			claude:      "Read [the doc](<new.md>).\n",
+			handwritten: 3,
+			violations:  []string{"new.md"},
+		},
+		{
+			name:        "a repository-rooted link resolves from the root",
+			claude:      "Read [the doc](/new.md).\n",
+			handwritten: 3,
+			violations:  []string{"new.md"},
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+			files := map[string]string{"CLAUDE.md": tt.claude, "big.md": words(100), "new.md": "x"}
+			load, vs := measureGuidanceLoad(ceilingReader(files), "CLAUDE.md", map[guidanceRef]readKind{})
+			if load.Handwritten != tt.handwritten {
+				t.Errorf("handwritten = %d, want %d", load.Handwritten, tt.handwritten)
+			}
+			var got []string
+			for _, v := range vs {
+				got = append(got, v.File)
+			}
+			if !equalStrings(got, tt.violations) {
+				t.Errorf("violation files = %v, want %v", got, tt.violations)
+			}
+		})
+	}
+}
+
+// TestGuidanceCeilingViolations_ReportsASharedFindingOnce pins that a
+// routing finding in a document both hosts read is reported once.
+func TestGuidanceCeilingViolations_ReportsASharedFindingOnce(t *testing.T) {
+	t.Parallel()
+	files := map[string]string{"CLAUDE.md": "[x](gone.md)", "AGENTS.md": "[c](CLAUDE.md)"}
+	hosts := []guidanceHost{{Name: "claude-code", Entry: "CLAUDE.md", Ceiling: 100}, {Name: "codex", Entry: "AGENTS.md", Ceiling: 100}}
+	table := map[guidanceRef]readKind{{From: "AGENTS.md", To: "CLAUDE.md"}: readRequired, {From: "CLAUDE.md", To: "gone.md"}: readConditional}
+	if vs := guidanceCeilingViolations(ceilingReader(files), hosts, table); len(vs) != 1 {
+		t.Errorf("got %d violations %+v, want the missing target once", len(vs), vs)
+	}
+}
+
+// TestRepoGuidanceReader_DirectoryExists pins that a link to a directory
+// resolves: it exists and holds no text of its own.
+func TestRepoGuidanceReader_DirectoryExists(t *testing.T) {
+	t.Parallel()
+	if content, ok := repoGuidanceReader(repoRoot(t))("docs/adr"); !ok || content != "" {
+		t.Errorf("docs/adr = %q, %v; want an existing directory with no text", content, ok)
+	}
+}
