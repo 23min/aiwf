@@ -16,6 +16,9 @@ acs:
     - id: AC-3
       title: Report and doctor word guidance state identically
       status: open
+    - id: AC-4
+      title: Init ends with the same guidance section as update
+      status: open
 ---
 ## Goal
 
@@ -42,6 +45,10 @@ Guidance outcomes surface today as one step-ledger line whose wording ("no proje
 ### AC-3 — Report and doctor word guidance state identically
 
 **Pass criterion**: for each guidance state — selection unset, explicitly empty, populated, maintenance disabled, installation pending — the state line in the update report equals the corresponding line `aiwf doctor` prints for the same repository. **Edge cases**: pending installation after an interrupted run. **Code references**: the shared wording source used by `internal/cli/doctor/project_guidance.go` and the report; a test deriving both outputs by running the two verbs against one fixture.
+
+### AC-4 — Init ends with the same guidance section as update
+
+**Pass criterion**: `aiwf init` ends with the same guidance section as `aiwf update` for the same outcome. **Edge cases**: `init` on a repository with an existing `aiwf.yaml` that carries `guidance.ignored`. **Code references**: `internal/cli/initcmd/initcmd.go`; the init binary tests.
 
 ## Constraints
 
