@@ -10,6 +10,9 @@ acs:
     - id: AC-1
       title: Update ends with a guidance section of adopted, installed and ignored packs
       status: open
+    - id: AC-2
+      title: Blocked installation is reported with its cause and fix
+      status: open
 ---
 ## Goal
 
@@ -28,6 +31,10 @@ Guidance outcomes surface today as one step-ledger line whose wording ("no proje
 ### AC-1 — Update ends with a guidance section of adopted, installed and ignored packs
 
 **Pass criterion**: a successful `aiwf update` ends with a guidance section listing the packs adopted in this run, the installed packs with the installed source commit, and the ignored packs, each list present even when empty. **Edge cases**: first adoption; a run adopting nothing new; a repository matching no pack; `guidance.enabled: false`, reported as maintenance disabled with the installed set unchanged. **Code references**: the report renderer beside `internal/cli/cliutil/guidance_report.go`; binary-level tests in `internal/cli/update`.
+
+### AC-2 — Blocked installation is reported with its cause and fix
+
+**Pass criterion**: when guidance cannot be installed, the report names the cause and the action that clears it for each blocker the installer can return: catalogue retrieval failure, incompatible personal-bootstrap delivery, a handwritten legacy import in a host instruction file, and a locally edited owned file; unrelated update steps still complete and the exit code is unchanged from today. **Edge cases**: a blocker on first adoption (nothing installed) and on refresh (installed set preserved). **Code references**: the blocker cases in `internal/cli/update/project_guidance_failures_test.go` and `project_guidance_handover_test.go`, asserting the report section.
 
 ## Constraints
 
