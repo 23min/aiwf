@@ -11,7 +11,7 @@ acs:
       tdd_phase: done
     - id: AC-2
       title: Guidance commits require a resolving entity trailer
-      status: open
+      status: met
       tdd_phase: done
     - id: AC-3
       title: Guidance removals require a disposition block
