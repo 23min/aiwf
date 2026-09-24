@@ -1,7 +1,9 @@
 ---
 id: G-0695
 title: promote's draft-start guard lints terminal ACs the check rules exempt
-status: open
+status: addressed
+addressed_by_commit:
+    - 09b3256d4
 ---
 ## What's missing
 
