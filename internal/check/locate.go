@@ -1,7 +1,6 @@
 package check
 
 import (
-	"bufio"
 	"bytes"
 	"os"
 	"path/filepath"
@@ -59,12 +58,10 @@ func scanFieldLines(path string) map[string]int {
 	if err != nil {
 		return out
 	}
-	scanner := bufio.NewScanner(bytes.NewReader(data))
-	scanner.Buffer(make([]byte, 64*1024), 1024*1024)
 	line := 0
-	for scanner.Scan() {
+	for raw := range bytes.Lines(data) {
 		line++
-		m := fieldKeyPattern.FindSubmatch(scanner.Bytes())
+		m := fieldKeyPattern.FindSubmatch(lineContent(raw))
 		if m == nil {
 			continue
 		}

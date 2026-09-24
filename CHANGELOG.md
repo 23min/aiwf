@@ -16,6 +16,15 @@ section in this file.
 
 ## [Unreleased]
 
+### Fixed — G-0666: a long line in an entity body no longer hides the content around it
+
+`aiwf check` and `aiwf add` no longer report a body section as empty when a line
+of 64 KiB or more comes before any other text in it. For a gap, decision, ADR or
+contract that raised an error-severity `entity-body-empty` finding, so `aiwf add`
+refused the body and the pre-push check blocked with nothing to fix. Acceptance
+criterion headings and bodies, and the frontmatter line numbers attached to
+findings, are also read past a line over 1 MiB instead of stopping there.
+
 ## [0.38.0] — 2026-09-24
 
 ### Added — E-0094: deliver external engineering guidance as tracked project policy

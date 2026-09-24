@@ -31,7 +31,6 @@ package check
 // `<!-- TODO: write this -->` does not satisfy the rule (M-066/AC-4).
 
 import (
-	"bufio"
 	"bytes"
 	"fmt"
 	"os"
@@ -275,8 +274,6 @@ func stripHTMLComments(body []byte) []byte {
 // `###` (or `## `) heading or EOF. Used for AC body emptiness checks.
 func scanACBodies(body []byte) map[string][]byte {
 	out := map[string][]byte{}
-	scanner := bufio.NewScanner(bytes.NewReader(body))
-	scanner.Buffer(make([]byte, 64*1024), 1024*1024)
 	var (
 		currentID      string
 		currentContent []byte
@@ -286,8 +283,8 @@ func scanACBodies(body []byte) map[string][]byte {
 			out[currentID] = currentContent
 		}
 	}
-	for scanner.Scan() {
-		line := strings.TrimRight(scanner.Text(), "\r")
+	for raw := range bytes.Lines(body) {
+		line := string(lineContent(raw))
 		if m := h3ACHeading.FindStringSubmatch(line); m != nil {
 			flush()
 			currentID = "AC-" + m[1]
@@ -311,6 +308,15 @@ func scanACBodies(body []byte) map[string][]byte {
 	return out
 }
 
+// lineContent returns one line yielded by bytes.Lines without its
+// terminator, so a CRLF body reads the same as an LF one. The line
+// readers in this package walk the in-memory body with bytes.Lines
+// rather than a bufio.Scanner: a scanner stops at its token-size
+// ceiling, and a reader that stops early judges content it never saw.
+func lineContent(raw []byte) []byte {
+	return bytes.TrimRight(bytes.TrimSuffix(raw, []byte("\n")), "\r")
+}
+
 // isAllWhitespaceOrHeadings reports whether content is empty in the
 // rule's sense.
 //
@@ -322,9 +328,8 @@ func scanACBodies(body []byte) map[string][]byte {
 //
 // Whitespace and blank lines never count.
 func isAllWhitespaceOrHeadings(content []byte, leafLevel bool) bool {
-	scanner := bufio.NewScanner(bytes.NewReader(content))
-	for scanner.Scan() {
-		line := strings.TrimSpace(strings.TrimRight(scanner.Text(), "\r"))
+	for raw := range bytes.Lines(content) {
+		line := strings.TrimSpace(string(lineContent(raw)))
 		if line == "" {
 			continue
 		}
