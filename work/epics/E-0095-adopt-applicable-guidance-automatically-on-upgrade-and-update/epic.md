@@ -48,8 +48,8 @@ ADR-0054 replaces explicit selection with add-only automatic adoption, removes t
 
 | Question | Blocking? | Resolution path |
 |---|---|---|
-| When handover or retrieval blocks installation, is the adoption still recorded in `guidance.packs` (desired but not installed) or deferred until installation succeeds? | no | Settled in the adoption milestone against the existing desired-versus-installed reporting. |
-| Does `upgrade` print the report itself, or rely on the re-executed `update` printing it? | no | Settled in the report milestone; the observable requirement is that an upgrade's output contains it. |
+| When handover or retrieval blocks installation, is the adoption still recorded in `guidance.packs` (desired but not installed) or deferred until installation succeeds? | no | Settled in M-0351: adoption is recorded only with a successful installation. |
+| Does `upgrade` print the report itself, or rely on the re-executed `update` printing it? | no | Settled in M-0352: the re-executed `update` prints it; M-0352/AC-5 pins that an upgrade's output contains it. |
 
 ## Risks
 
@@ -61,9 +61,9 @@ ADR-0054 replaces explicit selection with add-only automatic adoption, removes t
 
 ## Milestones
 
-- Adopt applicable packs automatically in `init` and `update` and remove the guidance prompt · depends on: —
-- Report guidance outcomes at the end of every `init`, `update` and `upgrade` run · depends on: the adoption milestone
-- Verify an unattended upgrade installs guidance in a real consumer repository · depends on: both milestones above
+- `M-0351` — Adopt applicable guidance packs automatically in init and update · depends on: —
+- `M-0352` — Report guidance outcomes at the end of init, update and upgrade · depends on: `M-0351`
+- `M-0353` — Verify an unattended upgrade installs applicable guidance · depends on: `M-0351`, `M-0352`
 
 ## References
 
