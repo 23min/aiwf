@@ -1,7 +1,7 @@
 ---
 id: ADR-0054
 title: Adopt applicable guidance packs automatically on update
-status: proposed
+status: accepted
 ---
 > **Date:** 2026-09-24 · **Decided by:** Peter Bruinsma
 

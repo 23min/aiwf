@@ -43,11 +43,12 @@ func NewCmd() *cobra.Command {
 		root      string
 		target    string
 		checkOnly bool
+		noPrompt  bool
 	)
 	cmd := &cobra.Command{
 		Use:   "upgrade",
 		Short: "Fetch a newer aiwf binary via go install and refresh artifacts",
-		Long:  "Install the requested aiwf binary, then re-execute its update command against the resolved consumer checkout. Refresh uses that checkout's host configuration and the inherited PATH. A failed refresh returns a failure even when installation succeeded." + cliutil.HostSetupHelp,
+		Long:  "Install the requested aiwf binary, then re-execute its update command against the resolved consumer checkout. Refresh uses that checkout's host configuration and the inherited PATH. A failed refresh returns a failure even when installation succeeded. --no-prompt is passed to that update command, so the target release must support it." + cliutil.HostSetupHelp,
 		Example: `  # Upgrade to latest published release
   aiwf upgrade
 
@@ -60,17 +61,19 @@ func NewCmd() *cobra.Command {
 		SilenceErrors: true,
 		SilenceUsage:  true,
 		RunE: func(c *cobra.Command, args []string) error {
-			return cliutil.WrapExitCode(Run(root, target, checkOnly))
+			return cliutil.WrapExitCode(Run(root, target, checkOnly, noPrompt))
 		},
 	}
-	cmd.Flags().StringVar(&root, "root", "", "consumer repo root for the post-install `aiwf update` step (default: cwd)")
+	cmd.Flags().StringVar(&root, "root", "", "consumer repo root for the post-install aiwf update step (default: cwd)")
 	cmd.Flags().StringVar(&target, "version", "latest", "version to install: a semver tag (e.g. v0.2.0) or 'latest'")
 	cmd.Flags().BoolVar(&checkOnly, "check", false, "print the current/target comparison and exit without installing")
+	cmd.Flags().BoolVar(&noPrompt, "no-prompt", false, "run the post-install aiwf update step with --no-prompt: never prompt for hook consent or guidance selection")
 	return cmd
 }
 
 // Run executes `aiwf upgrade`. Returns one of the cliutil.Exit* codes.
-func Run(root, target string, checkOnly bool) (code int) {
+// noPrompt is forwarded to the re-executed update command.
+func Run(root, target string, checkOnly, noPrompt bool) (code int) {
 	pkg := version.PackagePath()
 	if pkg == "" {
 		cliutil.Errorln("aiwf upgrade: package path unavailable from build info — run `go install <pkg>@latest` manually")
@@ -191,8 +194,9 @@ func Run(root, target string, checkOnly bool) (code int) {
 		return cliutil.ExitOK
 	}
 
-	cliutil.Printf("re-exec:  %s update --root %s\n", newBinary, rootDir)
-	if err := reexecUpdate(newBinary, rootDir); err != nil {
+	args := updateArgs(newBinary, rootDir, noPrompt)
+	cliutil.Printf("re-exec:  %s %s\n", newBinary, strings.Join(args[1:], " "))
+	if err := reexecUpdate(newBinary, args); err != nil {
 		cliutil.Errorf("aiwf upgrade: re-exec failed: %v\n", err)
 		cliutil.Errorln("                run `aiwf update` manually to refresh consumer artifacts")
 		return cliutil.ExitInternal
@@ -449,10 +453,19 @@ func InstallLocationHint(pkg string) string {
 	return ""
 }
 
-// reexecUpdate overlays the current process with the new binary
-// running `aiwf update --root <rootDir>`. On success, this function
-// does not return — control transfers to the new binary.
-var reexecUpdate = func(newBinary, rootDir string) error {
+// updateArgs builds the argv the new binary is executed with: its
+// `update` command against rootDir, carrying --no-prompt when requested.
+func updateArgs(newBinary, rootDir string, noPrompt bool) []string {
 	args := []string{filepath.Base(newBinary), "update", "--root", rootDir}
-	return syscall.Exec(newBinary, args, os.Environ())
+	if noPrompt {
+		args = append(args, "--no-prompt")
+	}
+	return args
+}
+
+// reexecUpdate overlays the current process with the new binary
+// running args. On success, this function does not return — control
+// transfers to the new binary.
+var reexecUpdate = func(newBinary string, args []string) error { //coverage:ignore replaces the calling process, so no in-process test can run it; the real exec is driven out-of-process by the integration upgrade tests
+	return syscall.Exec(newBinary, args, os.Environ()) //coverage:ignore same as the declaration above
 }

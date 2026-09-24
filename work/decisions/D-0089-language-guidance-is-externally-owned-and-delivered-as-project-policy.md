@@ -1,7 +1,7 @@
 ---
 id: D-0089
 title: Language guidance is externally owned and delivered as project policy
-status: accepted
+status: superseded
 relates_to:
     - E-0092
 ---

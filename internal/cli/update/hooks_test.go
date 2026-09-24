@@ -82,7 +82,7 @@ func TestRun_SyncsExistingHookDecisionSilentlyWithoutReprompt(t *testing.T) {
 	seedHookDecisions(t, root, map[string]bool{"existing-hook": true})
 	hooks := []skills.HookDef{{Name: "existing-hook", Description: "does a thing"}}
 
-	rc := update.Run(root, false, "", false, false, false, false, nil, hooks)
+	rc := update.Run(root, false, "", false, false, false, false, false, nil, hooks)
 	if rc != cliutil.ExitOK {
 		t.Fatalf("Run() = %d, want ExitOK", rc)
 	}
@@ -105,7 +105,7 @@ func TestRun_GatesOnlyNewlyIntroducedHooksAndPreservesExisting(t *testing.T) {
 		{Name: "new-hook", Description: "does another thing"},
 	}
 
-	rc := update.Run(root, false, "", false, false, false, false, []string{"new-hook"}, hooks)
+	rc := update.Run(root, false, "", false, false, false, false, false, []string{"new-hook"}, hooks)
 	if rc != cliutil.ExitOK {
 		t.Fatalf("Run() = %d, want ExitOK", rc)
 	}
@@ -133,7 +133,7 @@ func TestRun_PreservesDecisionForHookRemovedFromRegistry(t *testing.T) {
 	seedHookDecisions(t, root, map[string]bool{"gone-hook": false, "kept-hook": true})
 	hooks := []skills.HookDef{{Name: "kept-hook", Description: "does a thing"}}
 
-	rc := update.Run(root, false, "", false, false, false, false, nil, hooks)
+	rc := update.Run(root, false, "", false, false, false, false, false, nil, hooks)
 	if rc != cliutil.ExitOK {
 		t.Fatalf("Run() = %d, want ExitOK", rc)
 	}
@@ -156,7 +156,7 @@ func TestRun_NewHookLeftUndecidedWithoutEnableFlag(t *testing.T) {
 	root := freshInitializedRepo(t)
 	hooks := []skills.HookDef{{Name: "new-hook", Description: "does a thing"}}
 
-	rc := update.Run(root, false, "", false, false, false, false, nil, hooks)
+	rc := update.Run(root, false, "", false, false, false, false, false, nil, hooks)
 	if rc != cliutil.ExitOK {
 		t.Fatalf("Run() = %d, want ExitOK", rc)
 	}
@@ -175,7 +175,7 @@ func TestRun_EmptyRegistryLeavesExistingHooksBlockUntouched(t *testing.T) {
 	root := freshInitializedRepo(t)
 	seedHookDecisions(t, root, map[string]bool{"existing-hook": true})
 
-	rc := update.Run(root, false, "", false, false, false, false, nil, nil)
+	rc := update.Run(root, false, "", false, false, false, false, false, nil, nil)
 	if rc != cliutil.ExitOK {
 		t.Fatalf("Run() = %d, want ExitOK", rc)
 	}
@@ -198,7 +198,7 @@ func TestRun_HookMaterializesScriptAndWiresSettingsWhenEnabled(t *testing.T) {
 		Events:  []string{"SessionStart", "SubagentStart"},
 	}}
 
-	rc := update.Run(root, false, "", false, false, false, false, []string{"test-hook.sh"}, hooks)
+	rc := update.Run(root, false, "", false, false, false, false, false, []string{"test-hook.sh"}, hooks)
 	if rc != cliutil.ExitOK {
 		t.Fatalf("Run() = %d, want ExitOK", rc)
 	}
@@ -230,7 +230,7 @@ func TestRun_HookRemovedWhenFlippedFromEnabledToDeclined(t *testing.T) {
 		Content: []byte("#!/bin/sh\necho hi\n"),
 		Events:  []string{"SessionStart"},
 	}}
-	if rc := update.Run(root, false, "", false, false, false, false, []string{"test-hook.sh"}, hooks); rc != cliutil.ExitOK {
+	if rc := update.Run(root, false, "", false, false, false, false, false, []string{"test-hook.sh"}, hooks); rc != cliutil.ExitOK {
 		t.Fatalf("priming Run() = %d, want ExitOK", rc)
 	}
 	scriptPath := filepath.Join(root, skills.ClaudeTarget.HooksDir, "test-hook.sh")
@@ -247,7 +247,7 @@ func TestRun_HookRemovedWhenFlippedFromEnabledToDeclined(t *testing.T) {
 	}
 
 	seedHookDecisions(t, root, map[string]bool{"test-hook.sh": false})
-	if rc := update.Run(root, false, "", false, false, false, false, nil, hooks); rc != cliutil.ExitOK {
+	if rc := update.Run(root, false, "", false, false, false, false, false, nil, hooks); rc != cliutil.ExitOK {
 		t.Fatalf("Run() = %d, want ExitOK", rc)
 	}
 

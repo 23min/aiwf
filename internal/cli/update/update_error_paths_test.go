@@ -40,7 +40,7 @@ func TestRun_HookChainCollisionReturnsFindings(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	rc := update.Run(root, false, "", false, false, false, false, nil, nil)
+	rc := update.Run(root, false, "", false, false, false, false, false, nil, nil)
 	if rc != cliutil.ExitFindings {
 		t.Errorf("rc = %d, want ExitFindings", rc)
 	}
