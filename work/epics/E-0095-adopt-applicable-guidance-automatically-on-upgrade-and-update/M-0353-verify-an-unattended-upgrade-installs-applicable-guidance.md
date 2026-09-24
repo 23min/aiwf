@@ -7,6 +7,10 @@ depends_on:
     - M-0351
     - M-0352
 tdd: advisory
+acs:
+    - id: AC-1
+      title: Unattended upgrade adopts guidance in a hermetic consumer
+      status: open
 ---
 ## Goal
 
@@ -21,6 +25,10 @@ Show that an unattended `aiwf upgrade` — no terminal, no prior guidance config
 The previous milestones pin adoption and reporting against fixtures and a stand-in catalogue. The failure that motivated this epic happened in a consumer repository reached through `aiwf upgrade`, with the published catalogue and a personal-bootstrap installation present. This milestone checks that path end to end, hermetically where a test can reach it and by recorded observation where it cannot.
 
 ## Acceptance criteria
+
+### AC-1 — Unattended upgrade adopts guidance in a hermetic consumer
+
+**Pass criterion**: `aiwf upgrade` run with stdin not a terminal, in a repository with an `aiwf.yaml` carrying no `guidance` block, installs a new binary through the fake `go` binary, re-executes `update`, and leaves `guidance.packs`, `.guidance/` and host routing populated for the matching packs of a local catalogue, with the guidance section in its output. **Edge cases**: the catalogue unreachable, where the upgrade still succeeds and the report names the retrieval failure. **Code references**: `internal/cli/integration/upgrade_cmd_test.go`.
 
 ## Constraints
 
