@@ -1,8 +1,10 @@
 ---
 id: G-0666
 title: A body line over 64 KB makes a full section report as empty
-status: open
+status: addressed
 discovered_in: M-0329
+addressed_by_commit:
+    - 48f898b09
 ---
 
 ## What's missing
