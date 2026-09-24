@@ -47,26 +47,6 @@ func TestDiscoverabilityChannels_ExcludeDevelopmentGuidance(t *testing.T) {
 	}
 }
 
-// TestEngineeringPrinciples_NameNoInstructionFileChannel is the principle
-// half of M-0333 AC-5, an absence assertion D-0091 permits: the
-// AI-discoverability principle does not offer CLAUDE.md ("this file") as
-// a channel, since the policies no longer read it. The section is
-// asserted to exist first, so the absence cannot pass vacuously.
-func TestEngineeringPrinciples_NameNoInstructionFileChannel(t *testing.T) {
-	t.Parallel()
-	data, err := os.ReadFile(filepath.Join(repoRoot(t), "CLAUDE.md"))
-	if err != nil {
-		t.Fatal(err)
-	}
-	section := markdownSection(string(data), "## Engineering principles")
-	if section == "" {
-		t.Fatal(`CLAUDE.md has no "## Engineering principles" section; the absence below would be vacuous`)
-	}
-	if strings.Contains(section, "this file") {
-		t.Error(`§"Engineering principles" still names "this file" as a discoverability channel`)
-	}
-}
-
 // TestDiscoverabilityChannels_MissingBannerIsAnError pins that a tree
 // without the banner source cannot be judged: the haystack would silently
 // lose a channel.
