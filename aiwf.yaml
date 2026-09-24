@@ -55,6 +55,7 @@ hooks:
 hosts: [claude-code, codex]
 guidance:
   packs: [code-health, go/cobra, python/astral, typescript/npm-vitest]
+  ignored: [javascript/npm-node]
 # Addresses refused in a Co-Authored-By trailer. Emptying this list
 # disarms the ban in both layers; D-0096 records why it is set and what
 # belongs on it. Add an address when an agent writing one turns up.
