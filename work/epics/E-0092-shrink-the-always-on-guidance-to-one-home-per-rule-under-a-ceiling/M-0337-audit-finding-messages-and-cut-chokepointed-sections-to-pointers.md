@@ -34,7 +34,7 @@ Turn every section that documents a rule a check already enforces into a one-lin
 
 ## Context
 
-The development-guidance set includes both host entry points and their canonical repository-development documents. Generated operating and language blocks are judged through their owning sources; expected rendered copies are not independent rule restatements. E-0092 defines the per-host upfront measurement and delivery prerequisite.
+The development-guidance set is the one M-0333 defines: both root entry points, `.guidance/project.md` and the on-demand documents it routes to. Generated operating and language blocks are judged through their owning sources; expected rendered copies are not independent rule restatements. E-0092 defines the primed/on-demand split and the two ceilings.
 
 Most of the root's remaining bulk documents rules that a policy, a check rule, or a hook enforces. The check does the work; the prose spares one failed-check round trip, which a pointer spares equally once the finding message names the fix. The audit decides, per message, whether it already does.
 
@@ -58,7 +58,7 @@ Every backticked repository-relative path cited in development guidance exists. 
 
 ### AC-5 — The ceiling constant reaches its target
 
-Both hosts' upfront project sets, as defined by E-0092 and implemented in M-0333, pass at 3,500 words each. Record each command and result, with task-loaded and personal/global text separate. A required upfront read of a large external document cannot be excluded to meet the target.
+Both hosts' handwritten primed words, as defined by E-0092 and measured by M-0333's policy, pass at the ceiling M-0349 set for each host. Record each command and result, with the fragment's words, task-loaded text and personal/global text reported separately. A document required in full before any task counts as primed and cannot be excluded to meet the target.
 
 ## Constraints
 
@@ -84,8 +84,8 @@ Both hosts' upfront project sets, as defined by E-0092 and implemented in M-0333
 
 ## Dependencies
 
-- E-0092's external delivery and repository migration prerequisite must be complete.
-- M-0336 — copies are gone before the remainder is compressed
+- M-0335 — on-demand rules have moved and the primed remainder is tightened before check-backed rules are compressed
+- M-0349 — the ceiling this milestone reaches
 
 ## Coverage notes
 
