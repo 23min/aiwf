@@ -1340,5 +1340,9 @@ Let maintainers use `aiwf init` and `aiwf update` to select, refresh, and delive
 
 An `aiwf upgrade` or `aiwf update` leaves a repository with the engineering guidance that applies to it installed, routed into its selected hosts, and reported, with no prompt to answer and nothing to discover afterwards. Packs for languages the repository gains later arrive on the next update the same way.
 
-_No milestones yet._
+| Milestone | Title | Status |
+|---|---|---|
+| M-0351 | Adopt applicable guidance packs automatically in init and update | draft |
+| M-0352 | Report guidance outcomes at the end of init, update and upgrade | draft |
+| M-0353 | Verify an unattended upgrade installs applicable guidance | draft |
 
