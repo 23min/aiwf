@@ -51,7 +51,7 @@ func NewCmd(correlationID string) *cobra.Command {
 	}
 	cmd.Flags().StringVar(&root, "root", "", "consumer repo root")
 	cmd.Flags().StringVar(&actor, "actor", "", "actor for the commit trailer (overrides manifest and aiwf.yaml)")
-	cmd.Flags().StringVar(&principal, "principal", "", "the human/<id> the actor is acting on behalf of (required when --actor is non-human; per-entity scope gating is deferred to G22 — bulk import currently only enforces principal coherence)")
+	cmd.Flags().StringVar(&principal, "principal", "", "the human/<id> the actor is acting on behalf of (required when --actor is non-human; import checks only that the principal is set coherently, not an authorization scope)")
 	cmd.Flags().StringVar(&onCollision, "on-collision", verb.OnCollisionFail, "behavior when an explicit id already exists: fail|skip|update")
 	cmd.Flags().BoolVar(&dryRun, "dry-run", false, "validate the projection and print the would-be plan without writing")
 	_ = cmd.RegisterFlagCompletionFunc("on-collision", cobra.FixedCompletions(

@@ -16,6 +16,10 @@ import (
 	"github.com/23min/aiwf/internal/verb"
 )
 
+// PrincipalFlagUsage is the --principal help text every mutating verb
+// registers, kept in one place so the verbs describe the flag alike.
+const PrincipalFlagUsage = "the human/<id> a non-human --actor acts on behalf of (required when --actor is non-human, which also needs an active aiwf authorize scope that reaches the entity)"
+
 // ProvenanceContext carries the inputs the cmd dispatcher feeds into
 // the I2.5 allow-rule and trailer-decoration step. Built once per
 // verb invocation.

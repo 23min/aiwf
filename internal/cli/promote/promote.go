@@ -64,7 +64,7 @@ omit --tests to converge, or supply metrics with a real phase change.`,
 		},
 	}
 	cmd.Flags().StringVar(&actor, "actor", "", "actor for the commit trailer")
-	cmd.Flags().StringVar(&principal, "principal", "", "the human/<id> the actor is acting on behalf of (required when --actor is non-human; gates the verb through the I2.5 allow-rule)")
+	cmd.Flags().StringVar(&principal, "principal", "", cliutil.PrincipalFlagUsage)
 	cmd.Flags().StringVar(&root, "root", "", "consumer repo root")
 	cmd.Flags().StringVar(&reason, "reason", "", "free-form prose explaining why; lands in the commit body, surfaces in `aiwf history`")
 	cmd.Flags().StringVar(&phase, "phase", "", "advance an AC's tdd_phase (composite ids only; mutex with positional new-status)")

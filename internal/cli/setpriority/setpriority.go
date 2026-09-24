@@ -70,7 +70,7 @@ verb: a set reverses with --clear, a reset with the prior level.`,
 		},
 	}
 	cmd.Flags().StringVar(&actor, "actor", "", "actor for the commit trailer")
-	cmd.Flags().StringVar(&principal, "principal", "", "the human/<id> the actor is acting on behalf of (required when --actor is non-human; gates the verb through the I2.5 allow-rule)")
+	cmd.Flags().StringVar(&principal, "principal", "", cliutil.PrincipalFlagUsage)
 	cmd.Flags().StringVar(&root, "root", "", "consumer repo root")
 	cmd.Flags().BoolVar(&clearTag, "clear", false, "clear the entity's priority tag (mutually exclusive with <level>)")
 	out = cliutil.AddFormatFlags(cmd)
