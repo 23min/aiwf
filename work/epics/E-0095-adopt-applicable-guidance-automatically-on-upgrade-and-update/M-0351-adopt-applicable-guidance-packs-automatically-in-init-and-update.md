@@ -7,7 +7,7 @@ tdd: required
 acs:
     - id: AC-1
       title: Unset selection adopts every applicable pack without a terminal
-      status: open
+      status: met
       tdd_phase: done
     - id: AC-2
       title: Update adds newly applicable packs and never removes one
