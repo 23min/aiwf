@@ -1,7 +1,7 @@
 ---
 id: E-0095
 title: Adopt applicable guidance automatically on upgrade and update
-status: proposed
+status: active
 ---
 ## Goal
 
