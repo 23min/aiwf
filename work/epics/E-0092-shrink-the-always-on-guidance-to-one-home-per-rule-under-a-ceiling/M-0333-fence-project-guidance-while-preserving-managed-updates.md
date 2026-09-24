@@ -42,7 +42,7 @@ Fence changes to both hosts' project instructions and their canonical developmen
 
 The development-guidance set is the root `CLAUDE.md`, the root `AGENTS.md`, `.guidance/project.md`, and the on-demand documents `.guidance/project.md` routes to. aiwf owns the managed blocks in the two entry points — `aiwf:guidance` (the Claude import, and the fragment rendered inline for Codex) and `aiwf:engineering-guidance` (the routing block) — and the files listed in `.guidance/.aiwf-owned`. Everything else in the set is handwritten: `CLAUDE.md` and `AGENTS.md` outside those blocks, and `.guidance/project.md`. Generated blocks are judged through their owning sources; expected rendered copies are not independent rule restatements. E-0092 defines the primed/on-demand split and the two ceilings.
 
-G-0676 measured how `CLAUDE.md` grew and named the surfaces that let it. D-0091 decided that no AC is evidenced by a sentence pinned there, enforced diff-scoped. The skill-edit provenance backstop already judges commits in the base-to-HEAD range by what they touch and what trailer they carry, so the commit-seam gate takes its shape. Both discoverability policies pass with `CLAUDE.md` removed from their channel list, so that removal costs no new doc mention anywhere.
+G-0676 measured how `CLAUDE.md` grew and named the surfaces that let it. D-0091 decided that no AC is evidenced by a sentence pinned there, enforced diff-scoped. The skill-edit provenance backstop already judges commits in the base-to-HEAD range by what they touch and what trailer they carry, so the commit-seam gate takes its shape. Removing `CLAUDE.md` from the discoverability channel list leaves one config field documented nowhere else: `provenance.refuse_coauthors`, whose `commit-msg` refusal no shipped skill describes.
 
 ## Acceptance criteria
 
@@ -121,6 +121,8 @@ A test file added or modified in the gate's range that reads a document in the d
 - D-0091 accepted before implementation; AC-6 enforces an accepted decision.
 - The principle text rides with AC-5: removing "this file" from §"Engineering principles" is a separate trailered commit, and AC-5's test asserts the absence.
 - D-0091's two statements in `CLAUDE.md` — the AC-evidence section and the substring-assertion bullet stating the extended scope — ride with AC-6 as separate trailered commits. They are held at review, since D-0091 rules out pinning them.
+- ADR-0053: the commit rules ship in `aiwf check` for every aiwf repository. M-0350 moves AC-1 to AC-3's internal fence into the kernel and removes it; AC-4 and AC-6 stay internal.
+- `provenance.refuse_coauthors` is documented in a `commit-msg` row of the `aiwf-check` skill's hook table, since `CLAUDE.md` was its only channel.
 
 ## Validation
 
