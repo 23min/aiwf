@@ -77,6 +77,14 @@ The internal fence policy, its tests and its gate wiring are removed. **Pass cri
 - ADR-0053 — the rule, its default and its scope.
 - One finding code per repair, as the provenance codes do: an unrelated file, a missing or unresolvable entity, a missing or malformed disposition block.
 - The setting sits under the existing `guidance:` block in `aiwf.yaml`.
+- Define the guidance set once in the kernel — the host entry points, the router, its routed documents and the managed blocks — and have this repository's internal ceiling, discoverability and reader policies read that definition rather than helpers in the internal fence this milestone removes.
+- Settle before the rule blocks consumers:
+  - A re-wrapped paragraph counts as a removal under the internal fence's line comparison.
+  - The disposition set has no value for a rewording, so the internal fence records rewordings as `deleted`.
+  - `aiwf init` and `aiwf update` wrapping a bare guidance import in markers moves a handwritten line into a block, which the rule reads as a removal.
+  - The internal fence and `internal/initrepo` read managed blocks with different parsers: a stray `<!-- aiwf:guidance:… -->` comment makes the fence judge the whole file while `initrepo` refreshes the block in place.
+- The internal fence run over this repository's history since `v0.30.0` reports 377 of 3,542 commits; sorting them informs which companion files the kernel rule allows.
+- The `CLAUDE.md` sentence in §"How to validate changes" naming the gates that judge commits names the internal guidance fence; it changes when that fence is removed.
 
 ## Surfaces touched
 
