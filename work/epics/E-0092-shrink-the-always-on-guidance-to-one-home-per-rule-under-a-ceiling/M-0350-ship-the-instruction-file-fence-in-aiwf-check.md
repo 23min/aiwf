@@ -42,15 +42,27 @@ ADR-0053 decides the rule and its boundaries. M-0333 built the same three rules 
 
 ### AC-1 — aiwf check refuses an instruction-file commit carrying unrelated files
 
+A commit in the audited range that changes handwritten instruction content and also changes a file outside the allowed companions produces one finding per unrelated file, naming the commit. **Pass criterion**: fixtures cover a code file beside an edit to each of `CLAUDE.md`, `AGENTS.md`, the router and a routed document; an update carrying owned outputs, their record and `aiwf.yaml` passing; a file under `.guidance/` outside the owned record refused; a change confined to a managed block and a merge commit not judged; a routed document renamed or deleted.
+
 ### AC-2 — aiwf check refuses an instruction-file commit without a resolving entity
+
+A commit changing handwritten instruction content with no `aiwf-entity` trailer, or one resolving to no entity, produces one finding naming the commit and the value. **Pass criterion**: fixtures for the missing and the unresolvable case each produce one finding; a live entity, an archived one, a narrow legacy id and a composite `M-NNNN/AC-N` produce none.
 
 ### AC-3 — aiwf check refuses an instruction-file removal without a disposition block
 
+A commit that removes a handwritten instruction line, a rewording included, and carries no well-formed disposition block produces one finding. **Pass criterion**: fixtures cover a removal with no block, a block whose `Disposition:` value is outside `copy of <path>`, `relocated to <path>`, `pointer to <id>` or `deleted`, a block written as trailers passing, and a pure addition needing none.
+
 ### AC-4 — The fence is an error by default and an aiwf.yaml setting turns it off
+
+**Pass criterion**: with no setting the fence's findings are errors, so `aiwf check` exits non-zero; with the setting off the rule reports nothing; with no audited range the existing scope-undefined advisory stands and the rule reports nothing.
 
 ### AC-5 — The fence's finding codes and setting are discoverable
 
+**Pass criterion**: `finding-codes-are-discoverable` and `config-fields-are-discoverable` pass with the new codes and setting in the tree; the `aiwf-check` skill's finding table carries each code with its remedy. The Release note states the default and the off switch; its wording is held at review.
+
 ### AC-6 — This repository runs the kernel fence in place of its internal one
+
+The internal fence policy, its tests and its gate wiring are removed. **Pass criterion**: the policy suite is green without them, and `aiwf check --since <epic fork point>` on the epic branch reports no fence finding — the command, expectation and output recorded in Validation.
 
 ## Constraints
 
