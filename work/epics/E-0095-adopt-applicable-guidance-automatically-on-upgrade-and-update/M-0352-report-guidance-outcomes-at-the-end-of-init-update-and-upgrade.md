@@ -19,6 +19,9 @@ acs:
     - id: AC-4
       title: Init ends with the same guidance section as update
       status: open
+    - id: AC-5
+      title: Upgrade output carries the guidance section
+      status: open
 ---
 ## Goal
 
@@ -49,6 +52,10 @@ Guidance outcomes surface today as one step-ledger line whose wording ("no proje
 ### AC-4 — Init ends with the same guidance section as update
 
 **Pass criterion**: `aiwf init` ends with the same guidance section as `aiwf update` for the same outcome. **Edge cases**: `init` on a repository with an existing `aiwf.yaml` that carries `guidance.ignored`. **Code references**: `internal/cli/initcmd/initcmd.go`; the init binary tests.
+
+### AC-5 — Upgrade output carries the guidance section
+
+**Pass criterion**: the output of `aiwf upgrade`, with the re-exec into `update` enabled, contains the guidance section. **Edge cases**: `AIWF_NO_REEXEC` set, where the output states that no refresh ran and carries no guidance section. **Code references**: the upgrade integration tests in `internal/cli/integration/upgrade_cmd_test.go`, which stand in a fake `go` binary through `AIWF_GO_BIN`.
 
 ## Constraints
 
