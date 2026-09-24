@@ -117,6 +117,8 @@ A test file added or modified in the gate's range that reads a document in the d
 
 ## Release note
 
+The `aiwf-check` skill documents the `commit-msg` hook: what it refuses as a commit is written, and the `provenance.refuse_coauthors` setting in `aiwf.yaml` that lists addresses a `Co-Authored-By:` line may not name. Everything else in this milestone is internal to aiwf's own repository and changes nothing a consumer runs.
+
 ## Decisions made during implementation
 
 - D-0091 accepted before implementation; AC-6 enforces an accepted decision.
@@ -128,6 +130,24 @@ A test file added or modified in the gate's range that reads a document in the d
 - A guidance path counts only when the test builds it from the repository root; a `CLAUDE.md` in a test's fixture repository is a test of code, not a pin.
 
 ## Validation
+
+Environment: the aiwf devcontainer, Linux, `go1.25.11 linux/amd64`, at commit `09c8be60c` on `milestone/M-0333-fence-project-guidance-while-preserving-managed-updates`; the audit base is the epic branch's fork point from `main`, `a61f3d8de`.
+
+- `make check-fast` — expected exit 0; observed exit 0, `golangci-lint` reporting `0 issues.`
+- `AIWF_COVERAGE_BASE=a61f3d8de make coverage-gate` — expected exit 0; observed exit 0 across the diff-scoped branch-coverage audit, the firing-fixture meta-gate, the skill-edit provenance backstop, the guidance fence and the guidance prose ban.
+- `go test -count=1 -run TestPolicy_GuidanceCeiling -v ./internal/policies/` — the AC-4 measure, in whitespace-separated words. Observed:
+  - `claude-code: handwritten primed 9489 (ceiling 9489), aiwf-generated 2309, required reads []`
+  - `codex: handwritten primed 9618 (ceiling 9618), aiwf-generated 2346, required reads [CLAUDE.md]`
+- AC-5's design note: with `CLAUDE.md` out of the channel list, `go test -count=1 -run 'TestPolicy_FindingCodesAreDiscoverable|TestPolicy_ConfigFieldsAreDiscoverable' ./internal/policies/` reported `provenance.refuse_coauthors` as undocumented; with the `commit-msg` row in the `aiwf-check` skill it passes.
+- G-0676's floor command, re-run in a detached worktree of `HEAD` with `CLAUDE.md` deleted (`go test ./internal/policies/ -count=1 | grep '^--- FAIL'`) — observed 22 failing tests:
+  - six the D-0091 scan flags, which are the entries of `guidanceProseLedger`;
+  - three this milestone adds that read the file without pinning prose: `TestPolicy_GuidanceCeiling`, `TestRepoGuidanceReader`, `TestEngineeringPrinciples_NameNoInstructionFileChannel`;
+  - three absence scans: `TestM0127_AC3_NoDanglingDocsPocv3References`, `TestM0290_AC4_NoNormativeDocOffersTheRetiredVerb`, `TestSkillEditProvenance_DocumentedInClaudeMd`;
+  - seven `TestPolicy_*` entry points whose pin sits in a policy function outside test source, which the scan does not read;
+  - three test-function pins the assertion engine does not recognize: `TestM083_AC2_CLAUDEMdCommitment2` asserts through `regexp`, `TestAiwfArchive_AC6_ClaudeMdNamesArchiveConvention` through a search loop ending in a boolean, and `TestM0293_KernelGuidanceStatesForceIsHumanOnly` through a region type's methods.
+
+  M-0335 AC-3 accounts for every one of them when their passages move.
+- `AIWF_COVERAGE_BASE=v0.30.0 go test -count=1 -run TestPolicy_GuidanceFence ./internal/policies/` — the fence over the repository's history since `v0.30.0`, 3,542 commits; observed `--- FAIL: TestPolicy_GuidanceFence (1.94s)` with 378 `[guidance-fence]` lines, each a historical commit that mixed an instruction-file edit with other files. Only the pushed range is judged in CI, so this is a cost measurement, not a gate.
 
 ## Deferrals
 
