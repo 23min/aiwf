@@ -66,3 +66,13 @@ func TestEngineeringPrinciples_NameNoInstructionFileChannel(t *testing.T) {
 		t.Error(`§"Engineering principles" still names "this file" as a discoverability channel`)
 	}
 }
+
+// TestDiscoverabilityChannels_MissingBannerIsAnError pins that a tree
+// without the banner source cannot be judged: the haystack would silently
+// lose a channel.
+func TestDiscoverabilityChannels_MissingBannerIsAnError(t *testing.T) {
+	t.Parallel()
+	if _, err := readDiscoverabilityChannels(t.TempDir()); err == nil {
+		t.Fatal("want an error when the banner source is missing, got nil")
+	}
+}
