@@ -1,7 +1,9 @@
 ---
 id: G-0692
 title: aiwf check --fast help still names the statusline health glyph as its consumer
-status: open
+status: addressed
+addressed_by_commit:
+    - 3fdae4b96
 ---
 ## What's missing
 
