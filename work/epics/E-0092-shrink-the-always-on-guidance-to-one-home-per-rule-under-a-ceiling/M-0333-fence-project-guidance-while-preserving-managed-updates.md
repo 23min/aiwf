@@ -124,6 +124,8 @@ A test file added or modified in the gate's range that reads a document in the d
 - D-0091's two statements in `CLAUDE.md` — the AC-evidence section and the substring-assertion bullet stating the extended scope — ride with AC-6 as separate trailered commits. They are held at review, since D-0091 rules out pinning them.
 - ADR-0053: the commit rules ship in `aiwf check` for every aiwf repository. M-0350 moves AC-1 to AC-3's internal fence into the kernel and removes it; AC-4 and AC-6 stay internal.
 - `provenance.refuse_coauthors` is documented in a `commit-msg` row of the `aiwf-check` skill's hook table, since `CLAUDE.md` was its only channel.
+- The D-0091 scan judges test files, as AC-6 states. Pins made by policy functions in non-test code, such as `internal/policies/m0132_claude_md_devcontainer_section.go`, are outside it; M-0335 AC-3 accounts for every test the floor command lists.
+- A guidance path counts only when the test builds it from the repository root; a `CLAUDE.md` in a test's fixture repository is a test of code, not a pin.
 
 ## Validation
 
