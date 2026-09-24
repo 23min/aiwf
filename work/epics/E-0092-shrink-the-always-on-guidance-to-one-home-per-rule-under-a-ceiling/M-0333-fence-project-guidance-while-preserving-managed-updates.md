@@ -15,7 +15,7 @@ acs:
       tdd_phase: done
     - id: AC-3
       title: Guidance removals require a disposition block
-      status: open
+      status: met
       tdd_phase: done
     - id: AC-4
       title: The always-on set above the ceiling fails the policy
