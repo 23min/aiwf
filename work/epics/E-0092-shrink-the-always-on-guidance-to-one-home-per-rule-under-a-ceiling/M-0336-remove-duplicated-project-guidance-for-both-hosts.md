@@ -4,7 +4,7 @@ title: Remove duplicated project guidance for both hosts
 status: draft
 parent: E-0092
 depends_on:
-    - M-0335
+    - M-0349
 tdd: advisory
 acs:
     - id: AC-1
