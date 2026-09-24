@@ -41,11 +41,11 @@ Detection, retrieval, validation, installation, host routing and legacy handover
 
 ### AC-2 — Update adds newly applicable packs and never removes one
 
-**Pass criterion**: with `guidance.packs` already listing an installed pack, adding tracked files matching a further pack and running `aiwf update` appends that pack to `guidance.packs` and installs it, and a selected pack whose files no longer match stays selected and installed. **Edge cases**: an explicitly empty `guidance.packs: []` gains newly matching packs; order of existing entries is preserved; a second run with no new matches writes nothing. **Code references**: the adoption function beside `internal/initrepo/project_guidance.go`, with a table-driven unit test and a binary-level update test.
+**Pass criterion**: with `guidance.packs` already listing an installed pack, adding tracked files matching a further pack and running `aiwf update` appends that pack to `guidance.packs` and installs it, and a selected pack whose files no longer match stays selected and installed. **Edge cases**: an explicitly empty `guidance.packs: []` gains newly matching packs; order of existing entries is preserved; a second run with no new matches writes nothing; a matching pack removed from `guidance.packs` without being listed in `guidance.ignored` is adopted again on the next run. **Code references**: the adoption function beside `internal/initrepo/project_guidance.go`, with a table-driven unit test and a binary-level update test.
 
 ### AC-3 — Ignored packs are never adopted
 
-**Pass criterion**: a pack listed in `guidance.ignored` is never added to `guidance.packs` or installed, however its detection matches, and moving an adopted pack's id from `guidance.packs` to `guidance.ignored` removes its unmodified output on the next update. **Edge cases**: an id present in both lists (ignored wins, as the existing removal path treats it); a locally edited owned file of the removed pack blocks removal and preserves the installed set. **Code references**: the adoption function's unit test; `internal/cli/update/guidance_reconsideration_test.go`.
+**Pass criterion**: a pack listed in `guidance.ignored` is never added to `guidance.packs` or installed, however its detection matches, and moving an adopted pack's id from `guidance.packs` to `guidance.ignored` removes its unmodified output on the next update. **Edge cases**: an id listed in both `guidance.packs` and `guidance.ignored` is refused when `aiwf.yaml` loads, so adoption never sees it; a locally edited owned file of the removed pack blocks removal and preserves the installed set. **Code references**: the adoption function's unit test; `internal/cli/update/guidance_reconsideration_test.go`.
 
 ### AC-4 — Disabled maintenance performs no detection or adoption
 
@@ -53,7 +53,7 @@ Detection, retrieval, validation, installation, host routing and legacy handover
 
 ### AC-5 — Init and update never prompt for guidance
 
-**Pass criterion**: `aiwf init` and `aiwf update` run on a real terminal adopt and install the same packs as a run without one and never read stdin for guidance, and neither verb's `--help` describes a guidance prompt. **Edge cases**: `init --no-prompt` on a terminal; a terminal whose stdin reaches EOF immediately. **Code references**: the pty test in `internal/cli/cliutil/guidance_terminal_linux_test.go`; the help-text drift is pinned against the verbs' registered flags rather than by phrase.
+**Pass criterion**: `aiwf init` and `aiwf update` run on a real terminal adopt and install the same packs as a run without one and never read stdin for guidance, and neither verb's `--help` describes a guidance prompt. **Edge cases**: `init --no-prompt` and `update --no-prompt` on a terminal; a terminal whose stdin reaches EOF immediately. **Code references**: the pty test in `internal/cli/cliutil/guidance_terminal_linux_test.go`; the help-text drift is pinned against the verbs' registered flags rather than by phrase.
 
 ## Constraints
 
@@ -66,19 +66,20 @@ Detection, retrieval, validation, installation, host routing and legacy handover
 
 - ADR-0054 settles adoption: add-only, on every enabled run, `guidance.ignored` as the only opt-out, no guidance prompt.
 - The adoption rule is one pure function over the detected matches, the current `guidance.packs` and `guidance.ignored`, returning the new selection; `init`, `update` and the report milestone consume it rather than re-deriving it.
-- `init --no-prompt` keeps its meaning for hook consent; its help text stops mentioning guidance selection.
+- `--no-prompt` on `init`, `update` and `upgrade` keeps its meaning for hook consent. Their help text, the README's guidance paragraph and the unreleased CHANGELOG entry for `--no-prompt` stop describing guidance selection, and the pty test's `update-no-prompt` guidance subtest goes with the prompt.
 
 ## Surfaces touched
 
 - `internal/initrepo/project_guidance.go`
 - `internal/cli/cliutil/guidance.go`
-- `internal/cli/update/update.go`, `internal/cli/initcmd/initcmd.go`
+- `internal/cli/update/update.go`, `internal/cli/initcmd/initcmd.go`, `internal/cli/upgrade/upgrade.go` (help text)
+- `README.md`, `CHANGELOG.md`
 - `internal/cli/cliutil/guidance_terminal_linux_test.go`
 
 ## Out of scope
 
 - The end-of-run guidance report, which the next milestone in this epic delivers; this milestone keeps the existing step-ledger line.
-- A `--no-prompt` flag for `update`'s hook-consent prompt.
+- Hook-consent and statusline prompts, and the repo lock held while any prompt waits (G-0709).
 
 ## Dependencies
 
