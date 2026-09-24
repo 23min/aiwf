@@ -16,13 +16,34 @@ shell comments, templated in `internal/initrepo/initrepo.go`. So did the
 hook lives in `.git/`, but `.gitignore` is a file the consumer commits, so the
 id enters their history. Both are fixed; the surface is not.
 
-**Printed to the consumer's terminal.** Three shapes, of which only the first is
+**Printed to the consumer's terminal.** Four shapes, of which only the first is
 fixed: the hook-chain-collision message in `aiwf init` / `update` /
-`worktree add`; Cobra flag help, where `--help` on several verbs still names an
-aiwf gap id in the usage string; and `Finding.Hint` text in `internal/check`,
-rendered by `aiwf check` wherever it runs.
+`worktree add`; command help, both Cobra's per-command help and the root
+`aiwf --help` that `printHelp` passes to `cliutil.Println`
+(`internal/cli/root.go`); `aiwf doctor` output; and `Finding.Hint` text in
+`internal/check`, rendered by `aiwf check` wherever it runs.
 
-No rule reaches either. `skill-body-id` fires over `*.md` under
+Command help carries citations in flag usage, long help, examples, and the short
+descriptions shell completion shows. `aiwf add --priority` cites `G-0078` and
+`E-0066` (`internal/cli/add/add.go`), `aiwf promote --audit-only` cites `G24`,
+`aiwf authorize --branch` cites `M-0104` and `M-0105`, the long help of
+`aiwf acknowledge illegal` cites eight entities and its example cites `E-0038`
+(`internal/cli/acknowledge/illegal.go`), `aiwf archive`'s long help cites
+`ADR-0004` and its short description, which only shell completion shows, cites it
+again, and the root help cites `ADR-0004`. `aiwf doctor --self-check` failure
+messages cite `G-0112` and `G42` (`internal/cli/doctor/selfcheck.go`).
+
+The same text cites paths in aiwf's own source tree, which a consumer repo does not
+contain: the root help names `docs/design/provenance-model.md`,
+`docs/archive/pocv3/poc-plan-pre-migration.md` and `docs/design/design-decisions.md`,
+and `aiwf acknowledge illegal`'s long help names `internal/cli/check/check.go`. A
+path into the consumer's own repo — `aiwf.yaml`, `work/gaps/`,
+`.git/hooks/pre-push` — is a different thing and belongs in help text.
+
+No rule reaches either. Paths have no mechanical rule on any surface: the
+shipped-surface rule in CLAUDE.md bans filesystem paths alongside ids, but only the
+id half has a chokepoint, and G-0548 records the missing path rule for the embedded
+markdown. For ids, `skill-body-id` fires over `*.md` under
 `internal/skills/embedded{,-rituals,-guidance}/**` plus the `#` comments of
 `embedded-statusline/*.sh`; `body-prose-id` scans entity bodies; `doc-id-width`
 scans the configured documentation corpus. Go string literals belong to none of
@@ -62,15 +83,15 @@ message in three verbs, and the one `Finding.Hint` that named the commit-msg
 hook's own gap. Four goldens now pin the hook text byte-for-byte, so that half
 cannot regress silently.
 
-Not fixed: Cobra flag help across several verbs, `aiwf doctor` output, and the
-remaining `Finding.Hint` literals. These were left deliberately — they are a
+Not fixed: command help across verbs and the root help, `aiwf doctor` output, and
+the remaining `Finding.Hint` literals. These were left deliberately — they are a
 systematic population rather than a handful, and sweeping them by hand is what
 this gap exists to stop repeating. E-0078 swept the enumerated shipped surfaces
 by hand and every surface named here survived it, because a hand sweep cleans
 the instances someone thought to look at. The rule is the fix; the sweep is what
 runs once afterwards so the rule starts green.
 
-Bare `ADR-NNNN` citations in flag help are the same shape and were left with
+Bare `ADR-NNNN` citations in help text are the same shape and were left with
 them. CLAUDE.md's carve-out covers a markdown link whose visible text stays
 descriptive, which a parenthetical in a usage string is not — but ADRs are
 stable where gaps rot, so whether they are in-class is a judgment to settle when
@@ -91,9 +112,11 @@ standard, and extends to any future artifact by registering its builder.
 `logging-chokepoint` policy establish that operator text routes through the
 `cliutil` wrappers, which suggests scanning literals passed to those wrappers —
 but that misses most of the population. Flag help is handed to Cobra via
-`cmd.Flags().XVar(…, usage)`, never to `cliutil`; `Finding.Hint` literals live
-in `internal/check` and are rendered downstream by the formatter. A rule scoped
-to `cliutil` call sites would pass a tree that still leaks on every `--help`.
+`cmd.Flags().XVar(…, usage)`, and command descriptions and examples as
+`cobra.Command` fields, never to `cliutil`; only the root help's literal passes
+through `cliutil.Println`. `Finding.Hint` literals live in `internal/check` and
+are rendered downstream by the formatter. A rule scoped to `cliutil` call sites
+would pass a tree that still leaks on every per-command `--help`.
 
 The shape that covers it is a scan over the *string literals* of the
 consumer-reachable packages — `internal/cli/...`, `internal/check`'s hint and
