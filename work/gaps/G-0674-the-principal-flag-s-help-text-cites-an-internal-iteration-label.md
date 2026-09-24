@@ -1,8 +1,10 @@
 ---
 id: G-0674
 title: The --principal flag's help text cites an internal iteration label
-status: open
+status: addressed
 discovered_in: M-0332
+addressed_by_commit:
+    - 3fdae4b96
 ---
 ## What's missing
 
