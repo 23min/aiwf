@@ -189,6 +189,20 @@ func TestOther(t *testing.T) {
 }`,
 		},
 		{
+			name: "a reader that roots the path itself counts",
+			body: `func readRepoFile(t *testing.T, rel string) string {
+	raw, _ := os.ReadFile(filepath.Join(repoRoot(t), rel))
+	return string(raw)
+}
+
+func TestPin(t *testing.T) {
+	if !strings.Contains(readRepoFile(t, "CLAUDE.md"), "keep this sentence") {
+		t.Error("missing")
+	}
+}`,
+			want: 1,
+		},
+		{
 			name: "a ledger entry is carried",
 			body: `func TestGrandfatheredFixturePin(t *testing.T) {
 	if !strings.Contains(readClaude(t), "keep this sentence") {

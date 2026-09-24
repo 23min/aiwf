@@ -254,7 +254,7 @@ func detectProseAssertions(fset *token.FileSet, files []*ast.File, paths map[*as
 // detectProseFindings is the pure core for any surface.
 func detectProseFindings(surface proseSurface, fset *token.FileSet, files []*ast.File, paths map[*ast.File]string) []proseFinding {
 	pathConsts := shippedPathConsts(files, surface)
-	readers, selfShipped := contentReaders(files, pathConsts, surface)
+	readers, selfShipped, rootedReaders := contentReaders(files, pathConsts, surface)
 	textHelpers := documentTextHelpers(files)
 
 	var out []proseFinding
@@ -276,7 +276,8 @@ func detectProseFindings(surface proseSurface, fset *token.FileSet, files []*ast
 				localConsts: map[string]bool{},
 				lits:        literalNeedles(files, fd.Body),
 				readers:     readers, selfShipped: selfShipped, pathConsts: pathConsts,
-				textHelpers: textHelpers,
+				rootedReaders: rootedReaders,
+				textHelpers:   textHelpers,
 			}
 			sc.propagate(fd.Body)
 			for _, v := range sc.assertions(fset, fd, rel) {
@@ -295,8 +296,11 @@ type scopeTaint struct {
 	lits        map[string]bool
 	readers     map[string]bool
 	selfShipped map[string]bool
-	pathConsts  map[string]bool
-	textHelpers map[string]bool
+	// rootedReaders resolve the repository root themselves, so a path
+	// handed to one is rooted however the caller spells it.
+	rootedReaders map[string]bool
+	pathConsts    map[string]bool
+	textHelpers   map[string]bool
 	// pathIdents are locals that hold a shipped-surface path rather than its
 	// content: `p := ritualPath`, or a table row whose fields include one.
 	// Without them a path reaching the reader through anything but its own
@@ -324,7 +328,13 @@ func (sc *scopeTaint) namesShippedPath(e ast.Expr) bool {
 // repository root: a file of the same name in a test's fixture repository
 // is a test of code, not of the guidance.
 func (sc *scopeTaint) anyArgNamesShippedPath(args []ast.Expr) bool {
-	named, rooted := false, !sc.surface.rooted
+	return sc.argsNamePath(args, false)
+}
+
+// argsNamePath is anyArgNamesShippedPath for a call whose callee may
+// already root what it is handed: rootedByCallee says it does.
+func (sc *scopeTaint) argsNamePath(args []ast.Expr, rootedByCallee bool) bool {
+	named, rooted := false, !sc.surface.rooted || rootedByCallee
 	for _, a := range args {
 		carried := false
 		ast.Inspect(a, func(n ast.Node) bool {
@@ -503,7 +513,7 @@ func (sc *scopeTaint) carriesShipped(e ast.Expr) bool {
 		if isReadFileCall(x.Fun) {
 			return sc.anyArgNamesShippedPath(x.Args)
 		}
-		if sc.readers[name] && (sc.selfShipped[name] || sc.anyArgNamesShippedPath(x.Args)) {
+		if sc.readers[name] && (sc.selfShipped[name] || sc.argsNamePath(x.Args, sc.rootedReaders[name])) {
 			return true
 		}
 		// Only a call handing document text back passes the taint on. One that
@@ -895,8 +905,8 @@ func embedsShippedTree(doc *ast.CommentGroup) bool {
 //
 // A reader that hands back derived records rather than bytes still counts —
 // documentTextFields is what keeps its findings out of scope.
-func contentReaders(files []*ast.File, pathConsts map[string]bool, surface proseSurface) (readers, selfShipped map[string]bool) {
-	readers, selfShipped = map[string]bool{}, map[string]bool{}
+func contentReaders(files []*ast.File, pathConsts map[string]bool, surface proseSurface) (readers, selfShipped, rootedReaders map[string]bool) {
+	readers, selfShipped, rootedReaders = map[string]bool{}, map[string]bool{}, map[string]bool{}
 	type fn struct {
 		name string
 		decl *ast.FuncDecl
@@ -924,7 +934,7 @@ func contentReaders(files []*ast.File, pathConsts map[string]bool, surface prose
 					if isReadFileCall(x.Fun) {
 						reads = true
 					}
-					if isRepoRootCall(x) {
+					if isRepoRootCall(x) || rootedReaders[calleeFuncName(x.Fun)] {
 						rooted = true
 					}
 					if name := calleeFuncName(x.Fun); readers[name] {
@@ -953,9 +963,12 @@ func contentReaders(files []*ast.File, pathConsts map[string]bool, surface prose
 			if reads && shipped && rooted && !selfShipped[f.name] {
 				selfShipped[f.name], changed = true, true
 			}
+			if reads && rooted && !rootedReaders[f.name] {
+				rootedReaders[f.name], changed = true, true
+			}
 		}
 	}
-	return readers, selfShipped
+	return readers, selfShipped, rootedReaders
 }
 
 // literalNeedles maps each identifier in a test bound only to string literals
