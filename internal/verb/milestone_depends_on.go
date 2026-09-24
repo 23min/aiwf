@@ -38,7 +38,7 @@ import (
 // commit body so the rationale surfaces in `aiwf history`.
 func MilestoneDependsOn(ctx context.Context, t *tree.Tree, id string, deps []string, clearList bool, actor, reason string) (*Result, error) {
 	if entity.IsCompositeID(id) {
-		return nil, fmt.Errorf("milestone depends-on does not accept composite ids; pass a milestone id (M-NNN)")
+		return nil, fmt.Errorf("milestone depends-on does not accept composite ids; pass a milestone id (M-NNNN)")
 	}
 	if clearList && len(deps) > 0 {
 		return nil, fmt.Errorf("--clear and --on are mutually exclusive")

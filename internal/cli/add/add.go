@@ -60,12 +60,12 @@ func NewCmd(correlationID string) *cobra.Command {
   aiwf add epic --title "Foundations and aiwf check"
 
   # Create a milestone under an epic (--tdd is required: required|advisory|none)
-  aiwf add milestone --epic E-01 --tdd required --title "Bootstrap Cobra"
+  aiwf add milestone --epic E-NNNN --tdd required --title "Bootstrap Cobra"
 
   # Create a contract atomically wired to a declared validator
   # (declare one first, e.g. aiwf contract recipe install cue; the ADR, a
   # contract.md holding the body, and the --schema and --fixtures paths must exist)
-  aiwf add contract --linked-adr ADR-0001 --title "Render envelope" \
+  aiwf add contract --linked-adr ADR-NNNN --title "Render envelope" \
     --body-file contract.md --validator cue --schema schemas/render.cue --fixtures fixtures/render`,
 		Args:          cobra.MinimumNArgs(1),
 		SilenceErrors: true,
@@ -97,17 +97,17 @@ func NewCmd(correlationID string) *cobra.Command {
 	// PersistentFlags are inherited by the `add ac` child so the shared
 	// `--title`, `--actor`, `--principal`, `--root` work uniformly on
 	// both `aiwf add <kind>` and `aiwf add ac <milestone-id>`.
-	cmd.PersistentFlags().StringArrayVar(&titles, "title", nil, "entity title (required; a single line — a line break is refused, since the title becomes a YAML scalar, a body H1 and a commit subject; for `aiwf add ac` may repeat to create multiple ACs in one atomic commit — M-057)")
+	cmd.PersistentFlags().StringArrayVar(&titles, "title", nil, "entity title (required; a single line — a line break is refused, since the title becomes a YAML scalar, a body H1 and a commit subject; for `aiwf add ac` may repeat to create multiple ACs in one atomic commit)")
 	cmd.PersistentFlags().StringVar(&actor, "actor", "", "actor for the commit trailer")
 	cmd.PersistentFlags().StringVar(&principal, "principal", "", cliutil.PrincipalFlagUsage)
 	cmd.PersistentFlags().StringVar(&root, "root", "", "consumer repo root")
 	cmd.Flags().StringVar(&epicID, "epic", "", "parent epic id (milestone only)")
-	cmd.Flags().StringVar(&tddPolicy, "tdd", "", "milestone TDD policy: required|advisory|none — required at creation time for kind=milestone (G-055 layer 1)")
-	cmd.Flags().StringVar(&dependsOn, "depends-on", "", "comma-separated milestone ids the new milestone depends on (milestone only); each id must resolve to an existing milestone (M-076)")
+	cmd.Flags().StringVar(&tddPolicy, "tdd", "", "milestone TDD policy: required|advisory|none — required at creation time for kind=milestone")
+	cmd.Flags().StringVar(&dependsOn, "depends-on", "", "comma-separated milestone ids the new milestone depends on (milestone only); each id must resolve to an existing milestone")
 	cmd.Flags().StringVar(&discoveredIn, "discovered-in", "", "id of milestone or epic where the gap was discovered (gap only)")
-	cmd.Flags().StringVar(&area, "area", "", "workstream area tag (root kinds only); validated against aiwf.yaml: areas.members; a gap with --discovered-in derives it when omitted (E-0043)")
-	cmd.Flags().StringVar(&priority, "priority", "", "priority level (gap/decision only): urgent, high, medium, low (G-0078, E-0066)")
-	cmd.Flags().StringVar(&pathHint, "path-hint", "", "repo-relative path hint (root kinds only); when --area is omitted and the hint falls under exactly one declared area's paths, derive area from it via the areamatch SSOT (E-0044, M-0182)")
+	cmd.Flags().StringVar(&area, "area", "", "workstream area tag (root kinds only); validated against aiwf.yaml: areas.members; a gap with --discovered-in derives it when omitted")
+	cmd.Flags().StringVar(&priority, "priority", "", "priority level (gap/decision only): urgent, high, medium, low")
+	cmd.Flags().StringVar(&pathHint, "path-hint", "", "repo-relative path hint (root kinds only); when --area is omitted and the hint falls under exactly one declared area's paths, derive area from it")
 	cmd.Flags().StringVar(&relatesTo, "relates-to", "", "comma-separated ids the decision relates to (decision only)")
 	cmd.Flags().StringVar(&linkedADRs, "linked-adr", "", "comma-separated ADR ids motivating the contract (contract only)")
 	cmd.Flags().StringVar(&bindValidator, "validator", "", "validator name (contract only; if set, --schema and --fixtures are also required and the binding is added atomically)")
@@ -115,9 +115,9 @@ func NewCmd(correlationID string) *cobra.Command {
 	cmd.Flags().StringVar(&bindFixtures, "fixtures", "", "repo-relative path to the fixtures-tree root (contract only; pairs with --validator and --schema)")
 	cmd.Flags().StringVar(&bodyFile, "body-file", "", `path to a file whose content becomes the entity body, in the same atomic commit as the frontmatter (use "-" to read from stdin); replaces the per-kind default template; the file must contain body content only — leading "---" is refused; mutually exclusive with --body`)
 	cmd.Flags().StringVar(&bodyText, "body", "", `inline text that becomes the entity body, in the same atomic commit as the frontmatter; replaces the per-kind default template; must not begin with a "---" frontmatter delimiter; mutually exclusive with --body-file`)
-	cmd.Flags().BoolVar(&force, "force", false, "bypass the body-completeness gate: a body omitting a section its kind requires (every kind), or a born-complete kind's section that is present and empty (gap/decision/adr/contract — G-0326: these kinds have no draft phase, so an empty body is refused at creation); requires --reason; inert where the body would have passed anyway, including every create that takes the kind's scaffold; forcing past the absence half exempts the entity permanently, since the forced body is its starting point for aiwf edit-body and for the push gate alike; sovereign, so the actor must be human/... — a force trailer from a non-human actor is refused before anything is written")
+	cmd.Flags().BoolVar(&force, "force", false, "bypass the body-completeness gate: a body omitting a section its kind requires (every kind), or a born-complete kind's section that is present and empty (gap/decision/adr/contract — these kinds have no draft phase, so an empty body is refused at creation); requires --reason; inert where the body would have passed anyway, including every create that takes the kind's scaffold; forcing past the absence half exempts the entity permanently, since the forced body is its starting point for aiwf edit-body and for the push gate alike; sovereign, so the actor must be human/... — a force trailer from a non-human actor is refused before anything is written")
 	cmd.Flags().StringVar(&reason, "reason", "", `sovereign-override justification recorded in the "aiwf-force:" commit trailer; required (non-empty after trim) when --force is set`)
-	cmd.Flags().BoolVar(&fetch, "fetch", false, "before allocating the id, best-effort `git fetch --all` to refresh every remote-tracking ref, so the id is computed against the freshest published view across all branches (not just trunk); a fetch failure (offline, unreachable remote) degrades to local-only allocation with a warning and never blocks the add (M-0214)")
+	cmd.Flags().BoolVar(&fetch, "fetch", false, "before allocating the id, best-effort `git fetch --all` to refresh every remote-tracking ref, so the id is computed against the freshest published view across all branches (not just trunk); a fetch failure (offline, unreachable remote) degrades to local-only allocation with a warning and never blocks the add")
 	out = cliutil.AddFormatFlags(cmd)
 	out.CorrelationID = correlationID
 
@@ -460,15 +460,15 @@ func newACCmd(titles *[]string, actor, principal, root *string, correlationID st
 		Use:   "ac <milestone-id>",
 		Short: "Add one or more acceptance criteria to a milestone",
 		Example: `  # Add a single AC
-  aiwf add ac M-007 --title "rename preserves the entity id"
+  aiwf add ac M-NNNN --title "rename preserves the entity id"
 
   # Add multiple ACs in one atomic commit
-  aiwf add ac M-007 \
+  aiwf add ac M-NNNN \
     --title "verb writes exactly one commit" \
     --title "exit codes preserved"
 
-  # Add an AC with body content from a file (M-067)
-  aiwf add ac M-007 --title "rename preserves id" --body-file ./ac1-body.md`,
+  # Add an AC with body content from a file
+  aiwf add ac M-NNNN --title "rename preserves id" --body-file ./ac1-body.md`,
 		Args:          cobra.ExactArgs(1),
 		SilenceErrors: true,
 		SilenceUsage:  true,

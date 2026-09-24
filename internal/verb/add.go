@@ -380,7 +380,7 @@ func runeListString(rs []rune) string {
 func validateAddOptsForKind(kind entity.Kind, opts AddOptions) error {
 	if kind == entity.KindMilestone {
 		if opts.TDD == "" {
-			return fmt.Errorf("--tdd <required|advisory|none> is required for kind=milestone (G-055: every milestone must declare its TDD policy explicitly)")
+			return fmt.Errorf("--tdd <required|advisory|none> is required for kind=milestone (every milestone must declare its TDD policy explicitly)")
 		}
 		if !entity.IsAllowedTDDPolicy(opts.TDD) {
 			return fmt.Errorf("--tdd %q is not a recognized policy; allowed: required, advisory, none", opts.TDD)

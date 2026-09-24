@@ -55,7 +55,7 @@ func NewCmd() *cobra.Command {
   aiwf update --statusline
   aiwf update --statusline --scope project
 
-  # Remove a scope's statusline script + settings wiring (G-0354)
+  # Remove a scope's statusline script + settings wiring
   aiwf update --scope project --remove
   aiwf update --scope project --remove --force
 
@@ -75,12 +75,12 @@ func NewCmd() *cobra.Command {
 		[]string{string(skills.StatuslineScopeProject), string(skills.StatuslineScopeUser)},
 		cobra.ShellCompDirectiveNoFileComp,
 	))
-	cmd.Flags().BoolVar(&wireSettings, "wire-settings", false, "write statusLine to the settings file without interactive confirmation (non-TTY consent per ADR-0015)")
-	cmd.Flags().BoolVar(&allowUntagged, "allow-untagged-statusline", false, "write the statusline script even when this binary's version is untagged (a dev/worktree build), without interactive confirmation (G-0367)")
+	cmd.Flags().BoolVar(&wireSettings, "wire-settings", false, "write statusLine to the settings file without interactive confirmation (consent for a non-interactive run)")
+	cmd.Flags().BoolVar(&allowUntagged, "allow-untagged-statusline", false, "write the statusline script even when this binary's version is untagged (a dev/worktree build), without interactive confirmation")
 	cmd.Flags().BoolVar(&remove, "remove", false, "remove the --scope statusline's script + statusLine settings key (mutually exclusive with --statusline)")
 	cmd.Flags().BoolVar(&force, "force", false, "with --remove, delete the script/settings key even if it does not look aiwf-authored")
 	cmd.Flags().BoolVar(&noPrompt, "no-prompt", false, "never prompt for hook consent or guidance selection; leave undecided choices unchanged")
-	cmd.Flags().StringArrayVar(&enableHooks, "enable-hook", nil, "consent to enabling the named registry hook without an interactive prompt (repeatable; non-TTY consent per ADR-0032)")
+	cmd.Flags().StringArrayVar(&enableHooks, "enable-hook", nil, "consent to enabling the named registry hook without an interactive prompt (repeatable; consent for a non-interactive run)")
 	_ = cmd.RegisterFlagCompletionFunc("enable-hook", cliutil.CompleteHookNames)
 	return cmd
 }

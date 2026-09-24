@@ -16,6 +16,24 @@ section in this file.
 
 ## [Unreleased]
 
+### Fixed — G-0538, G-0707: help, messages and `aiwf.yaml` comments no longer cite aiwf's own ids and paths
+
+Command help (`aiwf --help` and every subcommand's), the report lines `aiwf doctor`
+prints, the refusals and commit messages verbs write, configuration and trailer
+errors, and the comments `aiwf init` writes into `aiwf.yaml` no longer cite aiwf's
+own gaps, milestones, epics or ADRs, and no longer name paths in aiwf's source
+tree. In a consumer's repo those ids name nothing, or name the consumer's own
+unrelated entity with the same number. Finding hints and messages from
+`aiwf check` still carry some.
+
+Examples now illustrate ids with canonical placeholders (`E-NNNN`, `M-NNNN/AC-N`)
+instead of narrow ids such as `E-01` and `M-007`, and usage lines name
+`<milestone-id>`, `<epic-id>`, `<contract-id>` and `<adr-id>`. The
+`aiwf archive --apply` commit body no longer opens with an aiwf ADR citation,
+which it wrote into the consumer's history. `aiwf doctor`'s missing-binary advice
+now gives the installable `go install github.com/23min/aiwf/cmd/aiwf@latest`
+rather than a path into aiwf's source tree.
+
 ### Fixed — G-0708: `aiwf update` and `aiwf upgrade` accept `--no-prompt`
 
 `aiwf update --no-prompt` never prompts for guidance selection or hook consent, even

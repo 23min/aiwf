@@ -25,7 +25,7 @@ func NewCmd(correlationID string) *cobra.Command {
 		out       *cliutil.OutputFormat
 	)
 	cmd := &cobra.Command{
-		Use:   "move <M-id> --epic <E-id>",
+		Use:   "move <milestone-id> --epic <epic-id>",
 		Short: "Move a milestone to a different epic; id preserved",
 		Long: `Reparent a milestone under a different epic. The milestone id is preserved.
 
@@ -41,14 +41,14 @@ rewritten to its new path in the same commit. Those bodies are part of the
 move's write set, so an uncommitted edit to any of them refuses the move,
 naming the file. The moved milestone's own relative links are recomputed against
 its destination directory in the same write, so they keep naming the same files.`,
-		Example: `  # Reparent M-007 under epic E-04
-  aiwf move M-007 --epic E-04`,
+		Example: `  # Reparent a milestone under another epic
+  aiwf move M-NNNN --epic E-NNNN`,
 		Args:          cobra.ExactArgs(1),
 		SilenceErrors: true,
 		SilenceUsage:  true,
 		RunE: func(c *cobra.Command, args []string) error {
 			if epic == "" {
-				cliutil.Errorln("aiwf move: --epic <E-id> is required")
+				cliutil.Errorln("aiwf move: --epic <epic-id> is required")
 				return cliutil.WrapExitCode(cliutil.ExitUsage)
 			}
 			return cliutil.WrapExitCode(Run(args[0], epic, actor, principal, root, *out))
@@ -57,7 +57,7 @@ its destination directory in the same write, so they keep naming the same files.
 	cmd.Flags().StringVar(&actor, "actor", "", "actor for the commit trailer")
 	cmd.Flags().StringVar(&principal, "principal", "", cliutil.PrincipalFlagUsage)
 	cmd.Flags().StringVar(&root, "root", "", "consumer repo root")
-	cmd.Flags().StringVar(&epic, "epic", "", "target epic id (e.g., E-04)")
+	cmd.Flags().StringVar(&epic, "epic", "", "target epic id (e.g., E-NNNN)")
 	out = cliutil.AddFormatFlags(cmd)
 	out.CorrelationID = correlationID
 	cmd.ValidArgsFunction = cliutil.CompleteEntityIDArg(entity.KindMilestone, 0)
