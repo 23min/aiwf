@@ -16,6 +16,14 @@ section in this file.
 
 ## [Unreleased]
 
+### Fixed — G-0695: a withdrawn acceptance criterion no longer blocks starting its milestone
+
+`aiwf promote <milestone> in_progress` no longer refuses because a cancelled or
+deferred acceptance criterion has an empty body. The refusal asked for prose under a
+criterion already withdrawn from the milestone, while `aiwf check` reported nothing
+about that criterion; the promote now exempts withdrawn criteria exactly as the check
+does.
+
 ### Fixed — G-0685: the pre-push hook no longer passes a branch it did not check
 
 The pre-push hook refuses to push any ref whose commit is not the checked-out
