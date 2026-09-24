@@ -11,6 +11,9 @@ acs:
     - id: AC-1
       title: Unattended upgrade adopts guidance in a hermetic consumer
       status: open
+    - id: AC-2
+      title: Unattended upgrade observed in a real consumer repository
+      status: open
 ---
 ## Goal
 
@@ -29,6 +32,10 @@ The previous milestones pin adoption and reporting against fixtures and a stand-
 ### AC-1 — Unattended upgrade adopts guidance in a hermetic consumer
 
 **Pass criterion**: `aiwf upgrade` run with stdin not a terminal, in a repository with an `aiwf.yaml` carrying no `guidance` block, installs a new binary through the fake `go` binary, re-executes `update`, and leaves `guidance.packs`, `.guidance/` and host routing populated for the matching packs of a local catalogue, with the guidance section in its output. **Edge cases**: the catalogue unreachable, where the upgrade still succeeds and the report names the retrieval failure. **Code references**: `internal/cli/integration/upgrade_cmd_test.go`.
+
+### AC-2 — Unattended upgrade observed in a real consumer repository
+
+**Pass criterion**: an observation record in this milestone — command, expected result, observed output, environment — of `aiwf upgrade` run non-interactively against the published catalogue in a consumer repository that has no guidance configuration and an ai-dotfiles installation, showing either installed guidance with routing and a report naming the adopted packs, or a report naming a handover blocker and its fix. **Edge cases**: a handwritten legacy import in the consumer's `CLAUDE.md`, recorded as the blocker it produces. **Code references**: none; this criterion is met by the record.
 
 ## Constraints
 
