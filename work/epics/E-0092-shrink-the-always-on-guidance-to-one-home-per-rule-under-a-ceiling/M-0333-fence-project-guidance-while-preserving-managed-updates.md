@@ -28,6 +28,7 @@ acs:
     - id: AC-6
       title: New prose-presence assertions over development guidance fail the gate
       status: open
+      tdd_phase: red
 ---
 
 ## Goal
