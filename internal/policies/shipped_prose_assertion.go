@@ -66,55 +66,6 @@ var reshapers = map[string]bool{
 	"strings.Repeat":     true,
 }
 
-// proseSurface is one set of documents the prose-assertion engine guards,
-// and what it refuses over them.
-type proseSurface struct {
-	// kind decides what the analysis does differently per surface.
-	kind surfaceKind
-	// namesPath reports whether a string literal names one of the
-	// surface's documents.
-	namesPath func(string) bool
-	// exempt names the test functions the surface does not judge.
-	exempt func(string) bool
-	// noun names the documents in a Detail.
-	noun string
-	// remedy is the Detail text after the offending assertion is named.
-	remedy string
-}
-
-// surfaceKind is which set of documents a proseSurface guards.
-type surfaceKind int
-
-const (
-	// shippedDocuments are the embedded trees that materialize into
-	// consumer repositories. The skills package reaches its own bytes
-	// through `//go:embed`, so an embed of one of those trees names the
-	// surface, and any assertion over them is refused, as D-0070 rules.
-	shippedDocuments surfaceKind = iota + 1
-	// repositoryGuidance is this repository's own development guidance.
-	// A path counts only when built from the repository root, since a file
-	// of the same name in a fixture repository is a test of code; and only
-	// an assertion that a phrase is present is refused, since one that it
-	// is absent is a ban and pins no reading.
-	repositoryGuidance
-)
-
-// shippedSurface is D-0070's surface: the embedded trees that materialize
-// into consumer repositories.
-var shippedSurface = proseSurface{
-	kind:      shippedDocuments,
-	namesPath: namesShippedPath,
-	exempt:    shippedProseAssertionExempt,
-	noun:      "shipped-surface prose",
-	remedy:    "D-0070 retires this class: delete the assertion. Two things are not this: a check that draws its needle from a second document is already out of scope and needs no change, and one deriving its expectation by running the code belongs on derivedExpectationExemptions. A trigger phrase deciding whether an assistant reaches for the skill belongs on triggerPhraseExemptions.",
-}
-
-// proseFinding is one refused assertion with the test function holding it.
-type proseFinding struct {
-	fn string
-	v  Violation
-}
-
 // PolicyShippedProseAssertion reports a test assertion that reads a shipped
 // surface and compares its content against a phrase written into the test.
 //
@@ -170,12 +121,6 @@ func PolicyShippedProseAssertion(root string) ([]Violation, error) {
 	return out, nil
 }
 
-// skippedTestDirs are the directory names no test-source scan enters:
-// vendored and generated trees, and testdata, whose Go files are fixtures.
-var skippedTestDirs = map[string]bool{
-	"vendor": true, "node_modules": true, ".git": true, ".claude": true, "testdata": true,
-}
-
 // testPackageDirs returns every repo-relative directory holding a Go test
 // file. Grouping by directory matters: a fixture path constant and the helper
 // that reads it routinely live in different files of the same package.
@@ -186,7 +131,8 @@ func testPackageDirs(root string) ([]string, error) {
 			return err
 		}
 		if info.IsDir() {
-			if skippedTestDirs[info.Name()] {
+			switch info.Name() {
+			case "vendor", "node_modules", ".git", ".claude", "testdata":
 				return filepath.SkipDir
 			}
 			return nil
@@ -213,24 +159,8 @@ func testPackageDirs(root string) ([]string, error) {
 }
 
 // scanPackageForProseAssertions parses one directory's Go sources together and
-// runs the shipped-surface analysis across them.
+// runs the analysis across them.
 func scanPackageForProseAssertions(root, relDir string) ([]Violation, error) {
-	found, err := scanPackageFor(root, relDir, shippedSurface)
-	return proseViolations(found), err
-}
-
-// proseViolations drops the function names a caller does not need.
-func proseViolations(found []proseFinding) []Violation {
-	var out []Violation
-	for _, f := range found {
-		out = append(out, f.v)
-	}
-	return out
-}
-
-// scanPackageFor parses one directory's Go sources together and runs the
-// analysis for surface across them.
-func scanPackageFor(root, relDir string, surface proseSurface) ([]proseFinding, error) {
 	dir := filepath.Join(root, filepath.FromSlash(relDir))
 	entries, err := os.ReadDir(dir)
 	if err != nil {
@@ -253,24 +183,18 @@ func scanPackageFor(root, relDir string, surface proseSurface) ([]proseFinding, 
 		files = append(files, f)
 		paths[f] = relDir + "/" + name
 	}
-	return detectProseFindings(surface, fset, files, paths), nil
+	return detectProseAssertions(fset, files, paths), nil
 }
 
 // detectProseAssertions is the pure core: given one package's parsed files, it
 // reports every containment whose haystack carries shipped-surface content and
 // whose needle was written into the test.
 func detectProseAssertions(fset *token.FileSet, files []*ast.File, paths map[*ast.File]string) []Violation {
-	return proseViolations(detectProseFindings(shippedSurface, fset, files, paths))
-}
-
-// detectProseFindings is the pure core for any surface.
-func detectProseFindings(surface proseSurface, fset *token.FileSet, files []*ast.File, paths map[*ast.File]string) []proseFinding {
-	pathConsts := shippedPathConsts(files, surface)
-	rootFuncs := repoRootFuncs(files)
-	readers, selfShipped, rootedReaders := contentReaders(files, pathConsts, surface, rootFuncs)
+	pathConsts := shippedPathConsts(files)
+	readers, selfShipped := contentReaders(files, pathConsts)
 	textHelpers := documentTextHelpers(files)
 
-	var out []proseFinding
+	var out []Violation
 	for _, f := range files {
 		rel := paths[f]
 		for _, d := range f.Decls {
@@ -278,25 +202,18 @@ func detectProseFindings(surface proseSurface, fset *token.FileSet, files []*ast
 			if !ok || fd.Body == nil || !strings.HasPrefix(fd.Name.Name, "Test") {
 				continue
 			}
-			if surface.exempt(fd.Name.Name) {
+			if shippedProseAssertionExempt(fd.Name.Name) {
 				continue
 			}
 			sc := &scopeTaint{
-				surface:     surface,
-				shipped:     map[string]bool{},
-				pathIdents:  map[string]bool{},
-				rootIdents:  map[string]bool{},
-				localConsts: map[string]bool{},
-				lits:        literalNeedles(files, fd.Body),
-				readers:     readers, selfShipped: selfShipped, pathConsts: pathConsts,
-				rootedReaders: rootedReaders,
-				rootFuncs:     rootFuncs,
-				textHelpers:   textHelpers,
+				shipped:    map[string]bool{},
+				pathIdents: map[string]bool{},
+				lits:       literalNeedles(files, fd.Body),
+				readers:    readers, selfShipped: selfShipped, pathConsts: pathConsts,
+				textHelpers: textHelpers,
 			}
 			sc.propagate(fd.Body)
-			for _, v := range sc.assertions(fset, fd, rel) {
-				out = append(out, proseFinding{fn: fd.Name.Name, v: v})
-			}
+			out = append(out, sc.assertions(fset, fd, rel)...)
 		}
 	}
 	return out
@@ -305,16 +222,10 @@ func detectProseFindings(surface proseSurface, fset *token.FileSet, files []*ast
 // scopeTaint tracks, within one test function, which identifiers carry
 // shipped-surface content and which carry a phrase the test itself wrote.
 type scopeTaint struct {
-	surface     proseSurface
 	shipped     map[string]bool
 	lits        map[string]bool
 	readers     map[string]bool
 	selfShipped map[string]bool
-	// rootedReaders resolve the repository root themselves, so a path
-	// handed to one is rooted however the caller spells it.
-	rootedReaders map[string]bool
-	// rootFuncs hand back the repository root without reading a file.
-	rootFuncs   map[string]bool
 	pathConsts  map[string]bool
 	textHelpers map[string]bool
 	// pathIdents are locals that hold a shipped-surface path rather than its
@@ -323,88 +234,25 @@ type scopeTaint struct {
 	// constant name is invisible, which excludes the table-driven form this
 	// repo mandates for two or more cases.
 	pathIdents map[string]bool
-	// rootIdents are locals bound to the repository root: `root :=
-	// repoRoot(t)`.
-	rootIdents map[string]bool
-	// localConsts are function-local constants and variables declared
-	// with a value naming a surface path.
-	localConsts map[string]bool
 }
 
-// namesShippedPath reports whether e names a surface path, whether as a
+// namesShippedPath reports whether e names a shipped-surface path, whether as a
 // literal, a package constant, or a local carrying one.
 func (sc *scopeTaint) namesShippedPath(e ast.Expr) bool {
-	return sc.anyArgNamesShippedPath([]ast.Expr{e})
-}
-
-// anyArgNamesShippedPath reports whether the arguments together name a
-// surface path. A local already carrying a path names one on its own. A
-// literal or constant does too, except on a surface whose documents are
-// this repository's own files, where the path must also be built from the
-// repository root: a file of the same name in a test's fixture repository
-// is a test of code, not of the guidance.
-func (sc *scopeTaint) anyArgNamesShippedPath(args []ast.Expr) bool {
-	return sc.argsNamePath(args, false)
-}
-
-// argsNamePath is anyArgNamesShippedPath for a call whose callee may
-// already root what it is handed: rootedByCallee says it does.
-func (sc *scopeTaint) argsNamePath(args []ast.Expr, rootedByCallee bool) bool {
-	named, rooted := false, sc.surface.kind != repositoryGuidance || rootedByCallee
-	for _, a := range args {
-		carried := false
-		ast.Inspect(a, func(n ast.Node) bool {
-			switch x := n.(type) {
-			case *ast.Ident:
-				if sc.pathIdents[x.Name] {
-					carried = true
-				}
-				if sc.pathConsts[x.Name] || sc.localConsts[x.Name] {
-					named = true
-				}
-				if sc.rootIdents[x.Name] {
-					rooted = true
-				}
-			case *ast.SelectorExpr:
-				// A field of a table row that carries a path — `tc.path` —
-				// or names one the read has yet to root.
-				if id, ok := x.X.(*ast.Ident); ok && sc.pathIdents[id.Name] {
-					carried = true
-				}
-				if id, ok := x.X.(*ast.Ident); ok && sc.localConsts[id.Name] {
-					named = true
-				}
-			case *ast.CallExpr:
-				if isRepoRootCall(x, sc.rootFuncs) {
-					rooted = true
-				}
-			case *ast.BasicLit:
-				if x.Kind == token.STRING && sc.surface.namesPath(litValue(x)) {
-					named = true
-				}
-			}
-			return true
-		})
-		if carried {
-			return true
-		}
-	}
-	return named && rooted
-}
-
-// namesPathUnrooted reports whether e names a surface path by a literal, a
-// package constant, or a local already naming one, whether or not it is
-// rooted yet.
-func (sc *scopeTaint) namesPathUnrooted(e ast.Expr) bool {
 	found := false
 	ast.Inspect(e, func(n ast.Node) bool {
 		switch x := n.(type) {
 		case *ast.Ident:
-			if sc.pathConsts[x.Name] || sc.localConsts[x.Name] {
+			if sc.pathConsts[x.Name] || sc.pathIdents[x.Name] {
+				found = true
+			}
+		case *ast.SelectorExpr:
+			// A field of a table row that carries a path — `tc.path`.
+			if id, ok := x.X.(*ast.Ident); ok && sc.pathIdents[id.Name] {
 				found = true
 			}
 		case *ast.BasicLit:
-			if x.Kind == token.STRING && sc.surface.namesPath(litValue(x)) {
+			if x.Kind == token.STRING && namesShippedPath(litValue(x)) {
 				found = true
 			}
 		}
@@ -413,66 +261,14 @@ func (sc *scopeTaint) namesPathUnrooted(e ast.Expr) bool {
 	return found
 }
 
-// isRepoRootCall reports whether a call resolves this repository's root:
-// repoRoot and its per-package siblings, or a function rootFuncs names as
-// returning what one of those resolves.
-func isRepoRootCall(ce *ast.CallExpr, rootFuncs map[string]bool) bool {
-	name := calleeFuncName(ce.Fun)
-	return strings.HasPrefix(name, "repoRoot") || rootFuncs[name]
-}
-
-// repoRootFuncs finds the functions that hand back the repository root
-// without reading a file themselves — `root, tree := sharedRepoTree(t)` —
-// by following calls to a fixpoint.
-func repoRootFuncs(files []*ast.File) map[string]bool {
-	out := map[string]bool{}
-	for changed := true; changed; {
-		changed = false
-		for _, f := range files {
-			for _, d := range f.Decls {
-				fd, ok := d.(*ast.FuncDecl)
-				if !ok || fd.Body == nil || fd.Type.Results == nil || out[fd.Name.Name] {
-					continue
-				}
-				roots, reads := false, false
-				ast.Inspect(fd.Body, func(n ast.Node) bool {
-					if ce, ok := n.(*ast.CallExpr); ok {
-						if isReadFileCall(ce.Fun) {
-							reads = true
-						}
-						if isRepoRootCall(ce, out) {
-							roots = true
-						}
-					}
-					return true
-				})
-				if roots && !reads {
-					out[fd.Name.Name], changed = true, true
-				}
-			}
+// anyArgNamesShippedPath reports whether some argument names a shipped path.
+func (sc *scopeTaint) anyArgNamesShippedPath(args []ast.Expr) bool {
+	for _, a := range args {
+		if sc.namesShippedPath(a) {
+			return true
 		}
 	}
-	return out
-}
-
-// mentionsRepoRoot reports whether e resolves the repository root or uses a
-// local bound to it.
-func (sc *scopeTaint) mentionsRepoRoot(e ast.Expr) bool {
-	found := false
-	ast.Inspect(e, func(n ast.Node) bool {
-		switch x := n.(type) {
-		case *ast.CallExpr:
-			if isRepoRootCall(x, sc.rootFuncs) {
-				found = true
-			}
-		case *ast.Ident:
-			if sc.rootIdents[x.Name] {
-				found = true
-			}
-		}
-		return true
-	})
-	return found
+	return false
 }
 
 // anyArgCarriesShipped reports whether some argument carries shipped content.
@@ -493,38 +289,21 @@ func (sc *scopeTaint) propagate(body *ast.BlockStmt) {
 		ast.Inspect(body, func(n ast.Node) bool {
 			switch st := n.(type) {
 			case *ast.ValueSpec:
-				// A function-local `const` or `var` naming a path stands for
-				// it within this function, as a package constant does across
-				// the package.
+				// A function-local `const` or `var` naming a shipped path
+				// stands for it within this function, and one initialized
+				// from a read holds the document.
 				for i, nm := range st.Names {
 					if i >= len(st.Values) || nm.Name == "_" {
 						continue
 					}
-					if sc.namesPathUnrooted(st.Values[i]) {
-						sc.localConsts[nm.Name] = true
+					if sc.namesShippedPath(st.Values[i]) {
+						sc.pathIdents[nm.Name] = true
 					}
-					// `var body = readSkill(t, path)` holds the document.
 					if sc.carriesShipped(st.Values[i]) {
 						sc.shipped[nm.Name] = true
 					}
 				}
 			case *ast.AssignStmt:
-				for i, rhs := range st.Rhs {
-					if i < len(st.Lhs) && sc.mentionsRepoRoot(rhs) {
-						if id, ok := st.Lhs[i].(*ast.Ident); ok && id.Name != "_" {
-							sc.rootIdents[id.Name] = true
-						}
-					}
-				}
-				// A local bound to a path the read has yet to root — `p :=
-				// "CLAUDE.md"`, or a table of rows naming paths — names it.
-				for i, rhs := range st.Rhs {
-					if i < len(st.Lhs) && sc.namesPathUnrooted(rhs) {
-						if id, ok := st.Lhs[i].(*ast.Ident); ok && id.Name != "_" {
-							sc.localConsts[id.Name] = true
-						}
-					}
-				}
 				// A local rebound to a shipped path carries it onward.
 				for i, rhs := range st.Rhs {
 					if i < len(st.Lhs) && sc.namesShippedPath(rhs) {
@@ -555,11 +334,6 @@ func (sc *scopeTaint) propagate(body *ast.BlockStmt) {
 				if sc.namesShippedPath(st.X) {
 					if id, ok := st.Value.(*ast.Ident); ok && id.Name != "_" {
 						sc.pathIdents[id.Name] = true
-					}
-				}
-				if sc.namesPathUnrooted(st.X) {
-					if id, ok := st.Value.(*ast.Ident); ok && id.Name != "_" {
-						sc.localConsts[id.Name] = true
 					}
 				}
 			}
@@ -611,7 +385,7 @@ func (sc *scopeTaint) carriesShipped(e ast.Expr) bool {
 		if isReadFileCall(x.Fun) {
 			return sc.anyArgNamesShippedPath(x.Args)
 		}
-		if sc.readers[name] && (sc.selfShipped[name] || sc.argsNamePath(x.Args, sc.rootedReaders[name])) {
+		if sc.readers[name] && (sc.selfShipped[name] || sc.anyArgNamesShippedPath(x.Args)) {
 			return true
 		}
 		// Only a call handing document text back passes the taint on. One that
@@ -643,16 +417,14 @@ func (sc *scopeTaint) carriesText(name string) bool {
 func (sc *scopeTaint) assertions(fset *token.FileSet, fd *ast.FuncDecl, rel string) []Violation {
 	var out, scopes []Violation
 	report := func(needle ast.Expr, call string) {
-		line := fset.Position(needle.Pos()).Line
-		detail := fmt.Sprintf("%s asserts via %s that %s contains %s. %s",
-			fd.Name.Name, call, sc.surface.noun, describeNeedle(needle), sc.surface.remedy)
-		// Each id is spelled inline so the firing-fixture inventory sees
-		// both policies.
-		if sc.surface.kind == repositoryGuidance {
-			out = append(out, Violation{Policy: "guidance-prose-assertion", File: rel, Line: line, Detail: detail})
-			return
-		}
-		out = append(out, Violation{Policy: "shipped-prose-assertion", File: rel, Line: line, Detail: detail})
+		out = append(out, Violation{
+			Policy: "shipped-prose-assertion",
+			File:   rel,
+			Line:   fset.Position(needle.Pos()).Line,
+			Detail: fmt.Sprintf(
+				"%s asserts via %s that shipped-surface prose contains %s. D-0070 retires this class: delete the assertion. Two things are not this: a check that draws its needle from a second document is already out of scope and needs no change, and one deriving its expectation by running the code belongs on derivedExpectationExemptions. A trigger phrase deciding whether an assistant reaches for the skill belongs on triggerPhraseExemptions.",
+				fd.Name.Name, call, describeNeedle(needle)),
+		})
 	}
 	// A call standing in a condition decides whether the test fails, so it is
 	// making a claim. A call whose result is bound to a name is narrowing the
@@ -662,7 +434,6 @@ func (sc *scopeTaint) assertions(fset *token.FileSet, fd *ast.FuncDecl, rel stri
 	// which matters, because enumerating helper names by hand is exactly how a
 	// rule like this ends up with a hole in it.
 	deciding := decidingCalls(fd.Body)
-	presence := presenceCalls(fd.Body)
 
 	ast.Inspect(fd.Body, func(n ast.Node) bool {
 		ce, ok := n.(*ast.CallExpr)
@@ -689,12 +460,6 @@ func (sc *scopeTaint) assertions(fset *token.FileSet, fd *ast.FuncDecl, rel stri
 				continue
 			}
 			_ = i
-			// A ban on a phrase pins no reading, so a surface that refuses
-			// only presence lets an absence assertion stand — and it is not
-			// scoping either, so nothing is held back for it.
-			if sc.surface.kind == repositoryGuidance && deciding[ce] && !presence[ce] {
-				break
-			}
 			if deciding[ce] && !reshapers[name] && sc.isAsserting(name) {
 				report(arg, name)
 				break
@@ -747,193 +512,8 @@ func decidingCalls(body *ast.BlockStmt) map[*ast.CallExpr]bool {
 	return out
 }
 
-// presenceCalls returns the deciding calls whose failing arm runs when the
-// phrase is absent — an assertion that it is present. A condition the
-// analysis cannot read counts as one: the ban fails closed.
-func presenceCalls(body *ast.BlockStmt) map[*ast.CallExpr]bool {
-	out := map[*ast.CallExpr]bool{}
-	ast.Inspect(body, func(n ast.Node) bool {
-		ifs, ok := n.(*ast.IfStmt)
-		if !ok {
-			return true
-		}
-		bodyFails, elseFails := armFailsTheTest(ifs.Body), armFailsTheTest(ifs.Else)
-		pols := map[*ast.CallExpr]polarity{}
-		conditionPolarity(ifs.Cond, false, pols)
-		for ce, p := range pols {
-			if p == polUnknown || (bodyFails && p == polAbsent) || (elseFails && p == polPresent) {
-				out[ce] = true
-			}
-		}
-		return true
-	})
-	return out
-}
-
-// polarity says when a condition holds relative to a call's phrase.
-type polarity int
-
-const (
-	// polPresent: the condition holds when the phrase is present.
-	polPresent polarity = iota + 1
-	// polAbsent: the condition holds when the phrase is absent.
-	polAbsent
-	// polUnknown: the analysis cannot tell.
-	polUnknown
-)
-
-func (p polarity) negate() polarity {
-	switch p {
-	case polPresent:
-		return polAbsent
-	case polAbsent:
-		return polPresent
-	}
-	return p
-}
-
-// conditionPolarity records the polarity of each call in e; neg says
-// whether e sits under an odd number of negations.
-func conditionPolarity(e ast.Expr, neg bool, out map[*ast.CallExpr]polarity) {
-	switch x := e.(type) {
-	case *ast.ParenExpr:
-		conditionPolarity(x.X, neg, out)
-	case *ast.UnaryExpr:
-		if x.Op == token.NOT {
-			conditionPolarity(x.X, !neg, out)
-			return
-		}
-		conditionPolarity(x.X, neg, out)
-	case *ast.BinaryExpr:
-		if ce, p, ok := comparisonPolarity(x); ok {
-			if neg {
-				p = p.negate()
-			}
-			out[ce] = p
-			return
-		}
-		conditionPolarity(x.X, neg, out)
-		conditionPolarity(x.Y, neg, out)
-	case *ast.CallExpr:
-		// A verdict standing alone holds when its phrase is present.
-		p := polPresent
-		if neg {
-			p = polAbsent
-		}
-		out[x] = p
-		for _, a := range x.Args {
-			conditionPolarity(a, neg, out)
-		}
-	}
-}
-
-// absentValues are what each call returns when its phrase is absent.
-var absentValues = map[string]int64{
-	"strings.Index":     -1,
-	"strings.LastIndex": -1,
-	"strings.Count":     0,
-}
-
-// comparisonPolarity reads a comparison between a call and a constant, on
-// either side, by evaluating it with the call at its not-found value: false
-// for a verdict, -1 for an index, 0 for a count. Holding there means the
-// comparison holds when the phrase is absent. A comparison against anything
-// but a constant, or on a call with no known not-found value, is unknown.
-func comparisonPolarity(b *ast.BinaryExpr) (*ast.CallExpr, polarity, bool) {
-	op, other := b.Op, b.Y
-	ce, ok := b.X.(*ast.CallExpr)
-	if !ok {
-		if ce, ok = b.Y.(*ast.CallExpr); !ok {
-			return nil, 0, false
-		}
-		op, other = mirrorComparison(b.Op), b.X
-	}
-	switch op {
-	case token.EQL, token.NEQ, token.LSS, token.LEQ, token.GTR, token.GEQ:
-	default:
-		return nil, 0, false
-	}
-	if id, isIdent := other.(*ast.Ident); isIdent && (id.Name == "true" || id.Name == "false") {
-		// A verdict is false when its phrase is absent.
-		holds := (op == token.EQL) == (id.Name == "false")
-		return ce, holdsToPolarity(holds), true
-	}
-	absent, known := absentValues[calleeFuncName(ce.Fun)]
-	n, isConst := constIntValue(other)
-	if !known || !isConst {
-		return ce, polUnknown, true
-	}
-	return ce, holdsToPolarity(compareInts(absent, op, n)), true
-}
-
-func holdsToPolarity(holdsWhenAbsent bool) polarity {
-	if holdsWhenAbsent {
-		return polAbsent
-	}
-	return polPresent
-}
-
-// mirrorComparison turns `k OP call` into `call OP' k`.
-func mirrorComparison(op token.Token) token.Token {
-	switch op {
-	case token.LSS:
-		return token.GTR
-	case token.GTR:
-		return token.LSS
-	case token.LEQ:
-		return token.GEQ
-	case token.GEQ:
-		return token.LEQ
-	}
-	return op
-}
-
-func compareInts(a int64, op token.Token, b int64) bool {
-	switch op {
-	case token.EQL:
-		return a == b
-	case token.NEQ:
-		return a != b
-	case token.LSS:
-		return a < b
-	case token.LEQ:
-		return a <= b
-	case token.GTR:
-		return a > b
-	default:
-		return a >= b
-	}
-}
-
-// constIntValue returns the value of an integer literal in any Go spelling,
-// allowing a leading minus. A value that is not such a literal, or does not
-// fit in 64 bits, reports false.
-func constIntValue(e ast.Expr) (int64, bool) {
-	neg := false
-	if u, ok := e.(*ast.UnaryExpr); ok && u.Op == token.SUB {
-		neg, e = true, u.X
-	}
-	lit, ok := e.(*ast.BasicLit)
-	if !ok || lit.Kind != token.INT {
-		return 0, false
-	}
-	n, err := strconv.ParseInt(lit.Value, 0, 64)
-	if err != nil {
-		return 0, false
-	}
-	if neg {
-		return -n, true
-	}
-	return n, true
-}
-
 // branchFailsTheTest reports whether either arm of an if reports a failure.
 func branchFailsTheTest(ifs *ast.IfStmt) bool {
-	return armFailsTheTest(ifs.Body) || armFailsTheTest(ifs.Else)
-}
-
-// armFailsTheTest reports whether one arm of an if reports a failure.
-func armFailsTheTest(n ast.Node) bool {
 	found := false
 	check := func(n ast.Node) {
 		if n == nil {
@@ -955,7 +535,8 @@ func armFailsTheTest(n ast.Node) bool {
 			return true
 		})
 	}
-	check(n)
+	check(ifs.Body)
+	check(ifs.Else)
 	return found
 }
 
@@ -999,12 +580,12 @@ var needleTransforms = map[string]bool{
 // The embed case is not an optimization. The skills package reaches its own
 // shipped bytes through `//go:embed` rather than a file read, so a rule looking
 // only for reads sees that whole package as touching nothing.
-func shippedPathConsts(files []*ast.File, surface proseSurface) map[string]bool {
+func shippedPathConsts(files []*ast.File) map[string]bool {
 	out := map[string]bool{}
 	for _, f := range files {
 		for _, d := range f.Decls {
 			gd, ok := d.(*ast.GenDecl)
-			if !ok || gd.Doc == nil || surface.kind != shippedDocuments {
+			if !ok || gd.Doc == nil {
 				continue
 			}
 			if !embedsShippedTree(gd.Doc) {
@@ -1019,9 +600,9 @@ func shippedPathConsts(files []*ast.File, surface proseSurface) map[string]bool 
 			}
 		}
 		// Package-level declarations only: the map is keyed by name across
-		// the whole package, so a function-local constant would lend its
-		// path to every same-named identifier elsewhere. A local one is
-		// followed inside its own function by propagate.
+		// the package, so a function-local one would lend its path to every
+		// same-named identifier elsewhere. A local one is followed inside its
+		// own function by propagate.
 		for _, d := range f.Decls {
 			gd, ok := d.(*ast.GenDecl)
 			if !ok {
@@ -1033,7 +614,7 @@ func shippedPathConsts(files []*ast.File, surface proseSurface) map[string]bool 
 					continue
 				}
 				for i, nm := range vs.Names {
-					if i < len(vs.Values) && exprNamesShippedPath(vs.Values[i], out, surface.namesPath) {
+					if i < len(vs.Values) && exprNamesShippedPath(vs.Values[i], out) {
 						out[nm.Name] = true
 					}
 				}
@@ -1068,8 +649,8 @@ func embedsShippedTree(doc *ast.CommentGroup) bool {
 //
 // A reader that hands back derived records rather than bytes still counts —
 // documentTextFields is what keeps its findings out of scope.
-func contentReaders(files []*ast.File, pathConsts map[string]bool, surface proseSurface, rootFuncs map[string]bool) (readers, selfShipped, rootedReaders map[string]bool) {
-	readers, selfShipped, rootedReaders = map[string]bool{}, map[string]bool{}, map[string]bool{}
+func contentReaders(files []*ast.File, pathConsts map[string]bool) (readers, selfShipped map[string]bool) {
+	readers, selfShipped = map[string]bool{}, map[string]bool{}
 	type fn struct {
 		name string
 		decl *ast.FuncDecl
@@ -1090,15 +671,12 @@ func contentReaders(files []*ast.File, pathConsts map[string]bool, surface prose
 	for changed := true; changed; {
 		changed = false
 		for _, f := range fns {
-			reads, shipped, rooted := false, false, surface.kind != repositoryGuidance
+			reads, shipped := false, false
 			ast.Inspect(f.decl.Body, func(n ast.Node) bool {
 				switch x := n.(type) {
 				case *ast.CallExpr:
 					if isReadFileCall(x.Fun) {
 						reads = true
-					}
-					if isRepoRootCall(x, rootFuncs) || rootedReaders[calleeFuncName(x.Fun)] {
-						rooted = true
 					}
 					if name := calleeFuncName(x.Fun); readers[name] {
 						reads = true
@@ -1114,7 +692,7 @@ func contentReaders(files []*ast.File, pathConsts map[string]bool, surface prose
 						reads = true
 					}
 				case *ast.BasicLit:
-					if x.Kind == token.STRING && surface.namesPath(litValue(x)) {
+					if x.Kind == token.STRING && namesShippedPath(litValue(x)) {
 						shipped = true
 					}
 				}
@@ -1123,15 +701,12 @@ func contentReaders(files []*ast.File, pathConsts map[string]bool, surface prose
 			if reads && !readers[f.name] {
 				readers[f.name], changed = true, true
 			}
-			if reads && shipped && rooted && !selfShipped[f.name] {
+			if reads && shipped && !selfShipped[f.name] {
 				selfShipped[f.name], changed = true, true
-			}
-			if reads && rooted && !rootedReaders[f.name] {
-				rootedReaders[f.name], changed = true, true
 			}
 		}
 	}
-	return readers, selfShipped, rootedReaders
+	return readers, selfShipped
 }
 
 // literalNeedles maps each identifier in a test bound only to string literals
@@ -1245,7 +820,7 @@ func namesShippedPath(s string) bool {
 	return false
 }
 
-func exprNamesShippedPath(e ast.Expr, pathConsts map[string]bool, namesPath func(string) bool) bool {
+func exprNamesShippedPath(e ast.Expr, pathConsts map[string]bool) bool {
 	found := false
 	ast.Inspect(e, func(n ast.Node) bool {
 		switch x := n.(type) {
@@ -1254,7 +829,7 @@ func exprNamesShippedPath(e ast.Expr, pathConsts map[string]bool, namesPath func
 				found = true
 			}
 		case *ast.BasicLit:
-			if x.Kind == token.STRING && namesPath(litValue(x)) {
+			if x.Kind == token.STRING && namesShippedPath(litValue(x)) {
 				found = true
 			}
 		}

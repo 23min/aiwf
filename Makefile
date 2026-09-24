@@ -156,9 +156,7 @@ test-cov:
 # D-0071 — a ritual SKILL.md edit must ride a commit whose aiwf-entity
 # trailer names a real entity), and the guidance fence (E-0092 — a
 # commit changing handwritten guidance carries only related files,
-# names a real entity, and records a disposition for text it removes),
-# and the guidance prose ban (D-0091 — a new test pinning development
-# guidance prose fails). It
+# names a real entity, and records a disposition for text it removes). It
 # generates a fresh atomic-mode profile, then delegates to
 # coverage-gate-only. The diff-scoped gates compare the base against the
 # working tree, so uncommitted changes are in scope and you need not
@@ -218,7 +216,7 @@ coverage-gate-only:
 	fi; \
 	AIWF_COVERAGE_PROFILE="$(CURDIR)/coverage.out" \
 	AIWF_COVERAGE_BASE="$$base" \
-	go test -exec=$(TEST_EXEC) -run '^TestPolicy_(BranchCoverageAudit|FiringFixturePresence|FiringFixtureNoStaleAllowlist|SkillEditProvenanceBackstop|CommentHistoryAttrition|TestExecutableWrite|CoauthorTrailerBan|GuidanceFence|GuidanceProseAssertion)$$' -count=1 ./internal/policies/
+	go test -exec=$(TEST_EXEC) -run '^TestPolicy_(BranchCoverageAudit|FiringFixturePresence|FiringFixtureNoStaleAllowlist|SkillEditProvenanceBackstop|CommentHistoryAttrition|TestExecutableWrite|CoauthorTrailerBan|GuidanceFence)$$' -count=1 ./internal/policies/
 
 # comment-history-audit is the focused whole-tree run of the comment
 # history-attrition scan — the surface the wf-codebase-health rubric's

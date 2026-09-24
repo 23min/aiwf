@@ -309,7 +309,7 @@ func TestGuidanceFence_DeletionAndBase(t *testing.T) {
 		if os.Getenv("AIWF_COVERAGE_BASE") != "" {
 			t.Skip("a base is set; TestPolicy_GuidanceFence covers the entry point")
 		}
-		vs, err := PolicyGuidanceFence(repoRoot(t))
+		vs, err := PolicyGuidanceFence(t.TempDir())
 		if err != nil || len(vs) != 0 {
 			t.Errorf("PolicyGuidanceFence without a base = %v, %v; want none", vs, err)
 		}
