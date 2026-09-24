@@ -4,6 +4,10 @@ title: Adopt applicable guidance packs automatically in init and update
 status: draft
 parent: E-0095
 tdd: required
+acs:
+    - id: AC-1
+      title: Unset selection adopts every applicable pack without a terminal
+      status: open
 ---
 ## Goal
 
@@ -18,6 +22,10 @@ Every enabled `aiwf init` and `aiwf update` run adopts each applicable, unignore
 Detection, retrieval, validation, installation, host routing and legacy handover exist in `internal/projectguidance` and `internal/initrepo`. Selection is injected as a `projectguidance.Selector`: `cliutil.GuidanceSelector` returns an interactive prompt on a terminal and a stderr suggestion report otherwise, so adoption depends on how the verb was launched. ADR-0054 replaces that with add-only automatic adoption.
 
 ## Acceptance criteria
+
+### AC-1 — Unset selection adopts every applicable pack without a terminal
+
+**Pass criterion**: `aiwf update` in a repository whose `aiwf.yaml` has no `guidance` block, against a local catalogue with packs matching and not matching the repository's tracked files, leaves `guidance.packs` listing exactly the matching packs, their files under `.guidance/`, and the engineering-guidance route in each selected host's instruction file, with stdin not a terminal. **Edge cases**: a pack that matches every tracked file; a repository matching no pack (no `guidance.packs` written, nothing installed); nested and gitignored files, which detection already includes and excludes. **Code references**: adoption in `internal/initrepo/project_guidance.go`; binary-level tests beside `internal/cli/update/project_guidance_test.go`.
 
 ## Constraints
 
