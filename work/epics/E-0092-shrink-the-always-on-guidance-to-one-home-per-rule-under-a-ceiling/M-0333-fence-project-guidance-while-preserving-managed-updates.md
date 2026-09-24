@@ -26,7 +26,7 @@ acs:
       status: met
       tdd_phase: done
     - id: AC-6
-      title: New prose-presence assertions over development guidance fail the gate
+      title: Tests reading development guidance are listed and reviewed
       status: met
       tdd_phase: done
 ---
@@ -67,7 +67,7 @@ Measure Claude and Codex separately. A host's primed load is its entry point's a
 
 The discoverability channel list contains neither host entry point nor any on-demand development document, and both `finding-codes-are-discoverable` and `config-fields-are-discoverable` pass on the tree. **Pass criterion**: a test over the channel list asserts the entry is absent; the two policies' own tests stay green. **Edge cases**: the policies' fixtures, if they seed a `CLAUDE.md` channel, are updated. **Code references**: `internal/policies/discoverability.go`, `internal/policies/config_fields_discoverable.go` (comments only).
 
-### AC-6 — New prose-presence assertions over development guidance fail the gate
+### AC-6 — Tests reading development guidance are listed and reviewed
 
 A test file added or modified in the gate's range that reads a document in the development-guidance set and asserts a string literal is present in its content fails the gate, naming the test. **Pass criterion**: a fixture test with such an assertion produces one violation; an absence assertion, and an expectation derived from code or from another artefact, produce none; the tests G-0676's floor command lists are carried in a grandfather ledger that only shrinks, in the shape of `firing_fixture_presence.go`'s ledger, and produce none while listed. **Edge cases**: a nested `CLAUDE.md` path counts; a helper that reads the file for a test that then asserts is caught at the assertion. **Code references**: `internal/policies/shipped_prose_assertion.go`, extended or given a sibling; D-0091 is the decision.
 
