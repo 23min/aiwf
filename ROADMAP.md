@@ -1288,21 +1288,22 @@ uniquely holds, and a release's notes rest on whoever cut it remembering.
 | M-0329 | An entity body that omits a required section is refused at the write | done |
 | M-0330 | Check Unreleased against what shipped before the release tag | done |
 
-## E-0092 — Shrink the always-on guidance to one home per rule under a ceiling (proposed)
+## E-0092 — Shrink the always-on guidance to one home per rule under a ceiling (active)
 
 ### Goal
 
-Reduce the project instructions Claude and Codex read before a task to a ceiling for each host, while keeping each rule in one canonical home and preserving its effect. Measure task-loaded guidance separately so relocation cannot masquerade as a reduction.
+Give every guidance rule in this repository one home and one clear form. Rules that apply to nearly every task are primed in the root instructions under a ceiling for each host; everything else is read on demand through the project guidance router. Duplicates, near-duplicates and conflicts are resolved, verbose rules are tightened, and each rule keeps its effect.
 
 | Milestone | Title | Status |
 |---|---|---|
 | M-0333 | Fence project guidance while preserving managed updates | draft |
 | M-0334 | Write the rubric, record the baseline, add guidance metrics to growth-report | draft |
-| M-0335 | Re-home project guidance for Claude and Codex | draft |
+| M-0335 | Route on-demand guidance through the project router and tighten what moves | draft |
 | M-0336 | Remove duplicated project guidance for both hosts | draft |
 | M-0337 | Audit finding messages and cut chokepointed sections to pointers | draft |
 | M-0338 | Record the after observation and re-run the growth report | draft |
 | M-0339 | Rewrite the fragment and update the anchors policy | draft |
+| M-0349 | Inventory every guidance rule and decide its home and form | draft |
 
 ## E-0093 — Enable side-by-side Claude and Codex workflows (done)
 
@@ -1332,4 +1333,12 @@ Let maintainers use `aiwf init` and `aiwf update` to select, refresh, and delive
 | M-0346 | Deliver explicitly selected project guidance through update | done |
 | M-0347 | Suggest applicable guidance during init and update | done |
 | M-0348 | Verify migration and establish the reduction prerequisite | done |
+
+## E-0095 — Adopt applicable guidance automatically on upgrade and update (proposed)
+
+### Goal
+
+An `aiwf upgrade` or `aiwf update` leaves a repository with the engineering guidance that applies to it installed, routed into its selected hosts, and reported, with no prompt to answer and nothing to discover afterwards. Packs for languages the repository gains later arrive on the next update the same way.
+
+_No milestones yet._
 
