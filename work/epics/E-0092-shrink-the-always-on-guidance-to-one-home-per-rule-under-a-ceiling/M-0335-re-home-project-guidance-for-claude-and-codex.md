@@ -20,6 +20,12 @@ acs:
     - id: AC-4
       title: The ceiling constant steps down to the re-homed size
       status: open
+    - id: AC-5
+      title: No instruction file exists below the repository root
+      status: open
+    - id: AC-6
+      title: Merge and tighten dispositions are applied as the inventory records
+      status: open
 ---
 
 ## Goal
@@ -51,6 +57,10 @@ Every test in the list G-0676's floor command produces, re-run at this milestone
 ### AC-4 — The ceiling constant steps down to the re-homed size
 
 Lower each host's ceiling to its measured upfront size after relocation. **Pass criterion**: the relocated tree passes at the new ceilings; fixtures restoring the old upfront payload fail when it is larger. Record commands, before/after counts and conditional-task loads. Files required upfront remain counted even when nested.
+
+### AC-5 — No instruction file exists below the repository root
+
+### AC-6 — Merge and tighten dispositions are applied as the inventory records
 
 ## Constraints
 
