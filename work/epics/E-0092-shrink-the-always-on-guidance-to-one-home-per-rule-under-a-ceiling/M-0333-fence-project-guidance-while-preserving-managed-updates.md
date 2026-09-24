@@ -69,7 +69,7 @@ The discoverability channel list contains neither host entry point nor any on-de
 
 ### AC-6 — Tests reading development guidance are listed and reviewed
 
-A test file added or modified in the gate's range that reads a document in the development-guidance set and asserts a string literal is present in its content fails the gate, naming the test. **Pass criterion**: a fixture test with such an assertion produces one violation; an absence assertion, and an expectation derived from code or from another artefact, produce none; the tests G-0676's floor command lists are carried in a grandfather ledger that only shrinks, in the shape of `firing_fixture_presence.go`'s ledger, and produce none while listed. **Edge cases**: a nested `CLAUDE.md` path counts; a helper that reads the file for a test that then asserts is caught at the assertion. **Code references**: `internal/policies/shipped_prose_assertion.go`, extended or given a sibling; D-0091 is the decision.
+A test that reads a document in the development-guidance set from the repository root — directly or through a helper in its package — fails the gate unless it is listed in the guidance-reader allowlist, whose entry names it a pin to retire, a relationship check, or an absence check. **Pass criterion**: a fixture test reading `CLAUDE.md` from the root is reported, and the same test listed is not; a test reading a `CLAUDE.md` in a fixture repository is not a reader; a test holds the list equal to the tree's readers in both directions, so a new reader fails and a retired pin's entry must go. **Edge cases**: a nested `CLAUDE.md` counts; a read through a helper is caught at the test calling it. The tests G-0676's floor command lists that read the guidance are listed. **Code references**: `internal/policies/guidance_readers.go`; D-0091 is the decision.
 
 ## Constraints
 
@@ -80,7 +80,7 @@ A test file added or modified in the gate's range that reads a document in the d
 
 ## Design notes
 
-- Apply D-0091's scan to both host entry points, `.guidance/project.md` and the on-demand documents; retain the shrinking-ledger approach for existing pins.
+- Apply D-0091 to both host entry points, `.guidance/project.md` and the on-demand documents; the existing pins stand as list entries until E-0092 retires them.
 - Keep disposition blocks in commit bodies and reuse the commit-range machinery.
 - Generated updates must be possible without hand-editing rendered blocks; the owned set in Context is the delivered implementation's.
 - Re-run discoverability tests with both host instruction files excluded before claiming the removal needs no replacement channel. Record command and result.
@@ -113,7 +113,7 @@ A test file added or modified in the gate's range that reads a document in the d
 - G-0676, D-0091, D-0089
 - `internal/policies/skill_edit_provenance_backstop.go` — the gate's shape
 - `internal/policies/firing_fixture_presence.go` — the shrinking-ledger shape
-- `internal/policies/shipped_prose_assertion.go` — the scan AC-6 extends
+- `internal/policies/guidance_readers.go` — the reader list AC-6 adds
 
 ## Release note
 
@@ -121,13 +121,20 @@ The `aiwf-check` skill documents the `commit-msg` hook: what it refuses as a com
 
 ## Decisions made during implementation
 
-- D-0091 accepted before implementation; AC-6 enforces an accepted decision.
-- The principle text rides with AC-5: removing "this file" from §"Engineering principles" is a separate trailered commit, and AC-5's test asserts the absence.
-- D-0091's two statements in `CLAUDE.md` — the AC-evidence section and the substring-assertion bullet stating the extended scope — ride with AC-6 as separate trailered commits. They are held at review, since D-0091 rules out pinning them.
 - ADR-0053: the commit rules ship in `aiwf check` for every aiwf repository. M-0350 moves AC-1 to AC-3's internal fence into the kernel and removes it; AC-4 and AC-6 stay internal.
+- The ceiling follows the routing block: the project router is a required read for both hosts and counts toward the handwritten figure, and the generated pack index toward the aiwf-generated figure. A link from a host entry point's handwritten text must be classified in the read table; a link from the router is conditional unless the table says otherwise.
+- A reference is a markdown link in any CommonMark form, or an `@` import in prose outside code; a path named any other way — in backticks, or in a sentence — is outside the ceiling's model.
+- D-0091 is held by a list of every test that reads development guidance from the repository root, each entry naming it a pin, a relationship check or an absence check, held equal to the tree in both directions. D-0091 words its enforcement as diff-scoped; the list has the same effect — a new reader fails, an existing pin stands until retired — and also catches a reader created by a change outside its own test file. A syntactic check can decide whether a test reads the guidance, not whether it asserts a phrase, so the rule asks the first.
+- A test reaching a guidance document by a path computed at run time — `TestPolicy_DesignDocAnchors` resolves links from the design documents into `CLAUDE.md` — names no document the rule can see and is outside it; it is a relationship check.
 - `provenance.refuse_coauthors` is documented in a `commit-msg` row of the `aiwf-check` skill's hook table, since `CLAUDE.md` was its only channel.
-- The D-0091 scan judges test files, as AC-6 states. Pins made by policy functions in non-test code, such as `internal/policies/m0132_claude_md_devcontainer_section.go`, are outside it; M-0335 AC-3 accounts for every test the floor command lists.
-- A guidance path counts only when the test builds it from the repository root; a `CLAUDE.md` in a test's fixture repository is a test of code, not a pin.
+- The principle text rides with AC-5 as its own trailered commit and is held at review: a test pinning the principle would pin a heading of `CLAUDE.md`, which D-0091 bars.
+- D-0091's two statements in `CLAUDE.md` ride with AC-6 as trailered commits, held at review. D-0091 names `CLAUDE.md`; the statements credit E-0092 with extending it to `AGENTS.md`, the router and its routed documents.
+
+## Deferrals
+
+- G-0710 — an assertion outside an `if` condition passes the shipped-prose ban.
+- G-0711 — `gitops.BlobReader` reports a missing path containing whitespace as a parse error.
+- The pins listed in `guidanceReaderList` are retired by M-0335 AC-3 as their passages move.
 
 ## Validation
 
