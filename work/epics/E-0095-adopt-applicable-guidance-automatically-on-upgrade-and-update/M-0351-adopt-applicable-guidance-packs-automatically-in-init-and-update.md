@@ -17,6 +17,9 @@ acs:
     - id: AC-4
       title: Disabled maintenance performs no detection or adoption
       status: open
+    - id: AC-5
+      title: Init and update never prompt for guidance
+      status: open
 ---
 ## Goal
 
@@ -47,6 +50,10 @@ Detection, retrieval, validation, installation, host routing and legacy handover
 ### AC-4 — Disabled maintenance performs no detection or adoption
 
 **Pass criterion**: with `guidance.enabled: false`, `aiwf init` and `aiwf update` perform no catalogue retrieval, detection or adoption, and leave `aiwf.yaml`, `.guidance/` and host routing byte-identical. **Edge cases**: `guidance.packs` unset and set; a matching pack present in the catalogue. **Code references**: `internal/cli/update/project_guidance_failures_test.go` (`TestRun_ProjectGuidanceDisabledPreservesInstallationWithoutRetrieval`), extended to the unset selection and to `init`.
+
+### AC-5 — Init and update never prompt for guidance
+
+**Pass criterion**: `aiwf init` and `aiwf update` run on a real terminal adopt and install the same packs as a run without one and never read stdin for guidance, and neither verb's `--help` describes a guidance prompt. **Edge cases**: `init --no-prompt` on a terminal; a terminal whose stdin reaches EOF immediately. **Code references**: the pty test in `internal/cli/cliutil/guidance_terminal_linux_test.go`; the help-text drift is pinned against the verbs' registered flags rather than by phrase.
 
 ## Constraints
 
