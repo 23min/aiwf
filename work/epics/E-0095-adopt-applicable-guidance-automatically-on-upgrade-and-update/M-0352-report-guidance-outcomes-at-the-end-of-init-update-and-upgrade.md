@@ -13,6 +13,9 @@ acs:
     - id: AC-2
       title: Blocked installation is reported with its cause and fix
       status: open
+    - id: AC-3
+      title: Report and doctor word guidance state identically
+      status: open
 ---
 ## Goal
 
@@ -35,6 +38,10 @@ Guidance outcomes surface today as one step-ledger line whose wording ("no proje
 ### AC-2 — Blocked installation is reported with its cause and fix
 
 **Pass criterion**: when guidance cannot be installed, the report names the cause and the action that clears it for each blocker the installer can return: catalogue retrieval failure, incompatible personal-bootstrap delivery, a handwritten legacy import in a host instruction file, and a locally edited owned file; unrelated update steps still complete and the exit code is unchanged from today. **Edge cases**: a blocker on first adoption (nothing installed) and on refresh (installed set preserved). **Code references**: the blocker cases in `internal/cli/update/project_guidance_failures_test.go` and `project_guidance_handover_test.go`, asserting the report section.
+
+### AC-3 — Report and doctor word guidance state identically
+
+**Pass criterion**: for each guidance state — selection unset, explicitly empty, populated, maintenance disabled, installation pending — the state line in the update report equals the corresponding line `aiwf doctor` prints for the same repository. **Edge cases**: pending installation after an interrupted run. **Code references**: the shared wording source used by `internal/cli/doctor/project_guidance.go` and the report; a test deriving both outputs by running the two verbs against one fixture.
 
 ## Constraints
 
