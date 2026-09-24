@@ -4,7 +4,7 @@ title: Audit finding messages and cut chokepointed sections to pointers
 status: draft
 parent: E-0092
 depends_on:
-    - M-0336
+    - M-0335
 tdd: required
 acs:
     - id: AC-1
