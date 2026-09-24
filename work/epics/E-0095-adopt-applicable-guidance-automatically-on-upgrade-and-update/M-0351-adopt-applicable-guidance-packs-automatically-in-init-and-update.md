@@ -11,6 +11,9 @@ acs:
     - id: AC-2
       title: Update adds newly applicable packs and never removes one
       status: open
+    - id: AC-3
+      title: Ignored packs are never adopted
+      status: open
 ---
 ## Goal
 
@@ -33,6 +36,10 @@ Detection, retrieval, validation, installation, host routing and legacy handover
 ### AC-2 — Update adds newly applicable packs and never removes one
 
 **Pass criterion**: with `guidance.packs` already listing an installed pack, adding tracked files matching a further pack and running `aiwf update` appends that pack to `guidance.packs` and installs it, and a selected pack whose files no longer match stays selected and installed. **Edge cases**: an explicitly empty `guidance.packs: []` gains newly matching packs; order of existing entries is preserved; a second run with no new matches writes nothing. **Code references**: the adoption function beside `internal/initrepo/project_guidance.go`, with a table-driven unit test and a binary-level update test.
+
+### AC-3 — Ignored packs are never adopted
+
+**Pass criterion**: a pack listed in `guidance.ignored` is never added to `guidance.packs` or installed, however its detection matches, and moving an adopted pack's id from `guidance.packs` to `guidance.ignored` removes its unmodified output on the next update. **Edge cases**: an id present in both lists (ignored wins, as the existing removal path treats it); a locally edited owned file of the removed pack blocks removal and preserves the installed set. **Code references**: the adoption function's unit test; `internal/cli/update/guidance_reconsideration_test.go`.
 
 ## Constraints
 
