@@ -1,8 +1,10 @@
 ---
 id: G-0708
 title: Unattended aiwf update blocks on a prompt while holding the repo lock
-status: open
+status: addressed
 discovered_in: E-0095
+addressed_by_commit:
+    - b2d7388da
 ---
 ## What's missing
 
