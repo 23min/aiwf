@@ -35,7 +35,7 @@ Fence changes to both hosts' project instructions and their canonical developmen
 
 ## Context
 
-The development-guidance set includes both host entry points and their canonical repository-development documents. Generated operating and language blocks are judged through their owning sources; expected rendered copies are not independent rule restatements. E-0092 defines the per-host upfront measurement and delivery prerequisite.
+The development-guidance set is the root `CLAUDE.md`, the root `AGENTS.md`, `.guidance/project.md`, and the on-demand documents `.guidance/project.md` routes to. aiwf owns the managed blocks in the two entry points — `aiwf:guidance` (the Claude import, and the fragment rendered inline for Codex) and `aiwf:engineering-guidance` (the routing block) — and the files listed in `.guidance/.aiwf-owned`. Everything else in the set is handwritten: `CLAUDE.md` and `AGENTS.md` outside those blocks, and `.guidance/project.md`. Generated blocks are judged through their owning sources; expected rendered copies are not independent rule restatements. E-0092 defines the primed/on-demand split and the two ceilings.
 
 G-0676 measured how `CLAUDE.md` grew and named the surfaces that let it. D-0091 decided that no AC is evidenced by a sentence pinned there, enforced diff-scoped. The skill-edit provenance backstop already judges commits in the base-to-HEAD range by what they touch and what trailer they carry, so the commit-seam gate takes its shape. Both discoverability policies pass with `CLAUDE.md` removed from their channel list, so that removal costs no new doc mention anywhere.
 
@@ -43,7 +43,7 @@ G-0676 measured how `CLAUDE.md` grew and named the surfaces that let it. D-0091 
 
 ### AC-1 — Guidance commits reject unrelated changes and allow managed outputs
 
-A commit changing repository guidance alongside unrelated implementation files fails the gate. Related guidance sources, configuration and generated host outputs may change together as one logical update. **Pass criterion**: fixtures cover an unrelated code edit being refused, a source-plus-rendered-output update passing, and an unrelated file hidden beside that update being refused. Identify the finite owned path set from the completed delivery implementation; do not exempt arbitrary files by directory alone. Cover both host entry points, relocated development documents, renames and merge commits. Reuse the existing commit-range policy machinery.
+A commit changing repository guidance alongside unrelated implementation files fails the gate. Related guidance sources, configuration and generated host outputs may change together as one logical update. **Pass criterion**: fixtures cover an unrelated code edit being refused, a source-plus-rendered-output update passing, and an unrelated file hidden beside that update being refused. The owned set is the managed blocks and `.guidance/.aiwf-owned` named in Context; do not exempt arbitrary files by directory alone. Cover both host entry points, `.guidance/project.md`, the on-demand documents, renames and merge commits. Reuse the existing commit-range policy machinery.
 
 ### AC-2 — Guidance commits require a resolving entity trailer
 
@@ -55,11 +55,11 @@ A development-guidance commit whose diff removes lines and whose message body ca
 
 ### AC-4 — The always-on set above the ceiling fails the policy
 
-Measure Claude and Codex separately using E-0092's upfront-project definition: automatic entry-point content plus project documents required before any task. A reference requiring a full upfront read cannot move those words outside the count. Personal/global material is reported separately; selected project guidance counts whenever its routing makes it upfront. Conditional task reads are reported separately. **Pass criterion**: fixtures cover both host entry points, transitive required reads, shared targets, cycles, missing targets, and a host above its ceiling. Unresolved routing is reported rather than silently omitted. Each host's initial ceiling equals its measured post-delivery size; later milestones lower it. The measure is an explicit model of configured routing, checked against live observations in M-0334, not a claim to inspect hidden model context.
+Measure Claude and Codex separately. A host's primed load is its entry point's automatically loaded content plus every document a reference requires reading in full before any task — today `AGENTS.md`'s preamble makes `CLAUDE.md` such a read for Codex. Count the handwritten primed words and the rendered fragment's words as two figures; the ceiling applies to the handwritten figure, and the fragment figure is reported for M-0339. Conditional task reads and personal/global material are reported separately. **Pass criterion**: fixtures cover both host entry points, transitive required reads, shared targets, cycles, missing targets, and a host above its ceiling. Unresolved routing is reported rather than silently omitted. Each host's initial ceiling equals its measured handwritten primed size; later milestones lower it. The measure is an explicit model of configured routing, checked against live observations in M-0334, not a claim to inspect hidden model context.
 
 ### AC-5 — Finding codes and config fields remain discoverable outside guidance
 
-The discoverability channel list contains neither host entry point nor relocated development guidance and both `finding-codes-are-discoverable` and `config-fields-are-discoverable` pass on the tree. **Pass criterion**: a test over the channel list asserts the entry is absent; the two policies' own tests stay green. **Edge cases**: the policies' fixtures, if they seed a `CLAUDE.md` channel, are updated. **Code references**: `internal/policies/discoverability.go`, `internal/policies/config_fields_discoverable.go` (comments only).
+The discoverability channel list contains neither host entry point nor any on-demand development document, and both `finding-codes-are-discoverable` and `config-fields-are-discoverable` pass on the tree. **Pass criterion**: a test over the channel list asserts the entry is absent; the two policies' own tests stay green. **Edge cases**: the policies' fixtures, if they seed a `CLAUDE.md` channel, are updated. **Code references**: `internal/policies/discoverability.go`, `internal/policies/config_fields_discoverable.go` (comments only).
 
 ### AC-6 — New prose-presence assertions over development guidance fail the gate
 
@@ -74,26 +74,26 @@ A test file added or modified in the gate's range that reads a document in the d
 
 ## Design notes
 
-- Apply D-0091's scan to both host entry points and their relocated development documents; retain the shrinking-ledger approach for existing pins.
+- Apply D-0091's scan to both host entry points, `.guidance/project.md` and the on-demand documents; retain the shrinking-ledger approach for existing pins.
 - Keep disposition blocks in commit bodies and reuse the commit-range machinery.
-- Generated updates must be possible without hand-editing rendered blocks. Resolve ownership from the delivered implementation before writing the fence.
+- Generated updates must be possible without hand-editing rendered blocks; the owned set in Context is the delivered implementation's.
 - Re-run discoverability tests with both host instruction files excluded before claiming the removal needs no replacement channel. Record command and result.
 
 ## Surfaces touched
 
 - `internal/policies/` — two new policies and their tests; `discoverability.go`
 - `Makefile`, `.github/workflows/go.yml` — the gate regex
-- Both host entry points and canonical development guidance — source changes and owned regeneration kept together
+- Both host entry points, `.guidance/project.md` and the on-demand documents — source changes and owned regeneration kept together
 
 ## Out of scope
 
-- Cutting, moving, or rewording any `CLAUDE.md` section; that is M-0335 through M-0337.
+- Cutting, moving, or rewording any guidance; that is M-0336, M-0335 and M-0337.
 - A pre-push hook for the gate.
 - A ceiling on any consumer's `CLAUDE.md`; the policy never ships.
 
 ## Dependencies
 
-- E-0092's external delivery and repository migration prerequisite must be complete.
+- E-0094 — done; it delivered the owned set and routing this fence judges.
 - G-0676 — the defect this closes
 - D-0091 — the pin decision AC-6 enforces
 - D-0089 — external content ownership; personal instructions are measured separately
