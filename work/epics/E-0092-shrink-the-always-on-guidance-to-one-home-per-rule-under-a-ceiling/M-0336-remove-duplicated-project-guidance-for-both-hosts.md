@@ -31,7 +31,7 @@ Remove from both hosts' development guidance the text that already loads from an
 
 ## Context
 
-The shared operating fragment and externally owned language documents are canonical sources. Root and relocated development prose must not restate them. Generated host copies are expected delivery outputs and are excluded from duplicate-authoring checks by ownership, not by ignoring an entire host file. D-0091 governs the evidence restriction.
+The shared operating fragment and the selected language packs under `.guidance/packs/` are canonical sources. Development guidance must not restate them. M-0349's inventory records which passages are copies and of what; this milestone deletes exactly those, before M-0335 relocates what remains. Generated host copies are expected delivery outputs and are excluded from duplicate-authoring checks by ownership, not by ignoring an entire host file. D-0091 governs the evidence restriction.
 
 ## Acceptance criteria
 
@@ -45,7 +45,7 @@ No id-shaped token (gap, epic, milestone, decision, or ADR) appears in handwritt
 
 ### AC-3 — The generic Go conventions section is deleted
 
-Remove generic Go conventions from repository-development prose wherever M-0335 placed them, retaining the selected project-local Go document and its routes for both hosts. Record the removal commit and the canonical source in its disposition. Retain aiwf-specific conventions. This is observational evidence, supported by the measured reduction.
+Remove from `CLAUDE.md` the Go conventions the selected Go pack (`.guidance/packs/go/cobra/guide.md`) already carries, as the inventory marks them, retaining the pack and its route for both hosts. Record the removal commit and the canonical source in its disposition. Retain aiwf-specific conventions, and any rule the inventory marks as a genuine project override of the pack. This is observational evidence, supported by the measured reduction.
 
 ### AC-4 — The ceiling constant steps down to the post-deletion size
 
@@ -64,7 +64,7 @@ Lower each host's ceiling to its measured post-deletion upfront size. The curren
 
 ## Surfaces touched
 
-- Both host entry points and relocated development guidance, respecting generated ownership.
+- Both host entry points and `.guidance/project.md`, respecting generated ownership.
 - The existing anchor policy and structural reference scan.
 
 ## Out of scope
@@ -74,8 +74,7 @@ Lower each host's ceiling to its measured post-deletion upfront size. The curren
 
 ## Dependencies
 
-- E-0092's external delivery and repository migration prerequisite must be complete.
-- M-0335 — the root is thin before its copies are judged
+- M-0349 — the inventory records which passages are copies and where their canonical home is
 
 ## Coverage notes
 
