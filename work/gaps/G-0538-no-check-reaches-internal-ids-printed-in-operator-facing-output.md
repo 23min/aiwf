@@ -2,7 +2,7 @@
 id: G-0538
 title: No check reaches internal ids printed in operator-facing output
 status: open
-priority: medium
+priority: high
 ---
 ## What's missing
 
