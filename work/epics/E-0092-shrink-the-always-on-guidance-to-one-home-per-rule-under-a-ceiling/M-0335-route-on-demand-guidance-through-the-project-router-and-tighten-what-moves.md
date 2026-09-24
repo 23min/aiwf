@@ -27,10 +27,9 @@ acs:
       title: Merge and tighten dispositions are applied as the inventory records
       status: open
 ---
-
 ## Goal
 
-Thin both host entry points and move task-specific repository development rules into canonical project-local documents, with explicit routing that works from a root-started session.
+Make `.guidance/project.md` a short task router, move every on-demand rule into the documents it names, and apply the inventory's merge and tighten dispositions, so the root `CLAUDE.md` holds only primed rules.
 
 ## Closes
 
@@ -38,17 +37,17 @@ Thin both host entry points and move task-specific repository development rules 
 
 ## Context
 
-E-0092's delivery prerequisite supplies selected language guidance in the repository. This milestone relocates aiwf-specific development rules. It must not assume Claude's nested-file loading is also Codex's loading mechanism. Go code, Python scripts and TypeScript tests each retain a route to their selected guidance.
+M-0349's inventory gives each rule a disposition and names the on-demand documents; M-0336 has already deleted the copies. The routing block both entry points carry sends a task to `.guidance/project.md` first, then the index and the packs it needs. Today `.guidance/project.md` says to read `CLAUDE.md` in full and that it takes precedence over the packs, and the `AGENTS.md` preamble requires the same full read for Codex. After this milestone `CLAUDE.md` is the one home of primed development rules, Codex's required read of it covers only those, and everything else is reached through the router.
 
 ## Acceptance criteria
 
 ### AC-1 — Both root entry points route to project-local guidance
 
-The root Claude entry point retains its operating-fragment import and concise project-local task routing, with no home-directory language imports. Codex has equivalent native routing without treating Claude import syntax as an automatic read. **Pass criterion**: structural checks resolve each route and reject a missing selected target; observed task-specific loading is covered by AC-2. Changes to generated blocks use their owning updater.
+`.guidance/project.md` names each on-demand document and the tasks that need it, and states which primed rules in `CLAUDE.md` override a pack. The `AGENTS.md` preamble requires only the primed `CLAUDE.md` content. No home-directory language import returns. **Pass criterion**: a relationship check resolves every route in `.guidance/project.md` and both entry points to an existing file and rejects a missing target. Generated blocks change only through their owning updater.
 
 ### AC-2 — Both hosts read relevant guidance before root-started edits
 
-Place concise directory entry files under internal, cmd, docs and work for Claude, referencing canonical project-local development guidance. Give Codex explicit routes to those same canonical documents from its root entry point; do not depend on automatic discovery of descendants. Shared Go-development rules serve both internal and cmd without duplicating their prose. **Pass criterion**: check route resolution mechanically and record fresh root-started sessions for both hosts that read the relevant instructions before their first edit, including a new file. No project-language route depends on a home directory. File existence alone does not establish delivery.
+Record fresh sessions for both hosts, started at the repository root, for a Go change, a Python script, a TypeScript test, a new file and a prose-only task. **Pass criterion**: tool events show each host reading the relevant on-demand document or pack through the router before its first relevant edit, and the prose-only task reading no language pack. File existence alone does not establish delivery.
 
 ### AC-3 — Every pin on a moved passage is re-aimed or retired with a recorded reason
 
@@ -56,40 +55,44 @@ Every test in the list G-0676's floor command produces, re-run at this milestone
 
 ### AC-4 — The ceiling constant steps down to the re-homed size
 
-Lower each host's ceiling to its measured upfront size after relocation. **Pass criterion**: the relocated tree passes at the new ceilings; fixtures restoring the old upfront payload fail when it is larger. Record commands, before/after counts and conditional-task loads. Files required upfront remain counted even when nested.
+Lower each host's handwritten primed ceiling to its measured size after relocation. **Pass criterion**: the relocated tree passes at the new ceilings; fixtures restoring the old primed payload fail when it is larger. Record commands, before/after counts and on-demand loads.
 
 ### AC-5 — No instruction file exists below the repository root
 
+**Pass criterion**: a policy fails when a tracked `CLAUDE.md` or `AGENTS.md` exists anywhere but the repository root, naming the path; on the tree it reports none.
+
 ### AC-6 — Merge and tighten dispositions are applied as the inventory records
+
+Every rule M-0349 marks "merge" or "tighten" is rewritten in its one home, and every rule marked "move on demand" is in the document the inventory names. **Pass criterion**: a relationship check over the inventory table resolves each "move on demand" row to its destination document; the rewording itself is held at review, and its effect is judged by M-0338's rubric.
 
 ## Constraints
 
-- Relocate rules without changing their meaning; language delivery has already migrated in the prerequisite.
-- Preserve source/output ownership and commit each logical guidance move with its dispositions.
+- One instruction file per host, at the root; no directory entry files.
+- Rewording is allowed where the inventory records it; each removed or rewritten passage carries its disposition block in the commit body.
+- Preserve source/output ownership; generated blocks change through their owner.
 - Re-aim pins or retire them with reasons. Do not create duplicate prose merely to satisfy an old pin.
-- Keep universal collaboration and repository-entry instructions reachable before work.
 - Record the growth delta and both hosts' loading observations.
 
 ## Design notes
 
-- Partition aiwf-specific development material by task: Go implementation, CLI work, documentation, and entity authoring. Share a canonical document where directories need the same rules.
-- Directory placement alone does not remove a document from the upfront count; its required loading behavior determines that.
-- Exercise `aiwf update` in a disposable checkout and verify it preserves handwritten development guidance and regenerates the expected routes without restoring obsolete home-directory imports.
+- `CLAUDE.md` is the one home of primed development rules. Codex reaches them through the `AGENTS.md` preamble's required read, which is why that read counts toward Codex's primed load.
+- The on-demand documents and their locations are the ones M-0349 names.
+- Exercise `aiwf update` in a disposable checkout, with `HOME` pointed at a scratch directory, and verify it preserves the handwritten router and regenerates the expected routes without restoring obsolete home-directory imports.
 
 ## Surfaces touched
 
-- Both root host entry points, directory entry files, and canonical development guidance.
+- `CLAUDE.md`, the `AGENTS.md` preamble, `.guidance/project.md` and the on-demand documents.
 - Existing pinning tests and guidance routing checks.
 
 ## Out of scope
 
 - Deleting copies (M-0336) and the pointer cut (M-0337).
-- Any change to what a pinned passage says.
+- The shared fragment (M-0339).
 
 ## Dependencies
 
-- M-0333 — the fence and the ceiling
-- M-0334 — the baseline, taken before anything moves
+- M-0349 — the dispositions and the on-demand document set
+- M-0336 — copies are gone before the remainder moves
 
 ## Coverage notes
 
