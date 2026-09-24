@@ -1,6 +1,6 @@
 ---
 id: G-0538
-title: No check reaches internal ids printed in operator-facing output
+title: No check reaches internal ids or repo paths printed in operator-facing output
 status: open
 priority: high
 ---
