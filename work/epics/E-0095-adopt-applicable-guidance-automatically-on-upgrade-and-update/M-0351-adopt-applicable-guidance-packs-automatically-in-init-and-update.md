@@ -14,6 +14,9 @@ acs:
     - id: AC-3
       title: Ignored packs are never adopted
       status: open
+    - id: AC-4
+      title: Disabled maintenance performs no detection or adoption
+      status: open
 ---
 ## Goal
 
@@ -40,6 +43,10 @@ Detection, retrieval, validation, installation, host routing and legacy handover
 ### AC-3 — Ignored packs are never adopted
 
 **Pass criterion**: a pack listed in `guidance.ignored` is never added to `guidance.packs` or installed, however its detection matches, and moving an adopted pack's id from `guidance.packs` to `guidance.ignored` removes its unmodified output on the next update. **Edge cases**: an id present in both lists (ignored wins, as the existing removal path treats it); a locally edited owned file of the removed pack blocks removal and preserves the installed set. **Code references**: the adoption function's unit test; `internal/cli/update/guidance_reconsideration_test.go`.
+
+### AC-4 — Disabled maintenance performs no detection or adoption
+
+**Pass criterion**: with `guidance.enabled: false`, `aiwf init` and `aiwf update` perform no catalogue retrieval, detection or adoption, and leave `aiwf.yaml`, `.guidance/` and host routing byte-identical. **Edge cases**: `guidance.packs` unset and set; a matching pack present in the catalogue. **Code references**: `internal/cli/update/project_guidance_failures_test.go` (`TestRun_ProjectGuidanceDisabledPreservesInstallationWithoutRetrieval`), extended to the unset selection and to `init`.
 
 ## Constraints
 
