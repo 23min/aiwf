@@ -1,7 +1,6 @@
 package check
 
 import (
-	"bufio"
 	"bytes"
 	"fmt"
 	"os"
@@ -682,10 +681,8 @@ var acHeadingPattern = regexp.MustCompile(`^### AC-(\d+)(?:\s*[—\-:]\s*(.+))?$
 // no key (callers read a zero count as "no heading").
 func scanACHeadings(body []byte) map[string]int {
 	out := map[string]int{}
-	scanner := bufio.NewScanner(bytes.NewReader(body))
-	scanner.Buffer(make([]byte, 64*1024), 1024*1024)
-	for scanner.Scan() {
-		line := strings.TrimRight(scanner.Text(), "\r")
+	for raw := range bytes.Lines(body) {
+		line := string(lineContent(raw))
 		m := acHeadingPattern.FindStringSubmatch(line)
 		if m == nil {
 			continue
