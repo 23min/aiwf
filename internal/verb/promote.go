@@ -581,6 +581,10 @@ func requireNonEmptyACsAtMilestoneStart(e *entity.Entity, newStatus entity.Statu
 // contract for that criterion yet. Scoped narrowly to draft ->
 // in_progress, same as requireNonEmptyACsAtMilestoneStart.
 //
+// A terminal AC (entity.IsTerminalACStatus) is skipped: it is withdrawn
+// from the milestone's contract, so it owes no prose, and the check
+// rules that judge the same bodies exempt it by the same predicate.
+//
 // An AC with NO `### AC-N` heading in the body at all is a different
 // problem — a frontmatter/body desync the acs-body-coherence/
 // missing-heading check rule already covers — so it is skipped here,
@@ -610,6 +614,9 @@ func requireNonEmptyACBodiesAtMilestoneStart(t *tree.Tree, e *entity.Entity, new
 	}
 	sections := entity.ParseACSections(body)
 	for _, ac := range e.ACs {
+		if entity.IsTerminalACStatus(ac.Status) {
+			continue
+		}
 		content, found := sections[ac.ID]
 		if !found {
 			continue
