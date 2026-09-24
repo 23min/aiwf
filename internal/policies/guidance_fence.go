@@ -12,6 +12,7 @@ import (
 	"sort"
 	"strings"
 
+	"github.com/23min/aiwf/internal/entity"
 	"github.com/23min/aiwf/internal/gitops"
 	"github.com/23min/aiwf/internal/initrepo"
 	"github.com/23min/aiwf/internal/pathutil"
@@ -24,7 +25,8 @@ import (
 // router .guidance/project.md, or a document that router links to — is
 // its own logical change, so it may carry only related guidance files,
 // the guidance source and the outputs generated from it, and
-// configuration.
+// configuration; and it names the entity it belongs to in an
+// aiwf-entity trailer that resolves in the tree.
 //
 // A change confined to a managed block is generated output and is judged
 // through the source that renders it, not here. Merge commits add no
@@ -49,6 +51,7 @@ const (
 	fenceConfig       = "aiwf.yaml"
 	fenceGuidanceSrc  = "internal/skills/embedded-guidance/"
 	fenceRecSep       = "\x1e"
+	fenceFldSep       = "\x1f"
 	fenceRouterLinkRE = `\[[^\]]*\]\(([^)\s]+)\)`
 )
 
@@ -59,6 +62,7 @@ var fenceRouterLink = regexp.MustCompile(fenceRouterLinkRE)
 // changed files are unrelated to guidance.
 type fenceCommit struct {
 	SHA       string
+	Entity    string
 	Guidance  []string
 	Unrelated []string
 }
@@ -75,17 +79,51 @@ func guidanceFenceViolations(root, baseRef string) ([]Violation, error) {
 	if err != nil {
 		return nil, err
 	}
-	return detectGuidanceFence(commits), nil
+	if !anyGuidanceCommit(commits) {
+		return nil, nil
+	}
+	resolves, err := entityResolver(root)
+	if err != nil {
+		return nil, err
+	}
+	return detectGuidanceFence(commits, resolves), nil
+}
+
+func anyGuidanceCommit(commits []fenceCommit) bool {
+	for _, c := range commits {
+		if len(c.Guidance) > 0 {
+			return true
+		}
+	}
+	return false
 }
 
 // detectGuidanceFence is the pure core. A commit that changed no
-// handwritten guidance is outside the fence; one that did is refused once
-// per unrelated file it also carries.
-func detectGuidanceFence(commits []fenceCommit) []Violation {
+// handwritten guidance is outside the fence. One that did must name the
+// entity it belongs to in an aiwf-entity trailer that resolves, and is
+// refused once per unrelated file it also carries. resolves is handed an
+// id already rolled up to its owner and canonicalized, so a composite id
+// is owned by its milestone and a narrow legacy id names the same entity.
+func detectGuidanceFence(commits []fenceCommit, resolves func(string) bool) []Violation {
 	var out []Violation
 	for _, c := range commits {
 		if len(c.Guidance) == 0 {
 			continue
+		}
+		id := strings.TrimSpace(c.Entity)
+		switch {
+		case id == "":
+			out = append(out, Violation{
+				Policy: "guidance-fence",
+				File:   c.Guidance[0],
+				Detail: fmt.Sprintf("commit %s changes handwritten guidance (%s) but carries no aiwf-entity: trailer, so nothing records which entity the change belongs to; re-commit naming it (`--trailer \"aiwf-entity: <id>\"`).", shortSkillSHA(c.SHA), strings.Join(c.Guidance, ", ")),
+			})
+		case !resolves(entity.Canonicalize(entity.CompositeRoot(id))):
+			out = append(out, Violation{
+				Policy: "guidance-fence",
+				File:   c.Guidance[0],
+				Detail: fmt.Sprintf("commit %s changes handwritten guidance (%s) under aiwf-entity: %s, which resolves to no entity in the tree; name an entity that exists.", shortSkillSHA(c.SHA), strings.Join(c.Guidance, ", "), id),
+			})
 		}
 		for _, p := range c.Unrelated {
 			out = append(out, Violation{
@@ -116,7 +154,7 @@ type fenceChange struct {
 // anything; the rest read their content through one cat-file pump.
 func fenceCommitsInRange(root, baseRef string) ([]fenceCommit, error) {
 	cmd := exec.Command("git", "-c", "core.quotePath=false", "-c", "diff.renames=true", "log",
-		"--format="+fenceRecSep+"%H %P", "--name-status", baseRef+"..HEAD")
+		"--format="+fenceRecSep+"%H %P"+fenceFldSep+"%(trailers:key="+gitops.TrailerEntity+",valueonly,separator="+fenceFldSep+")", "--name-status", baseRef+"..HEAD")
 	cmd.Dir = root
 	out, err := cmd.CombinedOutput()
 	if err != nil {
@@ -131,7 +169,8 @@ func fenceCommitsInRange(root, baseRef string) ([]fenceCommit, error) {
 	var commits []fenceCommit
 	for _, rec := range strings.Split(string(out), fenceRecSep) {
 		lines := strings.Split(strings.TrimSpace(rec), "\n")
-		revs := strings.Fields(lines[0])
+		header := strings.Split(lines[0], fenceFldSep)
+		revs := strings.Fields(header[0])
 		changes := parseFenceChanges(lines[1:])
 		if len(revs) == 0 || !touchesMarkdown(changes) {
 			continue
@@ -145,6 +184,11 @@ func fenceCommitsInRange(root, baseRef string) ([]fenceCommit, error) {
 		c, err := cl.classify(revs[0], parent, changes)
 		if err != nil { //coverage:ignore propagates a cat-file pump failure, which needs the git subprocess to die mid-run
 			return nil, err
+		}
+		// A second aiwf-entity trailer would not change the verdict for
+		// the first, which names the owner.
+		if len(header) > 1 {
+			c.Entity = strings.TrimSpace(header[1])
 		}
 		commits = append(commits, c)
 	}

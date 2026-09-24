@@ -290,7 +290,9 @@ func TestGuidanceFence_DeletionAndBase(t *testing.T) {
 		runGit("commit", "-q", "--allow-empty", "-m", "unrelated root")
 		base := trimLine(runGit("rev-parse", "HEAD"))
 		runGit("checkout", "-q", "-f", trunk)
-		if got, want := fenceViolationFiles(t, root, base), []string{fenceCodeFile}; !equalStrings(got, want) {
+		// The root commit also names no entity, so the trailer arm fires
+		// on the guidance file beside the scope arm on the code file.
+		if got, want := fenceViolationFiles(t, root, base), []string{fenceProjectDoc, fenceCodeFile}; !equalStrings(got, want) {
 			t.Errorf("violation files = %v, want %v", got, want)
 		}
 	})
@@ -409,4 +411,99 @@ func TestPolicy_GuidanceFence(t *testing.T) {
 		t.Skip("AIWF_COVERAGE_BASE unset; run via `make coverage-gate` or the CI coverage-gate step")
 	}
 	runPolicy(t, PolicyGuidanceFence)
+}
+
+// TestDetectGuidanceFence_Trailer is M-0333 AC-2's rule: a commit that
+// changes handwritten guidance names the entity it belongs to, and the
+// name resolves. Ids compare canonicalized and a composite id is owned by
+// its milestone, so both resolve through the entity they name.
+func TestDetectGuidanceFence_Trailer(t *testing.T) {
+	t.Parallel()
+	guidance := func(entity string) []fenceCommit {
+		return []fenceCommit{{SHA: "aaaaaaaaaa", Entity: entity, Guidance: []string{"CLAUDE.md"}}}
+	}
+	tests := []struct {
+		name   string
+		in     []fenceCommit
+		want   int
+		detail string
+	}{
+		{name: "no trailer fires once", in: guidance(""), want: 1, detail: "no aiwf-entity"},
+		{name: "an unresolvable value fires once and names it", in: guidance("M-9999"), want: 1, detail: "M-9999"},
+		{name: "a resolving value is silent", in: guidance("M-0312")},
+		{name: "a narrow legacy id resolves after canonicalization", in: guidance("M-312")},
+		{name: "a composite id resolves to its milestone", in: guidance("M-0312/AC-2")},
+		{name: "a commit changing no handwritten guidance needs no trailer", in: []fenceCommit{{SHA: "bbbbbbbbbb", Unrelated: []string{"x.go"}}}},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+			got := detectGuidanceFence(tt.in, resolvesOnly("M-0312"))
+			if len(got) != tt.want {
+				t.Fatalf("got %d violations %+v, want %d", len(got), got, tt.want)
+			}
+			if tt.want > 0 && (!strings.Contains(got[0].Detail, "aaaaaaa") || !strings.Contains(got[0].Detail, tt.detail)) {
+				t.Errorf("Detail must name the commit and %q; got %q", tt.detail, got[0].Detail)
+			}
+		})
+	}
+}
+
+// TestGuidanceFence_TrailerSeam drives M-0333 AC-2 through git and the
+// loader: the missing and unresolvable cases each fire once, a live
+// entity and an archived one both resolve.
+func TestGuidanceFence_TrailerSeam(t *testing.T) {
+	t.Parallel()
+	const archived = "work/epics/archive/E-0002-fictional-archived-epic/epic.md"
+	tests := []struct {
+		name    string
+		trailer string
+		want    []string
+	}{
+		{name: "no trailer fires on the guidance file", want: []string{"CLAUDE.md"}},
+		{name: "an unresolvable trailer fires on the guidance file", trailer: "M-9999", want: []string{"CLAUDE.md"}},
+		{name: "a live entity resolves", trailer: provFixtureEntityID},
+		{name: "an archived entity resolves", trailer: "E-0002"},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+			root, runGit, writeFile, _ := guidanceFenceFixture(t)
+			writeFile(archived, "---\nid: E-0002\ntitle: Fictional archived epic\nstatus: done\n---\n## Goal\n\nFixture.\n")
+			runGit("add", "-A")
+			runGit("commit", "-q", "-m", "archive fixture")
+			base := trimLine(runGit("rev-parse", "HEAD"))
+			writeFile("CLAUDE.md", fenceHostFile(fenceClaudeText+"\nA new rule.\n", "@.claude/aiwf-guidance.md", "route v1"))
+			runGit("add", "-A")
+			args := []string{"commit", "-q", "-m", "docs(guidance): rule"}
+			if tt.trailer != "" {
+				args = append(args, "--trailer", "aiwf-entity: "+tt.trailer)
+			}
+			runGit(args...)
+			if got := fenceViolationFiles(t, root, base); !equalStrings(got, tt.want) {
+				t.Errorf("violation files = %v, want %v", got, tt.want)
+			}
+		})
+	}
+}
+
+// TestGuidanceFence_TreeLoadFailure pins that a planning tree the loader
+// cannot read is an error rather than a silent pass: the trailer arm
+// cannot answer without it.
+func TestGuidanceFence_TreeLoadFailure(t *testing.T) {
+	t.Parallel()
+	if os.Geteuid() == 0 {
+		t.Skip("running as root; permission bits do not deny the walk")
+	}
+	root, runGit, writeFile, base := guidanceFenceFixture(t)
+	writeFile("CLAUDE.md", fenceHostFile(fenceClaudeText+"\nA new rule.\n", "@.claude/aiwf-guidance.md", "route v1"))
+	commitOwned(runGit, "docs(guidance): rule")
+	denied := filepath.Join(root, "work", "epics")
+	if err := os.Chmod(denied, 0o000); err != nil {
+		t.Fatalf("chmod: %v", err)
+	}
+	t.Cleanup(func() { _ = os.Chmod(denied, 0o755) })
+	if _, err := guidanceFenceViolations(root, base); err == nil {
+		t.Fatal("want an error when the planning tree cannot be read, got nil")
+	}
 }
