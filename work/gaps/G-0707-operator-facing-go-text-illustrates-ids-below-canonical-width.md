@@ -18,14 +18,15 @@ below the canonical four-digit width the allocator emits.
 - **Root help**, the verb list `printHelp` renders (`internal/cli/root.go`): `E-13`,
   and the composite placeholder written `M-NNN/AC-N` in the `promote` and `show`
   lines.
-- **Check hints**: the `entity-body-empty` hints in `internal/check/hint.go` tell the
-  operator to run `aiwf edit-body E-NN`, `M-NNN`, `G-NNN`, `D-NNN` or `C-NNN`.
+- **Verb messages**: the refusals `internal/verb` returns name composite ids as
+  `M-NNN/AC-N` (`ac.go`, `editbody.go`) and a milestone id as `M-NNN`
+  (`milestone_depends_on.go`).
 
-The same narrow placeholders appear elsewhere in Go under `internal/check`,
-`internal/verb` and `internal/cli`, many of them in comments; which of the rest
-reach an operator is not measured here. Narrow ids that help text uses as citations
-rather than illustrations, such as `M-057`, `G-055` and `M-076` in `aiwf add`'s
-flag help, are G-0538's population and not this gap's.
+The narrow placeholders in the `entity-body-empty` hints of
+`internal/check/hint.go` belong to G-0538, which carries the rest of that file's
+text. Narrow ids that help text uses as citations rather than illustrations, such
+as `M-057`, `G-055` and `M-076` in `aiwf add`'s flag help, are G-0538's population
+and not this gap's.
 
 Measured on Linux in bash, with an `aiwf` binary built from `3f5e58aa9`, in a fresh
 scratch repository after `aiwf init` and `aiwf add epic`, by running the
@@ -65,5 +66,6 @@ embedded skill markdown; a Go string literal is none of those.
 G-0481 set the goal that no narrow id appears as an example in any shipped or
 normative surface, and audited the embedded markdown, `README.md` and
 `docs/workflows.md`. G-0538 covers internal-id citations in the same
-operator-facing text, regardless of width. G-0505 declined to widen the narrow
-references `aiwf import` copies into frontmatter.
+operator-facing text, regardless of width. G-0712 records the stored half: verbs
+write the ids they are handed into frontmatter, `aiwf.yaml` and commit subjects at
+the width typed.
