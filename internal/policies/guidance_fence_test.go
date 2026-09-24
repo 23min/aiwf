@@ -7,6 +7,7 @@ import (
 	"testing"
 
 	"github.com/23min/aiwf/internal/initrepo"
+	"github.com/23min/aiwf/internal/pathutil"
 	"github.com/23min/aiwf/internal/projectguidance"
 )
 
@@ -283,6 +284,9 @@ func TestGuidanceFence_DeletionAndBase(t *testing.T) {
 		root := t.TempDir()
 		runGit, writeFile := repoGitRunner(t, root), repoFileWriter(t, root)
 		runGit("init", "-q")
+		// The caller's config must not decide whether a root commit shows
+		// a diff.
+		runGit("config", "log.showRoot", "false")
 		writeFile(fenceProjectDoc, "# Project guidance\n")
 		writeFile(fenceCodeFile, "package app\n")
 		runGit("add", "-A")
@@ -324,6 +328,13 @@ func TestGuidanceFence_DeletionAndBase(t *testing.T) {
 		}
 	})
 
+	t.Run("an empty root is an error, not a silent pass", func(t *testing.T) {
+		t.Parallel()
+		if _, err := guidanceFenceViolations("", "HEAD"); err == nil {
+			t.Fatal("want an error for an empty root, got nil")
+		}
+	})
+
 	t.Run("a base naming no commit is an error", func(t *testing.T) {
 		t.Parallel()
 		root, _, _, _ := guidanceFenceFixture(t)
@@ -333,39 +344,146 @@ func TestGuidanceFence_DeletionAndBase(t *testing.T) {
 	})
 }
 
-// TestParseFenceChanges pins how each --name-status shape becomes a path
-// pair: a rename keeps both paths, an addition has no old path, a
-// deletion no new one, and a line without a path is skipped.
-func TestParseFenceChanges(t *testing.T) {
+// TestParseFenceLog pins how the NUL-framed log becomes commits: each
+// field is read by position, so a rename keeps both paths, an addition
+// has no old path, a deletion no new one, and a path or message shaped
+// like a header or a status is never taken for one.
+func TestParseFenceLog(t *testing.T) {
 	t.Parallel()
-	got := parseFenceChanges([]string{
-		"R087\tdocs/a.md\tdocs/b.md",
-		"A\tnew.md",
-		"D\tgone.md",
-		"M\tsame.md",
-		"",
-	})
-	want := []fenceChange{{Old: "docs/a.md", New: "docs/b.md"}, {New: "new.md"}, {Old: "gone.md"}, {Old: "same.md", New: "same.md"}}
-	if len(got) != len(want) {
-		t.Fatalf("got %v, want %v", got, want)
+	sha1, sha2, sha3 := strings.Repeat("a", 40), strings.Repeat("b", 40), strings.Repeat("c", 40)
+	out := sha1 + " " + sha2 + "\x00E-0001\nE-0002\x00subject\n\nM\n" + sha3 + "\n\x00\x00\n" +
+		"R087\x00docs/a.md\x00docs/b.md\x00A\x00" + sha3 + "\x00D\x00gone.md\x00M\x00M\x00" +
+		sha2 + "\x00\x00root\n\x00\x00\nA\x00first.md\x00"
+	got := parseFenceLog(out)
+	if len(got) != 2 {
+		t.Fatalf("got %d records %+v, want 2", len(got), got)
+	}
+	first := got[0]
+	if first.sha != sha1 || first.parent != sha2 || first.entity != "E-0001" || !strings.Contains(first.body, sha3) {
+		t.Errorf("first header = %+v", first)
+	}
+	want := []fenceChange{{Old: "docs/a.md", New: "docs/b.md"}, {New: sha3}, {Old: "gone.md"}, {Old: "M", New: "M"}}
+	if len(first.changes) != len(want) {
+		t.Fatalf("first changes = %+v, want %+v", first.changes, want)
 	}
 	for i := range want {
-		if got[i] != want[i] {
-			t.Errorf("change %d = %+v, want %+v", i, got[i], want[i])
+		if first.changes[i] != want[i] {
+			t.Errorf("change %d = %+v, want %+v", i, first.changes[i], want[i])
 		}
+	}
+	if second := got[1]; second.sha != sha2 || second.parent != "" || len(second.changes) != 1 || second.changes[0].New != "first.md" {
+		t.Errorf("root record = %+v", second)
 	}
 }
 
-// TestRoutedDocuments pins what the router counts as a route: a relative
-// markdown link resolved against the router's directory, anchor dropped.
-// A link with a scheme, a link to something other than markdown, and a
-// link leaving the repository are not routes.
+// TestGuidanceFence_FramingIsNotData drives messages and paths that carry
+// what a byte-framed log would have taken for framing: control bytes in a
+// message, and quote characters in a routed path.
+func TestGuidanceFence_FramingIsNotData(t *testing.T) {
+	t.Parallel()
+	reworded := fenceHostFile("# Dev rules\n\nKeep it boring.\n", "@.claude/aiwf-guidance.md", "route v1")
+
+	t.Run("control bytes in a message neither hide the commit nor its block", func(t *testing.T) {
+		t.Parallel()
+		root, runGit, writeFile, base := guidanceFenceFixture(t)
+		writeFile("CLAUDE.md", reworded)
+		writeFile(fenceCodeFile, "package app\n\nvar x = 1\n")
+		runGit("add", "-A")
+		runGit("commit", "-q", "-m", "docs: reword \x1e\x1d\x1f\n\nRemoved: keep it simple\nDisposition: deleted",
+			"--trailer", "aiwf-entity: "+provFixtureEntityID)
+		if got, want := fenceViolationFiles(t, root, base), []string{fenceCodeFile}; !equalStrings(got, want) {
+			t.Errorf("violation files = %v, want %v", got, want)
+		}
+	})
+
+	t.Run("a routed path with quote characters is judged and read", func(t *testing.T) {
+		t.Parallel()
+		const quoted = `docs/a"b.md`
+		root, runGit, writeFile, _ := guidanceFenceFixture(t)
+		writeFile(fenceProjectDoc, "# Project guidance\n\nRead [q](../"+quoted+").\n")
+		writeFile(quoted, "# Quoted\n")
+		commitOwned(runGit, "docs(guidance): route a quoted document")
+		base := trimLine(runGit("rev-parse", "HEAD"))
+		writeFile(quoted, "# Quoted\n\nMore.\n")
+		writeFile(fenceCodeFile, "package app\n\nvar x = 1\n")
+		commitOwned(runGit, "docs(guidance): edit it beside code")
+		if got, want := fenceViolationFiles(t, root, base), []string{fenceCodeFile}; !equalStrings(got, want) {
+			t.Errorf("violation files = %v, want %v", got, want)
+		}
+	})
+}
+
+// TestGuidanceFence_InsertedBlockIsNotHandwritten pins that aiwf's own
+// insertion of a managed block, written by the real splice with the blank
+// line it adds outside the block, is not a handwritten change.
+func TestGuidanceFence_InsertedBlockIsNotHandwritten(t *testing.T) {
+	t.Parallel()
+	root, runGit, writeFile, _ := guidanceFenceFixture(t)
+	gStart, gEnd, _ := initrepo.GuidanceMarkers()
+	bare := "# Dev rules\n\nKeep it simple.\n\n" + gStart + "\n@.claude/aiwf-guidance.md\n" + gEnd + "\n"
+	writeFile("CLAUDE.md", bare)
+	commitOwned(runGit, "docs(guidance): no routing block yet")
+	base := trimLine(runGit("rev-parse", "HEAD"))
+	rStart, rEnd, rPrefix := projectguidance.RouteMarkers()
+	spliced, err := pathutil.SpliceManagedBlock(bare, "route v1", rStart, rEnd, rPrefix)
+	if err != nil {
+		t.Fatal(err)
+	}
+	writeFile("CLAUDE.md", spliced)
+	writeFile(".guidance/.aiwf-owned", fenceOwnedJSON("ee"))
+	writeFile(fenceCodeFile, "package app\n\nvar x = 1\n")
+	runGit("add", "-A")
+	runGit("commit", "-q", "-m", "chore: aiwf update")
+	if got := fenceViolationFiles(t, root, base); len(got) != 0 {
+		t.Errorf("an inserted block is generated output; got violations on %v", got)
+	}
+}
+
+// TestGuidanceFence_OwnedRecordCannotExemptCode pins that the owned record
+// relates only paths shaped like ones aiwf owns, and that a rename is
+// related only when both its sides are.
+func TestGuidanceFence_OwnedRecordCannotExemptCode(t *testing.T) {
+	t.Parallel()
+	addRule := func(w func(string, string)) {
+		w("CLAUDE.md", fenceHostFile(fenceClaudeText+"\nA new rule.\n", "@.claude/aiwf-guidance.md", "route v1"))
+	}
+	t.Run("a code path listed in the record is still unrelated", func(t *testing.T) {
+		t.Parallel()
+		root, runGit, writeFile, base := guidanceFenceFixture(t)
+		addRule(writeFile)
+		writeFile(".guidance/.aiwf-owned", "{\n  \"internal/app/app.go\": \"aa\"\n}\n")
+		writeFile(fenceCodeFile, "package app\n\nvar x = 1\n")
+		commitOwned(runGit, "docs(guidance): rule")
+		if got, want := fenceViolationFiles(t, root, base), []string{fenceCodeFile}; !equalStrings(got, want) {
+			t.Errorf("violation files = %v, want %v", got, want)
+		}
+	})
+	t.Run("an owned file renamed out of the owned set is unrelated", func(t *testing.T) {
+		t.Parallel()
+		root, runGit, writeFile, base := guidanceFenceFixture(t)
+		addRule(writeFile)
+		runGit("mv", fencePack, "internal/app/notes.md")
+		commitOwned(runGit, "docs(guidance): rule")
+		if got, want := fenceViolationFiles(t, root, base), []string{"internal/app/notes.md"}; !equalStrings(got, want) {
+			t.Errorf("violation files = %v, want %v", got, want)
+		}
+	})
+}
+
+// TestRoutedDocuments pins what the router counts as a route: a markdown
+// link in any CommonMark form — titled, angle-bracketed, reference-style,
+// percent-escaped — resolved against the router's directory, or the
+// repository root for a leading slash, anchor dropped. A link with a
+// scheme, a link to something other than markdown, and a link leaving the
+// repository are not routes.
 func TestRoutedDocuments(t *testing.T) {
 	t.Parallel()
 	router := "Read [a](../docs/a.md#part), [b](b.md), [web](https://example.com/c.md),\n" +
-		"[img](../x.png), and [out](../../outside.md)."
+		"[img](../x.png), [out](../../outside.md), [t](../docs/t.md \"titled\"),\n" +
+		"[angle](<../docs/my doc.md>), [root](/docs/r.md), [esc](../docs/sp%20ace.md) and [ref][r].\n\n" +
+		"[r]: ../docs/ref.md\n"
 	got := routedDocuments(router)
-	want := []string{"docs/a.md", ".guidance/b.md"}
+	want := []string{"docs/a.md", ".guidance/b.md", "docs/t.md", "docs/my doc.md", "docs/r.md", "docs/sp ace.md", "docs/ref.md"}
 	if !equalStrings(got, want) {
 		t.Errorf("routedDocuments = %v, want %v", got, want)
 	}

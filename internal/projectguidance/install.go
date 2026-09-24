@@ -64,7 +64,10 @@ func digest(content []byte) string { return fmt.Sprintf("%x", sha256.Sum256(cont
 
 func hostFile(name string) bool { return name == "AGENTS.md" || name == "CLAUDE.md" }
 
-func validOwnedPath(name string) bool {
+// ValidOwnedPath reports whether name has the shape of a path aiwf owns in
+// a project's guidance: a root host file, the pack index, or a pack
+// document.
+func ValidOwnedPath(name string) bool {
 	return hostFile(name) || name == indexFile || (strings.HasPrefix(name, ".guidance/packs/") && strings.HasSuffix(name, ".md"))
 }
 
@@ -124,7 +127,7 @@ func readRecord[T any](ctx context.Context, root, name string) (map[string]T, er
 		return nil, fmt.Errorf("%w: malformed %s", ErrInstallConflict, name)
 	}
 	for path := range record {
-		if !validOwnedPath(path) {
+		if !ValidOwnedPath(path) {
 			return nil, fmt.Errorf("%w: %s contains an unowned path %q", ErrInstallConflict, name, path)
 		}
 		if _, err := pathutil.InspectArtifactPath(ctx, root, filepath.FromSlash(path)); err != nil {
