@@ -25,6 +25,7 @@ Repository development rules, aiwf operating guidance and project-adopted langua
 ## Scope
 
 - **The fence, M-0333.** Gate commits that change guidance, require a disposition for removed text, and fail CI when either host's primed load exceeds its ceiling.
+- **The shipped fence, M-0350.** Move the commit rules into `aiwf check`, so every aiwf repository fences its handwritten instruction files by default (ADR-0053).
 - **The baseline, M-0334.** Freeze the installed guidance and record both hosts' loading and rule-following on a fixed task set at one commit, using M-0348's observation harness.
 - **The inventory, M-0349.** List every rule once with its current homes, classify it, and give it a disposition. Decide every conflict with the maintainer. Name the on-demand documents and set the primed ceiling from the result.
 - **Remove copies, M-0336.** Delete text whose rule already lives in the aiwf fragment or a selected pack, as the inventory records.
@@ -41,7 +42,8 @@ Repository development rules, aiwf operating guidance and project-adopted langua
 - Entity templates and general changes to ritual or verb skill bodies, except references that must follow relocated guidance.
 - Changing existing check conditions while improving their messages.
 - New host adapters, including Copilot, or universal guarantees of model compliance.
-- A ceiling imposed on consumer repositories; the reduction policies are internal to this repository.
+- A size ceiling or size report for consumer repositories; the ceiling and the pin scan are internal to this repository (ADR-0053).
+- Instruction files below a repository's root.
 
 ## Constraints
 
@@ -63,6 +65,7 @@ Repository development rules, aiwf operating guidance and project-adopted langua
 - [ ] E-0094 is named as the delivery prerequisite and its completion is verified before implementation.
 - [ ] Every guidance rule has one home and a recorded disposition; no conflicting rules remain.
 - [ ] Both hosts' handwritten primed words meet their ceilings; the policy catches regrowth and required-read indirection.
+- [ ] Every aiwf repository fences edits to its handwritten instruction files by default (ADR-0053).
 - [ ] No instruction file exists below the repository root; both hosts reach task-relevant guidance through `.guidance/project.md` from a root-started session, and no home-directory language import returns.
 - [ ] Development guidance duplicates neither operating rules nor the selected language packs.
 - [ ] Each moved pin is re-aimed or retired with its reason recorded.
@@ -93,7 +96,8 @@ Repository development rules, aiwf operating guidance and project-adopted langua
 ## Milestones
 
 - M-0333 — Fence repository guidance and measure primed load for both hosts.
-- M-0334 — Freeze the guidance and record the baseline for both hosts.
+- M-0350 — Ship the instruction-file fence in `aiwf check`; depends on M-0333.
+- M-0334 — Freeze the guidance and record the baseline for both hosts; depends on M-0350.
 - M-0349 — Inventory every guidance rule and decide its home and form; depends on M-0333 and M-0334.
 - M-0336 — Remove copies of rules that already live elsewhere; depends on M-0349.
 - M-0335 — Route on-demand guidance through the project router and tighten what moves; depends on M-0336.
@@ -106,6 +110,7 @@ Repository development rules, aiwf operating guidance and project-adopted langua
 - E-0093 — supported Claude and Codex workflows.
 - E-0094 — external guidance delivery and this repository's migration; M-0348 records the post-delivery measurements and host observations.
 - ADR-0052 — project guidance independent of personal bootstrap.
+- ADR-0053 — the instruction-file fence ships in `aiwf check`.
 - D-0089 — external language-content ownership and project-local delivery.
 - D-0091 — prose-presence evidence restriction; apply it to both hosts here.
 - D-0070 — limits on pins over shipped prose.
