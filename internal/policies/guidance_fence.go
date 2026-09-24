@@ -374,8 +374,6 @@ func (r fenceRevision) isGuidance(p string) bool {
 // lists, the guidance source, and configuration.
 func (r fenceRevision) isRelated(p string) bool {
 	switch {
-	case p == "":
-		return false
 	case p == fenceOwnedRecord, p == fenceConfig, r.owned[p]:
 		return true
 	default:

@@ -1,7 +1,9 @@
 package policies
 
 import (
+	"errors"
 	"os"
+	"os/exec"
 	"path/filepath"
 	"strings"
 	"testing"
@@ -734,6 +736,55 @@ func TestGuidanceFence_DispositionSeam(t *testing.T) {
 			runGit(append([]string{"commit", "-q", "-m", "docs(guidance): change", "--trailer", "aiwf-entity: " + provFixtureEntityID}, tt.extra...)...)
 			if got := fenceViolationFiles(t, root, base); !equalStrings(got, tt.want) {
 				t.Errorf("violation files = %v, want %v", got, tt.want)
+			}
+		})
+	}
+}
+
+// TestParseFenceLog_Malformed pins that a stream the parser cannot frame
+// yields what it can: a leading token that is no header is skipped, and a
+// header cut off before its fields reads as a commit with none.
+func TestParseFenceLog_Malformed(t *testing.T) {
+	t.Parallel()
+	sha := strings.Repeat("d", 40)
+	got := parseFenceLog("not a header\x00" + sha)
+	if len(got) != 1 || got[0].sha != sha || got[0].entity != "" || got[0].body != "" || len(got[0].changes) != 0 {
+		t.Errorf("parseFenceLog = %+v, want one commit with no fields", got)
+	}
+}
+
+// TestStderrOf pins that only a command's exit error carries stderr.
+func TestStderrOf(t *testing.T) {
+	t.Parallel()
+	if got := stderrOf(errors.New("not an exit")); got != nil {
+		t.Errorf("stderrOf(non-exit error) = %q, want nil", got)
+	}
+	_, err := exec.Command("git", "not-a-git-command").Output()
+	if got := stderrOf(err); len(got) == 0 {
+		t.Error("stderrOf(exit error) must return what git wrote to stderr")
+	}
+}
+
+// TestGuidanceFence_Deletions pins the deletion side of the related-file
+// rule: deleting an owned output with a guidance change is related, and
+// deleting an unrelated file is not.
+func TestGuidanceFence_Deletions(t *testing.T) {
+	t.Parallel()
+	for _, tc := range []struct {
+		name, gone string
+		want       []string
+	}{
+		{name: "an owned output", gone: fencePack},
+		{name: "an unrelated file", gone: fenceCodeFile, want: []string{fenceCodeFile}},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			t.Parallel()
+			root, runGit, writeFile, base := guidanceFenceFixture(t)
+			writeFile("CLAUDE.md", fenceHostFile(fenceClaudeText+"\nA new rule.\n", "@.claude/aiwf-guidance.md", "route v1"))
+			runGit("rm", "-q", tc.gone)
+			commitOwned(runGit, "docs(guidance): rule")
+			if got := fenceViolationFiles(t, root, base); !equalStrings(got, tc.want) {
+				t.Errorf("violation files = %v, want %v", got, tc.want)
 			}
 		})
 	}
