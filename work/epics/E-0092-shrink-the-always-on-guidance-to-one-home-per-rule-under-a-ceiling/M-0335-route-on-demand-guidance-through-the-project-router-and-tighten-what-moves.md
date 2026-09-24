@@ -1,6 +1,6 @@
 ---
 id: M-0335
-title: Re-home project guidance for Claude and Codex
+title: Route on-demand guidance through the project router and tighten what moves
 status: draft
 parent: E-0092
 depends_on:
