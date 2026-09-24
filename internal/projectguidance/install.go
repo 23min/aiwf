@@ -55,6 +55,11 @@ type installWrite struct {
 	receipt receipt
 }
 
+// RouteMarkers returns the start and end markers of the managed routing block
+// and the prefix every marker of that block family carries, in the shape
+// pathutil.ManagedBlockSpan takes.
+func RouteMarkers() (start, end, prefix string) { return routeStart, routeEnd, routePrefix }
+
 func digest(content []byte) string { return fmt.Sprintf("%x", sha256.Sum256(content)) }
 
 func hostFile(name string) bool { return name == "AGENTS.md" || name == "CLAUDE.md" }
