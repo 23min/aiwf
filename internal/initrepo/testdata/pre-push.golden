@@ -4,6 +4,10 @@
 # this hook's directory first, so consumer-written hooks compose
 # rather than collide.
 [ -f "$(git rev-parse --show-toplevel)/aiwf.yaml" ] || exit 0
+# git passes one line per pushed ref on stdin; keep a copy so the
+# pre-push.local sibling and the ref check below both read it.
+pushed_refs="$(cat)"
+replay_pushed_refs() { [ -z "$pushed_refs" ] || printf '%s\n' "$pushed_refs" 2>/dev/null; }
 hook_dir="$(dirname "$0")"
 local_hook="$hook_dir/pre-push.local"
 if [ -e "$local_hook" ]; then
@@ -11,7 +15,28 @@ if [ -e "$local_hook" ]; then
         echo "aiwf pre-push: $local_hook exists but is not executable — chmod +x to enable, or remove the file" >&2
         exit 1
     fi
-    "$local_hook" "$@" || exit $?
+    replay_pushed_refs | "$local_hook" "$@" || exit $?
+fi
+# aiwf check judges the checked-out branch and working tree, so a
+# pushed ref whose commit is not HEAD would pass unexamined: refuse it.
+# A deletion pushes no commit and is not judged.
+head="$(git rev-parse --verify -q HEAD)"
+refused=""
+while read -r local_ref local_oid _; do
+    case "$local_oid" in *[!0]*) ;; *) continue ;; esac
+    [ "$local_oid" = "$head" ] && continue
+    commit="$(git rev-parse --verify -q "$local_oid^{commit}" 2>/dev/null)"
+    if [ -z "$commit" ] || [ "$commit" != "$head" ]; then
+        refused="$refused $local_ref"
+    fi
+done <<EOF
+$pushed_refs
+EOF
+if [ -n "$refused" ]; then
+    echo "aiwf pre-push: refusing to push$refused: not the checked-out commit." >&2
+    echo "aiwf check judges only the checked-out branch and working tree, so these would pass unexamined." >&2
+    echo "Push a branch from the worktree that has it checked out (see git worktree list), and a tag from a checkout of the commit it names." >&2
+    exit 1
 fi
 AIWF="$(command -v aiwf 2>/dev/null)"
 if [ -z "$AIWF" ]; then

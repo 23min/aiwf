@@ -102,6 +102,14 @@ Skills under ` + "`.claude/skills/aiwf-*/`" + ` are gitignored and regenerated o
 // A `.local` that exists but is not executable fails loud rather
 // than silently skipping (the latter would let the user think they
 // have hook coverage when they don't).
+//
+// `aiwf check` judges the checked-out branch's commit range and the
+// working tree, not the refs git names on the hook's stdin. The hook
+// therefore refuses any pushed ref whose commit (a tag peeled to its
+// commit) is not HEAD, so a ref it cannot judge never passes as
+// checked; a deletion pushes no commit and is not judged. The hook
+// reads stdin once and replays it to the `.local` sibling, so a
+// sibling that reads stdin leaves the ref list intact for the check.
 func preHookScript() string {
 	return `#!/bin/sh
 ` + preHookMarker + `
@@ -109,7 +117,32 @@ func preHookScript() string {
 # this hook's directory first, so consumer-written hooks compose
 # rather than collide.
 [ -f "$(git rev-parse --show-toplevel)/aiwf.yaml" ] || exit 0
-` + chainPrelude("pre-push") + `
+# git passes one line per pushed ref on stdin; keep a copy so the
+# pre-push.local sibling and the ref check below both read it.
+pushed_refs="$(cat)"
+replay_pushed_refs() { [ -z "$pushed_refs" ] || printf '%s\n' "$pushed_refs" 2>/dev/null; }
+` + chainPrelude("pre-push", "replay_pushed_refs | ") + `
+# aiwf check judges the checked-out branch and working tree, so a
+# pushed ref whose commit is not HEAD would pass unexamined: refuse it.
+# A deletion pushes no commit and is not judged.
+head="$(git rev-parse --verify -q HEAD)"
+refused=""
+while read -r local_ref local_oid _; do
+    case "$local_oid" in *[!0]*) ;; *) continue ;; esac
+    [ "$local_oid" = "$head" ] && continue
+    commit="$(git rev-parse --verify -q "$local_oid^{commit}" 2>/dev/null)"
+    if [ -z "$commit" ] || [ "$commit" != "$head" ]; then
+        refused="$refused $local_ref"
+    fi
+done <<EOF
+$pushed_refs
+EOF
+if [ -n "$refused" ]; then
+    echo "aiwf pre-push: refusing to push$refused: not the checked-out commit." >&2
+    echo "aiwf check judges only the checked-out branch and working tree, so these would pass unexamined." >&2
+    echo "Push a branch from the worktree that has it checked out (see git worktree list), and a tag from a checkout of the commit it names." >&2
+    exit 1
+fi
 AIWF="$(command -v aiwf 2>/dev/null)"
 if [ -z "$AIWF" ]; then
     echo "aiwf pre-push: aiwf binary not found on PATH" >&2
@@ -120,9 +153,8 @@ exec "$AIWF" check
 }
 
 // chainPrelude renders the POSIX shell snippet that runs a sibling
-// `<hookname>.local` script before aiwf's own work. Shared by
-// preHookScript and preCommitHookScript to keep the chain semantics
-// in one place.
+// `<hookname>.local` script before aiwf's own work. Shared by all
+// four hook scripts to keep the chain semantics in one place.
 //
 // Behavior:
 //   - `<hookname>.local` absent → no-op, fall through to aiwf's work.
@@ -130,9 +162,11 @@ exec "$AIWF" check
 //     exits non-zero, abort with that exit code (don't run aiwf).
 //   - present but not executable → fail with a clear message.
 //
-// stdin from git is consumed by the .local hook if it reads it; aiwf
-// doesn't read stdin in either hook, so the order is safe.
-func chainPrelude(hookName string) string {
+// stdinFeed, when non-empty, is a shell pipeline prefix whose output
+// becomes the .local hook's stdin, for a hook that reads git's stdin
+// itself before the chain runs; empty leaves the hook's own stdin in
+// place.
+func chainPrelude(hookName, stdinFeed string) string {
 	return `hook_dir="$(dirname "$0")"
 local_hook="$hook_dir/` + hookName + `.local"
 if [ -e "$local_hook" ]; then
@@ -140,7 +174,7 @@ if [ -e "$local_hook" ]; then
         echo "aiwf ` + hookName + `: $local_hook exists but is not executable — chmod +x to enable, or remove the file" >&2
         exit 1
     fi
-    "$local_hook" "$@" || exit $?
+    ` + stdinFeed + `"$local_hook" "$@" || exit $?
 fi`
 }
 
@@ -177,7 +211,7 @@ func preCommitHookScript() string {
 set -e
 repo_root="$(git rev-parse --show-toplevel)"
 [ -f "$repo_root/aiwf.yaml" ] || exit 0
-` + chainPrelude("pre-commit") + `
+` + chainPrelude("pre-commit", "") + `
 
 AIWF="$(command -v aiwf 2>/dev/null)"
 if [ -z "$AIWF" ]; then
@@ -230,7 +264,7 @@ func postCommitHookScript() string {
 # gitignored — this hook never modifies the just-finished commit.
 repo_root="$(git rev-parse --show-toplevel)"
 [ -f "$repo_root/aiwf.yaml" ] || exit 0
-` + chainPrelude("post-commit") + `
+` + chainPrelude("post-commit", "") + `
 
 AIWF="$(command -v aiwf 2>/dev/null)"
 if [ -z "$AIWF" ]; then
@@ -292,7 +326,7 @@ func commitMsgHookScript() string {
 set -e
 repo_root="$(git rev-parse --show-toplevel)"
 [ -f "$repo_root/aiwf.yaml" ] || exit 0
-` + chainPrelude("commit-msg") + `
+` + chainPrelude("commit-msg", "") + `
 
 AIWF="$(command -v aiwf 2>/dev/null)"
 if [ -z "$AIWF" ]; then

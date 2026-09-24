@@ -35,7 +35,6 @@
 0644 7e90287ea2d54db13c394a4ef2389e73152f225fe47671e051862d709b48314a .claude/skills/aiwf-contract/SKILL.md
 0644 8bd8dbe525b58d5e12c69db7bc738242a48738511e1732c8b97d5ee25ace7c24 .claude/templates/adr.md
 0644 8d01c4e9083f5ad84582127a76e688b0eed4b2dd674a8f8b3a30f0f1bff0e210 .gitignore
-0644 8fedbdb070d77e4c261d6d8c4fcc693ee27c46e1d994fcb611ccfdc2118eff88 .claude/skills/aiwf-check/SKILL.md
 0644 9350dfffec1a1ac39dc4f05f9566fb644358cb6892677648e80cbaeafed68c1e .claude/skills/aiwfx-start-milestone/SKILL.md
 0644 93f21a037a54a23b11b9059c64f2afcfaf8fcb88afeba23040aa8cdc5cd45e06 .claude/skills/aiwf-retitle/SKILL.md
 0644 940a80a2d380af6c91f0fd728ab7354de404c94a03ebae199f90cf2613b1cf91 .claude/templates/personal.md
@@ -54,6 +53,7 @@
 0644 db3ae26e01bbd148c6312f74f8c5797be8c3f669a9d84bb56c334e97dab8e725 .claude/skills/wf-rethink/SKILL.md
 0644 e09312b1a5d18c33a74012763b0a46850c23a94a00e65920ce81172357a53e91 .claude/skills/aiwfx-release/SKILL.md
 0644 e3f65c3d27b41240fb381ffecc76b84cc72262618273f7b8eb4339c7467218c6 .claude/agents/reviewer.md
+0644 e95ca958e27e15f0cbf01af82b26805bb9267bea28ea4f702d42a4e63d50de59 .claude/skills/aiwf-check/SKILL.md
 0644 f29175f8a9fa154cdf2fae8b5f3bf8259aea126a587c41a5d4a8a8850fbfdd4c .claude/skills/wf-vacuity/SKILL.md
 0644 f4208309eabc66588c4abb58a091f36198b6dc98f10bacd773e93e2ead41c32b .claude/skills/aiwf-authorize/SKILL.md
 0644 f92594261b78dc7ecaee59facf41f65d810b1a9140c5c08e234be29ed04c203d .claude/agents/planner.md
@@ -61,7 +61,7 @@
 0644 fa5a658ca1a1e1de4f8b20b4719756e61f06d993eff8a07efe720f0cac8600b1 .claude/skills/wf-structural-sweep/SKILL.md
 0644 fad0e67abd5c8c9f42ceb60447f48a8ec528c0c27c699bb4bdff68fd5a8626e3 .claude/skills/aiwf-status/SKILL.md
 0644 fe3fa87d57849d66d5251c759de5044cef4e56b73b4cef425e9df46528e3b7c7 .claude/skills/aiwf-list/SKILL.md
-0755 1ed7a42008fbf8b4a7443dd125a90be40a315d4f7e870372552c99ecfb6cc916 git-hooks/pre-push
 0755 a4abd1afd32f16900d3a659bc529ade4691ac9d71c8bbb3953278e8c703d24be git-hooks/commit-msg
+0755 cbaf1ab712639264cedcdc622b57de6a74c0611ccf5d6b240fad335aa50cc540 git-hooks/pre-push
 0755 e0e5e067f7f89fe4c7bca6f3ba28b228edb6349af188c8fc0f83bdce896b5338 git-hooks/pre-commit
 0755 edcc657806cf002aba91bf17c1c8972385ede4667e7c362b9979bf0bedc63422 git-hooks/post-commit
