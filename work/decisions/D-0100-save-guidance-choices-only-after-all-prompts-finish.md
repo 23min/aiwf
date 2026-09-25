@@ -1,7 +1,7 @@
 ---
 id: D-0100
 title: Save guidance choices only after all prompts finish
-status: accepted
+status: superseded
 relates_to:
     - M-0347
     - E-0094
