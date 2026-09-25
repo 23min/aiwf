@@ -75,12 +75,22 @@ func ensureProjectGuidance(ctx context.Context, root string, cfg *config.Config,
 		step.Detail = "no project guidance selected; existing delivery retained"
 		return step
 	}
+	missing := ""
+	if len(snapshot.Missing) > 0 {
+		missing = fmt.Sprintf("; the catalogue no longer has %s: remove it from guidance.packs or move it to guidance.ignored", strings.Join(snapshot.Missing, ", "))
+		// Only a run that adopts may retire a pack it cannot replace; any
+		// other refresh leaves the installed guidance as it is.
+		if !opts.AdoptGuidance {
+			step.Detail = "guidance incomplete: installed guidance left unchanged" + missing
+			return step
+		}
+	}
 	// An adopted selection is prepared before installation and written only
 	// after it, so aiwf.yaml never names a pack the working tree lacks.
 	var adopted *aiwfyaml.Doc
 	if selected != cfg.Guidance.Packs {
 		if adopted, err = guidanceSelectionEdit(root, selected, cfg.Guidance.Ignored); err != nil {
-			step.Detail = fmt.Sprintf("guidance incomplete: %v", err)
+			step.Detail = fmt.Sprintf("guidance incomplete: %v", err) + missing
 			return step
 		}
 	}
@@ -89,12 +99,12 @@ func ensureProjectGuidance(ctx context.Context, root string, cfg *config.Config,
 	installed := slices.DeleteFunc(slices.Clone(*selected), func(id string) bool { return slices.Contains(snapshot.Missing, id) })
 	changed, err := projectguidance.Install(ctx, root, snapshot, projectguidance.InstallOptions{Source: cfg.GuidanceSource(), Selected: installed, HostFiles: hosts})
 	if err != nil {
-		step.Detail = fmt.Sprintf("guidance incomplete: %v", err)
+		step.Detail = fmt.Sprintf("guidance incomplete: %v", err) + missing
 		return step
 	}
 	if adopted != nil {
 		if err = adopted.Write(filepath.Join(root, config.FileName)); err != nil {
-			step.Detail = fmt.Sprintf("guidance incomplete: recording adopted guidance: %v", err)
+			step.Detail = fmt.Sprintf("guidance incomplete: recording adopted guidance: %v", err) + missing
 			return step
 		}
 		changed = true
@@ -103,10 +113,7 @@ func ensureProjectGuidance(ctx context.Context, root string, cfg *config.Config,
 	if changed {
 		step.Action = ActionUpdated
 	}
-	step.Detail = "selected project guidance at " + snapshot.Commit
-	if len(snapshot.Missing) > 0 {
-		step.Detail += fmt.Sprintf("; the catalogue no longer has %s: remove it from guidance.packs or move it to guidance.ignored", strings.Join(snapshot.Missing, ", "))
-	}
+	step.Detail = "selected project guidance at " + snapshot.Commit + missing
 	return step
 }
 
