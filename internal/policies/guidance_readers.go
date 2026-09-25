@@ -169,7 +169,7 @@ func readersInPackage(files []*ast.File, paths map[*ast.File]string, namesGuidan
 						continue
 					}
 					for i, nm := range vs.Names {
-						if i < len(vs.Values) && literalNamesGuidance(vs.Values[i], namesGuidance) {
+						if i < len(vs.Values) && nm.Name != "_" && literalNamesGuidance(vs.Values[i], namesGuidance) {
 							consts[nm.Name] = true
 						}
 					}
@@ -274,7 +274,7 @@ func namesGuidancePath(s string, routed map[string]bool) bool {
 	case fenceClaudeMD, fenceAgentsMD:
 		return true
 	}
-	return s == fenceRouter || strings.HasSuffix(s, "/"+fenceRouter) || routed[s]
+	return s == fenceRouter || routed[s]
 }
 
 // repoNamesGuidance builds the guidance-path predicate for the tree at root,

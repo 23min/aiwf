@@ -10,10 +10,13 @@ import (
 // readerFixtureHeader is a synthetic package reaching guidance the ways a
 // test can: a helper that reads it from the root, a helper that reads a
 // fixture repository's copy, a policy passed by value, and a package
-// constant naming it.
+// constant naming it. A blank package value names it too, and lends it to
+// no one.
 const readerFixtureHeader = `package pkg
 
 const claudePath = "CLAUDE.md"
+
+var _ = "CLAUDE.md"
 
 func readClaude(t *testing.T) string {
 	data, _ := os.ReadFile(filepath.Join(repoRoot(t), "CLAUDE.md"))
@@ -75,6 +78,7 @@ func TestReadersInPackage(t *testing.T) {
 		{"the second of two same-named methods reads", `_ = other{}.fetch(t)`, true},
 		{"a cycle of helpers settles", `_ = pingPong(1)`, false},
 		{"a document outside the guidance set", `data, _ := os.ReadFile(filepath.Join(repoRoot(t), "docs/other.md")); _ = data`, false},
+		{"a blank package value lends its path to no test", `_ = repoRoot(t)`, false},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
@@ -151,7 +155,8 @@ func TestPolicy_GuidanceReaders(t *testing.T) {
 }
 
 // TestRepoNamesGuidance pins that a document the router links to is
-// guidance, alongside the entry points and the router itself.
+// guidance, alongside the entry points at any depth and the router itself;
+// a router below the root is not the router.
 func TestRepoNamesGuidance(t *testing.T) {
 	t.Parallel()
 	root := t.TempDir()
@@ -160,6 +165,7 @@ func TestRepoNamesGuidance(t *testing.T) {
 	for p, want := range map[string]bool{
 		"docs/dev/testing.md": true, "CLAUDE.md": true, "sub/AGENTS.md": true,
 		".guidance/project.md": true, "docs/other.md": false,
+		"sub/.guidance/project.md": false,
 	} {
 		if got := names(p); got != want {
 			t.Errorf("names(%q) = %v, want %v", p, got, want)
