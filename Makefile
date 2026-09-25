@@ -160,9 +160,9 @@ test-cov:
 # generates a fresh atomic-mode profile, then delegates to
 # coverage-gate-only. The diff-scoped gates compare the base against the
 # working tree, so uncommitted changes are in scope and you need not
-# commit first — except the skill-edit provenance backstop and the
-# guidance fence, which judge commits, since an uncommitted edit carries
-# no trailer or message to judge. CI runs the same gates in the
+# commit first — except the skill-edit provenance backstop, the co-author
+# ban and the guidance fence, which judge commits, since an uncommitted
+# edit carries no trailer or message to judge. CI runs the same gates in the
 # test job.
 coverage-gate:
 	go test -exec=$(TEST_EXEC) -covermode=atomic -coverprofile=coverage.out -coverpkg=./internal/... -parallel 8 ./...
