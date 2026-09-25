@@ -8,9 +8,11 @@ import (
 )
 
 // SetGuidanceSelection updates only selected and ignored ids. An absent selection
-// remains absent until a pack is selected; ignoring suggestions is not adoption.
-// Editing an existing block preserves bytes outside guidance. Adding a block or
-// editing a flow-style root re-encodes the document, retaining fields and comments.
+// remains absent until a pack is selected, and an ignored key is written only
+// when ids are ignored or the key already exists. In a block-style document
+// every byte outside the guidance block is preserved, and a missing block is
+// added after the existing content; a flow-style root is re-encoded, retaining
+// fields and comments.
 func (d *Doc) SetGuidanceSelection(selected *[]string, ignored []string) error {
 	var document yaml.Node
 	if err := yaml.Unmarshal(d.raw, &document); err != nil { //coverage:ignore Doc.raw is already parsed by ReadBytes; public edits emit valid YAML
@@ -27,7 +29,7 @@ func (d *Doc) SetGuidanceSelection(selected *[]string, ignored []string) error {
 			return fmt.Errorf("reading inherited guidance configuration: %w", decodeErr)
 		}
 		if inherited.Guidance.Kind != 0 {
-			return fmt.Errorf("expand inherited guidance into an explicit mapping before selecting packs")
+			return fmt.Errorf("expand inherited guidance into an explicit mapping so guidance packs can be recorded")
 		}
 	}
 	documentEnd := guidanceDocumentEnd(d.raw)
@@ -36,8 +38,8 @@ func (d *Doc) SetGuidanceSelection(selected *[]string, ignored []string) error {
 	value := &yaml.Node{Kind: yaml.MappingNode, Tag: "!!map"}
 	if index >= 0 {
 		key, value = top.Content[index], top.Content[index+1]
-		if err := rejectAnchorsAndAliases(value); err != nil {
-			return fmt.Errorf("expand guidance anchors and aliases before selecting packs: %w", err)
+		if err := rejectAnchorsAndAliases(value, "guidance"); err != nil {
+			return fmt.Errorf("expand guidance anchors and aliases so guidance packs can be recorded: %w", err)
 		}
 		if value.Tag == "!!null" {
 			key.LineComment = value.LineComment
@@ -45,7 +47,7 @@ func (d *Doc) SetGuidanceSelection(selected *[]string, ignored []string) error {
 			top.Content[index+1] = value
 		}
 		if value.Kind != yaml.MappingNode {
-			return fmt.Errorf("guidance must be a mapping before selecting packs")
+			return fmt.Errorf("guidance must be a mapping so guidance packs can be recorded")
 		}
 	} else {
 		top.Content = append(top.Content, key, value)
@@ -53,24 +55,37 @@ func (d *Doc) SetGuidanceSelection(selected *[]string, ignored []string) error {
 	if selected != nil {
 		setGuidanceIDs(value, "packs", *selected)
 	}
-	setGuidanceIDs(value, "ignored", ignored)
+	if len(ignored) > 0 || findMappingKey(value, "ignored") >= 0 {
+		setGuidanceIDs(value, "ignored", ignored)
+	}
 	var out []byte
-	if index < 0 || top.Style&yaml.FlowStyle != 0 {
-		empty := len(document.Content) == 0
-		document.Kind = yaml.DocumentNode
-		document.Content = []*yaml.Node{top}
+	switch {
+	case index < 0 && top.Style&yaml.FlowStyle == 0:
+		// A block-style document gains the guidance block after its existing
+		// bytes, which stay exactly as written.
+		block := &yaml.Node{Kind: yaml.MappingNode, Tag: "!!map", Content: []*yaml.Node{key, value}}
+		var encoded bytes.Buffer
+		encoder := yaml.NewEncoder(&encoded)
+		encoder.SetIndent(2)
+		if err := encoder.Encode(block); err != nil { //coverage:ignore constructed string nodes encoded into an infallible bytes.Buffer
+			return fmt.Errorf("encoding guidance block: %w", err)
+		}
+		if err := encoder.Close(); err != nil { //coverage:ignore bytes.Buffer cannot fail on encoder flush
+			return fmt.Errorf("closing guidance encoder: %w", err)
+		}
+		out = append(out, raw...)
+		if len(out) > 0 && out[len(out)-1] != '\n' {
+			out = append(out, '\n')
+		}
+		out = append(out, encoded.Bytes()...)
+	case top.Style&yaml.FlowStyle != 0:
+		// A flow-style root has no block layout to preserve, so it is re-encoded.
 		encoded, err := yaml.Marshal(&document)
 		if err != nil { //coverage:ignore parsed nodes and constructed string sequences are YAML-encodable
 			return fmt.Errorf("encoding guidance configuration: %w", err)
 		}
-		if empty {
-			out = append(out, raw...)
-			if len(out) > 0 && out[len(out)-1] != '\n' {
-				out = append(out, '\n')
-			}
-		}
 		out = append(out, encoded...)
-	} else {
+	default:
 		// The key's leading comment is outside the replaced byte range.
 		blockKey := *key
 		blockKey.HeadComment = ""

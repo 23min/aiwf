@@ -188,3 +188,66 @@ func TestSetGuidanceSelection_PreservesBareDocumentEnd(t *testing.T) {
 		t.Fatalf("lost bare document end: %s", doc.Bytes())
 	}
 }
+
+// TestSetGuidanceSelection_AddingBlockKeepsExistingBytes pins that a document
+// without a guidance key keeps every existing byte, indentation and comment
+// spacing included, and gains the block after them.
+func TestSetGuidanceSelection_AddingBlockKeepsExistingBytes(t *testing.T) {
+	t.Parallel()
+	for _, raw := range []string{
+		"# hosts: []  # scaffold comment\n  # indented comment\ntree:\n  allow_paths:\n    - x  # keep\nhooks:\n  h:\n    enabled: true\n",
+		"hosts: []\nother: value",
+		"# project note",
+	} {
+		t.Run(raw, func(t *testing.T) {
+			t.Parallel()
+			doc, _, err := ReadBytes([]byte(raw))
+			if err != nil {
+				t.Fatal(err)
+			}
+			selected := []string{"new"}
+			if err := doc.SetGuidanceSelection(&selected, nil); err != nil {
+				t.Fatal(err)
+			}
+			if !strings.HasPrefix(string(doc.Bytes()), raw) {
+				t.Fatalf("existing bytes changed:\n%s", doc.Bytes())
+			}
+			var got struct{ Guidance struct{ Packs []string } }
+			if err := yaml.Unmarshal(doc.Bytes(), &got); err != nil || len(got.Guidance.Packs) != 1 || got.Guidance.Packs[0] != "new" {
+				t.Fatalf("selection not added: %v\n%s", err, doc.Bytes())
+			}
+		})
+	}
+}
+
+// TestSetGuidanceSelection_EmptyIgnoredAddsNoKey pins that recording a
+// selection with nothing ignored writes no ignored key, while a key already
+// present is still updated.
+func TestSetGuidanceSelection_EmptyIgnoredAddsNoKey(t *testing.T) {
+	t.Parallel()
+	for raw, wantKey := range map[string]bool{
+		"hosts: []\n":                            false,
+		"guidance:\n  source: local\n":           false,
+		"guidance:\n  ignored: [old]\n":          true,
+		"{hosts: [], guidance: {source: local}}": false,
+	} {
+		t.Run(raw, func(t *testing.T) {
+			t.Parallel()
+			doc, _, err := ReadBytes([]byte(raw))
+			if err != nil {
+				t.Fatal(err)
+			}
+			selected := []string{"new"}
+			if err := doc.SetGuidanceSelection(&selected, nil); err != nil {
+				t.Fatal(err)
+			}
+			var got struct{ Guidance map[string]any }
+			if err := yaml.Unmarshal(doc.Bytes(), &got); err != nil {
+				t.Fatal(err)
+			}
+			if _, has := got.Guidance["ignored"]; has != wantKey {
+				t.Fatalf("ignored key present = %v, want %v:\n%s", has, wantKey, doc.Bytes())
+			}
+		})
+	}
+}
