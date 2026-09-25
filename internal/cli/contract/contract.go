@@ -118,7 +118,7 @@ func ResultToFinding(r contractverify.Result, strictValidators bool) check.Findi
 		Subcode:  subcode,
 		Message:  r.Message,
 		Path:     r.FixturePath,
-		EntityID: r.EntityID,
+		EntityID: entity.Canonicalize(r.EntityID),
 	}
 }
 

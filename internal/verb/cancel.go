@@ -126,7 +126,7 @@ func Cancel(ctx context.Context, t *tree.Tree, id, actor, reason string, force b
 		//coverage:ignore defensive: e.Path comes from the loaded tree, so the file is present; a read error needs the file to vanish mid-verb
 		return nil, err
 	}
-	subject := fmt.Sprintf("aiwf cancel %s -> %s", id, target)
+	subject := fmt.Sprintf("aiwf cancel %s -> %s", entity.Canonicalize(id), target)
 	// The projection net inside planEntityWrite cannot fire for Cancel:
 	// the two cascade-shaped findings a status flip could introduce
 	// (epic-cancel-non-terminal-children, milestone-cancelled-incomplete-acs)

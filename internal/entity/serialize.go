@@ -97,8 +97,12 @@ func frontmatterFields(content []byte) (map[string]any, bool) {
 // Field order in the YAML follows the Entity struct definition: id,
 // title, status, then per-kind fields (which appear only when set,
 // thanks to `omitempty`). This makes output deterministic across runs.
+//
+// Every id-reference field is written at canonical width, whatever
+// width it was handed or loaded at: the kernel accepts a narrow id on
+// input and never writes one back. e itself is not modified.
 func Serialize(e *Entity, body []byte) ([]byte, error) {
-	yamlBytes, err := yaml.Marshal(e)
+	yamlBytes, err := yaml.Marshal(withCanonicalReferences(e))
 	if err != nil {
 		return nil, fmt.Errorf("marshaling frontmatter: %w", err)
 	}
@@ -108,6 +112,39 @@ func Serialize(e *Entity, body []byte) ([]byte, error) {
 	buf.WriteString("---\n")
 	buf.Write(body)
 	return buf.Bytes(), nil
+}
+
+// withCanonicalReferences returns a shallow copy of e whose id-reference
+// fields are rewritten through Canonicalize. Three id-bearing fields are
+// left as they are: the entity's own id, which names its file and is
+// changed only by reallocating the entity; prior_ids, which records the
+// ids the entity carried before, at the width it carried them; and
+// addressed_by_commit, which holds commit SHAs rather than entity ids.
+func withCanonicalReferences(e *Entity) *Entity {
+	c := *e
+	c.Parent = Canonicalize(e.Parent)
+	c.DependsOn = canonicalizeAll(e.DependsOn)
+	c.Supersedes = canonicalizeAll(e.Supersedes)
+	c.SupersededBy = Canonicalize(e.SupersededBy)
+	c.DiscoveredIn = Canonicalize(e.DiscoveredIn)
+	c.AddressedBy = canonicalizeAll(e.AddressedBy)
+	c.RelatesTo = canonicalizeAll(e.RelatesTo)
+	c.LinkedADRs = canonicalizeAll(e.LinkedADRs)
+	return &c
+}
+
+// canonicalizeAll returns ids rewritten through Canonicalize in a new
+// slice, leaving the caller's slice untouched. A nil slice stays nil so
+// an omitted field stays omitted.
+func canonicalizeAll(ids []string) []string {
+	if ids == nil {
+		return nil
+	}
+	out := make([]string, len(ids))
+	for i, id := range ids {
+		out[i] = Canonicalize(id)
+	}
+	return out
 }
 
 // Slugify converts a title into a kebab-case slug suitable for use in

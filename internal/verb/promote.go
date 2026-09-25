@@ -276,7 +276,7 @@ func Promote(ctx context.Context, t *tree.Tree, id string, newStatus entity.Stat
 		return findings(fs), nil
 	}
 
-	subject := fmt.Sprintf("aiwf promote %s %s -> %s", id, e.Status, newStatus)
+	subject := fmt.Sprintf("aiwf promote %s %s -> %s", entity.Canonicalize(id), e.Status, newStatus)
 	result := plan(&Plan{
 		Subject:  subject,
 		Body:     reason,
@@ -427,8 +427,8 @@ func promoteClaimPaths(t *tree.Tree, e *entity.Entity, opts PromoteOptions) []st
 // Referents are compared, not spellings: a narrower id width or an abbreviated
 // SHA naming the value already stored satisfies the guard. The abbreviated form
 // is what `aiwf history` prints, so it is what a copy-paste produces. A real
-// change still writes the operator's spelling verbatim — normalizing widths
-// across a tree is `aiwf rewidth`'s job, not this guard's.
+// change writes the operator's ids, which entity.Serialize widens to
+// canonical.
 func promoteWouldWrite(ctx context.Context, t *tree.Tree, e *entity.Entity, opts PromoteOptions) bool {
 	if !entityResolverSatisfied(ctx, t.Root, e, opts) {
 		return true

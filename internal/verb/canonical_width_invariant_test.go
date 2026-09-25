@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"regexp"
 	"strings"
 	"testing"
 
@@ -196,20 +197,13 @@ entities:
 		if got := nestingViolations(t, tr); len(got) != 0 {
 			t.Errorf("import split a milestone from its epic: %+v", got)
 		}
-		// A child's `parent:` names the id its epic actually carries, so
-		// the guards that walk an epic's children — which compare the
-		// field literally — still see it. Asserted through the guard
-		// itself rather than through a canonicalizing lookup, because a
-		// lookup would resolve either spelling and prove nothing.
+		// The child guard sees the imported milestone as the epic's
+		// child. Asserted through the guard itself rather than through a
+		// canonicalizing lookup, because a lookup would resolve either
+		// spelling and prove nothing.
 		if _, err := verb.Cancel(r.ctx, r.tree(), "E-0011", testActor, "measuring the child guard", false); err == nil {
 			t.Error("cancelling an epic that owns a draft milestone was allowed; the child guard did not see the milestone")
 		}
-		// Scope: the remaining reference fields — `depends_on`,
-		// `superseded_by`, `discovered_in`, `addressed_by` — still carry
-		// whatever spelling the manifest declared, since the frontmatter
-		// map is copied with only `id` and `parent` resolved. Tracked as
-		// G-0505, which also owns the decision to exclude `prior_ids`,
-		// whose narrow entries are the record rather than a defect.
 		if tr.ByID("M-0001") == nil {
 			t.Fatalf("milestone M-0001 absent; tree has %+v", idsOf(tr))
 		}
@@ -335,4 +329,156 @@ entities:
 			t.Errorf("reallocate emitted non-canonical ids: %+v", got)
 		}
 	})
+}
+
+// narrowReferenceViolations reports every id-reference an entity carries
+// below canonical width. The fields are the ones entity.ForwardRefs reads,
+// so a reference field the read side knows about is judged here too.
+func narrowReferenceViolations(t *testing.T, tr *tree.Tree) []string {
+	t.Helper()
+	var out []string
+	for _, e := range tr.Entities {
+		for _, ref := range entity.ForwardRefs(e) {
+			if canon := entity.Canonicalize(ref.Target); canon != ref.Target {
+				out = append(out, fmt.Sprintf("%s %s: %q is narrower than canonical %q", e.ID, ref.Field, ref.Target, canon))
+			}
+		}
+	}
+	return out
+}
+
+// idToken matches an entity id, bare or as the parent of a composite id.
+var idToken = regexp.MustCompile(`\b(?:ADR|E|M|G|D|C)-\d+\b`)
+
+// narrowIDsIn returns the ids in s spelled below canonical width.
+func narrowIDsIn(s string) []string {
+	var out []string
+	for _, tok := range idToken.FindAllString(s, -1) {
+		if entity.Canonicalize(tok) != tok {
+			out = append(out, tok)
+		}
+	}
+	return out
+}
+
+// TestReferenceWritingVerbs_WriteCanonicalWidth pins that an id a verb is
+// handed at a narrow width lands on disk canonical in every reference field
+// it writes. Each argument below resolves through read tolerance, so the
+// width typed is the only thing that could reach disk narrow.
+func TestReferenceWritingVerbs_WriteCanonicalWidth(t *testing.T) {
+	t.Parallel()
+
+	t.Run("structured verbs", func(t *testing.T) {
+		t.Parallel()
+		r := newRunner(t)
+		gap, dec := bornCompleteFixtureBody(entity.KindGap), bornCompleteFixtureBody(entity.KindDecision)
+		r.must(verb.Add(r.ctx, r.tree(), entity.KindEpic, "One", testActor, verb.AddOptions{}))
+		r.must(verb.Add(r.ctx, r.tree(), entity.KindEpic, "Two", testActor, verb.AddOptions{}))
+		r.must(verb.Add(r.ctx, r.tree(), entity.KindMilestone, "First", testActor, verb.AddOptions{EpicID: "E-01", TDD: "none"}))
+		r.must(verb.Add(r.ctx, r.tree(), entity.KindMilestone, "Second", testActor, verb.AddOptions{EpicID: "E-0001", TDD: "none", DependsOn: []string{"M-001"}}))
+		r.must(verb.Add(r.ctx, r.tree(), entity.KindMilestone, "Third", testActor, verb.AddOptions{EpicID: "E-0001", TDD: "none"}))
+		r.must(verb.Add(r.ctx, r.tree(), entity.KindGap, "Probe gap", testActor, verb.AddOptions{DiscoveredIn: "M-001", BodyOverride: gap}))
+		r.must(verb.Add(r.ctx, r.tree(), entity.KindDecision, "Probe decision", testActor, verb.AddOptions{RelatesTo: []string{"E-01"}, BodyOverride: dec}))
+		r.must(verb.Move(r.ctx, r.tree(), "M-0002", "E-02", testActor))
+		r.must(verb.MilestoneDependsOn(r.ctx, r.tree(), "M-0002", []string{"M-001", "M-003"}, false, testActor, ""))
+		r.must(verb.Promote(r.ctx, r.tree(), "G-0001", "addressed", testActor, "", false, verb.PromoteOptions{AddressedBy: []string{"M-001"}}))
+
+		tr := r.tree()
+		if got := narrowReferenceViolations(t, tr); len(got) != 0 {
+			t.Errorf("a verb stored a reference at the width it was handed: %+v", got)
+		}
+		// The sweep above is only worth running if it measured something:
+		// every field it covers must actually hold a reference.
+		held := map[string]bool{}
+		for _, e := range tr.Entities {
+			for _, ref := range entity.ForwardRefs(e) {
+				held[ref.Field] = true
+			}
+		}
+		for _, f := range []string{"parent", "depends_on", "discovered_in", "relates_to", "addressed_by"} {
+			if !held[f] {
+				t.Errorf("no entity holds a %s reference; the sweep measured nothing for it", f)
+			}
+		}
+	})
+
+	t.Run("import", func(t *testing.T) {
+		t.Parallel()
+		r := newRunner(t)
+		src := `version: 1
+entities:
+  - kind: epic
+    id: E-0001
+    frontmatter: {title: "Foundations", status: active}
+  - kind: milestone
+    id: M-0001
+    frontmatter: {title: "Bootstrap", status: draft, parent: E-01, tdd: none}
+  - kind: milestone
+    id: M-0002
+    frontmatter: {title: "Next", status: draft, parent: E-0001, tdd: none, depends_on: [M-001]}
+  - kind: gap
+    id: G-0001
+    frontmatter: {title: "Found", status: addressed, discovered_in: M-001, addressed_by: [M-002]}
+    body: "## What's missing\n\nA thing.\n\n## Why it matters\n\nIt bites.\n"
+  - kind: decision
+    id: D-0001
+    frontmatter: {title: "Chosen", status: proposed, relates_to: [E-01]}
+    body: "## Question\n\nWhich.\n\n## Decision\n\nThis.\n\n## Reasoning\n\nBecause.\n"
+`
+		res, err := verb.Import(r.ctx, r.tree(), loadManifest(t, src), testActor, verb.ImportOptions{})
+		if err != nil {
+			t.Fatalf("Import: %v", err)
+		}
+		if check.HasErrors(res.Findings) {
+			t.Fatalf("findings: %+v", res.Findings)
+		}
+		applyImport(t, r, res.Plans)
+		if got := narrowReferenceViolations(t, r.tree()); len(got) != 0 {
+			t.Errorf("import stored a reference at the width the manifest declared: %+v", got)
+		}
+	})
+}
+
+// TestVerbSubjects_NameIDsAtCanonicalWidth pins that a commit subject names
+// the entity at canonical width when the verb was handed a narrow id. The
+// subject is written into history that no later edit rewrites, so it is
+// held to the same width as the frontmatter.
+func TestVerbSubjects_NameIDsAtCanonicalWidth(t *testing.T) {
+	t.Parallel()
+	r := newRunner(t)
+	var subjects []string
+	record := func(res *verb.Result) {
+		t.Helper()
+		if res == nil || res.Plan == nil {
+			t.Fatalf("verb produced no plan: %+v", res)
+		}
+		subjects = append(subjects, res.Plan.Subject)
+	}
+	dec := bornCompleteFixtureBody(entity.KindDecision)
+	r.must(verb.Add(r.ctx, r.tree(), entity.KindEpic, "Engine", testActor, verb.AddOptions{}))
+	r.must(verb.Add(r.ctx, r.tree(), entity.KindMilestone, "Cache", testActor, verb.AddOptions{EpicID: "E-0001", TDD: "none"}))
+	r.must(verb.Add(r.ctx, r.tree(), entity.KindDecision, "Choice", testActor, verb.AddOptions{BodyOverride: dec}))
+	for _, title := range []string{"first", "second", "third"} {
+		r.must(verb.AddAC(r.ctx, r.tree(), "M-0001", title, testActor))
+	}
+
+	record(r.must(verb.Promote(r.ctx, r.tree(), "E-01", "active", testActor, "", false, verb.PromoteOptions{})))
+	record(r.must(verb.Promote(r.ctx, r.tree(), "M-001/AC-1", "met", testActor, "", false, verb.PromoteOptions{})))
+	record(r.must(verb.Cancel(r.ctx, r.tree(), "M-001/AC-2", testActor, "", false)))
+	record(r.must(verb.PromoteACPhase(r.ctx, r.tree(), "M-001/AC-3", "red", testActor, "", false, nil)))
+	record(r.must(verb.Retitle(r.ctx, r.tree(), "M-001", "Cache renamed", testActor, "", 0)))
+	record(r.must(verb.Retitle(r.ctx, r.tree(), "M-001/AC-3", "third renamed", testActor, "", 0)))
+	record(r.must(verb.Rename(r.ctx, r.tree(), "M-001/AC-3", "third renamed again", testActor, 0)))
+	record(r.must(verb.Cancel(r.ctx, r.tree(), "D-001", testActor, "", false)))
+	record(r.must(verb.PromoteAuditOnly(r.ctx, r.tree(), "E-01", "active", testActor, "backfill")))
+	record(r.must(verb.PromoteAuditOnly(r.ctx, r.tree(), "M-001/AC-1", "met", testActor, "backfill")))
+	record(r.must(verb.PromoteACPhaseAuditOnly(r.ctx, r.tree(), "M-001/AC-3", "red", testActor, "backfill")))
+	record(r.must(verb.CancelAuditOnly(r.ctx, r.tree(), "D-001", testActor, "backfill")))
+	record(r.must(verb.CancelAuditOnly(r.ctx, r.tree(), "M-001/AC-2", testActor, "backfill")))
+
+	for _, subject := range subjects {
+		if narrow := narrowIDsIn(subject); len(narrow) != 0 {
+			t.Errorf("subject %q names %v below canonical width", subject, narrow)
+		}
+	}
 }

@@ -220,12 +220,15 @@ func setContains(set []string, want string) bool {
 	return false
 }
 
-// anyChild iterates the tree's entities whose Parent == e.ID and
-// returns the OR of pred over them. The predicate receives the child
-// entity; its return value short-circuits on the first true.
+// anyChild iterates the tree's entities whose Parent names e and
+// returns the OR of pred over them. Ids compare at canonical width, since
+// a parent field and the id it names can be stored at different widths.
+// The predicate receives the child entity; its return value
+// short-circuits on the first true.
 func anyChild(t *tree.Tree, e *entity.Entity, pred func(*entity.Entity) (bool, error)) (bool, error) {
+	id := entity.Canonicalize(e.ID)
 	for _, c := range t.Entities {
-		if c.Parent != e.ID {
+		if entity.Canonicalize(c.Parent) != id {
 			continue
 		}
 		ok, err := pred(c)
