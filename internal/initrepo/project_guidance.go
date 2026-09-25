@@ -76,13 +76,17 @@ func ensureProjectGuidance(ctx context.Context, root string, cfg *config.Config,
 		return step
 	}
 	missing := ""
+	// Every outcome after retrieval carries the missing-pack report.
+	incomplete := func(detail string) *StepResult {
+		step.Detail = "guidance incomplete: " + detail + missing
+		return step
+	}
 	if len(snapshot.Missing) > 0 {
 		missing = fmt.Sprintf("; the catalogue no longer has %s: remove it from guidance.packs or move it to guidance.ignored", strings.Join(snapshot.Missing, ", "))
 		// Only a run that adopts may retire a pack it cannot replace; any
 		// other refresh leaves the installed guidance as it is.
 		if !opts.AdoptGuidance {
-			step.Detail = "guidance incomplete: installed guidance left unchanged" + missing
-			return step
+			return incomplete("installed guidance left unchanged")
 		}
 	}
 	// An adopted selection is prepared before installation and written only
@@ -90,8 +94,7 @@ func ensureProjectGuidance(ctx context.Context, root string, cfg *config.Config,
 	var adopted *aiwfyaml.Doc
 	if selected != cfg.Guidance.Packs {
 		if adopted, err = guidanceSelectionEdit(root, selected, cfg.Guidance.Ignored); err != nil {
-			step.Detail = fmt.Sprintf("guidance incomplete: %v", err) + missing
-			return step
+			return incomplete(err.Error())
 		}
 	}
 	// Packs the catalogue no longer lists stay selected but are not installed,
@@ -99,13 +102,11 @@ func ensureProjectGuidance(ctx context.Context, root string, cfg *config.Config,
 	installed := slices.DeleteFunc(slices.Clone(*selected), func(id string) bool { return slices.Contains(snapshot.Missing, id) })
 	changed, err := projectguidance.Install(ctx, root, snapshot, projectguidance.InstallOptions{Source: cfg.GuidanceSource(), Selected: installed, HostFiles: hosts})
 	if err != nil {
-		step.Detail = fmt.Sprintf("guidance incomplete: %v", err) + missing
-		return step
+		return incomplete(err.Error())
 	}
 	if adopted != nil {
 		if err = adopted.Write(filepath.Join(root, config.FileName)); err != nil {
-			step.Detail = fmt.Sprintf("guidance incomplete: recording adopted guidance: %v", err) + missing
-			return step
+			return incomplete("recording adopted guidance: " + err.Error())
 		}
 		changed = true
 	}
