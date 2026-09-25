@@ -250,9 +250,6 @@ in is any good. Vocabulary in `docs/design/oracles.md`; initiative context in
   half. The body's first move is the *threshold raise*, not diff-scoping, which it
   prices at a config file, a Make target, hook and CI wiring, and a host CI lacks.
   Unblocked — G-0462 repaired the instrument this was waiting on
-- **G-0110** — mutation testing's diff filter is misdiagnosed: from the module root
-  it includes new files; passed a subpath it excludes everything, modified files
-  included. Blocks nothing — `make mutate-diff` never calls `--diff`
 - **G-0253** — the coverage gate is statement-scoped, so an arm with no block of its
   own — an implicit else, a co-listed `case`, a short-circuited sub-condition — reads
   as covered. A defensive arm with a body is caught

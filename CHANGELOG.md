@@ -16,6 +16,18 @@ section in this file.
 
 ## [Unreleased]
 
+### Changed — G-0110: `make mutate-diff` mutates only the changed lines
+
+The `wf-vacuity` skill now describes a diff-scoped mutation target as one that
+mutates the lines you changed, where it said the packages you changed. This
+repository's `make mutate-diff` does that: it mutates only the `internal/` Go lines
+changed since the merge-base with `origin/main` — committed, staged or unstaged —
+rather than every line of every changed package. It names untracked files instead of
+mutating them, with `git add -N <path>` as the way to include one, and names packages
+whose only changed lines are in their tests instead of mutating them. A gremlins run
+that exits non-zero or leaves a report that cannot be read is named as failed, and no
+pass is reported while one stands.
+
 ### Fixed — G-0712: verbs write entity ids at canonical width, whatever width they were given
 
 An id handed to a verb at a legacy narrow width — `E-01`, `M-001`, `C-001` — is
