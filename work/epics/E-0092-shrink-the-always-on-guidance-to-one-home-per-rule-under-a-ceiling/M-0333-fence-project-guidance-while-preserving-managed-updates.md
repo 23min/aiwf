@@ -122,7 +122,7 @@ The `aiwf-check` skill documents the `commit-msg` hook: what it refuses as a com
 
 - ADR-0053: the commit rules ship in `aiwf check` for every aiwf repository. M-0350 moves AC-1 to AC-3's internal fence into the kernel and removes it; AC-4 and AC-6 stay internal.
 - The ceiling follows the routing block: the project router is a required read for both hosts and counts toward the handwritten figure, and the generated pack index toward the aiwf-generated figure. A link from a host entry point's handwritten text must be classified in the read table; a link from the router is conditional unless the table says otherwise.
-- A reference is a markdown link in any CommonMark form, or an `@` import in prose outside code; a path named any other way — in backticks, or in a sentence — is outside the ceiling's model.
+- A reference is a markdown link in any CommonMark form, or an `@` import in prose outside code; a path named any other way — in backticks, or in a sentence — is outside the ceiling's model. An import is followed for Claude Code only: Codex does not expand one and reads the line as text.
 - D-0102 supersedes D-0091. It holds the evidence rule over the whole guidance set by a list of every test that reads the guidance from the repository root, each entry naming it a pin, a relationship check, an absence check, or a test naming a guidance document without reading it. A new reader fails until an entry is written, so whether a new test is a pin is decided at review of that entry, not by a check of its assertions.
 - AC-4 reports no separate figures for conditional reads or for personal and global material: nothing downstream reads them from this policy, and where moved text lands is the growth report's and M-0338's to measure.
 - AC-6 was restated from a scan of phrase-presence assertions to the reader list after its first implementation reached `met`; the phase history recorded under AC-6 belongs to that first implementation.
@@ -133,7 +133,7 @@ The `aiwf-check` skill documents the `commit-msg` hook: what it refuses as a com
 
 ## Validation
 
-Environment: the aiwf devcontainer, Linux, `go1.25.11 linux/amd64`, at commit `aeb109223` on `milestone/M-0333-fence-project-guidance-while-preserving-managed-updates`; the audit base is the epic branch's fork point from `main`, `a61f3d8de`.
+Environment: the aiwf devcontainer, Linux, `go1.25.11 linux/amd64`, at commit `4156b9edd` on `milestone/M-0333-fence-project-guidance-while-preserving-managed-updates`; the audit base is the epic branch's fork point from `main`, `a61f3d8de`.
 
 - `make check-fast` — expected exit 0; observed exit 0, `golangci-lint` reporting `0 issues.`
 - `AIWF_COVERAGE_BASE=a61f3d8de make coverage-gate` — expected exit 0; observed exit 0 across the diff-scoped branch-coverage audit, the firing-fixture meta-gate, the skill-edit provenance backstop, the co-author ban and the guidance fence.
@@ -142,13 +142,13 @@ Environment: the aiwf devcontainer, Linux, `go1.25.11 linux/amd64`, at commit `a
   - `codex: handwritten primed 9687 (ceiling 9687), aiwf-generated 2430, required reads [.guidance/project.md .guidance/index.md CLAUDE.md]`
 - AC-5's design note: with `CLAUDE.md` out of the channel list, `go test -count=1 -run 'TestPolicy_FindingCodesAreDiscoverable|TestPolicy_ConfigFieldsAreDiscoverable' ./internal/policies/` reported `provenance.refuse_coauthors` as undocumented; with the `commit-msg` row in the `aiwf-check` skill it passes.
 - G-0676's floor command, in a detached worktree of the commit with `CLAUDE.md` deleted (`go test ./internal/policies/ -count=1 | grep '^--- FAIL'`) — observed 20 failing tests. Nineteen are entries of `guidanceReaderList`: its fifteen pins, its three absence checks, and `TestPolicy_GuidanceCeiling`. The twentieth, `TestPolicy_DesignDocAnchors`, reaches `CLAUDE.md` by a path computed at run time and is outside the reader rule, as Decisions records.
-- `AIWF_COVERAGE_BASE=v0.30.0 go test -count=1 -run TestPolicy_GuidanceFence -v ./internal/policies/` — the fence over the repository's history since `v0.30.0`, 3,592 commits; observed `--- FAIL: TestPolicy_GuidanceFence (3.01s)` with 377 findings across 44 commits: files beside a handwritten guidance change, missing entity trailers, and removals without a disposition block. Only the pushed range is judged in CI, so this is a cost measurement, not a gate.
+- `AIWF_COVERAGE_BASE=v0.30.0 go test -count=1 -run TestPolicy_GuidanceFence -v ./internal/policies/` — the fence over the repository's history since `v0.30.0`, 3,600 commits; observed `--- FAIL: TestPolicy_GuidanceFence (2.68s)` with 377 findings across 44 commits: files beside a handwritten guidance change, missing entity trailers, and removals without a disposition block. Only the pushed range is judged in CI, so this is a cost measurement, not a gate.
 
 ## Deferrals
 
 - G-0710 — an assertion outside an `if` condition passes the shipped-prose ban.
 - G-0711 — `gitops.BlobReader` reports a missing path containing whitespace as a parse error.
-- The pins listed in `guidanceReaderList` are re-aimed or retired by M-0335 AC-3 as their passages move.
+- The pins listed in `guidanceReaderList` are retired by M-0335 AC-3 as their passages move.
 
 ## Reviewer notes
 
