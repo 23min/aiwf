@@ -1,7 +1,6 @@
 package policies
 
 import (
-	"os"
 	"path/filepath"
 	"strings"
 	"testing"
@@ -20,13 +19,7 @@ func TestPolicy_NoOpClaimScope(t *testing.T) {
 func claimScopeFixture(t *testing.T, src string) string {
 	t.Helper()
 	root := t.TempDir()
-	dir := filepath.Join(root, "internal", "verb")
-	if err := os.MkdirAll(dir, 0o755); err != nil {
-		t.Fatalf("mkdir: %v", err)
-	}
-	if err := os.WriteFile(filepath.Join(dir, "fixture.go"), []byte(src), 0o644); err != nil {
-		t.Fatalf("write: %v", err)
-	}
+	mustWrite(t, filepath.Join(root, "internal", "verb", "fixture.go"), src)
 	return root
 }
 

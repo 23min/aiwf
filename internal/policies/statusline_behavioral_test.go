@@ -79,22 +79,15 @@ func newStatuslineRepo(t *testing.T) string {
 	gitIn(t, base, "init", "--bare", bare)
 	gitIn(t, repo, "init", "-b", "main")
 	gitIn(t, repo, "remote", "add", "origin", bare)
-	writeFile(t, filepath.Join(repo, "f0"), "0\n")
+	mustWrite(t, filepath.Join(repo, "f0"), "0\n")
 	gitIn(t, repo, "add", "-A")
 	gitIn(t, repo, "commit", "-m", "init")
 	gitIn(t, repo, "push", "-u", "origin", "main")
 	// One commit ahead of upstream -> sync renders ↑1.
-	writeFile(t, filepath.Join(repo, "f1"), "1\n")
+	mustWrite(t, filepath.Join(repo, "f1"), "1\n")
 	gitIn(t, repo, "add", "-A")
 	gitIn(t, repo, "commit", "-m", "ahead")
 	return repo
-}
-
-func writeFile(t *testing.T, path, content string) {
-	t.Helper()
-	if err := os.WriteFile(path, []byte(content), 0o644); err != nil {
-		t.Fatal(err)
-	}
 }
 
 // writeGhStub writes a fake `gh` to a fresh dir (returned for PATH prepend).
@@ -357,7 +350,7 @@ func TestStatusline_M0191_AC3_CacheKeyIncludesHEAD(t *testing.T) {
 		t.Fatalf("AC-3 precondition: run 1 should render \"✓ ci\" for a success run at HEAD\n got: %q", out1)
 	}
 
-	writeFile(t, filepath.Join(repo, "f2"), "2\n")
+	mustWrite(t, filepath.Join(repo, "f2"), "2\n")
 	gitIn(t, repo, "add", "-A")
 	gitIn(t, repo, "commit", "-m", "second")
 	headB := gitIn(t, repo, "rev-parse", "HEAD")
@@ -454,10 +447,7 @@ func epicHUDSegment(out string) string {
 func writeEpicFixture(t *testing.T, repo, id, slug, status string) {
 	t.Helper()
 	dir := filepath.Join(repo, "work", "epics", id+"-"+slug)
-	if err := os.MkdirAll(dir, 0o755); err != nil {
-		t.Fatal(err)
-	}
-	writeFile(t, filepath.Join(dir, "epic.md"),
+	mustWrite(t, filepath.Join(dir, "epic.md"),
 		"---\nid: "+id+"\ntitle: "+slug+"\nstatus: "+status+"\n---\n## Deliverable\n\nfixture\n")
 }
 
@@ -465,10 +455,7 @@ func writeEpicFixture(t *testing.T, repo, id, slug, status string) {
 func writeMilestoneFixture(t *testing.T, repo, epicID, epicSlug, id, slug, status string) {
 	t.Helper()
 	dir := filepath.Join(repo, "work", "epics", epicID+"-"+epicSlug)
-	if err := os.MkdirAll(dir, 0o755); err != nil {
-		t.Fatal(err)
-	}
-	writeFile(t, filepath.Join(dir, id+"-"+slug+".md"),
+	mustWrite(t, filepath.Join(dir, id+"-"+slug+".md"),
 		"---\nid: "+id+"\ntitle: "+slug+"\nstatus: "+status+"\nparent: "+epicID+"\n---\n## Deliverable\n\nfixture\n")
 }
 
@@ -605,10 +592,7 @@ func TestStatusline_M0192_RitualEpicMissingFileFallsBackToUnknownGlyph(t *testin
 func writeHealthFixture(t *testing.T, repo, source, body string) {
 	t.Helper()
 	dir := filepath.Join(repo, ".claude")
-	if err := os.MkdirAll(dir, 0o755); err != nil {
-		t.Fatal(err)
-	}
-	writeFile(t, filepath.Join(dir, "health."+source+".json"), body)
+	mustWrite(t, filepath.Join(dir, "health."+source+".json"), body)
 }
 
 // healthJSON builds a minimal producer health file body carrying one finding.
@@ -633,7 +617,7 @@ const (
 func newHealthRepo(t *testing.T) string {
 	t.Helper()
 	repo := newStatuslineRepo(t)
-	writeFile(t, filepath.Join(repo, "aiwf.yaml"), "schema_version: 1\n")
+	mustWrite(t, filepath.Join(repo, "aiwf.yaml"), "schema_version: 1\n")
 	gitIn(t, repo, "add", "-A")
 	gitIn(t, repo, "commit", "-m", "aiwf.yaml")
 	return repo
@@ -869,10 +853,7 @@ func hudSegment(out string) string {
 func writeGapFixture(t *testing.T, repo, id, slug, status string) {
 	t.Helper()
 	dir := filepath.Join(repo, "work", "gaps")
-	if err := os.MkdirAll(dir, 0o755); err != nil {
-		t.Fatal(err)
-	}
-	writeFile(t, filepath.Join(dir, id+"-"+slug+".md"),
+	mustWrite(t, filepath.Join(dir, id+"-"+slug+".md"),
 		"---\nid: "+id+"\ntitle: "+slug+"\nstatus: "+status+"\n---\n## Problem\n\nfixture\n")
 }
 

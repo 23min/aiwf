@@ -16,6 +16,12 @@ section in this file.
 
 ## [Unreleased]
 
+### Changed (internal) — consolidate the internal/policies test file-writing helpers
+
+Nothing user-facing changed; several near-identical test-only helpers in
+`internal/policies` that wrote a fixture file to disk now route through one
+shared helper.
+
 ### Changed — G-0110: `make mutate-diff` mutates only the changed lines
 
 The `wf-vacuity` skill now describes a diff-scoped mutation target as one that

@@ -30,39 +30,25 @@ func buildSyntheticAcksTree(t *testing.T, opts acksTreeOpts) string {
 	t.Helper()
 	root := t.TempDir()
 
-	checkDir := filepath.Join(root, "internal", "check")
-	if err := os.MkdirAll(checkDir, 0o755); err != nil {
-		t.Fatal(err)
-	}
 	acks := "package check\n\nfunc WalkAcknowledgedSHAs(root string) map[string]bool { return nil }\n"
 	if opts.declareEntitiesWalker {
 		acks += "\nfunc WalkAcknowledgedSHAEntities(root string) map[string]map[string]bool { return nil }\n"
 	}
-	if err := os.WriteFile(filepath.Join(checkDir, "acks.go"), []byte(acks), 0o644); err != nil {
-		t.Fatal(err)
-	}
+	mustWrite(t, filepath.Join(root, "internal", "check", "acks.go"), acks)
 	if opts.internalRecompute {
 		// Bare-identifier (same-package) call — the rule-internal
 		// recompute shape E3 forbids.
 		rule := "package check\n\nfunc someRule(root string) {\n\t_ = WalkAcknowledgedSHAEntities(root)\n}\n"
-		if err := os.WriteFile(filepath.Join(checkDir, "somerule.go"), []byte(rule), 0o644); err != nil {
-			t.Fatal(err)
-		}
+		mustWrite(t, filepath.Join(root, "internal", "check", "somerule.go"), rule)
 	}
 
-	cliDir := filepath.Join(root, "internal", "cli", "check")
-	if err := os.MkdirAll(cliDir, 0o755); err != nil {
-		t.Fatal(err)
-	}
 	// `check.WalkAcknowledged...` parses as a SelectorExpr with X=Ident
 	// "check"; ParseFile does not resolve imports, so no import line is
 	// needed for the policy's pkg.Name == "check" match.
 	cli := "package check\n\nfunc Run(root string) {\n\t_ = check.WalkAcknowledgedSHAs(root)\n" +
 		strings.Repeat("\t_ = check.WalkAcknowledgedSHAEntities(root)\n", opts.gatherCalls) +
 		"}\n"
-	if err := os.WriteFile(filepath.Join(cliDir, "check.go"), []byte(cli), 0o644); err != nil {
-		t.Fatal(err)
-	}
+	mustWrite(t, filepath.Join(root, "internal", "cli", "check", "check.go"), cli)
 	return root
 }
 
@@ -200,36 +186,21 @@ func buildClass4fTree(t *testing.T, docNames, extraReaders []string) string {
 	t.Helper()
 	root := t.TempDir()
 
-	checkDir := filepath.Join(root, "internal", "check")
-	if err := os.MkdirAll(checkDir, 0o755); err != nil {
-		t.Fatal(err)
-	}
 	doc := "// WalkAcknowledgedSHAs walks HEAD for acknowledgments.\n//\n// Consumers: " +
 		strings.Join(docNames, ", ") + ".\n"
 	acks := "package check\n\n" + doc +
 		"func WalkAcknowledgedSHAs(root string) map[string]bool { return nil }\n\n" +
 		"func WalkAcknowledgedSHAEntities(root string) map[string]map[string]bool { return nil }\n"
-	if err := os.WriteFile(filepath.Join(checkDir, "acks.go"), []byte(acks), 0o644); err != nil {
-		t.Fatal(err)
-	}
+	mustWrite(t, filepath.Join(root, "internal", "check", "acks.go"), acks)
 	for i, name := range extraReaders {
 		src := "package check\n\nfunc unrelatedLeadingDecl() int { return 0 }\n\nfunc " + name +
 			"(ackedSHAs map[string]bool, sha string) bool { return ackedSHAs[sha] }\n"
-		fname := filepath.Join(checkDir, "reader"+string(rune('a'+i))+".go")
-		if err := os.WriteFile(fname, []byte(src), 0o644); err != nil {
-			t.Fatal(err)
-		}
+		mustWrite(t, filepath.Join(root, "internal", "check", "reader"+string(rune('a'+i))+".go"), src)
 	}
 
-	cliDir := filepath.Join(root, "internal", "cli", "check")
-	if err := os.MkdirAll(cliDir, 0o755); err != nil {
-		t.Fatal(err)
-	}
 	cli := "package check\n\nfunc Run(root string) {\n\t_ = check.WalkAcknowledgedSHAs(root)\n" +
 		"\t_ = check.WalkAcknowledgedSHAEntities(root)\n}\n"
-	if err := os.WriteFile(filepath.Join(cliDir, "check.go"), []byte(cli), 0o644); err != nil {
-		t.Fatal(err)
-	}
+	mustWrite(t, filepath.Join(root, "internal", "cli", "check", "check.go"), cli)
 	return root
 }
 

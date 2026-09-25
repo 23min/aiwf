@@ -1,7 +1,6 @@
 package policies
 
 import (
-	"os"
 	"path/filepath"
 	"testing"
 )
@@ -200,10 +199,6 @@ func ok() Finding {
 func buildSyntheticTreeForCodePolicy(t *testing.T, pkgName, body string) string {
 	t.Helper()
 	root := t.TempDir()
-	checkDir := filepath.Join(root, "internal", "check")
-	if err := os.MkdirAll(checkDir, 0o755); err != nil {
-		t.Fatal(err)
-	}
 	const checkGo = `package check
 
 const (
@@ -213,15 +208,7 @@ const (
 	CodeFSMHistoryConsistent = "fsm-history-consistent"
 )
 `
-	if err := os.WriteFile(filepath.Join(checkDir, "codes.go"), []byte(checkGo), 0o644); err != nil {
-		t.Fatal(err)
-	}
-	driftDir := filepath.Join(root, "internal", "cli", pkgName)
-	if err := os.MkdirAll(driftDir, 0o755); err != nil {
-		t.Fatal(err)
-	}
-	if err := os.WriteFile(filepath.Join(driftDir, "drift.go"), []byte(body), 0o644); err != nil {
-		t.Fatal(err)
-	}
+	mustWrite(t, filepath.Join(root, "internal", "check", "codes.go"), checkGo)
+	mustWrite(t, filepath.Join(root, "internal", "cli", pkgName, "drift.go"), body)
 	return root
 }

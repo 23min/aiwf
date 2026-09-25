@@ -1,7 +1,6 @@
 package policies
 
 import (
-	"os"
 	"path/filepath"
 	"strings"
 	"testing"
@@ -28,13 +27,7 @@ func writeFixtureTree(t *testing.T, applyBody string, extra map[string]string) s
 		files[p] = c
 	}
 	for rel, contents := range files {
-		full := filepath.Join(root, rel)
-		if err := os.MkdirAll(filepath.Dir(full), 0o755); err != nil {
-			t.Fatalf("mkdir %s: %v", rel, err)
-		}
-		if err := os.WriteFile(full, []byte(contents), 0o644); err != nil {
-			t.Fatalf("write %s: %v", rel, err)
-		}
+		mustWrite(t, filepath.Join(root, rel), contents)
 	}
 	return root
 }

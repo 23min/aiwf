@@ -1,8 +1,6 @@
 package policies
 
 import (
-	"os"
-	"path/filepath"
 	"strings"
 	"testing"
 )
@@ -15,7 +13,7 @@ import (
 func writeVerbScaffoldTree(t *testing.T, relPath, body string) string {
 	t.Helper()
 	root := t.TempDir()
-	writeVerbScaffoldGo(t, root, "internal/cli/cliutil/prim.go", `package cliutil
+	writeAt(t, root, "internal/cli/cliutil/prim.go", `package cliutil
 
 func ResolveLogger()          {}
 func EmitVerbOutcome()        {}
@@ -24,21 +22,8 @@ func ResolveActorWithSource() {}
 func BeginVerbDiag()          {}
 func ResolvePrelude()         {}
 `)
-	writeVerbScaffoldGo(t, root, relPath, body)
+	writeAt(t, root, relPath, body)
 	return root
-}
-
-// writeVerbScaffoldGo writes body to root/relPath (forward-slash
-// relative), creating parent dirs.
-func writeVerbScaffoldGo(t *testing.T, root, relPath, body string) {
-	t.Helper()
-	full := filepath.Join(root, filepath.FromSlash(relPath))
-	if err := os.MkdirAll(filepath.Dir(full), 0o755); err != nil {
-		t.Fatal(err)
-	}
-	if err := os.WriteFile(full, []byte(body), 0o644); err != nil {
-		t.Fatal(err)
-	}
 }
 
 // verbScaffoldFires reports whether the policy produced a violation for
@@ -163,7 +148,7 @@ func run() {
 func TestPolicyVerbScaffold_WalkContinuesPastUnparsable(t *testing.T) {
 	t.Parallel()
 	root := writeVerbScaffoldTree(t, "internal/cli/broken/broken.go", "package broken\n\nfunc {{{ not go\n")
-	writeVerbScaffoldGo(t, root, "internal/cli/frob/frob.go", `package frob
+	writeAt(t, root, "internal/cli/frob/frob.go", `package frob
 
 import "github.com/23min/aiwf/internal/cli/cliutil"
 
@@ -189,7 +174,7 @@ func TestPolicyVerbScaffold_RelocationAnchor(t *testing.T) {
 	root := t.TempDir()
 	// cliutil stub with ResolveActor "relocated" out (every other
 	// keyed primitive still declared here).
-	writeVerbScaffoldGo(t, root, "internal/cli/cliutil/prim.go", `package cliutil
+	writeAt(t, root, "internal/cli/cliutil/prim.go", `package cliutil
 
 func ResolveLogger()          {}
 func EmitVerbOutcome()        {}
@@ -199,7 +184,7 @@ func ResolvePrelude()         {}
 `)
 	// A correctly-routed verb — nothing re-inlined — so the anchor is
 	// the only violation the policy can produce.
-	writeVerbScaffoldGo(t, root, "internal/cli/frob/frob.go", `package frob
+	writeAt(t, root, "internal/cli/frob/frob.go", `package frob
 
 import "github.com/23min/aiwf/internal/cli/cliutil"
 

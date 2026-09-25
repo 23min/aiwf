@@ -1,7 +1,6 @@
 package policies
 
 import (
-	"os"
 	"path/filepath"
 	"testing"
 )
@@ -117,10 +116,6 @@ func bad(status string) bool {
 func buildSyntheticTreeForEnumPolicy(t *testing.T, pkgName, body string) string {
 	t.Helper()
 	root := t.TempDir()
-	entityDir := filepath.Join(root, "internal", "entity")
-	if err := os.MkdirAll(entityDir, 0o755); err != nil {
-		t.Fatal(err)
-	}
 	const entityGo = `package entity
 
 const (
@@ -133,16 +128,8 @@ const (
 	PriorityUrgent  = "urgent"
 )
 `
-	if err := os.WriteFile(filepath.Join(entityDir, "entity.go"), []byte(entityGo), 0o644); err != nil {
-		t.Fatal(err)
-	}
-	driftDir := filepath.Join(root, "internal", "cli", pkgName)
-	if err := os.MkdirAll(driftDir, 0o755); err != nil {
-		t.Fatal(err)
-	}
-	if err := os.WriteFile(filepath.Join(driftDir, "drift.go"), []byte(body), 0o644); err != nil {
-		t.Fatal(err)
-	}
+	mustWrite(t, filepath.Join(root, "internal", "entity", "entity.go"), entityGo)
+	mustWrite(t, filepath.Join(root, "internal", "cli", pkgName, "drift.go"), body)
 	return root
 }
 
