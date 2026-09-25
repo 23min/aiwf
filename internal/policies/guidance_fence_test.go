@@ -356,7 +356,10 @@ func TestParseFenceLog(t *testing.T) {
 	out := sha1 + " " + sha2 + "\x00E-0001\nE-0002\x00subject\n\nM\n" + sha3 + "\n\x00\x00\n" +
 		"R087\x00docs/a.md\x00docs/b.md\x00A\x00" + sha3 + "\x00D\x00gone.md\x00M\x00M\x00" +
 		sha2 + "\x00\x00root\n\x00\x00\nA\x00first.md\x00"
-	got := parseFenceLog(out)
+	got, err := parseFenceLog(out)
+	if err != nil {
+		t.Fatal(err)
+	}
 	if len(got) != 2 {
 		t.Fatalf("got %d records %+v, want 2", len(got), got)
 	}
@@ -649,6 +652,7 @@ func TestDispositionBlocks(t *testing.T) {
 		{name: "a value outside the set is malformed", body: "Removed: the rule\nDisposition: moved somewhere\n", bad: 1},
 		{name: "a form missing its target is malformed", body: "Removed: the rule\nDisposition: copy of\n", bad: 1},
 		{name: "Removed without a following Disposition is malformed", body: "Removed: the rule\n\nDisposition: deleted\n", bad: 1},
+		{name: "Removed on the message's last line is malformed", body: "Removed: the rule", bad: 1},
 		{name: "a Disposition with no Removed is not a block", body: "Disposition: deleted\n"},
 		{name: "two blocks both count", body: "Removed: a\nDisposition: deleted\nRemoved: b\nDisposition: relocated to x.md\n", wellFormed: 2},
 	}
@@ -741,15 +745,18 @@ func TestGuidanceFence_DispositionSeam(t *testing.T) {
 	}
 }
 
-// TestParseFenceLog_Malformed pins that a stream the parser cannot frame
-// yields what it can: a leading token that is no header is skipped, and a
-// header cut off before its fields reads as a commit with none.
+// TestParseFenceLog_Malformed pins that a field where a header belongs
+// that is not one is an error, and that a header cut off before its fields
+// reads as a commit with none.
 func TestParseFenceLog_Malformed(t *testing.T) {
 	t.Parallel()
+	if _, err := parseFenceLog("Good signature for someone\x00"); err == nil {
+		t.Error("a stream opening with something other than a header: want an error")
+	}
 	sha := strings.Repeat("d", 40)
-	got := parseFenceLog("not a header\x00" + sha)
-	if len(got) != 1 || got[0].sha != sha || got[0].entity != "" || got[0].body != "" || len(got[0].changes) != 0 {
-		t.Errorf("parseFenceLog = %+v, want one commit with no fields", got)
+	got, err := parseFenceLog(sha)
+	if err != nil || len(got) != 1 || got[0].sha != sha || got[0].entity != "" || got[0].body != "" || len(got[0].changes) != 0 {
+		t.Errorf("parseFenceLog = %+v, %v; want one commit with no fields", got, err)
 	}
 }
 
@@ -785,6 +792,92 @@ func TestGuidanceFence_Deletions(t *testing.T) {
 			commitOwned(runGit, "docs(guidance): rule")
 			if got := fenceViolationFiles(t, root, base); !equalStrings(got, tc.want) {
 				t.Errorf("violation files = %v, want %v", got, tc.want)
+			}
+		})
+	}
+}
+
+// TestGuidanceFence_SignedCommitIsJudged pins that a signature check git
+// prints under log.showSignature does not take the place of a commit's
+// header: a signed mixed commit is still refused.
+func TestGuidanceFence_SignedCommitIsJudged(t *testing.T) {
+	t.Parallel()
+	if _, err := exec.LookPath("ssh-keygen"); err != nil {
+		t.Skip("ssh-keygen unavailable; cannot sign a fixture commit")
+	}
+	root, runGit, writeFile, base := guidanceFenceFixture(t)
+	key := filepath.Join(t.TempDir(), "key")
+	if out, err := exec.Command("ssh-keygen", "-q", "-t", "ed25519", "-N", "", "-f", key).CombinedOutput(); err != nil {
+		t.Fatalf("ssh-keygen: %v\n%s", err, out)
+	}
+	runGit("config", "gpg.format", "ssh")
+	runGit("config", "user.signingkey", key)
+	runGit("config", "log.showSignature", "true")
+	writeFile("CLAUDE.md", fenceHostFile(fenceClaudeText+"\nA new rule.\n", "@.claude/aiwf-guidance.md", "route v1"))
+	writeFile(fenceCodeFile, "package app\n\nvar x = 1\n")
+	runGit("add", "-A")
+	runGit("commit", "-q", "-S", "-m", "docs(guidance): signed", "--trailer", "aiwf-entity: "+provFixtureEntityID)
+	if got, want := fenceViolationFiles(t, root, base), []string{fenceCodeFile}; !equalStrings(got, want) {
+		t.Errorf("violation files = %v, want %v", got, want)
+	}
+}
+
+// TestGuidanceFence_RelatedRules pins two rules of what may ride with a
+// guidance change: an owned output the router links to is an output, not
+// guidance; and a host file changed only inside its managed blocks rides
+// along as generated output, whatever the owned record lists.
+func TestGuidanceFence_RelatedRules(t *testing.T) {
+	t.Parallel()
+	t.Run("an owned output the router links to is related", func(t *testing.T) {
+		t.Parallel()
+		root, runGit, writeFile, _ := guidanceFenceFixture(t)
+		writeFile(fenceProjectDoc, "# Project guidance\n\nFor tests read [testing](../"+fenceRoutedDoc+"). Go: [pack](packs/go/guide.md).\n")
+		commitOwned(runGit, "docs(guidance): route the pack\n\nRemoved: old route line\nDisposition: deleted")
+		base := trimLine(runGit("rev-parse", "HEAD"))
+		writeFile(fencePack, "# Go pack\n\nRegenerated.\n")
+		writeFile(".guidance/.aiwf-owned", fenceOwnedJSON("ff"))
+		writeFile(fenceCodeFile, "package app\n\nvar x = 1\n")
+		runGit("add", "-A")
+		runGit("commit", "-q", "-m", "chore: aiwf update beside code")
+		if got := fenceViolationFiles(t, root, base); len(got) != 0 {
+			t.Errorf("a regenerated owned output is not a guidance change; got %v", got)
+		}
+	})
+	t.Run("a host file changed only in its blocks rides along", func(t *testing.T) {
+		t.Parallel()
+		root, runGit, writeFile, _ := guidanceFenceFixture(t)
+		writeFile(".guidance/.aiwf-owned", "{\n  \".guidance/index.md\": \"aa\"\n}\n")
+		commitOwned(runGit, "chore: owned record without host files")
+		base := trimLine(runGit("rev-parse", "HEAD"))
+		writeFile("AGENTS.md", fenceHostFile(fenceAgentsText+"\nAnother rule.\n", "fragment v1", "route v1"))
+		writeFile("CLAUDE.md", fenceHostFile(fenceClaudeText, "@.claude/aiwf-guidance.md", "route v2"))
+		commitOwned(runGit, "docs(guidance): rule")
+		if got := fenceViolationFiles(t, root, base); len(got) != 0 {
+			t.Errorf("a block-only host change is related; got %v", got)
+		}
+	})
+}
+
+// TestRemovesLine pins what counts as removing a line: a line inserted
+// anywhere removes nothing, a reworded line removes the old one, and a
+// repeated line removed once is a removal.
+func TestRemovesLine(t *testing.T) {
+	t.Parallel()
+	tests := []struct {
+		name, before, after string
+		want                bool
+	}{
+		{"an insertion mid-file", "a\nb\nc\n", "a\nb\nnew\nc\n", false},
+		{"a line moved", "a\nb\n", "b\na\n", false},
+		{"a rewording", "a\nb\n", "a\nB\n", true},
+		{"one of two repeats removed", "x\nx\ny\n", "x\ny\n", true},
+		{"blank lines removed", "a\n\n\nb\n", "a\nb\n", false},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+			if got := removesLine(tt.before, tt.after); got != tt.want {
+				t.Errorf("removesLine = %v, want %v", got, tt.want)
 			}
 		})
 	}

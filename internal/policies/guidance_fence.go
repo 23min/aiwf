@@ -8,7 +8,6 @@ import (
 	"os"
 	"os/exec"
 	"regexp"
-	"sort"
 	"strings"
 
 	"github.com/23min/aiwf/internal/entity"
@@ -76,23 +75,11 @@ func guidanceFenceViolations(root, baseRef string) ([]Violation, error) {
 	if err != nil {
 		return nil, err
 	}
-	if !anyGuidanceCommit(commits) {
-		return nil, nil
-	}
 	resolves, err := entityResolver(root)
 	if err != nil {
 		return nil, err
 	}
 	return detectGuidanceFence(commits, resolves), nil
-}
-
-func anyGuidanceCommit(commits []fenceCommit) bool {
-	for _, c := range commits {
-		if len(c.Guidance) > 0 {
-			return true
-		}
-	}
-	return false
 }
 
 // detectGuidanceFence is the pure core. A commit that changed no
@@ -165,11 +152,11 @@ type fenceChange struct {
 // -z turns off path quoting, so no message and no path can be mistaken for
 // framing. Renames are detected so a moved guidance document reports as
 // one pair; --root diffs a root commit against the empty tree whatever
-// log.showRoot says. Every guidance path is a markdown file, so a commit
-// changing none is outside the fence without reading anything; the rest
-// read their content through one cat-file pump.
+// log.showRoot says, and --no-show-signature keeps a signature check out
+// of the stream whatever log.showSignature says. Content is read through
+// one cat-file pump.
 func fenceCommitsInRange(root, baseRef string) ([]fenceCommit, error) {
-	cmd := exec.Command("git", "-c", "diff.renames=true", "log", "-z", "--root", "-M",
+	cmd := exec.Command("git", "log", "-z", "--root", "-M", "--no-show-signature",
 		"--format=%H %P%x00%(trailers:key="+gitops.TrailerEntity+",valueonly,unfold,separator=%x0a)%x00%B%x00",
 		"--name-status", baseRef+"..HEAD")
 	cmd.Dir = root
@@ -183,14 +170,15 @@ func fenceCommitsInRange(root, baseRef string) ([]fenceCommit, error) {
 		return nil, err
 	}
 	defer func() { _ = reader.Close() }()
-	cl := &fenceClassifier{reader: reader, revisions: map[string]fenceRevision{}}
+	cl := &fenceClassifier{reader: reader}
+	recs, err := parseFenceLog(string(out))
+	if err != nil {
+		return nil, err
+	}
 	var commits []fenceCommit
-	for _, rec := range parseFenceLog(string(out)) {
-		if !touchesMarkdown(rec.changes) {
-			continue
-		}
+	for _, rec := range recs {
 		c, err := cl.classify(rec.sha, rec.parent, rec.changes)
-		if err != nil { //coverage:ignore propagates a cat-file read failure; every path read exists at the revision it is read at, so only a pump that dies mid-run fails one
+		if err != nil { //coverage:ignore propagates a cat-file read failure; an absent file reads as empty, so only a pump that dies mid-run fails a read
 			return nil, err
 		}
 		c.Entity, c.Body = rec.entity, rec.body
@@ -206,15 +194,6 @@ func stderrOf(err error) []byte {
 		return exitErr.Stderr
 	}
 	return nil
-}
-
-func touchesMarkdown(changes []fenceChange) bool {
-	for _, ch := range changes {
-		if strings.HasSuffix(ch.Old, ".md") || strings.HasSuffix(ch.New, ".md") {
-			return true
-		}
-	}
-	return false
 }
 
 // fenceLogRecord is one commit read from the NUL-framed log.
@@ -233,8 +212,9 @@ var (
 // and its message, then --name-status fields. A status is followed by one
 // path, or two for a rename or a copy. Fields are read by position, so a
 // path or a message that looks like a header or a status is never taken
-// for one.
-func parseFenceLog(out string) []fenceLogRecord {
+// for one. A field where a header belongs that is not one means the stream
+// is not the one asked for, and is an error rather than a skip.
+func parseFenceLog(out string) ([]fenceLogRecord, error) {
 	tok := strings.Split(out, "\x00")
 	field := func(i int) string {
 		if i < len(tok) {
@@ -246,9 +226,12 @@ func parseFenceLog(out string) []fenceLogRecord {
 	for i := 0; i < len(tok); {
 		// A root commit's parent list is empty, leaving a trailing space.
 		head := strings.TrimSpace(tok[i])
-		if !fenceHeaderRE.MatchString(head) {
+		if head == "" {
 			i++
 			continue
+		}
+		if !fenceHeaderRE.MatchString(head) {
+			return nil, fmt.Errorf("git log: expected a commit header, read %q", head)
 		}
 		revs := strings.Fields(head)
 		rec := fenceLogRecord{sha: revs[0], body: field(i + 2)}
@@ -260,7 +243,6 @@ func parseFenceLog(out string) []fenceLogRecord {
 		// A second aiwf-entity trailer would not change the verdict for
 		// the first, which names the owner.
 		rec.entity, _, _ = strings.Cut(field(i+1), "\n")
-		rec.entity = strings.TrimSpace(rec.entity)
 		i += 3
 		for i < len(tok) {
 			status := strings.TrimLeft(tok[i], "\n")
@@ -288,7 +270,7 @@ func parseFenceLog(out string) []fenceLogRecord {
 		}
 		recs = append(recs, rec)
 	}
-	return recs
+	return recs, nil
 }
 
 // fenceRevision is the guidance set and its related files as they stood
@@ -299,11 +281,9 @@ type fenceRevision struct {
 }
 
 // fenceClassifier reads file content at revisions through one cat-file
-// pump and caches each revision's guidance set, since a commit's parent is
-// usually the previous commit judged.
+// pump.
 type fenceClassifier struct {
-	reader    *gitops.BlobReader
-	revisions map[string]fenceRevision
+	reader *gitops.BlobReader
 }
 
 // classify decides, for each changed pair, whether it is a handwritten
@@ -336,24 +316,14 @@ func (cl *fenceClassifier) classify(sha, parent string, changes []fenceChange) (
 		}
 		c.Unrelated = append(c.Unrelated, fenceReportPath(ch))
 	}
-	sort.Strings(c.Unrelated)
 	return c, nil
 }
 
 // relatedPair reports whether a non-guidance change may ride with a
-// guidance change. A rename is related only when both its sides are, so
-// an owned file cannot be moved out to carry unrelated content.
+// guidance change: every side the change has is related where it stands,
+// so an owned file cannot be moved out to carry unrelated content.
 func relatedPair(before, after fenceRevision, ch fenceChange) bool {
-	switch {
-	case ch.Old == "":
-		return after.isRelated(ch.New)
-	case ch.New == "":
-		return before.isRelated(ch.Old)
-	case ch.Old == ch.New:
-		return before.isRelated(ch.Old) || after.isRelated(ch.New)
-	default:
-		return before.isRelated(ch.Old) && after.isRelated(ch.New)
-	}
+	return (ch.Old == "" || before.isRelated(ch.Old)) && (ch.New == "" || after.isRelated(ch.New))
 }
 
 // fenceReportPath names a pair by the path that exists after the commit,
@@ -384,9 +354,6 @@ func (r fenceRevision) isRelated(p string) bool {
 // revision reads the router and the owned-output record at rev. A file
 // absent at rev contributes nothing.
 func (cl *fenceClassifier) revision(rev string) (fenceRevision, error) {
-	if r, ok := cl.revisions[rev]; ok {
-		return r, nil
-	}
 	r := fenceRevision{routed: map[string]bool{}, owned: map[string]bool{}}
 	rawOwned, err := cl.show(rev, fenceOwnedRecord)
 	if err != nil { //coverage:ignore propagates a cat-file pump failure
@@ -411,7 +378,6 @@ func (cl *fenceClassifier) revision(rev string) (fenceRevision, error) {
 			r.routed[p] = true
 		}
 	}
-	cl.revisions[rev] = r
 	return r, nil
 }
 
@@ -540,7 +506,7 @@ func validDisposition(v string) bool {
 		return true
 	}
 	for _, form := range fenceDispositionForms {
-		if target, ok := strings.CutPrefix(v, form); ok && strings.TrimSpace(target) != "" {
+		if _, ok := strings.CutPrefix(v, form); ok {
 			return true
 		}
 	}
