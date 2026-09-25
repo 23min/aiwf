@@ -15,7 +15,7 @@ acs:
       tdd_phase: done
     - id: AC-3
       title: Ignored packs are never adopted
-      status: open
+      status: met
       tdd_phase: done
     - id: AC-4
       title: Disabled maintenance performs no detection or adoption
