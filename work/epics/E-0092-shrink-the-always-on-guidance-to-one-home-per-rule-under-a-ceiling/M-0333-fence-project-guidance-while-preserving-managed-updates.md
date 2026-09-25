@@ -133,7 +133,7 @@ The `aiwf-check` skill documents the `commit-msg` hook: what it refuses as a com
 
 ## Validation
 
-Environment: the aiwf devcontainer, Linux, `go1.25.11 linux/amd64`, at commit `4434e03e9` on `milestone/M-0333-fence-project-guidance-while-preserving-managed-updates`; the audit base is the epic branch's fork point from `main`, `a61f3d8de`.
+Environment: the aiwf devcontainer, Linux, `go1.25.11 linux/amd64`, at commit `aeb109223` on `milestone/M-0333-fence-project-guidance-while-preserving-managed-updates`; the audit base is the epic branch's fork point from `main`, `a61f3d8de`.
 
 - `make check-fast` — expected exit 0; observed exit 0, `golangci-lint` reporting `0 issues.`
 - `AIWF_COVERAGE_BASE=a61f3d8de make coverage-gate` — expected exit 0; observed exit 0 across the diff-scoped branch-coverage audit, the firing-fixture meta-gate, the skill-edit provenance backstop, the co-author ban and the guidance fence.
@@ -142,7 +142,7 @@ Environment: the aiwf devcontainer, Linux, `go1.25.11 linux/amd64`, at commit `4
   - `codex: handwritten primed 9687 (ceiling 9687), aiwf-generated 2430, required reads [.guidance/project.md .guidance/index.md CLAUDE.md]`
 - AC-5's design note: with `CLAUDE.md` out of the channel list, `go test -count=1 -run 'TestPolicy_FindingCodesAreDiscoverable|TestPolicy_ConfigFieldsAreDiscoverable' ./internal/policies/` reported `provenance.refuse_coauthors` as undocumented; with the `commit-msg` row in the `aiwf-check` skill it passes.
 - G-0676's floor command, in a detached worktree of the commit with `CLAUDE.md` deleted (`go test ./internal/policies/ -count=1 | grep '^--- FAIL'`) — observed 20 failing tests. Nineteen are entries of `guidanceReaderList`: its fifteen pins, its three absence checks, and `TestPolicy_GuidanceCeiling`. The twentieth, `TestPolicy_DesignDocAnchors`, reaches `CLAUDE.md` by a path computed at run time and is outside the reader rule, as Decisions records.
-- `AIWF_COVERAGE_BASE=v0.30.0 go test -count=1 -run TestPolicy_GuidanceFence -v ./internal/policies/` — the fence over the repository's history since `v0.30.0`, 3,589 commits; observed `--- FAIL: TestPolicy_GuidanceFence (4.26s)` with 377 findings across 44 commits: files beside a handwritten guidance change, missing entity trailers, and removals without a disposition block. Only the pushed range is judged in CI, so this is a cost measurement, not a gate.
+- `AIWF_COVERAGE_BASE=v0.30.0 go test -count=1 -run TestPolicy_GuidanceFence -v ./internal/policies/` — the fence over the repository's history since `v0.30.0`, 3,592 commits; observed `--- FAIL: TestPolicy_GuidanceFence (3.01s)` with 377 findings across 44 commits: files beside a handwritten guidance change, missing entity trailers, and removals without a disposition block. Only the pushed range is judged in CI, so this is a cost measurement, not a gate.
 
 ## Deferrals
 
