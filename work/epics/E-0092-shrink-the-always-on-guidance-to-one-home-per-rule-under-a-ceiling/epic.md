@@ -43,7 +43,7 @@ Repository development rules, aiwf operating guidance and project-adopted langua
 - Changing existing check conditions while improving their messages.
 - New host adapters, including Copilot, or universal guarantees of model compliance.
 - A size ceiling or size report for consumer repositories; the ceiling and the guidance-reader list are internal to this repository (ADR-0053).
-- Instruction files below a repository's root.
+- Fencing instruction files below a repository's root (ADR-0053).
 
 ## Constraints
 
