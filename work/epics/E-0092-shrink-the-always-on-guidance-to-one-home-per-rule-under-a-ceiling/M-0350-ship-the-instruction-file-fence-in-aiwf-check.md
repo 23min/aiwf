@@ -81,6 +81,7 @@ The internal fence policy, its tests and its gate wiring are removed. **Pass cri
 - Settle before the rule blocks consumers:
   - A re-wrapped paragraph counts as a removal under the internal fence's line comparison.
   - The disposition set has no value for a rewording, so the internal fence records rewordings as `deleted`.
+  - Every message line starting `Removed:` opens a block, so a stray one — prose that happens to start that way, or a block missing its `Disposition:` line — fails the commit even beside a well-formed block.
   - `aiwf init` and `aiwf update` wrapping a bare guidance import in markers moves a handwritten line into a block, which the rule reads as a removal.
   - The internal fence and `internal/initrepo` read managed blocks with different parsers: a stray `<!-- aiwf:guidance:… -->` comment makes the fence judge the whole file while `initrepo` refreshes the block in place.
 - The internal fence run over this repository's history since `v0.30.0` reports several dozen historical commits that mixed an instruction-file edit with other files, measured in M-0333's Validation; sorting them informs which companion files the kernel rule allows.
