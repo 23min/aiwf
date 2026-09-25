@@ -43,7 +43,9 @@ func TestBinary_FirstInitAdoptsApplicablePacks(t *testing.T) {
 	if err := os.WriteFile(filepath.Join(home, ".gitconfig"), []byte(redirect), 0o644); err != nil {
 		t.Fatal(err)
 	}
-	environment := append(os.Environ(), isolated...)
+	// Git reads the isolated home's configuration even when the parent sets
+	// GIT_CONFIG_GLOBAL.
+	environment := append(os.Environ(), append(isolated, "GIT_CONFIG_GLOBAL="+filepath.Join(home, ".gitconfig"))...)
 	cmd := exec.CommandContext(t.Context(), testutil.AiwfBinary(t), "init", "--root", root, "--skip-hook", "--actor", "human/test")
 	cmd.Env = environment
 	output, err := cmd.CombinedOutput()
