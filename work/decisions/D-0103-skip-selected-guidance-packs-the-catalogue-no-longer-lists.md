@@ -1,7 +1,7 @@
 ---
 id: D-0103
 title: Skip selected guidance packs the catalogue no longer lists
-status: proposed
+status: accepted
 relates_to:
     - M-0351
     - E-0095
