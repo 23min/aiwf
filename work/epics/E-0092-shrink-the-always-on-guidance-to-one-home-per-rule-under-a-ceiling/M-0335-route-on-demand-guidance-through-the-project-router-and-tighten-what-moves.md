@@ -51,7 +51,7 @@ Record fresh sessions for both hosts, started at the repository root, for a Go c
 
 ### AC-3 — Every pin on a moved passage is re-aimed or retired with a recorded reason
 
-Every test in the list G-0676's floor command produces, re-run at this milestone's start and recorded here, either passes against the passage's new file or is removed with its reason in this body's table. **Pass criterion**: the policy suite is green and the table accounts for every listed test; the list and the command sit in Validation. The mechanical half is the green suite; the accounting is held at review.
+Every test in the list G-0676's floor command produces, re-run at this milestone's start and recorded here, is re-aimed at a relationship check or an absence check — never at the passage's new file, which D-0102 counts as guidance too — or retired, with its reason in this body's table; its entry in the guidance-reader list changes or goes with it. **Pass criterion**: the policy suite is green and the table accounts for every listed test; the list and the command sit in Validation. The mechanical half is the green suite; the accounting is held at review.
 
 ### AC-4 — The ceiling constant steps down to the re-homed size
 
