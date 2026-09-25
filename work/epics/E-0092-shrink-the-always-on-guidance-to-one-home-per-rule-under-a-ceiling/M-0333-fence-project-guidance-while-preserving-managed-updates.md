@@ -43,7 +43,7 @@ Fence changes to both hosts' project instructions and their canonical developmen
 
 The development-guidance set is the root `CLAUDE.md`, the root `AGENTS.md`, `.guidance/project.md`, and the on-demand documents `.guidance/project.md` routes to. aiwf owns the managed blocks in the two entry points — `aiwf:guidance` (the Claude import, and the fragment rendered inline for Codex) and `aiwf:engineering-guidance` (the routing block) — and the files listed in `.guidance/.aiwf-owned`. Everything else in the set is handwritten: `CLAUDE.md` and `AGENTS.md` outside those blocks, and `.guidance/project.md`. Generated blocks are judged through their owning sources; expected rendered copies are not independent rule restatements. E-0092 defines the primed/on-demand split and the two ceilings.
 
-G-0676 measured how `CLAUDE.md` grew and named the surfaces that let it. D-0091 decided that no AC is evidenced by a sentence pinned there, enforced diff-scoped. The skill-edit provenance backstop already judges commits in the base-to-HEAD range by what they touch and what trailer they carry, so the commit-seam gate takes its shape. Removing `CLAUDE.md` from the discoverability channel list leaves one config field documented nowhere else: `provenance.refuse_coauthors`, whose `commit-msg` refusal no shipped skill describes.
+G-0676 measured how `CLAUDE.md` grew and named the surfaces that let it. D-0091 decided that no AC is evidenced by a sentence pinned there; D-0102 supersedes it. The skill-edit provenance backstop already judges commits in the base-to-HEAD range by what they touch and what trailer they carry, so the commit-seam gate takes its shape. Removing `CLAUDE.md` from the discoverability channel list leaves one config field documented nowhere else: `provenance.refuse_coauthors`, whose `commit-msg` refusal no shipped skill describes.
 
 ## Acceptance criteria
 
@@ -61,7 +61,7 @@ A development-guidance commit whose diff removes lines and whose message body ca
 
 ### AC-4 — The always-on set above the ceiling fails the policy
 
-Measure Claude and Codex separately. A host's primed load is its entry point's automatically loaded content plus every document a reference requires reading in full before any task — today `AGENTS.md`'s preamble makes `CLAUDE.md` such a read for Codex. Count the handwritten primed words and the rendered fragment's words as two figures; the ceiling applies to the handwritten figure, and the fragment figure is reported for M-0339. Conditional task reads and personal/global material are reported separately. **Pass criterion**: fixtures cover both host entry points, transitive required reads, shared targets, cycles, missing targets, and a host above its ceiling. Unresolved routing is reported rather than silently omitted. Each host's initial ceiling equals its measured handwritten primed size; later milestones lower it. The measure is an explicit model of configured routing, checked against live observations in M-0334, not a claim to inspect hidden model context.
+Measure Claude and Codex separately. A host's primed load is its entry point's automatically loaded content plus every document a reference requires reading in full before any task — today `AGENTS.md`'s preamble makes `CLAUDE.md` such a read for Codex. Count the handwritten primed words and the rendered fragment's words as two figures; the ceiling applies to the handwritten figure, and the fragment figure is reported for M-0339. **Pass criterion**: fixtures cover both host entry points, transitive required reads, shared targets, cycles, missing targets, and a host above its ceiling. Unresolved routing is reported rather than silently omitted. Each host's initial ceiling equals its measured handwritten primed size; later milestones lower it. The measure is an explicit model of configured routing, checked against live observations in M-0334, not a claim to inspect hidden model context.
 
 ### AC-5 — Finding codes and config fields remain discoverable outside guidance
 
@@ -69,11 +69,11 @@ The discoverability channel list contains neither host entry point nor any on-de
 
 ### AC-6 — Tests reading development guidance are listed and reviewed
 
-A test that reads a document in the development-guidance set from the repository root — directly or through a helper in its package — fails the gate unless it is listed in the guidance-reader allowlist, whose entry names it a pin to retire, a relationship check, an absence check, or a test that names a guidance document without reading it. **Pass criterion**: a fixture test reading `CLAUDE.md` from the root is reported, and the same test listed is not; a test reading a `CLAUDE.md` in a fixture repository is not a reader; a test holds the list equal to the tree's readers in both directions, so a new reader fails and a retired pin's entry must go. **Edge cases**: a nested `CLAUDE.md` counts; a read through a helper is caught at the test calling it. The tests G-0676's floor command lists that read the guidance are listed. **Code references**: `internal/policies/guidance_readers.go`; D-0102 is the decision.
+A test that reads a document in the development-guidance set from the repository root — directly or through a helper in its package — fails the gate unless it is listed in the guidance-reader allowlist, whose entry names it a pin to retire, a relationship check, an absence check, or a test that names a guidance document without reading it. **Pass criterion**: a fixture test reading `CLAUDE.md` from the root is reported, and the same test listed is not; a test reading a `CLAUDE.md` in a fixture repository is not a reader; a test holds the list equal to the tree's readers in both directions, so a new reader fails and a retired pin's entry must go. **Edge cases**: a nested `CLAUDE.md` counts; a read through a helper is caught at the test calling it. The tests G-0676's floor command lists are listed, except one that reaches the guidance by a path computed at run time, which the rule does not see. **Code references**: `internal/policies/guidance_readers.go`; D-0102 is the decision.
 
 ## Constraints
 
-- Every guidance change this milestone makes carries an entity trailer and may include related sources and generated outputs together, including the two sentences the principle text loses.
+- Every guidance change this milestone makes carries an entity trailer and may include related sources and generated outputs together, including the phrase the principle text loses.
 - The ceiling constant is the measured current size, not a target. Lowering it is later milestones' work.
 - No prose is cut here beyond the principle text; the gate lands on a file that still has everything in it.
 - Measured figures in Validation carry their command (G-0668).
@@ -87,7 +87,7 @@ A test that reads a document in the development-guidance set from the repository
 
 ## Surfaces touched
 
-- `internal/policies/` — two new policies and their tests; `discoverability.go`
+- `internal/policies/` — three new policies and their tests; `discoverability.go`
 - `Makefile`, `.github/workflows/go.yml` — the gate regex
 - Both host entry points, `.guidance/project.md` and the on-demand documents — source changes and owned regeneration kept together
 
@@ -124,6 +124,7 @@ The `aiwf-check` skill documents the `commit-msg` hook: what it refuses as a com
 - The ceiling follows the routing block: the project router is a required read for both hosts and counts toward the handwritten figure, and the generated pack index toward the aiwf-generated figure. A link from a host entry point's handwritten text must be classified in the read table; a link from the router is conditional unless the table says otherwise.
 - A reference is a markdown link in any CommonMark form, or an `@` import in prose outside code; a path named any other way — in backticks, or in a sentence — is outside the ceiling's model.
 - D-0102 supersedes D-0091. It holds the evidence rule over the whole guidance set by a list of every test that reads the guidance from the repository root, each entry naming it a pin, a relationship check, an absence check, or a test naming a guidance document without reading it. A new reader fails until an entry is written, so whether a new test is a pin is decided at review of that entry, not by a check of its assertions.
+- AC-4 no longer promises separate figures for conditional reads and personal or global material: nothing downstream reads them from this policy, and where moved text lands is the growth report's and M-0338's to measure.
 - AC-6 was restated from a scan of phrase-presence assertions to the reader list after its first implementation reached `met`; the phase history recorded under AC-6 belongs to that first implementation.
 - The reader rule sees a guidance document named by a literal or a package constant, and a root resolved through a `repoRoot` helper or a literal climbing path. A root resolved any other way, a function reached through a package variable, and a path computed at run time are outside it — `TestPolicy_DesignDocAnchors` resolves links from the design documents into `CLAUDE.md` and is not listed.
 - `provenance.refuse_coauthors` is documented in a `commit-msg` row of the `aiwf-check` skill's hook table, since `CLAUDE.md` was its only channel.
