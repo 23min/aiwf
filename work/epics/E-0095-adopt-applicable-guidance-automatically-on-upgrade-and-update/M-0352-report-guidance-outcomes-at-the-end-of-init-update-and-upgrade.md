@@ -10,7 +10,7 @@ acs:
     - id: AC-1
       title: Update ends with a guidance section of adopted, installed and ignored packs
       status: open
-      tdd_phase: red
+      tdd_phase: green
     - id: AC-2
       title: Blocked installation is reported with its cause and fix
       status: open
