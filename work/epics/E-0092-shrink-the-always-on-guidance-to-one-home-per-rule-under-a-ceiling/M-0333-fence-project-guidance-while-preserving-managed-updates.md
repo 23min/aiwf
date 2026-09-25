@@ -69,7 +69,7 @@ The discoverability channel list contains neither host entry point nor any on-de
 
 ### AC-6 — Tests reading development guidance are listed and reviewed
 
-A test that reads a document in the development-guidance set from the repository root — directly or through a helper in its package — fails the gate unless it is listed in the guidance-reader allowlist, whose entry names it a pin to retire, a relationship check, or an absence check. **Pass criterion**: a fixture test reading `CLAUDE.md` from the root is reported, and the same test listed is not; a test reading a `CLAUDE.md` in a fixture repository is not a reader; a test holds the list equal to the tree's readers in both directions, so a new reader fails and a retired pin's entry must go. **Edge cases**: a nested `CLAUDE.md` counts; a read through a helper is caught at the test calling it. The tests G-0676's floor command lists that read the guidance are listed. **Code references**: `internal/policies/guidance_readers.go`; D-0091 is the decision.
+A test that reads a document in the development-guidance set from the repository root — directly or through a helper in its package — fails the gate unless it is listed in the guidance-reader allowlist, whose entry names it a pin to retire, a relationship check, an absence check, or a test that names a guidance document without reading it. **Pass criterion**: a fixture test reading `CLAUDE.md` from the root is reported, and the same test listed is not; a test reading a `CLAUDE.md` in a fixture repository is not a reader; a test holds the list equal to the tree's readers in both directions, so a new reader fails and a retired pin's entry must go. **Edge cases**: a nested `CLAUDE.md` counts; a read through a helper is caught at the test calling it. The tests G-0676's floor command lists that read the guidance are listed. **Code references**: `internal/policies/guidance_readers.go`; D-0102 is the decision.
 
 ## Constraints
 
@@ -80,7 +80,7 @@ A test that reads a document in the development-guidance set from the repository
 
 ## Design notes
 
-- Apply D-0091 to both host entry points, `.guidance/project.md` and the on-demand documents; the existing pins stand as list entries until E-0092 retires them.
+- Apply D-0102 to both host entry points, `.guidance/project.md` and the on-demand documents; the existing pins stand as list entries until E-0092 retires them.
 - Keep disposition blocks in commit bodies and reuse the commit-range machinery.
 - Generated updates must be possible without hand-editing rendered blocks; the owned set in Context is the delivered implementation's.
 - Re-run discoverability tests with both host instruction files excluded before claiming the removal needs no replacement channel. Record command and result.
@@ -101,7 +101,7 @@ A test that reads a document in the development-guidance set from the repository
 
 - E-0094 — done; it delivered the owned set and routing this fence judges.
 - G-0676 — the defect this closes
-- D-0091 — the pin decision AC-6 enforces
+- D-0102 — the decision AC-6 enforces, superseding D-0091
 - D-0089 — external content ownership; personal instructions are measured separately
 
 ## Coverage notes
@@ -110,9 +110,8 @@ A test that reads a document in the development-guidance set from the repository
 
 ## References
 
-- G-0676, D-0091, D-0089
+- G-0676, D-0091, D-0102, D-0089
 - `internal/policies/skill_edit_provenance_backstop.go` — the gate's shape
-- `internal/policies/firing_fixture_presence.go` — the shrinking-ledger shape
 - `internal/policies/guidance_readers.go` — the reader list AC-6 adds
 
 ## Release note
@@ -124,61 +123,23 @@ The `aiwf-check` skill documents the `commit-msg` hook: what it refuses as a com
 - ADR-0053: the commit rules ship in `aiwf check` for every aiwf repository. M-0350 moves AC-1 to AC-3's internal fence into the kernel and removes it; AC-4 and AC-6 stay internal.
 - The ceiling follows the routing block: the project router is a required read for both hosts and counts toward the handwritten figure, and the generated pack index toward the aiwf-generated figure. A link from a host entry point's handwritten text must be classified in the read table; a link from the router is conditional unless the table says otherwise.
 - A reference is a markdown link in any CommonMark form, or an `@` import in prose outside code; a path named any other way — in backticks, or in a sentence — is outside the ceiling's model.
-- D-0091 is held by a list of every test that reads development guidance from the repository root, each entry naming it a pin, a relationship check or an absence check, held equal to the tree in both directions. D-0091 words its enforcement as diff-scoped; the list has the same effect — a new reader fails, an existing pin stands until retired — and also catches a reader created by a change outside its own test file. A syntactic check can decide whether a test reads the guidance, not whether it asserts a phrase, so the rule asks the first.
-- A test reaching a guidance document by a path computed at run time — `TestPolicy_DesignDocAnchors` resolves links from the design documents into `CLAUDE.md` — names no document the rule can see and is outside it; it is a relationship check.
+- D-0102 supersedes D-0091. It holds the evidence rule over the whole guidance set by a list of every test that reads the guidance from the repository root, each entry naming it a pin, a relationship check, an absence check, or a test naming a guidance document without reading it. A new reader fails until an entry is written, so whether a new test is a pin is decided at review of that entry, not by a check of its assertions.
+- AC-6 was restated from a scan of phrase-presence assertions to the reader list after its first implementation reached `met`; the phase history recorded under AC-6 belongs to that first implementation.
+- The reader rule sees a guidance document named by a literal or a package constant, and a root resolved through a `repoRoot` helper or a literal climbing path. A root resolved any other way, a function reached through a package variable, and a path computed at run time are outside it — `TestPolicy_DesignDocAnchors` resolves links from the design documents into `CLAUDE.md` and is not listed.
 - `provenance.refuse_coauthors` is documented in a `commit-msg` row of the `aiwf-check` skill's hook table, since `CLAUDE.md` was its only channel.
-- The principle text rides with AC-5 as its own trailered commit and is held at review: a test pinning the principle would pin a heading of `CLAUDE.md`, which D-0091 bars.
-- D-0091's two statements in `CLAUDE.md` ride with AC-6 as trailered commits, held at review. D-0091 names `CLAUDE.md`; the statements credit E-0092 with extending it to `AGENTS.md`, the router and its routed documents.
+- The principle text rides with AC-5 as its own trailered commit and is held at review: a test pinning the principle would pin a heading of `CLAUDE.md`, which D-0102 bars.
+- The evidence-rule statements in `CLAUDE.md` ride with AC-6 as trailered commits and cite D-0102; they are held at review.
+
+## Validation
+
+Filled at wrap from the gate run at the milestone's final commit.
 
 ## Deferrals
 
 - G-0710 — an assertion outside an `if` condition passes the shipped-prose ban.
 - G-0711 — `gitops.BlobReader` reports a missing path containing whitespace as a parse error.
 - The pins listed in `guidanceReaderList` are retired by M-0335 AC-3 as their passages move.
-
-## Validation
-
-Environment: the aiwf devcontainer, Linux, `go1.25.11 linux/amd64`, at commit `ecaa4399e` on `milestone/M-0333-fence-project-guidance-while-preserving-managed-updates`; the audit base is the epic branch's fork point from `main`, `a61f3d8de`.
-
-- `make check-fast` — expected exit 0; observed exit 0, `golangci-lint` reporting `0 issues.`
-- `AIWF_COVERAGE_BASE=a61f3d8de make coverage-gate` — expected exit 0; observed exit 0 across the diff-scoped branch-coverage audit, the firing-fixture meta-gate, the skill-edit provenance backstop and the guidance fence.
-- `go test -count=1 -run TestPolicy_GuidanceCeiling -v ./internal/policies/` — the AC-4 measure, in whitespace-separated words. Observed:
-  - `claude-code: handwritten primed 9559 (ceiling 9559), aiwf-generated 2393, required reads [.guidance/project.md .guidance/index.md]`
-  - `codex: handwritten primed 9688 (ceiling 9688), aiwf-generated 2430, required reads [.guidance/project.md .guidance/index.md CLAUDE.md]`
-- AC-5's design note: with `CLAUDE.md` out of the channel list, `go test -count=1 -run 'TestPolicy_FindingCodesAreDiscoverable|TestPolicy_ConfigFieldsAreDiscoverable' ./internal/policies/` reported `provenance.refuse_coauthors` as undocumented; with the `commit-msg` row in the `aiwf-check` skill it passes.
-- G-0676's floor command, re-run in a detached worktree of `HEAD` with `CLAUDE.md` deleted (`go test ./internal/policies/ -count=1 | grep '^--- FAIL'`) — observed 20 failing tests. Nineteen are entries of `guidanceReaderList`: its fifteen pins, its three absence checks, and `TestPolicy_GuidanceCeiling`. The twentieth, `TestPolicy_DesignDocAnchors`, reaches `CLAUDE.md` by a path computed at run time and is outside the reader rule, as Decisions records.
-- `AIWF_COVERAGE_BASE=v0.30.0 go test -count=1 -run TestPolicy_GuidanceFence ./internal/policies/` — the fence over the repository's history since `v0.30.0`, 3,558 commits; observed `--- FAIL: TestPolicy_GuidanceFence (4.07s)` with 377 `[guidance-fence]` lines, each a historical commit that mixed an instruction-file edit with other files. Only the pushed range is judged in CI, so this is a cost measurement, not a gate.
-
-## Deferrals
-
-- G-0710 — an assertion outside an `if` condition passes the shipped-prose ban.
-- G-0711 — `gitops.BlobReader` reports a missing path containing whitespace as a parse error.
-- The pins listed in `guidanceReaderList` are retired by M-0335 AC-3 as their passages move.
-
-## Validation
-
-Environment: the aiwf devcontainer, Linux, `go1.25.11 linux/amd64`, at commit `09c8be60c` on `milestone/M-0333-fence-project-guidance-while-preserving-managed-updates`; the audit base is the epic branch's fork point from `main`, `a61f3d8de`.
-
-- `make check-fast` — expected exit 0; observed exit 0, `golangci-lint` reporting `0 issues.`
-- `AIWF_COVERAGE_BASE=a61f3d8de make coverage-gate` — expected exit 0; observed exit 0 across the diff-scoped branch-coverage audit, the firing-fixture meta-gate, the skill-edit provenance backstop, the guidance fence and the guidance prose ban.
-- `go test -count=1 -run TestPolicy_GuidanceCeiling -v ./internal/policies/` — the AC-4 measure, in whitespace-separated words. Observed:
-  - `claude-code: handwritten primed 9489 (ceiling 9489), aiwf-generated 2309, required reads []`
-  - `codex: handwritten primed 9618 (ceiling 9618), aiwf-generated 2346, required reads [CLAUDE.md]`
-- AC-5's design note: with `CLAUDE.md` out of the channel list, `go test -count=1 -run 'TestPolicy_FindingCodesAreDiscoverable|TestPolicy_ConfigFieldsAreDiscoverable' ./internal/policies/` reported `provenance.refuse_coauthors` as undocumented; with the `commit-msg` row in the `aiwf-check` skill it passes.
-- G-0676's floor command, re-run in a detached worktree of `HEAD` with `CLAUDE.md` deleted (`go test ./internal/policies/ -count=1 | grep '^--- FAIL'`) — observed 22 failing tests:
-  - six the D-0091 scan flags, which are the entries of `guidanceProseLedger`;
-  - three this milestone adds that read the file without pinning prose: `TestPolicy_GuidanceCeiling`, `TestRepoGuidanceReader`, `TestEngineeringPrinciples_NameNoInstructionFileChannel`;
-  - three absence scans: `TestM0127_AC3_NoDanglingDocsPocv3References`, `TestM0290_AC4_NoNormativeDocOffersTheRetiredVerb`, `TestSkillEditProvenance_DocumentedInClaudeMd`;
-  - seven `TestPolicy_*` entry points whose pin sits in a policy function outside test source, which the scan does not read;
-  - three test-function pins the assertion engine does not recognize: `TestM083_AC2_CLAUDEMdCommitment2` asserts through `regexp`, `TestAiwfArchive_AC6_ClaudeMdNamesArchiveConvention` through a search loop ending in a boolean, and `TestM0293_KernelGuidanceStatesForceIsHumanOnly` through a region type's methods.
-
-  M-0335 AC-3 accounts for every one of them when their passages move.
-- `AIWF_COVERAGE_BASE=v0.30.0 go test -count=1 -run TestPolicy_GuidanceFence ./internal/policies/` — the fence over the repository's history since `v0.30.0`, 3,542 commits; observed `--- FAIL: TestPolicy_GuidanceFence (1.94s)` with 378 `[guidance-fence]` lines, each a historical commit that mixed an instruction-file edit with other files. Only the pushed range is judged in CI, so this is a cost measurement, not a gate.
-
-## Deferrals
-
-- (none)
 
 ## Reviewer notes
 
-- (none)
+- The read table's per-link cost for a host entry point's links was raised again at review; the maintainer chose that split, and it stands.
