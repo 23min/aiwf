@@ -1,7 +1,7 @@
 ---
 id: M-0352
 title: Report guidance outcomes at the end of init, update and upgrade
-status: draft
+status: in_progress
 parent: E-0095
 depends_on:
     - M-0351
