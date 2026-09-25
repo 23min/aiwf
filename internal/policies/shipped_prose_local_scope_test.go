@@ -65,6 +65,20 @@ func TestPin(t *testing.T) {
 }`,
 			want: 1,
 		},
+		{
+			name: "the name a multi-value declaration binds to a shipped path names it",
+			body: `func pick(rel string) (string, bool) { return rel, true }
+
+func TestPin(t *testing.T) {
+	var p, ok = pick(ritualPath)
+	_ = ok
+	data, _ := os.ReadFile(p)
+	if !strings.Contains(string(data), "a phrase") {
+		t.Error("missing")
+	}
+}`,
+			want: 1,
+		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
