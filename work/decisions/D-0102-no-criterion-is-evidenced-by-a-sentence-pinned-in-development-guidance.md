@@ -1,7 +1,7 @@
 ---
 id: D-0102
 title: No criterion is evidenced by a sentence pinned in development guidance
-status: proposed
+status: accepted
 relates_to:
     - D-0091
     - E-0092
