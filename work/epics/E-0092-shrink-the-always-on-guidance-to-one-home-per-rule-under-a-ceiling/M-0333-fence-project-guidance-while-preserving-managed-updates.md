@@ -43,7 +43,7 @@ Fence changes to both hosts' project instructions and their canonical developmen
 
 The development-guidance set is the root `CLAUDE.md`, the root `AGENTS.md`, `.guidance/project.md`, and the on-demand documents `.guidance/project.md` routes to. aiwf owns the managed blocks in the two entry points — `aiwf:guidance` (the Claude import, and the fragment rendered inline for Codex) and `aiwf:engineering-guidance` (the routing block) — and the files listed in `.guidance/.aiwf-owned`. Everything else in the set is handwritten: `CLAUDE.md` and `AGENTS.md` outside those blocks, and `.guidance/project.md`. Generated blocks are judged through their owning sources; expected rendered copies are not independent rule restatements. E-0092 defines the primed/on-demand split and the two ceilings.
 
-G-0676 measured how `CLAUDE.md` grew and named the surfaces that let it. D-0091 decided that no AC is evidenced by a sentence pinned there; D-0102 supersedes it. The skill-edit provenance backstop already judges commits in the base-to-HEAD range by what they touch and what trailer they carry, so the commit-seam gate takes its shape. Removing `CLAUDE.md` from the discoverability channel list leaves one config field documented nowhere else: `provenance.refuse_coauthors`, whose `commit-msg` refusal no shipped skill describes.
+G-0676 measured how `CLAUDE.md` grew and named the surfaces that let it. D-0091 decided that no AC is evidenced by a sentence pinned there; D-0102 supersedes it. The skill-edit provenance backstop already judges commits in the base-to-HEAD range by what they touch and what trailer they carry, so the commit-seam gate takes its shape.
 
 ## Acceptance criteria
 
@@ -57,7 +57,7 @@ A development-guidance commit carrying no `aiwf-entity` trailer, or one whose va
 
 ### AC-3 — Guidance removals require a disposition block
 
-A development-guidance commit whose diff removes lines and whose message body carries no disposition block fails the gate. A block is a `Removed:` line followed by a `Disposition:` line whose value is one of `copy of <path>`, `relocated to <path>`, `pointer to <id>`, or `deleted`. **Pass criterion**: a removing commit without a block, or with a `Disposition:` value outside the closed set, produces one violation; a pure addition needs no block; a removing commit with at least one well-formed block passes. The policy checks shape, not coverage; whether every removed passage has its block is held at review. **Edge cases**: a rewording is a removal plus an addition and needs a block; a block in a trailer position is still a block. **Code references**: the same policy.
+A development-guidance commit whose diff removes lines and whose message body carries no disposition block fails the gate. A block is a `Removed:` line followed by a `Disposition:` line whose value is one of `copy of <path>`, `relocated to <path>`, `pointer to <id>`, or `deleted`. **Pass criterion**: a removing commit without a block, or with a `Disposition:` value outside the closed set, produces one violation; a pure addition needs no block; a removing commit whose blocks are all well-formed passes. The policy checks shape, not coverage; whether every removed passage has its block is held at review. **Edge cases**: a rewording is a removal plus an addition and needs a block; a block in a trailer position is still a block. **Code references**: the same policy.
 
 ### AC-4 — The always-on set above the ceiling fails the policy
 
@@ -124,7 +124,7 @@ The `aiwf-check` skill documents the `commit-msg` hook: what it refuses as a com
 - The ceiling follows the routing block: the project router is a required read for both hosts and counts toward the handwritten figure, and the generated pack index toward the aiwf-generated figure. A link from a host entry point's handwritten text must be classified in the read table; a link from the router is conditional unless the table says otherwise.
 - A reference is a markdown link in any CommonMark form, or an `@` import in prose outside code; a path named any other way — in backticks, or in a sentence — is outside the ceiling's model.
 - D-0102 supersedes D-0091. It holds the evidence rule over the whole guidance set by a list of every test that reads the guidance from the repository root, each entry naming it a pin, a relationship check, an absence check, or a test naming a guidance document without reading it. A new reader fails until an entry is written, so whether a new test is a pin is decided at review of that entry, not by a check of its assertions.
-- AC-4 no longer promises separate figures for conditional reads and personal or global material: nothing downstream reads them from this policy, and where moved text lands is the growth report's and M-0338's to measure.
+- AC-4 reports no separate figures for conditional reads or for personal and global material: nothing downstream reads them from this policy, and where moved text lands is the growth report's and M-0338's to measure.
 - AC-6 was restated from a scan of phrase-presence assertions to the reader list after its first implementation reached `met`; the phase history recorded under AC-6 belongs to that first implementation.
 - The reader rule sees a guidance document named by a literal or a package constant, and a root resolved through a `repoRoot` helper or a literal climbing path. A root resolved any other way, a function reached through a package variable, and a path computed at run time are outside it — `TestPolicy_DesignDocAnchors` resolves links from the design documents into `CLAUDE.md` and is not listed.
 - `provenance.refuse_coauthors` is documented in a `commit-msg` row of the `aiwf-check` skill's hook table, since `CLAUDE.md` was its only channel.
@@ -148,8 +148,8 @@ Environment: the aiwf devcontainer, Linux, `go1.25.11 linux/amd64`, at commit `3
 
 - G-0710 — an assertion outside an `if` condition passes the shipped-prose ban.
 - G-0711 — `gitops.BlobReader` reports a missing path containing whitespace as a parse error.
-- The pins listed in `guidanceReaderList` are retired by M-0335 AC-3 as their passages move.
+- The pins listed in `guidanceReaderList` are re-aimed or retired by M-0335 AC-3 as their passages move.
 
 ## Reviewer notes
 
-- The read table's per-link cost for a host entry point's links was raised again at review; the maintainer chose that split, and it stands.
+- The read table's per-link cost for a host entry point's links was raised at review; the maintainer chose that split, and it stands.
