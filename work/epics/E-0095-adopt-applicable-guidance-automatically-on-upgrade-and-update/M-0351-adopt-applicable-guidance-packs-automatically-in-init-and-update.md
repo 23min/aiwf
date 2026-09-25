@@ -12,7 +12,7 @@ acs:
     - id: AC-2
       title: Update adds newly applicable packs and never removes one
       status: open
-      tdd_phase: green
+      tdd_phase: done
     - id: AC-3
       title: Ignored packs are never adopted
       status: open
