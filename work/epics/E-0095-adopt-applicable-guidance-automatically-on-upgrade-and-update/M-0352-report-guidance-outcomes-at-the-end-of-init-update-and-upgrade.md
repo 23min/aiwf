@@ -14,6 +14,7 @@ acs:
     - id: AC-2
       title: Blocked installation is reported with its cause and fix
       status: open
+      tdd_phase: red
     - id: AC-3
       title: Report and doctor word guidance state identically
       status: open
