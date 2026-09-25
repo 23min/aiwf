@@ -467,6 +467,16 @@ func Init(ctx context.Context, root string, opts Options) (*Result, error) {
 		return nil, err
 	}
 	res.Steps = append(res.Steps, cfgStep)
+	if cfg == nil {
+		// A first run reads the configuration it just created, so guidance
+		// maintenance sees the same settings a later run would. A dry run
+		// created nothing and previews against the defaults.
+		if cfg, err = config.Load(root); errors.Is(err, config.ErrNotFound) {
+			cfg = &config.Config{}
+		} else if err != nil { //coverage:ignore ensureConfig just wrote this file from the schema's own template, which config.Load always accepts
+			return nil, fmt.Errorf("loading the created configuration: %w", err)
+		}
+	}
 
 	scaffoldSteps, err := scaffoldDirs(root, opts.DryRun)
 	if err != nil {
