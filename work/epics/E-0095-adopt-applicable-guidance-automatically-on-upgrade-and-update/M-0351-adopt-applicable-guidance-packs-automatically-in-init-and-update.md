@@ -1,7 +1,7 @@
 ---
 id: M-0351
 title: Adopt applicable guidance packs automatically in init and update
-status: in_progress
+status: done
 parent: E-0095
 tdd: required
 acs:
