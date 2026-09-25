@@ -181,10 +181,8 @@ Provenance: in the Linux development container on 2026-09-25, isolated `init
 `d80b2566e` sources, with a stand-in `claude` executable on `PATH`, reproduced
 the stored `aiwf.example.yaml` and scaffolded `aiwf.yaml` hashes with and
 without `--enable-hook worktree-rituals-check.sh`. Replacing only the two
-description comments in those captured files, then the `packs` description's
-final sentence in a second capture from `45a22730f`, produced the expected
-hashes, and the candidate binary's files matched that independent text
-transformation. Only matching records were replaced, and the inventories were
+description comments in those captured files produced the expected hashes, and
+the candidate binary's files matched that independent text transformation. Only matching records were replaced, and the inventories were
 sorted again. The `configured` and `declined` scenarios supply their own
 `aiwf.yaml`, so only their `aiwf.example.yaml` record changes.
 
