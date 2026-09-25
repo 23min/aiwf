@@ -1028,7 +1028,7 @@ func ensureGuidanceImport(ctx context.Context, root string, opts RefreshOptions)
 		return StepResult{}, fmt.Errorf("checking CLAUDE.md guidance safety: %w", err)
 	}
 	if files.claude.refusal != "" {
-		return StepResult{What: what, Action: ActionSkipped, Detail: files.claude.refusal}, nil
+		return StepResult{What: what, Action: ActionSkipped, Detail: files.claude.incomplete()}, nil
 	}
 	path := filepath.Join(root, "CLAUDE.md")
 	existing, err := os.ReadFile(path)
@@ -1463,7 +1463,7 @@ func ensureClaudeMd(ctx context.Context, root string, dryRun bool) (StepResult, 
 		return StepResult{}, fmt.Errorf("checking CLAUDE.md guidance safety: %w", err)
 	}
 	if files.claude.refusal != "" {
-		return StepResult{What: "CLAUDE.md", Action: ActionSkipped, Detail: files.claude.refusal}, nil
+		return StepResult{What: "CLAUDE.md", Action: ActionSkipped, Detail: files.claude.incomplete()}, nil
 	}
 	if files.claude.info != nil {
 		return StepResult{What: "CLAUDE.md", Action: ActionPreserved}, nil

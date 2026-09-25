@@ -27,6 +27,8 @@ type GuidanceOutcome struct {
 	// Installed and Commit describe the installed index after the run.
 	Installed []string
 	Commit    string
+	// Blocker names why installation did not complete and how to clear it.
+	Blocker string
 	// InspectError is set when the installed guidance cannot be read.
 	InspectError string
 }
@@ -57,28 +59,32 @@ func ensureProjectGuidance(ctx context.Context, root string, cfg *config.Config,
 		return nil, outcome
 	}
 	step := &StepResult{What: ".guidance (project engineering guidance)", Action: ActionSkipped}
-	instructions, err := inspectInstructionFiles(ctx, root)
-	if err != nil {
-		step.Detail = fmt.Sprintf("guidance incomplete: %v", err)
+	missing := ""
+	// A blocked run installs nothing; every block after retrieval also
+	// carries the missing-pack note.
+	blocked := func(detail string) (*StepResult, *GuidanceOutcome) {
+		outcome.Blocker = detail
+		step.Detail = "guidance incomplete: " + detail + missing
 		return step, outcome
 	}
+	instructions, err := inspectInstructionFiles(ctx, root)
+	if err != nil {
+		return blocked(err.Error())
+	}
 	if err = projectguidance.CheckCompatibility(ctx); err != nil {
-		step.Detail = fmt.Sprintf("guidance incomplete: %v", err)
-		return step, outcome
+		return blocked(err.Error())
 	}
 	var hosts []string
 	for _, host := range selection.Hosts {
 		if host == config.HostClaudeCode && opts.WireClaudeMd {
 			if instructions.claude.refusal != "" {
-				step.Detail = instructions.claude.refusal
-				return step, outcome
+				return blocked(instructions.claude.refusal)
 			}
 			hosts = append(hosts, "CLAUDE.md")
 		}
 		if host == config.HostCodex && cfg.WireAgentsMd() {
 			if instructions.agents.refusal != "" {
-				step.Detail = instructions.agents.refusal
-				return step, outcome
+				return blocked(instructions.agents.refusal)
 			}
 			hosts = append(hosts, "AGENTS.md")
 		}
@@ -102,26 +108,19 @@ func ensureProjectGuidance(ctx context.Context, root string, cfg *config.Config,
 		snapshot, err = projectguidance.Retrieve(ctx, cfg.GuidanceSource(), *cfg.Guidance.Packs)
 	}
 	if err != nil {
-		step.Detail = fmt.Sprintf("guidance incomplete: %v", err)
-		return step, outcome
+		return blocked(err.Error())
 	}
 	if selected == nil {
 		step.Detail = "no project guidance selected; existing delivery retained"
 		return step, outcome
 	}
 	outcome.Missing = snapshot.Missing
-	missing := ""
-	// Every outcome after retrieval carries the missing-pack report.
-	incomplete := func(detail string) (*StepResult, *GuidanceOutcome) {
-		step.Detail = "guidance incomplete: " + detail + missing
-		return step, outcome
-	}
 	if len(snapshot.Missing) > 0 {
 		missing = fmt.Sprintf("; the catalogue no longer has %s: remove it from guidance.packs or move it to guidance.ignored", strings.Join(snapshot.Missing, ", "))
 		// Only a run that adopts may retire a pack it cannot replace; any
 		// other refresh leaves the installed guidance as it is.
 		if !opts.AdoptGuidance {
-			return incomplete("installed guidance left unchanged")
+			return blocked("installed guidance left unchanged")
 		}
 	}
 	// An adopted selection is prepared before installation and written only
@@ -129,7 +128,7 @@ func ensureProjectGuidance(ctx context.Context, root string, cfg *config.Config,
 	var adopted *aiwfyaml.Doc
 	if selected != cfg.Guidance.Packs {
 		if adopted, err = guidanceSelectionEdit(root, selected, cfg.Guidance.Ignored); err != nil {
-			return incomplete(err.Error())
+			return blocked(err.Error())
 		}
 	}
 	// Packs the catalogue no longer lists stay selected but are not installed,
@@ -137,11 +136,11 @@ func ensureProjectGuidance(ctx context.Context, root string, cfg *config.Config,
 	installed := slices.DeleteFunc(slices.Clone(*selected), func(id string) bool { return slices.Contains(snapshot.Missing, id) })
 	changed, err := projectguidance.Install(ctx, root, snapshot, projectguidance.InstallOptions{Source: cfg.GuidanceSource(), Selected: installed, HostFiles: hosts})
 	if err != nil {
-		return incomplete(err.Error())
+		return blocked(err.Error())
 	}
 	if adopted != nil {
 		if err = adopted.Write(filepath.Join(root, config.FileName)); err != nil {
-			return incomplete("recording adopted guidance: " + err.Error())
+			return blocked("recording adopted guidance: " + err.Error())
 		}
 		changed = true
 		outcome.Selection, outcome.Adopted = selected, added

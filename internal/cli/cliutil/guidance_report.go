@@ -41,6 +41,9 @@ func GuidanceReport(outcome *initrepo.GuidanceOutcome) []string {
 		lines = append(lines, "  installed: "+strings.Join(outcome.Installed, ", ")+" at "+outcome.Commit)
 	}
 	lines = append(lines, "  ignored:   "+packList(outcome.Ignored))
+	if outcome.Blocker != "" {
+		lines = append(lines, "  blocked:   "+outcome.Blocker)
+	}
 	for _, id := range outcome.Missing {
 		lines = append(lines, "  missing:   "+id+"; the catalogue no longer lists it: remove it from guidance.packs or move it to guidance.ignored")
 	}

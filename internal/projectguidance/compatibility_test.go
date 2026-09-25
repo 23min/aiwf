@@ -134,6 +134,21 @@ func TestCheckCompatibility_MissingCheckerDetectsLegacyDelivery(t *testing.T) {
 			if !allowed && (err == nil || !strings.Contains(err.Error(), "ai-dotfiles")) {
 				t.Fatalf("legacy setup without checker accepted: %v", err)
 			}
+			// Each refusal names the action that clears it.
+			fix := map[string]string{
+				"unreadable":                      "reconcile personal instructions",
+				"broken link":                     "repair or remove the link, then retry",
+				"directory":                       "replace it with a regular file, then retry",
+				"missing home":                    "set HOME, then retry",
+				"unsearchable directory":          "repair its permissions, then retry",
+				"unsearchable launcher directory": "repair its permissions, then retry",
+			}[kind]
+			if fix == "" {
+				fix = "make its checker available on PATH, then retry"
+			}
+			if !allowed && !strings.Contains(err.Error(), fix) {
+				t.Fatalf("refusal does not name its fix %q: %v", fix, err)
+			}
 		})
 	}
 }

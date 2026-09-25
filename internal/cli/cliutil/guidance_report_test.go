@@ -17,14 +17,15 @@ func TestGuidanceReport(t *testing.T) {
 	}{
 		{name: "no section when guidance was not considered"},
 		{
-			name:    "explicit empty selection, installed packs and every list",
-			outcome: &initrepo.GuidanceOutcome{Selection: &[]string{}, Installed: []string{"a/one", "b/two"}, Commit: "abc123", Ignored: []string{"c/three"}},
+			name:    "explicit empty selection, installed packs, every list and a blocker",
+			outcome: &initrepo.GuidanceOutcome{Selection: &[]string{}, Installed: []string{"a/one", "b/two"}, Commit: "abc123", Ignored: []string{"c/three"}, Blocker: "cause; fix it, then retry"},
 			want: []string{
 				"", "Guidance:",
 				"  selected:  none (explicit empty selection)",
 				"  adopted:   none",
 				"  installed: a/one, b/two at abc123",
 				"  ignored:   c/three",
+				"  blocked:   cause; fix it, then retry",
 			},
 		},
 		{
