@@ -16,6 +16,23 @@ section in this file.
 
 ## [Unreleased]
 
+### Fixed — G-0712: verbs write entity ids at canonical width, whatever width they were given
+
+An id handed to a verb at a legacy narrow width — `E-01`, `M-001`, `C-001` — is
+still accepted, and is now written back at canonical width everywhere aiwf writes
+it: every frontmatter reference (`parent`, `depends_on`, `discovered_in`,
+`relates_to`, `addressed_by`, `supersedes`, `superseded_by`, `linked_adrs`), the
+contract bindings in `aiwf.yaml`, and the commit subjects of `promote`, `cancel`,
+`retitle`, `rename`, the `--audit-only` paths and `contract bind` / `unbind`.
+`aiwf import` writes the references a manifest declares canonical too, and
+`aiwf check --format=json` names a contract binding at canonical width, and its
+`no-cycles` rule finds a `depends_on` cycle whichever width an edge is stored at. A
+reference an earlier release stored narrow is widened the next time a verb writes
+that entity's frontmatter or the contracts block — so `aiwf edit-body --body-file`
+on such an entity commits the widened frontmatter alongside the body. An entity's
+own id and its `prior_ids` are written as they are, and `aiwf add contract` refuses
+when `aiwf.yaml` already binds the id it allocated.
+
 ### Fixed — G-0538, G-0707: help, messages and `aiwf.yaml` comments no longer cite aiwf's own ids and paths
 
 Command help (`aiwf --help` and every subcommand's), the report lines `aiwf doctor`

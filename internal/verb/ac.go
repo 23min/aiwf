@@ -233,7 +233,7 @@ func promoteAC(ctx context.Context, t *tree.Tree, compositeID string, newStatus 
 		return nil, err
 	}
 	return finalizeACPlan(t, parent, modified, "promote", compositeID, string(ac.Status), string(newStatus), string(newStatus), actor, reason, force, nil,
-		fmt.Sprintf("aiwf promote %s %s -> %s", compositeID, ac.Status, newStatus))
+		fmt.Sprintf("aiwf promote %s %s -> %s", entity.Canonicalize(compositeID), ac.Status, newStatus))
 }
 
 // PromoteACPhase handles `aiwf promote M-NNN/AC-N --phase <p>`.
@@ -280,7 +280,7 @@ func PromoteACPhase(ctx context.Context, t *tree.Tree, compositeID, newPhase, ac
 		return nil, err
 	}
 	return finalizeACPlan(t, parent, modified, "promote", compositeID, ac.TDDPhase, newPhase, newPhase, actor, reason, force, tests,
-		fmt.Sprintf("aiwf promote %s --phase %s -> %s", compositeID, ac.TDDPhase, newPhase))
+		fmt.Sprintf("aiwf promote %s --phase %s -> %s", entity.Canonicalize(compositeID), ac.TDDPhase, newPhase))
 }
 
 // cancelAC handles `aiwf cancel M-NNN/AC-N`. The AC's status flips to
@@ -329,7 +329,7 @@ func cancelAC(ctx context.Context, t *tree.Tree, compositeID, actor, reason stri
 	// implicit). Pass empty `to` to suppress the trailer, but report the
 	// real terminal in metadata.to (mirrors Cancel in promote.go).
 	return finalizeACPlan(t, parent, modified, "cancel", compositeID, string(ac.Status), "", string(entity.StatusCancelled), actor, reason, force, nil,
-		fmt.Sprintf("aiwf cancel %s -> cancelled", compositeID))
+		fmt.Sprintf("aiwf cancel %s -> cancelled", entity.Canonicalize(compositeID)))
 }
 
 // renameAC handles `aiwf rename M-NNN/AC-N "<new-title>"`. Updates
@@ -377,7 +377,7 @@ func renameAC(ctx context.Context, t *tree.Tree, compositeID, newTitle, actor st
 		return nil, err
 	}
 	body = rewriteACHeading(body, ac.ID, newTitle)
-	subject := fmt.Sprintf("aiwf rename %s title -> %q", compositeID, newTitle)
+	subject := fmt.Sprintf("aiwf rename %s title -> %q", entity.Canonicalize(compositeID), newTitle)
 	return planEntityWrite(t, modified, parent.Path, body, entityWrite{
 		subject:  subject,
 		trailers: standardTrailers("rename", compositeID, actor),

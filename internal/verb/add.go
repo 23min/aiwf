@@ -30,7 +30,8 @@ type AddOptions struct {
 	// Milestone: optional list of milestone ids the new milestone
 	// depends on. Each id must resolve to an existing milestone
 	// (allocation-time referent validation, M-076/AC-4); the list is
-	// written verbatim into the entity's depends_on frontmatter array.
+	// written, at canonical width, into the entity's depends_on
+	// frontmatter array.
 	// Cycle detection stays in `aiwf check`. Empty list (or absence)
 	// produces no depends_on block.
 	DependsOn []string
@@ -477,8 +478,8 @@ func atomicContractBind(projectedTree *tree.Tree, id string, opts AddOptions) ([
 		return nil, nil, fmt.Errorf("validator %q not declared; install via 'aiwf contract recipe install %s' or 'aiwf contract recipe install --from <path>'", opts.BindValidator, opts.BindValidator)
 	}
 	for _, en := range next.Entries {
-		if en.ID == id {
-			return nil, nil, fmt.Errorf("binding for %s already exists; this is a freshly-allocated id, indicating a programming error in Add", id)
+		if entity.Canonicalize(en.ID) == entity.Canonicalize(id) {
+			return nil, nil, fmt.Errorf("aiwf.yaml already binds %s, which no contract entity carries; remove the stale binding with `aiwf contract unbind %s` and retry", entity.Canonicalize(id), entity.Canonicalize(id))
 		}
 	}
 	next.Entries = append(next.Entries, aiwfyaml.Entry{
@@ -494,7 +495,7 @@ func atomicContractBind(projectedTree *tree.Tree, id string, opts AddOptions) ([
 		return nil, introduced, nil
 	}
 
-	if err := opts.AiwfDoc.SetContracts(next); err != nil {
+	if err := setContracts(opts.AiwfDoc, next); err != nil { //coverage:ignore the block passed Validate when aiwf.yaml was read, the guards above admit only entries and validators that satisfy it, and a widened id still matches the contract grammar, so SetContracts cannot newly fail here
 		return nil, nil, fmt.Errorf("updating aiwf.yaml: %w", err)
 	}
 	return []FileOp{{Type: OpWrite, Path: config.FileName, Content: opts.AiwfDoc.Bytes()}}, nil, nil

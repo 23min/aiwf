@@ -186,7 +186,7 @@ func Retitle(ctx context.Context, t *tree.Tree, id, newTitle, actor, reason stri
 		return findings(fs), nil
 	}
 
-	subject := fmt.Sprintf("aiwf retitle %s -> %q", id, newTitle)
+	subject := fmt.Sprintf("aiwf retitle %s -> %q", entity.Canonicalize(id), newTitle)
 	return &Result{
 		Findings: slugNotices,
 		Plan: &Plan{
@@ -295,7 +295,7 @@ func retitleAC(ctx context.Context, t *tree.Tree, compositeID, newTitle, actor, 
 		return nil, err
 	}
 	body = rewriteACHeading(body, ac.ID, newTitle)
-	subject := fmt.Sprintf("aiwf retitle %s -> %q", compositeID, newTitle)
+	subject := fmt.Sprintf("aiwf retitle %s -> %q", entity.Canonicalize(compositeID), newTitle)
 	return planEntityWrite(t, modified, parent.Path, body, entityWrite{
 		subject:  subject,
 		body:     reason,

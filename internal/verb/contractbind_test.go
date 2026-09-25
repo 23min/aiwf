@@ -107,8 +107,8 @@ func TestContractBind_NewBinding(t *testing.T) {
 			if len(res.Plan.Ops) != 1 || res.Plan.Ops[0].Path != "aiwf.yaml" {
 				t.Errorf("expected single OpWrite for aiwf.yaml; got %+v", res.Plan.Ops)
 			}
-			if !strings.Contains(string(res.Plan.Ops[0].Content), id) {
-				t.Errorf("aiwf.yaml content missing the new entry id:\n%s", res.Plan.Ops[0].Content)
+			if !strings.Contains(string(res.Plan.Ops[0].Content), "id: C-0001") {
+				t.Errorf("aiwf.yaml content missing the new entry at canonical width:\n%s", res.Plan.Ops[0].Content)
 			}
 			wantTrailers := []gitops.Trailer{
 				{Key: gitops.TrailerVerb, Value: "contract-bind"},
@@ -590,13 +590,12 @@ contracts:
 		t.Fatalf("ContractUnbind: %v", err)
 	}
 	got := string(res.Plan.Ops[0].Content)
-	// On-disk yaml entries preserve their authored width — width
-	// canonicalization of body content is M-082's `aiwf rewidth` job.
+	// Every entry the unbind keeps is written back at canonical width.
 	// Both narrow and canonical absence-checks confirm removal.
 	if strings.Contains(got, "C-0002") || strings.Contains(got, "C-002") {
 		t.Errorf("C-002 not removed:\n%s", got)
 	}
-	for _, keep := range []string{"C-001", "C-003"} {
+	for _, keep := range []string{"C-0001", "C-0003"} {
 		if !strings.Contains(got, keep) {
 			t.Errorf("expected %s to remain:\n%s", keep, got)
 		}

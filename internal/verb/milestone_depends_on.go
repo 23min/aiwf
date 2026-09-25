@@ -77,9 +77,8 @@ func MilestoneDependsOn(ctx context.Context, t *tree.Tree, id string, deps []str
 	if clearList {
 		modified.DependsOn = nil
 	} else {
-		// Stored as given, matching the verbatim convention Add documents
-		// for this same field. Width normalization across the tree is
-		// `aiwf rewidth`'s job, not a side effect of an edge declaration.
+		// Stored in the order given; entity.Serialize writes each id at
+		// canonical width.
 		modified.DependsOn = append([]string(nil), deps...)
 	}
 

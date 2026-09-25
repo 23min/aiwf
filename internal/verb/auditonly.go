@@ -62,7 +62,7 @@ func PromoteAuditOnly(ctx context.Context, t *tree.Tree, id string, newStatus en
 	if err := finalizeAuditOnlyPlanCheck(trailers); err != nil {
 		return nil, err
 	}
-	subject := fmt.Sprintf("aiwf promote %s %s [audit-only]", id, newStatus)
+	subject := fmt.Sprintf("aiwf promote %s %s [audit-only]", entity.Canonicalize(id), newStatus)
 	result := plan(&Plan{
 		Subject:    subject,
 		Body:       reason,
@@ -95,7 +95,7 @@ func PromoteACPhaseAuditOnly(ctx context.Context, t *tree.Tree, compositeID, new
 	if err := finalizeAuditOnlyPlanCheck(trailers); err != nil {
 		return nil, err
 	}
-	subject := fmt.Sprintf("aiwf promote %s --phase %s [audit-only]", compositeID, newPhase)
+	subject := fmt.Sprintf("aiwf promote %s --phase %s [audit-only]", entity.Canonicalize(compositeID), newPhase)
 	result := plan(&Plan{
 		Subject:    subject,
 		Body:       reason,
@@ -151,7 +151,7 @@ func CancelAuditOnly(ctx context.Context, t *tree.Tree, id, actor, reason string
 	if err := finalizeAuditOnlyPlanCheck(trailers); err != nil {
 		return nil, err
 	}
-	subject := fmt.Sprintf("aiwf cancel %s [audit-only]", id)
+	subject := fmt.Sprintf("aiwf cancel %s [audit-only]", entity.Canonicalize(id))
 	result := plan(&Plan{
 		Subject:    subject,
 		Body:       reason,
@@ -177,7 +177,7 @@ func promoteACAuditOnly(t *tree.Tree, compositeID string, newStatus entity.Statu
 	if err := finalizeAuditOnlyPlanCheck(trailers); err != nil {
 		return nil, err
 	}
-	subject := fmt.Sprintf("aiwf promote %s %s [audit-only]", compositeID, newStatus)
+	subject := fmt.Sprintf("aiwf promote %s %s [audit-only]", entity.Canonicalize(compositeID), newStatus)
 	result := plan(&Plan{
 		Subject:    subject,
 		Body:       reason,
@@ -200,7 +200,7 @@ func cancelACAuditOnly(t *tree.Tree, compositeID, actor, reason string) (*Result
 	if err := finalizeAuditOnlyPlanCheck(trailers); err != nil {
 		return nil, err
 	}
-	subject := fmt.Sprintf("aiwf cancel %s [audit-only]", compositeID)
+	subject := fmt.Sprintf("aiwf cancel %s [audit-only]", entity.Canonicalize(compositeID))
 	result := plan(&Plan{
 		Subject:    subject,
 		Body:       reason,

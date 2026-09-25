@@ -82,10 +82,11 @@ func TestPolicy_NarrowIDLiteralsAllowlisted(t *testing.T) {
 		// validators (idPatterns, ParseCompositeID, KindFromID, IDFromPath).
 		// These pin the input space the parser tolerates; canonicalizing
 		// them would erase the test's value.
-		"internal/entity/entity_test.go":     "id-grammar input space (idPatterns, IDFromPath, KindFromID, ParseCompositeID)",
-		"internal/entity/parse_test.go":      "frontmatter-parser input space (narrow-id legacy fixtures)",
-		"internal/entity/serialize_test.go":  "frontmatter-serializer round-trip on narrow legacy inputs",
-		"internal/entity/transition_test.go": "FSM transition tests using narrow legacy ids as inputs",
+		"internal/entity/entity_test.go":              "id-grammar input space (idPatterns, IDFromPath, KindFromID, ParseCompositeID)",
+		"internal/entity/parse_test.go":               "frontmatter-parser input space (narrow-id legacy fixtures)",
+		"internal/entity/serialize_test.go":           "frontmatter-serializer fixtures carry a narrow own id, which the serializer writes as it is",
+		"internal/entity/serialize_canonical_test.go": "narrow reference inputs prove the serializer writes every reference field at canonical width",
+		"internal/entity/transition_test.go":          "FSM transition tests using narrow legacy ids as inputs",
 
 		// gitops trailer round-trip is width-agnostic (the package never
 		// canonicalizes; it just round-trips bytes). Narrow inputs in
@@ -114,10 +115,20 @@ func TestPolicy_NarrowIDLiteralsAllowlisted(t *testing.T) {
 		// written at the time, so the narrow literal IS the input that
 		// proves the comparison canonicalizes rather than string-matches.
 		"internal/check/fsm_history_walker_test.go": "rename identity guard compares canonicalized ids; narrow input proves width-insensitivity",
+		"internal/check/no_cycles_width_test.go":    "the cycle check keys nodes and edges canonically; narrow edges and nodes prove width-insensitivity",
 
-		// Contractbind's unbind preserves the on-disk yaml entry
-		// verbatim (body-prose canonicalization is M-082's job).
-		"internal/verb/contractbind_test.go": "yaml-entry round-trip preserves narrow legacy widths verbatim (deferred to M-082)",
+		// Legacy narrow aiwf.yaml bindings and narrow bind/unbind
+		// arguments are the inputs every contracts-block write widens.
+		"internal/verb/contractbind_test.go":                 "legacy narrow yaml entries and narrow arguments are inputs; bind and unbind write them back canonical",
+		"internal/verb/contracts_block_canonical_test.go":    "legacy narrow bindings and narrow arguments prove every contracts-block write is canonical",
+		"internal/contractcheck/entity_id_canonical_test.go": "legacy narrow binding ids prove contract findings name the contract at canonical width",
+		"internal/cli/contract/result_to_finding_test.go":    "a verify result for a legacy narrow binding proves the finding names the contract at canonical width",
+
+		// A verb handed a narrow argument must write it canonical; the
+		// narrow literal is the argument each reference-writing verb and
+		// subject-writing verb is driven with.
+		"internal/verb/canonical_width_invariant_test.go":   "narrow arguments prove what verbs store in references and subjects is canonical",
+		"internal/workflows/spec/evaluate_anychild_test.go": "child walk compares canonicalized ids; narrow parent and epic inputs prove width-insensitivity",
 
 		// Same-state convergence has to compare ids, not spellings: a
 		// narrow legacy argument names the same entity a canonical stored
