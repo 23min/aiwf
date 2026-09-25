@@ -19,7 +19,7 @@ acs:
       tdd_phase: done
     - id: AC-4
       title: Disabled maintenance performs no detection or adoption
-      status: open
+      status: met
       tdd_phase: done
     - id: AC-5
       title: Init and update never prompt for guidance
