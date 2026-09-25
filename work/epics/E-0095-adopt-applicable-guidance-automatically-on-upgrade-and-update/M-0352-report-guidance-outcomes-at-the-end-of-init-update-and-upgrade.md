@@ -39,7 +39,7 @@ Guidance outcomes surface today as one step-ledger line whose wording ("no proje
 
 ### AC-1 — Update ends with a guidance section of adopted, installed and ignored packs
 
-**Pass criterion**: a successful `aiwf update` ends with a guidance section listing the packs adopted in this run, the installed packs with the installed source commit, and the ignored packs, each list present even when empty. **Edge cases**: first adoption; a run adopting nothing new; a repository matching no pack; `guidance.enabled: false`, reported as maintenance disabled with the installed set unchanged. **Code references**: the report renderer beside `internal/cli/cliutil/guidance_report.go`; binary-level tests in `internal/cli/update`.
+**Pass criterion**: a successful `aiwf update` ends with a guidance section listing the packs adopted in this run, the installed packs with the installed source commit, and the ignored packs, each list present even when empty, and any selected pack the catalogue no longer lists, with the fix (remove it from `guidance.packs` or move it to `guidance.ignored`). **Edge cases**: first adoption; a run adopting nothing new; a repository matching no pack; `guidance.enabled: false`, reported as maintenance disabled with the installed set unchanged. **Code references**: a structured guidance outcome returned by `internal/initrepo/project_guidance.go` in place of the free-text step detail; the report renderer in `internal/cli/cliutil`; binary-level tests in `internal/cli/update`.
 
 ### AC-2 — Blocked installation is reported with its cause and fix
 
@@ -47,7 +47,7 @@ Guidance outcomes surface today as one step-ledger line whose wording ("no proje
 
 ### AC-3 — Report and doctor word guidance state identically
 
-**Pass criterion**: for each guidance state — selection unset, explicitly empty, populated, maintenance disabled, installation pending — the state line in the update report equals the corresponding line `aiwf doctor` prints for the same repository. **Edge cases**: pending installation after an interrupted run. **Code references**: the shared wording source used by `internal/cli/doctor/project_guidance.go` and the report; a test deriving both outputs by running the two verbs against one fixture.
+**Pass criterion**: for each guidance state — selection unset, explicitly empty, populated, maintenance disabled, installation pending, a selected pack not installed — the state line in the update report equals the corresponding line `aiwf doctor` prints for the same repository. **Edge cases**: pending installation after an interrupted run; a selected pack the catalogue no longer lists, which `aiwf doctor` detects offline as selected but absent from the installed index. **Code references**: the shared wording source used by `internal/cli/doctor/project_guidance.go` and the report; a test deriving both outputs by running the two verbs against one fixture.
 
 ### AC-4 — Init ends with the same guidance section as update
 
@@ -71,7 +71,8 @@ Guidance outcomes surface today as one step-ledger line whose wording ("no proje
 ## Surfaces touched
 
 - `internal/cli/update/update.go`, `internal/cli/initcmd/initcmd.go`
-- `internal/cli/cliutil/guidance_report.go`
+- `internal/cli/cliutil` (report renderer)
+- `internal/projectguidance/inspect.go`
 - `internal/cli/doctor/project_guidance.go`
 - `internal/initrepo/project_guidance.go`
 
@@ -86,7 +87,7 @@ Guidance outcomes surface today as one step-ledger line whose wording ("no proje
 
 ## References
 
-- ADR-0054, E-0094.
+- ADR-0054, D-0103, E-0094.
 
 ---
 
