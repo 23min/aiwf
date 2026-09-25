@@ -49,6 +49,22 @@ func TestOther(t *testing.T) {
 }`,
 			want: 1,
 		},
+		{
+			name: "every name a multi-value read binds holds the document",
+			body: `func readPair(rel string) (int, string) {
+	data, _ := os.ReadFile(rel)
+	return len(data), string(data)
+}
+
+func TestPin(t *testing.T) {
+	var n, body = readPair(ritualPath)
+	_ = n
+	if !strings.Contains(body, "a phrase") {
+		t.Error("missing")
+	}
+}`,
+			want: 1,
+		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {

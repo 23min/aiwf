@@ -291,7 +291,16 @@ func (sc *scopeTaint) propagate(body *ast.BlockStmt) {
 			case *ast.ValueSpec:
 				// A function-local `const` or `var` naming a shipped path
 				// stands for it within this function, and one initialized
-				// from a read holds the document.
+				// from a read holds the document — every name, when one
+				// call binds several.
+				if len(st.Values) == 1 && len(st.Names) > 1 {
+					if sc.carriesShipped(st.Values[0]) {
+						for _, nm := range st.Names {
+							sc.mark(nm)
+						}
+					}
+					return true
+				}
 				for i, nm := range st.Names {
 					if i >= len(st.Values) || nm.Name == "_" {
 						continue
