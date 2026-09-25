@@ -83,7 +83,7 @@ The internal fence policy, its tests and its gate wiring are removed. **Pass cri
   - The disposition set has no value for a rewording, so the internal fence records rewordings as `deleted`.
   - `aiwf init` and `aiwf update` wrapping a bare guidance import in markers moves a handwritten line into a block, which the rule reads as a removal.
   - The internal fence and `internal/initrepo` read managed blocks with different parsers: a stray `<!-- aiwf:guidance:… -->` comment makes the fence judge the whole file while `initrepo` refreshes the block in place.
-- The internal fence run over this repository's history since `v0.30.0` reports several hundred mixed commits, measured in M-0333's Validation; sorting them informs which companion files the kernel rule allows.
+- The internal fence run over this repository's history since `v0.30.0` reports several dozen historical commits that mixed an instruction-file edit with other files, measured in M-0333's Validation; sorting them informs which companion files the kernel rule allows.
 - The `CLAUDE.md` sentence in §"How to validate changes" naming the gates that judge commits names the internal guidance fence; it changes when that fence is removed.
 
 ## Surfaces touched
