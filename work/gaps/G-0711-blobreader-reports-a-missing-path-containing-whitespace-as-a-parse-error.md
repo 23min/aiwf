@@ -22,4 +22,4 @@ Stat "with space.md"  missing=false err=gitops: cat-file --batch size parse "mis
 
 ## Why it matters
 
-`ErrBlobMissing` is the documented signal that a file did not exist at a commit, and two callers branch on it to skip the pair: `readStatusAt` in `internal/check/fsm_history_walker.go` and `fenceClassifier.show` in `internal/policies/guidance_fence.go`. For a path that is absent at the commit and contains whitespace, each gets a hard error instead, and the error names a protocol parse, which points a reader at the wrong layer.
+`ErrBlobMissing` is the documented signal that a file did not exist at a commit, and `readStatusAt` in `internal/check/fsm_history_walker.go` branches on it to skip the pair. For a path that is absent at the commit and contains whitespace, it gets a hard error instead, and the error names a protocol parse, which points a reader at the wrong layer. The guidance fence in `internal/policies/guidance_fence.go` also reads through the pump, but asks only for paths present at the revision read and for two fixed names, so it does not meet this case.
