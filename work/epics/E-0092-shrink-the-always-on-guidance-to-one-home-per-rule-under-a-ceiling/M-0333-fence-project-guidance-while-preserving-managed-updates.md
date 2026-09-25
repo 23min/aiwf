@@ -132,7 +132,16 @@ The `aiwf-check` skill documents the `commit-msg` hook: what it refuses as a com
 
 ## Validation
 
-Filled at wrap from the gate run at the milestone's final commit.
+Environment: the aiwf devcontainer, Linux, `go1.25.11 linux/amd64`, on `milestone/M-0333-fence-project-guidance-while-preserving-managed-updates`; the audit base is the epic branch's fork point from `main`, `a61f3d8de`.
+
+- `make check-fast` at `a40ba7453` — expected exit 0; observed exit 0, `golangci-lint` reporting `0 issues.`
+- `AIWF_COVERAGE_BASE=a61f3d8de make coverage-gate` over the tree committed as `a40ba7453` — expected exit 0; observed exit 0 across the diff-scoped branch-coverage audit, the firing-fixture meta-gate, the skill-edit provenance backstop and the guidance fence.
+- `go test -count=1 -run TestPolicy_GuidanceCeiling -v ./internal/policies/` at `a40ba7453` — the AC-4 measure, in whitespace-separated words. Observed:
+  - `claude-code: handwritten primed 9549 (ceiling 9549), aiwf-generated 2393, required reads [.guidance/project.md .guidance/index.md]`
+  - `codex: handwritten primed 9678 (ceiling 9678), aiwf-generated 2430, required reads [.guidance/project.md .guidance/index.md CLAUDE.md]`
+- AC-5's design note: with `CLAUDE.md` out of the channel list, `go test -count=1 -run 'TestPolicy_FindingCodesAreDiscoverable|TestPolicy_ConfigFieldsAreDiscoverable' ./internal/policies/` reported `provenance.refuse_coauthors` as undocumented; with the `commit-msg` row in the `aiwf-check` skill it passes.
+- G-0676's floor command at `da7709c78`, in a detached worktree with `CLAUDE.md` deleted (`go test ./internal/policies/ -count=1 | grep '^--- FAIL'`) — observed 20 failing tests. Nineteen are entries of `guidanceReaderList`: its fifteen pins, its three absence checks, and `TestPolicy_GuidanceCeiling`. The twentieth, `TestPolicy_DesignDocAnchors`, reaches `CLAUDE.md` by a path computed at run time and is outside the reader rule, as Decisions records.
+- `AIWF_COVERAGE_BASE=v0.30.0 go test -count=1 -run TestPolicy_GuidanceFence ./internal/policies/` at `da7709c78` — the fence over the repository's history since `v0.30.0`, 3,571 commits; observed `--- FAIL: TestPolicy_GuidanceFence (2.64s)` with 377 `[guidance-fence]` lines, each a historical commit that mixed an instruction-file edit with other files. Only the pushed range is judged in CI, so this is a cost measurement, not a gate.
 
 ## Deferrals
 
