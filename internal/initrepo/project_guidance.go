@@ -12,7 +12,7 @@ import (
 )
 
 func ensureProjectGuidance(ctx context.Context, root string, cfg *config.Config, selection config.HostSelection, opts RefreshOptions) *StepResult {
-	if cfg == nil || !cfg.GuidanceEnabled() || (cfg.Guidance.Packs == nil && !opts.AdoptGuidance && opts.SelectGuidance == nil) {
+	if cfg == nil || !cfg.GuidanceEnabled() || (cfg.Guidance.Packs == nil && !opts.AdoptGuidance) {
 		return nil
 	}
 	step := &StepResult{What: ".guidance (project engineering guidance)", Action: ActionSkipped}
@@ -48,19 +48,7 @@ func ensureProjectGuidance(ctx context.Context, root string, cfg *config.Config,
 	}
 	var snapshot *projectguidance.Snapshot
 	selected := cfg.Guidance.Packs
-	switch {
-	case opts.SelectGuidance != nil:
-		snapshot, err = projectguidance.RetrieveWithSelection(ctx, cfg.GuidanceSource(), func(catalogue projectguidance.Catalogue) ([]string, error) {
-			if selectErr := opts.SelectGuidance(ctx, root, catalogue, cfg); selectErr != nil {
-				return nil, selectErr
-			}
-			selected = cfg.Guidance.Packs
-			if selected == nil {
-				return nil, nil
-			}
-			return *selected, nil
-		})
-	case opts.AdoptGuidance:
+	if opts.AdoptGuidance {
 		snapshot, err = projectguidance.RetrieveWithSelection(ctx, cfg.GuidanceSource(), func(catalogue projectguidance.Catalogue) ([]string, error) {
 			matches, detectErr := projectguidance.Detect(ctx, root, catalogue)
 			if detectErr != nil {
@@ -72,7 +60,7 @@ func ensureProjectGuidance(ctx context.Context, root string, cfg *config.Config,
 			}
 			return *selected, nil
 		})
-	default:
+	} else {
 		snapshot, err = projectguidance.Retrieve(ctx, cfg.GuidanceSource(), *cfg.Guidance.Packs)
 	}
 	if err != nil {

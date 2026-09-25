@@ -1,16 +1,6 @@
 package projectguidance
 
-import (
-	"context"
-	"slices"
-
-	"github.com/23min/aiwf/internal/config"
-)
-
-// Selector inspects available policy, reporting suggestions or recording choices
-// after an explicit, completed interaction. Reporting and failures must leave the
-// caller's configuration unchanged.
-type Selector func(context.Context, string, Catalogue, *config.Config) error
+import "slices"
 
 // Adopt returns the selection an enabled run records: the current selection
 // with every matched pack that is neither selected nor ignored appended in

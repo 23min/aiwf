@@ -67,8 +67,8 @@ var fieldDescriptions = map[string]string{
 	"guidance":               "Project engineering guidance maintenance and host instruction wiring.",
 	"guidance.enabled":       "Maintain external project guidance (default true); false preserves installed files and routing without fetching.",
 	"guidance.source":        "Git source for the guidance catalogue; omitted or empty uses the default engineering-guidance repository.",
-	"guidance.packs":         "Explicitly selected pack ids; omitted or null leaves policy unadopted, [] adopts an empty selection.",
-	"guidance.ignored":       "Pack ids excluded from suggestions; must not overlap selected packs.",
+	"guidance.packs":         "Selected pack ids; enabled init and update add every applicable pack not in guidance.ignored and never remove one. Omitted or null until a pack is adopted; [] selects none.",
+	"guidance.ignored":       "Pack ids never adopted; moving a selected pack here retires its files. Must not overlap selected packs.",
 	"guidance.wire_claudemd": "Whether aiwf wires and self-heals the guidance import in CLAUDE.md (default true).",
 	"guidance.wire_agentsmd": "Whether aiwf maintains native guidance in AGENTS.md when Codex is selected (default true).",
 

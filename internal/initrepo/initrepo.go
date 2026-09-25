@@ -24,7 +24,6 @@ import (
 	"github.com/23min/aiwf/internal/config"
 	"github.com/23min/aiwf/internal/gitops"
 	"github.com/23min/aiwf/internal/pathutil"
-	"github.com/23min/aiwf/internal/projectguidance"
 	"github.com/23min/aiwf/internal/skills"
 )
 
@@ -399,8 +398,7 @@ type Result struct {
 // chronic doctor noise without serving its intended purpose.
 type Options struct {
 	// AdoptGuidance adds applicable, unignored guidance packs to the selection.
-	AdoptGuidance  bool
-	SelectGuidance projectguidance.Selector
+	AdoptGuidance bool
 	// RequireClaude validates an explicit Claude hook or statusline request.
 	RequireClaude bool
 	ActorOverride string
@@ -422,8 +420,7 @@ type Options struct {
 // entirely (init's `--skip-hook` flag forwards into this field).
 type RefreshOptions struct {
 	// AdoptGuidance adds applicable, unignored guidance packs to the selection.
-	AdoptGuidance  bool
-	SelectGuidance projectguidance.Selector
+	AdoptGuidance bool
 	// RequireClaude validates an explicit Claude hook or statusline request.
 	RequireClaude      bool
 	DryRun             bool
@@ -499,7 +496,6 @@ func Init(ctx context.Context, root string, opts Options) (*Result, error) {
 
 	refresh, err := refreshArtifacts(ctx, root, cfg, selection, RefreshOptions{
 		AdoptGuidance:      opts.AdoptGuidance,
-		SelectGuidance:     opts.SelectGuidance,
 		DryRun:             opts.DryRun,
 		SkipHooks:          opts.SkipHook,
 		StatusMdAutoUpdate: statusMdAutoUpdate,

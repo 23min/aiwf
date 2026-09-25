@@ -67,7 +67,7 @@ func NewCmd() *cobra.Command {
 	cmd.Flags().StringVar(&root, "root", "", "consumer repo root for the post-install aiwf update step (default: cwd)")
 	cmd.Flags().StringVar(&target, "version", "latest", "version to install: a semver tag (e.g. v0.2.0) or 'latest'")
 	cmd.Flags().BoolVar(&checkOnly, "check", false, "print the current/target comparison and exit without installing")
-	cmd.Flags().BoolVar(&noPrompt, "no-prompt", false, "run the post-install aiwf update step with --no-prompt: never prompt for hook consent or guidance selection")
+	cmd.Flags().BoolVar(&noPrompt, "no-prompt", false, "run the post-install aiwf update step with --no-prompt: "+cliutil.NoPromptUsage)
 	return cmd
 }
 
