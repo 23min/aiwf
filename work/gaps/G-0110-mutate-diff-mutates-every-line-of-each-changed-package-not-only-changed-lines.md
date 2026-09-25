@@ -1,9 +1,11 @@
 ---
 id: G-0110
 title: mutate-diff mutates every line of each changed package, not only changed lines
-status: open
+status: addressed
 priority: medium
 discovered_in: M-0097
+addressed_by_commit:
+    - 1b31cf471
 ---
 
 ## What's missing
