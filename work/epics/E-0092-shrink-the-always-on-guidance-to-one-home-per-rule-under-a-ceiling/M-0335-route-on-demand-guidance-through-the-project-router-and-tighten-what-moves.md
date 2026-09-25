@@ -51,7 +51,7 @@ Record fresh sessions for both hosts, started at the repository root, for a Go c
 
 ### AC-3 — Every pin on a moved passage is retired with a recorded reason
 
-Every entry the guidance-reader list names a pin, whose passage this milestone moves, is listed at this milestone's start and recorded here, then re-aimed at a relationship check or an absence check — never at the passage's new file, which D-0102 counts as guidance too — or retired, with its reason in this body's table; its entry in the list changes kind or goes with it. **Pass criterion**: the policy suite is green and the table accounts for every listed pin; the starting list sits in Validation. The mechanical half is the green suite; the accounting is held at review.
+Every test the guidance-reader list names a pin, whose passage this milestone moves, is listed at this milestone's start and recorded here, then retired with its reason in this body's table, and its entry leaves the list. A check the moved passage still needs is a new relationship or absence check with its own entry, never a pin on the passage's new file, which D-0102 counts as guidance too. **Pass criterion**: the policy suite is green and the table accounts for every listed pin; the starting list sits in Validation. The mechanical half is the green suite; the accounting is held at review.
 
 ### AC-4 — The ceiling constant steps down to the re-homed size
 
@@ -70,7 +70,7 @@ Every rule M-0349 marks "merge" or "tighten" is rewritten in its one home, and e
 - One instruction file per host, at the root; no directory entry files.
 - Rewording is allowed where the inventory records it; each removed or rewritten passage carries its disposition block in the commit body.
 - Preserve source/output ownership; generated blocks change through their owner.
-- Re-aim pins or retire them with reasons. Do not create duplicate prose merely to satisfy an old pin.
+- Retire pins with reasons; a check a moved passage still needs is a new relationship or absence check. Do not create duplicate prose merely to satisfy an old pin.
 - Record the growth delta and both hosts' loading observations.
 
 ## Design notes
@@ -100,7 +100,7 @@ Every rule M-0349 marks "merge" or "tighten" is rewritten in its one home, and e
 
 ## References
 
-- G-0676 — the floor command that lists the pins
+- D-0102 — the decision AC-3 follows; the pin entries are in `guidanceReaderList`
 - D-0089 — selected language conventions have an external source and tracked project delivery
 
 ## Release note
