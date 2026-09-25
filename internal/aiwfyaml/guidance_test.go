@@ -329,6 +329,8 @@ func TestSetGuidanceSelection_KeepsCommentsOnEntriesAndEmptyKeys(t *testing.T) {
 		{raw: "guidance:\n  packs:\n    - go/base  # core\n  ignored:\n    - python/astral  # we use poetry\n", ignored: []string{"python/astral"}, kept: []string{"# core", "# we use poetry", "- new"}},
 		{raw: "guidance:  # selected policy\n", kept: []string{"# selected policy"}},
 		{raw: "guidance:\n  packs:  # selected policy\n", kept: []string{"# selected policy"}},
+		{raw: "guidance:\n  packs: ~  # selected policy\n", kept: []string{"# selected policy"}},
+		{raw: "guidance:\n  packs:  # selected policy\n    - go/base\n", kept: []string{"# selected policy"}},
 	} {
 		t.Run(tc.raw, func(t *testing.T) {
 			t.Parallel()

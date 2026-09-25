@@ -266,9 +266,10 @@ existing content, and an existing block is rewritten in place with its values
 and comments but not their spacing. A layout that cannot be edited in place,
 such as a flow-style or indented root, is re-encoded with its fields and
 comments retained.
-Recording requires a single UTF-8 YAML document with anchors and aliases in
-`guidance` expanded; an unsupported file is refused without being changed, and
-nothing new is installed. If validation or installation fails, installed
+Recording requires a single UTF-8 YAML document with no anchors or aliases in
+`guidance`, and `guidance` written out rather than inherited through a merge key;
+an unsupported file is refused without being changed, and nothing new is
+installed. If validation or installation fails, installed
 guidance and `aiwf.yaml` stay as they were and the update reports the failure.
 
 Detection respects Git ignore rules, skips dependency/cache directories and nested
