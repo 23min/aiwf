@@ -16,6 +16,12 @@ section in this file.
 
 ## [Unreleased]
 
+### Changed (internal) — consolidate the internal/policies test file-writing helpers
+
+Nothing user-facing changed; several near-identical test-only helpers in
+`internal/policies` that wrote a fixture file to disk now route through one
+shared helper.
+
 ### Fixed — G-0712: verbs write entity ids at canonical width, whatever width they were given
 
 An id handed to a verb at a legacy narrow width — `E-01`, `M-001`, `C-001` — is

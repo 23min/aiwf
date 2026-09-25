@@ -1,8 +1,6 @@
 package policies
 
 import (
-	"os"
-	"path/filepath"
 	"testing"
 )
 
@@ -366,7 +364,7 @@ func TestBroken(t *testing.T) {
 			t.Parallel()
 			root := t.TempDir()
 			for rel, content := range tc.files {
-				writeGoFixture(t, root, rel, content)
+				writeAt(t, root, rel, content)
 			}
 			vs, err := PolicyStressLaneCensus(root)
 			if tc.wantErr {
@@ -403,12 +401,7 @@ func TestPolicyStressLaneCensus_UnreadablePackageSurfacesAsAnError(t *testing.T)
 	root := t.TempDir()
 	// A regular file where the package directory belongs: readable,
 	// present, and not a directory.
-	if err := os.MkdirAll(filepath.Join(root, "internal"), 0o755); err != nil {
-		t.Fatalf("mkdir internal: %v", err)
-	}
-	if err := os.WriteFile(filepath.Join(root, "internal", "stresstest"), []byte("not a directory\n"), 0o644); err != nil {
-		t.Fatalf("write stresstest as a file: %v", err)
-	}
+	writeAt(t, root, "internal/stresstest", "not a directory\n")
 
 	if _, err := PolicyStressLaneCensus(root); err == nil {
 		t.Fatal("expected an error when internal/stresstest cannot be listed")

@@ -3,7 +3,6 @@
 package policies
 
 import (
-	"os"
 	"path/filepath"
 	"testing"
 
@@ -197,13 +196,6 @@ func containsViolationKind(v []bijectionViolation, k violationKind, subject stri
 func writeAC4Fixture(t *testing.T, filename, body string) string {
 	t.Helper()
 	root := t.TempDir()
-	internalDir := filepath.Join(root, "internal")
-	if err := os.MkdirAll(internalDir, 0o755); err != nil {
-		t.Fatalf("mkdir %s: %v", internalDir, err)
-	}
-	path := filepath.Join(internalDir, filename)
-	if err := os.WriteFile(path, []byte(body), 0o644); err != nil {
-		t.Fatalf("write %s: %v", path, err)
-	}
+	mustWrite(t, filepath.Join(root, "internal", filename), body)
 	return root
 }

@@ -1,7 +1,6 @@
 package policies
 
 import (
-	"os"
 	"path/filepath"
 	"testing"
 )
@@ -66,11 +65,5 @@ func TestWalkGoFiles_SkipsExcludedDirs(t *testing.T) {
 
 func writeFixture(t *testing.T, root, rel string) {
 	t.Helper()
-	abs := filepath.Join(root, filepath.FromSlash(rel))
-	if err := os.MkdirAll(filepath.Dir(abs), 0o755); err != nil {
-		t.Fatalf("mkdir %s: %v", filepath.Dir(abs), err)
-	}
-	if err := os.WriteFile(abs, []byte("package x\n"), 0o644); err != nil {
-		t.Fatalf("write %s: %v", abs, err)
-	}
+	writeAt(t, root, rel, "package x\n")
 }

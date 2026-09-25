@@ -23,7 +23,7 @@ func TestPolicyLayeringDirection_FlagsUpwardAllowsLateral(t *testing.T) {
 		imp("internal/codes") + // downward 6 -> 7: ok
 		imp("internal/gitops") + // sideways 6 -> 6: ok
 		")\n\nvar _ = fmt.Sprint\n"
-	writeSrcFixture(t, root, "internal/entity/bad.go", src)
+	writeAt(t, root, "internal/entity/bad.go", src)
 
 	violations, err := PolicyLayeringDirection(root)
 	if err != nil {
@@ -48,7 +48,7 @@ func TestPolicyLayeringDirection_AllowlistedSourceSkipped(t *testing.T) {
 	t.Parallel()
 	root := t.TempDir()
 	src := "package cellcoverage\n\nimport (\n" + imp("internal/verb") + imp("internal/cli/cliutil") + ")\n"
-	writeSrcFixture(t, root, "internal/cellcoverage/cov.go", src)
+	writeAt(t, root, "internal/cellcoverage/cov.go", src)
 
 	violations, err := PolicyLayeringDirection(root)
 	if err != nil {
@@ -65,7 +65,7 @@ func TestPolicyLayeringDirection_AllowlistedTargetSkipped(t *testing.T) {
 	t.Parallel()
 	root := t.TempDir()
 	src := "package entity\n\nimport (\n" + imp("internal/testsupport") + ")\n"
-	writeSrcFixture(t, root, "internal/entity/uses_testsupport.go", src)
+	writeAt(t, root, "internal/entity/uses_testsupport.go", src)
 
 	violations, err := PolicyLayeringDirection(root)
 	if err != nil {
@@ -81,8 +81,8 @@ func TestPolicyLayeringDirection_AllowlistedTargetSkipped(t *testing.T) {
 func TestPolicyLayeringDirection_UntieredSourceDeduped(t *testing.T) {
 	t.Parallel()
 	root := t.TempDir()
-	writeSrcFixture(t, root, "internal/newpkg/a.go", "package newpkg\n")
-	writeSrcFixture(t, root, "internal/newpkg/b.go", "package newpkg\n")
+	writeAt(t, root, "internal/newpkg/a.go", "package newpkg\n")
+	writeAt(t, root, "internal/newpkg/b.go", "package newpkg\n")
 
 	violations, err := PolicyLayeringDirection(root)
 	if err != nil {
@@ -102,8 +102,8 @@ func TestPolicyLayeringDirection_UntieredTargetDeduped(t *testing.T) {
 	t.Parallel()
 	root := t.TempDir()
 	src := "package verb\n\nimport (\n" + imp("internal/newtarget") + ")\n"
-	writeSrcFixture(t, root, "internal/verb/a.go", src)
-	writeSrcFixture(t, root, "internal/verb/b.go", src)
+	writeAt(t, root, "internal/verb/a.go", src)
+	writeAt(t, root, "internal/verb/b.go", src)
 
 	violations, err := PolicyLayeringDirection(root)
 	if err != nil {
@@ -123,7 +123,7 @@ func TestPolicyLayeringDirection_SkipsUnparseableFile(t *testing.T) {
 	t.Parallel()
 	root := t.TempDir()
 	// Malformed package clause forces a parse error even in ImportsOnly mode.
-	writeSrcFixture(t, root, "internal/entity/broken.go", "packag entity\n")
+	writeAt(t, root, "internal/entity/broken.go", "packag entity\n")
 
 	violations, err := PolicyLayeringDirection(root)
 	if err != nil {
