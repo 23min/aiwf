@@ -224,8 +224,8 @@ func TestRepoGuidanceReader(t *testing.T) {
 
 // TestMeasureGuidanceLoad_OutsideTheRepository pins what the model leaves
 // out: an import from outside the repository is personal or global
-// material, measured separately, and a web link or a bare anchor is not
-// a reference into the repository. A missing entry point is reported.
+// material and is not counted, and a web link or a bare anchor is not a
+// reference into the repository. A missing entry point is reported.
 func TestMeasureGuidanceLoad_OutsideTheRepository(t *testing.T) {
 	t.Parallel()
 	files := map[string]string{

@@ -72,8 +72,8 @@ type guidanceLoad struct {
 // host's measured handwritten primed load; E-0092's later milestones
 // lower them.
 var guidanceHosts = []guidanceHost{
-	{Name: "claude-code", Entry: fenceClaudeMD, Ceiling: 9549},
-	{Name: "codex", Entry: fenceAgentsMD, Ceiling: 9678},
+	{Name: "claude-code", Entry: fenceClaudeMD, Ceiling: 9558},
+	{Name: "codex", Entry: fenceAgentsMD, Ceiling: 9687},
 }
 
 // guidanceReadTable classifies every reference primed text makes today.
