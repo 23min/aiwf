@@ -68,7 +68,7 @@ Repository development rules, aiwf operating guidance and project-adopted langua
 - [ ] Every aiwf repository fences edits to its handwritten instruction files by default (ADR-0053).
 - [ ] No instruction file exists below the repository root; both hosts reach task-relevant guidance through `.guidance/project.md` from a root-started session, and no home-directory language import returns.
 - [ ] Development guidance duplicates neither operating rules nor the selected language packs.
-- [ ] Each moved pin is re-aimed or retired with its reason recorded.
+- [ ] Each moved pin is retired with its reason recorded.
 - [ ] Guidance references and enforcement pointers resolve.
 - [ ] Both hosts have before/after observations against the frozen baseline, with task-loaded text reported separately.
 - [ ] Growth measurements and the commit-derived removal manifest are recorded.
