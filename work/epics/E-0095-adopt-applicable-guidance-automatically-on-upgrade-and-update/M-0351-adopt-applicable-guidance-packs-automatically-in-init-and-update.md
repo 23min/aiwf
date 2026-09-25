@@ -98,11 +98,17 @@ Detection, retrieval, validation, installation, host routing and legacy handover
 
 ## Release note
 
+`aiwf init` and `aiwf update` now adopt applicable engineering guidance on their own, on a terminal or not. Every pack whose detection patterns match the project's files and that is not listed in `guidance.ignored` is installed with host routing and then added to `guidance.packs`; a project that later gains matching files gains the pack on the next `aiwf update`. Adoption is add-only: a selected pack is never removed automatically, and `guidance.ignored` is the only opt-out — moving an id there retires the pack's unmodified files. The select / not now / ignore guidance prompt is gone, and `--no-prompt` on `init`, `update` and `upgrade` now governs hook consent only. `guidance.enabled: false` still performs no download or adoption.
+
 ## Decisions made during implementation
 
-- (none)
+- None — all decisions are pre-locked above. D-0100, which governed how prompt answers were saved, is superseded now that the prompt is removed.
 
 ## Validation
+
+- `make ci` — exit 0 over the tree committed as `b3e74795a`: build, `go vet` (default, `stress`, `testpins` tags), `golangci-lint` (0 issues), `go test -race -parallel 8` with coverage, the diff-scoped coverage gate and firing-fixture meta-gate, and `aiwf doctor --self-check`. Linux devcontainer, 2026-09-25. Later commits on the branch change only entity markdown.
+- `aiwf check` — 0 errors; warnings only for the pending archive sweep and the unpushed branch's undefined provenance range.
+- AC-3 and AC-4 carry a forced `tdd_phase: done`: each claim was already pinned by tests that fail when it breaks, measured by deleting the guard it rests on — the ignored-pack filter for AC-3 (fails `TestAdopt_*`, the noninteractive `init`/`update` ignored cases and the reconsideration ignore case) and the `guidance.enabled` check for AC-4 (fails the noninteractive `init`/`update` disabled cases, `TestRun_ProjectGuidanceDisabledPreservesInstallationWithoutRetrieval` and `TestProjectGuidanceRefresh_OptOutAndDryRun/disabled`) — so no failing test existed to write first.
 
 ## Deferrals
 
