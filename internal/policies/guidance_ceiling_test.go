@@ -71,7 +71,8 @@ func TestMeasureGuidanceLoad(t *testing.T) {
 
 // TestMeasureGuidanceLoad_Routing covers the routing shapes the model
 // must handle: a transitive required read, a target two reads share, a
-// cycle, a missing target, and a reference the table does not classify.
+// cycle, a missing target, a reference the table does not classify, and an
+// import, which only Claude Code follows.
 func TestMeasureGuidanceLoad_Routing(t *testing.T) {
 	t.Parallel()
 	tests := []struct {
@@ -141,6 +142,12 @@ func TestMeasureGuidanceLoad_Routing(t *testing.T) {
 			files:       map[string]string{"CLAUDE.md": "@extra.md\n", "extra.md": words(6)},
 			table:       map[guidanceRef]readKind{},
 			handwritten: 6,
+		},
+		{
+			name:        "Codex reads an import as text and follows nothing",
+			files:       map[string]string{"AGENTS.md": "@extra.md\n", "extra.md": words(6)},
+			table:       map[guidanceRef]readKind{},
+			handwritten: 1,
 		},
 	}
 	for _, tt := range tests {

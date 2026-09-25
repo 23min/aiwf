@@ -23,8 +23,9 @@ import (
 // inspection of a model's context. A reference is a markdown link, in any
 // CommonMark form, or an `@` import in prose; a path named any other way —
 // in backticks, or in a sentence — is not one, and a "read X in full"
-// written that way is outside the model. Claude loads an import on its
-// own, so an import is a required read without further declaration. A
+// written that way is outside the model. Claude Code loads an import on
+// its own, so for Claude an import is a required read without further
+// declaration; Codex reads the line as text and follows nothing. A
 // link from a host entry point's handwritten text must be classified in
 // guidanceReadTable as a required or a conditional read, and one the table
 // does not classify is reported rather than silently counted as either. A
@@ -148,6 +149,8 @@ func measureGuidanceLoad(read func(string) (string, bool), entry string, table m
 	}
 	load.Generated = generatedWords(read, entryContent)
 
+	// Claude Code loads an import on its own; Codex reads the line as text.
+	imports := entry == fenceClaudeMD
 	seen := map[string]bool{entry: true}
 	queue := []string{entry}
 	follow := func(doc, to string, kind readKind) {
@@ -173,13 +176,13 @@ func measureGuidanceLoad(read func(string) (string, bool), entry string, table m
 			}
 		}
 	}
-	// An import is a required read, since the host loads it without being
-	// told to; it is a filesystem path, so one under the home directory or
-	// absolute is personal or global material and is left out. A link is
-	// classified by the table.
+	// For Claude an import is a required read, since the host loads it
+	// without being told to; it is a filesystem path, so one under the home
+	// directory or absolute is personal or global material and is left out.
+	// A link is classified by the table.
 	followText := func(doc, text string) {
 		for _, target := range markdownImports(text) {
-			if p, ok := resolveReference(doc, target); ok && !strings.HasPrefix(target, "~") && !strings.HasPrefix(target, "/") {
+			if p, ok := resolveReference(doc, target); ok && imports && !strings.HasPrefix(target, "~") && !strings.HasPrefix(target, "/") {
 				follow(doc, p, readRequired)
 			}
 		}
@@ -199,7 +202,11 @@ func measureGuidanceLoad(read func(string) (string, bool), entry string, table m
 		if doc == fenceClaudeMD || doc == fenceAgentsMD {
 			text = handwrittenText(text)
 		}
-		load.Handwritten += len(strings.Fields(withoutImports(text)))
+		counted := text
+		if imports {
+			counted = withoutImports(text)
+		}
+		load.Handwritten += len(strings.Fields(counted))
 		followText(doc, text)
 	}
 	return load, out
