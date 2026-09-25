@@ -249,8 +249,10 @@ func TestMeasureGuidanceLoad_OutsideTheRepository(t *testing.T) {
 
 // TestMeasureGuidanceLoad_ReferenceForms pins the reference forms the
 // model reads as CommonMark and Claude Code read them: an import inline in
-// prose is a required read, one inside a code block is not; reference-style,
-// titled and angle-bracket links are links; a directory exists.
+// prose is a required read, one inside a code block is not, and sentence
+// punctuation after one is not part of its path; reference-style, titled and
+// angle-bracket links are links; a query is not part of a path, and a link to
+// the document's own directory names no document.
 func TestMeasureGuidanceLoad_ReferenceForms(t *testing.T) {
 	t.Parallel()
 	tests := []struct {
@@ -292,6 +294,22 @@ func TestMeasureGuidanceLoad_ReferenceForms(t *testing.T) {
 			claude:      "Read [the doc](/new.md).\n",
 			handwritten: 3,
 			violations:  []string{"new.md"},
+		},
+		{
+			name:        "a query is not part of the path",
+			claude:      "Read [the doc](new.md?plain=1).\n",
+			handwritten: 3,
+			violations:  []string{"new.md"},
+		},
+		{
+			name:        "a link to the document's own directory is not a reference",
+			claude:      "See [here](./).\n",
+			handwritten: 2,
+		},
+		{
+			name:        "an import ending a sentence leaves the full stop out of the path",
+			claude:      "See @big.md.\n",
+			handwritten: 2 + 100,
 		},
 	}
 	for _, tt := range tests {
@@ -387,5 +405,26 @@ func TestMeasureGuidanceLoad_RouterLinksDefaultToConditional(t *testing.T) {
 	}
 	if load.Handwritten != 3 {
 		t.Errorf("handwritten = %d, want 3: a router link reads nothing into the primed load", load.Handwritten)
+	}
+}
+
+// TestMeasureGuidanceLoad_OnlyEntryPointsHaveManagedBlocks pins that aiwf's
+// blocks are removed from a host entry point only: marker text in any other
+// primed document is handwritten and counts in full.
+func TestMeasureGuidanceLoad_OnlyEntryPointsHaveManagedBlocks(t *testing.T) {
+	t.Parallel()
+	gStart, gEnd, _ := initrepo.GuidanceMarkers()
+	rStart, rEnd, _ := projectguidance.RouteMarkers()
+	files := map[string]string{
+		"CLAUDE.md":            rStart + "\n[p](.guidance/project.md)\n" + rEnd + "\n",
+		".guidance/project.md": words(2) + "\n" + gStart + "\n" + words(3) + "\n" + gEnd + "\n",
+	}
+	table := map[guidanceRef]readKind{{From: "CLAUDE.md", To: ".guidance/project.md"}: readRequired}
+	load, vs := measureGuidanceLoad(ceilingReader(files), "CLAUDE.md", table)
+	if len(vs) != 0 {
+		t.Fatalf("violations: %+v", vs)
+	}
+	if want := 2 + 3 + len(strings.Fields(gStart)) + len(strings.Fields(gEnd)); load.Handwritten != want {
+		t.Errorf("handwritten = %d, want %d: the router's marker text is its own", load.Handwritten, want)
 	}
 }

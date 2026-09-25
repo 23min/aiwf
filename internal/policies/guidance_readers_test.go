@@ -95,6 +95,25 @@ func TestReadersInPackage(t *testing.T) {
 	}
 }
 
+// TestReadersInPackage_OnlyTestsAreReported pins what counts as a test: a
+// top-level Test function in a _test.go file other than TestMain. A method
+// named like a test, TestMain, and a Test function outside a test file read
+// the guidance here and are not reported.
+func TestReadersInPackage_OnlyTestsAreReported(t *testing.T) {
+	t.Parallel()
+	const reads = "{ _ = readClaude(t) }\n"
+	_, files, paths := parseSyntheticPackage(t, map[string]string{
+		"header.go": readerFixtureHeader + "\nfunc TestInSource(t *testing.T) " + reads,
+		"a_test.go": "package pkg\n\nfunc TestSubject(t *testing.T) " + reads +
+			"\nfunc (doc) TestMethod(t *testing.T) " + reads +
+			"\nfunc TestMain(m *testing.M) { var t *testing.T; _ = readClaude(t) }\n",
+	})
+	got := readersInPackage(files, paths, fixtureNamesGuidance)
+	if len(got) != 1 || got["TestSubject"] == "" {
+		t.Errorf("readers = %v, want only TestSubject", got)
+	}
+}
+
 // fixtureNamesGuidance is the guidance-path predicate the fixtures use: the
 // entry points at any depth, the router, and one routed document.
 func fixtureNamesGuidance(s string) bool {
@@ -155,8 +174,9 @@ func TestPolicy_GuidanceReaders(t *testing.T) {
 }
 
 // TestRepoNamesGuidance pins that a document the router links to is
-// guidance, alongside the entry points at any depth and the router itself;
-// a router below the root is not the router.
+// guidance, alongside the entry points at any depth and the router itself,
+// however the literal spells its path; a router below the root is not the
+// router.
 func TestRepoNamesGuidance(t *testing.T) {
 	t.Parallel()
 	root := t.TempDir()
@@ -165,6 +185,7 @@ func TestRepoNamesGuidance(t *testing.T) {
 	for p, want := range map[string]bool{
 		"docs/dev/testing.md": true, "CLAUDE.md": true, "sub/AGENTS.md": true,
 		".guidance/project.md": true, "docs/other.md": false,
+		"../../docs/dev/testing.md": true, "./docs/dev/testing.md": true,
 		"sub/.guidance/project.md": false,
 	} {
 		if got := names(p); got != want {
