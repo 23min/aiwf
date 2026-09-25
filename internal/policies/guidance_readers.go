@@ -33,9 +33,10 @@ import (
 // reporting: a literal naming the file counts wherever it appears, and the
 // list records a test that names it without reading it. It does not see a
 // root resolved any other way — runtime.Caller inline, git rev-parse behind
-// a helper of another name, a climb split across filepath.Join arguments —
-// nor a function reached through a package variable, nor a path computed at
-// run time. The rule is internal to this repository (ADR-0053).
+// a helper of another name, a repoRoot method, a climb split across
+// filepath.Join arguments or held in a package constant — nor a constant
+// set to another constant, a function reached through a package variable,
+// or a path computed at run time. The rule is internal to this repository (ADR-0053).
 func PolicyGuidanceReaders(root string) ([]Violation, error) {
 	readers, err := guidanceReaderTests(root)
 	if err != nil {
@@ -108,7 +109,7 @@ func guidanceReaderViolations(readers map[string]string, list map[string]guidanc
 			out = append(out, Violation{
 				Policy: "guidance-readers",
 				File:   readers[key],
-				Detail: fmt.Sprintf("%s reads development guidance from the repository root and is not in guidanceReaderList. D-0091 bars evidencing a criterion with a sentence pinned there: if the test compares the guidance with another artefact or asserts an absence, list it with that reason; if it pins a phrase, state the claim as a relationship check or record it as an observation.", key),
+				Detail: fmt.Sprintf("%s reads development guidance from the repository root and is not in guidanceReaderList. D-0102 bars evidencing a criterion with a sentence pinned there: if the test compares the guidance with another artefact, asserts an absence, or names a guidance document without reading it, list it with that reason; if it pins a phrase, state the claim as a relationship check or record it as an observation.", key),
 			})
 		}
 	}

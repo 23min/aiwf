@@ -3,6 +3,7 @@ package policies
 import (
 	"os"
 	"path/filepath"
+	"strings"
 	"testing"
 )
 
@@ -109,6 +110,10 @@ func TestGuidanceReaderViolations(t *testing.T) {
 	vs := guidanceReaderViolations(readers, list)
 	if got, want := violationFiles(vs), []string{"pkg/b_test.go", guidanceReaderListFile}; !equalStrings(got, want) {
 		t.Errorf("violation files = %v, want %v", got, want)
+	}
+	// The unlisted-reader finding cites the decision in force.
+	if len(vs) > 0 && !strings.Contains(vs[0].Detail, "D-0102") {
+		t.Errorf("the finding must cite D-0102; got %q", vs[0].Detail)
 	}
 	for _, v := range vs {
 		if v.Policy != "guidance-readers" {
