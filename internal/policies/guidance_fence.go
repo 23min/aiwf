@@ -172,7 +172,7 @@ func fenceCommitsInRange(root, baseRef string) ([]fenceCommit, error) {
 	defer func() { _ = reader.Close() }()
 	cl := &fenceClassifier{reader: reader}
 	recs, err := parseFenceLog(string(out))
-	if err != nil {
+	if err != nil { //coverage:ignore the invocation fixes the format, -z framing and signature display, so a stream it cannot frame is a change in git itself, reported rather than skipped
 		return nil, err
 	}
 	var commits []fenceCommit

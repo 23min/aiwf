@@ -750,6 +750,9 @@ func TestGuidanceFence_DispositionSeam(t *testing.T) {
 // reads as a commit with none.
 func TestParseFenceLog_Malformed(t *testing.T) {
 	t.Parallel()
+	if got, err := parseFenceLog(""); err != nil || len(got) != 0 {
+		t.Errorf("an empty log = %+v, %v; want no commits and no error", got, err)
+	}
 	if _, err := parseFenceLog("Good signature for someone\x00"); err == nil {
 		t.Error("a stream opening with something other than a header: want an error")
 	}
