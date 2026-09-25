@@ -1,6 +1,7 @@
 package update_test
 
 import (
+	"bytes"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -127,5 +128,52 @@ func TestBinary_UnsetGuidanceSelectionAdoptsApplicablePacksWithoutTerminal(t *te
 				}
 			}
 		})
+	}
+}
+
+func TestBinary_UpdateAddsNewlyApplicablePacksAndNeverRemovesOne(t *testing.T) {
+	t.Parallel()
+	root, source := t.TempDir(), adoptionSource(t, "*.xyz", "*.abc")
+	if err := gitops.Init(t.Context(), root); err != nil {
+		t.Fatal(err)
+	}
+	guidanceWrite(t, root, config.FileName, "# Keep this note.\nhosts: [claude-code, codex]\nguidance:\n  source: "+source+"\n  packs: [sample/base]\n")
+	guidanceWrite(t, root, "source.xyz", "project source")
+	runUpdateBinary(t, root)
+	// The selected pack's files go away and a further pack becomes applicable.
+	if err := os.Remove(filepath.Join(root, "source.xyz")); err != nil {
+		t.Fatal(err)
+	}
+	guidanceWrite(t, root, "new.abc", "new project source")
+	if out := runUpdateBinary(t, root); strings.Contains(out, "guidance incomplete") {
+		t.Fatal(out)
+	}
+	want := []string{"sample/base", "other/pack"}
+	if diff := cmp.Diff(&want, guidanceSelection(t, root)); diff != "" {
+		t.Fatalf("guidance.packs (-want +got):\n%s", diff)
+	}
+	installed := guidanceFiles(t, root)
+	for _, document := range []string{".guidance/packs/sample/base/guide.md", ".guidance/packs/other/pack/guide.md"} {
+		if installed[document] == "" {
+			t.Fatalf("%s not installed: %v", document, installed)
+		}
+	}
+	configuration, err := os.ReadFile(filepath.Join(root, config.FileName))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !strings.HasPrefix(string(configuration), "# Keep this note.\n") {
+		t.Fatalf("adoption dropped the configuration's comment: %s", configuration)
+	}
+	runUpdateBinary(t, root)
+	repeated, err := os.ReadFile(filepath.Join(root, config.FileName))
+	if err != nil || !bytes.Equal(repeated, configuration) {
+		t.Fatalf("a run with no new match rewrote the configuration: %s (%v)", repeated, err)
+	}
+	// Dropping a still-applicable pack without ignoring it does not opt out.
+	guidanceWrite(t, root, config.FileName, "hosts: [claude-code, codex]\nguidance:\n  source: "+source+"\n  packs: [sample/base]\n")
+	runUpdateBinary(t, root)
+	if diff := cmp.Diff(&want, guidanceSelection(t, root)); diff != "" {
+		t.Fatalf("unignored applicable pack not re-adopted (-want +got):\n%s", diff)
 	}
 }

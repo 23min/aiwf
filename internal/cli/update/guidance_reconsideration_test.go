@@ -19,7 +19,7 @@ import (
 func TestBinary_GuidanceConfigurationRemovalAndReconsideration(t *testing.T) {
 	t.Parallel()
 	binary := testutil.AiwfBinary(t)
-	for _, action := range []string{"ignore then reconsider", "remove selection only", "edited removal", "edited replacement"} {
+	for _, action := range []string{"ignore then reconsider", "edited removal", "edited replacement"} {
 		t.Run(action, func(t *testing.T) {
 			t.Parallel()
 			root, source := t.TempDir(), testsupport.GuidanceSource(t, "*.xyz")
@@ -72,8 +72,6 @@ func TestBinary_GuidanceConfigurationRemovalAndReconsideration(t *testing.T) {
 			switch action {
 			case "ignore then reconsider", "edited removal":
 				configure("[]", "[sample/base]")
-			case "remove selection only":
-				configure("[]", "[]")
 			case "edited replacement":
 				guidanceWrite(t, source, "packs/sample/base/guide.md", "# Revised upstream guidance\n")
 				testsupport.CommitGuidanceSource(t, source)
@@ -104,12 +102,15 @@ func TestBinary_GuidanceConfigurationRemovalAndReconsideration(t *testing.T) {
 				}
 			}
 			if action == "ignore then reconsider" {
-				// Removing an ignored id from an explicit selection does not reinstall it.
+				// Removing an applicable id from the ignored list lets update adopt it again.
 				configure("[]", "[]")
-				update()
-			}
-			if diff := cmp.Diff(after, guidanceFiles(t, root)); diff != "" {
-				t.Fatalf("suggestion changed installed policy:\n%s", diff)
+				configuration = strings.Replace(configuration, "packs: []", "packs: [sample/base]", 1)
+				if out := update(); strings.Contains(out, "guidance incomplete") {
+					t.Fatal(out)
+				}
+				if diff := cmp.Diff(baseline, guidanceFiles(t, root)); diff != "" {
+					t.Fatalf("reconsidered pack not re-adopted:\n%s", diff)
+				}
 			}
 			configure("[sample/base]", "[]")
 			if out := update(); strings.Contains(out, "guidance incomplete") {

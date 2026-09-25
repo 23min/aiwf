@@ -17,7 +17,7 @@ import (
 	"github.com/23min/aiwf/internal/testsupport"
 )
 
-func TestBinary_GuidanceNoninteractiveAdoptsOnlyUnsetSelection(t *testing.T) {
+func TestBinary_GuidanceNoninteractiveAdoptsApplicablePacks(t *testing.T) {
 	t.Parallel()
 	bin := testutil.AiwfBinary(t)
 	for _, verb := range []string{"init", "update"} {
@@ -116,12 +116,15 @@ func TestBinary_GuidanceNoninteractiveAdoptsOnlyUnsetSelection(t *testing.T) {
 							write(root, "new.abc", "new project source")
 							testsupport.CommitGuidanceSource(t, source)
 							out = run("update")
-							if _, err = os.Stat(filepath.Join(root, ".guidance", "packs", "sample", "extra", "guide.md")); !errors.Is(err, os.ErrNotExist) {
-								t.Fatalf("refresh adopted suggestion: %v", err)
+							if _, err = os.Stat(filepath.Join(root, ".guidance", "packs", "sample", "extra", "guide.md")); err != nil {
+								t.Fatalf("refresh did not install the newly applicable pack: %v", err)
 							}
-							gotConfig, err := os.ReadFile(filepath.Join(root, config.FileName))
-							if err != nil || !bytes.Equal(gotConfig, []byte(configuration)) {
-								t.Fatalf("refresh changed policy: %s (%v)", gotConfig, err)
+							cfg, err := config.Load(root)
+							if err != nil {
+								t.Fatal(err)
+							}
+							if cfg.Guidance.Packs == nil || strings.Join(*cfg.Guidance.Packs, ",") != "sample/base,sample/extra" {
+								t.Fatalf("refresh did not append the newly applicable pack: %v", cfg.Guidance.Packs)
 							}
 							if strings.Contains(out, "guidance incomplete") {
 								t.Fatal(out)
