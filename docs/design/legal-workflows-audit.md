@@ -165,9 +165,9 @@ Each in-scope policy fires as a test failure that blocks CI. Severity throughout
 Listed here so the audit shows we *considered* and explicitly excluded them, not silently missed them. Per ADR-0011 §Scope, this catalog covers kernel-verb workflow legality only; CI / source-style invariants are out of scope.
 
 - `claude_md_test_discipline.go` — CLAUDE.md must have `### Test discipline` section under `## Go conventions`. (Doc structure, not workflow.)
-- `config_fields_discoverable.go` — every yaml-tagged field on aiwf.yaml structs must appear in skill, help, CLAUDE.md, or docs/. (Discoverability, not workflow.)
+- `config_fields_discoverable.go` — every yaml-tagged field on aiwf.yaml structs must appear in skill, help, or docs/. (Discoverability, not workflow.)
 - `design_doc_anchors.go` — markdown link anchors in design docs must resolve. (Doc hygiene.)
-- `discoverability.go` — every finding code must appear in skill/help/CLAUDE.md/docs/. (Discoverability.)
+- `discoverability.go` — every finding code must appear in skill/help/docs/. (Discoverability.)
 - `filepath_join_segments.go` — `filepath.Join` args after the first must not embed `/` separators. (Source-style.)
 - `no_retry_loops_on_git.go` — production code must not retry-loop around git. (Source-style.)
 - `race_parallel_cap.go` — race-mode `go test` invocations carry `-parallel 8`. (CI infra.)
@@ -693,10 +693,10 @@ Both paths together satisfy the kernel's "correctness must not depend on the LLM
 | R-RULE-117 | Discoverability | All top-level verbs | Every top-level Cobra verb is reachable through an AI-discoverable channel (per-verb skill / topical skill / `--help`-only / discoverability-priority split) per ADR-0006 | policies/skill_coverage.go | policy-block | R-AUDIT-0140 | — |
 | R-RULE-118 | Discoverability | Skill placement | Planning-conversation skills live in the rituals plugin; kernel-embedded skills are verb-wrapper shape (ADR-0007) | policies/skill_coverage.go | policy-block | R-AUDIT-0141, 0142 | — |
 | R-RULE-119 | Discoverability | All Cobra flags / closed-set values | Tab-completion via Cobra's `ValidArgs` / `RegisterFlagCompletionFunc` / `completeEntityIDFlag` (CLAUDE.md §Engineering principles) | `internal/cli/integration/completion_drift_test.go` | policy-block | R-AUDIT-0192 | — |
-| R-RULE-120 | Discoverability | All finding codes | Every finding code emitted by the kernel must appear in skill / `--help` / CLAUDE.md / `docs/` (one channel an AI assistant routinely consults) | (out-of-scope per ADR-0011 §Scope; listed for cross-reference) | policy-block | (out-of-scope discoverability.go) | — |
+| R-RULE-120 | Discoverability | All finding codes | Every finding code emitted by the kernel must appear in skill / `--help` / `docs/` (one channel an AI assistant routinely consults) | (out-of-scope per ADR-0011 §Scope; listed for cross-reference) | policy-block | (out-of-scope discoverability.go) | — |
 | R-RULE-121 | Discoverability | All finding codes | Every finding code has a matching entry in `internal/check/hint.go` `hintTable` (for "what now?" rendering) | policies/finding_hints.go | policy-block | R-AUDIT-0055 | — |
 | R-RULE-122 | Discoverability | All finding codes | Every finding code is referenced from at least one `*_test.go` file (proves emission is exercised) | policies/findings_have_tests.go | policy-block | R-AUDIT-0056 | — |
-| R-RULE-123 | Discoverability | aiwf.yaml | Every yaml-tagged field on `internal/aiwfyaml/` structs must appear in skill / `--help` / CLAUDE.md / `docs/` | (out-of-scope per ADR-0011; listed for cross-reference) | policy-block | (out-of-scope config_fields_discoverable.go) | — |
+| R-RULE-123 | Discoverability | aiwf.yaml | Every yaml-tagged field on `internal/aiwfyaml/` structs must appear in skill / `--help` / `docs/` | (out-of-scope per ADR-0011; listed for cross-reference) | policy-block | (out-of-scope config_fields_discoverable.go) | — |
 | R-RULE-124 | Discoverability | All Cobra verbs | Cross-reference symmetry: every `aiwf <verb>` mention in a skill body resolves to a registered top-level verb | policies/skill_coverage.go | policy-block | (subsumed by R-RULE-117) | — |
 
 ### 10.9 Architectural commitments
