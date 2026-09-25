@@ -44,7 +44,9 @@ func (d *Doc) SetGuidanceSelection(selected *[]string, ignored []string) error {
 			return fmt.Errorf("expand guidance anchors and aliases so guidance packs can be recorded: %w", err)
 		}
 		if value.Tag == "!!null" {
-			key.LineComment = value.LineComment
+			if value.LineComment != "" {
+				key.LineComment = value.LineComment
+			}
 			value = &yaml.Node{Kind: yaml.MappingNode, Tag: "!!map", HeadComment: value.HeadComment, FootComment: value.FootComment}
 			top.Content[index+1] = value
 		}
@@ -76,11 +78,9 @@ func (d *Doc) SetGuidanceSelection(selected *[]string, ignored []string) error {
 		var preserved []byte
 		// The key's leading comment is outside a replaced byte range.
 		blockKey := *key
-		if index >= 0 {
-			blockKey.HeadComment = ""
-		}
+		blockKey.HeadComment = ""
 		block := &yaml.Node{Kind: yaml.MappingNode, Tag: "!!map", Content: []*yaml.Node{&blockKey, value}}
-		if index >= 0 && index+2 == len(top.Content) {
+		if index+2 == len(top.Content) {
 			block.FootComment = document.FootComment
 		}
 		var encoded bytes.Buffer
@@ -121,18 +121,40 @@ func (d *Doc) SetGuidanceSelection(selected *[]string, ignored []string) error {
 	return nil
 }
 
+// setGuidanceIDs writes ids under key. Existing entries keep their nodes, and
+// so their comments, and the list keeps its style. A comment on an empty key
+// moves onto the new list.
 func setGuidanceIDs(mapping *yaml.Node, key string, ids []string) {
-	sequence := &yaml.Node{Kind: yaml.SequenceNode, Tag: "!!seq", Style: yaml.FlowStyle}
+	index := findMappingKey(mapping, key)
+	var previous *yaml.Node
+	if index >= 0 {
+		previous = mapping.Content[index+1]
+	}
+	style := yaml.FlowStyle
+	existing := make(map[string]*yaml.Node)
+	if previous != nil && previous.Kind == yaml.SequenceNode {
+		style = previous.Style
+		for _, item := range previous.Content {
+			existing[item.Value] = item
+		}
+	}
+	sequence := &yaml.Node{Kind: yaml.SequenceNode, Tag: "!!seq", Style: style}
 	for _, id := range ids {
-		sequence.Content = append(sequence.Content, &yaml.Node{Kind: yaml.ScalarNode, Tag: "!!str", Value: id})
+		item, ok := existing[id]
+		if !ok {
+			item = &yaml.Node{Kind: yaml.ScalarNode, Tag: "!!str", Value: id}
+		}
+		sequence.Content = append(sequence.Content, item)
 	}
-	if index := findMappingKey(mapping, key); index >= 0 {
-		previous := mapping.Content[index+1]
-		sequence.HeadComment, sequence.LineComment, sequence.FootComment = previous.HeadComment, previous.LineComment, previous.FootComment
-		mapping.Content[index+1] = sequence
-	} else {
+	if previous == nil {
 		mapping.Content = append(mapping.Content, &yaml.Node{Kind: yaml.ScalarNode, Tag: "!!str", Value: key}, sequence)
+		return
 	}
+	sequence.HeadComment, sequence.LineComment, sequence.FootComment = previous.HeadComment, previous.LineComment, previous.FootComment
+	if keyNode := mapping.Content[index]; sequence.LineComment == "" && previous.Kind == yaml.ScalarNode {
+		sequence.LineComment, keyNode.LineComment = keyNode.LineComment, ""
+	}
+	mapping.Content[index+1] = sequence
 }
 
 // guidanceDocumentEnd locates the raw suffix that yaml.v3 drops when encoding.
@@ -149,7 +171,9 @@ func guidanceDocumentEnd(raw []byte) int {
 	return len(raw)
 }
 
-// sameYAMLValues reports whether both documents decode to equal values.
+// sameYAMLValues reports whether both documents decode to equal values. A NaN
+// or a collection used as a key never compares equal, so such a document is
+// re-encoded rather than edited in place.
 func sameYAMLValues(a, b []byte) bool {
 	var left, right any
 	if yaml.Unmarshal(a, &left) != nil || yaml.Unmarshal(b, &right) != nil {

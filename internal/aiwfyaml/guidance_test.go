@@ -1,6 +1,7 @@
 package aiwfyaml
 
 import (
+	"slices"
 	"strings"
 	"testing"
 
@@ -310,6 +311,46 @@ func TestSameYAMLValues(t *testing.T) {
 			t.Parallel()
 			if got := sameYAMLValues([]byte(tc.a), []byte(tc.b)); got != tc.want {
 				t.Fatalf("sameYAMLValues = %v, want %v", got, tc.want)
+			}
+		})
+	}
+}
+
+// TestSetGuidanceSelection_KeepsCommentsOnEntriesAndEmptyKeys pins that adding
+// a pack keeps comments on existing packs and ignored entries and on empty
+// guidance keys.
+func TestSetGuidanceSelection_KeepsCommentsOnEntriesAndEmptyKeys(t *testing.T) {
+	t.Parallel()
+	for _, tc := range []struct {
+		raw     string
+		ignored []string
+		kept    []string
+	}{
+		{raw: "guidance:\n  packs:\n    - go/base  # core\n  ignored:\n    - python/astral  # we use poetry\n", ignored: []string{"python/astral"}, kept: []string{"# core", "# we use poetry", "- new"}},
+		{raw: "guidance:  # selected policy\n", kept: []string{"# selected policy"}},
+		{raw: "guidance:\n  packs:  # selected policy\n", kept: []string{"# selected policy"}},
+	} {
+		t.Run(tc.raw, func(t *testing.T) {
+			t.Parallel()
+			doc, _, err := ReadBytes([]byte(tc.raw))
+			if err != nil {
+				t.Fatal(err)
+			}
+			selected := []string{"new"}
+			if strings.Contains(tc.raw, "go/base") {
+				selected = []string{"go/base", "new"}
+			}
+			if err := doc.SetGuidanceSelection(&selected, tc.ignored); err != nil {
+				t.Fatal(err)
+			}
+			for _, comment := range tc.kept {
+				if !strings.Contains(string(doc.Bytes()), comment) {
+					t.Fatalf("lost %q:\n%s", comment, doc.Bytes())
+				}
+			}
+			var got struct{ Guidance struct{ Packs []string } }
+			if err := yaml.Unmarshal(doc.Bytes(), &got); err != nil || !slices.Equal(got.Guidance.Packs, selected) {
+				t.Fatalf("selection %v, %v:\n%s", got.Guidance.Packs, err, doc.Bytes())
 			}
 		})
 	}
