@@ -5,31 +5,37 @@ import (
 	"go/ast"
 	"go/parser"
 	"go/token"
+	"maps"
 	"os"
 	"path"
 	"path/filepath"
-	"sort"
+	"slices"
 	"strings"
 )
 
-// PolicyGuidanceReaders holds D-0091 for this repository's development
-// guidance — a CLAUDE.md or AGENTS.md at any depth, the project router, and
-// the documents the router links to. No acceptance criterion is evidenced by
-// a sentence pinned there, so every test that reads one of those documents
-// from the repository root is listed in guidanceReaderList, and each entry
-// says what the test is: a pin E-0092 retires when its passage moves, a
-// relationship check, or an absence check. The list is held equal to the
-// tree's readers in both directions: a new reader fails until someone
+// PolicyGuidanceReaders holds D-0102 for this repository's
+// development guidance — a CLAUDE.md or AGENTS.md at any depth, the project
+// router, and the documents the router links to. No acceptance criterion is
+// evidenced by a sentence pinned there, so every test that reads one of
+// those documents from the repository root is listed in guidanceReaderList,
+// and each entry says what the test is: a pin E-0092 retires when its
+// passage moves, a relationship check, an absence check, or a test that
+// names a guidance document without reading it. The list is held equal to
+// the tree's readers in both directions: a new reader fails until someone
 // decides what it is, and a retired pin's entry must go with it.
 //
 // The rule asks whether a test reads the guidance, not whether it asserts a
 // phrase: the first is decidable from syntax, the second is not. A test
-// reads the guidance when it, or a function of its package it calls or
-// passes along, names a guidance document — by a literal or a
-// package-level constant — and resolves the repository root, through a
-// repoRoot helper or a path climbing to it. A document of the same name in a
-// fixture repository resolves no root and is not a read. The rule is
-// internal to this repository (ADR-0053).
+// reads the guidance when it, or a function or method of its package it
+// calls or passes along, names a guidance document by a string literal or
+// a package-level constant, and resolves the repository root through a
+// repoRoot helper or a literal path climbing to it. It errs toward
+// reporting: a literal naming the file counts wherever it appears, and the
+// list records a test that names it without reading it. It does not see a
+// root resolved any other way — runtime.Caller inline, git rev-parse behind
+// a helper of another name, a climb split across filepath.Join arguments —
+// nor a function reached through a package variable, nor a path computed at
+// run time. The rule is internal to this repository (ADR-0053).
 func PolicyGuidanceReaders(root string) ([]Violation, error) {
 	readers, err := guidanceReaderTests(root)
 	if err != nil {
@@ -48,6 +54,8 @@ const (
 	readerRelationship
 	// readerAbsence asserts that something is not in the guidance.
 	readerAbsence
+	// readerNamesOnly names a guidance document without reading it.
+	readerNamesOnly
 )
 
 // guidanceReaderEntry is one listed reader and why it reads the guidance.
@@ -77,11 +85,13 @@ var guidanceReaderList = map[string]guidanceReaderEntry{
 	"internal/policies.TestPolicy_M0228SkillsPolicyBroadenedPrinciple":        {readerPin, "pins the skills-policy principle of CLAUDE.md"},
 	"internal/policies.TestM0127_AC3_NoDanglingDocsPocv3References":           {readerAbsence, "no document references the retired pocv3 tree"},
 	"internal/policies.TestM0290_AC4_NoNormativeDocOffersTheRetiredVerb":      {readerAbsence, "no normative document offers the retired verb"},
-	"internal/policies.TestSkillEditProvenance_DocumentedInClaudeMd":          {readerAbsence, "the retired skill-edit mandate stays out"},
+	"internal/policies.TestSkillEditProvenance_DocumentedInClaudeMd":          {readerAbsence, "the retired skill-edit mandate stays out; it also requires two CLAUDE.md headings to exist"},
+	"internal/policies.TestAgentIsolationHook_DeniesWorktreeIsolation":        {readerNamesOnly, "names CLAUDE.md as a phrase the hook's message must contain"},
 	"internal/policies.TestPolicy_ConfigFieldsAreDiscoverable":                {readerRelationship, "reads the router to leave routed documents out of the channels"},
 	"internal/policies.TestPolicy_FindingCodesAreDiscoverable":                {readerRelationship, "reads the router to leave routed documents out of the channels"},
 	"internal/policies.TestPolicy_GuidanceCeiling":                            {readerRelationship, "measures each host's primed load against its ceiling"},
 	"internal/policies.TestPolicy_GuidanceFence":                              {readerRelationship, "judges commits that change the guidance"},
+	"internal/policies.TestPolicy_NoDanglingEntityRefsInNarrativeDocs":        {readerRelationship, "checks that every entity reference in CLAUDE.md resolves"},
 	"internal/policies.TestPolicy_GuidanceReaders":                            {readerRelationship, "reads the router to know which documents are guidance"},
 }
 
@@ -93,7 +103,7 @@ const guidanceReaderListFile = "internal/policies/guidance_readers.go"
 // and mapped to the file declaring each, with the list.
 func guidanceReaderViolations(readers map[string]string, list map[string]guidanceReaderEntry) []Violation {
 	var out []Violation
-	for _, key := range sortedMapKeys(readers) {
+	for _, key := range slices.Sorted(maps.Keys(readers)) {
 		if _, ok := list[key]; !ok {
 			out = append(out, Violation{
 				Policy: "guidance-readers",
@@ -102,7 +112,7 @@ func guidanceReaderViolations(readers map[string]string, list map[string]guidanc
 			})
 		}
 	}
-	for _, key := range sortedMapKeys(list) {
+	for _, key := range slices.Sorted(maps.Keys(list)) {
 		if _, ok := readers[key]; !ok {
 			out = append(out, Violation{
 				Policy: "guidance-readers",
@@ -112,15 +122,6 @@ func guidanceReaderViolations(readers map[string]string, list map[string]guidanc
 		}
 	}
 	return out
-}
-
-func sortedMapKeys[V any](m map[string]V) []string {
-	keys := make([]string, 0, len(m))
-	for k := range m {
-		keys = append(keys, k)
-	}
-	sort.Strings(keys)
-	return keys
 }
 
 // guidanceReaderTests returns every test in the tree that reads development
@@ -174,16 +175,17 @@ func parsePackageDir(root, dir string) ([]*ast.File, map[*ast.File]string, error
 // resolves is followed through every function or method of the package it
 // calls or passes as a value, to a fixpoint.
 func readersInPackage(files []*ast.File, paths map[*ast.File]string, namesGuidance func(string) bool) map[string]string {
-	funcs := map[string]*ast.FuncDecl{}
+	funcs := map[string][]*ast.FuncDecl{}
 	consts := map[string]bool{}
 	for _, f := range files {
 		for _, d := range f.Decls {
 			switch decl := d.(type) {
 			case *ast.FuncDecl:
 				// Methods are keyed by name as functions are: a call
-				// `x.m(…)` reaches m's body the same way `m(…)` does.
-				if _, seen := funcs[decl.Name.Name]; decl.Body != nil && !seen {
-					funcs[decl.Name.Name] = decl
+				// `x.m(…)` reaches m's body the same way `m(…)` does, and
+				// every declaration sharing a name is followed.
+				if decl.Body != nil {
+					funcs[decl.Name.Name] = append(funcs[decl.Name.Name], decl)
 				}
 			case *ast.GenDecl:
 				for _, sp := range decl.Specs {
@@ -204,34 +206,35 @@ func readersInPackage(files []*ast.File, paths map[*ast.File]string, namesGuidan
 	type reach struct{ names, roots bool }
 	own := map[string]reach{}
 	edges := map[string][]string{}
-	for name, fd := range funcs {
+	for name, decls := range funcs {
 		var r reach
-		phrases := phraseListElements(fd.Body)
-		ast.Inspect(fd.Body, func(n ast.Node) bool {
-			switch x := n.(type) {
-			case *ast.BasicLit:
-				if x.Kind == token.STRING && !phrases[x] && namesGuidance(litValue(x)) {
-					r.names = true
-					// A relative path climbing to the guidance resolves the
-					// root on its own.
-					if strings.HasPrefix(litValue(x), "../") {
+		for _, fd := range decls {
+			ast.Inspect(fd.Body, func(n ast.Node) bool {
+				switch x := n.(type) {
+				case *ast.BasicLit:
+					if x.Kind == token.STRING && namesGuidance(litValue(x)) {
+						r.names = true
+						// A relative path climbing to the guidance resolves the
+						// root on its own.
+						if strings.HasPrefix(litValue(x), "../") {
+							r.roots = true
+						}
+					}
+				case *ast.Ident:
+					if consts[x.Name] {
+						r.names = true
+					}
+					if _, ok := funcs[x.Name]; ok && x.Name != name {
+						edges[name] = append(edges[name], x.Name)
+					}
+				case *ast.CallExpr:
+					if strings.HasPrefix(calleeFuncName(x.Fun), "repoRoot") {
 						r.roots = true
 					}
 				}
-			case *ast.Ident:
-				if consts[x.Name] {
-					r.names = true
-				}
-				if _, ok := funcs[x.Name]; ok && x.Name != name {
-					edges[name] = append(edges[name], x.Name)
-				}
-			case *ast.CallExpr:
-				if strings.HasPrefix(calleeFuncName(x.Fun), "repoRoot") {
-					r.roots = true
-				}
-			}
-			return true
-		})
+				return true
+			})
+		}
 		own[name] = r
 	}
 	// Propagate along the edges until nothing changes; a cycle settles.
@@ -268,34 +271,6 @@ func readersInPackage(files []*ast.File, paths map[*ast.File]string, namesGuidan
 			}
 		}
 	}
-	return out
-}
-
-// phraseListElements returns the string literals that are elements of a
-// `[]string{…}` list. Such a list holds phrases to look for, and a phrase
-// that happens to read "CLAUDE.md" names no document; a path is built or
-// passed, or sits in a table row, a call or a constant.
-func phraseListElements(body *ast.BlockStmt) map[*ast.BasicLit]bool {
-	out := map[*ast.BasicLit]bool{}
-	ast.Inspect(body, func(n ast.Node) bool {
-		cl, ok := n.(*ast.CompositeLit)
-		if !ok {
-			return true
-		}
-		arr, ok := cl.Type.(*ast.ArrayType)
-		if !ok {
-			return true
-		}
-		if elt, ok := arr.Elt.(*ast.Ident); !ok || elt.Name != "string" {
-			return true
-		}
-		for _, e := range cl.Elts {
-			if lit, ok := e.(*ast.BasicLit); ok {
-				out[lit] = true
-			}
-		}
-		return true
-	})
 	return out
 }
 

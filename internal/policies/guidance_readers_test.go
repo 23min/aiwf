@@ -38,6 +38,16 @@ func pongPing(n int) int { return pingPong(n) }
 type doc struct{}
 
 func (doc) load(t *testing.T) string { return readClaude(t) }
+
+func audit(root string, paths []string) {}
+
+type quiet struct{}
+
+func (quiet) fetch(t *testing.T) string { return "" }
+
+type other struct{}
+
+func (other) fetch(t *testing.T) string { return readClaude(t) }
 `
 
 // TestReadersInPackage is M-0333 AC-6's rule for what reads development
@@ -59,7 +69,9 @@ func TestReadersInPackage(t *testing.T) {
 		{"a routed document from the root", `data, _ := os.ReadFile(filepath.Join(repoRoot(t), "docs/dev/testing.md")); _ = data`, true},
 		{"a relative path climbing to the root", `data, _ := os.ReadFile("../../CLAUDE.md"); _ = data`, true},
 		{"a fixture repository's copy", `_ = readFixture(t)`, false},
-		{"a phrase list naming the file", `for _, p := range []string{"CLAUDE.md"} { _ = p }; _ = repoRoot(t)`, false},
+		{"a literal naming the file anywhere counts, failing closed", `for _, p := range []string{"CLAUDE.md"} { _ = p }; _ = repoRoot(t)`, true},
+		{"a path list passed along after resolving the root", `root := repoRoot(t); audit(root, []string{"CLAUDE.md", "ROADMAP.md"})`, true},
+		{"the second of two same-named methods reads", `_ = other{}.fetch(t)`, true},
 		{"a cycle of helpers settles", `_ = pingPong(1)`, false},
 		{"a document outside the guidance set", `data, _ := os.ReadFile(filepath.Join(repoRoot(t), "docs/other.md")); _ = data`, false},
 	}
