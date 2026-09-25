@@ -8,20 +8,50 @@ discovered_in: M-0097
 
 ## What's missing
 
-The `--diff <ref>` flag on `gremlins unleash` (used by `.github/workflows/mutate-hunt.yml` when scoped to a diff target) excludes mutants in files that are *entirely new in the branch*, not just lines unchanged versus the diff target. Observed during M-0097's operator-task self-review: `gremlins unleash --diff main ./internal/check` and `--diff origin/main ./internal/check` both reported 192 SKIPPED mutants and 0 runnable, even though `internal/check/epic_active_drafts.go` is a new file added in this branch (3 mutants per dry-run without `--diff`).
+`make mutate-diff` (`scripts/mutate-diff.sh`) mutates every line of each changed
+`internal/` package, not the changed lines. It runs `gremlins unleash <package>` once
+per changed package and never passes `--diff`. Run as
+`MUTATE_DIFF_BASE=HEAD timeout 1200 make mutate-diff` over a 30-package change, it was
+still inside the first package, `internal/check`, when the 20-minute limit ended it.
 
-Confirmed: a no-`--diff` dry-run lists the three mutants as `RUNNABLE` (`epic_active_drafts.go:25:16`, `:30:37`, `:33:16`). With `--diff` in either form, the same mutants become `SKIPPED`.
+Adding `--diff` does not scope a run shaped like the script's. Measured with gremlins
+v0.6.0 on a scratch module holding a modified file (`internal/a/a.go`, line 13
+changed, line 5 not), a staged new file, an untracked new file and a changed file
+under `cmd/`; each run's `CONDITIONALS_BOUNDARY` lines and coverage line shown:
 
-Behavior matches across `--diff main` and `--diff origin/main`, ruling out a missing-remote-ref explanation. Gremlins is `v0.6.0` or similar; the in-repo `mutate-hunt` workflow does not currently pass a diff target (it mutates the full pattern), so this issue does not impair the workflow as configured — it only impairs ad-hoc scoped runs during milestone self-review.
+```
+$ gremlins unleash --dry-run --diff <base> ./internal/a
+     SKIPPED CONDITIONALS_BOUNDARY at a.go:5:7
+     SKIPPED CONDITIONALS_BOUNDARY at a.go:13:7
+     SKIPPED CONDITIONALS_BOUNDARY at untracked.go:4:39
+     SKIPPED CONDITIONALS_BOUNDARY at staged.go:4:36
+Mutator coverage: 0.00%
+
+$ gremlins unleash --dry-run --diff <base>          # from the module root
+ NOT COVERED CONDITIONALS_BOUNDARY at cmd/x/x.go:3:31
+    RUNNABLE CONDITIONALS_BOUNDARY at internal/a/a.go:13:7
+     SKIPPED CONDITIONALS_BOUNDARY at internal/a/untracked.go:4:39
+     SKIPPED CONDITIONALS_BOUNDARY at internal/a/a.go:5:7
+    RUNNABLE CONDITIONALS_BOUNDARY at internal/a/staged.go:4:36
+Mutator coverage: 66.67%
+```
+
+- A package-path run skips every mutant, the changed line included. The filter keys
+  files by the repo path `git diff --merge-base <base>` prints (`internal/a/a.go`),
+  while a package-path run names the files it walks relative to the package
+  (`a.go`), so nothing matches.
+- An untracked file is skipped either way: `git diff` does not list it. A staged or
+  committed new file is mutated from the module root, so new files as such are not
+  excluded.
+- Gremlins reads a hunk's added lines as one run starting at the hunk's first change.
+  With lines 6 and 12 of one file edited and line 9 between them untouched, a
+  root dry-run marked line 6 RUNNABLE and line 12 SKIPPED; with `diff.context=0` set
+  for that `git diff`, lines 6 and 12 were RUNNABLE and line 9 SKIPPED.
 
 ## Why it matters
 
-CLAUDE.md §"Beyond line coverage" prescribes mutation testing "before tagging a release or after a substantive test-suite change." When a milestone adds new logic to a large package, scoping the mutation run to the milestone's diff is the natural way to keep the run fast and the survivor triage relevant. With `--diff` broken for new files, the operator either runs the full package (slow, noisy triage) or skips mutation testing entirely (loses the evidence).
-
-The M-0097 self-review fell back to **manual mutation analysis** on the three affected files (`internal/check/epic_active_drafts.go`, `internal/verb/promote_sovereign_epic_active.go` — renamed to `promote_sovereign_act.go` per M-0130's kernel-property consolidation, `internal/policies/aiwf_promote_epic_active_audit.go`). Each branch was walked against the existing AC tests and found to be KILLED by at least one named test. Documented in M-0097's *Validation* section. This is acceptable evidence for the milestone but does not scale — operators need a working diff-scoped mutation run for future milestones.
-
-## Resolution paths
-
-- Investigate gremlins's `--diff` semantics in source (`github.com/go-gremlins/gremlins`); confirm whether the new-file-skip is a known limitation or a config issue.
-- If confirmed upstream, file an issue and reference it in `.github/workflows/mutate-hunt.yml`'s comment block alongside the existing `--workers 1` / `--timeout-coefficient 15` rationale.
-- Document the workaround (full-package run + grep-filter the survivors) in CLAUDE.md §"Beyond line coverage" so the next operator does not re-derive it.
+The `wf-vacuity` and `wf-patch` rituals send a reviewer to the diff-scoped mutation
+command when one exists, so the check of whether a change's assertions kill its
+mutants runs through this target. Mutating whole packages makes that run too slow to
+finish inside a review. Scoping it with `--diff` from a package path reports no
+survivors while testing nothing, which reads as a pass.
