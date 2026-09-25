@@ -885,3 +885,22 @@ func TestRemovesLine(t *testing.T) {
 		})
 	}
 }
+
+// TestGuidanceFence_CreatedHostFileHoldingOnlyBlocks pins that a host file
+// aiwf creates holding only its managed blocks is generated output, not a
+// handwritten change, so it may ride with any commit.
+func TestGuidanceFence_CreatedHostFileHoldingOnlyBlocks(t *testing.T) {
+	t.Parallel()
+	root, runGit, writeFile, _ := guidanceFenceFixture(t)
+	runGit("rm", "-q", "AGENTS.md")
+	commitOwned(runGit, "chore: no AGENTS.md yet\n\nRemoved: the Codex entry point\nDisposition: deleted")
+	base := trimLine(runGit("rev-parse", "HEAD"))
+	gStart, gEnd, _ := initrepo.GuidanceMarkers()
+	writeFile("AGENTS.md", gStart+"\nfragment v1\n"+gEnd+"\n")
+	writeFile(fenceCodeFile, "package app\n\nvar x = 1\n")
+	runGit("add", "-A")
+	runGit("commit", "-q", "-m", "chore: aiwf init beside code")
+	if got := fenceViolationFiles(t, root, base); len(got) != 0 {
+		t.Errorf("a created host file holding only blocks is generated output; got %v", got)
+	}
+}

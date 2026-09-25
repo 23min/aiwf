@@ -170,15 +170,14 @@ func fenceCommitsInRange(root, baseRef string) ([]fenceCommit, error) {
 		return nil, err
 	}
 	defer func() { _ = reader.Close() }()
-	cl := &fenceClassifier{reader: reader}
 	recs, err := parseFenceLog(string(out))
 	if err != nil { //coverage:ignore the invocation fixes the format, -z framing and signature display, so a stream it cannot frame is a change in git itself, reported rather than skipped
 		return nil, err
 	}
 	var commits []fenceCommit
 	for _, rec := range recs {
-		c, err := cl.classify(rec.sha, rec.parent, rec.changes)
-		if err != nil { //coverage:ignore propagates a cat-file read failure; an absent file reads as empty, so only a pump that dies mid-run fails a read
+		c, err := classifyFenceCommit(reader, rec.sha, rec.parent, rec.changes)
+		if err != nil { //coverage:ignore propagates a cat-file read failure: the fence reads only paths the diff reports present at that revision, and the router and owned record, whose absence reads as ErrBlobMissing, so only a pump that dies mid-run fails one
 			return nil, err
 		}
 		c.Entity, c.Body = rec.entity, rec.body
@@ -280,29 +279,23 @@ type fenceRevision struct {
 	owned  map[string]bool
 }
 
-// fenceClassifier reads file content at revisions through one cat-file
-// pump.
-type fenceClassifier struct {
-	reader *gitops.BlobReader
-}
-
 // classify decides, for each changed pair, whether it is a handwritten
 // guidance change, a related file, or unrelated.
-func (cl *fenceClassifier) classify(sha, parent string, changes []fenceChange) (fenceCommit, error) {
+func classifyFenceCommit(br *gitops.BlobReader, sha, parent string, changes []fenceChange) (fenceCommit, error) {
 	c := fenceCommit{SHA: sha}
-	before, err := cl.revision(parent)
-	if err != nil { //coverage:ignore propagates a cat-file pump failure
+	before, err := fenceRevisionAt(br, parent)
+	if err != nil { //coverage:ignore propagates a cat-file read failure: the fence reads only paths the diff reports present at that revision, and the router and owned record, whose absence reads as ErrBlobMissing, so only a pump that dies mid-run fails one
 		return c, err
 	}
-	after, err := cl.revision(sha)
-	if err != nil { //coverage:ignore propagates a cat-file pump failure
+	after, err := fenceRevisionAt(br, sha)
+	if err != nil { //coverage:ignore propagates a cat-file read failure: the fence reads only paths the diff reports present at that revision, and the router and owned record, whose absence reads as ErrBlobMissing, so only a pump that dies mid-run fails one
 		return c, err
 	}
 	for _, ch := range changes {
 		guidance := before.isGuidance(ch.Old) || after.isGuidance(ch.New)
 		if guidance {
-			changed, removes, err := cl.handwrittenChanged(parent, sha, ch)
-			if err != nil { //coverage:ignore propagates a cat-file pump failure
+			changed, removes, err := handwrittenChanged(br, parent, sha, ch)
+			if err != nil { //coverage:ignore propagates a cat-file read failure: the fence reads only paths the diff reports present at that revision, and the router and owned record, whose absence reads as ErrBlobMissing, so only a pump that dies mid-run fails one
 				return c, err
 			}
 			if changed {
@@ -353,10 +346,10 @@ func (r fenceRevision) isRelated(p string) bool {
 
 // revision reads the router and the owned-output record at rev. A file
 // absent at rev contributes nothing.
-func (cl *fenceClassifier) revision(rev string) (fenceRevision, error) {
+func fenceRevisionAt(br *gitops.BlobReader, rev string) (fenceRevision, error) {
 	r := fenceRevision{routed: map[string]bool{}, owned: map[string]bool{}}
-	rawOwned, err := cl.show(rev, fenceOwnedRecord)
-	if err != nil { //coverage:ignore propagates a cat-file pump failure
+	rawOwned, err := readAt(br, rev, fenceOwnedRecord)
+	if err != nil { //coverage:ignore propagates a cat-file read failure: the fence reads only paths the diff reports present at that revision, and the router and owned record, whose absence reads as ErrBlobMissing, so only a pump that dies mid-run fails one
 		return r, err
 	}
 	var record map[string]string
@@ -369,8 +362,8 @@ func (cl *fenceClassifier) revision(rev string) (fenceRevision, error) {
 			}
 		}
 	}
-	router, err := cl.show(rev, fenceRouter)
-	if err != nil { //coverage:ignore propagates a cat-file pump failure
+	router, err := readAt(br, rev, fenceRouter)
+	if err != nil { //coverage:ignore propagates a cat-file read failure: the fence reads only paths the diff reports present at that revision, and the router and owned record, whose absence reads as ErrBlobMissing, so only a pump that dies mid-run fails one
 		return r, err
 	}
 	for _, p := range routedDocuments(router) {
@@ -397,15 +390,15 @@ func routedDocuments(router string) []string {
 // The empty revision is a root commit's missing parent, where every file
 // is absent, and the empty path is the missing side of an addition or a
 // deletion — which must not reach cat-file, where `rev:` names the tree.
-func (cl *fenceClassifier) show(rev, p string) (string, error) {
+func readAt(br *gitops.BlobReader, rev, p string) (string, error) {
 	if rev == "" || p == "" {
 		return "", nil
 	}
-	content, err := cl.reader.Read(rev, p)
+	content, err := br.Read(rev, p)
 	if errors.Is(err, gitops.ErrBlobMissing) {
 		return "", nil
 	}
-	if err != nil { //coverage:ignore a live cat-file pump fails only if the git subprocess dies mid-run
+	if err != nil { //coverage:ignore propagates a cat-file read failure: the fence reads only paths the diff reports present at that revision, and the router and owned record, whose absence reads as ErrBlobMissing, so only a pump that dies mid-run fails one
 		return "", fmt.Errorf("reading %s at %s: %w", p, rev, err)
 	}
 	return string(content), nil
@@ -416,13 +409,13 @@ func (cl *fenceClassifier) show(rev, p string) (string, error) {
 // line. For a host entry point the handwritten content is the file
 // outside its managed blocks; any other guidance document is handwritten
 // throughout, so any change to it — a rename included — counts.
-func (cl *fenceClassifier) handwrittenChanged(parent, sha string, ch fenceChange) (changed, removes bool, err error) {
-	before, err := cl.show(parent, ch.Old)
-	if err != nil { //coverage:ignore propagates a cat-file pump failure
+func handwrittenChanged(br *gitops.BlobReader, parent, sha string, ch fenceChange) (changed, removes bool, err error) {
+	before, err := readAt(br, parent, ch.Old)
+	if err != nil { //coverage:ignore propagates a cat-file read failure: the fence reads only paths the diff reports present at that revision, and the router and owned record, whose absence reads as ErrBlobMissing, so only a pump that dies mid-run fails one
 		return false, false, err
 	}
-	after, err := cl.show(sha, ch.New)
-	if err != nil { //coverage:ignore propagates a cat-file pump failure
+	after, err := readAt(br, sha, ch.New)
+	if err != nil { //coverage:ignore propagates a cat-file read failure: the fence reads only paths the diff reports present at that revision, and the router and owned record, whose absence reads as ErrBlobMissing, so only a pump that dies mid-run fails one
 		return false, false, err
 	}
 	if ch.New == fenceClaudeMD || ch.New == fenceAgentsMD {
@@ -430,7 +423,11 @@ func (cl *fenceClassifier) handwrittenChanged(parent, sha string, ch fenceChange
 		// so blank lines are not handwritten content.
 		before, after = nonBlankLines(handwrittenText(before)), nonBlankLines(handwrittenText(after))
 	}
-	return ch.Old != ch.New || before != after, removesLine(before, after), nil
+	// A rename moves the document; an addition or a deletion is judged by
+	// its content, so a host file aiwf creates holding only its blocks is
+	// not a handwritten change.
+	renamed := ch.Old != "" && ch.New != "" && ch.Old != ch.New
+	return renamed || before != after, removesLine(before, after), nil
 }
 
 // nonBlankLines drops blank lines from text.
@@ -513,21 +510,21 @@ func validDisposition(v string) bool {
 	return false
 }
 
+// managedBlockMarkers are the marker sets of aiwf's two managed blocks in a
+// host entry point, each owned by the package that writes the block.
+var managedBlockMarkers = []func() (start, end, prefix string){initrepo.GuidanceMarkers, projectguidance.RouteMarkers}
+
 // handwrittenText is a host entry point with its managed blocks removed.
 // A file whose markers are malformed has no block aiwf can own, so all of
 // it is judged as handwritten.
 func handwrittenText(content string) string {
-	for _, markers := range [][3]string{fenceMarkers(initrepo.GuidanceMarkers), fenceMarkers(projectguidance.RouteMarkers)} {
-		start, end, err := pathutil.ManagedBlockSpan(content, markers[0], markers[1], markers[2])
+	for _, markers := range managedBlockMarkers {
+		startMarker, endMarker, prefix := markers()
+		start, end, err := pathutil.ManagedBlockSpan(content, startMarker, endMarker, prefix)
 		if err != nil || start < 0 {
 			continue
 		}
 		content = content[:start] + content[end:]
 	}
 	return content
-}
-
-func fenceMarkers(f func() (string, string, string)) [3]string {
-	start, end, prefix := f()
-	return [3]string{start, end, prefix}
 }

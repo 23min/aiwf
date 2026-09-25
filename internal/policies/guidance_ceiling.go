@@ -6,7 +6,6 @@ import (
 	"path/filepath"
 	"strings"
 
-	"github.com/23min/aiwf/internal/initrepo"
 	"github.com/23min/aiwf/internal/pathutil"
 	"github.com/23min/aiwf/internal/projectguidance"
 	"github.com/23min/aiwf/internal/skills"
@@ -267,12 +266,13 @@ func withoutImports(text string) string {
 // itself.
 func generatedWords(read func(string) (string, bool), content string) int {
 	n := 0
-	for _, markers := range [][3]string{fenceMarkers(initrepo.GuidanceMarkers), fenceMarkers(projectguidance.RouteMarkers)} {
-		start, end, err := pathutil.ManagedBlockSpan(content, markers[0], markers[1], markers[2])
+	for _, markers := range managedBlockMarkers {
+		startMarker, endMarker, prefix := markers()
+		start, end, err := pathutil.ManagedBlockSpan(content, startMarker, endMarker, prefix)
 		if err != nil || start < 0 {
 			continue
 		}
-		block := strings.TrimSuffix(strings.TrimPrefix(content[start:end], markers[0]), markers[1])
+		block := strings.TrimSuffix(strings.TrimPrefix(content[start:end], startMarker), endMarker)
 		n += len(strings.Fields(withoutImports(block)))
 		for _, target := range markdownImports(block) {
 			if imported, ok := read(target); ok {
