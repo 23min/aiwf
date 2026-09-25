@@ -12,8 +12,9 @@ import (
 	"github.com/23min/aiwf/internal/cli/upgrade"
 )
 
-// TestNoPromptFlag_HelpComesFromOneSource pins every registered --no-prompt
-// flag to the shared usage, so the verbs cannot describe it differently.
+// TestNoPromptFlag_HelpComesFromOneSource pins the --no-prompt flag of init,
+// update and upgrade to the shared usage, so those verbs cannot describe it
+// differently. What the shared usage says is not asserted here.
 func TestNoPromptFlag_HelpComesFromOneSource(t *testing.T) {
 	t.Parallel()
 	for _, tc := range []struct {

@@ -55,6 +55,12 @@ func TestGuidanceAdoption_RealTerminalNeverPrompts(t *testing.T) {
 			if _, err := fmt.Fprint(master, tc.waiting); err != nil {
 				t.Fatal(err)
 			}
+			// The terminal delivers the waiting input asynchronously; wait until it
+			// is readable so the unread-byte check below cannot race delivery.
+			ready := []unix.PollFd{{Fd: int32(os.Stdin.Fd()), Events: unix.POLLIN}}
+			if n, err := unix.Poll(ready, 5000); err != nil || n != 1 {
+				t.Fatalf("waiting terminal input never became readable: %d, %v", n, err)
+			}
 			var rc int
 			output := testutil.CaptureStderr(t, func() {
 				if tc.init {

@@ -6,6 +6,7 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"slices"
 	"strings"
 	"syscall"
 	"testing"
@@ -104,7 +105,6 @@ func TestRetrieve_RefusalsCleanTemporaryData(t *testing.T) {
 		name, catalogue, document string
 		selection                 []string
 	}{
-		{name: "unknown selection", selection: []string{"missing"}},
 		{name: "duplicate selection", selection: []string{"go/cobra", "go/cobra"}},
 		{name: "missing document", selection: []string{"explicit"}},
 		{name: "invalid catalogue", catalogue: `{"packs":true}`},
@@ -364,6 +364,25 @@ func TestRetrieveWithSelection_InterruptedChoiceCleansTemporarySource(t *testing
 	got, err := retrieveWithSelection(t.Context(), source, func(Catalogue) ([]string, error) { return nil, sentinel }, temp)
 	if got != nil || !errors.Is(err, sentinel) {
 		t.Fatalf("interruption: %+v, %v", got, err)
+	}
+	assertEmpty(t, temp)
+}
+
+// TestRetrieve_SkipsSelectedPacksMissingFromCatalogue pins that a selected id
+// the catalogue no longer lists is reported rather than refused, so the rest
+// of the selection is still retrieved.
+func TestRetrieve_SkipsSelectedPacksMissingFromCatalogue(t *testing.T) {
+	t.Parallel()
+	root, temp := sourceRepo(t), t.TempDir()
+	got, err := retrieve(t.Context(), root, []string{"retired/pack", "go/cobra"}, temp)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !slices.Equal(got.Missing, []string{"retired/pack"}) {
+		t.Fatalf("Missing = %v, want [retired/pack]", got.Missing)
+	}
+	if string(got.Documents["packs/go/cobra/guide.md"]) != "# Go\nUse Cobra.\n" {
+		t.Fatalf("present pack not retrieved: %v", got.Documents)
 	}
 	assertEmpty(t, temp)
 }

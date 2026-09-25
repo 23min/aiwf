@@ -17,6 +17,9 @@ type Snapshot struct {
 	Commit    string
 	Catalogue Catalogue
 	Documents map[string][]byte
+	// Missing lists selected ids the catalogue no longer has, in selection
+	// order. Their documents are not retrieved.
+	Missing []string
 }
 
 // Retrieve downloads and validates the current source without retaining a cache.
@@ -76,12 +79,17 @@ func retrieveWithSelection(ctx context.Context, source string, selectPacks func(
 	}
 	documents := make(map[string][]byte)
 	seen := make(map[string]bool)
+	var missing []string
 	for _, id := range selected {
-		pack, ok := available[id]
-		if !ok || seen[id] {
-			return nil, fmt.Errorf("%w: selected pack %q is missing or repeated; choose each catalogue id once", ErrInvalidSource, id)
+		if seen[id] {
+			return nil, fmt.Errorf("%w: selected pack %q is repeated; list each catalogue id once", ErrInvalidSource, id)
 		}
 		seen[id] = true
+		pack, ok := available[id]
+		if !ok {
+			missing = append(missing, id)
+			continue
+		}
 		for _, name := range pack.Files {
 			content, err := gitops.ReadRegularFromHEAD(ctx, repo, name)
 			if err != nil {
@@ -93,5 +101,5 @@ func retrieveWithSelection(ctx context.Context, source string, selectPacks func(
 			documents[name] = content
 		}
 	}
-	return &Snapshot{Commit: commit, Catalogue: catalogue, Documents: documents}, nil
+	return &Snapshot{Commit: commit, Catalogue: catalogue, Documents: documents, Missing: missing}, nil
 }

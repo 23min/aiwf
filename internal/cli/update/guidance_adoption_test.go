@@ -5,6 +5,7 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"slices"
 	"strings"
 	"testing"
 
@@ -175,5 +176,64 @@ func TestBinary_UpdateAddsNewlyApplicablePacksAndNeverRemovesOne(t *testing.T) {
 	runUpdateBinary(t, root)
 	if diff := cmp.Diff(&want, guidanceSelection(t, root)); diff != "" {
 		t.Fatalf("unignored applicable pack not re-adopted (-want +got):\n%s", diff)
+	}
+}
+
+func TestBinary_UpdateSkipsSelectedPacksTheCatalogueNoLongerHas(t *testing.T) {
+	t.Parallel()
+	root, source := t.TempDir(), adoptionSource(t, "*.xyz", "*.abc")
+	if err := gitops.Init(t.Context(), root); err != nil {
+		t.Fatal(err)
+	}
+	guidanceWrite(t, root, config.FileName, "hosts: [claude-code, codex]\nguidance:\n  source: "+source+"\n")
+	guidanceWrite(t, root, "source.xyz", "project source")
+	runUpdateBinary(t, root)
+	// The catalogue renames sample/base; its files still match the renamed pack.
+	guidanceWrite(t, source, "catalogue.json", `{"packs":[`+
+		`{"id":"sample/renamed","description":"Renamed guidance","files":["packs/sample/renamed/guide.md"],"detect":["*.xyz"]},`+
+		`{"id":"other/pack","description":"Other project guidance","files":["packs/other/pack/guide.md"],"detect":["*.abc"]}]}`)
+	guidanceWrite(t, source, "packs/sample/renamed/guide.md", "# Renamed guidance\n")
+	testsupport.CommitGuidanceSource(t, source)
+	out := runUpdateBinary(t, root)
+	if !strings.Contains(out, "sample/base") || !strings.Contains(out, "guidance.ignored") {
+		t.Fatalf("vanished pack not reported with its fix: %s", out)
+	}
+	want := []string{"sample/base", "sample/renamed"}
+	if diff := cmp.Diff(&want, guidanceSelection(t, root)); diff != "" {
+		t.Fatalf("guidance.packs (-want +got):\n%s", diff)
+	}
+	installed := guidanceFiles(t, root)
+	if _, present := installed[".guidance/packs/sample/base/guide.md"]; present {
+		t.Fatal("vanished pack's files were not retired")
+	}
+	if installed[".guidance/packs/sample/renamed/guide.md"] != "# Renamed guidance\n" {
+		t.Fatalf("renamed pack not installed: %v", installed)
+	}
+}
+
+// TestBinary_AdoptionKeepsIgnoredPacksIgnored adopts one pack while another
+// applicable pack is ignored, twice, so an adoption write that dropped the
+// ignored list would let the second run adopt it.
+func TestBinary_AdoptionKeepsIgnoredPacksIgnored(t *testing.T) {
+	t.Parallel()
+	root, source := t.TempDir(), adoptionSource(t, "*.xyz", "*.abc")
+	if err := gitops.Init(t.Context(), root); err != nil {
+		t.Fatal(err)
+	}
+	guidanceWrite(t, root, config.FileName, "hosts: [claude-code, codex]\nguidance:\n  source: "+source+"\n  ignored: [other/pack]\n")
+	guidanceWrite(t, root, "source.xyz", "project source")
+	guidanceWrite(t, root, "source.abc", "project source")
+	for range 2 {
+		runUpdateBinary(t, root)
+	}
+	cfg, err := config.Load(root)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if cfg.Guidance.Packs == nil || !slices.Equal(*cfg.Guidance.Packs, []string{"sample/base"}) || !slices.Equal(cfg.Guidance.Ignored, []string{"other/pack"}) {
+		t.Fatalf("packs %v, ignored %v; want [sample/base] and [other/pack]", cfg.Guidance.Packs, cfg.Guidance.Ignored)
+	}
+	if _, present := guidanceFiles(t, root)[".guidance/packs/other/pack/guide.md"]; present {
+		t.Fatal("ignored pack installed")
 	}
 }

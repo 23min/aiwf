@@ -250,37 +250,41 @@ Enabled init and update retrieve the source's current default-branch revision
 into a temporary directory, detect which packs apply using the catalogue's
 filename patterns, and add every applicable pack not listed in `ignored` to
 `packs` without prompting. They then install the selection in `.guidance/` with
-host routing. There is no persistent download cache. A pack is recorded in
-`packs` only once it is installed, so `aiwf.yaml` never names a pack the working
-tree lacks; a run interrupted in between records it on the next run. Adoption is
-add-only: a selected pack whose matching files disappear stays selected and
-installed, and a pack listed by hand is installed before any source it applies
-to exists. An omitted or `null` `packs` means nothing has been adopted yet;
-`packs: []` selects none. Selected and ignored ids must be unique and must not
-overlap. Existing host-wiring settings remain independent.
+host routing. There is no persistent download cache. aiwf records an adopted
+pack in `packs` only once it is installed; a run interrupted in between records
+it on the next run. Adoption is add-only: a selected pack whose matching files
+disappear stays selected and installed, and a pack listed by hand is installed
+before any source it applies to exists. An omitted or `null` `packs` means
+nothing has been adopted yet; `packs: []` selects none. Selected and ignored ids
+must be unique and must not overlap. Existing host-wiring settings remain
+independent.
 
 Recording adopted packs edits the `guidance` block of `aiwf.yaml`. Other fields
-and comments are preserved; adding a guidance block or editing a flow-style root
-mapping may reformat the document. Recording requires a single UTF-8 YAML document
-with anchors and aliases in `guidance` expanded; an unsupported file is refused
-without being changed, and nothing new is installed. If validation or
-installation fails, installed guidance and `aiwf.yaml` stay as they were and the
-update reports the failure.
+and comments are preserved byte for byte; a missing `guidance` block is added
+after the existing content, and only a flow-style root mapping is reformatted.
+Recording requires a single UTF-8 YAML document with anchors and aliases in
+`guidance` expanded; an unsupported file is refused without being changed, and
+nothing new is installed. If validation or installation fails, installed
+guidance and `aiwf.yaml` stay as they were and the update reports the failure.
 
 Detection respects Git ignore rules, skips dependency/cache directories and nested
 repositories, and does not follow symbolic links. Output-like directory names
 such as `bin`, `build`, and `out` are not exclusions by themselves; use Git ignore
 rules for generated material there.
 
-`ignored` is the only opt-out. Move a pack's id from `packs` to `ignored` to
+`ignored` is the per-pack opt-out. Move a pack's id from `packs` to `ignored` to
 retire its unmodified generated files on the next `aiwf update` and keep it from
 being adopted again. Removing an id from `packs` alone does not opt out: the next
 run adopts the pack again while it still applies. To reconsider an ignored pack,
 remove its id from `ignored`; the next `aiwf update` adopts it if it applies. When
 you move the last selected pack, keep `packs: []` so its files are retired; with
-`packs` omitted, a run retires them only if it adopts another pack. Locally edited
-generated files block removal or replacement; preserve your changes in
-`.guidance/project.md` or reconcile the generated file before retrying.
+`packs` omitted, a run retires them only if it adopts another pack. A selected
+pack the catalogue no longer lists stays in `packs`, and update reports it with
+the fix: remove its id from `packs` or move it to `ignored`. Its unmodified files
+are retired while the rest of the selection is still installed, and a renamed
+pack is adopted under its new id when it applies. Locally edited generated files
+block removal or replacement; preserve your changes in `.guidance/project.md` or
+reconcile the generated file before retrying.
 Handwritten overrides and unowned files are retained. `enabled: false` preserves
 installed files and routing without downloading or adopting anything.
 

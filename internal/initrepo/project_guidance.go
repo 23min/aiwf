@@ -4,9 +4,10 @@ import (
 	"context"
 	"fmt"
 	"path/filepath"
+	"slices"
+	"strings"
 
 	"github.com/23min/aiwf/internal/aiwfyaml"
-
 	"github.com/23min/aiwf/internal/config"
 	"github.com/23min/aiwf/internal/projectguidance"
 )
@@ -18,6 +19,9 @@ func ensureProjectGuidance(ctx context.Context, root string, cfg *config.Config,
 	step := &StepResult{What: ".guidance (project engineering guidance)", Action: ActionSkipped}
 	if opts.DryRun {
 		step.Detail = "would retrieve and validate selected guidance, then install project files and host routing"
+		if opts.AdoptGuidance {
+			step.Detail = "would retrieve guidance, adopt applicable packs not listed in guidance.ignored, then install project files and host routing"
+		}
 		return step
 	}
 	instructions, err := inspectInstructionFiles(ctx, root)
@@ -80,7 +84,10 @@ func ensureProjectGuidance(ctx context.Context, root string, cfg *config.Config,
 			return step
 		}
 	}
-	changed, err := projectguidance.Install(ctx, root, snapshot, projectguidance.InstallOptions{Source: cfg.GuidanceSource(), Selected: *selected, HostFiles: hosts})
+	// Packs the catalogue no longer lists stay selected but are not installed,
+	// so their unmodified files are retired like any unselected pack's.
+	installed := slices.DeleteFunc(slices.Clone(*selected), func(id string) bool { return slices.Contains(snapshot.Missing, id) })
+	changed, err := projectguidance.Install(ctx, root, snapshot, projectguidance.InstallOptions{Source: cfg.GuidanceSource(), Selected: installed, HostFiles: hosts})
 	if err != nil {
 		step.Detail = fmt.Sprintf("guidance incomplete: %v", err)
 		return step
@@ -90,7 +97,6 @@ func ensureProjectGuidance(ctx context.Context, root string, cfg *config.Config,
 			step.Detail = fmt.Sprintf("guidance incomplete: recording adopted guidance: %v", err)
 			return step
 		}
-		cfg.Guidance.Packs = selected
 		changed = true
 	}
 	step.Action = ActionPreserved
@@ -98,6 +104,9 @@ func ensureProjectGuidance(ctx context.Context, root string, cfg *config.Config,
 		step.Action = ActionUpdated
 	}
 	step.Detail = "selected project guidance at " + snapshot.Commit
+	if len(snapshot.Missing) > 0 {
+		step.Detail += fmt.Sprintf("; the catalogue no longer has %s: remove it from guidance.packs or move it to guidance.ignored", strings.Join(snapshot.Missing, ", "))
+	}
 	return step
 }
 

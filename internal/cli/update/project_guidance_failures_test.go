@@ -116,7 +116,7 @@ func guidanceInstallBaseline(t *testing.T, root, source string) string {
 
 func TestRun_ProjectGuidanceFailuresPreserveInstallationAndContinue(t *testing.T) {
 	testsupport.IsolateGuidanceEnvironment(t)
-	for _, kind := range []string{"unavailable source", "invalid catalogue", "missing pack", "missing document", "edited document", "edited retired document", "first installation"} {
+	for _, kind := range []string{"unavailable source", "invalid catalogue", "missing document", "edited document", "edited retired document", "first installation"} {
 		t.Run(kind, func(t *testing.T) {
 			root, source := freshInitializedRepo(t), testsupport.GuidanceSource(t)
 			guidanceConfig(t, root, source, "[sample/base]", true)
@@ -132,8 +132,6 @@ func TestRun_ProjectGuidanceFailuresPreserveInstallationAndContinue(t *testing.T
 			case "invalid catalogue":
 				guidanceWrite(t, source, "catalogue.json", "not JSON\n")
 				testsupport.CommitGuidanceSource(t, source)
-			case "missing pack":
-				guidanceConfig(t, root, source, "[missing/base]", true)
 			case "missing document":
 				if err := os.Remove(filepath.Join(source, "packs", "sample", "base", "guide.md")); err != nil {
 					t.Fatal(err)
