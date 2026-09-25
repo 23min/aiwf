@@ -54,7 +54,7 @@ Detection, retrieval, validation, installation, host routing and legacy handover
 
 ### AC-4 — Disabled maintenance performs no detection or adoption
 
-**Pass criterion**: with `guidance.enabled: false`, `aiwf init` and `aiwf update` perform no catalogue retrieval, detection or adoption, and leave `aiwf.yaml`, `.guidance/` and host routing byte-identical. **Edge cases**: `guidance.packs` unset and set; a matching pack present in the catalogue. **Code references**: `internal/cli/update/project_guidance_failures_test.go` (`TestRun_ProjectGuidanceDisabledPreservesInstallationWithoutRetrieval`), extended to the unset selection and to `init`.
+**Pass criterion**: with `guidance.enabled: false`, `aiwf init` and `aiwf update` perform no catalogue retrieval, detection or adoption, and leave `aiwf.yaml`, `.guidance/` and host routing byte-identical. **Edge cases**: `guidance.packs` unset and set; a matching pack present in the catalogue. **Code references**: `internal/cli/update/project_guidance_failures_test.go` (`TestRun_ProjectGuidanceDisabledPreservesInstallationWithoutRetrieval`); the unset selection and `init` are covered by the disabled cases of `internal/cli/integration/guidance_noninteractive_test.go`.
 
 ### AC-5 — Init and update never prompt for guidance
 
@@ -98,17 +98,19 @@ Detection, retrieval, validation, installation, host routing and legacy handover
 
 ## Release note
 
-`aiwf init` and `aiwf update` now adopt applicable engineering guidance on their own, on a terminal or not. Every pack whose detection patterns match the project's files and that is not listed in `guidance.ignored` is installed with host routing and then added to `guidance.packs`; a project that later gains matching files gains the pack on the next `aiwf update`. Adoption is add-only: a selected pack is never removed automatically, and `guidance.ignored` is the only opt-out — moving an id there retires the pack's unmodified files. The select / not now / ignore guidance prompt is gone, and `--no-prompt` on `init`, `update` and `upgrade` now governs hook consent only. `guidance.enabled: false` still performs no download or adoption.
+`aiwf init` — including the first run in a repository — and `aiwf update` now adopt applicable engineering guidance on their own, on a terminal or not. Every pack whose detection patterns match the project's files and that is not listed in `guidance.ignored` is installed with host routing and then added to `guidance.packs`; a project that later gains matching files gains the pack on the next `aiwf update`. Adding the `guidance` block leaves the rest of `aiwf.yaml` byte for byte as it was. Adoption is add-only: a selected pack is never removed automatically, and `guidance.ignored` is the per-pack opt-out — moving an id there retires the pack's unmodified files. A selected pack the catalogue no longer lists is reported with its fix while the rest of the selection still installs. The first adoption also performs the handover from legacy ai-dotfiles guidance in `CLAUDE.md`, as an explicit selection always has. The select / not now / ignore guidance prompt is gone, and `--no-prompt` on `init`, `update` and `upgrade` now governs hook consent only. `guidance.enabled: false` still performs no download or adoption.
 
 ## Decisions made during implementation
 
-- None — all decisions are pre-locked above. D-0100, which governed how prompt answers were saved, is superseded now that the prompt is removed.
+- D-0103 — a selected pack the catalogue no longer lists is skipped, kept in `guidance.packs`, reported with its fix, and its unmodified files retired.
+- D-0100, which governed how prompt answers were saved, is superseded now that the prompt is removed.
 
 ## Validation
 
-- `make ci` — exit 0 over the tree committed as `b3e74795a`: build, `go vet` (default, `stress`, `testpins` tags), `golangci-lint` (0 issues), `go test -race -parallel 8` with coverage, the diff-scoped coverage gate and firing-fixture meta-gate, and `aiwf doctor --self-check`. Linux devcontainer, 2026-09-25. Later commits on the branch change only entity markdown.
-- `aiwf check` — 0 errors; warnings only for the pending archive sweep and the unpushed branch's undefined provenance range.
-- AC-3 and AC-4 carry a forced `tdd_phase: done`: each claim was already pinned by tests that fail when it breaks, measured by deleting the guard it rests on — the ignored-pack filter for AC-3 (fails `TestAdopt_*`, the noninteractive `init`/`update` ignored cases and the reconsideration ignore case) and the `guidance.enabled` check for AC-4 (fails the noninteractive `init`/`update` disabled cases, `TestRun_ProjectGuidanceDisabledPreservesInstallationWithoutRetrieval` and `TestProjectGuidanceRefresh_OptOutAndDryRun/disabled`) — so no failing test existed to write first.
+- `make ci` — exit 0 over the tree committed as `069c66fc1`: build, `go vet` (default, `stress`, `testpins` tags), `golangci-lint` (0 issues), `go test -race -parallel 8` with coverage (91.8% total), the profile-driven gate step (diff-scoped coverage audit, firing-fixture meta-gate), and `aiwf doctor --self-check` (29 steps). Linux devcontainer, 2026-09-25.
+- `aiwf check` — 0 errors.
+- AC-3 and AC-4 carry a forced `tdd_phase: done`; each claim was already pinned when its AC was reached. Deleting the ignored-pack filter in `projectguidance.Adopt` fails `TestAdopt_UnsetSelection`, `TestAdopt_ExistingSelectionGainsNewMatchesAndKeepsItsOwn`, `TestBinary_GuidanceNoninteractiveAdoptsApplicablePacks/{init,update}/ignored` and `TestBinary_GuidanceConfigurationRemovalAndReconsideration/ignore_then_reconsider`; deleting the `GuidanceEnabled()` check in `ensureProjectGuidance` fails the noninteractive `{init,update}/disabled` cases, `TestRun_ProjectGuidanceDisabledPreservesInstallationWithoutRetrieval` and `TestProjectGuidanceRefresh_OptOutAndDryRun/disabled`. Measured with `go test -count=1` on the mutated tree, Linux devcontainer, 2026-09-25.
+- AC-5, help clause (observation): `aiwf init --help`, `aiwf update --help` and `aiwf upgrade --help` from a binary built at `069c66fc1`, Linux devcontainer, 2026-09-25. Expected: no guidance prompt described. Observed: guidance is described only as adopted "without prompting"; every other mention of a prompt concerns hook consent or the statusline, and each `--no-prompt` flag reads "never prompt for hook consent; leave undecided hooks unchanged".
 
 ## Deferrals
 
