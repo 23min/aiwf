@@ -1,7 +1,9 @@
 ---
 id: G-0712
 title: Verbs re-emit entity ids at the width the operator typed
-status: open
+status: addressed
+addressed_by_commit:
+    - 99394265a
 ---
 ## What's missing
 
