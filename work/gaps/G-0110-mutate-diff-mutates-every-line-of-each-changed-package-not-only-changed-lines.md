@@ -1,6 +1,6 @@
 ---
 id: G-0110
-title: gremlins --diff <ref> filter excludes new files entirely; manual mutation review needed for M-0094/95/96
+title: mutate-diff mutates every line of each changed package, not only changed lines
 status: open
 priority: medium
 discovered_in: M-0097
