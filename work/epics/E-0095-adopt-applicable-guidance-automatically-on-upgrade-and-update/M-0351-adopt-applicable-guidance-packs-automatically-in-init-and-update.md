@@ -24,7 +24,7 @@ acs:
     - id: AC-5
       title: Init and update never prompt for guidance
       status: open
-      tdd_phase: refactor
+      tdd_phase: done
 ---
 ## Goal
 
