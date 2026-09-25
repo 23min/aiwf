@@ -3,16 +3,18 @@ package aiwfyaml
 import (
 	"bytes"
 	"fmt"
+	"reflect"
 
 	"gopkg.in/yaml.v3"
 )
 
 // SetGuidanceSelection updates only selected and ignored ids. An absent selection
 // remains absent until a pack is selected, and an ignored key is written only
-// when ids are ignored or the key already exists. In a block-style document
-// every byte outside the guidance block is preserved, and a missing block is
-// added after the existing content; a flow-style root is re-encoded, retaining
-// fields and comments.
+// when ids are ignored or the key already exists. Bytes outside the guidance
+// block are kept when the edited document decodes to the same values as a
+// re-encoding; a missing block is then added after the existing content.
+// Otherwise, as for a flow-style or indented root, the document is re-encoded,
+// retaining fields and comments.
 func (d *Doc) SetGuidanceSelection(selected *[]string, ignored []string) error {
 	var document yaml.Node
 	if err := yaml.Unmarshal(d.raw, &document); err != nil { //coverage:ignore Doc.raw is already parsed by ReadBytes; public edits emit valid YAML
@@ -58,59 +60,59 @@ func (d *Doc) SetGuidanceSelection(selected *[]string, ignored []string) error {
 	if len(ignored) > 0 || findMappingKey(value, "ignored") >= 0 {
 		setGuidanceIDs(value, "ignored", ignored)
 	}
-	var out []byte
-	switch {
-	case index < 0 && top.Style&yaml.FlowStyle == 0:
-		// A block-style document gains the guidance block after its existing
-		// bytes, which stay exactly as written.
-		block := &yaml.Node{Kind: yaml.MappingNode, Tag: "!!map", Content: []*yaml.Node{key, value}}
-		var encoded bytes.Buffer
-		encoder := yaml.NewEncoder(&encoded)
-		encoder.SetIndent(2)
-		if err := encoder.Encode(block); err != nil { //coverage:ignore constructed string nodes encoded into an infallible bytes.Buffer
-			return fmt.Errorf("encoding guidance block: %w", err)
-		}
-		if err := encoder.Close(); err != nil { //coverage:ignore bytes.Buffer cannot fail on encoder flush
-			return fmt.Errorf("closing guidance encoder: %w", err)
-		}
-		out = append(out, raw...)
-		if len(out) > 0 && out[len(out)-1] != '\n' {
-			out = append(out, '\n')
-		}
-		out = append(out, encoded.Bytes()...)
-	case top.Style&yaml.FlowStyle != 0:
-		// A flow-style root has no block layout to preserve, so it is re-encoded.
-		encoded, err := yaml.Marshal(&document)
-		if err != nil { //coverage:ignore parsed nodes and constructed string sequences are YAML-encodable
-			return fmt.Errorf("encoding guidance configuration: %w", err)
-		}
-		out = append(out, encoded...)
-	default:
-		// The key's leading comment is outside the replaced byte range.
+	// The re-encoded document is the reference result. A byte-preserving edit
+	// is used only when it decodes to exactly the same values; layouts it
+	// cannot express faithfully (an indented root, a trailing block scalar
+	// without a final newline) fall back to re-encoding.
+	document.Kind = yaml.DocumentNode
+	document.Content = []*yaml.Node{top}
+	reencoded, err := yaml.Marshal(&document)
+	if err != nil { //coverage:ignore parsed nodes and constructed string sequences are YAML-encodable
+		return fmt.Errorf("encoding guidance configuration: %w", err)
+	}
+	reencoded = append(reencoded, d.raw[documentEnd:]...)
+	out := reencoded
+	if top.Style&yaml.FlowStyle == 0 {
+		var preserved []byte
+		// The key's leading comment is outside a replaced byte range.
 		blockKey := *key
-		blockKey.HeadComment = ""
+		if index >= 0 {
+			blockKey.HeadComment = ""
+		}
 		block := &yaml.Node{Kind: yaml.MappingNode, Tag: "!!map", Content: []*yaml.Node{&blockKey, value}}
-		if index+2 == len(top.Content) {
+		if index >= 0 && index+2 == len(top.Content) {
 			block.FootComment = document.FootComment
 		}
 		var encoded bytes.Buffer
 		encoder := yaml.NewEncoder(&encoded)
 		encoder.SetIndent(2)
-		if err := encoder.Encode(block); err != nil { //coverage:ignore valid parsed nodes encoded into an infallible bytes.Buffer
+		if err = encoder.Encode(block); err != nil { //coverage:ignore valid parsed nodes encoded into an infallible bytes.Buffer
 			return fmt.Errorf("encoding guidance block: %w", err)
 		}
-		if err := encoder.Close(); err != nil { //coverage:ignore bytes.Buffer cannot fail on encoder flush
+		if err = encoder.Close(); err != nil { //coverage:ignore bytes.Buffer cannot fail on encoder flush
 			return fmt.Errorf("closing guidance encoder: %w", err)
 		}
-		start, end, err := blockByteRange(raw, top, key, index)
-		if err != nil { //coverage:ignore blockByteRange uses lineToByteOffset, which has no error-producing path
-			return err
+		if index < 0 {
+			// A missing block is added after the existing bytes.
+			preserved = append(preserved, raw...)
+			if len(preserved) > 0 && preserved[len(preserved)-1] != '\n' {
+				preserved = append(preserved, '\n')
+			}
+			preserved = append(preserved, encoded.Bytes()...)
+		} else {
+			start, end, rangeErr := blockByteRange(raw, top, key, index)
+			if rangeErr != nil { //coverage:ignore blockByteRange uses lineToByteOffset, which has no error-producing path
+				return rangeErr
+			}
+			preserved = append(preserved, raw[:start]...)
+			preserved = append(preserved, encoded.Bytes()...)
+			preserved = append(preserved, raw[end:]...)
 		}
-		out = append(out, raw[:start]...)
-		out = append(out, encoded.Bytes()...)
-		out = append(out, raw[end:]...)
+		preserved = append(preserved, d.raw[documentEnd:]...)
+		if sameYAMLValues(preserved, reencoded) {
+			out = preserved
+		}
 	}
-	out = append(out, d.raw[documentEnd:]...)
 	updated, _, err := ReadBytes(out)
 	if err != nil { //coverage:ignore only guidance ids changed; emitted YAML and previously validated contracts remain valid
 		return err
@@ -145,4 +147,13 @@ func guidanceDocumentEnd(raw []byte) int {
 		offset += len(line)
 	}
 	return len(raw)
+}
+
+// sameYAMLValues reports whether both documents decode to equal values.
+func sameYAMLValues(a, b []byte) bool {
+	var left, right any
+	if yaml.Unmarshal(a, &left) != nil || yaml.Unmarshal(b, &right) != nil {
+		return false
+	}
+	return reflect.DeepEqual(left, right)
 }

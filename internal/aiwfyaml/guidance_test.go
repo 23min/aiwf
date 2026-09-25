@@ -4,6 +4,7 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/google/go-cmp/cmp"
 	"gopkg.in/yaml.v3"
 )
 
@@ -247,6 +248,68 @@ func TestSetGuidanceSelection_EmptyIgnoredAddsNoKey(t *testing.T) {
 			}
 			if _, has := got.Guidance["ignored"]; has != wantKey {
 				t.Fatalf("ignored key present = %v, want %v:\n%s", has, wantKey, doc.Bytes())
+			}
+		})
+	}
+}
+
+// TestSetGuidanceSelection_KeepsEveryOtherValue pins that recording a
+// selection changes no value outside guidance, whatever the layout: an
+// indented root, a guidance block followed by siblings, a trailing block
+// scalar without a final newline.
+func TestSetGuidanceSelection_KeepsEveryOtherValue(t *testing.T) {
+	t.Parallel()
+	for _, raw := range []string{
+		"  hosts: []\n  other: x\n",
+		"  guidance:\n    source: local\n  hosts: []\n",
+		"hosts: []\nhtml:\n  out_dir: |\n    site",
+		"hosts: []\nhtml:\n  out_dir: >\n    site",
+	} {
+		t.Run(raw, func(t *testing.T) {
+			t.Parallel()
+			doc, _, err := ReadBytes([]byte(raw))
+			if err != nil {
+				t.Fatal(err)
+			}
+			selected := []string{"new"}
+			if err := doc.SetGuidanceSelection(&selected, nil); err != nil {
+				t.Fatal(err)
+			}
+			var before, after map[string]any
+			if err := yaml.Unmarshal([]byte(raw), &before); err != nil {
+				t.Fatal(err)
+			}
+			if err := yaml.Unmarshal(doc.Bytes(), &after); err != nil {
+				t.Fatalf("%v:\n%s", err, doc.Bytes())
+			}
+			guidance, _ := after["guidance"].(map[string]any)
+			if packs, _ := guidance["packs"].([]any); len(packs) != 1 || packs[0] != "new" {
+				t.Fatalf("selection not recorded:\n%s", doc.Bytes())
+			}
+			delete(before, "guidance")
+			delete(after, "guidance")
+			if diff := cmp.Diff(before, after); diff != "" {
+				t.Fatalf("values outside guidance changed (-before +after):\n%s\n%s", diff, doc.Bytes())
+			}
+		})
+	}
+}
+
+func TestSameYAMLValues(t *testing.T) {
+	t.Parallel()
+	for _, tc := range []struct {
+		name string
+		a, b string
+		want bool
+	}{
+		{name: "same values in different layout", a: "a: 1\nb: [x]\n", b: "b:\n  - x\na: 1\n", want: true},
+		{name: "different values", a: "a: 1\n", b: "a: 2\n"},
+		{name: "unparseable candidate", a: "a: [\n", b: "a: 1\n"},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			t.Parallel()
+			if got := sameYAMLValues([]byte(tc.a), []byte(tc.b)); got != tc.want {
+				t.Fatalf("sameYAMLValues = %v, want %v", got, tc.want)
 			}
 		})
 	}
