@@ -6,8 +6,9 @@ import "slices"
 // with every matched pack that is neither selected nor ignored appended in
 // match order. Selected packs are never removed, and an unset selection with no
 // applicable pack stays unset. It returns packs itself when nothing is added,
-// so callers can tell an unchanged selection by identity.
-func Adopt(matches []Match, packs *[]string, ignored []string) *[]string {
+// so callers can tell an unchanged selection by identity, and returns the added
+// ids separately.
+func Adopt(matches []Match, packs *[]string, ignored []string) (selection *[]string, added []string) {
 	var current []string
 	if packs != nil {
 		current = *packs
@@ -19,7 +20,7 @@ func Adopt(matches []Match, packs *[]string, ignored []string) *[]string {
 		}
 	}
 	if len(next) == len(current) {
-		return packs
+		return packs, nil
 	}
-	return &next
+	return &next, next[len(current):]
 }

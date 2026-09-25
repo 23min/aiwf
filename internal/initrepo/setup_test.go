@@ -18,7 +18,8 @@ import (
 // Serial: TestInit_InstallsExplicitProjectGuidance,
 // TestProjectGuidanceRefresh_ReportsFailuresWithoutClaimingInstallation,
 // TestProjectGuidanceRefresh_OptOutAndDryRun,
-// TestProjectGuidanceRefresh_ReportsSelectedPacksMissingFromCatalogue, and
+// TestProjectGuidanceRefresh_ReportsSelectedPacksMissingFromCatalogue,
+// TestProjectGuidance_ReportsOutcome, and
 // TestProjectGuidanceAdoption_RecordsSelectionOnlyWithInstallation isolate
 // personal-guidance environment variables. Other tests own separate repositories.
 // TestProjectGuidanceRefresh_RoutesOnlySelectedWiredHosts stays serial: isolates process environment.

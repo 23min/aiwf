@@ -171,6 +171,7 @@ func Run(root string, statusline bool, scope string, wireSettings, allowUntagged
 
 	if !slices.Contains(refresh.HostSelection.Hosts, config.HostClaudeCode) {
 		cliutil.Println("\naiwf update: done.")
+		cliutil.PrintGuidanceReport(refresh.Guidance)
 		return cliutil.ExitOK
 	}
 
@@ -230,6 +231,7 @@ func Run(root string, statusline bool, scope string, wireSettings, allowUntagged
 		cliutil.Errorf("aiwf update: could not refresh health.aiwf.json: %v\n", err) //coverage:ignore best-effort refresh; post-materialization git is reachable, so WriteHealth fails only on a filesystem fault (mirrors doctor.go runWriteHealth)
 	}
 
+	cliutil.PrintGuidanceReport(refresh.Guidance)
 	return statuslineRC
 }
 

@@ -380,6 +380,8 @@ type Result struct {
 	Steps         []StepResult
 	HookConflict  bool
 	DryRun        bool
+	// Guidance is nil when the run did not consider project guidance.
+	Guidance *GuidanceOutcome
 }
 
 // Options carries init-time inputs that override or supplement the
@@ -526,6 +528,7 @@ func Init(ctx context.Context, root string, opts Options) (*Result, error) {
 	}
 	res.Steps = append(res.Steps, refresh.Steps...)
 	res.HookConflict = refresh.HookConflict
+	res.Guidance = refresh.Guidance
 
 	return res, nil
 }
@@ -607,8 +610,9 @@ func refreshArtifacts(ctx context.Context, root string, cfg *config.Config, sele
 		}
 	}
 
-	if step := ensureProjectGuidance(ctx, root, cfg, selection, opts); step != nil {
-		steps = append(steps, *step)
+	guidanceStep, guidance := projectGuidance(ctx, root, cfg, selection, opts)
+	if guidanceStep != nil {
+		steps = append(steps, *guidanceStep)
 	}
 
 	legacyStep, err := ensureLegacyActorClean(root, opts.DryRun)
@@ -674,7 +678,7 @@ func refreshArtifacts(ctx context.Context, root string, cfg *config.Config, sele
 				Detail: "--skip-hook flag set",
 			},
 		)
-		return &Result{Steps: steps, DryRun: opts.DryRun, HostSelection: selection}, nil
+		return &Result{Steps: steps, DryRun: opts.DryRun, HostSelection: selection, Guidance: guidance}, nil
 	}
 
 	preHookStep, prePushConflict, err := ensurePreHook(ctx, root, opts.DryRun)
@@ -705,7 +709,7 @@ func refreshArtifacts(ctx context.Context, root string, cfg *config.Config, sele
 	steps = append(steps, postCommitStep)
 	conflict = conflict || postCommitConflict
 
-	return &Result{Steps: steps, HookConflict: conflict, DryRun: opts.DryRun, HostSelection: selection}, nil
+	return &Result{Steps: steps, HookConflict: conflict, DryRun: opts.DryRun, HostSelection: selection, Guidance: guidance}, nil
 }
 
 // loadStatusMdAutoUpdate reads aiwf.yaml at root and returns the

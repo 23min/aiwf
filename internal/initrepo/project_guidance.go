@@ -12,53 +12,87 @@ import (
 	"github.com/23min/aiwf/internal/projectguidance"
 )
 
-func ensureProjectGuidance(ctx context.Context, root string, cfg *config.Config, selection config.HostSelection, opts RefreshOptions) *StepResult {
-	if cfg == nil || !cfg.GuidanceEnabled() || (cfg.Guidance.Packs == nil && !opts.AdoptGuidance) {
-		return nil
+// GuidanceOutcome is what one run did to project guidance, for the report
+// that ends init and update.
+type GuidanceOutcome struct {
+	// Selection is guidance.packs as recorded after the run.
+	Selection *[]string
+	// Disabled reports guidance.enabled: false; nothing is retrieved or changed.
+	Disabled bool
+	// Adopted lists the packs this run added to the recorded selection.
+	Adopted []string
+	Ignored []string
+	// Missing lists selected packs the catalogue no longer has.
+	Missing []string
+	// Installed and Commit describe the installed index after the run.
+	Installed []string
+	Commit    string
+	// InspectError is set when the installed guidance cannot be read.
+	InspectError string
+}
+
+// projectGuidance runs the guidance step and reports its outcome, reading the
+// installed set from disk after the step so the report states what is in place.
+// A run that neither adopts nor has a selection, and a dry run, report nothing.
+func projectGuidance(ctx context.Context, root string, cfg *config.Config, selection config.HostSelection, opts RefreshOptions) (*StepResult, *GuidanceOutcome) {
+	step, outcome := ensureProjectGuidance(ctx, root, cfg, selection, opts)
+	if outcome == nil {
+		return step, nil
+	}
+	inspection, err := projectguidance.Inspect(ctx, root)
+	if err != nil {
+		outcome.InspectError = err.Error()
+		return step, outcome
+	}
+	outcome.Installed, outcome.Commit = inspection.Packs, inspection.Revision
+	return step, outcome
+}
+
+func ensureProjectGuidance(ctx context.Context, root string, cfg *config.Config, selection config.HostSelection, opts RefreshOptions) (*StepResult, *GuidanceOutcome) {
+	if cfg == nil || opts.DryRun || (cfg.Guidance.Packs == nil && !opts.AdoptGuidance) {
+		return dryRunGuidance(cfg, opts), nil
+	}
+	outcome := &GuidanceOutcome{Selection: cfg.Guidance.Packs, Ignored: cfg.Guidance.Ignored, Disabled: !cfg.GuidanceEnabled()}
+	if outcome.Disabled {
+		return nil, outcome
 	}
 	step := &StepResult{What: ".guidance (project engineering guidance)", Action: ActionSkipped}
-	if opts.DryRun {
-		step.Detail = "would retrieve and validate selected guidance, then install project files and host routing"
-		if opts.AdoptGuidance {
-			step.Detail = "would retrieve guidance, adopt applicable packs not listed in guidance.ignored, then install project files and host routing"
-		}
-		return step
-	}
 	instructions, err := inspectInstructionFiles(ctx, root)
 	if err != nil {
 		step.Detail = fmt.Sprintf("guidance incomplete: %v", err)
-		return step
+		return step, outcome
 	}
 	if err = projectguidance.CheckCompatibility(ctx); err != nil {
 		step.Detail = fmt.Sprintf("guidance incomplete: %v", err)
-		return step
+		return step, outcome
 	}
 	var hosts []string
 	for _, host := range selection.Hosts {
 		if host == config.HostClaudeCode && opts.WireClaudeMd {
 			if instructions.claude.refusal != "" {
 				step.Detail = instructions.claude.refusal
-				return step
+				return step, outcome
 			}
 			hosts = append(hosts, "CLAUDE.md")
 		}
 		if host == config.HostCodex && cfg.WireAgentsMd() {
 			if instructions.agents.refusal != "" {
 				step.Detail = instructions.agents.refusal
-				return step
+				return step, outcome
 			}
 			hosts = append(hosts, "AGENTS.md")
 		}
 	}
 	var snapshot *projectguidance.Snapshot
 	selected := cfg.Guidance.Packs
+	var added []string
 	if opts.AdoptGuidance {
 		snapshot, err = projectguidance.RetrieveWithSelection(ctx, cfg.GuidanceSource(), func(catalogue projectguidance.Catalogue) ([]string, error) {
 			matches, detectErr := projectguidance.Detect(ctx, root, catalogue)
 			if detectErr != nil {
 				return nil, detectErr
 			}
-			selected = projectguidance.Adopt(matches, cfg.Guidance.Packs, cfg.Guidance.Ignored)
+			selected, added = projectguidance.Adopt(matches, cfg.Guidance.Packs, cfg.Guidance.Ignored)
 			if selected == nil {
 				return nil, nil
 			}
@@ -69,17 +103,18 @@ func ensureProjectGuidance(ctx context.Context, root string, cfg *config.Config,
 	}
 	if err != nil {
 		step.Detail = fmt.Sprintf("guidance incomplete: %v", err)
-		return step
+		return step, outcome
 	}
 	if selected == nil {
 		step.Detail = "no project guidance selected; existing delivery retained"
-		return step
+		return step, outcome
 	}
+	outcome.Missing = snapshot.Missing
 	missing := ""
 	// Every outcome after retrieval carries the missing-pack report.
-	incomplete := func(detail string) *StepResult {
+	incomplete := func(detail string) (*StepResult, *GuidanceOutcome) {
 		step.Detail = "guidance incomplete: " + detail + missing
-		return step
+		return step, outcome
 	}
 	if len(snapshot.Missing) > 0 {
 		missing = fmt.Sprintf("; the catalogue no longer has %s: remove it from guidance.packs or move it to guidance.ignored", strings.Join(snapshot.Missing, ", "))
@@ -109,12 +144,27 @@ func ensureProjectGuidance(ctx context.Context, root string, cfg *config.Config,
 			return incomplete("recording adopted guidance: " + err.Error())
 		}
 		changed = true
+		outcome.Selection, outcome.Adopted = selected, added
 	}
 	step.Action = ActionPreserved
 	if changed {
 		step.Action = ActionUpdated
 	}
 	step.Detail = "selected project guidance at " + snapshot.Commit + missing
+	return step, outcome
+}
+
+// dryRunGuidance previews the guidance step; it returns nil when the run
+// has nothing to preview.
+func dryRunGuidance(cfg *config.Config, opts RefreshOptions) *StepResult {
+	if !opts.DryRun || cfg == nil || !cfg.GuidanceEnabled() || (cfg.Guidance.Packs == nil && !opts.AdoptGuidance) {
+		return nil
+	}
+	step := &StepResult{What: ".guidance (project engineering guidance)", Action: ActionSkipped}
+	step.Detail = "would retrieve and validate selected guidance, then install project files and host routing"
+	if opts.AdoptGuidance {
+		step.Detail = "would retrieve guidance, adopt applicable packs not listed in guidance.ignored, then install project files and host routing"
+	}
 	return step
 }
 
