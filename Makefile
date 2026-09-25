@@ -49,7 +49,7 @@ help:
 	@echo "  comment-history-audit - whole-tree scan for comments narrating a superseded state"
 	@echo "  changelog-audit - check the release notes name everything shipped since the last release"
 	@echo "  growth-report - snapshot the growth metrics docs/design/growth.md tracks (read-only; GROWTH_BASELINE=<rev> for a delta)"
-	@echo "  mutate-diff - advisory diff-scoped mutation test: gremlins on internal/ packages changed vs origin/main (G-0267)"
+	@echo "  mutate-diff - advisory diff-scoped mutation test: gremlins on internal/ Go lines changed vs origin/main (G-0267)"
 	@echo "  selfcheck - build and run 'aiwf doctor --self-check' end-to-end"
 	@echo "  ci        - the pre-push/CI gate (vet + lint + test-cov + coverage-gate-only + selfcheck); run once before pushing, not per commit"
 	@echo "  install-hooks - symlink scripts/git-hooks/ into the .local hook chain (one-shot, idempotent)"
@@ -264,7 +264,7 @@ growth-report:
 	@scripts/growth-report.py $(if $(GROWTH_BASELINE),--baseline $(GROWTH_BASELINE),)
 
 # mutate-diff runs diff-scoped mutation testing (G-0267): gremlins on
-# just the internal/ packages changed since the merge-base with
+# just the internal/ Go lines changed since the merge-base with
 # origin/main, the wf-vacuity / mutate-hunt companion scoped to your
 # diff instead of the whole kernel. Advisory — it prints surviving
 # mutants for triage and always exits 0; mutation is slow and
