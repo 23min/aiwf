@@ -150,100 +150,70 @@ func measureGuidanceLoad(read func(string) (string, bool), entry string, table m
 
 	seen := map[string]bool{entry: true}
 	queue := []string{entry}
-	follow := func(doc string, ref guidanceReference) {
-		kind := ref.kind
-		if kind == 0 {
-			kind = table[guidanceRef{From: doc, To: ref.to}]
-		}
+	follow := func(doc, to string, kind readKind) {
 		// Routing on demand is the router's job, so a link from it is
 		// conditional unless the table declares otherwise.
 		if kind == 0 && doc == fenceRouter {
 			kind = readConditional
 		}
-		content, exists := read(ref.to)
-		if !exists {
-			out = append(out, Violation{Policy: "guidance-ceiling", File: ref.to, Detail: fmt.Sprintf("%s references %s, which does not exist; routing that resolves nowhere is reported rather than left out of the measure.", doc, ref.to)})
-			return
-		}
-		switch kind {
-		case readRequired:
-			if !seen[ref.to] {
-				seen[ref.to] = true
-				load.RequiredReads = append(load.RequiredReads, ref.to)
-				queue = append(queue, ref.to)
-			}
-		case readGenerated:
-			if !seen[ref.to] {
-				seen[ref.to] = true
-				load.RequiredReads = append(load.RequiredReads, ref.to)
-				load.Generated += len(strings.Fields(content))
-			}
-		case readConditional:
+		content, exists := read(to)
+		switch {
+		case !exists:
+			out = append(out, Violation{Policy: "guidance-ceiling", File: to, Detail: fmt.Sprintf("%s references %s, which does not exist; routing that resolves nowhere is reported rather than left out of the measure.", doc, to)})
+		case kind == 0:
+			out = append(out, Violation{Policy: "guidance-ceiling", File: to, Detail: fmt.Sprintf("%s references %s from primed text, and guidanceReadTable does not classify it; add it as a required read (primed) or a conditional one (on demand).", doc, to)})
+		case kind == readConditional || seen[to]:
 		default:
-			out = append(out, Violation{Policy: "guidance-ceiling", File: ref.to, Detail: fmt.Sprintf("%s references %s from primed text, and guidanceReadTable does not classify it; add it as a required read (primed) or a conditional one (on demand).", doc, ref.to)})
+			seen[to] = true
+			load.RequiredReads = append(load.RequiredReads, to)
+			if kind == readGenerated {
+				load.Generated += len(strings.Fields(content))
+			} else {
+				queue = append(queue, to)
+			}
+		}
+	}
+	// An import is a required read, since the host loads it without being
+	// told to; it is a filesystem path, so one under the home directory or
+	// absolute is personal or global material and is left out. A link is
+	// classified by the table.
+	followText := func(doc, text string) {
+		for _, target := range markdownImports(text) {
+			if p, ok := resolveReference(doc, target); ok && !strings.HasPrefix(target, "~") && !strings.HasPrefix(target, "/") {
+				follow(doc, p, readRequired)
+			}
+		}
+		for _, target := range markdownLinks(text) {
+			if p, ok := resolveReference(doc, target); ok {
+				follow(doc, p, table[guidanceRef{From: doc, To: p}])
+			}
 		}
 	}
 	// The routing block is aiwf's, but where it sends the host is read
 	// before the task: its links are classified like handwritten ones.
-	for _, ref := range guidanceReferences(entry, routeBlockText(entryContent)) {
-		follow(entry, ref)
-	}
+	followText(entry, blockText(entryContent, projectguidance.RouteMarkers))
 	for len(queue) > 0 {
 		doc := queue[0]
 		queue = queue[1:]
-		content, _ := read(doc)
-		text := content
+		text, _ := read(doc)
 		if doc == fenceClaudeMD || doc == fenceAgentsMD {
-			text = handwrittenText(content)
+			text = handwrittenText(text)
 		}
 		load.Handwritten += len(strings.Fields(withoutImports(text)))
-		for _, ref := range guidanceReferences(doc, text) {
-			follow(doc, ref)
-		}
+		followText(doc, text)
 	}
 	return load, out
 }
 
-// routeBlockText returns the content of a host entry point's routing
-// block, or "" when it has none.
-func routeBlockText(content string) string {
-	start, end, prefix := projectguidance.RouteMarkers()
+// blockText returns the text inside one of a host entry point's managed
+// blocks, or "" when it has none.
+func blockText(content string, markers func() (start, end, prefix string)) string {
+	start, end, prefix := markers()
 	from, to, err := pathutil.ManagedBlockSpan(content, start, end, prefix)
 	if err != nil || from < 0 {
 		return ""
 	}
 	return strings.TrimSuffix(strings.TrimPrefix(content[from:to], start), end)
-}
-
-// guidanceReference is one reference found in text. kind is readRequired
-// for an import, which a host loads without being told to, and zero for
-// a link, which the table classifies.
-type guidanceReference struct {
-	to   string
-	kind readKind
-}
-
-// guidanceReferences returns the imports and markdown links in text,
-// resolved as resolveReference describes. An import is a filesystem path, so
-// one under the home directory or absolute is personal or global material,
-// outside the repository, and left out; a link with a leading slash is
-// repository-rooted.
-func guidanceReferences(doc, text string) []guidanceReference {
-	var out []guidanceReference
-	for _, target := range markdownImports(text) {
-		if strings.HasPrefix(target, "~") || strings.HasPrefix(target, "/") {
-			continue
-		}
-		if p, ok := resolveReference(doc, target); ok {
-			out = append(out, guidanceReference{to: p, kind: readRequired})
-		}
-	}
-	for _, target := range markdownLinks(text) {
-		if p, ok := resolveReference(doc, target); ok {
-			out = append(out, guidanceReference{to: p})
-		}
-	}
-	return out
 }
 
 // withoutImports drops import lines, which are directives rather than
@@ -267,17 +237,11 @@ func withoutImports(text string) string {
 func generatedWords(read func(string) (string, bool), content string) int {
 	n := 0
 	for _, markers := range managedBlockMarkers {
-		startMarker, endMarker, prefix := markers()
-		start, end, err := pathutil.ManagedBlockSpan(content, startMarker, endMarker, prefix)
-		if err != nil || start < 0 {
-			continue
-		}
-		block := strings.TrimSuffix(strings.TrimPrefix(content[start:end], startMarker), endMarker)
+		block := blockText(content, markers)
 		n += len(strings.Fields(withoutImports(block)))
 		for _, target := range markdownImports(block) {
-			if imported, ok := read(target); ok {
-				n += len(strings.Fields(imported))
-			}
+			imported, _ := read(target)
+			n += len(strings.Fields(imported))
 		}
 	}
 	return n

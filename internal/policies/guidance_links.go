@@ -44,9 +44,7 @@ var importToken = regexp.MustCompile(`(?:^|[\s(])@([^\s)]+)`)
 func markdownImports(doc string) []string {
 	var out []string
 	for _, m := range importToken.FindAllStringSubmatch(check.ProseMask([]byte(doc)), -1) {
-		if target := strings.TrimRight(m[1], ".,;:"); target != "" {
-			out = append(out, target)
-		}
+		out = append(out, strings.TrimRight(m[1], ".,;:"))
 	}
 	return out
 }

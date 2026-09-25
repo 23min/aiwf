@@ -3,7 +3,6 @@ package policies
 import (
 	"fmt"
 	"go/ast"
-	"go/parser"
 	"go/token"
 	"maps"
 	"os"
@@ -135,7 +134,7 @@ func guidanceReaderTests(root string) (map[string]string, error) {
 	namesGuidance := repoNamesGuidance(root)
 	out := map[string]string{}
 	for _, dir := range dirs {
-		files, paths, err := parsePackageDir(root, dir)
+		_, files, paths, err := parsePackageDir(root, dir)
 		if err != nil {
 			return nil, err
 		}
@@ -144,31 +143,6 @@ func guidanceReaderTests(root string) (map[string]string, error) {
 		}
 	}
 	return out, nil
-}
-
-// parsePackageDir parses every Go file in one directory, test files and
-// the rest together, since a test reaches the guidance through either.
-func parsePackageDir(root, dir string) ([]*ast.File, map[*ast.File]string, error) {
-	entries, err := os.ReadDir(filepath.Join(root, filepath.FromSlash(dir)))
-	if err != nil { //coverage:ignore testPackageDirs just walked this directory to list it
-		return nil, nil, fmt.Errorf("reading %s: %w", dir, err)
-	}
-	fset := token.NewFileSet()
-	var files []*ast.File
-	paths := map[*ast.File]string{}
-	for _, e := range entries {
-		if e.IsDir() || !strings.HasSuffix(e.Name(), ".go") {
-			continue
-		}
-		rel := dir + "/" + e.Name()
-		f, err := parser.ParseFile(fset, filepath.Join(root, filepath.FromSlash(rel)), nil, 0)
-		if err != nil {
-			return nil, nil, fmt.Errorf("parsing %s: %w", rel, err)
-		}
-		files = append(files, f)
-		paths[f] = rel
-	}
-	return files, paths, nil
 }
 
 // readersInPackage returns the tests in one parsed package that read
@@ -225,7 +199,7 @@ func readersInPackage(files []*ast.File, paths map[*ast.File]string, namesGuidan
 					if consts[x.Name] {
 						r.names = true
 					}
-					if _, ok := funcs[x.Name]; ok && x.Name != name {
+					if _, ok := funcs[x.Name]; ok {
 						edges[name] = append(edges[name], x.Name)
 					}
 				case *ast.CallExpr:
@@ -306,11 +280,17 @@ func namesGuidancePath(s string, routed map[string]bool) bool {
 // repoNamesGuidance builds the guidance-path predicate for the tree at root,
 // with the router's routes read from disk.
 func repoNamesGuidance(root string) func(string) bool {
-	routed := map[string]bool{}
-	if router, err := os.ReadFile(filepath.Join(root, filepath.FromSlash(fenceRouter))); err == nil {
-		for _, p := range routedDocuments(string(router)) {
-			routed[p] = true
-		}
-	}
+	routed := repoRoutedDocuments(root)
 	return func(s string) bool { return namesGuidancePath(s, routed) }
+}
+
+// repoRoutedDocuments returns the documents the project router at root links
+// to. A missing router reads as empty and routes nothing.
+func repoRoutedDocuments(root string) map[string]bool {
+	router, _ := os.ReadFile(filepath.Join(root, filepath.FromSlash(fenceRouter)))
+	routed := map[string]bool{}
+	for _, p := range routedDocuments(string(router)) {
+		routed[p] = true
+	}
+	return routed
 }

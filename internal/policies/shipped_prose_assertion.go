@@ -158,30 +158,39 @@ func testPackageDirs(root string) ([]string, error) {
 	return dirs, nil
 }
 
-// scanPackageForProseAssertions parses one directory's Go sources together and
-// runs the analysis across them.
-func scanPackageForProseAssertions(root, relDir string) ([]Violation, error) {
-	dir := filepath.Join(root, filepath.FromSlash(relDir))
-	entries, err := os.ReadDir(dir)
+// parsePackageDir parses every Go file in one directory, test files and the
+// rest together, since a test reaches what it reads through either. Comments
+// are kept: a `//go:embed` directive is a comment and is the only thing tying
+// an embedded tree to the variable holding it.
+func parsePackageDir(root, relDir string) (*token.FileSet, []*ast.File, map[*ast.File]string, error) {
+	entries, err := os.ReadDir(filepath.Join(root, filepath.FromSlash(relDir)))
 	if err != nil {
-		return nil, fmt.Errorf("reading %s: %w", relDir, err)
+		return nil, nil, nil, fmt.Errorf("reading %s: %w", relDir, err)
 	}
 	fset := token.NewFileSet()
 	var files []*ast.File
 	paths := map[*ast.File]string{}
 	for _, e := range entries {
-		name := e.Name()
-		if e.IsDir() || !strings.HasSuffix(name, ".go") {
+		if e.IsDir() || !strings.HasSuffix(e.Name(), ".go") {
 			continue
 		}
-		// ParseComments, because a `//go:embed` directive is a comment and is
-		// the only thing tying an embedded tree to the variable holding it.
-		f, perr := parser.ParseFile(fset, filepath.Join(dir, name), nil, parser.ParseComments)
-		if perr != nil {
-			return nil, fmt.Errorf("parsing %s/%s: %w", relDir, name, perr) //coverage:ignore a source that does not parse fails the build long before any policy runs.
+		rel := relDir + "/" + e.Name()
+		f, err := parser.ParseFile(fset, filepath.Join(root, filepath.FromSlash(rel)), nil, parser.ParseComments)
+		if err != nil {
+			return nil, nil, nil, fmt.Errorf("parsing %s: %w", rel, err)
 		}
 		files = append(files, f)
-		paths[f] = relDir + "/" + name
+		paths[f] = rel
+	}
+	return fset, files, paths, nil
+}
+
+// scanPackageForProseAssertions parses one directory's Go sources together and
+// runs the analysis across them.
+func scanPackageForProseAssertions(root, relDir string) ([]Violation, error) {
+	fset, files, paths, err := parsePackageDir(root, relDir)
+	if err != nil {
+		return nil, err
 	}
 	return detectProseAssertions(fset, files, paths), nil
 }
@@ -294,18 +303,14 @@ func (sc *scopeTaint) propagate(body *ast.BlockStmt) {
 				// from a read holds the document — every name, when one
 				// call binds several.
 				for i, nm := range st.Names {
-					if i >= len(st.Values) || nm.Name == "_" {
-						continue
-					}
-					if sc.namesShippedPath(st.Values[i]) {
+					if i < len(st.Values) && nm.Name != "_" && sc.namesShippedPath(st.Values[i]) {
 						sc.pathIdents[nm.Name] = true
 					}
-					if sc.carriesShipped(st.Values[i]) {
-						sc.shipped[nm.Name] = true
+					src := i
+					if len(st.Values) == 1 {
+						src = 0
 					}
-				}
-				if len(st.Values) == 1 && len(st.Names) > 1 && sc.carriesShipped(st.Values[0]) {
-					for _, nm := range st.Names {
+					if src < len(st.Values) && sc.carriesShipped(st.Values[src]) {
 						sc.mark(nm)
 					}
 				}

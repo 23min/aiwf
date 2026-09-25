@@ -167,12 +167,7 @@ func readDiscoverabilityChannels(root string) ([]byte, error) {
 		return nil, err
 	}
 	out = append(out, '\n')
-	onDemand := map[string]bool{}
-	if router, rerr := os.ReadFile(filepath.Join(root, filepath.FromSlash(fenceRouter))); rerr == nil {
-		for _, p := range routedDocuments(string(router)) {
-			onDemand[p] = true
-		}
-	}
+	onDemand := repoRoutedDocuments(root)
 	for _, dir := range []string{
 		filepath.Join(root, "internal", "skills", "embedded"),
 		filepath.Join(root, "docs"),
