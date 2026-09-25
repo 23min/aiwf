@@ -103,7 +103,7 @@ Guidance outcomes surface today as one step-ledger line whose wording ("no proje
 
 ## Deferrals
 
-- (none)
+- G-0714 — installer errors for corrupt records and file-system faults print on the `blocked:` line without an action; M-0352/AC-2 covers the four blocker classes it names.
 
 ## Reviewer notes
 
