@@ -113,11 +113,11 @@ func Run(root, actor string, dryRun, skipHook, statusline bool, scope string, wi
 	}
 
 	res, err := initrepo.Init(context.Background(), rootDir, initrepo.Options{
-		SelectGuidance: cliutil.GuidanceSelector(noPrompt),
-		RequireClaude:  statusline || len(enableHooks) > 0,
-		ActorOverride:  actor,
-		DryRun:         dryRun,
-		SkipHook:       skipHook,
+		AdoptGuidance: true,
+		RequireClaude: statusline || len(enableHooks) > 0,
+		ActorOverride: actor,
+		DryRun:        dryRun,
+		SkipHook:      skipHook,
 	})
 	if err != nil {
 		cliutil.Errorf("aiwf init: %v\n", err)

@@ -127,6 +127,7 @@ func Run(root string, statusline bool, scope string, wireSettings, allowUntagged
 	}
 
 	refresh, err := initrepo.RefreshArtifacts(context.Background(), rootDir, initrepo.RefreshOptions{
+		AdoptGuidance:      true,
 		SelectGuidance:     cliutil.GuidanceSelector(noPrompt),
 		RequireClaude:      statusline || remove || len(enableHooks) > 0,
 		StatusMdAutoUpdate: cfg.StatusMdAutoUpdate(),

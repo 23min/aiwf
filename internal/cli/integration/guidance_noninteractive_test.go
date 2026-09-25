@@ -17,7 +17,7 @@ import (
 	"github.com/23min/aiwf/internal/testsupport"
 )
 
-func TestBinary_GuidanceNoninteractiveReportsWithoutAdoption(t *testing.T) {
+func TestBinary_GuidanceNoninteractiveAdoptsOnlyUnsetSelection(t *testing.T) {
 	t.Parallel()
 	bin := testutil.AiwfBinary(t)
 	for _, verb := range []string{"init", "update"} {
@@ -60,7 +60,7 @@ func TestBinary_GuidanceNoninteractiveReportsWithoutAdoption(t *testing.T) {
 						args = append(args, "--skip-hook")
 					}
 					cmd := exec.CommandContext(t.Context(), bin, args...)
-					cmd.Stdin = strings.NewReader("s\n") // A pipe is never consent to adopt policy.
+					cmd.Stdin = strings.NewReader("i\n") // A pipe is never read as a guidance answer.
 					cmd.Env = environment
 					output, err := cmd.CombinedOutput()
 					if err != nil {
@@ -72,27 +72,24 @@ func TestBinary_GuidanceNoninteractiveReportsWithoutAdoption(t *testing.T) {
 				if strings.Contains(out, "guidance incomplete") {
 					t.Fatalf("guidance failed: %s", out)
 				}
-				switch policy {
-				case "unselected":
-					for _, want := range []string{"Suggested guidance sample/base", "Sample project guidance", "source.xyz (*.xyz)", "guidance.packs", "guidance.ignored"} {
-						if !strings.Contains(out, want) {
-							t.Errorf("missing %q: %s", want, out)
-						}
+				installed := filepath.Join(root, ".guidance", "packs", "sample", "base", "guide.md")
+				if policy == "unselected" {
+					cfg, err := config.Load(root)
+					if err != nil {
+						t.Fatal(err)
 					}
-				case "selected":
-					if !strings.Contains(out, "Selected guidance sample/base has no current matching files; retained.") {
-						t.Fatalf("missing unmatched report: %s", out)
+					if cfg.Guidance.Packs == nil || strings.Join(*cfg.Guidance.Packs, ",") != "sample/base" {
+						t.Fatalf("unset selection not adopted: %v", cfg.Guidance.Packs)
 					}
-				case "ignored", "disabled":
-					if strings.Contains(out, "Suggested guidance") || strings.Contains(out, "Selected guidance") {
-						t.Fatalf("unexpected report: %s", out)
+					if _, err := os.Stat(installed); err != nil {
+						t.Fatalf("adopted pack not installed: %v", err)
 					}
+					return
 				}
 				raw, err := os.ReadFile(filepath.Join(root, config.FileName))
 				if err != nil || !bytes.Equal(raw, []byte(configuration)) {
 					t.Fatalf("configuration changed: %s (%v)", raw, err)
 				}
-				installed := filepath.Join(root, ".guidance", "packs", "sample", "base", "guide.md")
 				if policy != "selected" {
 					if _, err := os.Stat(installed); !errors.Is(err, os.ErrNotExist) {
 						t.Fatalf("adopted policy: %v", err)
@@ -119,9 +116,6 @@ func TestBinary_GuidanceNoninteractiveReportsWithoutAdoption(t *testing.T) {
 							write(root, "new.abc", "new project source")
 							testsupport.CommitGuidanceSource(t, source)
 							out = run("update")
-							if !strings.Contains(out, "Suggested guidance sample/extra") {
-								t.Fatalf("refresh omitted new suggestion: %s", out)
-							}
 							if _, err = os.Stat(filepath.Join(root, ".guidance", "packs", "sample", "extra", "guide.md")); !errors.Is(err, os.ErrNotExist) {
 								t.Fatalf("refresh adopted suggestion: %v", err)
 							}

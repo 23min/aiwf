@@ -398,6 +398,8 @@ type Result struct {
 // version are we on" (`aiwf version`); a stored pin produced
 // chronic doctor noise without serving its intended purpose.
 type Options struct {
+	// AdoptGuidance adds applicable, unignored guidance packs to the selection.
+	AdoptGuidance  bool
 	SelectGuidance projectguidance.Selector
 	// RequireClaude validates an explicit Claude hook or statusline request.
 	RequireClaude bool
@@ -419,6 +421,8 @@ type Options struct {
 // SkipHooks omits both pre-push and pre-commit installation
 // entirely (init's `--skip-hook` flag forwards into this field).
 type RefreshOptions struct {
+	// AdoptGuidance adds applicable, unignored guidance packs to the selection.
+	AdoptGuidance  bool
 	SelectGuidance projectguidance.Selector
 	// RequireClaude validates an explicit Claude hook or statusline request.
 	RequireClaude      bool
@@ -494,6 +498,7 @@ func Init(ctx context.Context, root string, opts Options) (*Result, error) {
 	}
 
 	refresh, err := refreshArtifacts(ctx, root, cfg, selection, RefreshOptions{
+		AdoptGuidance:      opts.AdoptGuidance,
 		SelectGuidance:     opts.SelectGuidance,
 		DryRun:             opts.DryRun,
 		SkipHooks:          opts.SkipHook,

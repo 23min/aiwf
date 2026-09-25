@@ -214,3 +214,94 @@ func TestProjectGuidanceRefresh_RoutesOnlySelectedWiredHosts(t *testing.T) {
 		})
 	}
 }
+
+func TestProjectGuidanceAdoption_RecordsSelectionOnlyWithInstallation(t *testing.T) {
+	testsupport.IsolateGuidanceEnvironment(t)
+	for _, kind := range []string{"adopts", "no applicable pack", "detection failure", "unreadable configuration", "unrecordable configuration", "installation conflict", "unwritable configuration"} {
+		t.Run(kind, func(t *testing.T) {
+			source := testsupport.GuidanceSource(t, "*.xyz")
+			root := freshGitRepo(t)
+			configuration := "hosts: []\nguidance:\n  source: " + source + "\n"
+			switch kind {
+			case "detection failure":
+				root = t.TempDir()
+			case "unrecordable configuration":
+				configuration = "hosts: []\nshared: &guidance\n  source: " + source + "\nguidance: *guidance\n"
+			}
+			path := filepath.Join(root, config.FileName)
+			if kind != "unreadable configuration" {
+				if err := os.WriteFile(path, []byte(configuration), 0o644); err != nil {
+					t.Fatal(err)
+				}
+			}
+			if kind != "no applicable pack" {
+				if err := os.WriteFile(filepath.Join(root, "source.xyz"), []byte("source"), 0o644); err != nil {
+					t.Fatal(err)
+				}
+			}
+			if kind == "installation conflict" {
+				if err := os.MkdirAll(filepath.Join(root, ".guidance"), 0o755); err != nil {
+					t.Fatal(err)
+				}
+				if err := os.WriteFile(filepath.Join(root, ".guidance", "index.md"), []byte("foreign\n"), 0o644); err != nil {
+					t.Fatal(err)
+				}
+			}
+			if kind == "unwritable configuration" {
+				// Installation writes only below .guidance; the configuration beside it cannot be replaced.
+				if err := os.Mkdir(filepath.Join(root, ".guidance"), 0o755); err != nil {
+					t.Fatal(err)
+				}
+				if err := os.Chmod(root, 0o555); err != nil {
+					t.Fatal(err)
+				}
+				t.Cleanup(func() { _ = os.Chmod(root, 0o755) })
+			}
+			cfg := &config.Config{Guidance: config.Guidance{Source: source}}
+			step := ensureProjectGuidance(t.Context(), root, cfg, config.HostSelection{}, RefreshOptions{AdoptGuidance: true})
+			if step == nil {
+				t.Fatal("adoption produced no step")
+			}
+			raw, readErr := os.ReadFile(path)
+			_, installErr := os.Stat(filepath.Join(root, ".guidance", "packs", "sample", "base", "guide.md"))
+			switch kind {
+			case "adopts":
+				recorded, err := config.Load(root)
+				if err != nil {
+					t.Fatal(err)
+				}
+				want := []string{"sample/base"}
+				if step.Action != ActionUpdated || installErr != nil || recorded.Guidance.Packs == nil || !slices.Equal(*recorded.Guidance.Packs, want) || cfg.Guidance.Packs == nil || !slices.Equal(*cfg.Guidance.Packs, want) {
+					t.Fatalf("adoption not recorded with installation: %+v, %s, %v", step, raw, installErr)
+				}
+				return
+			case "no applicable pack":
+				if step.Detail != "no project guidance selected; existing delivery retained" {
+					t.Fatalf("unexpected detail: %+v", step)
+				}
+			default:
+				cause := map[string]string{
+					"detection failure":          "detecting guidance",
+					"unreadable configuration":   "recording adopted guidance: reading",
+					"unrecordable configuration": "recording adopted guidance: expand guidance anchors",
+					"installation conflict":      "installation conflict",
+					"unwritable configuration":   "recording adopted guidance: writing",
+				}[kind]
+				if step.Action != ActionSkipped || !strings.HasPrefix(step.Detail, "guidance incomplete:") || !strings.Contains(step.Detail, cause) {
+					t.Fatalf("failed adoption claimed success or named the wrong cause (want %q): %+v", cause, step)
+				}
+			}
+			if cfg.Guidance.Packs != nil {
+				t.Fatalf("selection changed in memory: %v", *cfg.Guidance.Packs)
+			}
+			if kind != "unreadable configuration" && (readErr != nil || string(raw) != configuration) {
+				t.Fatalf("configuration changed: %s (%v)", raw, readErr)
+			}
+			// A configuration that cannot be written after installation is the interrupted
+			// run the next update converges; every other failure installs nothing.
+			if kind != "unwritable configuration" && !errors.Is(installErr, fs.ErrNotExist) {
+				t.Fatalf("pack installed without a recorded selection: %v", installErr)
+			}
+		})
+	}
+}

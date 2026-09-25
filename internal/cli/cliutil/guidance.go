@@ -22,12 +22,11 @@ type GuidancePrompt struct {
 	Out io.Writer
 }
 
-// GuidanceSelector prompts when a human can answer and otherwise reports suggestions.
+// GuidanceSelector prompts when a human can answer; otherwise it returns nil,
+// leaving selection to automatic adoption.
 func GuidanceSelector(noPrompt bool) projectguidance.Selector {
 	if noPrompt || !render.IsTTY(os.Stdin) {
-		return func(ctx context.Context, root string, catalogue projectguidance.Catalogue, cfg *config.Config) error {
-			return reportGuidance(ctx, root, catalogue, cfg, os.Stderr)
-		}
+		return nil
 	}
 	return (GuidancePrompt{In: os.Stdin, Out: os.Stderr}).Select
 }

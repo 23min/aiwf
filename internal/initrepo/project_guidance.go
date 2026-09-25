@@ -3,13 +3,16 @@ package initrepo
 import (
 	"context"
 	"fmt"
+	"path/filepath"
+
+	"github.com/23min/aiwf/internal/aiwfyaml"
 
 	"github.com/23min/aiwf/internal/config"
 	"github.com/23min/aiwf/internal/projectguidance"
 )
 
 func ensureProjectGuidance(ctx context.Context, root string, cfg *config.Config, selection config.HostSelection, opts RefreshOptions) *StepResult {
-	if cfg == nil || !cfg.GuidanceEnabled() || (cfg.Guidance.Packs == nil && opts.SelectGuidance == nil) {
+	if cfg == nil || !cfg.GuidanceEnabled() || (cfg.Guidance.Packs == nil && !opts.AdoptGuidance && opts.SelectGuidance == nil) {
 		return nil
 	}
 	step := &StepResult{What: ".guidance (project engineering guidance)", Action: ActionSkipped}
@@ -44,31 +47,63 @@ func ensureProjectGuidance(ctx context.Context, root string, cfg *config.Config,
 		}
 	}
 	var snapshot *projectguidance.Snapshot
-	if opts.SelectGuidance == nil {
-		snapshot, err = projectguidance.Retrieve(ctx, cfg.GuidanceSource(), *cfg.Guidance.Packs)
-	} else {
+	selected := cfg.Guidance.Packs
+	switch {
+	case opts.SelectGuidance != nil:
 		snapshot, err = projectguidance.RetrieveWithSelection(ctx, cfg.GuidanceSource(), func(catalogue projectguidance.Catalogue) ([]string, error) {
 			if selectErr := opts.SelectGuidance(ctx, root, catalogue, cfg); selectErr != nil {
 				return nil, selectErr
 			}
-			if cfg.Guidance.Packs == nil {
+			selected = cfg.Guidance.Packs
+			if selected == nil {
 				return nil, nil
 			}
-			return *cfg.Guidance.Packs, nil
+			return *selected, nil
 		})
+	case opts.AdoptGuidance:
+		snapshot, err = projectguidance.RetrieveWithSelection(ctx, cfg.GuidanceSource(), func(catalogue projectguidance.Catalogue) ([]string, error) {
+			matches, detectErr := projectguidance.Detect(ctx, root, catalogue)
+			if detectErr != nil {
+				return nil, detectErr
+			}
+			selected = projectguidance.Adopt(matches, cfg.Guidance.Packs, cfg.Guidance.Ignored)
+			if selected == nil {
+				return nil, nil
+			}
+			return *selected, nil
+		})
+	default:
+		snapshot, err = projectguidance.Retrieve(ctx, cfg.GuidanceSource(), *cfg.Guidance.Packs)
 	}
 	if err != nil {
 		step.Detail = fmt.Sprintf("guidance incomplete: %v", err)
 		return step
 	}
-	if cfg.Guidance.Packs == nil {
+	if selected == nil {
 		step.Detail = "no project guidance selected; existing delivery retained"
 		return step
 	}
-	changed, err := projectguidance.Install(ctx, root, snapshot, projectguidance.InstallOptions{Source: cfg.GuidanceSource(), Selected: *cfg.Guidance.Packs, HostFiles: hosts})
+	// An adopted selection is prepared before installation and written only
+	// after it, so aiwf.yaml never names a pack the working tree lacks.
+	var adopted *aiwfyaml.Doc
+	if selected != cfg.Guidance.Packs {
+		if adopted, err = guidanceSelectionEdit(root, selected, cfg.Guidance.Ignored); err != nil {
+			step.Detail = fmt.Sprintf("guidance incomplete: %v", err)
+			return step
+		}
+	}
+	changed, err := projectguidance.Install(ctx, root, snapshot, projectguidance.InstallOptions{Source: cfg.GuidanceSource(), Selected: *selected, HostFiles: hosts})
 	if err != nil {
 		step.Detail = fmt.Sprintf("guidance incomplete: %v", err)
 		return step
+	}
+	if adopted != nil {
+		if err = adopted.Write(filepath.Join(root, config.FileName)); err != nil {
+			step.Detail = fmt.Sprintf("guidance incomplete: recording adopted guidance: %v", err)
+			return step
+		}
+		cfg.Guidance.Packs = selected
+		changed = true
 	}
 	step.Action = ActionPreserved
 	if changed {
@@ -76,4 +111,16 @@ func ensureProjectGuidance(ctx context.Context, root string, cfg *config.Config,
 	}
 	step.Detail = "selected project guidance at " + snapshot.Commit
 	return step
+}
+
+// guidanceSelectionEdit returns aiwf.yaml with the selection applied, unwritten.
+func guidanceSelectionEdit(root string, selected *[]string, ignored []string) (*aiwfyaml.Doc, error) {
+	doc, _, err := aiwfyaml.Read(filepath.Join(root, config.FileName))
+	if err != nil {
+		return nil, fmt.Errorf("recording adopted guidance: %w", err)
+	}
+	if err = doc.SetGuidanceSelection(selected, ignored); err != nil {
+		return nil, fmt.Errorf("recording adopted guidance: %w", err)
+	}
+	return doc, nil
 }

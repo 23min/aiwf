@@ -53,13 +53,10 @@ func TestGuidanceSelection_RealTerminalThroughInitAndUpdate(t *testing.T) {
 				t.Fatalf("%s exit %d", verb, rc)
 			}
 			if verb == "init-no-prompt" || verb == "update-no-prompt" {
-				if !bytes.Contains(output, []byte("Suggested guidance sample/base")) {
-					t.Fatalf("no-prompt omitted suggestion: %s", output)
+				// Declining prompts leaves selection to automatic adoption.
+				if bytes.Contains(output, []byte("select (s)")) {
+					t.Fatalf("no-prompt prompted: %s", output)
 				}
-				if _, err := os.Stat(filepath.Join(root, ".guidance", "index.md")); !errors.Is(err, os.ErrNotExist) {
-					t.Fatalf("no-prompt adopted policy: %v", err)
-				}
-				return
 			}
 			installed, err := os.ReadFile(filepath.Join(root, ".guidance", "packs", "sample", "base", "guide.md"))
 			if err != nil || string(installed) != "# Sample guidance\nInitial upstream content.\n" {
