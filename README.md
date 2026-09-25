@@ -255,13 +255,17 @@ pack in `packs` only once it is installed; a run interrupted in between records
 it on the next run. Adoption is add-only: a selected pack whose matching files
 disappear stays selected and installed, and a pack listed by hand is installed
 before any source it applies to exists. An omitted or `null` `packs` means
-nothing has been adopted yet; `packs: []` selects none. Selected and ignored ids
-must be unique and must not overlap. Existing host-wiring settings remain
-independent.
+nothing has been adopted yet, and `packs: []` is an empty selection that
+adoption adds to; to keep guidance out, list packs in `ignored` or set
+`enabled: false`. Selected and ignored ids must be unique and must not overlap.
+Existing host-wiring settings remain independent.
 
-Recording adopted packs edits the `guidance` block of `aiwf.yaml`. Other fields
-and comments are preserved byte for byte; a missing `guidance` block is added
-after the existing content, and only a flow-style root mapping is reformatted.
+Recording adopted packs edits the `guidance` block of `aiwf.yaml` and keeps the
+rest of the file as written where it can: a missing block is added after the
+existing content, and an existing block is rewritten in place with its values
+and comments but not their spacing. A layout that cannot be edited in place,
+such as a flow-style or indented root, is re-encoded with its fields and
+comments retained.
 Recording requires a single UTF-8 YAML document with anchors and aliases in
 `guidance` expanded; an unsupported file is refused without being changed, and
 nothing new is installed. If validation or installation fails, installed
