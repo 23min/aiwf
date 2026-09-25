@@ -26,4 +26,4 @@ Failing the whole retrieval turns a routine catalogue change into a permanent bl
 
 ## Consequences
 
-The installed set is the selection minus the ids the catalogue lacks. A repeated id in the selection is still refused, as configuration validation already does. If the catalogue lists the pack again, the retained id installs it again on the next run.
+The installed set is the selection minus the ids the catalogue lacks. Only runs that adopt (`init`, `update`) retire a missing pack's files; any other refresh, such as `aiwf worktree add`, leaves installed guidance unchanged and reports the missing id. A repeated id in the selection is still refused, as configuration validation already does. If the catalogue lists the pack again, the retained id installs it again on the next run.
