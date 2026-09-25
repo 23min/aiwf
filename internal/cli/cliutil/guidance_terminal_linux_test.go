@@ -3,11 +3,11 @@
 package cliutil_test
 
 import (
-	"bytes"
 	"errors"
 	"fmt"
 	"os"
 	"path/filepath"
+	"slices"
 	"testing"
 
 	"golang.org/x/sys/unix"
@@ -22,48 +22,75 @@ import (
 	"github.com/23min/aiwf/internal/testsupport"
 )
 
-func TestGuidanceSelection_RealTerminalThroughInitAndUpdate(t *testing.T) {
+// TestGuidanceAdoption_RealTerminalNeverPrompts runs init and update on a real
+// terminal with an "ignore" answer already waiting. Adoption must install the
+// applicable pack exactly as a run without a terminal does, and leave the
+// waiting answer unread; a terminal at end-of-file must not interrupt it.
+func TestGuidanceAdoption_RealTerminalNeverPrompts(t *testing.T) {
 	// Serial: replaces process stdin with an actual terminal.
 	testsupport.IsolateGuidanceEnvironment(t)
-	for _, verb := range []string{"init", "update", "init-no-prompt", "update-no-prompt"} {
-		t.Run(verb, func(t *testing.T) {
+	for _, tc := range []struct {
+		name     string
+		init     bool
+		noPrompt bool
+		waiting  string
+	}{
+		{name: "init", init: true, waiting: "i\n"},
+		{name: "update", waiting: "i\n"},
+		{name: "init-no-prompt", init: true, noPrompt: true, waiting: "i\n"},
+		{name: "update-no-prompt", noPrompt: true, waiting: "i\n"},
+		{name: "update-at-eof", waiting: "\x04"},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
 			master := terminalStdin(t)
 			root, source := t.TempDir(), testsupport.GuidanceSource(t, "*.xyz")
 			if err := gitops.Init(t.Context(), root); err != nil {
 				t.Fatal(err)
 			}
-
 			for name, content := range map[string]string{config.FileName: "hosts: []\nguidance:\n  source: " + source + "\n", "source.xyz": "source"} {
 				if err := os.WriteFile(filepath.Join(root, name), []byte(content), 0o644); err != nil {
 					t.Fatal(err)
 				}
 			}
-			if _, err := fmt.Fprintln(master, "s"); err != nil {
+			if _, err := fmt.Fprint(master, tc.waiting); err != nil {
 				t.Fatal(err)
+			}
+			// The terminal delivers the waiting input asynchronously; wait until it
+			// is readable so the unread-byte check below cannot race delivery.
+			ready := []unix.PollFd{{Fd: int32(os.Stdin.Fd()), Events: unix.POLLIN}}
+			if n, err := unix.Poll(ready, 5000); err != nil || n != 1 {
+				t.Fatalf("waiting terminal input never became readable: %d, %v", n, err)
 			}
 			var rc int
 			output := testutil.CaptureStderr(t, func() {
-				if verb == "init" || verb == "init-no-prompt" {
-					rc = initcmd.Run(root, "", false, true, false, "", false, false, verb == "init-no-prompt", nil, nil)
+				if tc.init {
+					rc = initcmd.Run(root, "", false, true, false, "", false, false, tc.noPrompt, nil, nil)
 				} else {
-					rc = runUpdateCommand(t, root, verb == "update-no-prompt")
+					rc = runUpdateCommand(t, root, tc.noPrompt)
 				}
 			})
 			if rc != cliutil.ExitOK {
-				t.Fatalf("%s exit %d", verb, rc)
+				t.Fatalf("%s exit %d: %s", tc.name, rc, output)
 			}
-			if verb == "init-no-prompt" || verb == "update-no-prompt" {
-				if !bytes.Contains(output, []byte("Suggested guidance sample/base")) {
-					t.Fatalf("no-prompt omitted suggestion: %s", output)
-				}
-				if _, err := os.Stat(filepath.Join(root, ".guidance", "index.md")); !errors.Is(err, os.ErrNotExist) {
-					t.Fatalf("no-prompt adopted policy: %v", err)
-				}
-				return
+			cfg, err := config.Load(root)
+			if err != nil {
+				t.Fatal(err)
+			}
+			if cfg.Guidance.Packs == nil || !slices.Equal(*cfg.Guidance.Packs, []string{"sample/base"}) || len(cfg.Guidance.Ignored) != 0 {
+				t.Fatalf("terminal run did not adopt like an unattended one: packs %v, ignored %v\n%s", cfg.Guidance.Packs, cfg.Guidance.Ignored, output)
 			}
 			installed, err := os.ReadFile(filepath.Join(root, ".guidance", "packs", "sample", "base", "guide.md"))
 			if err != nil || string(installed) != "# Sample guidance\nInitial upstream content.\n" {
-				t.Fatalf("terminal selection not installed: %s, %v", installed, err)
+				t.Fatalf("adopted pack not installed: %s, %v", installed, err)
+			}
+			if tc.waiting == "i\n" {
+				unread, err := unix.IoctlGetInt(int(os.Stdin.Fd()), unix.TIOCINQ)
+				if err != nil {
+					t.Fatal(err)
+				}
+				if unread != len(tc.waiting) {
+					t.Fatalf("guidance consumed terminal input: %d of %d bytes left unread", unread, len(tc.waiting))
+				}
 			}
 		})
 	}

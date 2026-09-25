@@ -24,7 +24,6 @@ import (
 	"github.com/23min/aiwf/internal/config"
 	"github.com/23min/aiwf/internal/gitops"
 	"github.com/23min/aiwf/internal/pathutil"
-	"github.com/23min/aiwf/internal/projectguidance"
 	"github.com/23min/aiwf/internal/skills"
 )
 
@@ -398,7 +397,8 @@ type Result struct {
 // version are we on" (`aiwf version`); a stored pin produced
 // chronic doctor noise without serving its intended purpose.
 type Options struct {
-	SelectGuidance projectguidance.Selector
+	// AdoptGuidance adds applicable, unignored guidance packs to the selection.
+	AdoptGuidance bool
 	// RequireClaude validates an explicit Claude hook or statusline request.
 	RequireClaude bool
 	ActorOverride string
@@ -419,7 +419,8 @@ type Options struct {
 // SkipHooks omits both pre-push and pre-commit installation
 // entirely (init's `--skip-hook` flag forwards into this field).
 type RefreshOptions struct {
-	SelectGuidance projectguidance.Selector
+	// AdoptGuidance adds applicable, unignored guidance packs to the selection.
+	AdoptGuidance bool
 	// RequireClaude validates an explicit Claude hook or statusline request.
 	RequireClaude      bool
 	DryRun             bool
@@ -466,6 +467,16 @@ func Init(ctx context.Context, root string, opts Options) (*Result, error) {
 		return nil, err
 	}
 	res.Steps = append(res.Steps, cfgStep)
+	if cfg == nil {
+		// A first run reads the configuration it just created, so guidance
+		// maintenance sees the same settings a later run would. A dry run
+		// created nothing and previews against the defaults.
+		if cfg, err = config.Load(root); errors.Is(err, config.ErrNotFound) {
+			cfg = &config.Config{}
+		} else if err != nil { //coverage:ignore ensureConfig just wrote this file from the schema's own template, which config.Load always accepts
+			return nil, fmt.Errorf("loading the created configuration: %w", err)
+		}
+	}
 
 	scaffoldSteps, err := scaffoldDirs(root, opts.DryRun)
 	if err != nil {
@@ -494,7 +505,7 @@ func Init(ctx context.Context, root string, opts Options) (*Result, error) {
 	}
 
 	refresh, err := refreshArtifacts(ctx, root, cfg, selection, RefreshOptions{
-		SelectGuidance:     opts.SelectGuidance,
+		AdoptGuidance:      opts.AdoptGuidance,
 		DryRun:             opts.DryRun,
 		SkipHooks:          opts.SkipHook,
 		StatusMdAutoUpdate: statusMdAutoUpdate,

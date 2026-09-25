@@ -8,11 +8,10 @@ discovered_in: E-0095
 
 `aiwf init`, `aiwf update` and `aiwf add --body-file -` wait on stdin for a person while holding the repo lock, so the lock's hold time is set by how long someone takes to answer or type.
 
-Where it shows: `init` acquires the lock at `internal/cli/initcmd/initcmd.go:108` and defers its release (`:112`) to the return of `Run`; `update` does the same at `internal/cli/update/update.go:114` and `:118`. Every prompt either verb can raise runs after that point:
+Where it shows: `init` acquires the lock at `internal/cli/initcmd/initcmd.go:108` and defers its release (`:112`) to the return of `Run`; `update` does the same at `internal/cli/update/update.go:117` and `:121`. Every prompt either verb can raise runs after that point:
 
-- guidance selection — `cliutil.GuidanceSelector` (`initcmd.go:116`, `update.go:127`), reached through `initrepo.Init` for `init` and `initrepo.RefreshArtifacts` for `update`;
-- hook consent — `gateAndPersistHookDecisions` (`initcmd.go:175`) and `gateAndSyncHookDecisions` (`update.go:177`), through `cliutil.GateHookDecisions`;
-- statusline confirmations — `cliutil.RunStatuslineScaffold` (`initcmd.go:187`, `update.go:196`), whose `promptYN` calls sit at `internal/cli/cliutil/statusline.go:67` and `:105`.
+- hook consent — `gateAndPersistHookDecisions` (`initcmd.go:175`) and `gateAndSyncHookDecisions` (`update.go:180`), through `cliutil.GateHookDecisions`;
+- statusline confirmations — `cliutil.RunStatuslineScaffold` (`initcmd.go:187`, `update.go:199`), whose `promptYN` calls sit at `internal/cli/cliutil/statusline.go:67` and `:105`.
 
 `aiwf add <kind> --body-file -` reads stdin to end-of-file at `add.go:277`, after acquiring the lock at `add.go:175`. `aiwf add ac` and `aiwf edit-body` read their stdin bodies before locking.
 

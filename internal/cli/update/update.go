@@ -46,7 +46,7 @@ func NewCmd() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "update",
 		Short: "Refresh framework artifacts for selected hosts and core Git hooks",
-		Long:  "Refresh selected-host skills, templates, supported agents, and guidance, plus core aiwf artifacts and Git hooks. Existing unselected host artifacts are retained. With maintenance enabled, download the guidance source default branch on demand, whether or not packs are selected, to suggest applicable packs; with guidance.packs explicitly configured, also refresh tracked .guidance files and selected-host routing. guidance.enabled: false stops the download. Interactive runs suggest applicable unselected, unignored packs; Enter means not now. --no-prompt reports suggestions and leaves undecided hooks unchanged instead of prompting, even on a terminal. Choices are saved only after all prompts finish. Existing selections are retained. Local edits require reconciliation; rerun update to finish an interrupted installation. This command never commits or pushes." + cliutil.HostSetupHelp,
+		Long:  "Refresh selected-host skills, templates, supported agents, and guidance, plus core aiwf artifacts and Git hooks. Existing unselected host artifacts are retained. With guidance maintenance enabled, download the guidance source default branch, add every applicable pack not listed in guidance.ignored to guidance.packs without prompting, and refresh tracked .guidance files and selected-host routing. A pack is recorded only once it is installed, and a selected pack is never removed automatically; move its id from guidance.packs to guidance.ignored to retire it, or list an id there to keep it out. A selected pack the catalogue no longer lists is reported and its unmodified files are retired. guidance.enabled: false stops the download. --no-prompt leaves undecided hooks unchanged instead of prompting, even on a terminal. Local edits require reconciliation; rerun update to finish an interrupted installation. This command never commits or pushes." + cliutil.HostSetupHelp,
 		Example: `  # Refresh skills + hooks against the current binary version
   aiwf update
 
@@ -79,7 +79,7 @@ func NewCmd() *cobra.Command {
 	cmd.Flags().BoolVar(&allowUntagged, "allow-untagged-statusline", false, "write the statusline script even when this binary's version is untagged (a dev/worktree build), without interactive confirmation (G-0367)")
 	cmd.Flags().BoolVar(&remove, "remove", false, "remove the --scope statusline's script + statusLine settings key (mutually exclusive with --statusline)")
 	cmd.Flags().BoolVar(&force, "force", false, "with --remove, delete the script/settings key even if it does not look aiwf-authored")
-	cmd.Flags().BoolVar(&noPrompt, "no-prompt", false, "never prompt for hook consent or guidance selection; leave undecided choices unchanged")
+	cmd.Flags().BoolVar(&noPrompt, "no-prompt", false, cliutil.NoPromptUsage)
 	cmd.Flags().StringArrayVar(&enableHooks, "enable-hook", nil, "consent to enabling the named registry hook without an interactive prompt (repeatable; non-TTY consent per ADR-0032)")
 	_ = cmd.RegisterFlagCompletionFunc("enable-hook", cliutil.CompleteHookNames)
 	return cmd
@@ -100,8 +100,8 @@ func NewCmd() *cobra.Command {
 // hook absent from the existing aiwf.yaml's hooks: map is gated
 // (enableHooks bypasses the interactive prompt for the named ones); every
 // already-decided hook syncs forward unchanged, with no re-prompt
-// (M-0235/AC-3). noPrompt suppresses both the guidance and the hook-consent
-// prompt even on a terminal, leaving undecided choices unchanged.
+// (M-0235/AC-3). noPrompt suppresses the hook-consent prompt even on a
+// terminal, leaving undecided hooks unchanged.
 func Run(root string, statusline bool, scope string, wireSettings, allowUntagged, remove, force, noPrompt bool, enableHooks []string, hooks []skills.HookDef) int {
 	if statusline && remove {
 		cliutil.Errorln("aiwf update: --statusline and --remove are mutually exclusive")
@@ -127,7 +127,7 @@ func Run(root string, statusline bool, scope string, wireSettings, allowUntagged
 	}
 
 	refresh, err := initrepo.RefreshArtifacts(context.Background(), rootDir, initrepo.RefreshOptions{
-		SelectGuidance:     cliutil.GuidanceSelector(noPrompt),
+		AdoptGuidance:      true,
 		RequireClaude:      statusline || remove || len(enableHooks) > 0,
 		StatusMdAutoUpdate: cfg.StatusMdAutoUpdate(),
 		WireClaudeMd:       cfg.WireClaudeMd(),

@@ -160,7 +160,7 @@ func ReadBytes(raw []byte) (*Doc, *Contracts, error) {
 	keyNode := top.Content[keyIdx]
 	valNode := top.Content[keyIdx+1]
 
-	if err := rejectAnchorsAndAliases(valNode); err != nil {
+	if err := rejectAnchorsAndAliases(valNode, "contracts"); err != nil {
 		return nil, nil, fmt.Errorf("aiwf.yaml contracts: %w", err)
 	}
 
@@ -420,22 +420,23 @@ func findMappingKey(m *yaml.Node, name string) int {
 	return -1
 }
 
-// rejectAnchorsAndAliases walks the subtree and returns an error on
-// the first anchor or alias node it sees. The contracts plan §5
-// declares anchors/aliases inside the contracts: block unsupported;
-// we fail loudly rather than risk silent semantic drift on round-trip.
-func rejectAnchorsAndAliases(n *yaml.Node) error {
+// rejectAnchorsAndAliases walks the subtree of the named top-level block
+// and returns an error naming it on the first anchor or alias node it
+// sees. Anchors and aliases are unsupported inside the blocks this
+// package edits (the contracts plan §5 for contracts:); failing loudly
+// avoids silent semantic drift on round-trip.
+func rejectAnchorsAndAliases(n *yaml.Node, block string) error {
 	if n == nil {
 		return nil
 	}
 	if n.Kind == yaml.AliasNode {
-		return fmt.Errorf("aliases are not supported inside the contracts: block (line %d)", n.Line)
+		return fmt.Errorf("aliases are not supported inside the %s: block (line %d)", block, n.Line)
 	}
 	if n.Anchor != "" {
-		return fmt.Errorf("anchors are not supported inside the contracts: block (anchor %q, line %d)", n.Anchor, n.Line)
+		return fmt.Errorf("anchors are not supported inside the %s: block (anchor %q, line %d)", block, n.Anchor, n.Line)
 	}
 	for _, c := range n.Content {
-		if err := rejectAnchorsAndAliases(c); err != nil {
+		if err := rejectAnchorsAndAliases(c, block); err != nil {
 			return err
 		}
 	}

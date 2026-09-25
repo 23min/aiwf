@@ -168,3 +168,26 @@ the four commented fields in those captured files produced the expected hashes.
 The candidate binary's files matched that independent text transformation.
 Only matching `aiwf.example.yaml` and scaffolded `aiwf.yaml` inventory records
 were replaced, and the inventories were sorted again.
+
+## Automatic guidance adoption configuration exception
+
+M-0351 changes only the generated descriptions of `guidance.packs` and
+`guidance.ignored`, which now describe add-only automatic adoption, an empty
+`packs` list that adoption adds to, and `ignored` as the per-pack opt-out.
+Claude adapters, instructions, settings, hooks, paths and modes remain frozen.
+
+Provenance: in the Linux development container on 2026-09-25, isolated `init
+--no-prompt` runs with a `v0.36.0`-stamped binary built from the pre-change
+`d80b2566e` sources, with a stand-in `claude` executable on `PATH`, reproduced
+the stored `aiwf.example.yaml` and scaffolded `aiwf.yaml` hashes with and
+without `--enable-hook worktree-rituals-check.sh`. Replacing only the two
+description comments in those captured files produced the expected hashes, and
+the candidate binary's files matched that independent text transformation. Only matching records were replaced, and the inventories were
+sorted again. The `configured` and `declined` scenarios supply their own
+`aiwf.yaml`, so only their `aiwf.example.yaml` record changes.
+
+| Config artifact | Original SHA-256 | Updated SHA-256 |
+| --- | --- | --- |
+| `aiwf.example.yaml` | `0b08f65d0dad1ade861ffe266efdd7ee4fdfe476d4a8ccb07c7fe24d7714f17b` | `3faf5d225129b3eb2850222abadce5cf51ec18af6d6e718b01977d7733a101eb` |
+| Scaffolded `aiwf.yaml` | `3ea4441a2e944f541a2de04b79b18900381c43396d66d34d34e7d7e73ea87e65` | `c0b1c621378d00260111b29c945688e3ef9f5ee1810c0d581c74ee58c3ef8f26` |
+| Scaffolded `aiwf.yaml` with hook consent | `7f6fb308a4035d873ea177b96dec222ff0fc5ada90a0b4521e55ef7f5d8bc759` | `a80ee5bc670cbd507e859c57becdcd9cf3023937a2ba8d4606a2a965f9c982c8` |

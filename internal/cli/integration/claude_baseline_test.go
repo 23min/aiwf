@@ -109,6 +109,9 @@ func claudeBaselineCommand(t *testing.T, root, home, bin, name string, args ...s
 		"XDG_CONFIG_HOME="+home,
 		"GIT_CONFIG_GLOBAL="+os.DevNull,
 		"GIT_CONFIG_NOSYSTEM=1",
+		// Guidance retrieval from the default catalogue stays refused, so the
+		// inventories cannot change with the upstream catalogue's contents.
+		"GIT_ALLOW_PROTOCOL=file",
 		"PATH="+hostLifecyclePATH(t, bin, []config.Host{config.HostClaudeCode}),
 	)
 	if out, err := cmd.CombinedOutput(); err != nil {

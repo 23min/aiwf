@@ -246,48 +246,52 @@ guidance:
 ```
 
 Maintenance defaults on and an omitted or empty `source` uses the default corpus.
-Pack ids are explicit project policy: omit `packs` (or use `null`) to leave policy
-unadopted; `packs: []` explicitly selects none. Selected and ignored ids must be
-unique and must not overlap. Existing host-wiring settings remain independent.
-After choosing catalogue ids, run `aiwf update`. Enabled init and update retrieve
-the source's current default-branch revision into a temporary directory for
-suggestions and refresh any explicit selection in `.guidance/`.
-There is no persistent download cache. Interactive init and update also suggest
-applicable packs using the external catalogue's filename patterns. Each prompt
-shows the pack description and a matching file: select adds it to `packs`, ignore
-adds it to `ignored`, and Enter means not now. Selected and ignored packs are not
-prompted again. Choices are saved together only after every prompt finishes;
-interruption saves none of that session's choices. `--no-prompt` on init or update
-suppresses these prompts as well as hook consent, and `aiwf upgrade --no-prompt`
-passes it to the update step. Noninteractive runs report applicable
-unselected, unignored packs with matching evidence and configuration instructions;
-they refresh explicit selections without adopting new policy. Selected packs with
-no current matching files are reported and retained, so you can select guidance
-before adding project source files.
+Enabled init and update retrieve the source's current default-branch revision
+into a temporary directory, detect which packs apply using the catalogue's
+filename patterns, and add every applicable pack not listed in `ignored` to
+`packs` without prompting. They then install the selection in `.guidance/` with
+host routing. There is no persistent download cache. aiwf records an adopted
+pack in `packs` only once it is installed; a run interrupted in between records
+it on the next run. Adoption is add-only: a selected pack whose matching files
+disappear stays selected and installed, and a pack listed by hand is installed
+before any source it applies to exists. An omitted or `null` `packs` means
+nothing has been adopted yet, and `packs: []` is an empty selection that
+adoption adds to; to keep guidance out, list packs in `ignored` or set
+`enabled: false`. Selected and ignored ids must be unique and must not overlap.
+Existing host-wiring settings remain independent.
 
-Completed choices are saved before installation. If validation or installation
-fails, the desired selection remains in configuration while the previously
-installed guidance remains available; the update reports the failure. Expand YAML
-anchors or aliases in `guidance` before using interactive selection. Other fields
-and comments are preserved; adding a guidance block or editing a flow-style root
-mapping may reformat the document. Saving guidance choices requires a single UTF-8
-YAML document; unsupported files are refused without being changed.
+Recording adopted packs edits the `guidance` block of `aiwf.yaml` and keeps the
+rest of the file as written where it can: a missing block is added after the
+existing content, and an existing block is rewritten in place with its values
+and comments but not their spacing. A layout that cannot be edited in place,
+such as a flow-style or indented root, is re-encoded with its fields and
+comments retained.
+Recording requires a single UTF-8 YAML document with no anchors or aliases in
+`guidance`, and `guidance` written out rather than inherited through a merge key;
+an unsupported file is refused without being changed, and nothing new is
+installed. If validation or installation fails, installed
+guidance and `aiwf.yaml` stay as they were and the update reports the failure.
 
 Detection respects Git ignore rules, skips dependency/cache directories and nested
 repositories, and does not follow symbolic links. Output-like directory names
 such as `bin`, `build`, and `out` are not exclusions by themselves; use Git ignore
 rules for generated material there.
 
-Remove a pack from `packs` to retire its unmodified generated files on the next
-`aiwf update`, and add it to `ignored` to suppress future suggestions. To reconsider
-an ignored pack, remove its id from `ignored` and run `aiwf update`; matching packs
-become eligible for suggestions again. Removing only the selection can therefore
-produce a new suggestion. If you remove the last selected pack, keep `packs: []`:
-omitting `packs` entirely leaves policy unadopted rather than retiring installed
-files. Locally edited generated files block removal or replacement; preserve your
-changes in `.guidance/project.md` or reconcile the generated file before retrying.
+`ignored` is the per-pack opt-out. Move a pack's id from `packs` to `ignored` to
+retire its unmodified generated files on the next `aiwf update` and keep it from
+being adopted again. Removing an id from `packs` alone does not opt out: the next
+run adopts the pack again while it still applies. To reconsider an ignored pack,
+remove its id from `ignored`; the next `aiwf update` adopts it if it applies. When
+you move the last selected pack, keep `packs: []` so its files are retired; with
+`packs` omitted, a run retires them only if it adopts another pack. A selected
+pack the catalogue no longer lists stays in `packs`, and update reports it with
+the fix: remove its id from `packs` or move it to `ignored`. Its unmodified files
+are retired while the rest of the selection is still installed, and a renamed
+pack is adopted under its new id when it applies. Locally edited generated files
+block removal or replacement; preserve your changes in `.guidance/project.md` or
+reconcile the generated file before retrying.
 Handwritten overrides and unowned files are retained. `enabled: false` preserves
-installed files and routing without downloading anything.
+installed files and routing without downloading or adopting anything.
 
 Commit `.guidance/index.md`, `.guidance/packs/`, `.guidance/.aiwf-owned`, and the
 managed routing blocks in `CLAUDE.md` and `AGENTS.md`. Keep handwritten exceptions

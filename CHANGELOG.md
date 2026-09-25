@@ -18,13 +18,12 @@ section in this file.
 
 ### Fixed — G-0708: `aiwf update` and `aiwf upgrade` accept `--no-prompt`
 
-`aiwf update --no-prompt` never prompts for guidance selection or hook consent, even
-on a terminal: it reports guidance suggestions and leaves undecided hooks undecided,
-as `aiwf init --no-prompt` already does. `aiwf upgrade --no-prompt` passes the flag to
-the update step it runs, so the target release must support it. Unattended runs on a
-pseudo-terminal, such as devcontainer lifecycle commands, can now say no human is
-present instead of blocking on a guidance or hook prompt while holding the repository
-lock.
+`aiwf update --no-prompt` never prompts for hook consent, even on a terminal: it
+leaves undecided hooks undecided, as `aiwf init --no-prompt` already does.
+`aiwf upgrade --no-prompt` passes the flag to the update step it runs, so the target
+release must support it. Unattended runs on a pseudo-terminal, such as devcontainer
+lifecycle commands, can now say no human is present instead of blocking on a hook
+prompt while holding the repository lock.
 
 ### Fixed — G-0674: `--principal` help names the rule instead of an internal label
 

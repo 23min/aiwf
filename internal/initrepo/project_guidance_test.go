@@ -15,7 +15,7 @@ import (
 	"github.com/23min/aiwf/internal/testsupport"
 )
 
-func TestInit_ProjectGuidanceDoesNotAdoptPolicyByDefault(t *testing.T) {
+func TestInit_WithoutAdoptGuidanceDoesNotAdoptPolicy(t *testing.T) {
 	t.Parallel()
 	root := freshGitRepo(t)
 	if _, err := Init(context.Background(), root, Options{SkipHook: true}); err != nil {
@@ -117,7 +117,7 @@ func TestProjectGuidanceRefresh_ReportsFailuresWithoutClaimingInstallation(t *te
 
 func TestProjectGuidanceRefresh_OptOutAndDryRun(t *testing.T) {
 	testsupport.IsolateGuidanceEnvironment(t)
-	for _, kind := range []string{"missing config", "unselected", "disabled", "dry run", "host wiring disabled"} {
+	for _, kind := range []string{"missing config", "unselected", "disabled", "dry run", "dry run adopting", "host wiring disabled"} {
 		t.Run(kind, func(t *testing.T) {
 			root := t.TempDir()
 			selected := []string{"sample/base"}
@@ -134,11 +134,17 @@ func TestProjectGuidanceRefresh_OptOutAndDryRun(t *testing.T) {
 				cfg.Guidance.Enabled = &disabled
 			case "dry run":
 				opts.DryRun = true
+			case "dry run adopting":
+				opts.DryRun, opts.AdoptGuidance = true, true
+				cfg.Guidance.Packs = nil
 			case "host wiring disabled":
 				opts.WireClaudeMd = false
 				cfg.Guidance.WireAgentsMd = &disabled
 			}
 			step := ensureProjectGuidance(t.Context(), root, cfg, hosts, opts)
+			if strings.HasPrefix(kind, "dry run") && (step == nil || strings.Contains(step.Detail, "adopt") != (kind == "dry run adopting")) {
+				t.Fatalf("dry run preview does not match whether it adopts: %+v", step)
+			}
 			if kind == "host wiring disabled" {
 				if step == nil || step.Action != ActionUpdated {
 					t.Fatalf("selected files not installed: %+v", step)
@@ -212,5 +218,163 @@ func TestProjectGuidanceRefresh_RoutesOnlySelectedWiredHosts(t *testing.T) {
 				}
 			}
 		})
+	}
+}
+
+func TestProjectGuidanceAdoption_RecordsSelectionOnlyWithInstallation(t *testing.T) {
+	testsupport.IsolateGuidanceEnvironment(t)
+	for _, kind := range []string{"adopts", "no applicable pack", "detection failure", "unreadable configuration", "unrecordable configuration", "installation conflict", "unwritable configuration"} {
+		t.Run(kind, func(t *testing.T) {
+			if kind == "unwritable configuration" && os.Geteuid() == 0 {
+				t.Skip("root bypasses permission checks")
+			}
+			source := testsupport.GuidanceSource(t, "*.xyz")
+			root := freshGitRepo(t)
+			configuration := "hosts: []\nguidance:\n  source: " + source + "\n"
+			switch kind {
+			case "detection failure":
+				root = t.TempDir()
+			case "unrecordable configuration":
+				configuration = "hosts: []\nshared: &guidance\n  source: " + source + "\nguidance: *guidance\n"
+			}
+			path := filepath.Join(root, config.FileName)
+			if kind != "unreadable configuration" {
+				if err := os.WriteFile(path, []byte(configuration), 0o644); err != nil {
+					t.Fatal(err)
+				}
+			}
+			if kind != "no applicable pack" {
+				if err := os.WriteFile(filepath.Join(root, "source.xyz"), []byte("source"), 0o644); err != nil {
+					t.Fatal(err)
+				}
+			}
+			if kind == "installation conflict" {
+				if err := os.MkdirAll(filepath.Join(root, ".guidance"), 0o755); err != nil {
+					t.Fatal(err)
+				}
+				if err := os.WriteFile(filepath.Join(root, ".guidance", "index.md"), []byte("foreign\n"), 0o644); err != nil {
+					t.Fatal(err)
+				}
+			}
+			if kind == "unwritable configuration" {
+				// Installation writes only below .guidance; the configuration beside it cannot be replaced.
+				if err := os.Mkdir(filepath.Join(root, ".guidance"), 0o755); err != nil {
+					t.Fatal(err)
+				}
+				if err := os.Chmod(root, 0o555); err != nil {
+					t.Fatal(err)
+				}
+				t.Cleanup(func() { _ = os.Chmod(root, 0o755) })
+			}
+			cfg := &config.Config{Guidance: config.Guidance{Source: source}}
+			step := ensureProjectGuidance(t.Context(), root, cfg, config.HostSelection{}, RefreshOptions{AdoptGuidance: true})
+			if step == nil {
+				t.Fatal("adoption produced no step")
+			}
+			raw, readErr := os.ReadFile(path)
+			_, installErr := os.Stat(filepath.Join(root, ".guidance", "packs", "sample", "base", "guide.md"))
+			switch kind {
+			case "adopts":
+				recorded, err := config.Load(root)
+				if err != nil {
+					t.Fatal(err)
+				}
+				want := []string{"sample/base"}
+				if step.Action != ActionUpdated || installErr != nil || recorded.Guidance.Packs == nil || !slices.Equal(*recorded.Guidance.Packs, want) {
+					t.Fatalf("adoption not recorded with installation: %+v, %s, %v", step, raw, installErr)
+				}
+				return
+			case "no applicable pack":
+				if step.Detail != "no project guidance selected; existing delivery retained" {
+					t.Fatalf("unexpected detail: %+v", step)
+				}
+			default:
+				cause := map[string]string{
+					"detection failure":          "detecting guidance",
+					"unreadable configuration":   "recording adopted guidance: reading",
+					"unrecordable configuration": "recording adopted guidance: expand guidance anchors and aliases so guidance packs can be recorded: aliases are not supported inside the guidance: block",
+					"installation conflict":      "installation conflict",
+					"unwritable configuration":   "recording adopted guidance: writing",
+				}[kind]
+				if step.Action != ActionSkipped || !strings.HasPrefix(step.Detail, "guidance incomplete:") || !strings.Contains(step.Detail, cause) {
+					t.Fatalf("failed adoption claimed success or named the wrong cause (want %q): %+v", cause, step)
+				}
+			}
+			if kind != "unreadable configuration" && (readErr != nil || string(raw) != configuration) {
+				t.Fatalf("configuration changed: %s (%v)", raw, readErr)
+			}
+			if kind != "unwritable configuration" {
+				if !errors.Is(installErr, fs.ErrNotExist) {
+					t.Fatalf("pack installed without a recorded selection: %v", installErr)
+				}
+				return
+			}
+			// The pack installed before the write failed; the next run records it
+			// and reports the configuration it changed.
+			if err := os.Chmod(root, 0o755); err != nil {
+				t.Fatal(err)
+			}
+			rerun := ensureProjectGuidance(t.Context(), root, &config.Config{Guidance: config.Guidance{Source: source}}, config.HostSelection{}, RefreshOptions{AdoptGuidance: true})
+			recorded, err := config.Load(root)
+			if err != nil {
+				t.Fatal(err)
+			}
+			if rerun == nil || rerun.Action != ActionUpdated || recorded.Guidance.Packs == nil || !slices.Equal(*recorded.Guidance.Packs, []string{"sample/base"}) {
+				t.Fatalf("interrupted adoption did not converge: %+v, packs %v", rerun, recorded.Guidance.Packs)
+			}
+		})
+	}
+}
+
+func TestProjectGuidanceRefresh_ReportsSelectedPacksMissingFromCatalogue(t *testing.T) {
+	testsupport.IsolateGuidanceEnvironment(t)
+	for _, kind := range []string{"adopting", "not adopting", "adopting with an installation conflict"} {
+		t.Run(kind, func(t *testing.T) {
+			root := freshGitRepo(t)
+			selected := []string{"gone/pack", "sample/base"}
+			cfg := &config.Config{Guidance: config.Guidance{Source: testsupport.GuidanceSource(t), Packs: &selected}}
+			if kind == "adopting with an installation conflict" {
+				if err := os.MkdirAll(filepath.Join(root, ".guidance"), 0o755); err != nil {
+					t.Fatal(err)
+				}
+				if err := os.WriteFile(filepath.Join(root, ".guidance", "index.md"), []byte("foreign\n"), 0o644); err != nil {
+					t.Fatal(err)
+				}
+			}
+			step := ensureProjectGuidance(t.Context(), root, cfg, config.HostSelection{}, RefreshOptions{AdoptGuidance: kind != "not adopting"})
+			if step == nil || !strings.Contains(step.Detail, "no longer has gone/pack") || !strings.Contains(step.Detail, "guidance.ignored") {
+				t.Fatalf("vanished pack not reported with its fix: %+v", step)
+			}
+			_, installErr := os.Stat(filepath.Join(root, ".guidance", "packs", "sample", "base", "guide.md"))
+			if kind == "adopting" {
+				if step.Action != ActionUpdated || installErr != nil {
+					t.Fatalf("the rest of the selection was not installed: %+v, %v", step, installErr)
+				}
+				return
+			}
+			// A run that does not adopt leaves installed guidance as it is rather
+			// than retiring a pack it cannot replace.
+			if step.Action != ActionSkipped || !strings.HasPrefix(step.Detail, "guidance incomplete:") || !errors.Is(installErr, fs.ErrNotExist) {
+				t.Fatalf("guidance changed or claimed success: %+v, %v", step, installErr)
+			}
+		})
+	}
+}
+
+func TestInit_FirstDryRunPreviewsAdoption(t *testing.T) {
+	t.Parallel()
+	root := freshGitRepo(t)
+	res, err := Init(t.Context(), root, Options{AdoptGuidance: true, DryRun: true, SkipHook: true})
+	if err != nil {
+		t.Fatal(err)
+	}
+	previewed := slices.ContainsFunc(res.Steps, func(step StepResult) bool {
+		return step.What == ".guidance (project engineering guidance)" && strings.Contains(step.Detail, "adopt")
+	})
+	if !previewed {
+		t.Fatalf("first dry run did not preview guidance adoption: %+v", res.Steps)
+	}
+	if _, err := os.Stat(filepath.Join(root, config.FileName)); !errors.Is(err, fs.ErrNotExist) {
+		t.Fatalf("dry run wrote configuration: %v", err)
 	}
 }

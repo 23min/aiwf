@@ -22,7 +22,9 @@ func TestRun_ProjectGuidancePreservesConfigurationAndLegacyOwnership(t *testing.
 		t.Run(selection, func(t *testing.T) {
 			t.Parallel()
 			root := freshInitializedRepo(t)
-			original := []byte("# Preserve operator notes.\nhosts: []\ncustom_setting: retained\nguidance:\n  wire_claudemd: false\n  wire_agentsmd: false\n" + selection)
+			// A local catalogue whose pack matches no file keeps the run hermetic and unadopted.
+			source := testsupport.GuidanceSource(t)
+			original := []byte("# Preserve operator notes.\nhosts: []\ncustom_setting: retained\nguidance:\n  source: " + source + "\n  wire_claudemd: false\n  wire_agentsmd: false\n" + selection)
 			path := filepath.Join(root, config.FileName)
 			if err := os.WriteFile(path, original, 0o644); err != nil {
 				t.Fatal(err)
