@@ -206,3 +206,21 @@ hash. Only that skill's record was replaced, and the inventories were sorted aga
 | Artifact | Original SHA-256 | Updated SHA-256 |
 | --- | --- | --- |
 | `aiwfx-plan-epic/SKILL.md` | `5a4cb52538cfa56e60c7ebdc78f7a542075e3dd14217454c9f1a2096d6d4378d` | `27e32a94876037f52562162f27916df259251464aa530ecf75b6e14b31e290b9` |
+
+## Milestone cut-gate exception
+
+M-0356 gives the milestone-planning ritual a sizing arm that drops a candidate no
+success criterion requires, and a gate that names the cuts before any id is
+allocated. The six inventories change only
+`.claude/skills/aiwfx-plan-milestones/SKILL.md`; all other records stay frozen.
+
+Provenance: derived in the Linux development container on 2026-09-26 by the same
+subtraction used above — materialize with a `v0.36.0`-stamped candidate binary into
+an identically seeded consumer, restore the sizing bullet's prior form and remove
+the gate paragraph from the captured bytes, and confirm the result reproduces the
+frozen hash. Only that skill's record was replaced, and the inventories were sorted
+again.
+
+| Artifact | Original SHA-256 | Updated SHA-256 |
+| --- | --- | --- |
+| `aiwfx-plan-milestones/SKILL.md` | `3502fc53efdbf327648ecef3e22f5f60a8d468fcd1bbc1856935d70c39745636` | `f66250263707e1b1c34863394b42d5e0ef962750ff74ee0b2ab5ae3399523ab2` |
