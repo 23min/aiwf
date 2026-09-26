@@ -99,7 +99,7 @@ Guidance outcomes surface today as one step-ledger line whose wording ("no proje
 
 ## Release note
 
-- `aiwf init`, `aiwf update` and `aiwf upgrade` now end with a `Guidance:` section, including runs that stop on a hook-chain collision or a later error; `aiwf init --dry-run` prints none. It lists the selection (or that it is unset or explicitly empty), the packs adopted and recorded in this run, the installed packs with their source commit (or that they are unknown when the installed index is not intact), and the ignored packs. When they apply it adds that maintenance is disabled, a `pending:` line for an interrupted installation, a `blocked:` line naming why guidance was not fully installed and recorded and, where the installer names one, the action that clears it, and, while maintenance is enabled, a `missing:` line with its fix for each selected pack the installed index does not list. A blocked installation leaves the exit status and the other steps unchanged.
+- `aiwf init` and `aiwf update` now end with a `Guidance:` section, including runs that stop on a hook-chain collision or a later error, and so does `aiwf upgrade` when it installs a release and re-executes update; `aiwf init --dry-run` prints none. It lists the selection (or that it is unset or explicitly empty), the packs adopted and recorded in this run, the installed packs with their source commit (or that they are unknown when the installed index is not intact, or why installed guidance cannot be read), and the ignored packs. When they apply it adds that maintenance is disabled, a `pending:` line for an interrupted installation, a `blocked:` line naming why guidance was not fully installed and recorded and, where the installer names one, the action that clears it, and, while maintenance is enabled, a `missing:` line with its fix for each selected pack an intact installed index does not list. A blocked installation leaves the exit status and the other steps unchanged.
 - While guidance maintenance is enabled, `aiwf doctor` warns about each selected guidance pack an intact installed index does not list, and it words the selection, disabled maintenance, a pending installation and missing packs as the report does.
 - Guidance refusals for an unreadable source catalogue or pack document, a source with no commit, and unreadable personal-instruction paths now name the action that clears them. A regular file on `PATH`, or at `CODEX_HOME` or `CLAUDE_CONFIG_DIR`, no longer blocks guidance as a suspected legacy delivery.
 
@@ -110,7 +110,7 @@ Guidance outcomes surface today as one step-ledger line whose wording ("no proje
 
 ## Validation
 
-`make ci` at `574c710d7` on the M-0352 milestone branch, in the Linux devcontainer: exit 0. golangci-lint `0 issues.`; `go test -race` passed; total statement coverage `91.9%`; the diff-scoped coverage gate and policy suite passed; `./bin/aiwf doctor --self-check` reported `self-check passed (29 steps).`; `aiwf check` reported `0 errors, 10 warnings`, none on M-0352.
+`make ci` at `30948afdf` on the M-0352 milestone branch, in the Linux devcontainer: exit 0. golangci-lint `0 issues.`; `go test -race` passed; total statement coverage `91.9%`; the diff-scoped coverage gate and policy suite passed; `./bin/aiwf doctor --self-check` reported `self-check passed (29 steps).`; `aiwf check` reported `0 errors, 10 warnings`, none on M-0352.
 
 ## Deferrals
 
