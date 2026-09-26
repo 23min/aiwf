@@ -1360,3 +1360,15 @@ than a review.
 | M-0354 | Gate everything the binary embeds and clear what it finds | draft |
 | M-0355 | Take aiwf-only rules and aiwf ids out of aiwf check | draft |
 
+## E-0097 — Ask what can be dropped at plan time and prove removals on demand (proposed)
+
+### Goal
+
+Put the subtraction question at the two moments it pays: before work is proposed,
+where cutting is free, and on demand over a change or a unit, where removing what
+exists has to be proved. The planning rituals gain a step that offers the smallest
+version first; a shipped skill gains the procedure for removing what already
+landed, and the wrap rituals call it instead of restating it.
+
+_No milestones yet._
+
