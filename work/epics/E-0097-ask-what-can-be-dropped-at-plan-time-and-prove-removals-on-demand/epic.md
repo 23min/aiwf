@@ -147,13 +147,9 @@ trial got wrong and what that asks of the skill.
 
 ## Milestones
 
-Allocated by `aiwfx-plan-milestones`; the candidates, in order:
-
-- The cut-list clause in the always-on guidance source · depends on: —
-- Plan-time subtraction in both planning rituals · depends on: —
-- The on-demand subtraction skill · depends on: —
-- Wire the skill into the milestone wrap and port it to the patch ritual · depends
-  on: the skill
+- `M-0356` — the cut-list clause and the step in both planning rituals · depends on: —
+- `M-0357` — the on-demand subtraction skill · depends on: —
+- `M-0358` — the wrap and patch-ritual wiring · depends on: `M-0357`
 
 ## References
 
