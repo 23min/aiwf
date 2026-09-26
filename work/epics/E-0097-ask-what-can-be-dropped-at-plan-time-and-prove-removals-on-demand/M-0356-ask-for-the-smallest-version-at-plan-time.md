@@ -21,9 +21,10 @@ acs:
 
 ## Goal
 
-Put the subtraction question at the moment work is proposed — inside both planning
-rituals and in the always-on guidance — so it fires whether or not a ritual is
-invoked, while a cut still costs nothing.
+Put the subtraction question at the moment work is proposed — in the always-on
+guidance, so it reaches a plan that invokes no ritual, and in the milestone-planning
+ritual, where a written list of success criteria gives it something to test against
+— while a cut still costs nothing.
 
 ## Closes
 
@@ -35,10 +36,9 @@ Both planning rituals confirm a plan rather than challenge it. `aiwfx-plan-epic`
 spells scope back and asks for a yes. `aiwfx-plan-milestones` sizes each candidate
 with three arms — keep, split, fold into a sibling — and none of the three drops
 work, which is the shape [`growth.md`](../../../docs/design/growth.md) names as the
-growth mechanism. A planning session run through the epic ritual produced a plan
-that one question from the maintainer visibly shrank afterwards, which places the
-missing step inside the ritual's own output rather than beside it. The always-on
-guidance carries the economy priming and no obligation to produce a cut list.
+growth mechanism. A plan produced through the epic ritual shrank visibly when the
+maintainer asked afterwards whether it was KISS and YAGNI. The always-on guidance
+carries the economy priming and nothing that fires when a plan is proposed.
 
 ## Acceptance criteria
 
@@ -55,6 +55,8 @@ than inventing something smaller; a candidate the user has already constrained,
 where the delta is theirs rather than the assistant's. **Code references**: the step
 lands in the embedded `aiwfx-plan-epic` ritual body; the record lands in this spec's
 `## Validation`.
+
+**Cancelled.** The step this criterion claims was removed after measurement showed it produced nothing the always-on rule did not; see `## Validation`.
 
 ### AC-2 — plan-milestones drops an unrequired candidate before allocating its id
 
@@ -79,6 +81,8 @@ a proposal with nothing to drop, which states that rather than padding the list;
 request for one change, which is not a plan and does not trigger the list. **Code
 references**: the clause lands in `internal/skills/embedded-guidance/aiwf-guidance.md`.
 
+**Cancelled.** The rule this criterion observed was reworded, so its observation no longer evidences the shipped text; M-0356 AC-4 replaces it. See `## Validation`.
+
 ### AC-4 — A planning exchange invoking no ritual gates each addition on a goal
 
 A planning exchange that invokes no ritual arrives already split: a smallest
@@ -97,33 +101,37 @@ is not a plan and does not trigger the rule. **Code references**: the rule in
 
 ## Constraints
 
-- The clause does not exceed the median length of the fragment's existing top-level
+- The rule does not exceed the median length of the fragment's existing top-level
   rules.
-- **The clause's commit carries this milestone's `aiwf-entity` trailer, and that is
+- **The rule's commit carries this milestone's `aiwf-entity` trailer, and that is
   the whole of its registration.** The guidance inventory can trace any fragment
   rule to the entity that placed it, so a second record would be a copy.
 - **No operating-anchor entry for the new rule.** An anchor is a presence assertion
   over shipped prose, and the anchors policy is rewritten under E-0092.
 - Shipped text carries no aiwf id, no path into this tree, and no rationale.
-- The drop candidates come from the proposal as drafted, never invented extras.
-- The cut list is a disposition the human grades, never a verdict that a plan is
-  minimal — G-0585 records why a clearance earned by reading is worse than none.
+- The parts a plan names come from what was drafted, never invented beside it.
+- What the rule produces is a disclosure the human grades, never a verdict that a
+  plan is minimal — G-0585 records why a clearance earned by reading is worse than
+  none.
 - Each criterion here claims an observation, so its evidence is the record of
   command, expectation, observation and environment rather than an assertion.
 
 ## Design notes
 
-- The clause's home follows E-0092's own audience test; the epic's constraints hold
+- The rule's home follows E-0092's own audience test; the epic's constraints hold
   the argument.
-- **Retirement trigger for the clause**: E-0092's before-and-after rubric. If plans
-  do not come out smaller, the rule goes.
+- **Retirement.** Each addition stays only while the effect its criterion claims can
+  still be observed. At the E-0097 wrap, repeat the comparisons recorded under
+  `## Validation`: prompt 3 in a repository materialized without the plan rule and
+  one with it — if the plan no longer arrives split, the rule is removed; prompt 2
+  in a repository without the sizing arm and one with it — if the scope item no
+  success criterion requires is no longer dropped, the arm and its gate are removed.
 - D-0070 forbids pinning a phrase in shipped prose, which is why no criterion here
   asserts the presence of the text it adds.
 
 ## Surfaces touched
 
 - `internal/skills/embedded-guidance/aiwf-guidance.md`
-- `internal/skills/embedded-rituals/plugins/aiwf-extensions/skills/aiwfx-plan-epic/SKILL.md`
 - `internal/skills/embedded-rituals/plugins/aiwf-extensions/skills/aiwfx-plan-milestones/SKILL.md`
 
 ## Out of scope
@@ -149,213 +157,142 @@ is not a plan and does not trigger the rule. **Code references**: the rule in
 
 Two rules now ask what a plan could do without.
 
-The always-on guidance asks that a plan arrive with its cut list: offer the
-smallest version that solves the stated problem, say what the larger one adds and
-why each addition earns it, and name the parts you would drop first. *Nothing was
-droppable* is an answer; silence is not.
+The always-on guidance asks every plan to name the goal each of its parts serves,
+applying KISS and YAGNI before anything is built: offer the smallest version that
+solves the stated problem, then the goal each further thing serves, with what
+serves none dropped or its goal named and agreed.
 
 The milestone-planning ritual's sizing rule gains a fourth arm — a candidate no
 success criterion requires is dropped, where before it could only be kept, split
-or folded into a sibling — and a gate that puts the cut list in front of you
-before any id is allocated, while a cut still costs nothing.
+or folded into a sibling — and a gate that puts the cuts in front of you, and asks
+for a yes, before any id is allocated.
 
 ## Decisions made during implementation
 
-- (none)
+Each is recorded where its reasoning lives rather than restated here.
+
+- The epic-planning step was removed and M-0356 AC-1 cancelled, because the step
+  produced nothing the always-on rule did not — `## Validation`, and the removing
+  commit in `aiwf history M-0356/AC-1`.
+- The always-on rule was reworded, and M-0356 AC-3 replaced by M-0356 AC-4, which
+  claims the split rather than a removal — `## Validation`.
 
 ## Validation
 
-### Withdrawn prompt set
+### Method
 
-An earlier prompt set was fixed for a design that dispatched fresh-context agents
-into this worktree. That design cannot isolate the arms, for two reasons both
-observed rather than reasoned: a dispatched agent loads the parent session's
-project instructions rather than those of the directory it is pointed at, so the
-guidance it follows is not the arm's guidance; and an agent working inside the
-repository that implements a rule locates the rule in git and complies with it
-conspicuously — one diffed the ritual against the trunk, another read the commit
-that added it. No arm was validly exercised under that set, so the prompts are
-re-fixed below rather than revised mid-experiment.
+Each criterion claims an observation of a live session, so each was pre-registered
+— prompt, expected outcome, and what would falsify it — and committed before its
+run; the pre-registration commits are in `aiwf history M-0356`.
 
-Three runs were taken under it and are kept as what they support: with no prompt
-asking for a cut, each produced smallest-version framing and a cut list with
-reasons, one recommending no milestones at all. That shows the rules are
-followable and produce the intended shape. It does not show they fire unprompted,
-which is what the criteria claim.
+Arms are consumer repositories created by `aiwf init --no-prompt` in an empty git
+repository, each from a binary differing only in the surface under test, none
+containing aiwf's own source or history. The released arm used the installed
+release; a repeat builds its without-arm from this milestone's base revision.
+Observers are fresh interactive sessions started inside each arm's repository, so
+each loads that arm's guidance; every session received byte-identical text for its
+prompt and was asked afterwards which files it had read. Dispatching agents into
+this repository cannot isolate arms: a dispatched agent loads its parent session's
+instructions rather than those of the directory it is sent to, and an agent inside
+the implementing repository finds the change in git and complies conspicuously.
 
-### Pre-registration — written before any run
+| arm | plan rule | epic-planning step | sizing arm |
+|---|---|---|---|
+| released | — | — | — |
+| candidate | first wording | present | present |
+| rule without step | first wording | — | present |
+| reworded | goal-per-part wording | — | present |
+| reworded, labelled | goal-per-part, naming KISS and YAGNI | — | present |
 
-Each criterion here claims an observation, so the prompts and the expected
-outcomes are fixed before either arm is exercised.
-
-**Arms.** Two consumer repositories, each created by `aiwf init` — one from the
-released binary, one from a binary built from this milestone's source. Verified
-before any run: the released arm carries none of the cut-list rule, the
-smallest-version step or the dropping arm; the candidate arm carries all three;
-neither contains aiwf's own source or history, so neither can diff the change or
-find the commit that made it. This is the view a consumer has, which is the view
-the criteria are about.
-
-**Observers.** One live interactive session per arm per prompt class, started in
-that arm's repository so it loads that arm's guidance. A planning session and a
-no-ritual session are separate within an arm, because a session that has invoked
-the planning ritual can no longer serve as the no-ritual observation. Each arm
-receives byte-identical prompt text. No session is told an experiment is running,
-and none may run a command that creates or commits.
-
-**Prompt 1 — for the epic-planning criterion.** *"We need structured audit
-logging — who changed what, and when — across the service. Plan an epic for it.
-Don't create or commit anything; show me what you'd create and stop."*
-
-Expected released: the exchange presents one version of the work.
-Expected candidate: it presents the smallest version that solves the problem and,
-separately, what the larger version adds, with a reason per addition.
-
-**Prompt 2 — for the milestone-decomposition criterion**, sent to the same
-session. An epic for per-client rate limiting whose success criteria are a
-rejection naming when to retry, and no client exceeding its configured share. Its
-scope carries four items, of which three serve those criteria and one — a written
-guide on choosing limits for new endpoints — serves neither.
-
-Expected released: every item becomes a candidate, kept, split or folded; none is
-dropped, and no cut list precedes allocation.
-Expected candidate: the guide is named as a drop because no success criterion
-requires it, and the cut list is put up before any id would be allocated.
-
-**Prompt 3 — for the criterion covering a plan with no ritual.** *"How should we
-approach adding rate limiting to the public API? Give me your plan."* No skill is
-named and no ritual is invoked.
-
-Expected released: a plan arrives with no cut list.
-Expected candidate: the plan distinguishes the smallest version from what exceeds
-it, and names what it would drop.
-
-**Prompt 3 re-fixed for the reworded rule.** The rule this criterion observes was
-reshaped from a judgement into a test after the first round: it now asks which
-goal each added part serves and drops what serves none. The prompt text is
-unchanged. Only the candidate arm is re-run — the released arm carries no rule at
-all, so the rewording cannot change its behaviour, and its recorded output stands.
-
-Expected candidate: each thing beyond the smallest version carries the goal it
-serves, and something serving none is dropped outright rather than ranked for the
-reader to settle.
-
-Falsified by: a run that names goals but still hands every removal back as a
-ranking or a condition, which would mean the test wording changed the prose and
-not the disposition — the same outcome the first round measured, and grounds to
-conclude an always-on rule cannot do this job.
-
-**What would falsify each.** A candidate-arm run producing the expected shape only
-because the prompt asked for it; a released-arm run already producing it, which
-would mean the change is not what causes the difference; or a decomposition whose
-drop is justified on grounds other than no criterion requiring it, which would
-leave the new sizing arm unexercised. Each is reported as observed rather than
-reconciled.
+1. *"We need structured audit logging — who changed what, and when — across the
+   service. Plan an epic for it. Don't create or commit anything; show me what
+   you'd create and stop."*
+2. Sent to the same session: *"Break this epic into milestones. Don't create or
+   commit anything; show me the milestone list you'd create and stop."* with an
+   epic for per-client rate limiting of the public API whose success criteria are a
+   rejection naming when the client may retry and no client exceeding its
+   configured share, and whose scope carries four items — count requests per client
+   over a sliding window, reject over-limit requests with a retry time, enforce a
+   configured per-client share, publish a written guide on choosing limits for new
+   endpoints — the last serving neither criterion.
+3. *"How should we approach adding rate limiting to the public API? Give me your
+   plan."*
 
 ### Observed
 
-Five runs, one per arm per prompt, each a live session started in that arm's
-repository and sent the prompt text above unchanged. Every session was asked
-afterwards which files it had read; the attributions below rest on those answers.
+| arm | prompt | arrived split | outcome |
+|---|---|---|---|
+| released | 1 | no | one version |
+| released | 2 | — | every item kept, split or folded; the guide folded in while the session noted no criterion required it |
+| released | 3 | no | a full programme, nothing questioned |
+| candidate | 1 | yes | a cut list whose one cut was conditional |
+| candidate | 2 | — | the guide dropped: "no success criterion requires it, so by the planning rule it goes" |
+| candidate | 3 | yes | an ordered cut list, nothing dropped |
+| rule without step | 1 | yes | the candidate's shape; cheapest cut named, then kept |
+| reworded | 3 | yes | additions returned as conditions, nothing dropped |
+| reworded, labelled | 3 | yes | additions gated on a goal "before it goes in", one defaulted out, the whole plan questioned against an existing gateway; nothing dropped outright |
 
-**The criterion covering a plan with no ritual — met.** Neither arm invoked a
-skill, so the criterion's precondition holds. The released arm returned three
-milestones, decisions to record, metrics, a shadow rollout and a published
-contract, with no cut list anywhere. The candidate arm returned a smallest
-version, what the larger one adds with a reason each, and an ordered cut list
-that also named what could not be cut and why. It attributed that to the rule by
-name: *"'A plan arrives with its cut list' gave the smallest version, the larger
-additions and the cut-first order."*
+**M-0356 AC-4 — met.** Every proposal under the rule on prompts 1 and 3 arrived
+split, five of five, against neither released proposal. The criterion claims the
+split and the gate on a goal, not a removal.
 
-**The criterion covering milestone decomposition — met.** Both arms read the
-decomposition ritual, so exposure was symmetric and only its text differed. The
-released arm kept, split or folded every scope item and dropped none, folding the
-unserved guide into a sibling. It identified the condition itself — *"The written
-guide has no success criterion. Neither criterion would fail if the guide never
-shipped"* — and could offer only to add a criterion or accept the deliverable
-unchecked. The candidate arm dropped it: *"no success criterion requires it, so by
-the planning rule it goes."* Both arms detected the surplus; only one had a
-disposition that removed it.
+**M-0356 AC-2 — met.** Both arms read the milestone-planning ritual, so exposure was
+symmetric and only its text differed. Both detected that the guide served no
+criterion; only the candidate had a disposition that removed it. The criterion's
+second clause — no id allocated for the dropped candidate — held only because no
+arm was permitted to allocate anything, so the gate's ordering was not observed.
 
-**The criterion covering the epic-planning step — cancelled, its claim
-disconfirmed.** A third arm was materialized carrying the always-on rule but not
-the step, differing from the candidate in that alone. It opened the planning
-ritual, found no step there, and produced the same shape the candidate did,
-attributing it to the rule. The ordering the step alone specifies — the smallest
-version ahead of the body — appeared in neither arm. The step was removed rather
-than left unevidenced.
+**M-0356 AC-1 — cancelled.** The candidate carried the step and did not produce the
+one thing the step alone specifies, the smallest version ahead of the body, which
+falsifies it on the pre-registered arm alone. A third arm, added afterwards and
+differing from the candidate only in the step's absence, produced the same shape,
+confirming the step added nothing the rule did not.
 
-**What the arms did not show.** The rule produces a cut list reliably; it produced
-a cut once in four. Two arms carrying it named a cheapest cut and then kept it, and
-one returned a conditional for the reader to settle. The single unconditional
-removal came from the decomposition ritual's sizing arm, which tests an item
-against the epic's success criteria, rather than from the rule, which asks a
-drafter to judge its own draft. On this evidence a rule carrying a test removes
-work, and a rule asking for a judgement produces the list and stops.
+**M-0356 AC-3 — cancelled.** The rule it observed was reworded; M-0356 AC-4
+replaces it.
 
-**Limits.** One run per arm, five in total, none repeated, so the spread is
-unknown. The pattern is consistent across every run and matches the operating
-experience that prompted this work, but five runs is a signal rather than a
-measurement. The released arm never opened the epic-planning ritual, which is why
-the original two-arm design could not have attributed anything to that step, and
-why a third arm was needed.
+**What the rule does not do.** In the five proposals where only the rule applied,
+nothing was removed, across three wordings. The one removal came where the sizing
+arm applied, testing against success criteria already written in the epic. A
+free-text plan carries no such list, so a goal can be named for anything and
+nothing outside the draft can refuse — which is why the rule delivers the split and
+removals belong to a check whose verdict a command settles. The arm contrasts carry
+these verdicts; the sessions' accounts of what they read corroborate without
+carrying them.
+
+**Wording.** The judgement wording and the goal-per-part wording showed no
+observable difference. The labelled arm alone questioned the plan as a whole — one
+run, against a comparison terser than the rest, so suggestive at most. The shipped
+rule differs from the tested labelled variant by a compression that removed a
+clause repeating its title; the labels are identical.
+
+**Limits.** One run per arm and prompt, none repeated, so the spread is unknown.
+Reads are self-reported. The released planning session never opened the
+epic-planning ritual, which is why the third arm was needed.
+
+### Measured — what a rule edit costs
+
+Every edit to the rule touches the fragment, six frozen host-artifact inventories,
+and the exception record that documents them; the first also raised the fragment's
+line budget from 169 to 173, set to the exact new size, and later edits were held
+inside it. Measured in the Linux development container on 2026-09-26.
 
 ### Gate results at wrap
 
-Run in the Linux development container on 2026-09-26, on the milestone branch at
-its final implementation commit.
+Run in the Linux development container on 2026-09-26, on the milestone branch.
+The last change to any build input was the commit naming KISS and YAGNI in the
+rule; the gates below ran after it, and nothing since has touched Go source, the
+module files, the Makefile or the workflows.
 
 ```
 go build ./...        → ok
-make check-fast       → exit 0; 73 packages ok
+make check-fast       → exit 0; 73 packages ok, 0 failures
 aiwf check            → 0 errors, 1 warning
 ```
 
 The warning is `provenance-untrailered-scope-undefined`: the branch has no
 upstream, so the provenance audit has no range to walk and declines rather than
 passing. It clears on push, or with `aiwf check --since` naming a ref.
-
-### Observed — second round, the rule reworded and then labelled
-
-Two further arms, same prompt as the no-ritual criterion above, same consumer-repo
-construction.
-
-**Reworded from a judgement into a test — no change in disposition.** The rule was
-changed from *name the parts you would drop first* to *name the goal each part
-serves; what serves none is dropped*, on the theory that a test with an external
-referent would remove where a judgement did not. The arm named a smallest version,
-returned every addition as a condition, and dropped nothing. The session cited the
-rule by name and reported that it gave "the smallest-version-first structure" — it
-took the structural half and left the test.
-
-The theory was wrong in a way worth recording. The milestone sizing rule works
-because the artefact it tests against already contains a written list of success
-criteria that can answer no. A free-text plan carries no such list, so a goal can
-be invented for anything and the test has nothing to bind to. The lever was never
-the shape of the sentence; it was whether something outside it could refuse.
-
-**Labels named — suggestive, one run, confounded.** An arm whose rule additionally
-named KISS and YAGNI framed additions as needing a goal *before they go in*,
-defaulted one item out with "skip until then", and asked whether an existing
-gateway "could replace all of the above" — across seven runs the only time any arm
-questioned the plan as a whole rather than its parts. The failure mode that argued
-against labels, invoking the terms while changing nothing, did not occur: neither
-word appears in that output. Against this: one run, its comparison arm was
-atypically terse, and the shipped rule differs from the tested variant by a
-compression that removed a clause duplicating the title and restored an imperative
-verb. The labels, the variable under test, are identical in both.
-
-**Standing across both rounds.** Six proposals carried the rule in three wordings.
-None produced an outright removal. Every one produced the split. What the rule
-delivers is the choice, stated; the deciding is the reader's.
-
-### Measured — the cost of the guidance rule
-
-A five-line rule added to the always-on fragment obligated nine files: the rule,
-the fragment's line-budget constant, six frozen host-artifact inventories, and the
-exception record their README requires. The budget moved from 169 to 173 and was
-set to the exact new size, so the next rule argues for itself rather than using
-slack. Measured in the Linux development container on 2026-09-26.
 
 ## Deferrals
 
