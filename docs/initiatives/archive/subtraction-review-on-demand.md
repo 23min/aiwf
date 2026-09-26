@@ -1,6 +1,6 @@
 ---
 title: A subtraction review on demand — does this change need everything it adds?
-status: captured
+status: realized
 date: 2026-09-25
 ---
 
@@ -8,11 +8,12 @@ date: 2026-09-25
 
 ## Classifier note
 
-This is a forward-looking initiative: a captured idea for a new skill,
-awaiting promotion to an epic. The skill would ship in the generic workflow
-plugin, beside `wf-review-code`, `wf-vacuity` and `wf-rethink`. Any repository
-could use it, with or without aiwf. The document proposes a complement to the
-existing review skills and records no defect in any of them.
+This initiative is realized: its threads are tracked entities, and what
+remains here is the design and the two trials behind them. The skill ships in
+the generic workflow plugin, beside `wf-review-code`, `wf-vacuity` and
+`wf-rethink`. Any repository can use it, with or without aiwf. The document
+proposes a complement to the existing review skills and records no defect in
+any of them.
 
 ## The idea
 
@@ -310,3 +311,6 @@ Captured 2026-09-25 from a session patching G-0110, after the hand-run trim
 described under Run 1. Extended the same day with Run 2, on M-0333, and with
 the placement of the skill among the wrap lenses and its downstream
 requirements.
+
+Realized 2026-09-26 as E-0097, which carries the skill, its wiring into the
+wrap rituals, and the questions left open here.
