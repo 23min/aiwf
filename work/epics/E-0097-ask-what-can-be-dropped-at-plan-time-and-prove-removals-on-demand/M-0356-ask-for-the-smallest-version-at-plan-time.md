@@ -112,13 +112,10 @@ is not a plan and does not trigger the rule. **Code references**: the rule in
 
 ## Design notes
 
-- **Retirement.** The sizing arm stays only while it does something nothing else
-  does. At the E-0097 wrap, send prompt 2 under `## Validation` to one repository
-  materialized from this milestone's base revision, `2721c11ec`, and one from its
-  final revision, in fresh sessions under the same host and model, and record both.
-  The two revisions differ in the sizing arm and its gate alone. If the final
-  revision no longer drops the scope item no success criterion requires, or the base
-  revision drops it too, the arm and its gate are removed.
+- **Retirement.** The sizing arm and its gate go if they stop dropping a candidate
+  no success criterion requires, or if the ritual without them drops it too. Prompt 2
+  under `## Validation` is the comparison that tells, run on one revision with and
+  without the arm.
 - D-0070 forbids pinning a phrase in shipped prose, which is why no criterion here
   asserts the presence of the text it adds.
 
