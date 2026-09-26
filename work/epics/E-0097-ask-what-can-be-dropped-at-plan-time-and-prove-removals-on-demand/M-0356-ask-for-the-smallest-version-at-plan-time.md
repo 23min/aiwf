@@ -81,16 +81,18 @@ references**: the clause lands in `internal/skills/embedded-guidance/aiwf-guidan
 
 ### AC-4 — A planning exchange invoking no ritual gates each addition on a goal
 
-A planning exchange that invokes no ritual names, for each thing its larger
-version adds, the goal that thing serves, and drops what serves none. **Pass
-criterion**: a recorded exchange in a session with the guidance installed and no
-planning skill invoked, where each addition carries the goal it serves and at
-least one that serves none is dropped rather than ranked or deferred to the
-reader; the record holds command, expectation, observation and environment,
-including the host and the installed guidance revision. **Edge cases**: a plan
-whose every part serves a stated goal, which says so rather than manufacturing a
-drop; a request for one change, which is not a plan and does not trigger the
-rule. **Code references**: the rule in
+A planning exchange that invokes no ritual arrives already split: a smallest
+version that solves the stated problem, and beyond it, additions each carrying
+the goal it must serve before it goes in. **Pass criterion**: a recorded exchange
+in a session with the guidance installed and no planning skill invoked, where the
+smallest version is distinguished from what exceeds it and each addition names
+its gating goal; the record holds command, expectation, observation and
+environment, including the host and the installed guidance revision. The
+criterion claims the split and the gate, not a removal — no arm across three
+wordings produced one, and claiming otherwise would assert what was measured
+false. **Edge cases**: a plan whose every part serves a stated goal, which says
+so rather than manufacturing an addition to gate; a request for one change, which
+is not a plan and does not trigger the rule. **Code references**: the rule in
 `internal/skills/embedded-guidance/aiwf-guidance.md`.
 
 ## Constraints
@@ -312,6 +314,40 @@ aiwf check            → 0 errors, 1 warning
 The warning is `provenance-untrailered-scope-undefined`: the branch has no
 upstream, so the provenance audit has no range to walk and declines rather than
 passing. It clears on push, or with `aiwf check --since` naming a ref.
+
+### Observed — second round, the rule reworded and then labelled
+
+Two further arms, same prompt as the no-ritual criterion above, same consumer-repo
+construction.
+
+**Reworded from a judgement into a test — no change in disposition.** The rule was
+changed from *name the parts you would drop first* to *name the goal each part
+serves; what serves none is dropped*, on the theory that a test with an external
+referent would remove where a judgement did not. The arm named a smallest version,
+returned every addition as a condition, and dropped nothing. The session cited the
+rule by name and reported that it gave "the smallest-version-first structure" — it
+took the structural half and left the test.
+
+The theory was wrong in a way worth recording. The milestone sizing rule works
+because the artefact it tests against already contains a written list of success
+criteria that can answer no. A free-text plan carries no such list, so a goal can
+be invented for anything and the test has nothing to bind to. The lever was never
+the shape of the sentence; it was whether something outside it could refuse.
+
+**Labels named — suggestive, one run, confounded.** An arm whose rule additionally
+named KISS and YAGNI framed additions as needing a goal *before they go in*,
+defaulted one item out with "skip until then", and asked whether an existing
+gateway "could replace all of the above" — across seven runs the only time any arm
+questioned the plan as a whole rather than its parts. The failure mode that argued
+against labels, invoking the terms while changing nothing, did not occur: neither
+word appears in that output. Against this: one run, its comparison arm was
+atypically terse, and the shipped rule differs from the tested variant by a
+compression that removed a clause duplicating the title and restored an imperative
+verb. The labels, the variable under test, are identical in both.
+
+**Standing across both rounds.** Six proposals carried the rule in three wordings.
+None produced an outright removal. Every one produced the split. What the rule
+delivers is the choice, stated; the deciding is the reader's.
 
 ### Measured — the cost of the guidance rule
 
