@@ -7,9 +7,10 @@ status: active
 
 Put the subtraction question at the two moments it pays: before work is proposed,
 where cutting is free, and on demand over a change or a unit, where removing what
-exists has to be proved. The planning rituals gain a step that offers the smallest
-version first; a shipped skill gains the procedure for removing what already
-landed, and the wrap rituals call it instead of restating it.
+exists has to be proved. A plan arrives split into its smallest version and what
+exceeds it, and the milestone sizing rule drops what no success criterion requires;
+a shipped skill gains the procedure for removing what already landed, and the wrap
+rituals call it instead of restating it.
 
 ## Context
 
@@ -40,10 +41,10 @@ trial got wrong and what that asks of the skill.
 
 ## Scope
 
-- The cut-list clause in the always-on guidance source, so the question reaches a
-  plan that invokes no ritual.
-- Plan-time subtraction in both planning rituals: offer the smallest version and
-  argue the delta; add the sizing arm that drops work; put the cut gate ahead of id
+- The plan rule in the always-on guidance source, so the question reaches a plan
+  that invokes no ritual.
+- Plan-time subtraction in the milestone-planning ritual: add the sizing arm that
+  drops work no success criterion requires, and put the cut gate ahead of id
   allocation, while a cut is still free.
 - A shipped, stack-neutral subtraction skill that runs on a diff or a named unit,
   settles every removal by a command, and hands its by-products to the skills that
@@ -74,8 +75,8 @@ trial got wrong and what that asks of the skill.
 
 - **A question terminates on a disposition or on a command's result, never on a
   reading.** G-0585 records why: a clearance earned by reading is worse than none,
-  because the reader holding it stops looking. The cut list is a disclosure the
-  human grades, never a verdict that a plan is minimal.
+  because the reader holding it stops looking. What the plan rule produces is a
+  disclosure the human grades, never a verdict that a plan is minimal.
 - **A removal is settled by breaking what it protected and watching something go
   red**, not by a green gate — the oracle G-0660 repaired for the compression lens,
   carried into every port of it.
@@ -90,7 +91,7 @@ trial got wrong and what that asks of the skill.
 - **Evidence is observation-class where no relationship check exists.** D-0070
   forbids pinning a phrase in shipped prose, and these deliverables are prose, so
   each records command, expectation, observation and environment instead.
-- **The cut-list clause lands in the always-on guidance source ahead of E-0092's
+- **The plan rule lands in the always-on guidance source ahead of E-0092's
   reduction, and is registered with that epic's rule inventory as already placed.**
   Its audience decides its home, by that epic's own test: offering the smallest
   version first is how to operate in any repository, not how to develop aiwf. It is
@@ -125,6 +126,7 @@ trial got wrong and what that asks of the skill.
 - [ ] The patch ritual asks the shape questions, with the skip threshold stated
       where a reader meets it.
 - [ ] Every obligation this epic adds names what retires it.
+- [ ] Each retirement check a milestone names has been run, and its result acted on.
 - [ ] G-0662 is addressed.
 
 ## Open questions
@@ -142,12 +144,11 @@ trial got wrong and what that asks of the skill.
 | The cut list becomes theatre — a list padded with candidates never intended to be built | high | Candidates are drawn from the drafted proposal, so a reader sees whether the list names what is on the page |
 | The model grades its own plan | high | The list is a disposition presented to the human, who decides; no clearance vocabulary (G-0585) |
 | The skill becomes a mandate on every change and outgrows what it saves | high | A stated threshold and a named retirement trigger, both read at review as the epic's own test |
-| A guidance edit confounds E-0092's before-and-after comparison | med | The window question above is settled before the clause is written |
-| The planning step ratifies rather than challenges, as the spell-back it replaces did | med | The smallest version is the proposal and the delta carries the argument, so silence produces the smaller plan |
+| A guidance edit confounds E-0092's before-and-after comparison | med | The rule lands ahead of that epic's baseline, so it sits on both sides of the comparison and confounds nothing it measures |
 
 ## Milestones
 
-- `M-0356` — the cut-list clause and the step in both planning rituals · depends on: —
+- `M-0356` — the always-on plan rule, and the milestone sizing arm with its pre-allocation gate · depends on: —
 - `M-0357` — the on-demand subtraction skill · depends on: —
 - `M-0358` — the wrap and patch-ritual wiring · depends on: `M-0357`
 
