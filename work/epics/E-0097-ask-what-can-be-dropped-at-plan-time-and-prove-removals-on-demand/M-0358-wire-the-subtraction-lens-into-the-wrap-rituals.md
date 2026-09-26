@@ -10,6 +10,9 @@ acs:
     - id: AC-1
       title: The skill answers the four shape questions and the wrap asks only the obligation
       status: open
+    - id: AC-2
+      title: The patch ritual runs the lens above its threshold and states the skip below it
+      status: open
 ---
 
 ## Goal
@@ -17,4 +20,6 @@ acs:
 ## Acceptance criteria
 
 ### AC-1 — The skill answers the four shape questions and the wrap asks only the obligation
+
+### AC-2 — The patch ritual runs the lens above its threshold and states the skip below it
 
