@@ -117,7 +117,6 @@ trial got wrong and what that asks of the skill.
 - [ ] The patch ritual asks the shape questions, with the skip threshold stated
       where a reader meets it.
 - [ ] Every obligation this epic adds names what retires it.
-- [ ] Each retirement check a milestone names has been run, and its result acted on.
 - [ ] G-0662 is addressed.
 
 ## Open questions
