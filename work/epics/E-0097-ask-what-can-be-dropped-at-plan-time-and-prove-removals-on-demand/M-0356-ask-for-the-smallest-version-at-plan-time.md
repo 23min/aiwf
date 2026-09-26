@@ -300,4 +300,10 @@ passing. It clears on push, or with `aiwf check --since` naming a ref.
 
 ## Reviewer notes
 
-- (none)
+- **Declined: removing the scope-adjustment clause from `aiwfx-plan-milestones`
+  step 9.** The pre-allocation gate cannot reach a scope problem found while the
+  milestone bodies are written, which happens after allocation; the clause is the
+  only place that asks. The gate's own ordering was not observed, so the case for
+  removing the later check rests on an assumption rather than a demonstration.
+- **Resolved by the rule's rewording:** the sentence the guidance fragment and the
+  milestone-planning ritual shared byte for byte no longer appears in the fragment.
