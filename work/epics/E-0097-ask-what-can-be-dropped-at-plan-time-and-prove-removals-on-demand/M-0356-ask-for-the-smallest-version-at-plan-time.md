@@ -206,6 +206,54 @@ drop is justified on grounds other than no criterion requiring it, which would
 leave the new sizing arm unexercised. Each is reported as observed rather than
 reconciled.
 
+### Observed
+
+Five runs, one per arm per prompt, each a live session started in that arm's
+repository and sent the prompt text above unchanged. Every session was asked
+afterwards which files it had read; the attributions below rest on those answers.
+
+**The criterion covering a plan with no ritual — met.** Neither arm invoked a
+skill, so the criterion's precondition holds. The released arm returned three
+milestones, decisions to record, metrics, a shadow rollout and a published
+contract, with no cut list anywhere. The candidate arm returned a smallest
+version, what the larger one adds with a reason each, and an ordered cut list
+that also named what could not be cut and why. It attributed that to the rule by
+name: *"'A plan arrives with its cut list' gave the smallest version, the larger
+additions and the cut-first order."*
+
+**The criterion covering milestone decomposition — met.** Both arms read the
+decomposition ritual, so exposure was symmetric and only its text differed. The
+released arm kept, split or folded every scope item and dropped none, folding the
+unserved guide into a sibling. It identified the condition itself — *"The written
+guide has no success criterion. Neither criterion would fail if the guide never
+shipped"* — and could offer only to add a criterion or accept the deliverable
+unchecked. The candidate arm dropped it: *"no success criterion requires it, so by
+the planning rule it goes."* Both arms detected the surplus; only one had a
+disposition that removed it.
+
+**The criterion covering the epic-planning step — cancelled, its claim
+disconfirmed.** A third arm was materialized carrying the always-on rule but not
+the step, differing from the candidate in that alone. It opened the planning
+ritual, found no step there, and produced the same shape the candidate did,
+attributing it to the rule. The ordering the step alone specifies — the smallest
+version ahead of the body — appeared in neither arm. The step was removed rather
+than left unevidenced.
+
+**What the arms did not show.** The rule produces a cut list reliably; it produced
+a cut once in four. Two arms carrying it named a cheapest cut and then kept it, and
+one returned a conditional for the reader to settle. The single unconditional
+removal came from the decomposition ritual's sizing arm, which tests an item
+against the epic's success criteria, rather than from the rule, which asks a
+drafter to judge its own draft. On this evidence a rule carrying a test removes
+work, and a rule asking for a judgement produces the list and stops.
+
+**Limits.** One run per arm, five in total, none repeated, so the spread is
+unknown. The pattern is consistent across every run and matches the operating
+experience that prompted this work, but five runs is a signal rather than a
+measurement. The released arm never opened the epic-planning ritual, which is why
+the original two-arm design could not have attributed anything to that step, and
+why a third arm was needed.
+
 ### Measured — the cost of the guidance rule
 
 A five-line rule added to the always-on fragment obligated nine files: the rule,
