@@ -1,0 +1,22 @@
+---
+id: G-0722
+title: No observation shows aiwf upgrade adopting guidance in a real consumer repo
+status: open
+discovered_in: M-0353
+---
+## What's missing
+
+E-0095's first success criterion, and M-0353/AC-2 (deferred), claim that `aiwf upgrade` run unattended in a real consumer repository adopts, installs, routes and reports its applicable guidance. Only a hermetic stand-in backs that claim: `TestBinary_UnattendedUpgradeAdoptsGuidance` in `internal/cli/integration/upgrade_cmd_test.go`. It replaces the module proxy with a fake `go` installer and the published catalogue at `https://github.com/23min/engineering-guidance.git` with a one-pack local catalogue, and it runs with no ai-dotfiles installation. The observation M-0353/AC-2 specifies has not been made.
+
+M-0353 requires the observation to run against the released binary for the epic, and no release contains E-0095. Measured in the E-0095 epic worktree, where `bb0f480be` is the first commit on the epic branch that is not on `main`:
+
+```
+$ git merge-base --is-ancestor bb0f480be v0.38.0; echo $?
+1
+$ git tag --contains bb0f480be
+$
+```
+
+## Why it matters
+
+The failure that motivated E-0095 came from the conditions the hermetic test leaves out: the published catalogue's real pack set and detection patterns, and the handover between aiwf-installed guidance and an ai-dotfiles installation. Until the observation is made against the first release that contains E-0095, that release can ship with upgrade adopting nothing in such a repository, or blocked on a handover whose reported fix does not clear it, and nobody has looked.
