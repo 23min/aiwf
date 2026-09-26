@@ -23,9 +23,10 @@ import (
 // inspection of a model's context. A reference is a markdown link, in any
 // CommonMark form, or an `@` import in prose; a path named any other way —
 // in backticks, or in a sentence — is not one, and a "read X in full"
-// written that way is outside the model. Claude Code loads an import on
-// its own, so for Claude an import is a required read without further
-// declaration; Codex reads the line as text and follows nothing. A
+// written that way is outside the model. Claude Code expands an import in
+// its memory — its entry point and the files that imports, recursively — so
+// there an import is a required read without further declaration; anywhere
+// else, and for Codex, the line is text. A
 // link from a host entry point's handwritten text must be classified in
 // guidanceReadTable as a required or a conditional read, and one the table
 // does not classify is reported rather than silently counted as either. A
@@ -147,10 +148,14 @@ func measureGuidanceLoad(read func(string) (string, bool), entry string, table m
 	if !ok {
 		return load, []Violation{{Policy: "guidance-ceiling", File: entry, Detail: "the host's entry point is missing, so its primed load cannot be measured."}}
 	}
-	load.Generated = generatedWords(read, entryContent)
+	// Claude Code expands an import only in its memory: its entry point and
+	// the files that imports, recursively.
+	memory := map[string]bool{}
+	if entry == fenceClaudeMD {
+		memory[entry] = true
+	}
+	load.Generated = generatedWords(read, entryContent, memory[entry])
 
-	// Claude Code loads an import on its own; Codex reads the line as text.
-	imports := entry == fenceClaudeMD
 	seen := map[string]bool{entry: true}
 	queue := []string{entry}
 	follow := func(doc, to string, kind readKind) {
@@ -176,13 +181,14 @@ func measureGuidanceLoad(read func(string) (string, bool), entry string, table m
 			}
 		}
 	}
-	// For Claude an import is a required read, since the host loads it
-	// without being told to; it is a filesystem path, so one under the home
-	// directory or absolute is personal or global material and is left out.
-	// A link is classified by the table.
+	// In Claude's memory an import is a required read, since the host loads
+	// it without being told to; it is a filesystem path, so one under the
+	// home directory or absolute is personal or global material and is left
+	// out. A link is classified by the table.
 	followText := func(doc, text string) {
 		for _, target := range markdownImports(text) {
-			if p, ok := resolveReference(doc, target); ok && imports && !strings.HasPrefix(target, "~") && !strings.HasPrefix(target, "/") {
+			if p, ok := resolveReference(doc, target); ok && memory[doc] && !strings.HasPrefix(target, "~") && !strings.HasPrefix(target, "/") {
+				memory[p] = true
 				follow(doc, p, readRequired)
 			}
 		}
@@ -203,7 +209,7 @@ func measureGuidanceLoad(read func(string) (string, bool), entry string, table m
 			text = handwrittenText(text)
 		}
 		counted := text
-		if imports {
+		if memory[doc] {
 			counted = withoutImports(text)
 		}
 		load.Handwritten += len(strings.Fields(counted))
@@ -238,13 +244,18 @@ func withoutImports(text string) string {
 }
 
 // generatedWords counts the words inside a host entry point's managed
-// blocks, expanding the imports they carry: the Claude block holds only
-// an import of the materialized fragment, the Codex block the fragment
-// itself.
-func generatedWords(read func(string) (string, bool), content string) int {
+// blocks. Where the host expands imports, an import counts as the file it
+// loads: the Claude block holds only an import of the materialized
+// fragment. The Codex block holds the fragment itself, and an `@` line
+// there is text.
+func generatedWords(read func(string) (string, bool), content string, imports bool) int {
 	n := 0
 	for _, markers := range managedBlockMarkers {
 		block := blockText(content, markers)
+		if !imports {
+			n += len(strings.Fields(block))
+			continue
+		}
 		n += len(strings.Fields(withoutImports(block)))
 		for _, target := range markdownImports(block) {
 			imported, _ := read(target)

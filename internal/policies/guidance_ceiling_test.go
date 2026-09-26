@@ -428,3 +428,57 @@ func TestMeasureGuidanceLoad_OnlyEntryPointsHaveManagedBlocks(t *testing.T) {
 		t.Errorf("handwritten = %d, want %d: the router's marker text is its own", load.Handwritten, want)
 	}
 }
+
+// TestMeasureGuidanceLoad_ImportsExpandOnlyInClaudeMemory pins where an
+// import is followed: in Claude Code's memory, which is its entry point and
+// the files that imports, recursively. An import in any other primed
+// document, or in Codex's managed block, is text.
+func TestMeasureGuidanceLoad_ImportsExpandOnlyInClaudeMemory(t *testing.T) {
+	t.Parallel()
+	gStart, gEnd, _ := initrepo.GuidanceMarkers()
+	rStart, rEnd, _ := projectguidance.RouteMarkers()
+	tests := []struct {
+		name                   string
+		entry                  string
+		files                  map[string]string
+		table                  map[guidanceRef]readKind
+		handwritten, generated int
+	}{
+		{
+			name:        "an import in an imported file is followed",
+			entry:       "CLAUDE.md",
+			files:       map[string]string{"CLAUDE.md": "@a.md\n", "a.md": "@b.md\n", "b.md": words(4)},
+			handwritten: 4,
+		},
+		{
+			name:  "an import in the router is text",
+			entry: "CLAUDE.md",
+			files: map[string]string{
+				"CLAUDE.md":            rStart + "\n[p](.guidance/project.md)\n" + rEnd + "\n",
+				".guidance/project.md": "@big.md\n",
+				".guidance/big.md":     words(100),
+			},
+			table:       map[guidanceRef]readKind{{From: "CLAUDE.md", To: ".guidance/project.md"}: readRequired},
+			handwritten: 1,
+			generated:   1,
+		},
+		{
+			name:      "an import in Codex's managed block is text",
+			entry:     "AGENTS.md",
+			files:     map[string]string{"AGENTS.md": gStart + "\n@big.md\n" + gEnd + "\n", "big.md": words(100)},
+			generated: 1,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+			load, vs := measureGuidanceLoad(ceilingReader(tt.files), tt.entry, tt.table)
+			if len(vs) != 0 {
+				t.Fatalf("violations: %+v", vs)
+			}
+			if load.Handwritten != tt.handwritten || load.Generated != tt.generated {
+				t.Errorf("load = %+v, want %d handwritten and %d generated", load, tt.handwritten, tt.generated)
+			}
+		})
+	}
+}
