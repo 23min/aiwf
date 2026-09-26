@@ -84,6 +84,7 @@ Guidance outcomes surface today as one step-ledger line whose wording ("no proje
 ## Out of scope
 
 - `--format=json` output for `update`.
+- A guidance section for `aiwf init --dry-run`, which changes nothing.
 - Changing what `aiwf doctor` checks, beyond the per-pack not-installed warning M-0352/AC-3 requires.
 
 ## Dependencies
@@ -98,9 +99,9 @@ Guidance outcomes surface today as one step-ledger line whose wording ("no proje
 
 ## Release note
 
-- `aiwf init`, `aiwf update` and `aiwf upgrade` now end with a `Guidance:` section, including runs that stop on a hook-chain collision; a dry run prints none. It lists the selection (or that it is unset or explicitly empty), the packs adopted and recorded in this run, the installed packs with their source commit (or that they are unknown when the installed index is not intact), and the ignored packs. When they apply it adds that maintenance is disabled, a `pending:` line for an interrupted installation, a `blocked:` line naming why installation did not complete and, where the installer names one, the action that clears it, and a `missing:` line with its fix for each selected pack the installed index does not list. A blocked installation leaves the exit status and the other steps unchanged.
-- `aiwf doctor` warns about each selected guidance pack an intact installed index does not list, and words the selection, disabled maintenance, a pending installation and missing packs as the report does.
-- Guidance refusals for an unreadable source catalogue or pack document, a source with no commit, and unreadable personal-instruction paths now name the action that clears them.
+- `aiwf init`, `aiwf update` and `aiwf upgrade` now end with a `Guidance:` section, including runs that stop on a hook-chain collision or a later error; `aiwf init --dry-run` prints none. It lists the selection (or that it is unset or explicitly empty), the packs adopted and recorded in this run, the installed packs with their source commit (or that they are unknown when the installed index is not intact), and the ignored packs. When they apply it adds that maintenance is disabled, a `pending:` line for an interrupted installation, a `blocked:` line naming why guidance was not fully installed and recorded and, where the installer names one, the action that clears it, and, while maintenance is enabled, a `missing:` line with its fix for each selected pack the installed index does not list. A blocked installation leaves the exit status and the other steps unchanged.
+- While guidance maintenance is enabled, `aiwf doctor` warns about each selected guidance pack an intact installed index does not list, and it words the selection, disabled maintenance, a pending installation and missing packs as the report does.
+- Guidance refusals for an unreadable source catalogue or pack document, a source with no commit, and unreadable personal-instruction paths now name the action that clears them. A regular file on `PATH`, or at `CODEX_HOME` or `CLAUDE_CONFIG_DIR`, no longer blocks guidance as a suspected legacy delivery.
 
 ## Decisions made during implementation
 
@@ -108,7 +109,7 @@ Guidance outcomes surface today as one step-ledger line whose wording ("no proje
 
 ## Validation
 
-`make ci` at `055655827` on the M-0352 milestone branch, in the Linux devcontainer: exit 0. golangci-lint `0 issues.`; `go test -race` passed; total statement coverage `91.9%`; the diff-scoped coverage gate and policy suite passed; `./bin/aiwf doctor --self-check` reported `self-check passed (29 steps).`; `aiwf check` reported `0 errors, 10 warnings`, none on M-0352.
+`make ci` at `470361db0` on the M-0352 milestone branch, in the Linux devcontainer: exit 0. golangci-lint `0 issues.`; `go test -race` passed; total statement coverage `91.9%`; the diff-scoped coverage gate and policy suite passed; `./bin/aiwf doctor --self-check` reported `self-check passed (29 steps).`; `aiwf check` reported `0 errors, 10 warnings`, none on M-0352.
 
 ## Deferrals
 
@@ -116,4 +117,9 @@ Guidance outcomes surface today as one step-ledger line whose wording ("no proje
 
 ## Reviewer notes
 
-- (none)
+- The `missing:` line uses the wording `aiwf doctor` prints, which names both remedies (drop or ignore a pack the catalogue no longer lists, otherwise rerun update) because doctor cannot tell those cases apart offline; the report keeps it so both verbs agree, although the update run knows which case applies.
+- The step ledger keeps the full blocker in its detail alongside the report's `blocked:` line; existing ledger consumers and tests read it there.
+- A blocked adopting run names a pack the catalogue no longer lists only in the step ledger; the section's `missing:` line is derived from the installed index, which a blocked run leaves as it was.
+- `aiwf upgrade --help` describes the section the re-executed update prints, which is the target release's behaviour.
+- `TestBinary_UpgradeOutputEndsWithTheGuidanceSection` is the evidence M-0352/AC-5 names, though other tests also catch every mutant it catches.
+- Not addressed here: a `pending:` line shown while maintenance is disabled advises a rerun that cannot clear it, and with nothing installed doctor prints `installed revision: unknown (no intact owned index)` where the report prints `installed: none`; both wordings predate this milestone.
