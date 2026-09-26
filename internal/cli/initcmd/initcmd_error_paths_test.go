@@ -4,6 +4,8 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"slices"
+	"strings"
 	"testing"
 
 	"github.com/23min/aiwf/internal/cli/cliutil"
@@ -77,13 +79,26 @@ func TestRun_StatuslineDryRun(t *testing.T) {
 }
 
 // TestRun_StatuslineFailureSetsExitCode pins that a failed statusline
-// scaffold is init's exit code even though the guidance report still ends the
-// run. An unknown scope fails before anything is written.
+// scaffold is init's exit code while the guidance report still ends the run.
+// An unknown scope fails before anything is written, and disabled guidance
+// maintenance keeps the run away from personal configuration.
+//
+// Serial: captures process stdout.
 func TestRun_StatuslineFailureSetsExitCode(t *testing.T) {
-	t.Parallel()
 	root := freshGitRepo(t)
-	rc := initcmd.Run(root, "", false, true, true, "no-such-scope", false, true, true, nil, nil)
+	if err := os.WriteFile(filepath.Join(root, "aiwf.yaml"), []byte("guidance:\n  enabled: false\n"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	rc := cliutil.ExitOK
+	output := string(testutil.CaptureStdout(t, func() {
+		rc = initcmd.Run(root, "", false, true, true, "no-such-scope", false, true, true, nil, nil)
+	}))
 	if rc != cliutil.ExitUsage {
 		t.Errorf("rc = %d, want ExitUsage", rc)
+	}
+	lines := strings.Split(strings.TrimRight(output, "\n"), "\n")
+	heading := slices.Index(lines, "Guidance:")
+	if heading < 0 || !strings.HasPrefix(lines[len(lines)-1], "  ") || slices.ContainsFunc(lines[heading+1:], func(line string) bool { return !strings.HasPrefix(line, "  ") }) {
+		t.Errorf("output does not end with the guidance section:\n%s", output)
 	}
 }

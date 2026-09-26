@@ -307,6 +307,11 @@ func TestRun_GuidanceReportNamesBlockerAndFix(t *testing.T) {
 					t.Fatal(err)
 				}
 				section := guidanceSection(t, guidanceUpdate(t, root))
+				for _, line := range section {
+					if !strings.HasPrefix(line, "  ") {
+						t.Fatalf("section line %q is not one of the report's labelled lines:\n%s", line, strings.Join(section, "\n"))
+					}
+				}
 				if !slices.Contains(section, installed) {
 					t.Fatalf("installed set not reported as %q:\n%s", installed, strings.Join(section, "\n"))
 				}

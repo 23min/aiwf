@@ -21,12 +21,12 @@ func appendProjectGuidanceReport(lines []string, problems []Problem, root string
 	}
 	report, err := projectguidance.Inspect(context.Background(), root)
 	if err != nil {
-		message := "cannot inspect installed policy: " + err.Error()
+		message := projectguidance.InspectErrorState(err)
 		return append(lines, prefix+message), append(problems, Problem{Path: ".guidance", Severity: SeverityWarn, Message: message})
 	}
 	revision := report.Revision
 	if revision == "" {
-		revision = "unknown (no intact owned index)"
+		revision = projectguidance.UnknownRevision
 	}
 	lines = append(lines, prefix+"installed revision: "+revision+"; upstream freshness not checked")
 	for _, file := range report.Files {
@@ -35,7 +35,7 @@ func appendProjectGuidanceReport(lines []string, problems []Problem, root string
 	if report.Pending {
 		report.Issues = append(report.Issues, projectguidance.Issue{Path: ".guidance/.aiwf-pending", Detail: projectguidance.PendingState})
 	}
-	for _, state := range projectguidance.NotInstalledStates(packs, cfg.GuidanceEnabled(), report.Packs) {
+	for _, state := range projectguidance.NotInstalledStates(packs, cfg.GuidanceEnabled(), report) {
 		report.Issues = append(report.Issues, projectguidance.Issue{Path: "guidance.packs", Detail: state})
 	}
 	if cfg != nil && cfg.Guidance.Packs != nil && cfg.GuidanceEnabled() && !slices.Contains(report.Files, ".guidance/index.md") {

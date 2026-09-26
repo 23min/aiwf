@@ -1,7 +1,10 @@
 package update_test
 
 import (
+	"os"
 	"os/exec"
+	"path/filepath"
+	"slices"
 	"strings"
 	"testing"
 
@@ -116,8 +119,36 @@ func TestBinary_UpdateReportsSelectedPacksTheCatalogueNoLongerHas(t *testing.T) 
 	guidanceWrite(t, root, config.FileName, "hosts: [claude-code]\nguidance:\n  source: "+source+"\n  packs: [sample/base, gone/pack]\n")
 	guidanceWrite(t, root, "source.xyz", "project source")
 	got := guidanceSection(t, runUpdateBinary(t, root))
-	want := "  missing:   " + projectguidance.NotInstalledStates(&[]string{"gone/pack"}, true, nil)[0]
+	want := "  missing:   " + projectguidance.NotInstalledStates(&[]string{"gone/pack"}, true, projectguidance.Inspection{IndexIntact: true})[0]
 	if !cmp.Equal(got[len(got)-1], want) {
 		t.Fatalf("last guidance line = %q, want %q\n%s", got[len(got)-1], want, strings.Join(got, "\n"))
+	}
+}
+
+// TestBinary_EditedIndexLeavesTheInstalledSetUnknown edits the installed index
+// between runs: its packs cannot be read, so the report must not call them
+// uninstalled or missing.
+func TestBinary_EditedIndexLeavesTheInstalledSetUnknown(t *testing.T) {
+	t.Parallel()
+	root, source := t.TempDir(), adoptionSource(t, "*.xyz", "*.abc")
+	if err := gitops.Init(t.Context(), root); err != nil {
+		t.Fatal(err)
+	}
+	guidanceWrite(t, root, config.FileName, "hosts: [codex]\nguidance:\n  source: "+source+"\n  packs: [sample/base]\n")
+	runUpdateBinary(t, root)
+	index := filepath.Join(root, ".guidance", "index.md")
+	content, err := os.ReadFile(index)
+	if err != nil {
+		t.Fatal(err)
+	}
+	guidanceWrite(t, root, ".guidance/index.md", string(content)+"local edit\n")
+	section := guidanceSection(t, runUpdateBinary(t, root))
+	if !slices.Contains(section, "  installed: "+projectguidance.UnknownRevision) {
+		t.Fatalf("edited index not reported as unknown:\n%s", strings.Join(section, "\n"))
+	}
+	for _, line := range section {
+		if strings.HasPrefix(line, "  missing:") {
+			t.Fatalf("edited index reported a pack as missing:\n%s", strings.Join(section, "\n"))
+		}
 	}
 }

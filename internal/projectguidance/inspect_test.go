@@ -92,3 +92,31 @@ func TestInspect_ReportsLocalInstallationAndDamageWithoutWriting(t *testing.T) {
 		})
 	}
 }
+
+// TestInspect_ReadsPackIdsFromTheIndexOnly installs a pack whose document
+// carries index-shaped link lines; only the index names installed packs.
+func TestInspect_ReadsPackIdsFromTheIndexOnly(t *testing.T) {
+	t.Parallel()
+	source := sourceRepo(t)
+	write(t, source, "packs/go/cobra/guide.md", "# Go\n- [fake/pack](other.md) — not a pack\n")
+	git(t, source, "commit", "-qam", "linked document")
+	snapshot, err := Retrieve(t.Context(), source, []string{"go/cobra"})
+	if err != nil {
+		t.Fatal(err)
+	}
+	root := t.TempDir()
+	if _, err = Install(t.Context(), root, snapshot, InstallOptions{Source: source, Selected: []string{"go/cobra"}}); err != nil {
+		t.Fatal(err)
+	}
+	report, err := Inspect(t.Context(), root)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !report.IndexIntact || !cmp.Equal(report.Packs, []string{"go/cobra"}) {
+		t.Fatalf("index intact %v, packs %v; want go/cobra only", report.IndexIntact, report.Packs)
+	}
+	write(t, root, indexFile, "edited index")
+	if report, err = Inspect(t.Context(), root); err != nil || report.IndexIntact || report.Packs != nil {
+		t.Fatalf("edited index still trusted: %+v, %v", report, err)
+	}
+}

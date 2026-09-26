@@ -1,6 +1,7 @@
 package integration
 
 import (
+	"errors"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -9,6 +10,7 @@ import (
 
 	"github.com/google/go-cmp/cmp"
 
+	"github.com/23min/aiwf/internal/cli/cliutil"
 	"github.com/23min/aiwf/internal/cli/cliutil/testutil"
 	"github.com/23min/aiwf/internal/config"
 	"github.com/23min/aiwf/internal/gitops"
@@ -84,5 +86,63 @@ func TestBinary_UpgradeOutputEndsWithTheGuidanceSection(t *testing.T) {
 	section := trailingGuidanceSection(t, output)
 	if !cmp.Equal(section[1:3], []string{"  selected:  sample/base", "  adopted:   sample/base"}) {
 		t.Fatalf("upgrade output did not report the adoption:\n%s", strings.Join(section, "\n"))
+	}
+}
+
+// TestBinary_HookCollisionStillEndsWithTheGuidanceSection runs init and update
+// where the pre-push hook cannot be migrated: the run exits with findings, but
+// guidance has already been adopted and recorded, so the section still ends it.
+func TestBinary_HookCollisionStillEndsWithTheGuidanceSection(t *testing.T) {
+	t.Parallel()
+	source := testsupport.GuidanceSource(t, "*.xyz")
+	for _, verb := range []string{"init", "update"} {
+		t.Run(verb, func(t *testing.T) {
+			t.Parallel()
+			root := t.TempDir()
+			if err := gitops.Init(t.Context(), root); err != nil {
+				t.Fatal(err)
+			}
+			files := map[string]string{
+				config.FileName:             "hosts: [codex]\nguidance:\n  source: " + source + "\n",
+				"source.xyz":                "project source",
+				".git/hooks/pre-push":       "#!/bin/sh\nexit 0\n",
+				".git/hooks/pre-push.local": "#!/bin/sh\nexit 0\n",
+			}
+			for name, content := range files {
+				if err := os.WriteFile(filepath.Join(root, filepath.FromSlash(name)), []byte(content), 0o644); err != nil {
+					t.Fatal(err)
+				}
+			}
+			args := []string{verb, "--root", root}
+			if verb == "init" {
+				args = append(args, "--actor", "human/test")
+			}
+			cmd := exec.CommandContext(t.Context(), testutil.AiwfBinary(t), args...)
+			cmd.Env = append(os.Environ(), testsupport.GuidanceEnvironment(t)...)
+			output, err := cmd.CombinedOutput()
+			var exited *exec.ExitError
+			if !errors.As(err, &exited) || exited.ExitCode() != cliutil.ExitFindings {
+				t.Fatalf("%s: want exit %d for a hook collision, got %v\n%s", verb, cliutil.ExitFindings, err, output)
+			}
+			section := trailingGuidanceSection(t, string(output))
+			if !cmp.Equal(section[1:3], []string{"  selected:  sample/base", "  adopted:   sample/base"}) {
+				t.Fatalf("hook collision hid the adoption:\n%s", output)
+			}
+		})
+	}
+}
+
+// TestBinary_GuidanceReportHelpReachesInitAndUpdate pins that the verbs which
+// print the section describe it in their help.
+func TestBinary_GuidanceReportHelpReachesInitAndUpdate(t *testing.T) {
+	t.Parallel()
+	for _, verb := range []string{"init", "update"} {
+		output, err := exec.CommandContext(t.Context(), testutil.AiwfBinary(t), verb, "--help").CombinedOutput()
+		if err != nil {
+			t.Fatalf("%s --help: %v", verb, err)
+		}
+		if !strings.Contains(string(output), cliutil.GuidanceReportHelp) {
+			t.Errorf("%s --help does not describe the guidance section", verb)
+		}
 	}
 }

@@ -22,14 +22,13 @@ type GuidanceOutcome struct {
 	// Adopted lists the packs this run added to the recorded selection.
 	Adopted []string
 	Ignored []string
-	// Installed and Commit describe the installed index after the run.
-	Installed []string
-	Commit    string
-	// Pending reports an installation left incomplete.
-	Pending bool
-	// Blocker names why installation did not complete and how to clear it.
+	// Blocker names why installation did not complete and, where the
+	// installer names one, the action that clears it.
 	Blocker string
-	// InspectError is set when the installed guidance cannot be read.
+	// Installed is the installed guidance read after the run; it is valid only
+	// when InspectError is empty.
+	Installed projectguidance.Inspection
+	// InspectError words installed guidance that cannot be read.
 	InspectError string
 }
 
@@ -43,15 +42,18 @@ func projectGuidance(ctx context.Context, root string, cfg *config.Config, selec
 	}
 	inspection, err := projectguidance.Inspect(ctx, root)
 	if err != nil {
-		outcome.InspectError = err.Error()
+		outcome.InspectError = projectguidance.InspectErrorState(err)
 		return step, outcome
 	}
-	outcome.Installed, outcome.Commit, outcome.Pending = inspection.Packs, inspection.Revision, inspection.Pending
+	outcome.Installed = inspection
 	return step, outcome
 }
 
 func ensureProjectGuidance(ctx context.Context, root string, cfg *config.Config, selection config.HostSelection, opts RefreshOptions) (*StepResult, *GuidanceOutcome) {
-	if cfg == nil || opts.DryRun || (cfg.Guidance.Packs == nil && !opts.AdoptGuidance) {
+	if cfg == nil || (cfg.Guidance.Packs == nil && !opts.AdoptGuidance) {
+		return nil, nil
+	}
+	if opts.DryRun {
 		return dryRunGuidance(cfg, opts), nil
 	}
 	outcome := &GuidanceOutcome{Selection: cfg.Guidance.Packs, Ignored: cfg.Guidance.Ignored, Disabled: !cfg.GuidanceEnabled()}
@@ -152,10 +154,10 @@ func ensureProjectGuidance(ctx context.Context, root string, cfg *config.Config,
 	return step, outcome
 }
 
-// dryRunGuidance previews the guidance step; it returns nil when the run
-// has nothing to preview.
+// dryRunGuidance previews the guidance step; disabled maintenance has
+// nothing to preview.
 func dryRunGuidance(cfg *config.Config, opts RefreshOptions) *StepResult {
-	if !opts.DryRun || cfg == nil || !cfg.GuidanceEnabled() || (cfg.Guidance.Packs == nil && !opts.AdoptGuidance) {
+	if !cfg.GuidanceEnabled() {
 		return nil
 	}
 	step := &StepResult{What: ".guidance (project engineering guidance)", Action: ActionSkipped}

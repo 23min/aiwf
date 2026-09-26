@@ -267,9 +267,13 @@ func TestProjectGuidanceAdoption_RecordsSelectionOnlyWithInstallation(t *testing
 				t.Cleanup(func() { _ = os.Chmod(root, 0o755) })
 			}
 			cfg := &config.Config{Guidance: config.Guidance{Source: source}}
-			step, _ := ensureProjectGuidance(t.Context(), root, cfg, config.HostSelection{}, RefreshOptions{AdoptGuidance: true})
-			if step == nil {
-				t.Fatal("adoption produced no step")
+			step, outcome := ensureProjectGuidance(t.Context(), root, cfg, config.HostSelection{}, RefreshOptions{AdoptGuidance: true})
+			if step == nil || outcome == nil {
+				t.Fatal("adoption produced no step or outcome")
+			}
+			// A pack counts as adopted only once aiwf.yaml records it.
+			if (kind == "adopts") != (outcome.Adopted != nil) {
+				t.Fatalf("adopted %v for %s", outcome.Adopted, kind)
 			}
 			raw, readErr := os.ReadFile(path)
 			_, installErr := os.Stat(filepath.Join(root, ".guidance", "packs", "sample", "base", "guide.md"))
@@ -387,20 +391,34 @@ func TestProjectGuidance_ReportsOutcome(t *testing.T) {
 			t.Fatalf("outcome for a run that did not consider guidance: %+v", outcome)
 		}
 	})
-	t.Run("adoption records the added packs and the installed index", func(t *testing.T) {
+	t.Run("adoption reports only this run's additions and the installed index", func(t *testing.T) {
 		root, source := freshGitRepo(t), testsupport.GuidanceSource(t, "*.xyz")
-		if err := os.WriteFile(filepath.Join(root, config.FileName), []byte("hosts: []\nguidance:\n  source: "+source+"\n"), 0o644); err != nil {
+		// The existing selection names a pack the catalogue lacks, so it is
+		// kept but neither adopted now nor installed.
+		if err := os.WriteFile(filepath.Join(root, config.FileName), []byte("hosts: []\nguidance:\n  source: "+source+"\n  packs: [gone/pack]\n"), 0o644); err != nil {
 			t.Fatal(err)
 		}
 		if err := os.WriteFile(filepath.Join(root, "source.xyz"), []byte("source"), 0o644); err != nil {
 			t.Fatal(err)
 		}
-		cfg := &config.Config{Guidance: config.Guidance{Source: source, Ignored: []string{"other/pack"}}}
+		cfg := &config.Config{Guidance: config.Guidance{Source: source, Packs: &[]string{"gone/pack"}, Ignored: []string{"other/pack"}}}
 		_, outcome := projectGuidance(t.Context(), root, cfg, config.HostSelection{}, RefreshOptions{AdoptGuidance: true})
 		want := []string{"sample/base"}
-		if outcome == nil || outcome.Selection == nil || !slices.Equal(*outcome.Selection, want) || !slices.Equal(outcome.Adopted, want) ||
-			!slices.Equal(outcome.Installed, want) || outcome.Commit == "" || !slices.Equal(outcome.Ignored, []string{"other/pack"}) {
+		if outcome == nil || outcome.Selection == nil || !slices.Equal(*outcome.Selection, []string{"gone/pack", "sample/base"}) || !slices.Equal(outcome.Adopted, want) ||
+			!slices.Equal(outcome.Installed.Packs, want) || outcome.Installed.Revision == "" || !slices.Equal(outcome.Ignored, []string{"other/pack"}) {
 			t.Fatalf("outcome = %+v", outcome)
+		}
+	})
+	t.Run("a dry run reports nothing and previews nothing when maintenance is disabled", func(t *testing.T) {
+		root := freshGitRepo(t)
+		step, outcome := projectGuidance(t.Context(), root, &config.Config{}, config.HostSelection{}, RefreshOptions{AdoptGuidance: true, DryRun: true})
+		if step == nil || outcome != nil {
+			t.Fatalf("enabled dry run: step %+v, outcome %+v", step, outcome)
+		}
+		disabled := false
+		step, outcome = projectGuidance(t.Context(), root, &config.Config{Guidance: config.Guidance{Enabled: &disabled}}, config.HostSelection{}, RefreshOptions{AdoptGuidance: true, DryRun: true})
+		if step != nil || outcome != nil {
+			t.Fatalf("disabled dry run: step %+v, outcome %+v", step, outcome)
 		}
 	})
 	t.Run("disabled maintenance reports without changing anything", func(t *testing.T) {
@@ -415,6 +433,21 @@ func TestProjectGuidance_ReportsOutcome(t *testing.T) {
 			t.Fatalf("disabled run wrote guidance: %v", err)
 		}
 	})
+	t.Run("a refused instruction file blocks with its reason once", func(t *testing.T) {
+		root := freshGitRepo(t)
+		if err := os.WriteFile(filepath.Join(root, "elsewhere.md"), []byte("rules\n"), 0o644); err != nil {
+			t.Fatal(err)
+		}
+		if err := os.Symlink("elsewhere.md", filepath.Join(root, "CLAUDE.md")); err != nil {
+			t.Fatal(err)
+		}
+		cfg := &config.Config{Guidance: config.Guidance{Packs: &[]string{"sample/base"}}}
+		step, outcome := projectGuidance(t.Context(), root, cfg, config.HostSelection{Hosts: []config.Host{config.HostClaudeCode}}, RefreshOptions{WireClaudeMd: true})
+		if step == nil || outcome == nil || strings.Count(step.Detail, "guidance incomplete: ") != 1 ||
+			!strings.HasPrefix(outcome.Blocker, "CLAUDE.md is a symlink") {
+			t.Fatalf("step %+v, outcome %+v", step, outcome)
+		}
+	})
 	t.Run("unreadable installed guidance is reported", func(t *testing.T) {
 		root := freshGitRepo(t)
 		if err := os.MkdirAll(filepath.Join(root, ".guidance"), 0o755); err != nil {
@@ -426,7 +459,7 @@ func TestProjectGuidance_ReportsOutcome(t *testing.T) {
 		disabled := false
 		cfg := &config.Config{Guidance: config.Guidance{Enabled: &disabled}}
 		_, outcome := projectGuidance(t.Context(), root, cfg, config.HostSelection{}, RefreshOptions{AdoptGuidance: true})
-		if outcome == nil || outcome.InspectError == "" || outcome.Installed != nil {
+		if outcome == nil || !strings.HasPrefix(outcome.InspectError, "cannot inspect installed policy: ") {
 			t.Fatalf("outcome = %+v", outcome)
 		}
 	})

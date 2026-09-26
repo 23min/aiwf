@@ -15,6 +15,8 @@ type Issue struct {
 // Inspection describes local installation evidence, without checking upstream.
 type Inspection struct {
 	Revision string
+	// IndexIntact reports an owned index whose bytes match their record.
+	IndexIntact bool
 	// Packs lists the pack ids an intact owned index routes, in index order.
 	Packs   []string
 	Files   []string
@@ -50,8 +52,9 @@ func Inspect(ctx context.Context, root string) (Inspection, error) {
 		case digest(content) != owned[name] && !pending[name].recognizes(digest(content)):
 			report.Issues = append(report.Issues, Issue{name, "locally modified; preserve your changes in .guidance/project.md or reconcile before selecting this artifact for update"})
 		case name == indexFile:
+			report.IndexIntact = true
 			for _, line := range strings.Split(string(content), "\n") {
-				if value, ok := strings.CutPrefix(line, "Installed commit: `"); ok && report.Revision == "" {
+				if value, ok := strings.CutPrefix(line, "Installed commit: `"); ok {
 					report.Revision = strings.TrimSuffix(value, "`")
 				}
 				if entry, ok := strings.CutPrefix(line, "- ["); ok {

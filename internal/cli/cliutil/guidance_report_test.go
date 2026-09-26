@@ -7,11 +7,13 @@ import (
 	"github.com/google/go-cmp/cmp"
 
 	"github.com/23min/aiwf/internal/initrepo"
+	"github.com/23min/aiwf/internal/projectguidance"
 )
 
 func TestGuidanceReport(t *testing.T) {
 	t.Parallel()
-	notInstalled := "is selected but not installed; if the catalogue no longer lists it, remove it from guidance.packs or move it to guidance.ignored, otherwise run aiwf update"
+	selected := &[]string{"a/one", "gone/one", "gone/two"}
+	missing := projectguidance.NotInstalledStates(selected, true, projectguidance.Inspection{IndexIntact: true, Packs: []string{"a/one"}})
 	for _, tc := range []struct {
 		name    string
 		outcome *initrepo.GuidanceOutcome
@@ -19,34 +21,52 @@ func TestGuidanceReport(t *testing.T) {
 	}{
 		{name: "no section when guidance was not considered"},
 		{
-			name:    "explicit empty selection, installed packs, every list and a blocker",
-			outcome: &initrepo.GuidanceOutcome{Selection: &[]string{}, Installed: []string{"a/one", "b/two"}, Commit: "abc123", Ignored: []string{"c/three"}, Blocker: "cause; fix it, then retry"},
+			name: "explicit empty selection, installed packs, every list and a multi-line blocker",
+			outcome: &initrepo.GuidanceOutcome{
+				Selection: &[]string{}, Ignored: []string{"c/three"}, Blocker: "git clone: exit status 128\nfatal: not allowed\n",
+				Installed: projectguidance.Inspection{IndexIntact: true, Revision: "abc123", Packs: []string{"a/one", "b/two"}},
+			},
 			want: []string{
 				"", "Guidance:",
-				"  selected:  none (explicit empty selection)",
+				"  selected:  " + projectguidance.SelectionState(&[]string{}),
 				"  adopted:   none",
 				"  installed: a/one, b/two at abc123",
 				"  ignored:   c/three",
-				"  blocked:   cause; fix it, then retry",
+				"  blocked:   git clone: exit status 128 fatal: not allowed",
 			},
 		},
 		{
-			name:    "pending installation and selected packs not installed",
-			outcome: &initrepo.GuidanceOutcome{Selection: &[]string{"a/one", "gone/one", "gone/two"}, Adopted: []string{"a/one"}, Installed: []string{"a/one"}, Commit: "abc123", Pending: true},
+			name: "pending installation and selected packs not installed",
+			outcome: &initrepo.GuidanceOutcome{
+				Selection: selected, Adopted: []string{"a/one"},
+				Installed: projectguidance.Inspection{IndexIntact: true, Revision: "abc123", Packs: []string{"a/one"}, Pending: true},
+			},
 			want: []string{
 				"", "Guidance:",
 				"  selected:  a/one, gone/one, gone/two",
 				"  adopted:   a/one",
 				"  installed: a/one at abc123",
 				"  ignored:   none",
-				"  pending:   installation incomplete; rerun aiwf update before using the pack set",
-				"  missing:   gone/one " + notInstalled,
-				"  missing:   gone/two " + notInstalled,
+				"  pending:   " + projectguidance.PendingState,
+				"  missing:   " + missing[0],
+				"  missing:   " + missing[1],
+			},
+		},
+		{
+			name:    "disabled maintenance reports no missing pack",
+			outcome: &initrepo.GuidanceOutcome{Selection: &[]string{"a/one"}, Disabled: true},
+			want: []string{
+				"", "Guidance:",
+				"  selected:  a/one",
+				"  " + projectguidance.DisabledState,
+				"  adopted:   none",
+				"  installed: none",
+				"  ignored:   none",
 			},
 		},
 		{
 			name:    "unreadable installed guidance claims nothing about missing packs",
-			outcome: &initrepo.GuidanceOutcome{Selection: &[]string{"a/one"}, InspectError: "invalid ownership digest"},
+			outcome: &initrepo.GuidanceOutcome{Selection: &[]string{"a/one"}, InspectError: "cannot inspect installed policy: invalid ownership digest"},
 			want: []string{
 				"", "Guidance:",
 				"  selected:  a/one",
@@ -65,32 +85,36 @@ func TestGuidanceReport(t *testing.T) {
 	}
 }
 
-// TestGuidanceReportHelp_NamesEveryLabel derives the labels from a report
-// carrying every optional line, so a label added to the report without help
-// fails here.
+// TestGuidanceReportHelp_NamesEveryLabel derives the labels from reports that
+// between them carry every optional line, so a label added to the report
+// without help fails here.
 func TestGuidanceReportHelp_NamesEveryLabel(t *testing.T) {
 	t.Parallel()
-	// Disabled maintenance suppresses the missing line, so two outcomes
-	// between them carry every optional line.
 	report := GuidanceReport(&initrepo.GuidanceOutcome{Disabled: true})
-	report = append(report, GuidanceReport(&initrepo.GuidanceOutcome{Selection: &[]string{"a/one"}, Pending: true, Blocker: "cause"})...)
+	report = append(report, GuidanceReport(&initrepo.GuidanceOutcome{
+		Selection: &[]string{"a/one"}, Blocker: "cause",
+		Installed: projectguidance.Inspection{IndexIntact: true, Pending: true},
+	})...)
 	labels := map[string]bool{}
 	for _, line := range report {
 		if !strings.HasPrefix(line, "  ") {
 			continue
 		}
-		label, _, found := strings.Cut(strings.TrimSpace(line), ":")
-		if strings.HasPrefix(line, "  maintenance disabled") {
-			label, found = "maintenance is disabled", true
+		clause := ""
+		if label, _, found := strings.Cut(strings.TrimSpace(line), ":"); found && !strings.Contains(label, " ") {
+			labels[label] = true
+			clause = label + " ("
+		} else if line == "  "+projectguidance.DisabledState {
+			labels["disabled"] = true
+			clause = "maintenance is disabled"
 		}
-		labels[label] = true
-		if !found || !strings.Contains(GuidanceReportHelp, label) {
+		if clause == "" || !strings.Contains(GuidanceReportHelp, clause) {
 			t.Errorf("help does not describe report line %q", line)
 		}
 	}
-	for _, label := range []string{"maintenance is disabled", "pending", "blocked", "missing"} {
+	for _, label := range []string{"selected", "adopted", "installed", "ignored", "disabled", "pending", "blocked", "missing"} {
 		if !labels[label] {
-			t.Errorf("fixture outcomes produce no %q line", label)
+			t.Errorf("fixture reports produce no %q line", label)
 		}
 	}
 }

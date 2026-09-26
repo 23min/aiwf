@@ -166,6 +166,8 @@ func Run(root string, statusline bool, scope string, wireSettings, allowUntagged
 		cliutil.Println("file already exists at .git/hooks/pre-push.local or .git/hooks/pre-commit.local.")
 		cliutil.Println("Resolve manually: merge the existing hook's content into the `.local` file,")
 		cliutil.Println("delete the original (non-`.local`) hook, and re-run `aiwf update`.")
+		// Guidance already ran and may have recorded adopted packs.
+		cliutil.PrintGuidanceReport(refresh.Guidance)
 		return cliutil.ExitFindings
 	}
 

@@ -157,6 +157,8 @@ func Run(root, actor string, dryRun, skipHook, statusline bool, scope string, wi
 		cliutil.Println()
 		cliutil.Println("Until then, `aiwf check` does not run automatically on `git push`/`git commit`.")
 		cliutil.Println("You can still validate manually with `aiwf check`.")
+		// Guidance already ran and may have recorded adopted packs.
+		cliutil.PrintGuidanceReport(res.Guidance)
 		return cliutil.ExitFindings
 	}
 
