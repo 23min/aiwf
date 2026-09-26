@@ -15,7 +15,7 @@ acs:
       title: A planning exchange invoking no ritual produces the cut list
       status: cancelled
     - id: AC-4
-      title: A planning exchange invoking no ritual drops what serves no goal
+      title: A planning exchange invoking no ritual gates each addition on a goal
       status: open
 ---
 
@@ -79,7 +79,7 @@ a proposal with nothing to drop, which states that rather than padding the list;
 request for one change, which is not a plan and does not trigger the list. **Code
 references**: the clause lands in `internal/skills/embedded-guidance/aiwf-guidance.md`.
 
-### AC-4 — A planning exchange invoking no ritual drops what serves no goal
+### AC-4 — A planning exchange invoking no ritual gates each addition on a goal
 
 A planning exchange that invokes no ritual names, for each thing its larger
 version adds, the goal that thing serves, and drops what serves none. **Pass
