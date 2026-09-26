@@ -26,6 +26,7 @@ acs:
     - id: AC-5
       title: Upgrade output carries the guidance section
       status: open
+      tdd_phase: done
 ---
 ## Goal
 
