@@ -67,3 +67,22 @@ func TestBinary_InitEndsWithTheGuidanceSectionUpdatePrints(t *testing.T) {
 		t.Fatalf("init did not report the adoption:\n%s", strings.Join(sections["init"], "\n"))
 	}
 }
+
+// TestBinary_UpgradeOutputEndsWithTheGuidanceSection runs upgrade through the
+// real re-exec into update; the re-executed update prints the section, so the
+// upgrade's output ends with it.
+func TestBinary_UpgradeOutputEndsWithTheGuidanceSection(t *testing.T) {
+	t.Parallel()
+	testutil.SkipIfShortOrUnsupported(t)
+	binary := testutil.BuildBinary(t, t.TempDir())
+	root, home, source := t.TempDir(), t.TempDir(), testsupport.GuidanceSource(t, "*.xyz")
+	path := hostLifecyclePATH(t, binary, nil)
+	hostLifecycleRun(t, root, home, path, "git", "init", "-q", "-b", "main")
+	claudeBaselineWrite(t, root, "aiwf.yaml", "hosts: [codex]\nguidance:\n  source: "+source+"\n")
+	claudeBaselineWrite(t, root, "source.xyz", "project source")
+	output := hostUpgradeRun(t, binary, root, home, path, false, 0, "upgrade", "--version", "v0.1.0")
+	section := trailingGuidanceSection(t, output)
+	if !cmp.Equal(section[1:3], []string{"  selected:  sample/base", "  adopted:   sample/base"}) {
+		t.Fatalf("upgrade output did not report the adoption:\n%s", strings.Join(section, "\n"))
+	}
+}
