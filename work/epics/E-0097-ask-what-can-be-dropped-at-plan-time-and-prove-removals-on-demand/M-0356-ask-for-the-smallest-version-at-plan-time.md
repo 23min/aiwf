@@ -7,7 +7,7 @@ tdd: none
 acs:
     - id: AC-1
       title: plan-epic offers the smallest version and argues the delta
-      status: open
+      status: cancelled
     - id: AC-2
       title: plan-milestones drops an unrequired candidate before allocating its id
       status: open
