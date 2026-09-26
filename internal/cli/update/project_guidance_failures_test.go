@@ -16,6 +16,7 @@ import (
 	"github.com/23min/aiwf/internal/cli/update"
 	"github.com/23min/aiwf/internal/config"
 	"github.com/23min/aiwf/internal/gitops"
+	"github.com/23min/aiwf/internal/skills"
 	"github.com/23min/aiwf/internal/testsupport"
 )
 
@@ -344,6 +345,24 @@ func TestRun_LaterFailureStillReportsGuidance(t *testing.T) {
 	rc := cliutil.ExitOK
 	output := string(testutil.CaptureStdout(t, func() {
 		rc = update.Run(root, false, "", false, false, false, false, true, nil, nil)
+	}))
+	if rc != cliutil.ExitInternal || !strings.Contains(output, "\nGuidance:\n") {
+		t.Fatalf("rc = %d, want ExitInternal with the guidance section:\n%s", rc, output)
+	}
+}
+
+// TestRun_HookSyncFailureStillReportsGuidance enables a Claude hook while
+// .claude/settings.json is malformed, so wiring the hook fails after guidance
+// ran: update exits with an internal error and still prints the guidance
+// section. Disabled maintenance keeps the run hermetic.
+func TestRun_HookSyncFailureStillReportsGuidance(t *testing.T) {
+	root := freshInitializedRepo(t)
+	hook := skills.ShippedHooks[0].Name
+	guidanceWrite(t, root, config.FileName, "hosts: [claude-code]\nguidance:\n  enabled: false\nhooks:\n  "+hook+":\n    enabled: true\n")
+	guidanceWrite(t, root, filepath.Join(".claude", "settings.json"), "{not json")
+	rc := cliutil.ExitOK
+	output := string(testutil.CaptureStdout(t, func() {
+		rc = update.Run(root, false, "", false, false, false, false, true, nil, skills.ShippedHooks)
 	}))
 	if rc != cliutil.ExitInternal || !strings.Contains(output, "\nGuidance:\n") {
 		t.Fatalf("rc = %d, want ExitInternal with the guidance section:\n%s", rc, output)

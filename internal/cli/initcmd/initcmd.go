@@ -119,12 +119,13 @@ func Run(root, actor string, dryRun, skipHook, statusline bool, scope string, wi
 		DryRun:        dryRun,
 		SkipHook:      skipHook,
 	})
+	if res != nil {
+		// Guidance may already have adopted and recorded packs, so every
+		// exit after init, failed or not, ends with its report.
+		defer cliutil.PrintGuidanceReport(res.Guidance)
+	}
 	if err != nil {
 		cliutil.Errorf("aiwf init: %v\n", err)
-		// A failure after the guidance step still reports what it recorded.
-		if res != nil {
-			cliutil.PrintGuidanceReport(res.Guidance)
-		}
 		if errors.Is(err, initrepo.ErrClaudeUnselected) {
 			return cliutil.ExitUsage
 		}
@@ -161,8 +162,6 @@ func Run(root, actor string, dryRun, skipHook, statusline bool, scope string, wi
 		cliutil.Println()
 		cliutil.Println("Until then, `aiwf check` does not run automatically on `git push`/`git commit`.")
 		cliutil.Println("You can still validate manually with `aiwf check`.")
-		// Guidance already ran and may have recorded adopted packs.
-		cliutil.PrintGuidanceReport(res.Guidance)
 		return cliutil.ExitFindings
 	}
 
@@ -181,7 +180,7 @@ func Run(root, actor string, dryRun, skipHook, statusline bool, scope string, wi
 			if rc := gateAndPersistHookDecisions(rootDir, hooks, enableHooks, noPrompt); rc != cliutil.ExitOK { //coverage:ignore gateAndPersistHookDecisions's own failure paths are unit-tested directly (TestGateAndPersistHookDecisions_MissingAiwfYamlReturnsInternal); triggering one from here would require initrepo.Init to report success while leaving no readable aiwf.yaml, which its own contract precludes
 				return rc
 			}
-			if rc := cliutil.SyncHookMaterialization(rootDir, skills.ClaudeTarget, hooks); rc != cliutil.ExitOK { //coverage:ignore SyncHookMaterialization's own failure paths are unit-tested directly against the function itself; triggering one from here would require the aiwf.yaml gateAndPersistHookDecisions just wrote successfully to become unreadable before this call, which its own contract precludes
+			if rc := cliutil.SyncHookMaterialization(rootDir, skills.ClaudeTarget, hooks); rc != cliutil.ExitOK {
 				return rc
 			}
 		} else {
@@ -189,19 +188,19 @@ func Run(root, actor string, dryRun, skipHook, statusline bool, scope string, wi
 		}
 	}
 
-	statuslineRC := cliutil.ExitOK
 	if statusline && !dryRun {
-		statuslineRC = cliutil.RunStatuslineScaffold(cliutil.StatuslineOpts{
+		if rc := cliutil.RunStatuslineScaffold(cliutil.StatuslineOpts{
 			RootDir:       rootDir,
 			Scope:         scope,
 			WireSettings:  wireSettings,
 			AllowUntagged: allowUntagged,
-		})
+		}); rc != cliutil.ExitOK {
+			return rc
+		}
 	} else if statusline && dryRun {
 		cliutil.Println("aiwf init --statusline: dry-run — statusline scaffold skipped.")
 	}
-	cliutil.PrintGuidanceReport(res.Guidance)
-	return statuslineRC
+	return cliutil.ExitOK
 }
 
 // gateAndPersistHookDecisions runs the consent gate (ADR-0032) over the

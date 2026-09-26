@@ -132,12 +132,13 @@ func Run(root string, statusline bool, scope string, wireSettings, allowUntagged
 		StatusMdAutoUpdate: cfg.StatusMdAutoUpdate(),
 		WireClaudeMd:       cfg.WireClaudeMd(),
 	})
+	if refresh != nil {
+		// Guidance may already have adopted and recorded packs, so every
+		// exit after the refresh, failed or not, ends with its report.
+		defer cliutil.PrintGuidanceReport(refresh.Guidance)
+	}
 	if err != nil {
 		cliutil.Errorf("aiwf update: %v\n", err)
-		// A failure after the guidance step still reports what it recorded.
-		if refresh != nil {
-			cliutil.PrintGuidanceReport(refresh.Guidance)
-		}
 		if errors.Is(err, initrepo.ErrClaudeUnselected) {
 			return cliutil.ExitUsage
 		}
@@ -170,14 +171,11 @@ func Run(root string, statusline bool, scope string, wireSettings, allowUntagged
 		cliutil.Println("file already exists at .git/hooks/pre-push.local or .git/hooks/pre-commit.local.")
 		cliutil.Println("Resolve manually: merge the existing hook's content into the `.local` file,")
 		cliutil.Println("delete the original (non-`.local`) hook, and re-run `aiwf update`.")
-		// Guidance already ran and may have recorded adopted packs.
-		cliutil.PrintGuidanceReport(refresh.Guidance)
 		return cliutil.ExitFindings
 	}
 
 	if !slices.Contains(refresh.HostSelection.Hosts, config.HostClaudeCode) {
 		cliutil.Println("\naiwf update: done.")
-		cliutil.PrintGuidanceReport(refresh.Guidance)
 		return cliutil.ExitOK
 	}
 
@@ -187,7 +185,7 @@ func Run(root string, statusline bool, scope string, wireSettings, allowUntagged
 		if rc := gateAndSyncHookDecisions(rootDir, hooks, enableHooks, noPrompt); rc != cliutil.ExitOK { //coverage:ignore gateAndSyncHookDecisions's own failure paths are unit-tested directly (TestGateAndSyncHookDecisions_MissingAiwfYamlReturnsInternal, TestGateAndSyncHookDecisions_UnknownFieldInExistingHooksBlockReturnsInternal); triggering one from here would require config.Load (already run above) to succeed while aiwfyaml.Read on the same path fails, which its own contract precludes
 			return rc
 		}
-		if rc := cliutil.SyncHookMaterialization(rootDir, skills.ClaudeTarget, hooks); rc != cliutil.ExitOK { //coverage:ignore SyncHookMaterialization's own failure paths are unit-tested directly against the function itself; triggering one from here would require the aiwf.yaml gateAndSyncHookDecisions just wrote successfully to become unreadable before this call, which its own contract precludes
+		if rc := cliutil.SyncHookMaterialization(rootDir, skills.ClaudeTarget, hooks); rc != cliutil.ExitOK {
 			return rc
 		}
 	}
@@ -237,7 +235,6 @@ func Run(root string, statusline bool, scope string, wireSettings, allowUntagged
 		cliutil.Errorf("aiwf update: could not refresh health.aiwf.json: %v\n", err) //coverage:ignore best-effort refresh; post-materialization git is reachable, so WriteHealth fails only on a filesystem fault (mirrors doctor.go runWriteHealth)
 	}
 
-	cliutil.PrintGuidanceReport(refresh.Guidance)
 	return statuslineRC
 }
 

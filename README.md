@@ -273,20 +273,19 @@ installed. If validation or installation fails, installed
 guidance and `aiwf.yaml` stay as they were and the update reports the failure.
 
 `aiwf init` and `aiwf update` end with a `Guidance:` section, which also ends the
-output of `aiwf upgrade` through its re-executed update. It also ends a run that
-stops on a later error; an `aiwf init --dry-run` prints none.
-It lists the selection (or that it is unset or explicitly empty), the packs
-adopted and recorded in this run, the installed packs with their source commit
-(or that they are unknown when the installed index is not intact), and the
+output of `aiwf upgrade` through its re-executed update and ends a run that stops
+on a later error; `aiwf init --dry-run` prints none. It lists the selection (or
+that it is unset or explicitly empty), the packs adopted and recorded in this run,
+the installed packs with their source commit (or that they are unknown when the
+installed index is not intact, or why installed guidance cannot be read), and the
 ignored packs, each shown as `none` when empty. When they apply it adds that
 maintenance is disabled, a `pending:` line for an interrupted installation, a
 `blocked:` line naming why guidance was not fully installed and recorded and,
 where the installer names one, the action that clears it, and, while maintenance
-is enabled, a `missing:` line with its fix for each selected pack the installed
-index does not list. A blocked
-installation changes neither the exit status nor the other steps of the run.
-`aiwf doctor` words the selection, disabled maintenance, a pending installation
-and missing packs the same way.
+is enabled, a `missing:` line with its fix for each selected pack an intact
+installed index does not list. A blocked installation changes neither the exit
+status nor the other steps of the run. `aiwf doctor` words the selection,
+disabled maintenance, a pending installation and missing packs the same way.
 
 Detection respects Git ignore rules, skips dependency/cache directories and nested
 repositories, and does not follow symbolic links. Output-like directory names

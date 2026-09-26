@@ -128,3 +128,29 @@ func TestRun_LaterFailureStillReportsGuidance(t *testing.T) {
 		t.Fatalf("rc = %d, want ExitInternal with the guidance section:\n%s", rc, output)
 	}
 }
+
+// TestRun_HookSyncFailureStillReportsGuidance consents to a Claude hook while
+// .claude/settings.json is malformed, so wiring the hook fails after guidance
+// ran: init exits with an internal error and still prints the guidance
+// section. Disabled maintenance keeps the run hermetic.
+//
+// Serial: captures process stdout.
+func TestRun_HookSyncFailureStillReportsGuidance(t *testing.T) {
+	root := freshGitRepo(t)
+	if err := os.WriteFile(filepath.Join(root, "aiwf.yaml"), []byte("hosts: [claude-code]\nguidance:\n  enabled: false\n"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.MkdirAll(filepath.Join(root, ".claude"), 0o755); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(filepath.Join(root, ".claude", "settings.json"), []byte("{not json"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	rc := cliutil.ExitOK
+	output := string(testutil.CaptureStdout(t, func() {
+		rc = initcmd.Run(root, "", false, true, false, "", false, false, true, []string{skills.ShippedHooks[0].Name}, skills.ShippedHooks)
+	}))
+	if rc != cliutil.ExitInternal || !strings.Contains(output, "\nGuidance:\n") {
+		t.Fatalf("rc = %d, want ExitInternal with the guidance section:\n%s", rc, output)
+	}
+}
