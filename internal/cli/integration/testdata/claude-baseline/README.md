@@ -173,7 +173,8 @@ were replaced, and the inventories were sorted again.
 
 M-0356 adds one always-on rule to the guidance fragment, asking that a proposal
 offer the smallest version that solves the stated problem and that each thing the
-larger version adds name the goal it serves, with what serves none dropped.
+larger version adds name the goal it serves, with what serves none dropped. The
+rule names KISS and YAGNI as the forces it applies.
 The six inventories change only `.claude/aiwf-guidance.md`; adapters, host
 instructions, configuration, hooks, settings, paths and modes stay frozen.
 
@@ -189,7 +190,7 @@ again.
 
 | Artifact | Original SHA-256 | Updated SHA-256 |
 | --- | --- | --- |
-| `.claude/aiwf-guidance.md` | `9bcf991dec935d2c38387a44a242b102180604e22dbae7d595ef5fbb1396601d` | `e21daab02b4e8746ecc6d46f08ac34ae4fed66b1578625c262b431be48a49900` |
+| `.claude/aiwf-guidance.md` | `9bcf991dec935d2c38387a44a242b102180604e22dbae7d595ef5fbb1396601d` | `9445a9774db0008bcb05c25ec65785287e610aba0e1e816d12f45df2ea1e14a9` |
 
 ## Milestone cut-gate exception
 

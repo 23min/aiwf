@@ -78,11 +78,11 @@ turn. The exception is **Code-health priming** at the end — {{aiwf:fragment:sk
   one you never considered. Never lift an option from an entity's own body
   or from a summary without checking it; that prose may be the stale claim
   under review.
-- **Every part of a plan names the goal it serves.** Proposing work to build — an
-  epic, a set of milestones, a design — offer the smallest version that solves the
-  stated problem, then for each thing the larger one adds, name the goal it serves.
-  What serves none is dropped, or its goal named and agreed before it stays. Take
-  them from what you drafted, not from beside it.
+- **Every part of a plan names the goal it serves — KISS and YAGNI, applied before
+  anything is built.** Proposing an epic, a set of milestones, a design: offer the
+  smallest version that solves the stated problem, then name the goal each further
+  thing serves. What serves none is dropped, or its goal named and agreed before it stays.
+  Take them from what you drafted, not from beside it.
 - **Fix closely-related issues in place — the cheap-fix test.** Small, in a file this
   work already touches, covered by a test you're writing? Make it now. Needs its own
   branch, its own review, or a real decision? File it via `aiwfx-record-gap`.
