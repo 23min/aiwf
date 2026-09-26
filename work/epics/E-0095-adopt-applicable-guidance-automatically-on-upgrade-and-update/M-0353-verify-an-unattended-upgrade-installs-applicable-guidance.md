@@ -10,7 +10,7 @@ tdd: none
 acs:
     - id: AC-1
       title: Unattended upgrade adopts guidance in a hermetic consumer
-      status: open
+      status: met
     - id: AC-2
       title: Unattended upgrade observed in a real consumer repository
       status: open
