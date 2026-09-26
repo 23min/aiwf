@@ -6,6 +6,13 @@ parent: E-0096
 depends_on:
     - M-0354
 tdd: advisory
+acs:
+    - id: AC-1
+      title: aiwf check carries no rule that exists only for this repo
+      status: open
+    - id: AC-2
+      title: Nothing aiwf check prints cites an aiwf id
+      status: open
 ---
 ## Goal
 
@@ -25,6 +32,28 @@ also prints aiwf ids: at `fde32ce8a`, 13 string literals in `hint.go` and 6 in f
 other files cite one. The CLI-text policy's scope does not include `internal/check`.
 
 ## Acceptance criteria
+
+### AC-1 — aiwf check carries no rule that exists only for this repo
+
+`skill-body-id` and `skill-body-claude-md-section` are deleted from `internal/check`,
+together with their hints, their rows in the shipped `aiwf-check` skill and their
+tests. **Pass criterion**: neither code appears in `internal/check` or in any shipped
+file, and the gate's tests cover every shape the deleted rules' tests covered.
+**Edge cases**: `body-prose-id`, which reads a consumer's own entity bodies, keeps
+working on the shared id classifier. **Code references**: `internal/check/check.go`,
+`internal/check/skill_body_id.go`, `internal/check/skill_body_claude_md.go`,
+`internal/check/hint.go`.
+
+### AC-2 — Nothing aiwf check prints cites an aiwf id
+
+The CLI-text policy's scope includes `internal/check`, and every literal it then
+reports is rewritten without the id. **Pass criterion**: the policy reports nothing
+on the tree with `internal/check` in scope. **Edge cases**: a malformed spelling shown
+as the thing a rule reports, such as the `body-prose-id` hints' `M-1`, is an
+illustration rather than a citation and stays (the distinction G-0538 names).
+**Code references**: `inOperatorTextScope` in
+`internal/policies/cli_text_internal_ids.go`, `internal/check/hint.go`, and the five
+other files carrying an id.
 
 ## Constraints
 
