@@ -15,10 +15,13 @@ import (
 	"github.com/23min/aiwf/internal/projectguidance"
 )
 
-// guidanceSection returns the lines of the guidance section, which must be the
-// last thing update prints.
+// guidanceSection returns the lines of the guidance section, which must be
+// printed once and be the last thing update prints.
 func guidanceSection(t *testing.T, output string) []string {
 	t.Helper()
+	if n := strings.Count(output, "\nGuidance:\n"); n != 1 {
+		t.Fatalf("output has %d guidance sections, want 1:\n%s", n, output)
+	}
 	lines := strings.Split(strings.TrimRight(output, "\n"), "\n")
 	for i := len(lines) - 1; i >= 0; i-- {
 		if lines[i] == "Guidance:" {

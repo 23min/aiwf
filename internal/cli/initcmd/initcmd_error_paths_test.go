@@ -154,3 +154,22 @@ func TestRun_HookSyncFailureStillReportsGuidance(t *testing.T) {
 		t.Fatalf("rc = %d, want ExitInternal with the guidance section:\n%s", rc, output)
 	}
 }
+
+// TestRun_HookConsentFailureStillReportsGuidance gives aiwf.yaml a hooks block
+// the consent gate cannot decode: init exits with an internal error rather than
+// success and still prints the guidance section.
+//
+// Serial: captures process stdout.
+func TestRun_HookConsentFailureStillReportsGuidance(t *testing.T) {
+	root := freshGitRepo(t)
+	if err := os.WriteFile(filepath.Join(root, "aiwf.yaml"), []byte("hosts: [claude-code]\nguidance:\n  enabled: false\nhooks:\n  bad-hook:\n    unknown_field: true\n"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	rc := cliutil.ExitOK
+	output := string(testutil.CaptureStdout(t, func() {
+		rc = initcmd.Run(root, "", false, true, false, "", false, false, true, nil, skills.ShippedHooks)
+	}))
+	if rc != cliutil.ExitInternal || !strings.Contains(output, "\nGuidance:\n") {
+		t.Fatalf("rc = %d, want ExitInternal with the guidance section:\n%s", rc, output)
+	}
+}

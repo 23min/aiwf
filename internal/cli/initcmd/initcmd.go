@@ -177,7 +177,7 @@ func Run(root, actor string, dryRun, skipHook, statusline bool, scope string, wi
 
 	if claudeSelected && len(hooks) > 0 {
 		if !dryRun {
-			if rc := gateAndPersistHookDecisions(rootDir, hooks, enableHooks, noPrompt); rc != cliutil.ExitOK { //coverage:ignore gateAndPersistHookDecisions's own failure paths are unit-tested directly (TestGateAndPersistHookDecisions_MissingAiwfYamlReturnsInternal); triggering one from here would require initrepo.Init to report success while leaving no readable aiwf.yaml, which its own contract precludes
+			if rc := gateAndPersistHookDecisions(rootDir, hooks, enableHooks, noPrompt); rc != cliutil.ExitOK {
 				return rc
 			}
 			if rc := cliutil.SyncHookMaterialization(rootDir, skills.ClaudeTarget, hooks); rc != cliutil.ExitOK {

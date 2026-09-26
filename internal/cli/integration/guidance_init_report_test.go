@@ -17,10 +17,13 @@ import (
 	"github.com/23min/aiwf/internal/testsupport"
 )
 
-// trailingGuidanceSection returns the lines from the last "Guidance:" heading
-// to the end of output, requiring that heading to exist.
+// trailingGuidanceSection returns the lines from the "Guidance:" heading to the
+// end of output, requiring exactly one such section.
 func trailingGuidanceSection(t *testing.T, output string) []string {
 	t.Helper()
+	if n := strings.Count(output, "\nGuidance:\n"); n != 1 {
+		t.Fatalf("output has %d guidance sections, want 1:\n%s", n, output)
+	}
 	lines := strings.Split(strings.TrimRight(output, "\n"), "\n")
 	for i := len(lines) - 1; i >= 0; i-- {
 		if lines[i] == "Guidance:" {

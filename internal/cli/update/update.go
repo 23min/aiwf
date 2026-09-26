@@ -182,7 +182,7 @@ func Run(root string, statusline bool, scope string, wireSettings, allowUntagged
 	cliutil.Println("\naiwf update: done.")
 
 	if len(hooks) > 0 {
-		if rc := gateAndSyncHookDecisions(rootDir, hooks, enableHooks, noPrompt); rc != cliutil.ExitOK { //coverage:ignore gateAndSyncHookDecisions's own failure paths are unit-tested directly (TestGateAndSyncHookDecisions_MissingAiwfYamlReturnsInternal, TestGateAndSyncHookDecisions_UnknownFieldInExistingHooksBlockReturnsInternal); triggering one from here would require config.Load (already run above) to succeed while aiwfyaml.Read on the same path fails, which its own contract precludes
+		if rc := gateAndSyncHookDecisions(rootDir, hooks, enableHooks, noPrompt); rc != cliutil.ExitOK {
 			return rc
 		}
 		if rc := cliutil.SyncHookMaterialization(rootDir, skills.ClaudeTarget, hooks); rc != cliutil.ExitOK {

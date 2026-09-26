@@ -15,6 +15,7 @@ import (
 //     TestRun_GuidanceReportNamesBlockerAndFix,
 //     TestRun_LaterFailureStillReportsGuidance,
 //     TestRun_HookSyncFailureStillReportsGuidance,
+//     TestRun_HookConsentFailureStillReportsGuidance,
 //     TestRun_ProjectGuidanceDisabledPreservesInstallationWithoutRetrieval, and
 //     TestRun_ProjectGuidanceRemovalAndInterruptedRetry capture os.Stdout;
 //     these also isolate personal-guidance environment variables;
