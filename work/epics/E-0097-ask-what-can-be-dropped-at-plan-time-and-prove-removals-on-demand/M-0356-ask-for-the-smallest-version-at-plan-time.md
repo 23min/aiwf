@@ -67,7 +67,8 @@ wording and is not claimed here: no run was permitted to allocate, so the orderi
 was never exercised. **Edge cases**: a candidate
 required only indirectly, through another candidate it enables; a decomposition
 where nothing qualifies, which produces a stated *nothing was droppable* rather than
-silence. **Code references**: the sizing arm and the gate land in the embedded
+silence. Neither edge case was run: the recorded decomposition carried only a
+candidate that qualified. **Code references**: the sizing arm and the gate land in the embedded
 `aiwfx-plan-milestones` ritual body.
 
 ### AC-3 — A planning exchange invoking no ritual produces the cut list
@@ -81,7 +82,7 @@ a proposal with nothing to drop, which states that rather than padding the list;
 request for one change, which is not a plan and does not trigger the list. **Code
 references**: the clause lands in `internal/skills/embedded-guidance/aiwf-guidance.md`.
 
-**Cancelled.** The rule this criterion observed was reworded, so its observation no longer evidences the shipped text; M-0356 AC-4 replaces it. See `## Validation`.
+**Cancelled.** The rule this criterion observed was reworded, so its observation no longer evidences the shipped text. M-0356 AC-4 took its place and was itself cancelled when the rule was cut. See `## Validation`.
 
 ### AC-4 — A planning exchange invoking no ritual gates each addition on a goal
 
@@ -103,7 +104,8 @@ is not a plan and does not trigger the rule. **Code references**: the rule in
 
 ## Constraints
 
-- Shipped text carries no aiwf id, no path into this tree, and no rationale.
+- Shipped text carries no aiwf id, no path into this tree, and no development
+  history or argued past choice.
 - The cuts the gate names come from the list as drafted, never invented beside it.
 - The gate's list is a disclosure the human grades, never a verdict that a plan is
   minimal — G-0585 records why a clearance earned by reading is worse than none.
@@ -136,7 +138,6 @@ is not a plan and does not trigger the rule. **Code references**: the rule in
 
 ## References
 
-- E-0092 — the guidance epic whose inventory meets this rule.
 - D-0054 — record obligations, not events.
 - D-0070 — the limits on pinning shipped prose.
 - G-0585 — rituals that clear a question by reading it.
@@ -144,10 +145,10 @@ is not a plan and does not trigger the rule. **Code references**: the rule in
 
 ## Release note
 
-The milestone-planning ritual can now remove work, not only reshape it. Its sizing
-rule gains a fourth arm — a candidate no success criterion requires is dropped,
-where before it could only be kept, split or folded into a sibling — and a gate
-that puts the cuts in front of you, and asks for a yes, before any id is allocated.
+`aiwfx-plan-milestones` can now remove work, not only reshape it. When sizing
+candidates, one that no success criterion in the epic requires is dropped, where
+before it could only be kept, split or folded into a sibling; and the cuts are put in
+front of you, with a yes asked for, before any id is allocated.
 
 ## Decisions made during implementation
 
@@ -156,10 +157,10 @@ Each is recorded where its reasoning lives rather than restated here.
 - The epic-planning step was removed and M-0356 AC-1 cancelled, because the step
   produced nothing the always-on rule did not — `## Validation`, and the removing
   commit in `aiwf history M-0356/AC-1`.
-- The always-on rule was cut, and M-0356 AC-3 and M-0356 AC-4 cancelled with it. It
-  presented plans split into a smallest version and what exceeds it, removed nothing
-  on its own in any run, and its shipped wording was never itself observed —
-  `## Validation`.
+- The always-on rule was reworded, which cancelled M-0356 AC-3, and then cut, which
+  cancelled M-0356 AC-4. It presented plans split into a smallest version and what
+  exceeds it, removed nothing outright on its own in any run, and its shipped wording
+  was never itself observed — `## Validation`.
 
 ## Validation
 
@@ -249,14 +250,16 @@ one thing the step alone specifies, the smallest version ahead of the body, whic
 falsifies it on the pre-registered arm alone. A third arm, added afterwards and
 differing from the candidate only in the step's absence, produced the same shape.
 
-**M-0356 AC-3 and M-0356 AC-4 — cancelled with the always-on rule.** Six proposals
-carried the rule. The five on prompts 1 and 3 all arrived split, against neither
-released proposal; the three on prompt 3, where no ritual was read, all split. None
-of the five removed anything. The one removal among the six was the candidate's
-prompt-2 drop, where the sizing arm applied. The two wordings tested produced no
-observable difference; the labelled variant alone questioned the plan as a whole,
-in one run. The shipped wording was a compression of the labelled variant and was
-never itself observed.
+**M-0356 AC-3 and M-0356 AC-4 — cancelled.** M-0356 AC-3 was cancelled when the
+rule was reworded, and M-0356 AC-4, which took its place, when the rule was cut. Six
+proposals carried the rule. The five on prompts 1 and 3 all arrived split, against
+neither released proposal; the three on prompt 3, where no ritual was read, all
+split. None of the five removed anything outright. The one removal among the six was
+the candidate's prompt-2 drop, where the sizing arm applied. The judgement wording
+and the goal-per-part wording produced no observable difference; the labelled
+variant of the goal-per-part wording alone questioned the plan as a whole, in one
+run. The shipped wording was a compression of the labelled variant and was never
+itself observed.
 
 **Limits.** One run per arm and prompt, none repeated, so the spread is unknown.
 Reads and the environment are self-reported. The released planning session never
@@ -267,10 +270,13 @@ opened the epic-planning ritual, which is why the third arm was needed.
 Every edit to the always-on rule — adding it, rewording it, removing it — touched
 the guidance fragment, the six frozen host-artifact inventories and the README
 section recording their exception; adding it also raised the fragment's line
-budget, and removing it restored it. No such edit can be undone with a plain revert:
-each rewrites and re-sorts the same inventory lines, so reverting one conflicts with
-any edit made after it, and the removal has to be rebuilt forward. Measured in the
-Linux development container on 2026-09-26.
+budget, and removing it restored it. None can be undone with a plain revert once a
+later edit exists. Simulated with `git merge-tree --write-tree --merge-base=C H C^`
+for each earlier edit C onto each later edit H, the revert conflicts in the fragment
+and the exception README, while the six inventories merge without conflict into a
+wrong result carrying two guidance records each. Only the baseline test, which
+compares the whole snapshot, catches that. Measured in the Linux development
+container on 2026-09-26.
 
 ### Gate results at wrap
 
