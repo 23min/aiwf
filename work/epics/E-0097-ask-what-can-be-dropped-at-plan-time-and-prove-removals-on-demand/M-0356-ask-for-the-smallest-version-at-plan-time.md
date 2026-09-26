@@ -128,6 +128,18 @@ references**: the clause lands in `internal/skills/embedded-guidance/aiwf-guidan
 
 ## Release note
 
+Two rules now ask what a plan could do without.
+
+The always-on guidance asks that a plan arrive with its cut list: offer the
+smallest version that solves the stated problem, say what the larger one adds and
+why each addition earns it, and name the parts you would drop first. *Nothing was
+droppable* is an answer; silence is not.
+
+The milestone-planning ritual's sizing rule gains a fourth arm — a candidate no
+success criterion requires is dropped, where before it could only be kept, split
+or folded into a sibling — and a gate that puts the cut list in front of you
+before any id is allocated, while a cut still costs nothing.
+
 ## Decisions made during implementation
 
 - (none)
@@ -253,6 +265,21 @@ experience that prompted this work, but five runs is a signal rather than a
 measurement. The released arm never opened the epic-planning ritual, which is why
 the original two-arm design could not have attributed anything to that step, and
 why a third arm was needed.
+
+### Gate results at wrap
+
+Run in the Linux development container on 2026-09-26, on the milestone branch at
+its final implementation commit.
+
+```
+go build ./...        → ok
+make check-fast       → exit 0; 73 packages ok
+aiwf check            → 0 errors, 1 warning
+```
+
+The warning is `provenance-untrailered-scope-undefined`: the branch has no
+upstream, so the provenance audit has no range to walk and declines rather than
+passing. It clears on push, or with `aiwf check --since` naming a ref.
 
 ### Measured — the cost of the guidance rule
 
