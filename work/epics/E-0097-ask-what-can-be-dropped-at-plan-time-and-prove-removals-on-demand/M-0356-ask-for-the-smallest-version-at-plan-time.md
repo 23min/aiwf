@@ -9,7 +9,7 @@ acs:
       title: plan-epic offers the smallest version and argues the delta
       status: cancelled
     - id: AC-2
-      title: plan-milestones drops an unrequired candidate before allocating its id
+      title: plan-milestones drops a candidate no success criterion requires
       status: met
     - id: AC-3
       title: A planning exchange invoking no ritual produces the cut list
@@ -56,7 +56,7 @@ lands in the embedded `aiwfx-plan-epic` ritual body; the record lands in this sp
 
 **Cancelled.** The step this criterion claims was removed after measurement showed it produced nothing the always-on rule did not; see `## Validation`.
 
-### AC-2 — plan-milestones drops an unrequired candidate before allocating its id
+### AC-2 — plan-milestones drops a candidate no success criterion requires
 
 `aiwfx-plan-milestones` drops a candidate not required by the epic's success
 criteria, and the drop happens before `aiwf add milestone` allocates an id for it.
