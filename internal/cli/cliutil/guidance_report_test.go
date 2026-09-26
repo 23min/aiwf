@@ -1,6 +1,7 @@
 package cliutil
 
 import (
+	"strings"
 	"testing"
 
 	"github.com/google/go-cmp/cmp"
@@ -61,5 +62,35 @@ func TestGuidanceReport(t *testing.T) {
 				t.Fatalf("report (-want +got):\n%s", diff)
 			}
 		})
+	}
+}
+
+// TestGuidanceReportHelp_NamesEveryLabel derives the labels from a report
+// carrying every optional line, so a label added to the report without help
+// fails here.
+func TestGuidanceReportHelp_NamesEveryLabel(t *testing.T) {
+	t.Parallel()
+	// Disabled maintenance suppresses the missing line, so two outcomes
+	// between them carry every optional line.
+	report := GuidanceReport(&initrepo.GuidanceOutcome{Disabled: true})
+	report = append(report, GuidanceReport(&initrepo.GuidanceOutcome{Selection: &[]string{"a/one"}, Pending: true, Blocker: "cause"})...)
+	labels := map[string]bool{}
+	for _, line := range report {
+		if !strings.HasPrefix(line, "  ") {
+			continue
+		}
+		label, _, found := strings.Cut(strings.TrimSpace(line), ":")
+		if strings.HasPrefix(line, "  maintenance disabled") {
+			label, found = "maintenance is disabled", true
+		}
+		labels[label] = true
+		if !found || !strings.Contains(GuidanceReportHelp, label) {
+			t.Errorf("help does not describe report line %q", line)
+		}
+	}
+	for _, label := range []string{"maintenance is disabled", "pending", "blocked", "missing"} {
+		if !labels[label] {
+			t.Errorf("fixture outcomes produce no %q line", label)
+		}
 	}
 }

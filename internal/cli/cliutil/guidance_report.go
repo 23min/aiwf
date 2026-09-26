@@ -7,6 +7,10 @@ import (
 	"github.com/23min/aiwf/internal/projectguidance"
 )
 
+// GuidanceReportHelp describes the guidance section for the help of the verbs
+// that print it.
+const GuidanceReportHelp = "The run ends with a Guidance section: selected (guidance.packs, or that it is unset or explicitly empty), adopted (packs this run added), installed (the installed packs and their source commit) and ignored, each shown as none when empty. When they apply, it adds that maintenance is disabled; pending (an interrupted installation); blocked (why installation did not complete and what clears it; other steps and the exit status are unaffected); and missing (a selected pack that is not installed, with its fix). aiwf doctor words these states the same way."
+
 // PrintGuidanceReport prints the guidance section that ends init and update.
 func PrintGuidanceReport(outcome *initrepo.GuidanceOutcome) {
 	for _, line := range GuidanceReport(outcome) {
