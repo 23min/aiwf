@@ -58,7 +58,7 @@ Every backticked repository-relative path cited in development guidance exists. 
 
 ### AC-5 — The ceiling constant reaches its target
 
-Both hosts' handwritten primed words, as defined by E-0092 and measured by M-0333's policy, pass at the ceiling M-0349 set for each host. Record each command and result, with the fragment's words, task-loaded text and personal/global text reported separately. A document required in full before any task counts as primed and cannot be excluded to meet the target.
+Both hosts' handwritten primed words, as defined by E-0092 and measured by M-0333's policy, pass at the ceiling M-0349 set for each host. Record each command and result, with the fragment's words reported separately; task-loaded and personal/global text are observed rather than measured, and M-0338 records them. A document required in full before any task counts as primed and cannot be excluded to meet the target.
 
 ## Constraints
 
