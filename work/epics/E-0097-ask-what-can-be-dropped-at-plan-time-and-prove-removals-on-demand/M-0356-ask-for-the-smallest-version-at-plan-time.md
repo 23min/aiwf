@@ -81,6 +81,18 @@ references**: the clause lands in `internal/skills/embedded-guidance/aiwf-guidan
 
 ### AC-4 — A planning exchange invoking no ritual drops what serves no goal
 
+A planning exchange that invokes no ritual names, for each thing its larger
+version adds, the goal that thing serves, and drops what serves none. **Pass
+criterion**: a recorded exchange in a session with the guidance installed and no
+planning skill invoked, where each addition carries the goal it serves and at
+least one that serves none is dropped rather than ranked or deferred to the
+reader; the record holds command, expectation, observation and environment,
+including the host and the installed guidance revision. **Edge cases**: a plan
+whose every part serves a stated goal, which says so rather than manufacturing a
+drop; a request for one change, which is not a plan and does not trigger the
+rule. **Code references**: the rule in
+`internal/skills/embedded-guidance/aiwf-guidance.md`.
+
 ## Constraints
 
 - The clause does not exceed the median length of the fragment's existing top-level
@@ -215,6 +227,21 @@ named and no ritual is invoked.
 Expected released: a plan arrives with no cut list.
 Expected candidate: the plan distinguishes the smallest version from what exceeds
 it, and names what it would drop.
+
+**Prompt 3 re-fixed for the reworded rule.** The rule this criterion observes was
+reshaped from a judgement into a test after the first round: it now asks which
+goal each added part serves and drops what serves none. The prompt text is
+unchanged. Only the candidate arm is re-run — the released arm carries no rule at
+all, so the rewording cannot change its behaviour, and its recorded output stands.
+
+Expected candidate: each thing beyond the smallest version carries the goal it
+serves, and something serving none is dropped outright rather than ranked for the
+reader to settle.
+
+Falsified by: a run that names goals but still hands every removal back as a
+ranking or a condition, which would mean the test wording changed the prose and
+not the disposition — the same outcome the first round measured, and grounds to
+conclude an always-on rule cannot do this job.
 
 **What would falsify each.** A candidate-arm run producing the expected shape only
 because the prompt asked for it; a released-arm run already producing it, which
