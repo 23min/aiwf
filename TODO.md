@@ -23,7 +23,6 @@ line saying what it is.
 
 ## Don't forget
 
-- initatives
 - any more tdd related?
 - Area skill perhaps too big?
 - Do we have anything in CLAUDE.md that really should belong in shipped surfaces?
@@ -34,7 +33,7 @@ line saying what it is.
   production — reachable only through conditions no BulkRevwalk flag produces.
   Annotated rather than deleted, deliberately; nothing tracks the choice
 
-## Next, in order (2026-09-17)
+## Next, in order (2026-09-26)
 
 Clusters 1–9 and 11 cover the *defect* surface; cluster 12 covers the machine the
 gates run on. Cluster 10 is the exception: absences in what the kernel can
@@ -43,16 +42,14 @@ Feature and enhancement gaps fit none and are not listed, at any priority — th
 filter is what the gap is, not how urgent it is. Each gap sits in exactly one
 cluster.
 
-In flight: **G-0681** and **G-0682**, both as patches. No active epic.
+In flight: **E-0092** — shrink the always-on guidance to one home per rule under a
+ceiling, the only work that addresses the restate-and-drift class rather than an
+instance of it. **E-0095** — adopt applicable guidance automatically on upgrade and
+update. **E-0097** — ask what can be dropped at plan time and prove removals on
+demand.
 
-Planned, not started: **E-0089** owns M-0318..M-0322 — make the legal-workflow table
-total and correct, per D-0077. **E-0092** owns M-0333..M-0339 — shrink the always-on
-guidance to one home per rule under a ceiling. E-0092 is the only planned work that
-addresses the restate-and-drift class rather than an instance of it; G-0636, G-0665,
-G-0680 and G-0682 are four instances, each fixed on its own surface.
-
-**E-0084** and **E-0091** closed and swept to archive, along with 18 other terminal
-entities. `aiwf check` reports no findings.
+Planned, not started: **E-0096** — one repo-only gate for everything aiwf ships to
+consumers.
 
 Cluster 1 is split three ways below, by the three shapes its own thesis already
 named. At 43 members it had stopped being one worklist.
@@ -110,15 +107,15 @@ The gate exists and runs; what it looks at stops short of where the defect is.
   `Co-Authored-By`, so the projection loses edits it owns
 - **G-0664** — `shipped-prose-assertion` misses an assertion whose shipped path is
   built inline rather than spelled
-- **G-0666** — a body line over 64 KB makes a whole section report as empty
 - **G-0671** — the changelog audit does not see a delta in a named kernel surface
 - **G-0675** — the section-set scan's corpus is hand-maintained, so it narrows in
   silence
-- **G-0684** — a path git quotes is invisible to the push gate
-- **G-0685** — the pre-push hook judges the checked-out branch, not the refs being
-  pushed
 - **G-0686** — a move the push makes outside one add-and-delete commit reads as a
   create
+- **G-0700** — a `Co-Authored-By` line directly under body prose is not a trailer to
+  git, so both refusal layers miss it
+- **G-0705** *(low)* — `BulkRevwalk` ends the walk silently at a `git log` line of
+  1 MiB or more and returns the records before it as the whole history
 
 #### 1b. A gate that fires on the wrong thing
 
@@ -210,10 +207,6 @@ neither reads what it says.
   shipped and Normative surfaces; only `CLAUDE.md` and the provenance model omit it.
   The body's "undocumented" premise is dead — it is an instance of this cluster, not
   a report of one
-- **G-0631** *(high)* — the legal-workflow spec declares every terminal-state
-  `promote` illegal while the kernel returns a NoOp at exit 0. The cell key carries
-  no target, so one cell covers both. Owned by E-0089's M-0318, which changes the
-  key rather than correcting the fifteen cells
 - **G-0632** — a verb's long help can contradict its behaviour with nothing catching
   it; the help text is the surface a reader trusts before they run anything
 - **G-0643** — `aiwfx-whiteboard` calls an operator ordering file uncommitted; this
@@ -221,7 +214,12 @@ neither reads what it says.
 - **G-0667** — `aiwf import` is deprecated but every surface presents it as current
 - **G-0668** — measured figures carry no command, and cluster in the records that
   never forget
-- **G-0681** — shipped surfaces spell an `aiwf add` invocation that exits 2
+- **G-0701** — `README.md` lists the hooks `init` and `update` install and omits
+  `commit-msg`
+- **G-0702** — the `aiwf.yaml` table in `design-decisions.md` marks `aiwf_version`
+  required; the loader accepts a config without it
+- **G-0706** — the provenance docs and skills give two rules for an unscoped
+  non-human actor carrying a principal; the kernel refuses the combination
 
 
 ### 3. Oracles — what tells the builder it is wrong *(design first)*
@@ -294,6 +292,8 @@ in is any good. Vocabulary in `docs/design/oracles.md`; initiative context in
   `tdd-cycle-subagent-boundaries.md` and
   `milestone-preflight-as-independent-review.md` before reopening *(unfiled)*
 - **G-0662** — `wf-patch`'s review asks none of the five shape questions the wrap asks
+- **G-0697** — `wf-vacuity` has no probe for an expectation computed by the code under
+  test, which moves with the implementation and cannot fail
 
 
 ### 4. Cheap fixes, batchable now
@@ -301,12 +301,10 @@ in is any good. Vocabulary in `docs/design/oracles.md`; initiative context in
 Small and design-free down to the rule, which is where the two that pose a decision
 begin.
 
-- **G-0464** — three check predicates treat a `deferred` AC as still in scope
+- **G-0696** — three AC progress rollups count a `deferred` AC in scope forever — the
+  rollup half of what G-0464 fixed for the check predicates
 - **G-0502** — an *uninitialized* submodule under a moved directory is stranded; a
   checked-out one refuses at exit 3 instead
-- **G-0510** — the `enums:ignore` escape accepts three spellings that aren't the
-  directive. The census it defers to is empty, so the tightening is
-  behaviour-preserving
 - **G-0513** — the archive sweep reports "converged" when a candidate won't parse
 - **G-0477** *(low)* — a boundary guard that can never be false, under a comment
   describing the rejection the guard above it already performs
@@ -334,7 +332,6 @@ trailers.
   rest as consistency gaps rather than friction
 - **G-0471** *(high)* — nothing catches a verb run by a binary older than the source
 - **G-0500** *(high)* — `edit-body` over a hand-moved file lands a duplicate id the local check misses
-- **G-0501** *(high)* — `init` / `update` replace a symlinked `CLAUDE.md` with a frozen copy
 - **G-0442** — `addressed_by` / `superseded_by` can be backfilled and force-re-pointed
   but never *cleared*, and a forced re-point leaves a stale reciprocal that
   `adr-supersession-mutual` structurally cannot see
@@ -375,8 +372,6 @@ reason strings, and G-0461 has no entry and correctly never will.
 - **G-0460** *(high)* — a repeat `authorize` leaves two active scopes and no finding
 - **G-0459** — five event-shaped verbs append a duplicate record on an identical re-run
 - **G-0461** — a composite `--for-entity` ack suppresses nothing
-- **G-0458** — same-phase AC promote refuses where every other verb either converges
-  or silently duplicates
 
 ### 7. What aiwf ships — does it arrive, stay current, and bind?
 
@@ -419,9 +414,6 @@ silently goes stale, or it cannot be enforced at all.
 - **G-0538** — aiwf-internal ids reach a consumer through Go string literals in
   operator-facing output; the persisted-artifact half is already fixed, so only the
   printed surface still leaks
-- **G-0254** — the `Co-Authored-By` trailer convention is unstated and unenforced. Its
-  proposed home is a check rule CI never runs — CI has never run `aiwf check` at all,
-  which is G-0536 two entries above
 - **G-0445** *(low)* — the diff-shape gate hardcodes a `docs/` exclusion that is wrong
   for some consumer repos
 - **G-0235** — down to two unbuilt policy tests, `cited_entity_ids_resolve` and
@@ -434,6 +426,10 @@ silently goes stale, or it cannot be enforced at all.
   spec
 - **G-0688** — `aiwfx-wrap-epic` step 5 never fast-forwards local main when a worktree
   holds it
+- **G-0698** — `aiwfx-plan-epic` and `aiwfx-plan-milestones` still route planning
+  through a ritual branch and merge, contrary to D-0073
+- **G-0709** — `init`, `update` and `add --body-file -` wait on stdin for a person
+  while holding the repo lock; G-0708 fixed only the unattended-update case
 
 
 ### 8. Error contract *(parallel any time)*
@@ -457,6 +453,8 @@ exit-2/exit-3 boundary, which D-0044 already ratified a three-class contract for
 - **G-0649** — a sovereign-act refusal carries no finding code, so the spec cannot
   bind it
 - **G-0687** — `acknowledge illegal --for-entity` refuses a merge commit
+- **G-0704** *(medium)* — `aiwf check` refuses a non-UTF-8 or multi-document
+  `aiwf.yaml` and reports it as an editing failure
 
 
 ### 9. Duplication and the instrument that measures it *(any order)*
@@ -486,7 +484,6 @@ inventory question is the one that stands on its own.
 - **G-0659** — a review finding is recorded twice, and the spec copy is the one that
   drifts
 - **G-0672** — two policies duplicate the git range scan over a commit range
-- **G-0682** — rituals restate body rules the templates own, and have already drifted
 
 
 ### 10. What the model can't express *(each gated on a decision)*
@@ -509,9 +506,8 @@ only in someone's head.
   prose. `aiwf promote` cannot see it and render cannot draw it
 - **G-0311** *(high)* — no tier above epic, and since areas landed an epic is an
   area-atom, so cross-cutting work splits into peer epics that cannot even be wired,
-  since epics carry no `depends_on`. `docs/initiatives/` is the in-tree workaround
-  and is now twelve files deep. The body's sibling-project evidence is external and
-  unverifiable from here
+  since epics carry no `depends_on`. `docs/initiatives/` is the in-tree workaround.
+  The body's sibling-project evidence is external and unverifiable from here
 - **G-0111** *(high)* — the wrap side of the epic ritual: scope-end bundled into
   `promote done` and no human-only rule on `done`, both measured. The closure
   mechanism shipped in 2026-07 as G-0431, so only the declarative `closes:` field is
@@ -526,19 +522,15 @@ only in someone's head.
 ### 11. Doc drift *(whenever)*
 
 Mostly citations that no longer resolve — cheap and isolated. Three members are
-not that: G-0439 is a behavioural mover gap with an ADR collision and a milestone
-in flight, and G-0519 and G-0548 are missing chokepoints rather than stale text.
+not that: G-0439 is a behavioural mover gap with an ADR collision, and G-0519 and
+G-0548 are missing chokepoints rather than stale text.
 
 - **G-0412** — coverage-ignore rationale text is inaccurate across several files
 - **G-0414** — stale test naming in a real-binary test
-- **G-0417** — dead branch-not-found code and stale spec-table rows. Owned by
-  E-0089's M-0319, which sweeps them while moving `authorize` into the same file
 - **G-0436** — `CLAUDE.md` cites two dead `cmd/aiwf/` things; the id-allocation half
   was repointed in 2026-07 when G-0443 closed
 - **G-0439** — relocation and archive sweeps skip references outside their own scope.
-  Live right now: an archive sweep on 2026-08-22 broke three `docs/initiatives/`
-  links and `link-check` has been red on `main` ever since. Its leading resolution
-  is what ADR-0033 declines
+  Its leading resolution is what ADR-0033 declines
 - **G-0444** — the id-allocation doc cites renamed functions
 - **G-0517** — narrow ids remain in the design docs, overview and architecture — but
   none is a *citation*; they are worked-example fiction, so the fix is to
@@ -552,12 +544,15 @@ in flight, and G-0519 and G-0548 are missing chokepoints rather than stale text.
 - **G-0478** *(high)* — an entity move breaks every path-based link naming its old
   location. `link-check` and `wf-doc-lint` do report it, so the absence is a *verb-side*
   repair, not detection — and the detection route the body prefers is what ADR-0033
-  declines. E-0088 scopes the `docs/` half out deliberately; its last milestone
-  re-frames or confirms this, and carries this gap's stale counts
+  declines. E-0088 scoped the `docs/` half out deliberately, and M-0317's review
+  re-framed the body
 - **G-0579** — D-0015's consequences cite a drift guard that no longer exists
 - **G-0651** — backticked prose in a flag usage string renders as its value
   placeholder
-- **G-0674** — the `--principal` flag's help text cites an internal iteration label
+- **G-0716** — the quality-signal initiative describes G-0110 by the new-file premise
+  G-0110 now records as false
+- **G-0717** — the same initiative credits `oracles.md` with *depth*, *reach* and
+  *specificity*, which that file has never defined
 
 
 ### 12. Development environment — the machine the gates run on
@@ -586,4 +581,6 @@ review cycles, and a green run on a nearly-full disk is not evidence either way.
 - **G-0645** — shared test-binary temp dirs are never removed, leaking ~23G to /tmp
 - **G-0654** — `make build` emits a `bin/aiwf` that gets reached for instead of the
   release
+- **G-0699** — Codex devcontainer rebuild persistence has no rebuilt-container
+  observation; M-0343 recorded only the pre-rebuild baseline
 
