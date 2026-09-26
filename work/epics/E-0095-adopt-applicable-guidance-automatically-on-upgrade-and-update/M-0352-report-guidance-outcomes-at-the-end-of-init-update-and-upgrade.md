@@ -98,11 +98,17 @@ Guidance outcomes surface today as one step-ledger line whose wording ("no proje
 
 ## Release note
 
+- `aiwf init`, `aiwf update` and `aiwf upgrade` now end with a `Guidance:` section: the selection (or that it is unset or explicitly empty), the packs adopted in this run, the installed packs with their source commit, and the ignored packs. When they apply it adds that maintenance is disabled, a `pending:` line for an interrupted installation, a `blocked:` line naming why installation did not complete and what clears it, and a `missing:` line for each selected pack that is not installed. A blocked installation still leaves the exit status and the other steps unchanged.
+- `aiwf doctor` warns about each selected guidance pack its installed index does not list, and words guidance state as the report does.
+- Guidance refusals for an unreadable source catalogue or pack document, a source with no commit, and unreadable personal-instruction paths now name the action that clears them.
+
 ## Decisions made during implementation
 
-- (none)
+- None recorded as entities. M-0352/AC-2 covers the four blocker classes it names; the remaining fix-less installer errors are deferred to G-0714.
 
 ## Validation
+
+`make ci` at `78e63ecb9` on the E-0095 milestone branch, in the Linux devcontainer: exit 0. golangci-lint `0 issues.`; `go test -race` passed; total statement coverage `91.9%`; the diff-scoped coverage gate and policy suite passed; `./bin/aiwf doctor --self-check` reported `self-check passed (29 steps).`; `aiwf check` reported `0 errors, 10 warnings`, none on M-0352.
 
 ## Deferrals
 
