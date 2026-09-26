@@ -9,6 +9,7 @@ import (
 	"os/exec"
 	"path/filepath"
 	"strings"
+	"syscall"
 	"time"
 )
 
@@ -68,7 +69,7 @@ func CheckCompatibility(ctx context.Context) error {
 	for _, launcher := range launchers {
 		if _, err := os.Lstat(launcher); err == nil {
 			return missingChecker(launcher)
-		} else if !errors.Is(err, fs.ErrNotExist) {
+		} else if !absent(err) {
 			return fmt.Errorf("%w: cannot inspect %s; repair its permissions, then retry: %w", ErrIncompatibleDelivery, launcher, err)
 		}
 	}
@@ -81,7 +82,7 @@ func missingChecker(path string) error {
 
 func compatibilityInstructions(path string) ([]byte, error) {
 	info, err := os.Lstat(path)
-	if errors.Is(err, fs.ErrNotExist) {
+	if absent(err) {
 		return nil, nil
 	}
 	if err != nil {
@@ -101,4 +102,10 @@ func compatibilityInstructions(path string) ([]byte, error) {
 		return nil, fmt.Errorf("%w: cannot read %s; reconcile personal instructions: %w", ErrIncompatibleDelivery, path, err)
 	}
 	return content, nil
+}
+
+// absent reports a path that cannot exist: it is missing, or a file stands
+// where one of its parent directories should be.
+func absent(err error) bool {
+	return errors.Is(err, fs.ErrNotExist) || errors.Is(err, syscall.ENOTDIR)
 }

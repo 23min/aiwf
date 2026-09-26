@@ -48,7 +48,7 @@ func TestCheckCompatibility_InspectsInstalledChecker(t *testing.T) {
 }
 
 func TestCheckCompatibility_MissingCheckerDetectsLegacyDelivery(t *testing.T) {
-	for _, kind := range []string{"absent", "unrelated personal", "claude", "codex", "override", "empty override", "home launcher", "path launcher", "unreadable", "broken link", "directory", "linked instructions", "linked personal", "custom Codex profile", "override precedence", "default profiles", "missing home", "unsearchable directory", "unsearchable launcher directory"} {
+	for _, kind := range []string{"absent", "unrelated personal", "claude", "codex", "override", "empty override", "home launcher", "path launcher", "unreadable", "broken link", "directory", "linked instructions", "linked personal", "custom Codex profile", "override precedence", "default profiles", "missing home", "unsearchable directory", "unsearchable launcher directory", "file as profile directory", "file on PATH"} {
 		t.Run(kind, func(t *testing.T) {
 			bin := testsupport.IsolateGuidanceEnvironment(t)
 			home := os.Getenv("HOME")
@@ -93,6 +93,14 @@ func TestCheckCompatibility_MissingCheckerDetectsLegacyDelivery(t *testing.T) {
 				}
 			case "missing home":
 				t.Setenv("HOME", "")
+			case "file as profile directory":
+				// No instruction file can exist below a regular file.
+				write(t, home, "codex-file", "not a directory")
+				t.Setenv("CODEX_HOME", filepath.Join(home, "codex-file"))
+			case "file on PATH":
+				// No launcher can exist below a regular file.
+				write(t, home, "path-file", "not a directory")
+				t.Setenv("PATH", os.Getenv("PATH")+string(os.PathListSeparator)+filepath.Join(home, "path-file"))
 			case "directory":
 				if err := os.MkdirAll(filepath.Join(home, ".claude", "CLAUDE.md"), 0o755); err != nil {
 					t.Fatal(err)
@@ -127,7 +135,7 @@ func TestCheckCompatibility_MissingCheckerDetectsLegacyDelivery(t *testing.T) {
 				}
 			}
 			err := CheckCompatibility(t.Context())
-			allowed := kind == "absent" || kind == "unrelated personal" || kind == "override precedence" || kind == "linked personal"
+			allowed := kind == "absent" || kind == "unrelated personal" || kind == "override precedence" || kind == "linked personal" || kind == "file as profile directory" || kind == "file on PATH"
 			if allowed && err != nil {
 				t.Fatal(err)
 			}
