@@ -46,7 +46,7 @@ func NewCmd() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "update",
 		Short: "Refresh framework artifacts for selected hosts and core Git hooks",
-		Long:  "Refresh selected-host skills, templates, supported agents, and guidance, plus core aiwf artifacts and Git hooks. Existing unselected host artifacts are retained. With guidance maintenance enabled, download the guidance source default branch, add every applicable pack not listed in guidance.ignored to guidance.packs without prompting, and refresh tracked .guidance files and selected-host routing. A pack is recorded only once it is installed, and a selected pack is never removed automatically; move its id from guidance.packs to guidance.ignored to retire it, or list an id there to keep it out. A selected pack the catalogue no longer lists is reported and its unmodified files are retired. guidance.enabled: false stops the download. --no-prompt leaves undecided hooks unchanged instead of prompting, even on a terminal. Local edits require reconciliation; rerun update to finish an interrupted installation. This command never commits or pushes." + cliutil.HostSetupHelp,
+		Long:  "Refresh selected-host skills, templates, supported agents, and guidance, plus core aiwf artifacts and Git hooks. Existing unselected host artifacts are retained. With guidance maintenance enabled, download the guidance source default branch, add every applicable pack not listed in guidance.ignored to guidance.packs without prompting, and refresh tracked .guidance files and selected-host routing. A pack is recorded only once it is installed, and a selected pack is never removed automatically; move its id from guidance.packs to guidance.ignored to retire it, or list an id there to keep it out. A selected pack the catalogue no longer lists is reported and its unmodified files are retired. guidance.enabled: false stops the download. --no-prompt leaves undecided hooks unchanged instead of prompting, even on a terminal. Local edits require reconciliation; rerun update to finish an interrupted installation. " + cliutil.GuidanceReportHelp + " This command never commits or pushes." + cliutil.HostSetupHelp,
 		Example: `  # Refresh skills + hooks against the current binary version
   aiwf update
 
@@ -132,6 +132,11 @@ func Run(root string, statusline bool, scope string, wireSettings, allowUntagged
 		StatusMdAutoUpdate: cfg.StatusMdAutoUpdate(),
 		WireClaudeMd:       cfg.WireClaudeMd(),
 	})
+	if refresh != nil {
+		// Guidance may already have adopted and recorded packs, so every
+		// exit after the refresh, failed or not, ends with its report.
+		defer cliutil.PrintGuidanceReport(refresh.Guidance)
+	}
 	if err != nil {
 		cliutil.Errorf("aiwf update: %v\n", err)
 		if errors.Is(err, initrepo.ErrClaudeUnselected) {
@@ -177,10 +182,10 @@ func Run(root string, statusline bool, scope string, wireSettings, allowUntagged
 	cliutil.Println("\naiwf update: done.")
 
 	if len(hooks) > 0 {
-		if rc := gateAndSyncHookDecisions(rootDir, hooks, enableHooks, noPrompt); rc != cliutil.ExitOK { //coverage:ignore gateAndSyncHookDecisions's own failure paths are unit-tested directly (TestGateAndSyncHookDecisions_MissingAiwfYamlReturnsInternal, TestGateAndSyncHookDecisions_UnknownFieldInExistingHooksBlockReturnsInternal); triggering one from here would require config.Load (already run above) to succeed while aiwfyaml.Read on the same path fails, which its own contract precludes
+		if rc := gateAndSyncHookDecisions(rootDir, hooks, enableHooks, noPrompt); rc != cliutil.ExitOK {
 			return rc
 		}
-		if rc := cliutil.SyncHookMaterialization(rootDir, skills.ClaudeTarget, hooks); rc != cliutil.ExitOK { //coverage:ignore SyncHookMaterialization's own failure paths are unit-tested directly against the function itself; triggering one from here would require the aiwf.yaml gateAndSyncHookDecisions just wrote successfully to become unreadable before this call, which its own contract precludes
+		if rc := cliutil.SyncHookMaterialization(rootDir, skills.ClaudeTarget, hooks); rc != cliutil.ExitOK {
 			return rc
 		}
 	}

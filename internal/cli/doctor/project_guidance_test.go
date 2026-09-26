@@ -40,7 +40,7 @@ func TestDoctor_ProjectGuidanceReportsInstalledRevisionLocally(t *testing.T) {
 
 func TestDoctor_ProjectGuidanceStateAndWarnings(t *testing.T) {
 	t.Parallel()
-	for _, kind := range []string{"unset", "empty", "disabled", "not installed", "corrupt", "pending", "missing document", "selected claude", "selected codex", "unselected claude", "unselected codex", "opted out claude", "opted out codex"} {
+	for _, kind := range []string{"unset", "empty", "disabled", "not installed", "selected pack not installed", "corrupt", "pending", "missing document", "selected claude", "selected codex", "unselected claude", "unselected codex", "opted out claude", "opted out codex"} {
 		t.Run(kind, func(t *testing.T) {
 			t.Parallel()
 			root := t.TempDir()
@@ -60,9 +60,15 @@ func TestDoctor_ProjectGuidanceStateAndWarnings(t *testing.T) {
 			case "disabled":
 				disabled := false
 				cfg.Guidance.Enabled = &disabled
+				// A selected pack the index lacks draws no warning while disabled.
+				packs = append(packs, "gone/pack")
 				want = "maintenance disabled"
 			case "not installed":
 				path = ".guidance/index.md"
+			case "selected pack not installed":
+				// The installed index routes sample/base but not the second pack.
+				packs = append(packs, "gone/pack")
+				path = "guidance.packs"
 			case "corrupt":
 				path = ".guidance"
 			case "pending":
@@ -87,11 +93,15 @@ func TestDoctor_ProjectGuidanceStateAndWarnings(t *testing.T) {
 			}
 			if kind != "unset" && kind != "not installed" {
 				source := testsupport.GuidanceSource(t)
-				snapshot, err := projectguidance.Retrieve(t.Context(), source, packs)
+				installed := packs
+				if kind == "selected pack not installed" || kind == "disabled" {
+					installed = packs[:1]
+				}
+				snapshot, err := projectguidance.Retrieve(t.Context(), source, installed)
 				if err != nil {
 					t.Fatal(err)
 				}
-				if _, err = projectguidance.Install(t.Context(), root, snapshot, projectguidance.InstallOptions{Source: source, Selected: packs, HostFiles: []string{"AGENTS.md", "CLAUDE.md"}}); err != nil {
+				if _, err = projectguidance.Install(t.Context(), root, snapshot, projectguidance.InstallOptions{Source: source, Selected: installed, HostFiles: []string{"AGENTS.md", "CLAUDE.md"}}); err != nil {
 					t.Fatal(err)
 				}
 			}

@@ -9,19 +9,24 @@ tdd: required
 acs:
     - id: AC-1
       title: Update ends with a guidance section of adopted, installed and ignored packs
-      status: open
+      status: met
+      tdd_phase: done
     - id: AC-2
       title: Blocked installation is reported with its cause and fix
-      status: open
+      status: met
+      tdd_phase: done
     - id: AC-3
       title: Report and doctor word guidance state identically
-      status: open
+      status: met
+      tdd_phase: done
     - id: AC-4
       title: Init ends with the same guidance section as update
-      status: open
+      status: met
+      tdd_phase: done
     - id: AC-5
       title: Upgrade output carries the guidance section
-      status: open
+      status: met
+      tdd_phase: done
 ---
 ## Goal
 
@@ -61,7 +66,7 @@ Guidance outcomes surface today as one step-ledger line whose wording ("no proje
 
 - The report and `aiwf doctor` derive their guidance-state wording from one shared source.
 - The report is plain text on stdout in the verbs' existing output style; no new output format.
-- Every blocker named in the report carries the action that clears it.
+- Every blocker of the four classes M-0352/AC-2 names carries the action that clears it; the other installer errors are tracked in G-0714.
 
 ## Design notes
 
@@ -79,7 +84,8 @@ Guidance outcomes surface today as one step-ledger line whose wording ("no proje
 ## Out of scope
 
 - `--format=json` output for `update`.
-- Changing what `aiwf doctor` checks, as opposed to how it words guidance state.
+- A guidance section for `aiwf init --dry-run`, which changes nothing.
+- Changing what `aiwf doctor` checks, beyond the per-pack not-installed warning M-0352/AC-3 requires.
 
 ## Dependencies
 
@@ -93,16 +99,33 @@ Guidance outcomes surface today as one step-ledger line whose wording ("no proje
 
 ## Release note
 
+- `aiwf init` and `aiwf update` now end with a `Guidance:` section, including runs that stop on a hook-chain collision or a later error, and so does `aiwf upgrade` when it installs a release and re-executes update; `aiwf init --dry-run` prints none. It lists the selection (or that it is unset or explicitly empty), the packs adopted and recorded in this run, the installed packs with their source commit (or that they are unknown when the installed index is not intact, or why installed guidance cannot be read), and the ignored packs. When they apply it adds that maintenance is disabled, a `pending:` line for an interrupted installation, a `blocked:` line naming why guidance was not fully installed and recorded and, where the installer names one, the action that clears it, and, while maintenance is enabled, a `missing:` line with its fix for each selected pack an intact installed index does not list. A blocked installation leaves the exit status and the other steps unchanged.
+- While guidance maintenance is enabled, `aiwf doctor` warns about each selected guidance pack an intact installed index does not list, and it words the selection, disabled maintenance, a pending installation and missing packs as the report does.
+- Guidance refusals for an unreadable source catalogue or pack document, a source with no commit, and unreadable personal-instruction paths now name the action that clears them. A regular file on `PATH`, or at `CODEX_HOME` or `CLAUDE_CONFIG_DIR`, no longer blocks guidance as a suspected legacy delivery.
+
 ## Decisions made during implementation
 
-- (none)
+- None recorded as entities; Constraints and Out of scope above state the scope edges the work settled.
+- The legacy-delivery check treats a path that fails with "not a directory" as absent, since no instruction file or launcher can exist below a regular file; a regular file on `PATH` or at a profile directory therefore no longer blocks guidance.
 
 ## Validation
 
+`make ci` at `3d67d75b8` on the M-0352 milestone branch, in the Linux devcontainer: exit 0. golangci-lint `0 issues.`; `go test -race` passed; total statement coverage `91.9%`; the diff-scoped coverage gate and policy suite passed; `./bin/aiwf doctor --self-check` reported `self-check passed (29 steps).`; `aiwf check` reported `0 errors, 10 warnings`, none on M-0352.
+
 ## Deferrals
 
-- (none)
+- G-0714 — installer errors for corrupt records and file-system faults print on the `blocked:` line without an action; M-0352/AC-2 covers the four blocker classes it names.
+- G-0718 — the `pending:` advice names a rerun that disabled maintenance cannot finish.
+- G-0719 — with nothing installed, doctor says the installed revision is unknown where the report says none.
+- G-0720 — the `internal/cli/initcmd` and `internal/cli/update` tests run init and update against the real HOME and PATH.
+- G-0721 — the legacy-delivery check advises repairing permissions for `lstat` failures that are not permission faults, such as a symbolic-link loop on PATH.
 
 ## Reviewer notes
 
-- (none)
+- The `missing:` line uses the wording `aiwf doctor` prints, which names both remedies (drop or ignore a pack the catalogue no longer lists, otherwise rerun update) because doctor cannot tell those cases apart offline; the report keeps it so both verbs agree, although the update run knows which case applies.
+- The step ledger keeps the full blocker in its detail alongside the report's `blocked:` line; existing ledger consumers and tests read it there.
+- While the installed index still lists a pack the catalogue no longer has, a blocked adopting run states that only in the step ledger; the section's `missing:` line is derived from the installed index, which a blocked run leaves as it was.
+- `aiwf upgrade --help` describes the section the re-executed update prints, which is the target release's behaviour.
+- `TestBinary_UpgradeOutputEndsWithTheGuidanceSection` is M-0352/AC-5's evidence that upgrade output carries the section, kept although the update and init tests cover the report paths it composes.
+- One test pins that a failure after the guidance step still returns the guidance outcome; the other `failed(err)` returns in `refreshArtifacts` go through the same helper and are not pinned one by one.
+- Deciding review over `a6645bb41..dc81d7569`: approve, with no blocking findings; its one test gap (the selection a blocked first adoption reports) is pinned in `TestRun_GuidanceReportNamesBlockerAndFix`.

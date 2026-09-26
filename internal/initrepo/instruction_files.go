@@ -10,8 +10,14 @@ import (
 )
 
 type instructionFileState struct {
-	info    fs.FileInfo
+	info fs.FileInfo
+	// refusal names why guidance cannot be written here and how to clear it.
 	refusal string
+}
+
+// incomplete is the step detail for a refused instruction file.
+func (s instructionFileState) incomplete() string {
+	return "guidance incomplete: " + s.refusal
 }
 
 type instructionFiles struct {
@@ -47,7 +53,7 @@ func inspectInstructionFiles(ctx context.Context, root string) (instructionFiles
 			if info.Mode()&os.ModeSymlink != 0 {
 				condition = "a symlink"
 			}
-			states[i].refusal = fmt.Sprintf("guidance incomplete: %s is %s; left untouched; %s", name, condition, remediation)
+			states[i].refusal = fmt.Sprintf("%s is %s; left untouched; %s", name, condition, remediation)
 		}
 	}
 	resolved := [2]fs.FileInfo{files.claude.info, files.agents.info}
@@ -57,7 +63,7 @@ func inspectInstructionFiles(ctx context.Context, root string) (instructionFiles
 		}
 		info, err := os.Stat(filepath.Join(root, name))
 		if err != nil {
-			detail := fmt.Sprintf("guidance incomplete: alias check for CLAUDE.md and AGENTS.md cannot inspect the target of the %s symlink (%v); both left untouched; %s", name, err, remediation)
+			detail := fmt.Sprintf("alias check for CLAUDE.md and AGENTS.md cannot inspect the target of the %s symlink (%v); both left untouched; %s", name, err, remediation)
 			files.claude.refusal = detail
 			files.agents.refusal = detail
 			return files, nil
@@ -65,7 +71,7 @@ func inspectInstructionFiles(ctx context.Context, root string) (instructionFiles
 		resolved[i] = info
 	}
 	if resolved[0] != nil && resolved[1] != nil && os.SameFile(resolved[0], resolved[1]) {
-		detail := "guidance incomplete: CLAUDE.md and AGENTS.md alias the same underlying file; both left untouched; " + remediation
+		detail := "CLAUDE.md and AGENTS.md alias the same underlying file; both left untouched; " + remediation
 		files.claude.refusal = detail
 		files.agents.refusal = detail
 	}

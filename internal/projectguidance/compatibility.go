@@ -9,6 +9,7 @@ import (
 	"os/exec"
 	"path/filepath"
 	"strings"
+	"syscall"
 	"time"
 )
 
@@ -34,7 +35,7 @@ func CheckCompatibility(ctx context.Context) error {
 	}
 	home, err := os.UserHomeDir()
 	if err != nil {
-		return fmt.Errorf("%w: cannot locate personal instructions: %w", ErrIncompatibleDelivery, err)
+		return fmt.Errorf("%w: cannot locate personal instructions; set HOME, then retry: %w", ErrIncompatibleDelivery, err)
 	}
 	claude, codex := os.Getenv("CLAUDE_CONFIG_DIR"), os.Getenv("CODEX_HOME")
 	if claude == "" {
@@ -68,8 +69,8 @@ func CheckCompatibility(ctx context.Context) error {
 	for _, launcher := range launchers {
 		if _, err := os.Lstat(launcher); err == nil {
 			return missingChecker(launcher)
-		} else if !errors.Is(err, fs.ErrNotExist) {
-			return fmt.Errorf("%w: cannot inspect %s: %w", ErrIncompatibleDelivery, launcher, err)
+		} else if !absent(err) {
+			return fmt.Errorf("%w: cannot inspect %s; repair its permissions, then retry: %w", ErrIncompatibleDelivery, launcher, err)
 		}
 	}
 	return nil
@@ -81,24 +82,30 @@ func missingChecker(path string) error {
 
 func compatibilityInstructions(path string) ([]byte, error) {
 	info, err := os.Lstat(path)
-	if errors.Is(err, fs.ErrNotExist) {
+	if absent(err) {
 		return nil, nil
 	}
 	if err != nil {
-		return nil, fmt.Errorf("%w: cannot inspect %s: %w", ErrIncompatibleDelivery, path, err)
+		return nil, fmt.Errorf("%w: cannot inspect %s; repair its permissions, then retry: %w", ErrIncompatibleDelivery, path, err)
 	}
 	if info.Mode()&os.ModeSymlink != 0 {
 		info, err = os.Stat(path)
 		if err != nil {
-			return nil, fmt.Errorf("%w: cannot resolve %s: %w", ErrIncompatibleDelivery, path, err)
+			return nil, fmt.Errorf("%w: cannot resolve %s; repair or remove the link, then retry: %w", ErrIncompatibleDelivery, path, err)
 		}
 	}
 	if !info.Mode().IsRegular() {
-		return nil, fmt.Errorf("%w: %s is not a regular instruction file", ErrIncompatibleDelivery, path)
+		return nil, fmt.Errorf("%w: %s is not a regular instruction file; replace it with a regular file, then retry", ErrIncompatibleDelivery, path)
 	}
 	content, err := os.ReadFile(path)
 	if err != nil {
 		return nil, fmt.Errorf("%w: cannot read %s; reconcile personal instructions: %w", ErrIncompatibleDelivery, path, err)
 	}
 	return content, nil
+}
+
+// absent reports a path that cannot exist: it is missing, or a file stands
+// where one of its parent directories should be.
+func absent(err error) bool {
+	return errors.Is(err, fs.ErrNotExist) || errors.Is(err, syscall.ENOTDIR)
 }

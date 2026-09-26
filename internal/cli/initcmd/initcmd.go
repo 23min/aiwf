@@ -43,7 +43,7 @@ func NewCmd() *cobra.Command {
 		Short: "One-time setup: aiwf.yaml, scaffolding, skills, pre-push hook",
 		Long: `One-time setup: writes aiwf.yaml, scaffolds entity directories, materializes skills, appends to .gitignore, wires selected host guidance, and installs the pre-push hook.
 
-Safe to re-run: init refreshes derived artifacts and preserves user-owned content. Existing aiwf.yaml is preserved apart from legacy-key cleanup, hook consent, and adopted guidance packs. With guidance maintenance enabled, init installs every applicable pack not listed in guidance.ignored and records it in guidance.packs, without prompting. Host hooks and statusline setup retain their separate consent rules. Existing user Git hooks are chained through .local files; collisions require manual resolution.` + cliutil.HostSetupHelp,
+Safe to re-run: init refreshes derived artifacts and preserves user-owned content. Existing aiwf.yaml is preserved apart from legacy-key cleanup, hook consent, and adopted guidance packs. With guidance maintenance enabled, init installs every applicable pack not listed in guidance.ignored and records it in guidance.packs, without prompting. Host hooks and statusline setup retain their separate consent rules. Existing user Git hooks are chained through .local files; collisions require manual resolution. ` + cliutil.GuidanceReportHelp + " A dry run prints no guidance section." + cliutil.HostSetupHelp,
 		Example: `  # Scaffold a fresh consumer repo (run once)
   aiwf init
 
@@ -119,6 +119,11 @@ func Run(root, actor string, dryRun, skipHook, statusline bool, scope string, wi
 		DryRun:        dryRun,
 		SkipHook:      skipHook,
 	})
+	if res != nil {
+		// Guidance may already have adopted and recorded packs, so every
+		// exit after init, failed or not, ends with its report.
+		defer cliutil.PrintGuidanceReport(res.Guidance)
+	}
 	if err != nil {
 		cliutil.Errorf("aiwf init: %v\n", err)
 		if errors.Is(err, initrepo.ErrClaudeUnselected) {
@@ -172,10 +177,10 @@ func Run(root, actor string, dryRun, skipHook, statusline bool, scope string, wi
 
 	if claudeSelected && len(hooks) > 0 {
 		if !dryRun {
-			if rc := gateAndPersistHookDecisions(rootDir, hooks, enableHooks, noPrompt); rc != cliutil.ExitOK { //coverage:ignore gateAndPersistHookDecisions's own failure paths are unit-tested directly (TestGateAndPersistHookDecisions_MissingAiwfYamlReturnsInternal); triggering one from here would require initrepo.Init to report success while leaving no readable aiwf.yaml, which its own contract precludes
+			if rc := gateAndPersistHookDecisions(rootDir, hooks, enableHooks, noPrompt); rc != cliutil.ExitOK {
 				return rc
 			}
-			if rc := cliutil.SyncHookMaterialization(rootDir, skills.ClaudeTarget, hooks); rc != cliutil.ExitOK { //coverage:ignore SyncHookMaterialization's own failure paths are unit-tested directly against the function itself; triggering one from here would require the aiwf.yaml gateAndPersistHookDecisions just wrote successfully to become unreadable before this call, which its own contract precludes
+			if rc := cliutil.SyncHookMaterialization(rootDir, skills.ClaudeTarget, hooks); rc != cliutil.ExitOK {
 				return rc
 			}
 		} else {

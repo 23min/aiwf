@@ -131,6 +131,10 @@ func TestRunUpgrade_FullFlow_NoReexec(t *testing.T) {
 	if !strings.Contains(stdout, "AIWF_NO_REEXEC set") {
 		t.Errorf("expected NO_REEXEC notice; stdout:\n%s", stdout)
 	}
+	// No refresh ran, so there is no guidance outcome to report.
+	if strings.Contains(stdout, "Guidance:") {
+		t.Errorf("upgrade without re-exec printed a guidance section; stdout:\n%s", stdout)
+	}
 }
 
 // TestRunUpgrade_FullFlow_GOBINUnset is the seam test for G39. The

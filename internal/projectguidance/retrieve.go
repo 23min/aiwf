@@ -59,11 +59,11 @@ func retrieveWithSelection(ctx context.Context, source string, selectPacks func(
 	}
 	commit, err := gitops.ResolveCommitSHA(ctx, repo, "HEAD")
 	if err != nil {
-		return nil, fmt.Errorf("resolving guidance source revision: %w", err)
+		return nil, fmt.Errorf("resolving guidance source revision; check that the source has a commit: %w", err)
 	}
 	raw, err := gitops.ReadRegularFromHEAD(ctx, repo, "catalogue.json")
 	if err != nil {
-		return nil, fmt.Errorf("%w: reading catalogue.json: %w", ErrInvalidSource, err)
+		return nil, fmt.Errorf("%w: reading catalogue.json; repair the source catalogue: %w", ErrInvalidSource, err)
 	}
 	catalogue, err := parseCatalogue(raw)
 	if err != nil {
@@ -93,7 +93,7 @@ func retrieveWithSelection(ctx context.Context, source string, selectPacks func(
 		for _, name := range pack.Files {
 			content, err := gitops.ReadRegularFromHEAD(ctx, repo, name)
 			if err != nil {
-				return nil, fmt.Errorf("%w: reading pack %q document %q: %w", ErrInvalidSource, id, name, err)
+				return nil, fmt.Errorf("%w: reading pack %q document %q; repair the source pack: %w", ErrInvalidSource, id, name, err)
 			}
 			if len(bytes.TrimSpace(content)) == 0 || !utf8.Valid(content) || bytes.ContainsRune(content, 0) {
 				return nil, fmt.Errorf("%w: document %q must contain nonempty UTF-8 Markdown text; repair the source document", ErrInvalidSource, name)
