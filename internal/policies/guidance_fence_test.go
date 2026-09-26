@@ -668,8 +668,8 @@ func TestDispositionBlocks(t *testing.T) {
 }
 
 // TestDetectGuidanceFence_Disposition is M-0333 AC-3's rule: a guidance
-// commit that removes text records at least one well-formed disposition
-// block, and a malformed block is refused.
+// commit that removes text records a disposition block, and passes only when
+// every block it carries is well-formed.
 func TestDetectGuidanceFence_Disposition(t *testing.T) {
 	t.Parallel()
 	commit := func(removes bool, body string) []fenceCommit {
@@ -683,6 +683,7 @@ func TestDetectGuidanceFence_Disposition(t *testing.T) {
 		{name: "a removal with no block fires once", in: commit(true, "docs: cut\n"), want: 1},
 		{name: "a removal with a malformed block fires once", in: commit(true, "Removed: x\nDisposition: gone\n"), want: 1},
 		{name: "a removal with a well-formed block is silent", in: commit(true, "Removed: x\nDisposition: deleted\n")},
+		{name: "a malformed block beside a well-formed one fires once", in: commit(true, "Removed: a\nDisposition: deleted\nRemoved: b\nDisposition: gone\n"), want: 1},
 		{name: "a pure addition needs no block", in: commit(false, "docs: add\n")},
 	}
 	for _, tt := range tests {
