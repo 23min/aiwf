@@ -27,16 +27,7 @@ If the work fits in one milestone, skip this skill and use `aiwfx-plan-milestone
    - Walk `work/epics/` for related or overlapping epics.
    - Walk `work/gaps/` for previously deferred work that fits the new epic's scope.
 
-3. **Confirm scope — the smallest version first.** Spell back what you understood, then put two versions in front of the user:
-
-   - **The smallest version that solves the problem** — what you would build if you could build only one thing.
-   - **What the proposed version adds beyond it**, one line per addition, each saying what it buys.
-
-   The smallest version is the proposal; everything past it carries an argument. A yes to the larger scope is then a decision taken with the smaller one visible, rather than agreement to the only option that was shown.
-
-   Where the smallest version is already the proposal, say so — don't invent a smaller one to have something to cut.
-
-   Get a yes before writing.
+3. **Confirm scope with the user.** Spell back what you understood. Get a yes before writing.
 
 4. **Allocate the id and scaffold the spec.**
 
