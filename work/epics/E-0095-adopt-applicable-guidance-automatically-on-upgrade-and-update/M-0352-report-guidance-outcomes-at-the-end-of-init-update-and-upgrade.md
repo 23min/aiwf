@@ -21,7 +21,7 @@ acs:
       tdd_phase: done
     - id: AC-4
       title: Init ends with the same guidance section as update
-      status: open
+      status: met
       tdd_phase: done
     - id: AC-5
       title: Upgrade output carries the guidance section
