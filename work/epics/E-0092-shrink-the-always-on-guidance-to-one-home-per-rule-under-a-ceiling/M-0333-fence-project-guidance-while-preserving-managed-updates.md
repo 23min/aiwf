@@ -1,7 +1,7 @@
 ---
 id: M-0333
 title: Fence project guidance while preserving managed updates
-status: in_progress
+status: done
 parent: E-0092
 tdd: required
 acs:
