@@ -86,7 +86,7 @@ var m0127Pocv3AllowlistPaths = map[string]string{
 	// cross-references") to establish that a document citing M-0127
 	// cites an unrelated milestone. The path is the subject of the
 	// quotation, not a pointer the audit expects a reader to follow.
-	"docs/initiatives/entity-truth-audit.md": "quotes M-0127's title verbatim as evidence in a drift inventory",
+	"docs/audits/entity-truth-audit.md": "quotes M-0127's title verbatim as evidence in a drift inventory",
 
 	// This test file itself necessarily names the literal substring
 	// in its own allowlist keys, docstrings, and error message.

@@ -23,7 +23,7 @@ remains open while the two initiatives are iterated in tandem.
 This is also not a semantic drift checker. It projects which sources are meant
 to bind current work; it cannot prove that those sources are mutually
 consistent or still match the code. The existing
-[`normative-docs-drift-audit.md`](normative-docs-drift-audit.md) demonstrates
+[`normative-docs-drift-audit.md`](../audits/normative-docs-drift-audit.md) demonstrates
 that a document can be normative and wrong at the same time.
 
 ## The problem

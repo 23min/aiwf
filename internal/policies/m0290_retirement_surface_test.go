@@ -8,11 +8,14 @@ package policies
 // rejects. Normative docs are kept in lockstep with the code by the
 // documentation-hierarchy contract, so a line there is simply false.
 //
-// Three tiers are out of scope, each for its own reason. ADRs are
+// Some surfaces are out of scope, each for its own reason. ADRs are
 // dated decision records — superseded, never rewritten — and the
 // retirement's own ADR is the mechanism that records which of their
 // clauses lapsed; editing them would falsify what was decided. The
-// archival tier is a frozen snapshot by the same convention. And
+// archival tier is a frozen snapshot by the same convention. The
+// observational tier's audits are dated measurements that quote the
+// records they measure, so naming the verb there reports where it
+// lingers rather than offering it. And
 // CHANGELOG.md is append-only, where the verb's arrival and removal
 // both belong.
 
@@ -27,25 +30,6 @@ import (
 // retiredVerbToken matches the retired verb's name as a word, so a
 // longer identifier that merely contains it does not register.
 var retiredVerbToken = regexp.MustCompile(`\brewidth\b`)
-
-// m0290DocumentaryMentionAllowlist carries the doc-tier paths whose
-// subject IS the retired verb's lingering citations, keyed to the
-// reason. The ban targets a document that offers the verb to an
-// operator; a dated inventory reporting where others still offer it
-// has the opposite effect, and cannot state its finding without
-// naming the token — its evidence is verbatim quotation of entity
-// bodies and of one real commit subject. m0127's allowlist draws the
-// same line for the relocated-path ban, down to an entry reading
-// "quotes an actual git commit message verbatim".
-//
-// Keep this list short. An entry is warranted only when the file
-// documents the retirement; a file that merely instructs a reader to
-// run the verb is the defect this test exists to catch.
-var m0290DocumentaryMentionAllowlist = map[string]string{
-	"docs/initiatives/entity-truth-audit.md":       "dated drift inventory whose finding is that live records still cite the retired verb",
-	"docs/initiatives/gap-truth-audit.md":          "dated drift inventory naming the verb as the offender the open gaps it enumerates still cite in the present tense",
-	"docs/initiatives/gap-truth-audit-evidence.md": "the same inventory's evidence file, carrying the quoted gap bodies, the measured output of the failing command, and prescriptions to delete the citation",
-}
 
 // TestM0290_AC4_NoShippedSurfaceOffersTheRetiredVerb walks every file
 // that `aiwf init` / `aiwf update` materializes into a consumer repo.
@@ -71,12 +55,14 @@ func TestM0290_AC4_NoShippedSurfaceOffersTheRetiredVerb(t *testing.T) {
 // TestM0290_AC4_NoNormativeDocOffersTheRetiredVerb covers the docs a
 // reader treats as current truth — the Normative tier as CLAUDE.md's
 // documentation hierarchy defines it, minus docs/adr/ per the file
-// header. docs/archive/, docs/research/ and docs/explorations/ are not
-// normative and are out of scope.
+// header, and minus docs/reference/, which is generated from the workflow
+// spec. docs/archive/, docs/audits/, docs/research/ and docs/explorations/
+// are not normative and are out of scope.
 //
 // docs/initiatives/ is Forward-looking rather than Normative, but is
-// scanned anyway: an initiative proposing that aiwf advise an operator
-// to run a retired verb is the same defect wherever it is tiered.
+// scanned anyway: an initiative awaits promotion into tracked work, so one
+// advising an operator to run a retired verb would carry that advice into
+// the work it becomes.
 func TestM0290_AC4_NoNormativeDocOffersTheRetiredVerb(t *testing.T) {
 	t.Parallel()
 	root := repoRoot(t)
@@ -119,35 +105,6 @@ func TestM0290_AC4_NoNormativeDocOffersTheRetiredVerb(t *testing.T) {
 	}
 }
 
-// TestM0290_AC4_AllowlistKeysAreLive keeps the allowlist from outliving
-// what it exempts. The walk that consumes it skips any directory named
-// "archive", which is where the archival convention moves a realized
-// initiative, so an entry for an archived file stops matching anything
-// and goes on reading like live coverage.
-//
-// Existence is too weak a test on its own: a document reworded free of
-// the token leaves an entry that still resolves. A key earns its place
-// only while the file it names both exists and still carries the token.
-func TestM0290_AC4_AllowlistKeysAreLive(t *testing.T) {
-	t.Parallel()
-	root := repoRoot(t)
-	if len(m0290DocumentaryMentionAllowlist) == 0 {
-		t.Fatal("AC-4: the allowlist is empty — delete it rather than leaving an unused exemption door open")
-	}
-	for rel, why := range m0290DocumentaryMentionAllowlist {
-		raw, err := os.ReadFile(filepath.Join(root, filepath.FromSlash(rel)))
-		if err != nil {
-			t.Errorf("AC-4: the allowlist names %s (%q), which cannot be read — drop the entry rather than "+
-				"leaving the exemption standing: %v", rel, why, err)
-			continue
-		}
-		if !retiredVerbToken.Match(raw) {
-			t.Errorf("AC-4: the allowlist names %s (%q), which no longer names the retired verb — drop the "+
-				"entry rather than leaving the exemption standing", rel, why)
-		}
-	}
-}
-
 // walkAndAssertAbsent reports every *.md under dir whose text names
 // the retired verb, skipping the archival tier wherever it is nested.
 func walkAndAssertAbsent(t *testing.T, dir, root string) {
@@ -166,9 +123,6 @@ func walkAndAssertAbsent(t *testing.T, dir, root string) {
 			return nil
 		}
 		rel, _ := filepath.Rel(root, path)
-		if _, ok := m0290DocumentaryMentionAllowlist[filepath.ToSlash(rel)]; ok {
-			return nil
-		}
 		raw, readErr := os.ReadFile(path)
 		if readErr != nil {
 			return readErr

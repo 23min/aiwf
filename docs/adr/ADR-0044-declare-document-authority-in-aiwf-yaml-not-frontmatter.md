@@ -10,7 +10,7 @@ status: proposed
 Three surfaces in this repository state which documents carry authority, and two
 of them disagree about the same file.
 
-- **`CLAUDE.md`'s `## Documentation hierarchy`** assigns four authority tiers to
+- **`CLAUDE.md`'s `## Documentation hierarchy`** assigns authority tiers to
   active `docs/` subtrees, so a reader can weight a file from its path alone.
   It is prose, it is scoped to `docs/`, and it has no vocabulary for a generated
   file.
