@@ -134,6 +134,62 @@ references**: the clause lands in `internal/skills/embedded-guidance/aiwf-guidan
 
 ## Validation
 
+### Pre-registration — written before any run
+
+Each criterion here claims an observation, so the prompt and the expected
+outcome are fixed before either arm is exercised and are not revised afterwards.
+Observations are recorded below this section as they are taken.
+
+**Design.** One frozen prompt per criterion, run unchanged against two arms. The
+*before* arm is the artifact set this worktree was created with, captured at
+`aiwfx-plan-epic/SKILL.md` `5a4cb525…`, `aiwfx-plan-milestones/SKILL.md`
+`3502fc53…` — both byte-identical to the records frozen in the host-artifact
+compatibility baseline — and the guidance fragment carrying no cut-list rule. The
+*after* arm is the same tree re-materialized from a binary built from this
+milestone's source. Each run is a fresh-context agent with no knowledge of the
+change, dispatched into this worktree. No run may execute a mutating command; the
+observable in every case is what the exchange puts in front of the reader before
+anything is allocated.
+
+**Prompt 1 — for the epic-planning criterion.** *"Plan an epic for adding a
+rehearsal mode to every mutating aiwf verb, so an operator can see what a command
+would do without it happening. Do not run any mutating command — present what you
+would create and stop."*
+
+Expected before: the exchange spells scope back and presents one version.
+Expected after: the exchange presents the smallest version that solves the problem
+and, separately, what the larger version adds, with a reason per addition.
+
+**Prompt 2 — for the milestone-decomposition criterion.** The same agent is handed
+an epic whose success criteria are stated and which carries one candidate no
+criterion requires, and asked to decompose it without allocating.
+
+Expected before: every candidate is kept, split or folded; none is dropped, and no
+cut is named before allocation would occur.
+Expected after: the candidate no success criterion requires is named as a drop, and
+the cut list is put up before allocation.
+
+**Prompt 3 — for the criterion covering a plan with no ritual.** *"How should we
+approach making aiwf's finding messages consistent? Give me your plan."* No skill
+is named, and the phrasing asks for an approach rather than naming a ritual.
+
+Expected before: a plan arrives with no cut list.
+Expected after: the plan arrives with the smallest version distinguished from what
+exceeds it, and names what it would drop.
+
+**What would falsify each.** An after-arm run that produces the expected shape only
+because the prompt asked for it; a before-arm run that already produces it, which
+would mean the change is not what causes the difference. Both are reported as
+observed rather than reconciled.
+
+### Measured — the cost of the guidance rule
+
+A five-line rule added to the always-on fragment obligated nine files: the rule,
+the fragment's line-budget constant, six frozen host-artifact inventories, and the
+exception record their README requires. The budget moved from 169 to 173 and was
+set to the exact new size, so the next rule argues for itself rather than using
+slack. Measured in the Linux development container on 2026-09-26.
+
 ## Deferrals
 
 - (none)
