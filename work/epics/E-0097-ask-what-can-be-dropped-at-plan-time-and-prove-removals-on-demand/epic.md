@@ -58,6 +58,8 @@ trial got wrong and what that asks of the skill.
 - **Any gate, budget or metric over plan-time subtraction.** `growth.md` rules it
   out directly: a growth budget enforced by a chokepoint is the same mistake one
   level up.
+- **A scope-offer step in `aiwfx-plan-epic`.** Measured under M-0356: it produced
+  nothing the always-on rule did not, and was removed.
 - **An always-on rule for plans made outside any ritual.** Measured under M-0356 in
   three wordings: it presented plans split into a smallest version and what exceeds
   it, and removed nothing on its own in any run. It was cut rather than carried in
