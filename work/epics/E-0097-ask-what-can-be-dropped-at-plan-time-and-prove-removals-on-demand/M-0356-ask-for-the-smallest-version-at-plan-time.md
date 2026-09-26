@@ -134,53 +134,77 @@ references**: the clause lands in `internal/skills/embedded-guidance/aiwf-guidan
 
 ## Validation
 
+### Withdrawn prompt set
+
+An earlier prompt set was fixed for a design that dispatched fresh-context agents
+into this worktree. That design cannot isolate the arms, for two reasons both
+observed rather than reasoned: a dispatched agent loads the parent session's
+project instructions rather than those of the directory it is pointed at, so the
+guidance it follows is not the arm's guidance; and an agent working inside the
+repository that implements a rule locates the rule in git and complies with it
+conspicuously — one diffed the ritual against the trunk, another read the commit
+that added it. No arm was validly exercised under that set, so the prompts are
+re-fixed below rather than revised mid-experiment.
+
+Three runs were taken under it and are kept as what they support: with no prompt
+asking for a cut, each produced smallest-version framing and a cut list with
+reasons, one recommending no milestones at all. That shows the rules are
+followable and produce the intended shape. It does not show they fire unprompted,
+which is what the criteria claim.
+
 ### Pre-registration — written before any run
 
-Each criterion here claims an observation, so the prompt and the expected
-outcome are fixed before either arm is exercised and are not revised afterwards.
-Observations are recorded below this section as they are taken.
+Each criterion here claims an observation, so the prompts and the expected
+outcomes are fixed before either arm is exercised.
 
-**Design.** One frozen prompt per criterion, run unchanged against two arms. The
-*before* arm is the artifact set this worktree was created with, captured at
-`aiwfx-plan-epic/SKILL.md` `5a4cb525…`, `aiwfx-plan-milestones/SKILL.md`
-`3502fc53…` — both byte-identical to the records frozen in the host-artifact
-compatibility baseline — and the guidance fragment carrying no cut-list rule. The
-*after* arm is the same tree re-materialized from a binary built from this
-milestone's source. Each run is a fresh-context agent with no knowledge of the
-change, dispatched into this worktree. No run may execute a mutating command; the
-observable in every case is what the exchange puts in front of the reader before
-anything is allocated.
+**Arms.** Two consumer repositories, each created by `aiwf init` — one from the
+released binary, one from a binary built from this milestone's source. Verified
+before any run: the released arm carries none of the cut-list rule, the
+smallest-version step or the dropping arm; the candidate arm carries all three;
+neither contains aiwf's own source or history, so neither can diff the change or
+find the commit that made it. This is the view a consumer has, which is the view
+the criteria are about.
 
-**Prompt 1 — for the epic-planning criterion.** *"Plan an epic for adding a
-rehearsal mode to every mutating aiwf verb, so an operator can see what a command
-would do without it happening. Do not run any mutating command — present what you
-would create and stop."*
+**Observers.** One live interactive session per arm per prompt class, started in
+that arm's repository so it loads that arm's guidance. A planning session and a
+no-ritual session are separate within an arm, because a session that has invoked
+the planning ritual can no longer serve as the no-ritual observation. Each arm
+receives byte-identical prompt text. No session is told an experiment is running,
+and none may run a command that creates or commits.
 
-Expected before: the exchange spells scope back and presents one version.
-Expected after: the exchange presents the smallest version that solves the problem
-and, separately, what the larger version adds, with a reason per addition.
+**Prompt 1 — for the epic-planning criterion.** *"We need structured audit
+logging — who changed what, and when — across the service. Plan an epic for it.
+Don't create or commit anything; show me what you'd create and stop."*
 
-**Prompt 2 — for the milestone-decomposition criterion.** The same agent is handed
-an epic whose success criteria are stated and which carries one candidate no
-criterion requires, and asked to decompose it without allocating.
+Expected released: the exchange presents one version of the work.
+Expected candidate: it presents the smallest version that solves the problem and,
+separately, what the larger version adds, with a reason per addition.
 
-Expected before: every candidate is kept, split or folded; none is dropped, and no
-cut is named before allocation would occur.
-Expected after: the candidate no success criterion requires is named as a drop, and
-the cut list is put up before allocation.
+**Prompt 2 — for the milestone-decomposition criterion**, sent to the same
+session. An epic for per-client rate limiting whose success criteria are a
+rejection naming when to retry, and no client exceeding its configured share. Its
+scope carries four items, of which three serve those criteria and one — a written
+guide on choosing limits for new endpoints — serves neither.
+
+Expected released: every item becomes a candidate, kept, split or folded; none is
+dropped, and no cut list precedes allocation.
+Expected candidate: the guide is named as a drop because no success criterion
+requires it, and the cut list is put up before any id would be allocated.
 
 **Prompt 3 — for the criterion covering a plan with no ritual.** *"How should we
-approach making aiwf's finding messages consistent? Give me your plan."* No skill
-is named, and the phrasing asks for an approach rather than naming a ritual.
+approach adding rate limiting to the public API? Give me your plan."* No skill is
+named and no ritual is invoked.
 
-Expected before: a plan arrives with no cut list.
-Expected after: the plan arrives with the smallest version distinguished from what
-exceeds it, and names what it would drop.
+Expected released: a plan arrives with no cut list.
+Expected candidate: the plan distinguishes the smallest version from what exceeds
+it, and names what it would drop.
 
-**What would falsify each.** An after-arm run that produces the expected shape only
-because the prompt asked for it; a before-arm run that already produces it, which
-would mean the change is not what causes the difference. Both are reported as
-observed rather than reconciled.
+**What would falsify each.** A candidate-arm run producing the expected shape only
+because the prompt asked for it; a released-arm run already producing it, which
+would mean the change is not what causes the difference; or a decomposition whose
+drop is justified on grounds other than no criterion requiring it, which would
+leave the new sizing arm unexercised. Each is reported as observed rather than
+reconciled.
 
 ### Measured — the cost of the guidance rule
 
