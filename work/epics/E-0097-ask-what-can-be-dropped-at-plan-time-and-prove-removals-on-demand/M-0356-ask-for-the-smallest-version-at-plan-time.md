@@ -16,7 +16,7 @@ acs:
       status: cancelled
     - id: AC-4
       title: A planning exchange invoking no ritual gates each addition on a goal
-      status: open
+      status: met
 ---
 
 ## Goal
