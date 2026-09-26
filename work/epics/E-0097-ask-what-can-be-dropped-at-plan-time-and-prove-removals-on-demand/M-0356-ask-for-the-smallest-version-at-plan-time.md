@@ -10,7 +10,7 @@ acs:
       status: cancelled
     - id: AC-2
       title: plan-milestones drops an unrequired candidate before allocating its id
-      status: open
+      status: met
     - id: AC-3
       title: A planning exchange invoking no ritual produces the cut list
       status: open
