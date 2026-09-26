@@ -84,9 +84,13 @@ the skill body.
   named as options, not dependencies.
 - A question terminates on a disposition or on a command's result, never on a
   reading (G-0585).
-- **The tool-table check resolves citations rather than asserting phrases.** Confirm
-  its shape against the shipped-prose ban before writing it; a check that reads as a
-  phrase assertion is the wrong instrument here.
+- **The tool-table check draws its needle from the skill body, never from the test.**
+  The shipped-prose ban fires only on a needle tracing back to string literals in the
+  test source, so a check extracting the tool names from the document and resolving
+  each against the repository sits outside the rule and needs no exemption entry.
+  Locating the table by its heading does not: that is a test-authored needle against
+  shipped content, the class D-0070 retires by name. Derive the candidates from the
+  document without naming a section.
 - It advises and never blocks: no gate, no commit refused.
 
 ## Design notes
