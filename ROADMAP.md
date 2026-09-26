@@ -1355,5 +1355,8 @@ documents or development history, and one check that exists only in this reposit
 proves it on every push. "Is shipped content clean?" becomes a gate result rather
 than a review.
 
-_No milestones yet._
+| Milestone | Title | Status |
+|---|---|---|
+| M-0354 | Gate everything the binary embeds and clear what it finds | draft |
+| M-0355 | Take aiwf-only rules and aiwf ids out of aiwf check | draft |
 
