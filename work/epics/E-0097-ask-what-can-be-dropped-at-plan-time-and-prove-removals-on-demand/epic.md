@@ -108,9 +108,6 @@ trial got wrong and what that asks of the skill.
 
 ## Success criteria
 
-- [ ] A planning session on a real candidate offers the smallest version that
-      solves the stated problem, states what the proposed version adds beyond it,
-      and records what was dropped — before any id is allocated.
 - [ ] The milestone sizing rule has an arm that drops work.
 - [ ] The subtraction skill runs on a diff and on a named unit, in a repository
       that does not use aiwf, and every removal it proposes is settled by a command
