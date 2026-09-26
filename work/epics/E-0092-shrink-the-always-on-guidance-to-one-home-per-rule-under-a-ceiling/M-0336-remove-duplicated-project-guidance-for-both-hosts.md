@@ -56,6 +56,7 @@ Lower each host's ceiling to its measured post-deletion upfront size. The curren
 - Deletion of copies only; what stays is not reworded.
 - Each guidance commit may include its related source and generated outputs together, with a `copy of <path>` disposition per removed passage; an id aside whose reasoning is nowhere else goes to the entity that owns it first, and its block says `relocated to`.
 - One row appended to the iteration log when this lands.
+- A pin on a passage this milestone deletes is retired with its reason, and its entry leaves the guidance-reader list.
 
 ## Design notes
 
