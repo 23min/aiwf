@@ -168,3 +168,24 @@ the four commented fields in those captured files produced the expected hashes.
 The candidate binary's files matched that independent text transformation.
 Only matching `aiwf.example.yaml` and scaffolded `aiwf.yaml` inventory records
 were replaced, and the inventories were sorted again.
+
+## Plan-time cut-list guidance exception
+
+M-0356 adds one always-on rule to the guidance fragment, asking that a proposal
+offer the smallest version that solves the problem and name what it would drop.
+The six inventories change only `.claude/aiwf-guidance.md`; adapters, host
+instructions, configuration, hooks, settings, paths and modes stay frozen.
+
+Provenance: in the Linux development container on 2026-09-26, a `v0.36.0`-stamped
+binary built from the candidate sources materialized the fragment into an isolated
+consumer seeded exactly as `TestClaudeArtifacts_MatchBaseline` seeds one. The
+expected hash was derived independently of the renderer by subtraction rather than
+by rebuilding the prior revision: removing exactly the inserted rule from the
+captured bytes reproduces the frozen hash below, which establishes that the
+candidate differs from the baseline by that rule and by nothing else. Only the
+guidance record was replaced in each inventory, and the inventories were sorted
+again.
+
+| Artifact | Original SHA-256 | Updated SHA-256 |
+| --- | --- | --- |
+| `.claude/aiwf-guidance.md` | `9bcf991dec935d2c38387a44a242b102180604e22dbae7d595ef5fbb1396601d` | `63b7f18c2fa664237362ea4c94001fa38e17904c9531ac1cc5f4eb3f3b864f68` |
