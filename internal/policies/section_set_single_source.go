@@ -29,8 +29,10 @@ import (
 //
 // The exploratory and forward-looking tiers are absent by intent. A table
 // there records what someone was thinking, not what a reader should believe
-// about the current kernel. Archived subtrees are absent for the same reason
-// under ADR-0004 — a frozen snapshot is not a claim about today.
+// about the current kernel. The observational tier is absent because an audit
+// records what was measured on its date, docs/reference/ because it is
+// generated from the workflow spec, and docs/archive/ because under ADR-0004 a
+// frozen snapshot is not a claim about today.
 //
 // TestSectionSetCorpusRootsExist holds these against the real tree, so a
 // root renamed out from under the scan fails rather than quietly narrowing

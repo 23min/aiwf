@@ -16,6 +16,12 @@ section in this file.
 
 ## [Unreleased]
 
+### Changed (internal) — dated audits get their own documentation tier
+
+Nothing user-facing changed. The dated audits move from `docs/initiatives/`
+to `docs/audits/`, which `CLAUDE.md`'s documentation hierarchy names as a new
+Observational tier, so `docs/initiatives/` holds only initiatives.
+
 ### Changed (internal) — consolidate the internal/policies test file-writing helpers
 
 Nothing user-facing changed; several near-identical test-only helpers in

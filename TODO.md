@@ -187,10 +187,10 @@ neither reads what it says.
 - **G-0560** — the Normative doc tree states behaviour the kernel reverses or
   refuses: epic roll-up, the `CLAUDE.md` carve-out, `render roadmap --write`
   committing, and worked examples the verbs now refuse. Dated inventory in
-  `docs/initiatives/normative-docs-drift-audit.md`
+  `docs/audits/normative-docs-drift-audit.md`
 - **G-0595** *(high)* — every open gap, live ADR, live decision and Normative doc
   measured against the kernel; two thirds carry at least one finding. Dated inventory
-  in `docs/initiatives/entity-truth-audit.md`; this gap tracks absorbing it. The
+  in `docs/audits/entity-truth-audit.md`; this gap tracks absorbing it. The
   2026-08-23 gap audit re-derives the entity half at a higher evidence bar
 - **G-0590** *(high)* — `show`'s text renderer is the canonical per-entity view and
   drops the terminal reason that `history` renders; `--format=json` carries it
