@@ -1370,5 +1370,9 @@ exists has to be proved. The planning rituals gain a step that offers the smalle
 version first; a shipped skill gains the procedure for removing what already
 landed, and the wrap rituals call it instead of restating it.
 
-_No milestones yet._
+| Milestone | Title | Status |
+|---|---|---|
+| M-0356 | Ask for the smallest version at plan time | draft |
+| M-0357 | Ship the on-demand subtraction skill | draft |
+| M-0358 | Wire the subtraction lens into the wrap rituals | draft |
 
