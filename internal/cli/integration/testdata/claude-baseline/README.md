@@ -169,29 +169,6 @@ The candidate binary's files matched that independent text transformation.
 Only matching `aiwf.example.yaml` and scaffolded `aiwf.yaml` inventory records
 were replaced, and the inventories were sorted again.
 
-## Plan-time cut-list guidance exception
-
-M-0356 adds one always-on rule to the guidance fragment, asking that a proposal
-offer the smallest version that solves the stated problem and that each thing the
-larger version adds name the goal it serves, with what serves none dropped. The
-rule names KISS and YAGNI as the forces it applies.
-The six inventories change only `.claude/aiwf-guidance.md`; adapters, host
-instructions, configuration, hooks, settings, paths and modes stay frozen.
-
-Provenance: in the Linux development container on 2026-09-26, a `v0.36.0`-stamped
-binary built from the candidate sources materialized the fragment into an isolated
-consumer seeded exactly as `TestClaudeArtifacts_MatchBaseline` seeds one. The
-expected hash was derived independently of the renderer by subtraction rather than
-by rebuilding the prior revision: removing exactly the inserted rule from the
-captured bytes reproduces the frozen hash below, which establishes that the
-candidate differs from the baseline by that rule and by nothing else. Only the
-guidance record was replaced in each inventory, and the inventories were sorted
-again.
-
-| Artifact | Original SHA-256 | Updated SHA-256 |
-| --- | --- | --- |
-| `.claude/aiwf-guidance.md` | `9bcf991dec935d2c38387a44a242b102180604e22dbae7d595ef5fbb1396601d` | `9445a9774db0008bcb05c25ec65785287e610aba0e1e816d12f45df2ea1e14a9` |
-
 ## Milestone cut-gate exception
 
 M-0356 gives the milestone-planning ritual a sizing arm that drops a candidate no
