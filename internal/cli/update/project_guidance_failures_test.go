@@ -323,6 +323,15 @@ func TestRun_GuidanceReportNamesBlockerAndFix(t *testing.T) {
 				if slices.Contains(section, "  adopted:   sample/base") {
 					t.Fatalf("blocked run reported an adoption:\n%s", strings.Join(section, "\n"))
 				}
+				// The section reports the selection aiwf.yaml records, not the
+				// one the blocked run would have adopted.
+				selected := "  selected:  not adopted (guidance.packs unset)"
+				if refresh {
+					selected = "  selected:  sample/base"
+				}
+				if section[0] != selected {
+					t.Fatalf("selected line = %q, want %q", section[0], selected)
+				}
 				if _, err := os.Stat(example); err != nil {
 					t.Fatalf("unrelated update step did not run: %v", err)
 				}
