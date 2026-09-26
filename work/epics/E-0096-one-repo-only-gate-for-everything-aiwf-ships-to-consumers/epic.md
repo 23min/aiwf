@@ -47,14 +47,15 @@ test at push time.
 
 ## Scope
 
-- A repo-only gate over everything aiwf ships, whose scanned set is derived rather
-  than listed: every file under a `go:embed` directive in `internal/` and `cmd/`,
-  plus the operator-text literals the CLI-text policy reads. It reports real ids,
-  paths into this tree, design-document paths, and self-referential wording.
-- Wiring the gate into the repository's pre-push hook and into CI.
+- A repo-only gate over every file the binary embeds, as `go list` reports them. It
+  reports real ids, paths into this tree, design-document paths and citations of a
+  named CLAUDE.md section.
 - Cleaning every leak the gate reports, starting with the measured list above.
-- Moving `skill-body-id` and `skill-body-claude-md-section` out of `internal/check`
-  into the gate, and removing their rows from the shipped `aiwf-check` skill.
+- Deleting `skill-body-id` and `skill-body-claude-md-section` from `internal/check`
+  once the gate covers what they check, with their rows in the shipped `aiwf-check`
+  skill.
+- Extending the CLI-text policy's scope to `internal/check`, and removing the aiwf
+  ids from what `aiwf check` prints.
 
 ## Out of scope
 
@@ -69,10 +70,11 @@ test at push time.
 
 - Nothing that exists only for this repository compiles into the shipped binary: the
   gate lives in `internal/policies` or a test-only package, never in `internal/check`.
-- The gate fires no later than `skill-body-id` does today: at push, through the
-  repository's pre-push hook, and in CI.
-- The scanned set comes from the `go:embed` directives, so a new embed root is covered
-  with no edit to the gate.
+- The gate runs wherever the policy suite runs: `make check-fast`, `make ci` and CI.
+  A leak that reaches `main` is caught there, before any release tag.
+- The scanned set comes from `go list`'s embedded files, so a new embed root is
+  covered with no edit to the gate.
+- The development-history clause is not mechanized; it stays with review.
 - A path is this repo's only when its first two segments exist in the tree, the
   CLI-text policy's rule, so an areas example such as `internal/billing` passes.
   `docs/adr/` stays allowed, since aiwf writes a consumer's ADRs there.
@@ -89,8 +91,8 @@ test at push time.
       binary: `skill-body-id` and `skill-body-claude-md-section` are gone from
       `internal/check` and from the shipped `aiwf-check` skill.
 - [ ] A new file under any embed root that names a real aiwf id, a path into this
-      tree or a design document under `docs/` fails the push, with no change to the
-      gate.
+      tree or a design document under `docs/` fails the policy suite, with no change
+      to the gate.
 - [ ] Every leak in the measured list under *Context* is gone, and the gate reports
       none on the tree.
 - [ ] G-0538 and G-0548 are addressed.
@@ -99,8 +101,6 @@ test at push time.
 
 | Question | Blocking? | Resolution path |
 |---|---|---|
-| How much of the history clause a phrase list can carry, and what stays at review | no | Decided while building the gate |
-| Whether the gate absorbs the CLI-text policy or sits beside it | no | Decided while building the gate |
 | Whether G-0514's misclassifications are fixed as part of the move | no | Decided in the move |
 | When the ids in `internal/check/hint.go` can be cleaned | yes, for closing G-0538 | After E-0092 lands |
 
@@ -114,11 +114,8 @@ test at push time.
 
 ## Milestones
 
-Allocated by `aiwfx-plan-milestones`; the candidates, in order:
-
-- Build the derived repo-only gate and wire it into the pre-push hook and CI · depends on: —
-- Clean every leak the gate reports · depends on: the gate
-- Move `skill-body-id` and `skill-body-claude-md-section` out of `aiwf check` and clean the ids in `hint.go` · depends on: the gate, and E-0092 landing
+- `M-0354` — Gate everything the binary embeds and clear what it finds · depends on: —
+- `M-0355` — Take aiwf-only rules and aiwf ids out of aiwf check · depends on: `M-0354`, and E-0092 landing
 
 ## References
 
