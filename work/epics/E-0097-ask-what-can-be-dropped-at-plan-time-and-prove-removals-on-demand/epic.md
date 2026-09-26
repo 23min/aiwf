@@ -48,8 +48,9 @@ trial got wrong and what that asks of the skill.
 - A shipped, stack-neutral subtraction skill that runs on a diff or a named unit,
   settles every removal by a command, and hands its by-products to the skills that
   own them.
-- Wiring: the milestone wrap calls the skill in place of its inline block, and the
-  patch ritual gains the lens behind a stated threshold.
+- Wiring: the milestone wrap calls the skill in place of the four shape questions
+  it holds inline, keeps the one that names what a change obliges the future to do,
+  and the patch ritual gains the lens behind a stated threshold.
 
 ## Out of scope
 
@@ -89,8 +90,23 @@ trial got wrong and what that asks of the skill.
 - **Evidence is observation-class where no relationship check exists.** D-0070
   forbids pinning a phrase in shipped prose, and these deliverables are prose, so
   each records command, expectation, observation and environment instead.
-- The guidance source belongs to E-0092 while that epic runs; see *Open questions*
-  for which window the clause lands in.
+- **The cut-list clause lands in the always-on guidance source ahead of E-0092's
+  reduction, and is registered with that epic's rule inventory as already placed.**
+  Its audience decides its home, by that epic's own test: offering the smallest
+  version first is how to operate in any repository, not how to develop aiwf. It is
+  the class of rule that must fire without anyone reaching for a skill, because the
+  decision to overbuild is taken before any ritual is entered.
+- **The shape questions divide by what they measure.** The four that measure a
+  change's lines — what was retired, whether same-outcome tests fail for distinct
+  reasons, whether the logic compresses, whether each guard has a caller — belong to
+  the skill, and each needs a command to settle. What a change obliges every later
+  change to do stays with the wrap: it must be answerable where there is no logic to
+  compress and no guard to justify, and its answer belongs in the milestone's own
+  record. The skill may report an obligation it finds; naming that obligation's owner
+  and what retires it remains the wrap's requirement, so one observation yields two
+  outputs rather than two copies.
+- **A skipped lens is stated where the human can veto it**, with its reason, in the
+  form the patch ritual already uses for its review carve-out.
 - Every edit under the embedded ritual and guidance trees rides a commit carrying
   an `aiwf-entity` trailer.
 
@@ -115,8 +131,6 @@ trial got wrong and what that asks of the skill.
 
 | Question | Blocking? | Resolution path |
 |---|---|---|
-| Whether the guidance clause lands before E-0092's baseline is frozen at M-0334, or is handed to the M-0349 inventory for placement under the ceiling | yes, for the clause | Settled against M-0334's state when that milestone is planned |
-| Which of the wrap's shape questions move whole into the skill, and whether any stays in the ritual | yes, before the wiring | Decided in the wiring milestone |
 | The threshold below which the patch wrap skips the lens | yes, before the port | Decided in the port, from the logic changed or the guards added |
 | How large a diff one agent takes before it goes shallow | no | The milestone wrap already slices by concern; reuse its rule |
 | What the skill does in a stack whose mutation harness or clone detector is missing | no | The per-stack table records the absence and the fallback |
