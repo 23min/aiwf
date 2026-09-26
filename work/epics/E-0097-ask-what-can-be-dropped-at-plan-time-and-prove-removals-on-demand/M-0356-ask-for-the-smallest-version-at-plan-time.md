@@ -11,6 +11,9 @@ acs:
     - id: AC-2
       title: plan-milestones drops an unrequired candidate before allocating its id
       status: open
+    - id: AC-3
+      title: A planning exchange invoking no ritual produces the cut list
+      status: open
 ---
 
 ## Goal
@@ -20,4 +23,6 @@ acs:
 ### AC-1 — plan-epic offers the smallest version and argues the delta
 
 ### AC-2 — plan-milestones drops an unrequired candidate before allocating its id
+
+### AC-3 — A planning exchange invoking no ritual produces the cut list
 
