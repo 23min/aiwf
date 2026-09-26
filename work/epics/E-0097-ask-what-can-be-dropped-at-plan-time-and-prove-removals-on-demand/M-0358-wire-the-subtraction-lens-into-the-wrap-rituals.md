@@ -13,6 +13,9 @@ acs:
     - id: AC-2
       title: The patch ritual runs the lens above its threshold and states the skip below it
       status: open
+    - id: AC-3
+      title: The tracked gap's measurement is re-run and no longer holds
+      status: open
 ---
 
 ## Goal
@@ -22,4 +25,6 @@ acs:
 ### AC-1 — The skill answers the four shape questions and the wrap asks only the obligation
 
 ### AC-2 — The patch ritual runs the lens above its threshold and states the skip below it
+
+### AC-3 — The tracked gap's measurement is re-run and no longer holds
 
