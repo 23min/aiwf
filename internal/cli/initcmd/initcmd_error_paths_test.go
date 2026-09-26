@@ -75,3 +75,15 @@ func TestRun_StatuslineDryRun(t *testing.T) {
 		t.Errorf("rc = %d, want ExitOK", rc)
 	}
 }
+
+// TestRun_StatuslineFailureSetsExitCode pins that a failed statusline
+// scaffold is init's exit code even though the guidance report still ends the
+// run. An unknown scope fails before anything is written.
+func TestRun_StatuslineFailureSetsExitCode(t *testing.T) {
+	t.Parallel()
+	root := freshGitRepo(t)
+	rc := initcmd.Run(root, "", false, true, true, "no-such-scope", false, true, true, nil, nil)
+	if rc != cliutil.ExitUsage {
+		t.Errorf("rc = %d, want ExitUsage", rc)
+	}
+}

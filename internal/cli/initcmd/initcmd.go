@@ -183,19 +183,19 @@ func Run(root, actor string, dryRun, skipHook, statusline bool, scope string, wi
 		}
 	}
 
+	statuslineRC := cliutil.ExitOK
 	if statusline && !dryRun {
-		if rc := cliutil.RunStatuslineScaffold(cliutil.StatuslineOpts{
+		statuslineRC = cliutil.RunStatuslineScaffold(cliutil.StatuslineOpts{
 			RootDir:       rootDir,
 			Scope:         scope,
 			WireSettings:  wireSettings,
 			AllowUntagged: allowUntagged,
-		}); rc != cliutil.ExitOK {
-			return rc
-		}
+		})
 	} else if statusline && dryRun {
 		cliutil.Println("aiwf init --statusline: dry-run — statusline scaffold skipped.")
 	}
-	return cliutil.ExitOK
+	cliutil.PrintGuidanceReport(res.Guidance)
+	return statuslineRC
 }
 
 // gateAndPersistHookDecisions runs the consent gate (ADR-0032) over the
