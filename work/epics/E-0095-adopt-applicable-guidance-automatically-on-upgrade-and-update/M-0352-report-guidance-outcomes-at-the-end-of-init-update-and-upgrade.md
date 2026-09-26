@@ -110,7 +110,7 @@ Guidance outcomes surface today as one step-ledger line whose wording ("no proje
 
 ## Validation
 
-`make ci` at `30948afdf` on the M-0352 milestone branch, in the Linux devcontainer: exit 0. golangci-lint `0 issues.`; `go test -race` passed; total statement coverage `91.9%`; the diff-scoped coverage gate and policy suite passed; `./bin/aiwf doctor --self-check` reported `self-check passed (29 steps).`; `aiwf check` reported `0 errors, 10 warnings`, none on M-0352.
+`make ci` at `3d67d75b8` on the M-0352 milestone branch, in the Linux devcontainer: exit 0. golangci-lint `0 issues.`; `go test -race` passed; total statement coverage `91.9%`; the diff-scoped coverage gate and policy suite passed; `./bin/aiwf doctor --self-check` reported `self-check passed (29 steps).`; `aiwf check` reported `0 errors, 10 warnings`, none on M-0352.
 
 ## Deferrals
 
@@ -118,12 +118,14 @@ Guidance outcomes surface today as one step-ledger line whose wording ("no proje
 - G-0718 — the `pending:` advice names a rerun that disabled maintenance cannot finish.
 - G-0719 — with nothing installed, doctor says the installed revision is unknown where the report says none.
 - G-0720 — the `internal/cli/initcmd` and `internal/cli/update` tests run init and update against the real HOME and PATH.
+- G-0721 — the legacy-delivery check advises repairing permissions for `lstat` failures that are not permission faults, such as a symbolic-link loop on PATH.
 
 ## Reviewer notes
 
 - The `missing:` line uses the wording `aiwf doctor` prints, which names both remedies (drop or ignore a pack the catalogue no longer lists, otherwise rerun update) because doctor cannot tell those cases apart offline; the report keeps it so both verbs agree, although the update run knows which case applies.
 - The step ledger keeps the full blocker in its detail alongside the report's `blocked:` line; existing ledger consumers and tests read it there.
-- A blocked adopting run names a pack the catalogue no longer lists only in the step ledger; the section's `missing:` line is derived from the installed index, which a blocked run leaves as it was.
+- While the installed index still lists a pack the catalogue no longer has, a blocked adopting run states that only in the step ledger; the section's `missing:` line is derived from the installed index, which a blocked run leaves as it was.
 - `aiwf upgrade --help` describes the section the re-executed update prints, which is the target release's behaviour.
 - `TestBinary_UpgradeOutputEndsWithTheGuidanceSection` is M-0352/AC-5's evidence that upgrade output carries the section, kept although the update and init tests cover the report paths it composes.
 - One test pins that a failure after the guidance step still returns the guidance outcome; the other `failed(err)` returns in `refreshArtifacts` go through the same helper and are not pinned one by one.
+- Deciding review over `a6645bb41..dc81d7569`: approve, with no blocking findings; its one test gap (the selection a blocked first adoption reports) is pinned in `TestRun_GuidanceReportNamesBlockerAndFix`.
