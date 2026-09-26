@@ -1,7 +1,7 @@
 ---
 id: ADR-0055
 title: Keep aiwf-repo-only rules out of the shipped aiwf check
-status: proposed
+status: accepted
 ---
 > **Date:** 2026-09-26 · **Decided by:** human/peter
 
