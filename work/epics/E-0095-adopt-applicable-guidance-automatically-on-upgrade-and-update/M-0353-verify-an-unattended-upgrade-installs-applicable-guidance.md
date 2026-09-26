@@ -6,7 +6,7 @@ parent: E-0095
 depends_on:
     - M-0351
     - M-0352
-tdd: advisory
+tdd: none
 acs:
     - id: AC-1
       title: Unattended upgrade adopts guidance in a hermetic consumer
