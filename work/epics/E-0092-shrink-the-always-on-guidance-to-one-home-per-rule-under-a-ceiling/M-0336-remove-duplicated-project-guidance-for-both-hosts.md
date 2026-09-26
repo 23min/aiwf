@@ -31,7 +31,7 @@ Remove from both hosts' development guidance the text that already loads from an
 
 ## Context
 
-The shared operating fragment and the selected language packs under `.guidance/packs/` are canonical sources. Development guidance must not restate them. M-0349's inventory records which passages are copies and of what; this milestone deletes exactly those, before M-0335 relocates what remains. Generated host copies are expected delivery outputs and are excluded from duplicate-authoring checks by ownership, not by ignoring an entire host file. D-0091 governs the evidence restriction.
+The shared operating fragment and the selected language packs under `.guidance/packs/` are canonical sources. Development guidance must not restate them. M-0349's inventory records which passages are copies and of what; this milestone deletes exactly those, before M-0335 relocates what remains. Generated host copies are expected delivery outputs and are excluded from duplicate-authoring checks by ownership, not by ignoring an entire host file. D-0102 governs the evidence restriction.
 
 ## Acceptance criteria
 
@@ -56,10 +56,11 @@ Lower each host's ceiling to its measured post-deletion upfront size. The curren
 - Deletion of copies only; what stays is not reworded.
 - Each guidance commit may include its related source and generated outputs together, with a `copy of <path>` disposition per removed passage; an id aside whose reasoning is nowhere else goes to the entity that owns it first, and its block says `relocated to`.
 - One row appended to the iteration log when this lands.
+- A pin on a passage this milestone deletes is retired with its reason, and its entry leaves the guidance-reader list.
 
 ## Design notes
 
-- D-0091 shapes AC-1 and AC-2 as absence and structure checks; neither can hold a sentence in place.
+- D-0102 shapes AC-1 and AC-2 as absence and structure checks; neither can hold a sentence in place, and each is listed as a guidance reader.
 - AC-3 is observational, so this milestone runs under `tdd: advisory`; its other criteria carry tests regardless.
 
 ## Surfaces touched
@@ -82,7 +83,7 @@ Lower each host's ceiling to its measured post-deletion upfront size. The curren
 
 ## References
 
-- D-0091, D-0089
+- D-0102, D-0089
 - `internal/check/skill_body_id.go` — the link-masking shape
 
 ## Release note

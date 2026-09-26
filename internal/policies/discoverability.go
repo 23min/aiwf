@@ -17,8 +17,8 @@ import (
 // Finding{} composite literals across check/ and contractcheck/ —
 // appears verbatim in at least one channel an AI assistant routinely
 // consults: any embedded skill SKILL.md, the binary's printHelp
-// output (internal/cli/root.go), CLAUDE.md, or any
-// markdown file under docs/. The CLAUDE.md "kernel
+// output (internal/cli/root.go), or any markdown file under docs/
+// other than a document the project router links to. The "kernel
 // functionality must be AI-discoverable" principle: a code that
 // only exists in source is, by definition, undocumented.
 //
@@ -49,7 +49,7 @@ func PolicyFindingCodesAreDiscoverable(root string) ([]Violation, error) {
 		out = append(out, Violation{
 			Policy: "finding-codes-are-discoverable",
 			File:   "internal/skills/embedded/aiwf-check/SKILL.md",
-			Detail: code + " is a finding code in the kernel but is not mentioned in any AI-discoverable channel (embedded skills, aiwf <verb> --help, CLAUDE.md, or docs/**/*.md)",
+			Detail: code + " is a finding code in the kernel but is not mentioned in any AI-discoverable channel (embedded skills, aiwf <verb> --help, or docs/**/*.md)",
 		})
 	}
 	return out, nil
@@ -154,20 +154,20 @@ const bannerSourceRel = "internal/cli/root.go"
 // documentation channel an AI assistant routinely consults. The
 // concatenation is matched as one big haystack — substring presence
 // in any channel passes the policy.
+//
+// Development guidance is not a channel: neither host entry point is
+// read, and a document the project router links to is skipped in the
+// docs/ walk. A kernel capability is documented where a consumer's
+// assistant finds it — --help, the embedded skills, the docs — and a
+// line in this repository's guidance would satisfy the policy while
+// documenting nothing a consumer can reach.
 func readDiscoverabilityChannels(root string) ([]byte, error) {
-	var out []byte
-	singletons := []string{
-		filepath.Join(root, bannerSourceRel),
-		filepath.Join(root, "CLAUDE.md"),
+	out, err := os.ReadFile(filepath.Join(root, bannerSourceRel))
+	if err != nil {
+		return nil, err
 	}
-	for _, p := range singletons {
-		data, err := os.ReadFile(p)
-		if err != nil {
-			return nil, err
-		}
-		out = append(out, data...)
-		out = append(out, '\n')
-	}
+	out = append(out, '\n')
+	onDemand := repoRoutedDocuments(root)
 	for _, dir := range []string{
 		filepath.Join(root, "internal", "skills", "embedded"),
 		filepath.Join(root, "docs"),
@@ -177,6 +177,9 @@ func readDiscoverabilityChannels(root string) ([]byte, error) {
 				return err
 			}
 			if info.IsDir() || !strings.HasSuffix(p, ".md") {
+				return nil
+			}
+			if rel, relErr := filepath.Rel(root, p); relErr == nil && onDemand[filepath.ToSlash(rel)] {
 				return nil
 			}
 			data, rerr := os.ReadFile(p)

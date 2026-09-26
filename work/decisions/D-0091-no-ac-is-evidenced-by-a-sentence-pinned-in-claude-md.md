@@ -1,7 +1,7 @@
 ---
 id: D-0091
 title: No AC is evidenced by a sentence pinned in CLAUDE.md
-status: accepted
+status: superseded
 relates_to:
     - E-0092
     - D-0070

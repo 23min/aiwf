@@ -3,6 +3,8 @@ id: M-0334
 title: Write the rubric, record the baseline, add guidance metrics to growth-report
 status: draft
 parent: E-0092
+depends_on:
+    - M-0350
 tdd: none
 acs:
     - id: AC-1

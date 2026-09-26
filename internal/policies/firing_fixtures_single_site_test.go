@@ -17,13 +17,12 @@ func hasPolicyViolation(vs []Violation, id string) bool {
 
 // discoverabilityScaffold returns the minimal tree the discoverability
 // policies need to run without erroring: readDiscoverabilityChannels reads
-// internal/cli/root.go + CLAUDE.md and walks internal/skills/embedded +
-// docs, so all four must exist. None of them mention the crafted
-// tag/code, so it stays out of the haystack and the policy fires.
+// internal/cli/root.go and walks internal/skills/embedded + docs, so all
+// three must exist. None of them mention the crafted tag/code, so it
+// stays out of the haystack and the policy fires.
 func discoverabilityScaffold() map[string]string {
 	return map[string]string{
 		"internal/cli/root.go":          "package cli\n\nfunc printHelp() {}\n",
-		"CLAUDE.md":                     "# fixture\n\nnothing relevant here\n",
 		"internal/skills/embedded/x.md": "nothing relevant\n",
 		"docs/x.md":                     "nothing relevant\n",
 		// The entry point carries no banner text. Keeping it in the

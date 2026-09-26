@@ -158,30 +158,39 @@ func testPackageDirs(root string) ([]string, error) {
 	return dirs, nil
 }
 
-// scanPackageForProseAssertions parses one directory's Go sources together and
-// runs the analysis across them.
-func scanPackageForProseAssertions(root, relDir string) ([]Violation, error) {
-	dir := filepath.Join(root, filepath.FromSlash(relDir))
-	entries, err := os.ReadDir(dir)
+// parsePackageDir parses every Go file in one directory, test files and the
+// rest together, since a test reaches what it reads through either. Comments
+// are kept: a `//go:embed` directive is a comment and is the only thing tying
+// an embedded tree to the variable holding it.
+func parsePackageDir(root, relDir string) (*token.FileSet, []*ast.File, map[*ast.File]string, error) {
+	entries, err := os.ReadDir(filepath.Join(root, filepath.FromSlash(relDir)))
 	if err != nil {
-		return nil, fmt.Errorf("reading %s: %w", relDir, err)
+		return nil, nil, nil, fmt.Errorf("reading %s: %w", relDir, err)
 	}
 	fset := token.NewFileSet()
 	var files []*ast.File
 	paths := map[*ast.File]string{}
 	for _, e := range entries {
-		name := e.Name()
-		if e.IsDir() || !strings.HasSuffix(name, ".go") {
+		if e.IsDir() || !strings.HasSuffix(e.Name(), ".go") {
 			continue
 		}
-		// ParseComments, because a `//go:embed` directive is a comment and is
-		// the only thing tying an embedded tree to the variable holding it.
-		f, perr := parser.ParseFile(fset, filepath.Join(dir, name), nil, parser.ParseComments)
-		if perr != nil {
-			return nil, fmt.Errorf("parsing %s/%s: %w", relDir, name, perr) //coverage:ignore a source that does not parse fails the build long before any policy runs.
+		rel := relDir + "/" + e.Name()
+		f, err := parser.ParseFile(fset, filepath.Join(root, filepath.FromSlash(rel)), nil, parser.ParseComments)
+		if err != nil {
+			return nil, nil, nil, fmt.Errorf("parsing %s: %w", rel, err)
 		}
 		files = append(files, f)
-		paths[f] = relDir + "/" + name
+		paths[f] = rel
+	}
+	return fset, files, paths, nil
+}
+
+// scanPackageForProseAssertions parses one directory's Go sources together and
+// runs the analysis across them.
+func scanPackageForProseAssertions(root, relDir string) ([]Violation, error) {
+	fset, files, paths, err := parsePackageDir(root, relDir)
+	if err != nil {
+		return nil, err
 	}
 	return detectProseAssertions(fset, files, paths), nil
 }
@@ -288,6 +297,23 @@ func (sc *scopeTaint) propagate(body *ast.BlockStmt) {
 	for pass := 0; pass < 4; pass++ {
 		ast.Inspect(body, func(n ast.Node) bool {
 			switch st := n.(type) {
+			case *ast.ValueSpec:
+				// A function-local `const` or `var` naming a shipped path
+				// stands for it within this function, and one initialized
+				// from a read holds the document — every name, when one
+				// call binds several.
+				for i, nm := range st.Names {
+					if i < len(st.Values) && nm.Name != "_" && sc.namesShippedPath(st.Values[i]) {
+						sc.pathIdents[nm.Name] = true
+					}
+					src := i
+					if len(st.Values) == 1 {
+						src = 0
+					}
+					if src < len(st.Values) && sc.carriesShipped(st.Values[src]) {
+						sc.mark(nm)
+					}
+				}
 			case *ast.AssignStmt:
 				// A local rebound to a shipped path carries it onward.
 				for i, rhs := range st.Rhs {
@@ -584,18 +610,27 @@ func shippedPathConsts(files []*ast.File) map[string]bool {
 				}
 			}
 		}
-		ast.Inspect(f, func(n ast.Node) bool {
-			vs, ok := n.(*ast.ValueSpec)
+		// Package-level declarations only: the map is keyed by name across
+		// the package, so a function-local one would lend its path to every
+		// same-named identifier elsewhere. A local one is followed inside its
+		// own function by propagate.
+		for _, d := range f.Decls {
+			gd, ok := d.(*ast.GenDecl)
 			if !ok {
-				return true
+				continue
 			}
-			for i, nm := range vs.Names {
-				if i < len(vs.Values) && exprNamesShippedPath(vs.Values[i], out) {
-					out[nm.Name] = true
+			for _, sp := range gd.Specs {
+				vs, ok := sp.(*ast.ValueSpec)
+				if !ok {
+					continue
+				}
+				for i, nm := range vs.Names {
+					if i < len(vs.Values) && exprNamesShippedPath(vs.Values[i], out) {
+						out[nm.Name] = true
+					}
 				}
 			}
-			return true
-		})
+		}
 	}
 	return out
 }

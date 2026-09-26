@@ -25,6 +25,7 @@ Repository development rules, aiwf operating guidance and project-adopted langua
 ## Scope
 
 - **The fence, M-0333.** Gate commits that change guidance, require a disposition for removed text, and fail CI when either host's primed load exceeds its ceiling.
+- **The shipped fence, M-0350.** Move the commit rules into `aiwf check`, so every aiwf repository fences its handwritten instruction files by default (ADR-0053).
 - **The baseline, M-0334.** Freeze the installed guidance and record both hosts' loading and rule-following on a fixed task set at one commit, using M-0348's observation harness.
 - **The inventory, M-0349.** List every rule once with its current homes, classify it, and give it a disposition. Decide every conflict with the maintainer. Name the on-demand documents and set the primed ceiling from the result.
 - **Remove copies, M-0336.** Delete text whose rule already lives in the aiwf fragment or a selected pack, as the inventory records.
@@ -41,7 +42,8 @@ Repository development rules, aiwf operating guidance and project-adopted langua
 - Entity templates and general changes to ritual or verb skill bodies, except references that must follow relocated guidance.
 - Changing existing check conditions while improving their messages.
 - New host adapters, including Copilot, or universal guarantees of model compliance.
-- A ceiling imposed on consumer repositories; the reduction policies are internal to this repository.
+- A size ceiling or size report for consumer repositories; the ceiling and the guidance-reader list are internal to this repository (ADR-0053).
+- Fencing instruction files below a repository's root (ADR-0053).
 
 ## Constraints
 
@@ -52,7 +54,7 @@ Repository development rules, aiwf operating guidance and project-adopted langua
 - **Two ceilings.** Each host has a ceiling on its handwritten primed words, set by M-0349 and enforced by M-0333's policy. The shipped fragment's size is tracked separately and reduced only in M-0339. A reference that requires a full read before any task counts as primed.
 - **Frozen guidance.** From M-0334's baseline until M-0338's after-observation, `guidance.enabled` is `false` in `aiwf.yaml`, so no `aiwf update` or `aiwf worktree add` refreshes the installed packs. Re-enable it at the epic's wrap.
 - **The fence lands first.** Its commit scope allows related guidance sources and generated outputs together, but excludes unrelated implementation changes. Generated blocks change through their owner, never by hand.
-- **Pins move or retire with a recorded reason.** D-0091's prohibition on prose-presence evidence extends to both host entry points and the on-demand documents.
+- **Pins retire with a recorded reason.** D-0102 bars evidencing a criterion with a sentence pinned in either host entry point, the project router or the on-demand documents; a pin retires with its passage and leaves the reader list with it.
 - A check-backed section becomes a pointer only after its diagnostic states the remedy.
 - **Observations are records.** Commit the rubric before its first run. Record command, expected result, observed result and environment, including host/model versions and the installed guidance revision. Judge reads on tool events, not on the assistant's own account. Runs that invoke `aiwf update` point `HOME` at a scratch directory.
 - Record a growth-report row at each reduction boundary and derive the removal manifest from commits at wrap.
@@ -63,9 +65,10 @@ Repository development rules, aiwf operating guidance and project-adopted langua
 - [ ] E-0094 is named as the delivery prerequisite and its completion is verified before implementation.
 - [ ] Every guidance rule has one home and a recorded disposition; no conflicting rules remain.
 - [ ] Both hosts' handwritten primed words meet their ceilings; the policy catches regrowth and required-read indirection.
+- [ ] Every aiwf repository fences edits to its handwritten instruction files by default (ADR-0053).
 - [ ] No instruction file exists below the repository root; both hosts reach task-relevant guidance through `.guidance/project.md` from a root-started session, and no home-directory language import returns.
 - [ ] Development guidance duplicates neither operating rules nor the selected language packs.
-- [ ] Each moved pin is re-aimed or retired with its reason recorded.
+- [ ] Each moved pin is retired with its reason recorded.
 - [ ] Guidance references and enforcement pointers resolve.
 - [ ] Both hosts have before/after observations against the frozen baseline, with task-loaded text reported separately.
 - [ ] Growth measurements and the commit-derived removal manifest are recorded.
@@ -93,7 +96,8 @@ Repository development rules, aiwf operating guidance and project-adopted langua
 ## Milestones
 
 - M-0333 — Fence repository guidance and measure primed load for both hosts.
-- M-0334 — Freeze the guidance and record the baseline for both hosts.
+- M-0350 — Ship the instruction-file fence in `aiwf check`; depends on M-0333.
+- M-0334 — Freeze the guidance and record the baseline for both hosts; depends on M-0350.
 - M-0349 — Inventory every guidance rule and decide its home and form; depends on M-0333 and M-0334.
 - M-0336 — Remove copies of rules that already live elsewhere; depends on M-0349.
 - M-0335 — Route on-demand guidance through the project router and tighten what moves; depends on M-0336.
@@ -106,8 +110,9 @@ Repository development rules, aiwf operating guidance and project-adopted langua
 - E-0093 — supported Claude and Codex workflows.
 - E-0094 — external guidance delivery and this repository's migration; M-0348 records the post-delivery measurements and host observations.
 - ADR-0052 — project guidance independent of personal bootstrap.
+- ADR-0053 — the instruction-file fence ships in `aiwf check`.
 - D-0089 — external language-content ownership and project-local delivery.
-- D-0091 — prose-presence evidence restriction; apply it to both hosts here.
+- D-0102 — the evidence rule over the development-guidance set, superseding D-0091.
 - D-0070 — limits on pins over shipped prose.
 - G-0676, G-0436 — the growth and stale-reference defects this epic addresses.
 - G-0668 — measurement records need reproducible commands.
