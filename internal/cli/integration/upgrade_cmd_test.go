@@ -8,12 +8,17 @@ import (
 	"os"
 	"path/filepath"
 	"runtime"
+	"slices"
 	"strings"
 	"testing"
+
+	"github.com/google/go-cmp/cmp"
 
 	"github.com/23min/aiwf/internal/cli"
 	"github.com/23min/aiwf/internal/cli/cliutil/testutil"
 	"github.com/23min/aiwf/internal/cli/upgrade"
+	"github.com/23min/aiwf/internal/config"
+	"github.com/23min/aiwf/internal/testsupport"
 
 	"github.com/23min/aiwf/internal/cli/cliutil"
 	"github.com/23min/aiwf/internal/version"
@@ -473,6 +478,69 @@ func TestRenderVersionLabel(t *testing.T) {
 			got := upgrade.RenderVersionLabel(version.Parse(tc.ver))
 			if got != tc.want {
 				t.Errorf("upgrade.RenderVersionLabel(%q) = %q, want %q", tc.ver, got, tc.want)
+			}
+		})
+	}
+}
+
+// TestRunUpgrade_UnattendedUpgradeAdoptsGuidance runs upgrade with no terminal
+// on stdin in a repository whose aiwf.yaml has no guidance block, so guidance
+// comes from the default catalogue. Git configuration redirects that URL to a
+// local catalogue, or to a path that does not exist.
+func TestRunUpgrade_UnattendedUpgradeAdoptsGuidance(t *testing.T) {
+	t.Parallel()
+	testutil.SkipIfShortOrUnsupported(t)
+	binary := testutil.BuildBinary(t, t.TempDir())
+	defaultSource := (*config.Config)(nil).GuidanceSource()
+	for _, reachable := range []bool{true, false} {
+		name := "catalogue reachable"
+		if !reachable {
+			name = "catalogue unreachable"
+		}
+		t.Run(name, func(t *testing.T) {
+			t.Parallel()
+			root, home := t.TempDir(), t.TempDir()
+			catalogue := filepath.Join(home, "absent-catalogue")
+			if reachable {
+				catalogue = testsupport.GuidanceSource(t, "*.xyz")
+			}
+			claudeBaselineWrite(t, home, ".gitconfig", "[url \""+catalogue+"\"]\n\tinsteadOf = "+defaultSource+"\n")
+			path := hostLifecyclePATH(t, binary, nil)
+			hostLifecycleRun(t, root, home, path, "git", "init", "-q", "-b", "main")
+			claudeBaselineWrite(t, root, config.FileName, "hosts: [codex]\n")
+			claudeBaselineWrite(t, root, "source.xyz", "project source")
+
+			// exec.Cmd with no Stdin reads from the null device, not a terminal.
+			output := hostUpgradeRun(t, binary, root, home, path, false, 0, "upgrade", "--version", "v0.1.0")
+			section := trailingGuidanceSection(t, output)
+			cfg, err := config.Load(root)
+			if err != nil {
+				t.Fatal(err)
+			}
+			_, installErr := os.Stat(filepath.Join(root, ".guidance", "packs", "sample", "base", "guide.md"))
+			routed := strings.Contains(string(readFile(t, filepath.Join(root, "AGENTS.md"))), "[.guidance/index.md](.guidance/index.md)")
+
+			if !reachable {
+				want := "  blocked:   fetching guidance from \"" + defaultSource + "\"; check the source and Git access: "
+				if !slices.ContainsFunc(section, func(line string) bool { return strings.HasPrefix(line, want) }) {
+					t.Fatalf("report does not name the retrieval failure, want a line starting %q:\n%s", want, strings.Join(section, "\n"))
+				}
+				if cfg.Guidance.Packs != nil || installErr == nil || routed {
+					t.Fatalf("unreachable catalogue left guidance behind: packs=%v installed=%v routed=%v", cfg.Guidance.Packs, installErr == nil, routed)
+				}
+				return
+			}
+			if cfg.Guidance.Packs == nil || !cmp.Equal(*cfg.Guidance.Packs, []string{"sample/base"}) {
+				t.Fatalf("guidance.packs = %v, want [sample/base]", cfg.Guidance.Packs)
+			}
+			if installErr != nil {
+				t.Fatalf("adopted pack not installed: %v", installErr)
+			}
+			if !routed {
+				t.Fatal("AGENTS.md does not route to the installed guidance")
+			}
+			if !cmp.Equal(section[1:3], []string{"  selected:  sample/base", "  adopted:   sample/base"}) {
+				t.Fatalf("report does not name the adoption:\n%s", strings.Join(section, "\n"))
 			}
 		})
 	}

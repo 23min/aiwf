@@ -179,7 +179,9 @@ func TestHostLifecycle_UpgradePropagatesRefreshAndExecFailures(t *testing.T) {
 	}
 }
 
-// Fake only installation: the replacement process runs the actual update command.
+// Fake only installation: the replacement process runs the actual update
+// command. Git reads its global configuration from home/.gitconfig, which a
+// caller may write before the run.
 func hostUpgradeRun(t *testing.T, binary, cwd, home, path string, brokenExec bool, wantCode int, args ...string) string {
 	t.Helper()
 	installerRoot := t.TempDir()
@@ -206,7 +208,7 @@ esac
 	cmd := exec.Command(binary, args...)
 	cmd.Dir = cwd
 	cmd.Env = append(os.Environ(), "PATH="+path, "HOME="+home, "XDG_CONFIG_HOME="+home,
-		"GIT_CONFIG_GLOBAL="+os.DevNull, "GIT_CONFIG_NOSYSTEM=1", "GOPROXY=off", "AIWF_NO_REEXEC=",
+		"GIT_CONFIG_GLOBAL="+filepath.Join(home, ".gitconfig"), "GIT_CONFIG_NOSYSTEM=1", "GOPROXY=off", "AIWF_NO_REEXEC=",
 		"AIWF_GO_BIN="+installer, "AIWF_TEST_BINARY="+binary, "AIWF_TEST_GOBIN="+installerRoot, "AIWF_TEST_INSTALL_LOG="+log)
 	output, err := cmd.CombinedOutput()
 	code := 0
