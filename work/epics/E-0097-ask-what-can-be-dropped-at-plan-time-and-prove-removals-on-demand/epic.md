@@ -34,7 +34,7 @@ work that never becomes a milestone never meets it. The block is also the one co
 of a procedure that belongs in a skill, where the patch ritual and any consumer
 could reach it.
 
-[`subtraction-review-on-demand.md`](../../../docs/initiatives/subtraction-review-on-demand.md)
+[`subtraction-review-on-demand.md`](../../../docs/initiatives/archive/subtraction-review-on-demand.md)
 holds the on-demand skill's design and two hand-run trials, including what each
 trial got wrong and what that asks of the skill.
 
@@ -153,7 +153,7 @@ trial got wrong and what that asks of the skill.
 
 ## References
 
-- [`docs/initiatives/subtraction-review-on-demand.md`](../../../docs/initiatives/subtraction-review-on-demand.md) — the on-demand skill's design and its two hand-run trials.
+- [`docs/initiatives/archive/subtraction-review-on-demand.md`](../../../docs/initiatives/archive/subtraction-review-on-demand.md) — the on-demand skill's design and its two hand-run trials.
 - [`docs/design/growth.md`](../../../docs/design/growth.md) — the measured baseline, the four-shape model, and the rule against gating a growth budget.
 - D-0054 — keep the reasoning, derive the facts; record obligations, not events.
 - D-0070 — the limits on pinning shipped prose, which set this epic's evidence form.
