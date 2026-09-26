@@ -12,6 +12,7 @@
 0644 1cb7d5c6aa3e93b23aa4069a20bb5a2989755f87eed1ddd7438d091fca8751ec .claude/skills/aiwfx-start-epic/SKILL.md
 0644 237453f23c1daa0eb31edfa41728701e7d20152cfd52875d7eec80953d729cc6 .claude/agents/.aiwf-owned
 0644 262ddb84ce188dc83e449ea6726992375e970a00fe3c0468c1fca51c38828ad2 CLAUDE.md
+0644 27e32a94876037f52562162f27916df259251464aa530ecf75b6e14b31e290b9 .claude/skills/aiwfx-plan-epic/SKILL.md
 0644 3502fc53efdbf327648ecef3e22f5f60a8d468fcd1bbc1856935d70c39745636 .claude/skills/aiwfx-plan-milestones/SKILL.md
 0644 417069c8044c32e058989b42e5506a93ebdb45d162398d9b00037b2e587d38ca .claude/templates/contract.md
 0644 42a0239d684c86691dcda34e945ecccceb049425bf95736b3200769f69dc286c .claude/templates/.aiwf-owned
@@ -22,7 +23,6 @@
 0644 566e39e3cad86292ef585ff13298f525a7d5a7539ab6aa83f69dce1d519e8c35 .claude/templates/decision.md
 0644 593dc29b0594640de8ca050bcecd6ae558af85433a2086e16028ff3a04289c79 .claude/templates/gap.md
 0644 59ed01ac5e0dfef0d9736500319c749aa448a1ae0a045da8f36727ebc48c0b5d .claude/skills/wf-codebase-health/SKILL.md
-0644 5a4cb52538cfa56e60c7ebdc78f7a542075e3dd14217454c9f1a2096d6d4378d .claude/skills/aiwfx-plan-epic/SKILL.md
 0644 5e9c3d4227cdabf0b27f75b72d6119397d28c3022c3ccb367c837e415ce06bb8 .claude/templates/epic-spec.md
 0644 5f33f52a10ac231c2e9b7a821dda1ab36f9063357eec3aac73a4ce4419fc51e8 .claude/skills/wf-vacuity/SKILL.md
 0644 61cc30323e05d62425397f25207384b0f2106804342fec2daf33d90d62c8de81 .claude/skills/aiwf-promote/SKILL.md

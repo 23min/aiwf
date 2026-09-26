@@ -189,3 +189,20 @@ again.
 | Artifact | Original SHA-256 | Updated SHA-256 |
 | --- | --- | --- |
 | `.claude/aiwf-guidance.md` | `9bcf991dec935d2c38387a44a242b102180604e22dbae7d595ef5fbb1396601d` | `63b7f18c2fa664237362ea4c94001fa38e17904c9531ac1cc5f4eb3f3b864f68` |
+
+## Plan-time scope-offer exception
+
+M-0356 rewrites the epic-planning ritual's scope-confirmation step so it offers
+the smallest version that solves the problem before the proposed one. The six
+inventories change only `.claude/skills/aiwfx-plan-epic/SKILL.md`; all other
+records stay frozen.
+
+Provenance: derived in the Linux development container on 2026-09-26 by the same
+subtraction used for the guidance record above — materialize with a `v0.36.0`-stamped
+candidate binary into an identically seeded consumer, restore the step's prior
+single-line form in the captured bytes, and confirm the result reproduces the frozen
+hash. Only that skill's record was replaced, and the inventories were sorted again.
+
+| Artifact | Original SHA-256 | Updated SHA-256 |
+| --- | --- | --- |
+| `aiwfx-plan-epic/SKILL.md` | `5a4cb52538cfa56e60c7ebdc78f7a542075e3dd14217454c9f1a2096d6d4378d` | `27e32a94876037f52562162f27916df259251464aa530ecf75b6e14b31e290b9` |
