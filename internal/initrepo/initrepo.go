@@ -439,7 +439,8 @@ type RefreshOptions struct {
 // Init runs the documented setup steps in order. Returns a Result that
 // describes what was created vs preserved vs updated. Errors abort
 // early — a partially-applied init is rare in practice (init only
-// touches config / scaffolding / skills) and the user can re-run.
+// touches config / scaffolding / skills) and the user can re-run. An error
+// after the guidance step still returns a Result carrying its Guidance.
 //
 // Step order:
 //  1. aiwf.yaml (first-time-only)
@@ -514,7 +515,7 @@ func Init(ctx context.Context, root string, opts Options) (*Result, error) {
 		WireClaudeMd:       wireClaudeMd,
 	})
 	if err != nil {
-		return nil, err
+		return refresh, err
 	}
 	// The preview reads the unchanged disk; account for the CLAUDE.md that
 	// the preceding scaffold step would create before guidance is wired.
@@ -537,6 +538,7 @@ func Init(ctx context.Context, root string, opts Options) (*Result, error) {
 // `aiwf init` (after first-time-only scaffolding) and `aiwf update`.
 // The result records the effective host selection and per-step ledger.
 // Hook conflicts are reported separately from guidance refusals in the ledger.
+// An error after the guidance step still returns a Result carrying its Guidance.
 //
 // Step order:
 //  1. Selected hosts: skills, templates, supported agents, and guidance
@@ -611,31 +613,36 @@ func refreshArtifacts(ctx context.Context, root string, cfg *config.Config, sele
 	}
 
 	guidanceStep, guidance := projectGuidance(ctx, root, cfg, selection, opts)
+	// Guidance may already have adopted and recorded packs, so a later
+	// failure still returns its outcome for the caller to report.
+	failed := func(err error) (*Result, error) {
+		return &Result{Steps: steps, DryRun: opts.DryRun, HostSelection: selection, Guidance: guidance}, err
+	}
 	if guidanceStep != nil {
 		steps = append(steps, *guidanceStep)
 	}
 
 	legacyStep, err := ensureLegacyActorClean(root, opts.DryRun)
 	if err != nil {
-		return nil, err
+		return failed(err)
 	}
 	steps = append(steps, legacyStep)
 
 	legacyVersionStep, err := ensureLegacyAiwfVersionClean(root, opts.DryRun)
 	if err != nil {
-		return nil, err
+		return failed(err)
 	}
 	steps = append(steps, legacyVersionStep)
 
 	exampleStep, err := ensureExampleYAML(root, opts.DryRun)
 	if err != nil { //coverage:ignore only reachable if ensureExampleYAML's AtomicWriteFile call fails (already coverage:ignored there); same disk-full/permission non-triggerability
-		return nil, err
+		return failed(err)
 	}
 	steps = append(steps, exampleStep)
 
 	gitignoreStep, err := ensureGitignore(root, selection, opts.StatusMdAutoUpdate, opts.DryRun)
 	if err != nil {
-		return nil, err
+		return failed(err)
 	}
 	steps = append(steps, gitignoreStep)
 
@@ -683,28 +690,28 @@ func refreshArtifacts(ctx context.Context, root string, cfg *config.Config, sele
 
 	preHookStep, prePushConflict, err := ensurePreHook(ctx, root, opts.DryRun)
 	if err != nil {
-		return nil, err
+		return failed(err)
 	}
 	steps = append(steps, preHookStep)
 	conflict = conflict || prePushConflict
 
 	preCommitStep, preCommitConflict, err := ensurePreCommitHook(ctx, root, opts.DryRun)
 	if err != nil {
-		return nil, err
+		return failed(err)
 	}
 	steps = append(steps, preCommitStep)
 	conflict = conflict || preCommitConflict
 
 	commitMsgStep, commitMsgConflict, err := ensureCommitMsgHook(ctx, root, opts.DryRun)
 	if err != nil {
-		return nil, err
+		return failed(err)
 	}
 	steps = append(steps, commitMsgStep)
 	conflict = conflict || commitMsgConflict
 
 	postCommitStep, postCommitConflict, err := ensurePostCommitHook(ctx, root, opts.StatusMdAutoUpdate, opts.DryRun)
 	if err != nil {
-		return nil, err
+		return failed(err)
 	}
 	steps = append(steps, postCommitStep)
 	conflict = conflict || postCommitConflict

@@ -146,3 +146,49 @@ func TestBinary_GuidanceReportHelpReachesInitAndUpdate(t *testing.T) {
 		}
 	}
 }
+
+// TestBinary_LaterFailureStillEndsWithTheGuidanceSection makes a step after
+// guidance fail (the hooks directory is a file): the run exits with an internal
+// error, but guidance has already adopted and recorded a pack, so the section
+// still ends its output.
+func TestBinary_LaterFailureStillEndsWithTheGuidanceSection(t *testing.T) {
+	t.Parallel()
+	source := testsupport.GuidanceSource(t, "*.xyz")
+	for _, verb := range []string{"init", "update"} {
+		t.Run(verb, func(t *testing.T) {
+			t.Parallel()
+			root := t.TempDir()
+			if err := gitops.Init(t.Context(), root); err != nil {
+				t.Fatal(err)
+			}
+			if err := os.RemoveAll(filepath.Join(root, ".git", "hooks")); err != nil {
+				t.Fatal(err)
+			}
+			files := map[string]string{
+				config.FileName: "hosts: [codex]\nguidance:\n  source: " + source + "\n",
+				"source.xyz":    "project source",
+				".git/hooks":    "not a directory",
+			}
+			for name, content := range files {
+				if err := os.WriteFile(filepath.Join(root, filepath.FromSlash(name)), []byte(content), 0o644); err != nil {
+					t.Fatal(err)
+				}
+			}
+			args := []string{verb, "--root", root}
+			if verb == "init" {
+				args = append(args, "--actor", "human/test")
+			}
+			cmd := exec.CommandContext(t.Context(), testutil.AiwfBinary(t), args...)
+			cmd.Env = append(os.Environ(), testsupport.GuidanceEnvironment(t)...)
+			stdout, err := cmd.Output()
+			var exited *exec.ExitError
+			if !errors.As(err, &exited) || exited.ExitCode() != cliutil.ExitInternal {
+				t.Fatalf("%s: want exit %d from the failing hook step, got %v\n%s", verb, cliutil.ExitInternal, err, stdout)
+			}
+			section := trailingGuidanceSection(t, string(stdout))
+			if !cmp.Equal(section[1:3], []string{"  selected:  sample/base", "  adopted:   sample/base"}) {
+				t.Fatalf("later failure hid the adoption:\n%s", stdout)
+			}
+		})
+	}
+}

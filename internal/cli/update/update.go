@@ -134,6 +134,10 @@ func Run(root string, statusline bool, scope string, wireSettings, allowUntagged
 	})
 	if err != nil {
 		cliutil.Errorf("aiwf update: %v\n", err)
+		// A failure after the guidance step still reports what it recorded.
+		if refresh != nil {
+			cliutil.PrintGuidanceReport(refresh.Guidance)
+		}
 		if errors.Is(err, initrepo.ErrClaudeUnselected) {
 			return cliutil.ExitUsage
 		}

@@ -54,7 +54,7 @@ func TestGuidanceReport(t *testing.T) {
 		},
 		{
 			name:    "disabled maintenance reports no missing pack",
-			outcome: &initrepo.GuidanceOutcome{Selection: &[]string{"a/one"}, Disabled: true},
+			outcome: &initrepo.GuidanceOutcome{Selection: &[]string{"a/one"}, Disabled: true, Installed: projectguidance.Inspection{IndexIntact: true}},
 			want: []string{
 				"", "Guidance:",
 				"  selected:  a/one",
@@ -66,7 +66,7 @@ func TestGuidanceReport(t *testing.T) {
 		},
 		{
 			name:    "unreadable installed guidance claims nothing about missing packs",
-			outcome: &initrepo.GuidanceOutcome{Selection: &[]string{"a/one"}, InspectError: "cannot inspect installed policy: invalid ownership digest"},
+			outcome: &initrepo.GuidanceOutcome{Selection: &[]string{"a/one"}, InspectError: "cannot inspect installed policy: invalid ownership digest", Installed: projectguidance.Inspection{IndexIntact: true}},
 			want: []string{
 				"", "Guidance:",
 				"  selected:  a/one",

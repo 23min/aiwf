@@ -102,3 +102,29 @@ func TestRun_StatuslineFailureSetsExitCode(t *testing.T) {
 		t.Errorf("output does not end with the guidance section:\n%s", output)
 	}
 }
+
+// TestRun_LaterFailureStillReportsGuidance makes the hook step fail after
+// guidance ran: init exits with an internal error and still prints the
+// guidance section. Disabled maintenance keeps the run hermetic.
+//
+// Serial: captures process stdout.
+func TestRun_LaterFailureStillReportsGuidance(t *testing.T) {
+	root := freshGitRepo(t)
+	if err := os.WriteFile(filepath.Join(root, "aiwf.yaml"), []byte("hosts: [codex]\nguidance:\n  enabled: false\n"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	hooks := filepath.Join(root, ".git", "hooks")
+	if err := os.RemoveAll(hooks); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(hooks, []byte("not a directory"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	rc := cliutil.ExitOK
+	output := string(testutil.CaptureStdout(t, func() {
+		rc = initcmd.Run(root, "", false, false, false, "", false, false, true, nil, nil)
+	}))
+	if rc != cliutil.ExitInternal || !strings.Contains(output, "\nGuidance:\n") {
+		t.Fatalf("rc = %d, want ExitInternal with the guidance section:\n%s", rc, output)
+	}
+}

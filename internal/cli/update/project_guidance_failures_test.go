@@ -329,3 +329,23 @@ func TestRun_GuidanceReportNamesBlockerAndFix(t *testing.T) {
 		}
 	}
 }
+
+// TestRun_LaterFailureStillReportsGuidance makes the hook step fail after
+// guidance ran: update exits with an internal error and still prints the
+// guidance section. Disabled maintenance keeps the run hermetic.
+func TestRun_LaterFailureStillReportsGuidance(t *testing.T) {
+	root := freshInitializedRepo(t)
+	guidanceWrite(t, root, config.FileName, "hosts: [codex]\nguidance:\n  enabled: false\n")
+	hooks := filepath.Join(root, ".git", "hooks")
+	if err := os.RemoveAll(hooks); err != nil {
+		t.Fatal(err)
+	}
+	guidanceWrite(t, root, filepath.Join(".git", "hooks"), "not a directory")
+	rc := cliutil.ExitOK
+	output := string(testutil.CaptureStdout(t, func() {
+		rc = update.Run(root, false, "", false, false, false, false, true, nil, nil)
+	}))
+	if rc != cliutil.ExitInternal || !strings.Contains(output, "\nGuidance:\n") {
+		t.Fatalf("rc = %d, want ExitInternal with the guidance section:\n%s", rc, output)
+	}
+}

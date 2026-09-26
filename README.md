@@ -273,15 +273,17 @@ installed. If validation or installation fails, installed
 guidance and `aiwf.yaml` stay as they were and the update reports the failure.
 
 `aiwf init` and `aiwf update` end with a `Guidance:` section, which also ends the
-output of `aiwf upgrade` through its re-executed update; a dry run prints none.
+output of `aiwf upgrade` through its re-executed update. It also ends a run that
+stops on a later error; an `aiwf init --dry-run` prints none.
 It lists the selection (or that it is unset or explicitly empty), the packs
 adopted and recorded in this run, the installed packs with their source commit
 (or that they are unknown when the installed index is not intact), and the
 ignored packs, each shown as `none` when empty. When they apply it adds that
 maintenance is disabled, a `pending:` line for an interrupted installation, a
-`blocked:` line naming why installation did not complete and, where the
-installer names one, the action that clears it, and a `missing:` line with its
-fix for each selected pack the installed index does not list. A blocked
+`blocked:` line naming why guidance was not fully installed and recorded and,
+where the installer names one, the action that clears it, and, while maintenance
+is enabled, a `missing:` line with its fix for each selected pack the installed
+index does not list. A blocked
 installation changes neither the exit status nor the other steps of the run.
 `aiwf doctor` words the selection, disabled maintenance, a pending installation
 and missing packs the same way.
@@ -340,8 +342,8 @@ If installation is interrupted, `.guidance/.aiwf-pending` records the incomplete
 update. Rerun `aiwf update` to finish with the current selection and upstream
 revision; it does not roll back. Do not commit or use a partial pack set.
 `aiwf doctor` checks local ownership, reports missing or modified artifacts and
-the revision recorded in an intact installed index, and warns about each selected
-pack an intact installed index does not list. It does not fetch guidance or
+the revision recorded in an intact installed index, and, while maintenance is
+enabled, warns about each selected pack an intact installed index does not list. It does not fetch guidance or
 claim upstream freshness, and disk checks do not prove an assistant read a pack.
 `doctor --self-check` exercises the CLI against a throwaway repository.
 

@@ -62,7 +62,7 @@ func ensureProjectGuidance(ctx context.Context, root string, cfg *config.Config,
 	}
 	step := &StepResult{What: ".guidance (project engineering guidance)", Action: ActionSkipped}
 	missing := ""
-	// A blocked run installs nothing; every block after retrieval also
+	// A blocked run records no adoption; every block after retrieval also
 	// carries the missing-pack note.
 	blocked := func(detail string) (*StepResult, *GuidanceOutcome) {
 		outcome.Blocker = detail

@@ -60,6 +60,8 @@ func TestDoctor_ProjectGuidanceStateAndWarnings(t *testing.T) {
 			case "disabled":
 				disabled := false
 				cfg.Guidance.Enabled = &disabled
+				// A selected pack the index lacks draws no warning while disabled.
+				packs = append(packs, "gone/pack")
 				want = "maintenance disabled"
 			case "not installed":
 				path = ".guidance/index.md"
@@ -92,7 +94,7 @@ func TestDoctor_ProjectGuidanceStateAndWarnings(t *testing.T) {
 			if kind != "unset" && kind != "not installed" {
 				source := testsupport.GuidanceSource(t)
 				installed := packs
-				if kind == "selected pack not installed" {
+				if kind == "selected pack not installed" || kind == "disabled" {
 					installed = packs[:1]
 				}
 				snapshot, err := projectguidance.Retrieve(t.Context(), source, installed)

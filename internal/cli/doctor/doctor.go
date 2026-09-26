@@ -55,7 +55,7 @@ unavailable host commands are warnings. Unselected paths are reported as retaine
 Guidance opt-outs and blocked updates are reported separately. The guidance
 selection, disabled maintenance, a pending installation and each selected pack
 an intact installed index does not list are worded as the update report words
-them; each such missing pack is a warning.
+them; while maintenance is enabled, each such missing pack is a warning.
 
 These disk checks do not establish that instructions reached a model's context.
 The regular report exits 1 for errors; --check-rituals also exits 1 for ritual drift.` + cliutil.HostSetupHelp,
