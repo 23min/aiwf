@@ -19,8 +19,8 @@ section in this file.
 ### Changed (internal) — consolidate the internal/policies test file-writing helpers
 
 Nothing user-facing changed; several near-identical test-only helpers in
-`internal/policies` that wrote a fixture file to disk now route through one
-shared helper.
+`internal/policies` that wrote a fixture file to disk now route through the shared
+`mustWrite` and `writeAt` helpers.
 
 ### Changed — G-0110: `make mutate-diff` mutates only the changed lines
 
