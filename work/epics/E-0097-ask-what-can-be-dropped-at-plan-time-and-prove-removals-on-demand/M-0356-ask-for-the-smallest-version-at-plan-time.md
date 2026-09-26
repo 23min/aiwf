@@ -13,7 +13,7 @@ acs:
       status: met
     - id: AC-3
       title: A planning exchange invoking no ritual produces the cut list
-      status: met
+      status: cancelled
 ---
 
 ## Goal
