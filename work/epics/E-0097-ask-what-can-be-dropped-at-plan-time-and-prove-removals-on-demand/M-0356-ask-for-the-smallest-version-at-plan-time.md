@@ -14,6 +14,9 @@ acs:
     - id: AC-3
       title: A planning exchange invoking no ritual produces the cut list
       status: cancelled
+    - id: AC-4
+      title: A planning exchange invoking no ritual drops what serves no goal
+      status: open
 ---
 
 ## Goal
@@ -75,6 +78,8 @@ environment, including the host and the installed guidance revision. **Edge case
 a proposal with nothing to drop, which states that rather than padding the list; a
 request for one change, which is not a plan and does not trigger the list. **Code
 references**: the clause lands in `internal/skills/embedded-guidance/aiwf-guidance.md`.
+
+### AC-4 — A planning exchange invoking no ritual drops what serves no goal
 
 ## Constraints
 
