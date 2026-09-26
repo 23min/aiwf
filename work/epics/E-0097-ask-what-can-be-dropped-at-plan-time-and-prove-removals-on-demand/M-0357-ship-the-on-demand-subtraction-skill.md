@@ -33,7 +33,7 @@ patch ritual and consumer repositories cannot reach it. The skills around it eac
 default to adding, strengthening or keeping; none defaults to removal, and the code
 review checklist explicitly guards against it. The design, and two hand-run trials
 with what each got wrong, are in
-[`subtraction-review-on-demand.md`](../../../docs/initiatives/subtraction-review-on-demand.md).
+[`subtraction-review-on-demand.md`](../../../docs/initiatives/archive/subtraction-review-on-demand.md).
 
 ## Acceptance criteria
 
@@ -95,7 +95,7 @@ the skill body.
 
 ## Design notes
 
-- [`subtraction-review-on-demand.md`](../../../docs/initiatives/subtraction-review-on-demand.md)
+- [`subtraction-review-on-demand.md`](../../../docs/initiatives/archive/subtraction-review-on-demand.md)
   holds the twelve-step sketch and the defects both trials found in the trims
   themselves; build from it rather than re-deriving.
 - D-0070 sets the evidence form: a relationship check where one exists, a recorded
@@ -121,7 +121,7 @@ the skill body.
 
 ## References
 
-- [`docs/initiatives/subtraction-review-on-demand.md`](../../../docs/initiatives/subtraction-review-on-demand.md)
+- [`docs/initiatives/archive/subtraction-review-on-demand.md`](../../../docs/initiatives/archive/subtraction-review-on-demand.md)
 - D-0070 — the limits on pinning shipped prose.
 - G-0585 — rituals that clear a question by reading it.
 - G-0660 — the repaired oracle for a proposed removal.
