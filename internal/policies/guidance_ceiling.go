@@ -26,7 +26,8 @@ import (
 // written that way is outside the model. Claude Code expands an import in
 // its memory — its entry point and the files that imports, recursively — so
 // there an import is a required read without further declaration; anywhere
-// else, and for Codex, the line is text. A
+// else, and for Codex, the line is text. An import inside a managed block
+// counts toward the aiwf-generated figure. A
 // link from a host entry point's handwritten text must be classified in
 // guidanceReadTable as a required or a conditional read, and one the table
 // does not classify is reported rather than silently counted as either. A
@@ -148,12 +149,7 @@ func measureGuidanceLoad(read func(string) (string, bool), entry string, table m
 	if !ok {
 		return load, []Violation{{Policy: "guidance-ceiling", File: entry, Detail: "the host's entry point is missing, so its primed load cannot be measured."}}
 	}
-	// Claude Code expands an import only in its memory: its entry point and
-	// the files that imports, recursively.
-	memory := map[string]bool{}
-	if entry == fenceClaudeMD {
-		memory[entry] = true
-	}
+	memory := claudeMemory(read, entry, entryContent)
 	load.Generated = generatedWords(read, entryContent, memory[entry])
 
 	seen := map[string]bool{entry: true}
@@ -181,17 +177,8 @@ func measureGuidanceLoad(read func(string) (string, bool), entry string, table m
 			}
 		}
 	}
-	// In Claude's memory an import is a required read, since the host loads
-	// it without being told to; it is a filesystem path, so one under the
-	// home directory or absolute is personal or global material and is left
-	// out. A link is classified by the table.
-	followText := func(doc, text string) {
-		for _, target := range markdownImports(text) {
-			if p, ok := resolveReference(doc, target); ok && memory[doc] && !strings.HasPrefix(target, "~") && !strings.HasPrefix(target, "/") {
-				memory[p] = true
-				follow(doc, p, readRequired)
-			}
-		}
+	// A link is classified by the table.
+	followLinks := func(doc, text string) {
 		for _, target := range markdownLinks(text) {
 			if p, ok := resolveReference(doc, target); ok {
 				follow(doc, p, table[guidanceRef{From: doc, To: p}])
@@ -199,8 +186,9 @@ func measureGuidanceLoad(read func(string) (string, bool), entry string, table m
 		}
 	}
 	// The routing block is aiwf's, but where it sends the host is read
-	// before the task: its links are classified like handwritten ones.
-	followText(entry, blockText(entryContent, projectguidance.RouteMarkers))
+	// before the task: its links are classified like handwritten ones. An
+	// import there is managed-block content, counted by generatedWords.
+	followLinks(entry, blockText(entryContent, projectguidance.RouteMarkers))
 	for len(queue) > 0 {
 		doc := queue[0]
 		queue = queue[1:]
@@ -213,9 +201,58 @@ func measureGuidanceLoad(read func(string) (string, bool), entry string, table m
 			counted = withoutImports(text)
 		}
 		load.Handwritten += len(strings.Fields(counted))
-		followText(doc, text)
+		// In Claude's memory an import is a required read, since the host
+		// loads it without being told to.
+		if memory[doc] {
+			for _, p := range repoImports(doc, text) {
+				follow(doc, p, readRequired)
+			}
+		}
+		followLinks(doc, text)
 	}
 	return load, out
+}
+
+// claudeMemory returns what Claude Code loads as memory when the entry point
+// is CLAUDE.md: the entry point and every repository file its imports reach,
+// recursively. It is settled before the walk, so a file a link reaches first
+// still has its imports followed. Codex expands no import, so for its entry
+// point the set is empty.
+func claudeMemory(read func(string) (string, bool), entry, entryContent string) map[string]bool {
+	memory := map[string]bool{}
+	if entry != fenceClaudeMD {
+		return memory
+	}
+	memory[entry] = true
+	queue := []string{entry}
+	for len(queue) > 0 {
+		doc := queue[0]
+		queue = queue[1:]
+		text := entryContent
+		if doc != entry {
+			text, _ = read(doc)
+		}
+		for _, p := range repoImports(doc, text) {
+			if !memory[p] {
+				memory[p] = true
+				queue = append(queue, p)
+			}
+		}
+	}
+	return memory
+}
+
+// repoImports returns the repository files text imports, resolved from doc.
+// An import is a filesystem path, so one under the home directory or
+// absolute is personal or global material and is left out.
+func repoImports(doc, text string) []string {
+	var out []string
+	for _, target := range markdownImports(text) {
+		if p, ok := resolveReference(doc, target); ok && !strings.HasPrefix(target, "~") && !strings.HasPrefix(target, "/") {
+			out = append(out, p)
+		}
+	}
+	return out
 }
 
 // blockText returns the text inside one of a host entry point's managed

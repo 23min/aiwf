@@ -431,8 +431,9 @@ func TestMeasureGuidanceLoad_OnlyEntryPointsHaveManagedBlocks(t *testing.T) {
 
 // TestMeasureGuidanceLoad_ImportsExpandOnlyInClaudeMemory pins where an
 // import is followed: in Claude Code's memory, which is its entry point and
-// the files that imports, recursively. An import in any other primed
-// document, or in Codex's managed block, is text.
+// the files that imports, recursively, whatever order the walk reaches them
+// in. An import in any other primed document, or in Codex's managed block,
+// is text; one in a managed block counts once, toward the generated figure.
 func TestMeasureGuidanceLoad_ImportsExpandOnlyInClaudeMemory(t *testing.T) {
 	t.Parallel()
 	gStart, gEnd, _ := initrepo.GuidanceMarkers()
@@ -461,6 +462,31 @@ func TestMeasureGuidanceLoad_ImportsExpandOnlyInClaudeMemory(t *testing.T) {
 			table:       map[guidanceRef]readKind{{From: "CLAUDE.md", To: ".guidance/project.md"}: readRequired},
 			handwritten: 1,
 			generated:   1,
+		},
+		{
+			name:  "a file reached first by a link keeps its imports",
+			entry: "CLAUDE.md",
+			files: map[string]string{
+				"CLAUDE.md": "@a.md\n\n" + rStart + "\n[x](x.md)\n" + rEnd + "\n",
+				"a.md":      "@x.md\n",
+				"x.md":      "@y.md\n",
+				"y.md":      words(7),
+			},
+			table:       map[guidanceRef]readKind{{From: "CLAUDE.md", To: "x.md"}: readRequired},
+			handwritten: 7,
+			generated:   1,
+		},
+		{
+			name:        "an import cycle settles",
+			entry:       "CLAUDE.md",
+			files:       map[string]string{"CLAUDE.md": "@a.md\n", "a.md": "@b.md\n" + words(2), "b.md": "@a.md\n" + words(3)},
+			handwritten: 5,
+		},
+		{
+			name:      "an import in the routing block counts once, as generated",
+			entry:     "CLAUDE.md",
+			files:     map[string]string{"CLAUDE.md": rStart + "\n@x.md\n" + rEnd + "\n", "x.md": words(5)},
+			generated: 5,
 		},
 		{
 			name:      "an import in Codex's managed block is text",
