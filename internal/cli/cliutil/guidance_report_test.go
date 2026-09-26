@@ -10,6 +10,7 @@ import (
 
 func TestGuidanceReport(t *testing.T) {
 	t.Parallel()
+	notInstalled := "is selected but not installed; if the catalogue no longer lists it, remove it from guidance.packs or move it to guidance.ignored, otherwise run aiwf update"
 	for _, tc := range []struct {
 		name    string
 		outcome *initrepo.GuidanceOutcome
@@ -29,16 +30,28 @@ func TestGuidanceReport(t *testing.T) {
 			},
 		},
 		{
-			name:    "unreadable installed guidance and packs the catalogue lacks",
-			outcome: &initrepo.GuidanceOutcome{Selection: &[]string{"a/one", "gone/one", "gone/two"}, Adopted: []string{"a/one"}, InspectError: "invalid ownership digest", Missing: []string{"gone/one", "gone/two"}},
+			name:    "pending installation and selected packs not installed",
+			outcome: &initrepo.GuidanceOutcome{Selection: &[]string{"a/one", "gone/one", "gone/two"}, Adopted: []string{"a/one"}, Installed: []string{"a/one"}, Commit: "abc123", Pending: true},
 			want: []string{
 				"", "Guidance:",
 				"  selected:  a/one, gone/one, gone/two",
 				"  adopted:   a/one",
+				"  installed: a/one at abc123",
+				"  ignored:   none",
+				"  pending:   installation incomplete; rerun aiwf update before using the pack set",
+				"  missing:   gone/one " + notInstalled,
+				"  missing:   gone/two " + notInstalled,
+			},
+		},
+		{
+			name:    "unreadable installed guidance claims nothing about missing packs",
+			outcome: &initrepo.GuidanceOutcome{Selection: &[]string{"a/one"}, InspectError: "invalid ownership digest"},
+			want: []string{
+				"", "Guidance:",
+				"  selected:  a/one",
+				"  adopted:   none",
 				"  installed: cannot inspect installed policy: invalid ownership digest",
 				"  ignored:   none",
-				"  missing:   gone/one; the catalogue no longer lists it: remove it from guidance.packs or move it to guidance.ignored",
-				"  missing:   gone/two; the catalogue no longer lists it: remove it from guidance.packs or move it to guidance.ignored",
 			},
 		},
 	} {

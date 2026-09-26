@@ -4,6 +4,7 @@ import (
 	"strings"
 
 	"github.com/23min/aiwf/internal/initrepo"
+	"github.com/23min/aiwf/internal/projectguidance"
 )
 
 // PrintGuidanceReport prints the guidance section that ends init and update.
@@ -20,16 +21,9 @@ func GuidanceReport(outcome *initrepo.GuidanceOutcome) []string {
 	if outcome == nil {
 		return nil
 	}
-	selected := "not adopted (guidance.packs unset)"
-	if outcome.Selection != nil {
-		selected = strings.Join(*outcome.Selection, ", ")
-		if selected == "" {
-			selected = "none (explicit empty selection)"
-		}
-	}
-	lines := []string{"", "Guidance:", "  selected:  " + selected}
+	lines := []string{"", "Guidance:", "  selected:  " + projectguidance.SelectionState(outcome.Selection)}
 	if outcome.Disabled {
-		lines = append(lines, "  maintenance disabled; installed policy remains in use")
+		lines = append(lines, "  "+projectguidance.DisabledState)
 	}
 	lines = append(lines, "  adopted:   "+packList(outcome.Adopted))
 	switch {
@@ -41,11 +35,16 @@ func GuidanceReport(outcome *initrepo.GuidanceOutcome) []string {
 		lines = append(lines, "  installed: "+strings.Join(outcome.Installed, ", ")+" at "+outcome.Commit)
 	}
 	lines = append(lines, "  ignored:   "+packList(outcome.Ignored))
+	if outcome.Pending {
+		lines = append(lines, "  pending:   "+projectguidance.PendingState)
+	}
 	if outcome.Blocker != "" {
 		lines = append(lines, "  blocked:   "+outcome.Blocker)
 	}
-	for _, id := range outcome.Missing {
-		lines = append(lines, "  missing:   "+id+"; the catalogue no longer lists it: remove it from guidance.packs or move it to guidance.ignored")
+	if outcome.InspectError == "" {
+		for _, state := range projectguidance.NotInstalledStates(outcome.Selection, !outcome.Disabled, outcome.Installed) {
+			lines = append(lines, "  missing:   "+state)
+		}
 	}
 	return lines
 }

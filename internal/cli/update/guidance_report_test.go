@@ -9,6 +9,7 @@ import (
 
 	"github.com/23min/aiwf/internal/config"
 	"github.com/23min/aiwf/internal/gitops"
+	"github.com/23min/aiwf/internal/projectguidance"
 )
 
 // guidanceSection returns the lines of the guidance section, which must be the
@@ -115,7 +116,7 @@ func TestBinary_UpdateReportsSelectedPacksTheCatalogueNoLongerHas(t *testing.T) 
 	guidanceWrite(t, root, config.FileName, "hosts: [claude-code]\nguidance:\n  source: "+source+"\n  packs: [sample/base, gone/pack]\n")
 	guidanceWrite(t, root, "source.xyz", "project source")
 	got := guidanceSection(t, runUpdateBinary(t, root))
-	want := "  missing:   gone/pack; the catalogue no longer lists it: remove it from guidance.packs or move it to guidance.ignored"
+	want := "  missing:   " + projectguidance.NotInstalledStates(&[]string{"gone/pack"}, true, nil)[0]
 	if !cmp.Equal(got[len(got)-1], want) {
 		t.Fatalf("last guidance line = %q, want %q\n%s", got[len(got)-1], want, strings.Join(got, "\n"))
 	}

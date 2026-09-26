@@ -22,11 +22,11 @@ type GuidanceOutcome struct {
 	// Adopted lists the packs this run added to the recorded selection.
 	Adopted []string
 	Ignored []string
-	// Missing lists selected packs the catalogue no longer has.
-	Missing []string
 	// Installed and Commit describe the installed index after the run.
 	Installed []string
 	Commit    string
+	// Pending reports an installation left incomplete.
+	Pending bool
 	// Blocker names why installation did not complete and how to clear it.
 	Blocker string
 	// InspectError is set when the installed guidance cannot be read.
@@ -46,7 +46,7 @@ func projectGuidance(ctx context.Context, root string, cfg *config.Config, selec
 		outcome.InspectError = err.Error()
 		return step, outcome
 	}
-	outcome.Installed, outcome.Commit = inspection.Packs, inspection.Revision
+	outcome.Installed, outcome.Commit, outcome.Pending = inspection.Packs, inspection.Revision, inspection.Pending
 	return step, outcome
 }
 
@@ -114,7 +114,6 @@ func ensureProjectGuidance(ctx context.Context, root string, cfg *config.Config,
 		step.Detail = "no project guidance selected; existing delivery retained"
 		return step, outcome
 	}
-	outcome.Missing = snapshot.Missing
 	if len(snapshot.Missing) > 0 {
 		missing = fmt.Sprintf("; the catalogue no longer has %s: remove it from guidance.packs or move it to guidance.ignored", strings.Join(snapshot.Missing, ", "))
 		// Only a run that adopts may retire a pack it cannot replace; any
