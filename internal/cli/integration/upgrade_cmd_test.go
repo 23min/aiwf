@@ -483,11 +483,11 @@ func TestRenderVersionLabel(t *testing.T) {
 	}
 }
 
-// TestRunUpgrade_UnattendedUpgradeAdoptsGuidance runs upgrade with no terminal
+// TestBinary_UnattendedUpgradeAdoptsGuidance runs upgrade with no terminal
 // on stdin in a repository whose aiwf.yaml has no guidance block, so guidance
 // comes from the default catalogue. Git configuration redirects that URL to a
 // local catalogue, or to a path that does not exist.
-func TestRunUpgrade_UnattendedUpgradeAdoptsGuidance(t *testing.T) {
+func TestBinary_UnattendedUpgradeAdoptsGuidance(t *testing.T) {
 	t.Parallel()
 	testutil.SkipIfShortOrUnsupported(t)
 	binary := testutil.BuildBinary(t, t.TempDir())
