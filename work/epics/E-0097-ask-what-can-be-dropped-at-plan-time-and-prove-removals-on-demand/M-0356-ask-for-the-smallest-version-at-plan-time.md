@@ -59,10 +59,12 @@ lands in the embedded `aiwfx-plan-epic` ritual body; the record lands in this sp
 ### AC-2 — plan-milestones drops a candidate no success criterion requires
 
 `aiwfx-plan-milestones` drops a candidate not required by the epic's success
-criteria, and the drop happens before `aiwf add milestone` allocates an id for it.
-**Pass criterion**: a recorded run over a decomposition containing such a candidate,
-where the ritual names it as a drop and no id is allocated for it; the record holds
-command, expectation, observation and environment. **Edge cases**: a candidate
+criteria. **Pass criterion**: a recorded run over a decomposition containing such a
+candidate, where the ritual names it as a drop, against a run without the sizing arm
+where it does not; the record holds command, expectation, observation and
+environment. The gate's placement ahead of allocation is carried on the ritual's
+wording and is not claimed here: no run was permitted to allocate, so the ordering
+was never exercised. **Edge cases**: a candidate
 required only indirectly, through another candidate it enables; a decomposition
 where nothing qualifies, which produces a stated *nothing was droppable* rather than
 silence. **Code references**: the sizing arm and the gate land in the embedded
@@ -242,9 +244,8 @@ that the guide served no criterion; only the candidate had a disposition that
 removed it, and it cited the ritual's rule by name. The candidate also carried the
 always-on rule and the epic-planning step, so the arm contrast alone does not
 separate the sizing arm from them; the attribution to the arm rests on the
-session's own account. The criterion's second clause — no id allocated for the
-dropped candidate — held only because no arm was permitted to allocate anything, so
-the gate's ordering was not observed.
+session's own account. No arm was permitted to allocate anything, so the gate's
+placement ahead of allocation was never exercised; the criterion does not claim it.
 
 **M-0356 AC-1 — cancelled.** The candidate carried the step and did not produce the
 one thing the step alone specifies, the smallest version ahead of the body, which
