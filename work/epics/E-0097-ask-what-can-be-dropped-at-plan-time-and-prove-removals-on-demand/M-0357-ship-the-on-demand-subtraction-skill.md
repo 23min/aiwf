@@ -3,7 +3,7 @@ id: M-0357
 title: Ship the on-demand subtraction skill
 status: in_progress
 parent: E-0097
-tdd: advisory
+tdd: none
 acs:
     - id: AC-1
       title: The skill runs on a diff and on a named unit without aiwf, reporting every part
