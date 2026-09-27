@@ -68,16 +68,29 @@ The previous milestones pin adoption and reporting against fixtures and a stand-
 
 ## Release note
 
+No user-visible change.
+
 ## Decisions made during implementation
 
-- (none)
+- The milestone's TDD policy is `none`: both criteria verify behaviour the earlier milestones built, so no test could fail before its code existed.
 
 ## Validation
 
+`make ci` at `0b673c71f`, in the devcontainer (Linux): exit 0. golangci-lint reported `0 issues.`, the race and coverage suite and the profile-driven gates passed, and `aiwf doctor --self-check` reported `self-check passed (29 steps).`
+
+Mutation probes against `TestBinary_UnattendedUpgradeAdoptsGuidance`, each applied to a working copy and then restored byte for byte:
+
+- Replacing the `projectguidance.Adopt` call in `internal/initrepo/project_guidance.go` with the unchanged selection fails the reachable case: `guidance.packs = <nil>, want [sample/base]`.
+- Re-executing `version` instead of `update` in `internal/cli/upgrade/upgrade.go` fails both cases: `output has 0 guidance sections, want 1`.
+- Dropping the source from the fetch error in `internal/projectguidance/retrieve.go` fails the unreachable case: `report does not name the retrieval failure`.
+
 ## Deferrals
 
-- (none)
+- M-0353/AC-2 → G-0722. The observation must run against a released binary containing this epic, and no release can contain it until the epic wraps.
 
 ## Reviewer notes
 
-- (none)
+- The upgrade harness's isolation of `HOME`, `CODEX_HOME`, `CLAUDE_CONFIG_DIR` and the Git global configuration has no dedicated test. Pinning it would take a serial `t.Setenv` test and a further binary build; the explicit environment entries in `hostUpgradeRun` are the guarantee.
+- `TestBinary_UpgradeOutputEndsWithTheGuidanceSection` is kept beside the new test. It covers upgrade with a configured `guidance.source`, and M-0352 cites it as evidence for M-0352/AC-5.
+- The redirect of the default catalogue URL is kept in the unreachable case although the test harness already refuses the `https` transport, so that case does not depend on the harness's transport policy.
+- The milestone adds no module, abstraction or data model; there was nothing for a design review.
