@@ -88,7 +88,17 @@ closure rides `aiwf promote G-0662 addressed --by-commit <sha>`.
 - The epic's constraints hold the argument for which questions move; this milestone
   applies it rather than re-deciding it.
 - G-0660's repaired oracle travels with the compression question: a removal is
-  settled by something going red, never by a green run.
+  never settled by a green run. The skill settles it by something going red, or,
+  for a guard, by the demonstration that no caller reaches its state; a cut that
+  changes no result is a rewrite, settled by a differential test. The wrap block's
+  "Nothing red is a surviving mutant, not a clearance" contradicts the second route
+  until the block calls the skill.
+- The wrap block carries two things the skill does not: comments the project
+  mandates do not count toward half, and the Deletions question. Replacing the block
+  with a call to the skill drops both, and this milestone's criteria have the wrap
+  ask only the obligation question while its scope leaves the skill unchanged;
+  settle at start which of the three gives. The block also settles a rewrite by a
+  green gate run, where the skill requires a differential test.
 
 ## Surfaces touched
 
