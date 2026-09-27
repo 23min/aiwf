@@ -105,7 +105,7 @@ Before any approved removal or rewrite is committed, a **second fresh agent** re
 
 | Stack | Mutation harness | Coverage profile | Clone detector |
 |---|---|---|---|
-| Go | `gremlins` | `go test -coverprofile=cover.out ./...`, read with `go tool cover -func` | `dupl`, standalone or as a `golangci-lint` linter |
+| Go | `gremlins` | `go test -coverprofile=cover.out ./...`, read with `go tool cover -func` | `golangci-lint run --enable-only dupl ./...` — the linter runs without a separate `dupl` binary |
 | Python | `mutmut` | `coverage run --branch -m pytest`, then `coverage report` | `pylint --disable=all --enable=duplicate-code` |
 | JavaScript / TypeScript | Stryker | `c8` or `nyc` | `jscpd` |
 | JVM | PIT | JaCoCo | PMD CPD |
