@@ -1360,7 +1360,7 @@ than a review.
 | M-0354 | Gate everything the binary embeds and clear what it finds | draft |
 | M-0355 | Take aiwf-only rules and aiwf ids out of aiwf check | draft |
 
-## E-0097 — Ask what can be dropped at plan time and prove removals on demand (active)
+## E-0097 — Ask what can be dropped at plan time and prove removals on demand (done)
 
 ### Goal
 
