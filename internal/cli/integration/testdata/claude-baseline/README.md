@@ -204,4 +204,4 @@ consumer. The inventories were sorted again.
 | Artifact | Original SHA-256 | Updated SHA-256 |
 | --- | --- | --- |
 | `.aiwf-owned` (skills) | `a64f3998ec5327666fc5ff356e366f27fca590c0fd4fed0b04a73a35918959f0` | `b564d2dda60a5db43898ccac1a7b40fd3d7aa77a60a5babbb8b677a1866e7e14` |
-| `wf-trim/SKILL.md` | — | `a3208e43b42747837f9dd272b269681cec648e2e0e3b2d806d1d70ba0d75e10e` |
+| `wf-trim/SKILL.md` | — | `50365ea0a925f6dd46e811d1ad1aa8beff5145d30fd6c9b7057d6f9b7cbbc5b7` |

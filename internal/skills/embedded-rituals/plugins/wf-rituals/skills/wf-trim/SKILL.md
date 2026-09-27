@@ -69,13 +69,13 @@ Half is a probe that finds what resists removal, not a target.
 
 For each guard the change adds — each coverage exclusion included — name the caller that can produce the state it catches, or demonstrate that none can.
 
-- **A caller can** → the guard stays. If no test breaks when the guard is broken, list it for `wf-vacuity` as "keep, needs a test".
+- **A caller can** → the guard stays. If breaking it changes a result and no test goes red, list it for `wf-vacuity` as "keep, needs a test". If breaking it changes no result, it is a cut step 6 settles as a rewrite.
 - **None can** → the guard is a removal candidate, and so is the test written only to cover it. Demonstrate it: show the type, invariant or check that forbids the state. Not thinking of a caller is not a demonstration.
 - **An exclusion on a line the coverage profile shows executed** is false. Report it.
 
 Break conditions, not only statements: one operand of a condition can be unguarded on a line that ran. Use the mutation harness where one exists.
 
-Defaults: compression cuts unless a constraint stops it; a guard stays unless proven dead. Where one cut falls under both, the guard's default governs.
+Defaults: compression cuts unless a constraint stops it; a guard stays unless proven dead, or proven by a differential test to change no result. Where one cut falls under both, the guard's default governs.
 
 ### 6. Settling a removal
 
@@ -106,7 +106,7 @@ Emit the report (below). Every behaviour change waits for explicit human approva
 
 ### 11. Confirmation
 
-Before any approved removal or rewrite is committed, a **second fresh agent** re-runs every command the report cites and confirms or refutes each claim. A removal the second agent cannot reproduce — red, or dead by demonstration — does not land.
+Before any approved removal or rewrite is committed, a **second fresh agent** re-runs every command the report cites and confirms or refutes each claim. A removal the second agent cannot reproduce — red, or dead by demonstration — does not land, and neither does a rewrite whose differential test it cannot reproduce.
 
 ## Per-stack tools
 
@@ -163,7 +163,7 @@ If the project tracks gaps or decisions — the `aiwfx-record-gap` and `aiwfx-re
 
 ## Anti-patterns
 
-- *Settling a removal on a green run.* Break what it protected; watch for red.
+- *Settling a removal on a green run.* Settle it red, dead, or as a rewrite with a differential test.
 - *Clearing a guard because no caller came to mind.* Show the type, invariant or check that forbids the state.
 - *Scoping by a file list.* A duplicate in a touched file the list omitted goes uncounted.
 - *Counting only cuts in scope.* The verdict counts cuts the scope blocked.
@@ -174,7 +174,7 @@ If the project tracks gaps or decisions — the `aiwfx-record-gap` and `aiwfx-re
 ## Constraints
 
 - 🛑 Proposes and reports; never rewrites, removes or commits without explicit human approval.
-- 🛑 Every removal carries a command and its red output, or the demonstration that no caller can produce the state it guarded.
+- 🛑 Every removal carries a command and its red output, or the demonstration that no caller can produce the state it guarded; every rewrite carries its differential test.
 - 🛑 Trials run in a separate working copy; the checkout under review ends byte-identical.
 - Advisory: never a gate on a commit or a push.
 - One diff or one unit per run. A large diff is split by concern, one agent per slice.
