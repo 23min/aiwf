@@ -2,7 +2,9 @@ package integration
 
 import (
 	"context"
+	"errors"
 	"fmt"
+	"io/fs"
 	"net/http"
 	"net/http/httptest"
 	"os"
@@ -525,8 +527,9 @@ func TestBinary_UnattendedUpgradeAdoptsGuidance(t *testing.T) {
 				if !slices.ContainsFunc(section, func(line string) bool { return strings.HasPrefix(line, want) }) {
 					t.Fatalf("report does not name the retrieval failure, want a line starting %q:\n%s", want, strings.Join(section, "\n"))
 				}
-				if cfg.Guidance.Packs != nil || installErr == nil || routed {
-					t.Fatalf("unreachable catalogue left guidance behind: packs=%v installed=%v routed=%v", cfg.Guidance.Packs, installErr == nil, routed)
+				_, guidanceErr := os.Stat(filepath.Join(root, ".guidance"))
+				if cfg.Guidance.Packs != nil || !errors.Is(guidanceErr, fs.ErrNotExist) || routed {
+					t.Fatalf("unreachable catalogue left guidance behind: packs=%v .guidance: %v routed=%v", cfg.Guidance.Packs, guidanceErr, routed)
 				}
 				return
 			}
