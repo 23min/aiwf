@@ -9,7 +9,7 @@ tdd: none
 acs:
     - id: AC-1
       title: The skill answers the four shape questions and the wrap asks only the obligation
-      status: open
+      status: met
     - id: AC-2
       title: The patch ritual runs the lens above its threshold and states the skip below it
       status: met
