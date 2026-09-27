@@ -138,8 +138,9 @@ New `wf-trim` skill in the generic workflow rituals: ask of one diff or one name
 unit whether the change needs everything it adds. It looks for duplicated jobs,
 logic that compresses, guards no caller reaches and tests no break needs, and it
 settles every removal it proposes by a command: breaking what the removed thing
-protected turns something red, or a guard is shown unreachable. It reports and
-applies nothing. It needs no aiwf verb or configuration, and a per-stack table names the
+protected turns something red, or a guard is shown unreachable; a cut that
+changes no result must pass a differential test. It reports, and applies nothing
+until approved. It needs no aiwf verb or configuration, and a per-stack table names the
 mutation harness, coverage profile and clone detector for Go, Python,
 JavaScript/TypeScript and the JVM.
 
@@ -172,74 +173,58 @@ fail at HEAD (51 in `internal/policies`), listed to each session as pre-existing
 **Method.** Each run is a fresh interactive session started in the clone, sent one
 prompt naming the skill, the input, the M-0333 ticket (its Goal through
 Dependencies sections), the pre-existing failures, and a report path, with "apply
-nothing". The text under test is installed before the session starts, and each
-run's transcript is checked for the text it loaded.
+nothing". Every run loaded the shipped text, `36e5c1494`, installed before the
+session started; each transcript was checked for it.
 
-| Run | Input | Skill text | Result |
-|---|---|---|---|
-| Diff | `HEAD~1..HEAD` | `4626a2eef` | Every report part present, split by concern over three fresh agents |
-| Unit | `internal/policies/guidance_ceiling.go` | `b362e9e20` | Every report part present |
-| Prose | `HEAD~1..HEAD -- docs/` (3 files, +51 −5, no logic, no tests) | `1b09b9a56` | No logic or tests bucket stated; steps 3–9 skipped, each with its reason; no removal or rewrite proposed |
+| Run | Input | Verdict |
+|---|---|---|
+| Diff | `HEAD~1..HEAD` | 3 removals, 1 rewrite, 5 cuts blocked by scope |
+| Unit | `internal/policies/guidance_ceiling.go` | 0 removals, 1 rewrite, 3 cuts blocked |
+| Prose | `HEAD~1..HEAD -- docs/` (3 files, +51 −5) | 0 removals, 0 rewrites, 0 blocked |
 
 **M-0357 AC-1.**
-- Both reports hold the verdict counting cuts the scope blocked (diff 3; unit 4,
-  one of them stopped by a constraint rather than a file),
-  behaviour changes with the records that state the old behaviour, the guard table
-  with a break per guard, and the handoffs to `wf-vacuity`, `wf-rethink` and
-  `wf-structural-sweep`. The unit run proposes no behaviour change and names the
-  records for the two it assessed and declined. Each skipped step is stated with
-  its reason.
-- Tools from the Go row: the coverage profile ran in both
-  (`go test -coverprofile`, `go tool cover -func`). The clone detector ran in both
-  (`golangci-lint run --enable-only dupl` over `./internal/policies/`, or `/...` in
-  the unit run) → `0 issues`,
-  each noting the configuration excludes it from test files. `gremlins` ran in
-  neither: the unit run skipped it because the package has failing tests, the diff
-  run on cost; both used the manual probe and said so.
-- The prose run exercised the no-logic edge case; it stopped after step 2 and still
-  wrote the report, as the shipped skip rule directs. The shipped text differs from
-  `1b09b9a56` in treating a cut that changes no result as a rewrite, in exempting
-  the tests written only to reach a dead guard, and in running the settling step
-  for a tests bucket. The unit run's text differs further in the settling rule's
-  two routes — something red, or a guard shown unreachable — the outside-system
-  disposition, the triage pointer and the harness and coverage fallbacks; its
-  removals took those routes already. The diff run's text differs further in the
-  Go row's clone-detector cell, and that run executed the command the shipped cell
-  names. The diff run's orchestrator briefed its three slice agents with its own
-  settling rule, which accepted a surviving mutant beside an argument; the diff
-  run's removals were made under that brief.
-- No run's transcript contains an `aiwf` command. The diff and unit runs read the
-  live checkout of this repository read-only, as real data for differential tests
-  and to rebuild the missing root files.
+- Every report holds the verdict counting blocked cuts, behaviour changes with the
+  records that state the old behaviour, the guard table with a break per guard, and
+  the handoffs; a section with nothing in it says so. Each skipped step is stated with its reason.
+- Tools from the Go row. Coverage profile: the diff and unit runs
+  (`go test -coverprofile`). Clone detector: both
+  (`golangci-lint run --enable-only dupl ./internal/policies/...` in the diff run,
+  `./internal/policies/` in the unit run) → `0 issues`, each noting that the
+  configuration excludes test files. Mutation harness: the diff run ran `gremlins`
+  over the four new files with the failing tests skipped (154 killed, 6 lived, 8
+  not covered, 1 timed out) and re-applied each mutant; the unit run skipped it
+  because the package has failing tests, and broke conditions by hand.
+- No-logic edge case: the prose run reported no logic and no tests bucket and
+  skipped steps 3–5, 7, 8 and 9, each with its reason.
+- No transcript contains an `aiwf` command. The unit run read the live checkout of
+  this repository read-only, as real data for its differential test.
 
-**M-0357 AC-2.** No proposed removal rests on a green gate run. Each carries a
-command and its output, in one of these forms:
-- the demonstration that no caller reaches the protected state, with the break
-  that turns nothing red (diff run, e.g.
-  `git -c diff.renames=copies log -z -M --name-status` → no `C` record, settling the
-  unreachable copy arm);
-- a cut that changes no result, argued from the code around it beside a surviving
-  mutant (diff run #7, #8, #10, #11: the two `err != nil` operands, `target != ""`,
-  `&& x.Name != name`). The shipped text makes these rewrites, settled by a
-  differential test; the record holds the argument, not that test. The unit run
-  kept the same `err != nil` operands, reporting that the outcome rests on
-  undocumented behaviour, as the shipped text directs;
-- for a test, the break-to-tests table: every break turning it red turns another
-  red (unit run: four link-form subtests, `L8: new reds:
-  ['TestMeasureGuidanceLoad_ReferenceForms', 'TestRoutedDocuments']`).
+**M-0357 AC-2.** No proposed removal rests on a green gate run. Each is settled by
+a command and its output:
+- dead: the copy-status arm of the log parser, shown unreachable because the one
+  invocation passes `-M` and never `-C` — `git log -z -M --name-status` over a copy
+  gives `M|a.md|A|b.md|` under every `diff.renames` setting — beside the break that
+  leaves the package `ok`;
+- red, for two tests: the break-to-tests table shows every break turning each red
+  also turns others red (`breaks= 44 unique= 0`, `breaks= 43 unique= 0`);
+- rewrites carry their differential test (diff run: 200,000 generated inputs and
+  the real log, identical output; unit run: 30,000 generated trees and three real
+  ones). Cuts that change no result without one are not proposed: the diff run
+  withholds the `rev == ""` operand for want of a differential test, and the unit
+  run keeps both `err != nil` operands and an import-read `ok`, whose outcome rests
+  on undocumented behaviour.
 
-**Against what M-0333 went on to change.** The hand-run trim `0f43b0b09` removed
-four conditions: the router read's `rerr == nil`, the `ok` on an import read,
-`target != ""` and `&& x.Name != name`. The diff run proposed the last two as cuts
-that change no result and found the first equivalent; the unit run found the second
-surviving and declined to cut it. The diff run also proposed cutting the two
-`err != nil` operands, which the hand-run trim kept. Both runs reported that the code counts `@` imports for
-Codex, which Codex's documentation does not support — the rule `378a8cc41` changed.
-The diff run also found a false `coverage:ignore`.
+**Against what M-0333 went on to change.** Both code runs report that the code
+counts `@` imports for Codex, which Codex's documentation does not support — the
+rule `378a8cc41` changed. The hand-run trim `0f43b0b09` kept the two `err != nil`
+operands the unit run keeps.
 
 **Limits.** The `aiwf` binary stayed on the path, so the record shows it was not
 called rather than that it could not be. Findings the runs make about the M-0333
-code itself were not checked against the current tree.
+code itself were not checked against the current tree. Step 2 does not say
+whether step 6 runs when a change has neither logic nor tests; the prose run
+applied it to documents under a settling rule of its own and proposed removing one
+for approval.
 
 **Gates at wrap**, on `milestone/M-0357-ship-the-on-demand-subtraction-skill`:
 `make check-fast` → exit 0 (`golangci-lint run` → `0 issues.`, every package `ok`);
@@ -253,18 +238,12 @@ after the skill's last edit, `go test -count=1 ./internal/policies/
 
 ## Reviewer notes
 
-- The two settling routes for a removal — something goes red, or a guard is shown
-  unreachable — are stated in the skill's prose, where D-0070 rules out a check;
-  review is what holds them.
+- How a removal is settled — something goes red, a guard is shown unreachable, or
+  a cut that changes no result passes a differential test — and that a test written
+  only to reach a dead guard goes with it, are stated in the skill's prose, where
+  D-0070 rules out a check; review is what holds them.
 - Declined: the revert pointer to `wf-vacuity` stands although it is stricter than a
   separate working copy needs. Findings from obligations, the break-to-tests table
   and outside-system rules route to the report's existing sections rather than to
   new ones; the prose run asked the same for step 1's obligation differences.
-- A test written only to reach a dead guard goes with it, in steps 6 and 8 alike;
-  review holds that, since D-0070 rules out a check on the prose.
-- For M-0358: two parts of the milestone wrap's shape block are not in the skill —
-  mandated comments, planning prose and tests pinning distinct rules do not count
-  toward half, and the Deletions question. Replacing the block with a call to the
-  skill drops both unless the wiring keeps them. Until then the wrap block's "Nothing
-  red is a surviving mutant, not a clearance" disagrees with the skill's dead route.
-  The M-0358 spec carries this.
+- M-0358 carries the parts of the milestone wrap's shape block the skill does not.
