@@ -12,7 +12,7 @@ acs:
       status: open
     - id: AC-2
       title: The patch ritual runs the lens above its threshold and states the skip below it
-      status: open
+      status: met
     - id: AC-3
       title: The tracked gap's measurement is re-run and no longer holds
       status: open
