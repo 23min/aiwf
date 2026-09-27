@@ -48,7 +48,7 @@ lenses. **Pass criterion**: a recorded trial per run naming the repository, the
 input and the command, where each part of the report is present or explicitly
 stated absent with its reason, and each tool the run takes from the per-stack table
 is shown running. The repository is a scratch clone carrying no aiwf configuration,
-planning tree, host artefacts or hooks, with only the new skill installed.
+planning tree, host artefacts or hooks, with only the generic workflow skills installed.
 **Edge cases**: a diff with no logic bucket at all, which produces a stated skip
 rather than an invented finding; a diff where the scope blocks a cut, which the
 verdict counts rather than omits; the aiwf binary stays on the path, so the record
@@ -137,6 +137,78 @@ red there.
 - (none)
 
 ## Validation
+
+Observed 2026-09-27 in the Linux development container: Claude Code 2.1.283,
+`claude-opus-5-5`, Go 1.25.11, `golangci-lint` 2.12.2, `gremlins` on the path.
+
+**Repository.** A two-commit clone of this repository's M-0333 change, built in the
+scratchpad with bash (zsh aborts the whole `rm` on an unmatched glob):
+
+```bash
+git init -b main
+git -C <aiwf> archive 29a73ee62 | tar -x   # then remove work .claude .agents aiwf.yaml CLAUDE.md AGENTS.md ROADMAP.md STATUS.md
+git add -A && git commit -m base
+git rm -rq . && git -C <aiwf> archive 0f43b0b09^ | tar -x   # same removal
+git add -A && git commit -m "fence project guidance while preserving managed updates"
+# install every wf-rituals SKILL.md into .claude/skills/, git-excluded
+```
+
+`29a73ee62` is M-0333's start and `0f43b0b09^` its state before the hand-run trim
+landed, so both commits carry no aiwf configuration, planning tree, host artefacts
+or hooks. The diff is 31 files, +3009 −52. With no root instruction file, 57 tests
+fail at HEAD (51 in `internal/policies`), listed to each session as pre-existing.
+
+**Method.** Each run is a fresh interactive session started in the clone, sent one
+prompt naming the skill, the input, the M-0333 ticket (its Goal through
+Dependencies sections), the pre-existing failures, and a report path, with "apply
+nothing". A session reads the skill text when it starts, so the text under test is
+installed before the session is started, and each run is confirmed against its
+transcript.
+
+| Run | Input | Skill text | Result |
+|---|---|---|---|
+| Diff | `HEAD~1..HEAD` | `4626a2eef` | Every report part present, split by concern over three fresh agents |
+| Unit | `internal/policies/guidance_ceiling.go` | `b362e9e20` | Every report part present |
+
+**M-0357 AC-1.**
+- Both reports hold the verdict counting cuts the scope blocked (diff 3, unit 4),
+  behaviour changes with the records that state the old behaviour, the guard table
+  with a break per guard, and the handoffs to `wf-vacuity`, `wf-rethink` and
+  `wf-structural-sweep`. The unit run proposes no behaviour change and names the
+  records for the two it assessed and declined. Each skipped step is stated with
+  its reason.
+- Tools from the Go row: the coverage profile ran in both
+  (`go test -coverprofile`, `go tool cover -func`). The clone detector ran in both
+  as `golangci-lint run --enable-only dupl ./internal/policies/` → `0 issues`,
+  each noting the configuration excludes it from test files. `gremlins` ran in
+  neither: the unit run skipped it because the package has failing tests, the diff
+  run on cost; both used the manual probe and said so.
+- The diff run observed `4626a2eef`, which differs from the shipped text only in
+  the Go row's clone-detector cell; that run executed the command the shipped cell
+  names.
+- Neither transcript contains an `aiwf` command. Both read the live checkout of
+  this repository read-only, as real data for differential tests and to rebuild
+  the missing root files.
+
+**M-0357 AC-2.** Every proposed removal carries one of the two forms the criterion
+allows, and none rests on a green gate run:
+- a break that turns nothing red, with the demonstration that no caller reaches the
+  protected state, or a measured equivalence (diff run: 12 code removals, e.g.
+  `git -c diff.renames=copies log -z -M --name-status` → no `C` record, settling the
+  unreachable copy arm);
+- for a test, the break-to-tests table: every break turning it red turns another
+  red (unit run: four link-form subtests, `L8: new reds:
+  ['TestMeasureGuidanceLoad_ReferenceForms', 'TestRoutedDocuments']`).
+
+**Against the hand-run trim of the same state**, recorded in the initiative doc:
+both runs found the managed-block extraction duplicate and the reuse blocked by
+scope, the guards no test pins, the equivalent `err != nil` operands, and the rule
+the code applies to Codex that Codex's own documentation does not state — the
+change M-0333 went on to make. The diff run also found a false `coverage:ignore`.
+
+**Limits.** The `aiwf` binary stayed on the path, so the record shows it was not
+called rather than that it could not be. Findings the runs make about the M-0333
+code itself were not checked against the current tree.
 
 ## Deferrals
 
