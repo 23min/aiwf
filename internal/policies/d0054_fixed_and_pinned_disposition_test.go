@@ -56,7 +56,7 @@ func TestD0054_FixedAndPinnedDispositionAcrossSurfaces(t *testing.T) {
 		{
 			name:    "wrap-milestone review step",
 			fixture: aiwfxWrapMilestoneFixturePath,
-			heading: "Independent two-lens review",
+			heading: "Independent review",
 			wants: []string{
 				"pinned by the check landing with it takes no gap",
 				"records an event rather than an obligation",
