@@ -18,8 +18,8 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      # The two audit inventories at the end of `globs:` are dated, regenerated
-      # rather than maintained, and their per-finding headings repeat by
+      # The two audit inventories at the end of `globs:` are dated, worked down
+      # rather than kept current, and their per-finding headings repeat by
       # construction under one flat parent — which `siblings_only` cannot relax.
       #
       # This rationale sits here rather than inside `globs:` because that is a
@@ -36,5 +36,5 @@ jobs:
             !work/**
             !internal/check/testdata/**
             !internal/skills/embedded/**
-            !docs/initiatives/entity-truth-audit.md
-            !docs/initiatives/gap-truth-audit.md
+            !docs/audits/entity-truth-audit.md
+            !docs/audits/gap-truth-audit.md

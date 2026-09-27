@@ -9,12 +9,12 @@ priority: high
 Every live planning record was measured against the kernel and most carry
 claims the code contradicts. The inventory, with the command behind each
 finding, is
-[`docs/initiatives/entity-truth-audit.md`](../../docs/initiatives/entity-truth-audit.md).
+[`docs/audits/entity-truth-audit.md`](../../docs/audits/entity-truth-audit.md).
 That document is the work list; this gap tracks absorbing it.
 
 A second pass re-measured the gaps `TODO.md` orders, at a higher bar and with an
 independent auditor per batch:
-[`docs/initiatives/gap-truth-audit.md`](../../docs/initiatives/gap-truth-audit.md),
+[`docs/audits/gap-truth-audit.md`](../../docs/audits/gap-truth-audit.md),
 whose evidence file carries the command behind every high-severity finding. Same
 tier, same absorption work, so it is a second work list under this gap and not a
 second tracker. What it adds is a cause assigned to each finding and a measured

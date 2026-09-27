@@ -8,17 +8,12 @@ date: 2026-08-06
 
 ## Classifier note
 
-This is an initiative document. `initiative` is not yet an official aiwf
-entity kind ([G-0311](../../work/gaps/G-0311-no-cross-cutting-initiative-tier-above-epic-for-multi-component-features.md)),
-so this file lives under `docs/initiatives/` as an umbrella capture,
-following the precedent of [`id-lifecycle.md`](id-lifecycle.md) and
-[`quality-signal-and-cadence.md`](quality-signal-and-cadence.md).
-
-Unlike most initiatives, this one is an **inventory rather than a proposal**.
-It is a dated snapshot of measured divergence between the Normative-tier docs
-and the kernel as built. It ages by construction: every entry is either fixed
-(and deleted) or still true. The `date:` above is what makes it honest — read
-it as an observation from that day, not as current truth about the tree.
+This is an audit, in the Observational tier under `docs/audits/`: an
+**inventory rather than a proposal**. It is a dated snapshot of measured
+divergence between the Normative-tier docs and the kernel as built. It ages
+by construction: every entry is either fixed (and deleted) or still true. The
+`date:` above is what makes it honest — read it as an observation from that
+day, not as current truth about the tree.
 
 Tracked by [G-0560](../../work/gaps/G-0560-the-normative-doc-tree-has-drifted-from-the-kernel-it-documents.md).
 The code-side root cause under §F is tracked separately by

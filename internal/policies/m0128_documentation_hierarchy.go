@@ -2,9 +2,11 @@ package policies
 
 import (
 	"fmt"
+	"maps"
 	"os"
 	"path/filepath"
 	"regexp"
+	"slices"
 	"strings"
 )
 
@@ -15,12 +17,13 @@ import (
 // the closed set rather than assuming the exact wording up front.
 var documentationHierarchyTierBulletRegex = regexp.MustCompile(`^- \*\*([^*]+)\*\*`)
 
-// documentationHierarchyClosedTiers is the closed-set vocabulary
-// AC-1 requires (M-0128): every tier bullet under the section must
-// name one of these four, and all four must appear at least once.
+// documentationHierarchyClosedTiers is the closed-set tier vocabulary
+// (M-0128/AC-1): every tier bullet under the section must name one of
+// these, and every one must appear at least once.
 var documentationHierarchyClosedTiers = map[string]bool{
 	"Normative":       true,
 	"Forward-looking": true,
+	"Observational":   true,
 	"Exploratory":     true,
 	"Archival":        true,
 }
@@ -37,6 +40,7 @@ var documentationHierarchySubtrees = []string{
 	"docs/explorations/",
 	"docs/research/",
 	"docs/initiatives/",
+	"docs/audits/",
 	"docs/archive/",
 	"docs/archive/migration/",
 }
@@ -63,7 +67,7 @@ var documentationHierarchyNarrativeFiles = []string{
 //   - names every top-level narrative file in documentationHierarchyNarrativeFiles;
 //   - tags each tier bullet with a name from the closed
 //     documentationHierarchyClosedTiers set;
-//   - covers all four tiers at least once.
+//   - covers every closed-set tier at least once.
 //
 // Pins M-0128/AC-1.
 func PolicyM0128DocumentationHierarchy(root string) ([]Violation, error) {
@@ -114,7 +118,8 @@ func PolicyM0128DocumentationHierarchy(root string) ([]Violation, error) {
 		tier := m[1]
 		seenTiers[tier] = true
 		if !documentationHierarchyClosedTiers[tier] {
-			report(fmt.Sprintf("tier bullet %q is not one of the closed-set tiers (normative / forward-looking / exploratory / archival)", tier))
+			report(fmt.Sprintf("tier bullet %q is not one of the closed-set tiers (%s)", tier,
+				strings.ToLower(strings.Join(slices.Sorted(maps.Keys(documentationHierarchyClosedTiers)), " / "))))
 		}
 	}
 
