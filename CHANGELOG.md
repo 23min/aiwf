@@ -16,6 +16,32 @@ section in this file.
 
 ## [Unreleased]
 
+### Added — E-0097: ask what a change can do without, at plan time and on demand
+
+- `aiwfx-plan-milestones` can now remove work, not only reshape it. A candidate no
+  success criterion requires is dropped, where before it could only be kept, split
+  or folded into a sibling, and the cuts are put in front of you, with a yes asked
+  for, before any id is allocated.
+- New `wf-trim` skill in the `wf-*` rituals: ask of one diff or one named
+  unit whether the change needs everything it adds. It looks for duplicated jobs,
+  logic that compresses, guards no caller reaches and tests no break needs, and
+  settles every removal it proposes by a command: breaking what the removed thing
+  protected turns something red, or a guard is shown unreachable; a cut that
+  changes no result must pass a differential test. It reports, and applies nothing
+  until approved. It needs no aiwf verb or configuration, and a per-stack table
+  names the mutation harness, coverage profile and clone detector for Go, Python,
+  JavaScript/TypeScript and the JVM.
+- `aiwfx-wrap-milestone` and `wf-patch` now call `wf-trim` as a review lens. In the
+  milestone wrap it replaces the shape questions the wrap asked inline — deletions,
+  same-outcome tests, compression and over-guarding — and the wrap keeps one
+  question of its own: what the change obliges later changes to do, each obligation
+  named with its owner and what retires it, recorded under the milestone spec's
+  `## Reviewer notes`. In `wf-patch`, which asked none of those questions (G-0662),
+  it is a new lens that runs on a
+  reviewed patch changing code, tests included; a patch that changes only prose or
+  configuration states the skip at the commit gate. In both rituals the lens applies
+  nothing: its proposals reach you once all reviews have returned.
+
 ## [0.39.0] — 2026-09-27
 
 ### Changed (internal) — dated audits get their own documentation tier
