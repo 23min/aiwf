@@ -1344,5 +1344,5 @@ An `aiwf upgrade` or `aiwf update` leaves a repository with the engineering guid
 |---|---|---|
 | M-0351 | Adopt applicable guidance packs automatically in init and update | done |
 | M-0352 | Report guidance outcomes at the end of init, update and upgrade | done |
-| M-0353 | Verify an unattended upgrade installs applicable guidance | draft |
+| M-0353 | Verify an unattended upgrade installs applicable guidance | in_progress |
 

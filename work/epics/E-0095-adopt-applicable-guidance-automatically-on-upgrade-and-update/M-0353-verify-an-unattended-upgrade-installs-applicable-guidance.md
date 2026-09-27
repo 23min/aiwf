@@ -76,13 +76,14 @@ No user-visible change.
 
 ## Validation
 
-`make ci` at `0b673c71f`, in the devcontainer (Linux): exit 0. golangci-lint reported `0 issues.`, the race and coverage suite and the profile-driven gates passed, and `aiwf doctor --self-check` reported `self-check passed (29 steps).`
+`make ci` at `a77be8d79`, in the devcontainer (Linux): exit 0. golangci-lint reported `0 issues.`, the race and coverage suite and the profile-driven gates passed, and `aiwf doctor --self-check` reported `self-check passed (29 steps).`
 
 Mutation probes against `TestBinary_UnattendedUpgradeAdoptsGuidance`, each applied to a working copy and then restored byte for byte:
 
 - Replacing the `projectguidance.Adopt` call in `internal/initrepo/project_guidance.go` with the unchanged selection fails the reachable case: `guidance.packs = <nil>, want [sample/base]`.
 - Re-executing `version`, with no arguments, instead of `update --root <root>` in `internal/cli/upgrade/upgrade.go` fails both cases: `output has 0 guidance sections, want 1`.
 - Dropping the source from the fetch error in `internal/projectguidance/retrieve.go` fails the unreachable case: `report does not name the retrieval failure`.
+- Creating `.guidance` before the blocked return in `internal/initrepo/project_guidance.go` fails the unreachable case: `unreachable catalogue left guidance behind`.
 
 ## Deferrals
 
@@ -94,3 +95,6 @@ Mutation probes against `TestBinary_UnattendedUpgradeAdoptsGuidance`, each appli
 - `TestBinary_UpgradeOutputEndsWithTheGuidanceSection` is kept beside the new test. It covers upgrade with a configured `guidance.source`, and M-0352 cites it as evidence for M-0352/AC-5.
 - The redirect of the default catalogue URL is kept in the unreachable case although the test harness already refuses the `https` transport, so that case does not depend on the harness's transport policy.
 - The milestone adds no module, abstraction or data model; there was nothing for a design review.
+- `hostUpgradeRun` sets `CODEX_HOME` and `CLAUDE_CONFIG_DIR` under its home, repeating two entries of `testsupport.GuidanceEnvironment`. That helper creates its own home and PATH, so it cannot serve here, and a shared helper for two lines is not worth its cost.
+- The unreachable case's failure message and the placement of its `os.Stat` calls stay as they are. `.guidance` is checked with `os.Stat`, so a dangling symbolic link there would pass; aiwf's production code creates no symbolic links.
+- Deciding review over the full change-set: approve, with no blocking findings.
