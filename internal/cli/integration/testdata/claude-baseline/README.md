@@ -205,3 +205,24 @@ consumer. The inventories were sorted again.
 | --- | --- | --- |
 | `.aiwf-owned` (skills) | `a64f3998ec5327666fc5ff356e366f27fca590c0fd4fed0b04a73a35918959f0` | `b564d2dda60a5db43898ccac1a7b40fd3d7aa77a60a5babbb8b677a1866e7e14` |
 | `wf-trim/SKILL.md` | — | `50365ea0a925f6dd46e811d1ad1aa8beff5145d30fd6c9b7057d6f9b7cbbc5b7` |
+
+## Subtraction lens wiring exception
+
+M-0358 adds the `wf-trim` lens to the milestone wrap's review and to the patch
+ritual's review. The six inventories change only the records of
+`.claude/skills/aiwfx-wrap-milestone/SKILL.md`, `aiwfx-start-milestone/SKILL.md`,
+`aiwfx-wrap-epic/SKILL.md` and `wf-patch/SKILL.md`; all other records stay frozen.
+
+Provenance: derived in the Linux development container on 2026-09-27 without the
+renderer. The wrap-milestone and wrap-epic records hash the embedded source bytes,
+which reproduce their frozen records before the edit. The start-milestone and patch
+adapters are rendered from fragments, so their records apply only the source edit's
+text replacements to the pre-change materialized bytes, which reproduce their
+frozen records, and hash the result. The inventories were sorted again.
+
+| Artifact | Original SHA-256 | Updated SHA-256 |
+| --- | --- | --- |
+| `aiwfx-wrap-milestone/SKILL.md` | `6bdfc41abff485a99560f065f6a812533aae4e27ceaebc266715afb6bddc5aa7` | `97474cc7b98ae191921fdb89a839f885a3a11491e54332d04ec813833419963d` |
+| `aiwfx-start-milestone/SKILL.md` | `9350dfffec1a1ac39dc4f05f9566fb644358cb6892677648e80cbaeafed68c1e` | `dceafde94f955c60d7c87ccb87b184f0f399c75eee9b3a3d79a5d606c63a4f7c` |
+| `aiwfx-wrap-epic/SKILL.md` | `be2ea37d2dfeafa272214ab96a01aa1e8bc6e096a3cab2a2baf23c44a8b5f2c7` | `bc579921e510ca8733b599e3eaae35bd91d3b3f3d856a328fe5f7649dbd3e85a` |
+| `wf-patch/SKILL.md` | `4a9055dd141c561e39ac17848f6c58395c6d39ea57a6539480c84d9b4a7f11dc` | `8b8d2a990a8472ac15ce00589d82f48731e97b2b02da0eea2f1ed977c10f124e` |
