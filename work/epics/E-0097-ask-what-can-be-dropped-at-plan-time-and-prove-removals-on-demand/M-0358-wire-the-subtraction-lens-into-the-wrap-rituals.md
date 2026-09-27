@@ -106,12 +106,17 @@ closure rides `aiwf promote G-0662 addressed --by-commit <sha>`.
   second-agent confirmation runs after that approval and before any cut is
   committed. The patch ritual takes the same shape, with its commit gate as the
   approval point.
-- The patch ritual's threshold is any change to logic: a patch that changes only
-  tests, prose or configuration skips the lens and says so at the commit gate. Over
-  the 60 most recent patch merges, 25 changed logic. The threshold is retired —
-  widened to test-only patches — if a lens run over patches it skipped finds a cut
-  their review missed, and leaves with the lens itself under the skill's retirement
-  trigger.
+- The patch ritual's threshold is any change to code, tests included: a patch that
+  changes only prose (shipped instructions included) or configuration skips the lens
+  and says so at the commit gate. Tests count because a test-only patch is how a new
+  policy test or check usually arrives, and the lens reports what such a patch
+  obliges later changes to do. Of the 60 most recent patch merges on `main` at
+  `ad30ac6f0`, 40 changed a Go file: `git log --merges --first-parent --format='%H
+  %s' main | grep -E ' Merge (branch .)?patch/' | head -60`, each merge `m` counted
+  when `git diff --numstat m^1 m` has a `.go` row. The threshold is retired —
+  widened to configuration-only patches — if a lens run over patches it skipped finds
+  a cut their review missed, and leaves with the lens itself under the skill's
+  retirement trigger.
 
 ## Surfaces touched
 
@@ -136,19 +141,22 @@ closure rides `aiwf promote G-0662 addressed --by-commit <sha>`.
 
 ## Release note
 
-The milestone wrap and the patch ritual now call `wf-trim` as a review lens instead
-of asking the line-measuring shape questions inline. In `aiwfx-wrap-milestone` the
+The milestone wrap and the patch ritual now call `wf-trim` as a review lens. In
+`aiwfx-wrap-milestone` it replaces the line-measuring shape questions the wrap asked
+inline; in `wf-patch`, which asked none of them, it is a new lens. In the wrap the
 independent review runs three lenses — code quality, design quality and subtraction —
-and keeps only one shape question of its own: what the change obliges later changes
+and keeps one shape question of its own: what the change obliges later changes
 to do, each obligation named with its owner and what retires it, recorded under the
 spec's `## Reviewer notes`. In `wf-patch` the subtraction lens runs whenever a patch
-changes logic; a patch that changes only tests, prose or configuration states the
-skip at the commit gate. In both rituals the lens applies nothing: its proposals
+changes code, tests included; a patch that changes only prose or configuration
+states the skip at the commit gate. In both rituals the lens applies nothing: its proposals
 reach the human with every other lens's findings once all reviews have returned.
 
 ## Decisions made during implementation
 
-- None — the wrap-lens design and the patch threshold are pre-locked under Design notes.
+- The patch ritual's threshold is any change to code, tests included; Design notes
+  carry its reasoning and what retires it. Counting test code departs from this
+  spec's constraint that the threshold is set from logic lines or guards added.
 
 ## Validation
 
@@ -159,13 +167,18 @@ Observed 2026-09-27 in the Linux development container: Claude Code 2.1.283,
 that keeps its aiwf configuration, since both rituals call aiwf verbs. The rituals
 were materialized by a binary built from this branch (`aiwf update --no-prompt` in a
 throwaway clone) and copied into each trial clone's `.claude/` before its session
-started: `wf-patch` `8b8d2a99…` for the first round, `1e7e3135…` (`19263a6ef`) for
-the prose re-run, and `aiwfx-wrap-milestone` `97474cc7…` throughout. Each session
+started: `wf-patch` `8b8d2a99…` for the logic run and `1e7e3135…` for the prose
+run, and `aiwfx-wrap-milestone` `97474cc7…` for the wrap run. The shipped text
+differs from what the runs observed in two places: `wf-patch`'s threshold sentence,
+which now counts test code, and the wrap's obligation paragraph and lens bullet,
+which now name the counting command, record the answer at step 4, and handle an
+approved cut like a blocking finding. A logic patch and a prose-only patch fall on
+the same side of the threshold under every wording. Each session
 was a fresh interactive session in its clone, confirmed through `/proc/<pid>/cwd`
 before its prompt was sent, and told to stop at the first human decision and apply,
-commit and promote nothing. A session-start sync outside aiwf left an unstaged
-`CLAUDE.md` edit and untracked `AGENTS.md` and `.ai-dotfiles/` in two clones; none
-is in any diff under review.
+commit and promote nothing. A session-start sync outside aiwf left unstaged edits to
+`CLAUDE.md` and `AGENTS.md` (untracked in the prose clone) and an untracked
+`.ai-dotfiles/` in two clones; none is in any diff under review.
 
 | Run | Input | Prompt | Lens outcome |
 |---|---|---|---|
@@ -181,7 +194,8 @@ is in any diff under review.
   to 28, with a differential test, reported as not proposed), and each guard's
   caller (the guard table, a break command per row).
 - The wrap's own question wrote seven obligations into M-0321's `## Reviewer notes`
-  in the working tree, each with its owner and what retires it. The lens reported
+  in the working tree, each with what retires it; six name an owner, and the seventh
+  states that it has none. The lens reported
   obligations as findings; the wrap's answer named their owners rather than
   repeating them.
 - Every lens's findings reached the human once, together; nothing was applied and
@@ -196,15 +210,15 @@ is in any diff under review.
   quality and test sufficiency lenses. Its rewrite reached the commit gate with the
   other lenses' fixes; the staged diff matched its pre-dispatch fingerprint.
 - Below the threshold, G-0652: the gate's lens table states "No subtraction lens: no
-  logic changed.", quoting the rule's "prose (shipped instructions included)"; code
+  logic changed.", quoting the rule's "prose (shipped instructions included)" (the
+  shipped wording says "no code changed"); code
   review still ran, because the review carve-out did not apply, so the skip is its
   own statement rather than a second copy of the carve-out's.
 - Edge case, few lines adding a guard: G-0695's three logic lines are the guard, and
   the lens ran on them.
-- An earlier prose run on `8b8d2a99…`, whose rule said "non-test code", ran the lens
-  on the same prose-only patch, reading a shipped skill as code. `19263a6ef`
-  restates the threshold in the skill's own logic / tests / prose terms, and the
-  re-run above observed the skip.
+- The threshold names shipped instructions as prose because a rule worded as
+  "non-test code" was observed to send a prose-only patch through the lens, reading a
+  shipped skill as code.
 
 **M-0358 AC-3.** G-0662 records its result — each of the five questions scores
 zero in `wf-patch` — and no command. Reconstructed as a count of each question's
@@ -219,8 +233,9 @@ done
 
 - At `9ce6f8fda`, where G-0662 was filed: 0 for each question in `wf-patch`, 1 for
   each in `aiwfx-wrap-milestone` — the gap's measurement reproduced.
-- At `19263a6ef`: 0 inline in both rituals, and `wf-patch` names `wf-trim` once.
-  Through the skill each question is reachable: compression at step 4, guards at
+- At this milestone's head: 0 inline in both rituals, and `wf-patch` names `wf-trim`
+  once, run on every patch that changes code. Through the skill each question is
+  reachable: compression at step 4, guards at
   step 5 and report § Guards, removals at step 6 and report § Removals, same-outcome
   tests at step 8's break-to-tests table, and obligations at report § "Obligations
   the change adds for later changes".
@@ -228,8 +243,8 @@ done
   it stays with the milestone wrap, whose spec records the answer; `wf-patch` has no
   such record and does not ask it.
 
-**Gates**, on `milestone/M-0358-wire-the-subtraction-lens-into-the-wrap-rituals` at
-`19263a6ef`: `make check-fast` → exit 0; `go test -count=1 -run
+**Gates**, on `milestone/M-0358-wire-the-subtraction-lens-into-the-wrap-rituals`
+after the review's corrections: `make check-fast` → exit 0; `go test -count=1 -run
 TestClaudeArtifacts_MatchBaseline ./internal/cli/integration/` → `ok`; `aiwf check` →
 0 errors.
 
@@ -239,4 +254,32 @@ TestClaudeArtifacts_MatchBaseline ./internal/cli/integration/` → `ok`; `aiwf c
 
 ## Reviewer notes
 
-- (none)
+- **Obligations this milestone adds**, counted with `git diff --name-status
+  cd48c204e..HEAD` (every file modified, none added), `git diff cd48c204e..HEAD --
+  '*.go' | grep -cE '^\+func|^\+\s*Policy:'` → 0, and a read of the four ritual
+  diffs; no mechanical rule is added.
+  - Every milestone wrap runs `wf-trim` as a third lens. Owner: `aiwfx-wrap-milestone`
+    step 2. Retires with the skill, under its retirement trigger.
+  - Every patch that changes code runs `wf-trim`, and every other patch states the
+    skip at the commit gate. Owner: `wf-patch` steps 6 and 8. Retires as Design notes
+    state.
+  - Every milestone records its obligation answer under `## Reviewer notes`. Owner:
+    `aiwfx-wrap-milestone` step 2. Retires with the obligation question itself.
+- **M-0358 AC-1, a milestone with no logic.** This wrap's own subtraction lens, over
+  `cd48c204e..HEAD`, reported logic +0 −0 and skipped steps 3–5, 7 and 9 with that
+  reason; it ran steps 6 and 8 on the tests bucket (the D-0054 locator and the frozen
+  inventories), where five breaks each turned a test red and proposed no removal. The
+  obligation question was still answered, above.
+- Declined: dispatching the lens alongside the others rather than before the
+  deciding review. Its cuts are approved once every review has returned and land as
+  corrective commits before the fresh full pass that decides, which is the ordering
+  the skill asks for.
+- Declined: cutting the wrap bullet's one-line description of the lens as a restated
+  procedure; each sibling lens bullet describes its lens in one line.
+- Declined: naming `wf-trim` in the Codex review-dispatch fragment, which lists the
+  review lenses by example and names neither the test-sufficiency lens nor this one;
+  the rituals name the lens where they dispatch it.
+- G-0662's closure rests on the M-0358 AC-3 record: the four line-measuring
+  questions reach every patch that changes code through the lens, and obligations
+  reach it as the lens's findings, with owner and retirement asked only at the
+  milestone wrap.
