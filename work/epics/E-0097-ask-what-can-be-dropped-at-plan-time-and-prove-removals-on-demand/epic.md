@@ -28,9 +28,9 @@ into a sibling. None of the three drops work, which is the shape
 [`growth.md`](../../../docs/design/growth.md) names as the growth mechanism — a rule
 set where every member can mandate and none can retire.
 
-Downstream of planning, the only lens that asks whether something is surplus is the
-milestone wrap's shape block. `wf-patch` asks none of its questions (G-0662), so
-work that never becomes a milestone never meets it. The block is also the one copy
+Downstream of planning, the only lens that asked whether something is surplus was
+the milestone wrap's shape block. `wf-patch` asked none of its questions (G-0662),
+so work that never became a milestone never met it. The block was also the one copy
 of a procedure that belongs in a skill, where the patch ritual and any consumer
 could reach it.
 
@@ -80,9 +80,11 @@ trial got wrong and what that asks of the skill.
   reading.** G-0585 records why: a clearance earned by reading is worse than none,
   because the reader holding it stops looking. A cut list is a disclosure the
   human grades, never a verdict that a plan is minimal.
-- **A removal is settled by breaking what it protected and watching something go
-  red**, not by a green gate — the oracle G-0660 repaired for the compression lens,
-  carried into every port of it.
+- **A removal is settled by a command, never by a green gate**: breaking what it
+  protected turns something red, or, for a guard, no caller can reach the state it
+  catches; a cut that changes no result is a rewrite, settled by a differential
+  test. This is the oracle G-0660 repaired for the compression lens, carried into
+  every port of it.
 - **Every addition this epic makes names what retires it.** An addition that cannot
   say what retires it is a permanent tax, and an epic against overbuilding that
   ships one has failed its own test.
@@ -110,22 +112,22 @@ trial got wrong and what that asks of the skill.
 
 ## Success criteria
 
-- [ ] The milestone sizing rule has an arm that drops work.
-- [ ] The subtraction skill runs on a diff and on a named unit, in a repository
+- [x] The milestone sizing rule has an arm that drops work.
+- [x] The subtraction skill runs on a diff and on a named unit, in a repository
       that does not use aiwf, and every removal it proposes is settled by a command
       whose output it reports.
-- [ ] The shape questions exist in one place: the milestone wrap calls the skill,
+- [x] The shape questions exist in one place: the milestone wrap calls the skill,
       and no ritual restates the procedure.
-- [ ] The patch ritual asks the shape questions, with the skip threshold stated
+- [x] The patch ritual asks the shape questions, with the skip threshold stated
       where a reader meets it.
-- [ ] Every obligation this epic adds names what retires it.
-- [ ] G-0662 is addressed.
+- [x] Every obligation this epic adds names what retires it.
+- [x] G-0662 is addressed.
 
 ## Open questions
 
 | Question | Blocking? | Resolution path |
 |---|---|---|
-| The threshold below which the patch wrap skips the lens | yes, before the port | Decided in the port, from the logic changed or the guards added |
+| The threshold below which the patch wrap skips the lens | no | Decided in M-0358: the lens runs on any change to code, tests included |
 | How large a diff one agent takes before it goes shallow | no | The milestone wrap already slices by concern; reuse its rule |
 | What the skill does in a stack whose mutation harness or clone detector is missing | no | The per-stack table records the absence and the fallback |
 
