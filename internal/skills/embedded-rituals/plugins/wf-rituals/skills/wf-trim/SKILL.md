@@ -51,7 +51,7 @@ Count lines added and removed against the base, split into logic, tests and pros
 git diff --numstat <base> HEAD
 ```
 
-Where there is no logic bucket, say so, skip steps 3–7 and 9, and report the skip with its reason. Run step 8 when there is a tests bucket; stop after step 2 when there is neither.
+Where there is no logic bucket, say so, skip steps 3–5, 7 and 9, and report the skip with its reason. Run steps 8 and 6 when there is a tests bucket. Go on to step 10 either way.
 
 ### 3. Reuse, by what the code does
 
@@ -82,9 +82,11 @@ Defaults: compression cuts unless a constraint stops it; a guard stays unless pr
 A removal is settled in one of two ways, recorded as the command and its output:
 
 - **Red** — breaking what the removed thing protected turns something else red: a test, a check, a gate.
-- **Dead** — for a guard, step 5's demonstration that no caller can produce the state it catches, beside the break that shows nothing goes red.
+- **Dead** — for a guard, step 5's demonstration that no caller can produce the state it catches, beside the break that shows nothing goes red except the tests written only to reach it.
 
-A green run after a cut is an absent witness, not a verdict. A break that turns nothing red on a guard a caller *can* reach is a surviving mutant: the guard stays and goes to `wf-vacuity` as "keep, needs a test".
+A cut that changes no result — a check whose state a caller can reach but whose outcome the surrounding code already produces — is a rewrite, not a removal: settle it under step 4 with a differential test. Where the outcome rests on behaviour nothing documents, keep it and report it under "Blocked by scope" with that reason.
+
+A green run after a cut is an absent witness, not a verdict. A break that turns nothing red on a guard a caller *can* reach, and that does change a result, is a surviving mutant: the guard stays and goes to `wf-vacuity` as "keep, needs a test".
 
 ### 7. Merges
 
@@ -92,7 +94,7 @@ Where two uses are folded onto one shared thing, run a check per use confirming 
 
 ### 8. Tests — the break-to-tests table
 
-Record which tests each break turns red. A test is a removal candidate only when every break that turns it red also turns another test red. One rule can be carried by several independent guards; each needs its own break.
+Record which tests each break turns red. A test is a removal candidate only when every break that turns it red also turns another test red, or when it was written only to reach a guard step 6 settles as dead. One rule can be carried by several independent guards; each needs its own break.
 
 ### 9. Rules about outside systems
 
@@ -100,7 +102,7 @@ For each rule the code encodes about a system outside the project — a host, a 
 
 ### 10. Report, then gate
 
-Emit the report (below). Every behaviour change waits for explicit human approval before any rewrite, and lists every record and comment that states the old behaviour. Apply nothing yourself.
+Emit the report (below). Every behaviour change waits for explicit human approval before any rewrite, and lists every record and comment that states the old behaviour. Apply nothing until it is approved.
 
 ### 11. Confirmation
 
@@ -141,7 +143,7 @@ Before relying on a tool, check whether the project switches it off for part of 
 - <what> — differential test: `<command>` → <result>
 
 ## Blocked by scope
-- <cut> — blocked by <frozen file / out-of-scope file>
+- <cut> — blocked by <frozen file / out-of-scope file / undocumented behaviour>
 
 ## Obligations the change adds for later changes
 - <rule, check or required artefact any future change must satisfy>
