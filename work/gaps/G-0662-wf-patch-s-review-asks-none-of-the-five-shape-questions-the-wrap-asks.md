@@ -1,8 +1,10 @@
 ---
 id: G-0662
 title: wf-patch's review asks none of the five shape questions the wrap asks
-status: open
+status: addressed
 discovered_in: M-0327
+addressed_by_commit:
+    - f79f71636
 ---
 ## What's missing
 
