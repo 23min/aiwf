@@ -1,6 +1,6 @@
 ---
 name: wf-trim
-description: Ask of one diff or one named unit whether the change needs everything it adds — duplicated jobs, logic that compresses, guards no caller reaches, tests no break needs — and settle every proposed removal by breaking what it protected and watching something go red. Proposes and reports; applies nothing without approval. Use before the deciding review of a patch or milestone, when a change looks bigger than its task, or when the user invokes wf-trim.
+description: Ask of one diff or one named unit whether the change needs everything it adds — duplicated jobs, logic that compresses, guards no caller reaches, tests no break needs — and settle every proposed removal by a command — breaking what it protected turns something red, or a guard is shown unreachable. Proposes and reports; applies nothing without approval. Use before the deciding review of a patch or milestone, when a change looks bigger than its task, or when the user invokes wf-trim.
 ---
 
 # wf-trim
@@ -27,7 +27,7 @@ Run it as a **fresh agent** that did not write the change, briefed per `wf-revie
 - A statement coverage profile.
 - Version control that can hold a separate working copy for trials.
 
-A mutation harness is optional; use it when present. See §"Per-stack tools".
+A mutation harness is optional; use it when present and runnable. See §"Per-stack tools".
 
 ## Workflow
 
@@ -39,7 +39,7 @@ Do every trial in a **separate working copy** — a worktree or a clone — neve
 - **Measured** — a failure actually observed. Record the input or test that reproduces it.
 - **Author-added** — everything else the change does.
 
-Derive the stated group yourself from the sources before reading the author's list, and report where the two differ. Everything in the author-added group is cuttable until it shows a reason to stay.
+Derive the stated group yourself from the sources before reading the author's list, and report where the two differ. Everything in the author-added group is cuttable until it shows a reason to stay. Before proposing to remove anything, triage it as `wf-structural-sweep` §"Triage before you delete" specifies: an open issue or a coupled change can own code no obligation names.
 
 ### 2. Scope and shape
 
@@ -51,7 +51,7 @@ Count lines added and removed against the base, split into logic, tests and pros
 git diff --numstat <base> HEAD
 ```
 
-Where there is no logic bucket — prose, docs or configuration only — say so, skip steps 3–9, and report the skip with its reason.
+Where there is no logic bucket, say so, skip steps 3–7 and 9, and report the skip with its reason. Run step 8 when there is a tests bucket; stop after step 2 when there is neither.
 
 ### 3. Reuse, by what the code does
 
@@ -77,9 +77,14 @@ Break conditions, not only statements: one operand of a condition can be unguard
 
 Defaults: compression cuts unless a constraint stops it; a guard stays unless proven dead. Where one cut falls under both, the guard's default governs.
 
-### 6. Removals are settled red
+### 6. Settling a removal
 
-A removal is settled only when breaking what the removed thing protected turns something red — a test, a check, a gate — recorded as the command and its output. A green run after a cut is an absent witness, not a verdict. Nothing red is a surviving mutant: the removed thing was protecting nothing any check can see, and that is the finding — say which.
+A removal is settled in one of two ways, recorded as the command and its output:
+
+- **Red** — breaking what the removed thing protected turns something else red: a test, a check, a gate.
+- **Dead** — for a guard, step 5's demonstration that no caller can produce the state it catches, beside the break that shows nothing goes red.
+
+A green run after a cut is an absent witness, not a verdict. A break that turns nothing red on a guard a caller *can* reach is a surviving mutant: the guard stays and goes to `wf-vacuity` as "keep, needs a test".
 
 ### 7. Merges
 
@@ -91,7 +96,7 @@ Record which tests each break turns red. A test is a removal candidate only when
 
 ### 9. Rules about outside systems
 
-For each rule the code encodes about a system outside the project — a host, a format, a protocol — name the document that defines that system and compare the two.
+For each rule the code encodes about a system outside the project — a host, a format, a protocol — name the document that defines that system and compare the two. Report each disagreement as a behaviour change awaiting approval, or hand it to `wf-rethink`.
 
 ### 10. Report, then gate
 
@@ -99,7 +104,7 @@ Emit the report (below). Every behaviour change waits for explicit human approva
 
 ### 11. Confirmation
 
-Before any approved removal or rewrite is committed, a **second fresh agent** re-runs every command the report cites and confirms or refutes each claim. A removal the second agent cannot reproduce red does not land.
+Before any approved removal or rewrite is committed, a **second fresh agent** re-runs every command the report cites and confirms or refutes each claim. A removal the second agent cannot reproduce — red, or dead by demonstration — does not land.
 
 ## Per-stack tools
 
@@ -110,7 +115,7 @@ Before any approved removal or rewrite is committed, a **second fresh agent** re
 | JavaScript / TypeScript | Stryker | `c8` or `nyc` | `jscpd` |
 | JVM | PIT | JaCoCo | PMD CPD |
 
-Before relying on a tool, check whether the project switches it off for part of the tree — a clone detector excluded from test files, say — and report that part as uncovered by it. Where a stack lacks a tool: no mutation harness → the manual probe in `wf-vacuity`, and say so in the report; no clone detector → step 3 by reading, and say so; no coverage profile → stop, since step 5 cannot run without one.
+Before relying on a tool, check whether the project switches it off for part of the tree — a clone detector excluded from test files, say — and report that part as uncovered by it. Where a stack lacks a tool: no mutation harness, or one that cannot run here → the manual probe in `wf-vacuity`, and say why in the report; no clone detector → step 3 by reading, and say so; no coverage profile → check exclusions by breaking their lines instead, and say so.
 
 ## Output format
 
@@ -126,7 +131,7 @@ Before relying on a tool, check whether the project switches it off for part of 
 - <change> — records stating the old behaviour: <file:line, …>
 
 ## Removals
-- <what> — protected: <state> — break: `<command>` → <red output, or "surviving mutant">
+- <what> — protected: <state> — settled: `<command>` → <red output, or dead: the demonstration>
 
 ## Guards — keep or remove
 | Guard | Caller, or demonstration none exists | Break command → result | Disposition |
