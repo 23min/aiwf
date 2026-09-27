@@ -299,6 +299,10 @@ passing. It clears on push, or with `aiwf check --since` naming a ref.
 
 ## Reviewer notes
 
+- **Deciding review:** the shipped change is sound — the ritual text, its six
+  inventory records, the exception note, and the guidance fragment byte-identical to
+  base. The record was reconciled with the tree after that pass, and no further pass
+  read it.
 - **Declined: removing the scope-adjustment clause from `aiwfx-plan-milestones`
   step 9.** The pre-allocation gate cannot reach a scope problem found while the
   milestone bodies are written, which happens after allocation; the clause is the
