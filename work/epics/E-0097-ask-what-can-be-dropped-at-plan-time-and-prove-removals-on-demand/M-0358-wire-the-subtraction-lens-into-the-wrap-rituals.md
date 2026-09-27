@@ -15,7 +15,7 @@ acs:
       status: met
     - id: AC-3
       title: The tracked gap's measurement is re-run and no longer holds
-      status: open
+      status: met
 ---
 
 ## Goal
