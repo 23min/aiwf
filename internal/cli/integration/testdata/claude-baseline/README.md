@@ -186,3 +186,22 @@ again.
 | Artifact | Original SHA-256 | Updated SHA-256 |
 | --- | --- | --- |
 | `aiwfx-plan-milestones/SKILL.md` | `3502fc53efdbf327648ecef3e22f5f60a8d468fcd1bbc1856935d70c39745636` | `f66250263707e1b1c34863394b42d5e0ef962750ff74ee0b2ab5ae3399523ab2` |
+
+## Subtraction skill exception
+
+M-0357 adds the `wf-trim` skill. The six inventories gain its
+`.claude/skills/wf-trim/SKILL.md` record and change the
+`.claude/skills/.aiwf-owned` record; all other records stay frozen.
+
+Provenance: derived in the Linux development container on 2026-09-27 without the
+renderer. The skill record hashes the embedded source bytes, which the adapter
+copies unchanged (the `wf-rethink` source reproduces its frozen record). The
+ownership record hashes the frozen list — confirmed to reproduce the original hash
+— with the line `wf-trim` inserted in sorted position. Both match what a
+`v0.36.0`-stamped candidate binary materializes into an identically seeded
+consumer. The inventories were sorted again.
+
+| Artifact | Original SHA-256 | Updated SHA-256 |
+| --- | --- | --- |
+| `.aiwf-owned` (skills) | `a64f3998ec5327666fc5ff356e366f27fca590c0fd4fed0b04a73a35918959f0` | `b564d2dda60a5db43898ccac1a7b40fd3d7aa77a60a5babbb8b677a1866e7e14` |
+| `wf-trim/SKILL.md` | — | `a2a3456e73b46fad92dc81b7b223cd841519591dc6d0942ffd1f6294a6898d07` |
