@@ -93,11 +93,12 @@ closure rides `aiwf promote G-0662 addressed --by-commit <sha>`.
   changes no result is a rewrite, settled by a differential test. The wrap block's
   "Nothing red is a surviving mutant, not a clearance" contradicts the second route
   until the block calls the skill.
-- The wrap block carries two things the skill does not: mandated comments, planning
-  prose and tests pinning distinct rules do not count toward half, and the
-  Deletions question. Replacing the block with a call to the skill drops both, and
-  this milestone's criteria have the wrap ask only the obligation question while
-  its scope leaves the skill unchanged; settle at start which of the three gives.
+- The wrap block carries two things the skill does not: comments the project
+  mandates do not count toward half, and the Deletions question. Replacing the block
+  with a call to the skill drops both, and this milestone's criteria have the wrap
+  ask only the obligation question while its scope leaves the skill unchanged;
+  settle at start which of the three gives. The block also settles a rewrite by a
+  green gate run, where the skill requires a differential test.
 
 ## Surfaces touched
 
