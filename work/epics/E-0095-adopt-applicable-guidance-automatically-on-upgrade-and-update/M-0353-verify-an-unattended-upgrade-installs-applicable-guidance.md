@@ -13,7 +13,7 @@ acs:
       status: met
     - id: AC-2
       title: Unattended upgrade observed in a real consumer repository
-      status: open
+      status: deferred
 ---
 ## Goal
 
