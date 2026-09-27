@@ -1,7 +1,7 @@
 ---
 id: M-0356
 title: Ask for the smallest version at plan time
-status: in_progress
+status: done
 parent: E-0097
 tdd: none
 acs:
