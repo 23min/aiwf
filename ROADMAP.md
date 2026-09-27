@@ -1372,7 +1372,7 @@ rituals call it instead of restating it.
 
 | Milestone | Title | Status |
 |---|---|---|
-| M-0356 | Ask for the smallest version at plan time | in_progress |
+| M-0356 | Ask for the smallest version at plan time | done |
 | M-0357 | Ship the on-demand subtraction skill | draft |
 | M-0358 | Wire the subtraction lens into the wrap rituals | draft |
 
