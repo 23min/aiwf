@@ -10,7 +10,7 @@ acs:
       status: met
     - id: AC-2
       title: Every proposed removal is settled by a command that goes red
-      status: open
+      status: met
     - id: AC-3
       title: Each tool the per-stack table names for this stack resolves
       status: cancelled
