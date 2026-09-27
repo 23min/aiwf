@@ -111,8 +111,10 @@ closure rides `aiwf promote G-0662 addressed --by-commit <sha>`.
   changes only prose (shipped instructions included) or configuration skips the lens
   and says so at the commit gate. Tests count because a test-only patch can add a
   check every later change must pass, and the lens reports what such a patch obliges
-  later changes to do: of the 15 test-only patches in the sample below, 3 added a
-  policy test file. Of the 60 most recent patch merges on `main` at `ad30ac6f0`, 40
+  later changes to do: of the 15 test-only patches in the sample below (every `.go`
+  row a `_test.go` file), 3 added a policy test file (an `A` row under
+  `internal/policies/` ending `_test.go`). Of the 60 most recent patch merges on
+  `main` at `ad30ac6f0`, 40
   changed a Go file: `git log --merges --first-parent --format='%H
   %s' main | grep -E ' Merge (branch .)?patch/' | head -60`, each merge `m` counted
   when `git diff --numstat m^1 m` has a `.go` row. If a lens run over
@@ -173,9 +175,13 @@ started: `wf-patch` `8b8d2a99…` for the logic run and the shipped `0460911f…
 the prose run, and `aiwfx-wrap-milestone` `97474cc7…` for the wrap run. The logic
 run's text differs from what ships only in the threshold sentence, which read
 "non-test code"; a patch changing logic runs the lens under that wording and the
-shipped one. The wrap run's text differs from what ships in the obligation
-paragraph, which now names the counting command and records the answer at step 4,
-and in the lens bullet, which now applies an approved cut like a blocking fix. Each session
+shipped one. The wrap run's text differs from what ships in three lines. It
+acted on the earlier wording of two: the obligation paragraph, which now also asks
+for the counting command and records the answer at step 4, so the run's obligation
+answer names no command; and the lens bullet, whose new clause governs an approved
+cut, past the point the run stopped at. Step 4's `## Reviewer notes` line, which
+now names the obligation answer, lies beyond that point. This milestone's own
+obligation answer, under `## Reviewer notes`, names its counting commands. Each session
 was a fresh interactive session in its clone, confirmed through `/proc/<pid>/cwd`
 before its prompt was sent, and told to stop at the first human decision and apply,
 commit and promote nothing. A session-start sync outside aiwf left unstaged edits to
@@ -215,6 +221,9 @@ commit and promote nothing. A session-start sync outside aiwf left unstaged edit
   lens: no code changed.", classing the shipped skill edit as prose; code
   review still ran, because the review carve-out did not apply, so the skip is its
   own statement rather than a second copy of the carve-out's.
+- Edge case, a patch taking the review carve-out: not observed; no trial patch was
+  trivial enough to skip independent review. `wf-patch` step 6 states that the
+  carve-out's statement covers the lens skip.
 - Edge case, few lines adding a guard: G-0695's three logic lines are the guard, and
   the lens ran on them.
 - The threshold names shipped instructions as prose because a rule worded as
@@ -273,8 +282,11 @@ TestClaudeArtifacts_MatchBaseline ./internal/cli/integration/` → `ok`; `aiwf c
   steps 3–5, 7 and 9 with that reason. The change has a tests bucket (the D-0054
   locator and the frozen inventories), so the skill ran steps 6 and 8 on it as
   written, rather than stating all four questions inapplicable as this criterion's
-  edge case expects; only a change with neither logic nor tests states all four, and
-  G-0723 covers that case. Each break was an exact-string edit reverted with `git
+  edge case expects. No change leads the skill to state all four inapplicable: with
+  neither logic nor tests it leaves step 6 neither skipped nor run, which G-0723
+  records. What the edge case exists to show holds: the obligation question is
+  answered where there is nothing to compress and no guard to justify. Each break
+  was an exact-string edit reverted with `git
   checkout -- <file>`, judged by `go test -count=1 -run
   TestD0054_FixedAndPinnedDispositionAcrossSurfaces ./internal/policies/` and `go
   test -count=1 -run TestClaudeArtifacts_MatchBaseline ./internal/cli/integration/`,
