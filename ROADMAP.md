@@ -1374,5 +1374,5 @@ rituals call it instead of restating it.
 |---|---|---|
 | M-0356 | Ask for the smallest version at plan time | done |
 | M-0357 | Ship the on-demand subtraction skill | done |
-| M-0358 | Wire the subtraction lens into the wrap rituals | in_progress |
+| M-0358 | Wire the subtraction lens into the wrap rituals | done |
 
