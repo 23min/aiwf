@@ -222,7 +222,7 @@ frozen records, and hash the result. The inventories were sorted again.
 
 | Artifact | Original SHA-256 | Updated SHA-256 |
 | --- | --- | --- |
-| `aiwfx-wrap-milestone/SKILL.md` | `6bdfc41abff485a99560f065f6a812533aae4e27ceaebc266715afb6bddc5aa7` | `bce772557f822d46b2abc4700dbaa356063b039c259c9722792df1af41a83dcb` |
+| `aiwfx-wrap-milestone/SKILL.md` | `6bdfc41abff485a99560f065f6a812533aae4e27ceaebc266715afb6bddc5aa7` | `20969c17e4605fb808f499e6c41c30802d5a5ee4731b88306032c16683cf28b9` |
 | `aiwfx-start-milestone/SKILL.md` | `9350dfffec1a1ac39dc4f05f9566fb644358cb6892677648e80cbaeafed68c1e` | `dceafde94f955c60d7c87ccb87b184f0f399c75eee9b3a3d79a5d606c63a4f7c` |
 | `aiwfx-wrap-epic/SKILL.md` | `be2ea37d2dfeafa272214ab96a01aa1e8bc6e096a3cab2a2baf23c44a8b5f2c7` | `bc579921e510ca8733b599e3eaae35bd91d3b3f3d856a328fe5f7649dbd3e85a` |
 | `wf-patch/SKILL.md` | `4a9055dd141c561e39ac17848f6c58395c6d39ea57a6539480c84d9b4a7f11dc` | `0460911f5b4b9ce7c02464c1d8ded8e4393d1468d570525d328d5835aa5e3e8c` |
