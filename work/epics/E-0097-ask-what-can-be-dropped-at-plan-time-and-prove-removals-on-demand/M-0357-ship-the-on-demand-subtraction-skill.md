@@ -6,7 +6,7 @@ parent: E-0097
 tdd: advisory
 acs:
     - id: AC-1
-      title: The skill runs end to end on a real diff and its report holds every part
+      title: The skill runs on a diff and on a named unit without aiwf, reporting every part
       status: open
     - id: AC-2
       title: Every proposed removal is settled by a command that goes red
@@ -37,7 +37,7 @@ with what each got wrong, are in
 
 ## Acceptance criteria
 
-### AC-1 — The skill runs end to end on a real diff and its report holds every part
+### AC-1 — The skill runs on a diff and on a named unit without aiwf, reporting every part
 
 The skill runs over a real diff and returns a report holding the verdict that counts
 cuts the scope blocked, the behaviour changes awaiting approval with the records
