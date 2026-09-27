@@ -13,7 +13,7 @@ acs:
       status: open
     - id: AC-3
       title: Each tool the per-stack table names for this stack resolves
-      status: open
+      status: cancelled
 ---
 
 ## Goal
