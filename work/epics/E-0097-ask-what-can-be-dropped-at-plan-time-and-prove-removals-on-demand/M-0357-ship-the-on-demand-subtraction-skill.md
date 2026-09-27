@@ -7,7 +7,7 @@ tdd: advisory
 acs:
     - id: AC-1
       title: The skill runs on a diff and on a named unit without aiwf, reporting every part
-      status: open
+      status: met
     - id: AC-2
       title: Every proposed removal is settled by a command that goes red
       status: open
