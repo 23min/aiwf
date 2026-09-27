@@ -1,7 +1,7 @@
 ---
 id: M-0358
 title: Wire the subtraction lens into the wrap rituals
-status: draft
+status: in_progress
 parent: E-0097
 depends_on:
     - M-0357
