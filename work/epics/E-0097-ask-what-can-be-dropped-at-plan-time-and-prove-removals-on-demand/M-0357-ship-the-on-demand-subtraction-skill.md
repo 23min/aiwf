@@ -39,22 +39,28 @@ with what each got wrong, are in
 
 ### AC-1 — The skill runs on a diff and on a named unit without aiwf, reporting every part
 
-The skill runs over a real diff and returns a report holding the verdict that counts
+The skill runs twice in a repository that does not use aiwf — once over a diff, once
+over a named unit — and each run returns a report holding the verdict that counts
 cuts the scope blocked, the behaviour changes awaiting approval with the records
 that state the old behaviour, the keep-or-remove guard table with per-guard
 evidence, and the handoffs to the test-sufficiency, design and whole-codebase
-lenses. **Pass criterion**: a recorded trial naming the diff and the command, where
-each part of the report is present or explicitly stated absent with its reason.
+lenses. **Pass criterion**: a recorded trial per run naming the repository, the
+input and the command, where each part of the report is present or explicitly
+stated absent with its reason, and each tool the run takes from the per-stack table
+is shown running. The repository is a scratch clone carrying no aiwf configuration,
+planning tree, host artefacts or hooks, with only the new skill installed.
 **Edge cases**: a diff with no logic bucket at all, which produces a stated skip
 rather than an invented finding; a diff where the scope blocks a cut, which the
-verdict counts rather than omits. **Code references**: the skill body under the
-embedded ritual tree; the trial record lands in this spec's `## Validation`.
+verdict counts rather than omits; the aiwf binary stays on the path, so the record
+shows it was not called rather than that it could not be. **Code references**: the
+skill body under the embedded ritual tree; the trial records land in this spec's
+`## Validation`.
 
 ### AC-2 — Every proposed removal is settled by a command that goes red
 
 Each removal the skill proposes carries a command whose output shows something going
-red when what the removed thing protected is broken. **Pass criterion**: in the
-recorded trial, every proposed removal carries its command and that command's
+red when what the removed thing protected is broken. **Pass criterion**: in both
+recorded runs, every proposed removal carries its command and that command's
 output; a proposal resting on a green gate run fails this criterion. **Edge cases**:
 a removal whose protected state no caller can produce, where the evidence is the
 demonstration that none can rather than a red run; a stack with no mutation harness,
@@ -72,6 +78,10 @@ stack row with no tool for a slot, which names its fallback rather than leaving 
 slot blank. **Code references**: a new check under `internal/policies/`; the table in
 the skill body.
 
+**Cancelled.** No success criterion in the epic requires a standing check on the
+table, and M-0357 AC-1's trial runs each tool the Go row names, so a wrong name goes
+red there.
+
 ## Constraints
 
 - The skill states each procedure once and points at the skills that own the others
@@ -84,13 +94,6 @@ the skill body.
   named as options, not dependencies.
 - A question terminates on a disposition or on a command's result, never on a
   reading (G-0585).
-- **The tool-table check draws its needle from the skill body, never from the test.**
-  The shipped-prose ban fires only on a needle tracing back to string literals in the
-  test source, so a check extracting the tool names from the document and resolving
-  each against the repository sits outside the rule and needs no exemption entry.
-  Locating the table by its heading does not: that is a test-authored needle against
-  shipped content, the class D-0070 retires by name. Derive the candidates from the
-  document without naming a section.
 - It advises and never blocks: no gate, no commit refused.
 
 ## Design notes
@@ -106,7 +109,6 @@ the skill body.
 ## Surfaces touched
 
 - A new skill under `internal/skills/embedded-rituals/plugins/wf-rituals/skills/`
-- `internal/policies/` — the tool-table resolution check
 
 ## Out of scope
 
