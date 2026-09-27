@@ -80,9 +80,8 @@ slot blank. **Code references**: a new check under `internal/policies/`; the tab
 the skill body.
 
 **Cancelled.** No success criterion in the epic requires a standing check on the
-table. The M-0357 AC-1 trial ran the Go row's coverage and clone-detector commands,
-so a wrong name there goes red in a run; the mutation harness resolves on the path
-but no trial ran it.
+table. The M-0357 AC-1 trial ran each of the Go row's three tools, so a wrong name
+there fails in a run.
 
 ## Constraints
 
@@ -180,24 +179,30 @@ session started; each transcript was checked for it.
 |---|---|---|
 | Diff | `HEAD~1..HEAD` | 3 removals, 1 rewrite, 5 cuts blocked by scope |
 | Unit | `internal/policies/guidance_ceiling.go` | 0 removals, 1 rewrite, 3 cuts blocked |
-| Prose | `HEAD~1..HEAD -- docs/` (3 files, +51 −5) | 0 removals, 0 rewrites, 0 blocked |
+| Prose | `HEAD~1..HEAD -- docs/` (3 files, +51 −5) | 0 removals, 0 rewrites, 0 blocked; 1 cut for approval |
 
 **M-0357 AC-1.**
 - Every report holds the verdict counting blocked cuts, behaviour changes with the
   records that state the old behaviour, the guard table with a break per guard, and
   the handoffs; a section with nothing in it says so. Each skipped step is stated with its reason.
 - Tools from the Go row. Coverage profile: the diff and unit runs
-  (`go test -coverprofile`). Clone detector: both
-  (`golangci-lint run --enable-only dupl ./internal/policies/...` in the diff run,
-  `./internal/policies/` in the unit run) → `0 issues`, each noting that the
-  configuration excludes test files. Mutation harness: the diff run ran `gremlins`
+  (`go test -coverprofile`). Clone detector: both, noting that the configuration
+  excludes test files — `golangci-lint run --enable-only dupl ./internal/policies/`
+  → `0 issues` in the unit run; the diff run filtered the output of the same command
+  over `./internal/policies/...` and printed nothing, and the unfiltered command in
+  the clone → `0 issues.` Mutation harness: the diff run ran `gremlins`
   over the four new files with the failing tests skipped (154 killed, 6 lived, 8
   not covered, 1 timed out) and re-applied each mutant; the unit run skipped it
   because the package has failing tests, and broke conditions by hand.
 - No-logic edge case: the prose run reported no logic and no tests bucket and
   skipped steps 3–5, 7, 8 and 9, each with its reason.
-- No transcript contains an `aiwf` command. The unit run read the live checkout of
-  this repository read-only, as real data for its differential test.
+- No run called the `aiwf` on the path. The prose run built the clone's own
+  `cmd/aiwf` and ran its `check` at both commits, as part of the code under review.
+- The unit run read outside the clone, read-only: the live checkout's root
+  instruction files, guidance and planning tree (the epic and the M-0333 and M-0335
+  specs, cited as obligation sources), and a worktree holding the later M-0333
+  commits, as real data for its differential test. Its Codex finding precedes every
+  one of those reads.
 
 **M-0357 AC-2.** No proposed removal rests on a green gate run. Each is settled by
 a command and its output:
@@ -214,17 +219,12 @@ a command and its output:
   run keeps both `err != nil` operands and an import-read `ok`, whose outcome rests
   on undocumented behaviour.
 
-**Against what M-0333 went on to change.** Both code runs report that the code
-counts `@` imports for Codex, which Codex's documentation does not support — the
-rule `378a8cc41` changed. The hand-run trim `0f43b0b09` kept the two `err != nil`
-operands the unit run keeps.
-
 **Limits.** The `aiwf` binary stayed on the path, so the record shows it was not
 called rather than that it could not be. Findings the runs make about the M-0333
 code itself were not checked against the current tree. Step 2 does not say
 whether step 6 runs when a change has neither logic nor tests; the prose run
 applied it to documents under a settling rule of its own and proposed removing one
-for approval.
+for approval (G-0723).
 
 **Gates at wrap**, on `milestone/M-0357-ship-the-on-demand-subtraction-skill`:
 `make check-fast` → exit 0 (`golangci-lint run` → `0 issues.`, every package `ok`);
@@ -234,7 +234,8 @@ after the skill's last edit, `go test -count=1 ./internal/policies/
 
 ## Deferrals
 
-- (none)
+- G-0723 — `wf-trim` step 2 does not say whether step 6 runs on a change with
+  neither logic nor tests.
 
 ## Reviewer notes
 
@@ -247,3 +248,11 @@ after the skill's last edit, `go test -count=1 ./internal/policies/
   and outside-system rules route to the report's existing sections rather than to
   new ones; the prose run asked the same for step 1's obligation differences.
 - M-0358 carries the parts of the milestone wrap's shape block the skill does not.
+- Left for the next edit to the skill, since any edit moves the text the trial
+  observed: step 5's "A caller can → the guard stays" reads against its own third
+  sentence, which sends a guard whose removal changes no result to the rewrite
+  step; the opening says the second agent confirms each removal, where step 11
+  covers rewrites too; the dead-route constraint omits the break step 6 requires.
+- E-0097's constraint names only the red route for a removal; the skill also
+  settles a guard shown dead and a cut that changes no result. Reconcile at the
+  epic wrap.
