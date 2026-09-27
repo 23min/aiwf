@@ -132,6 +132,14 @@ red there.
 
 ## Release note
 
+New `wf-trim` skill in the generic workflow rituals: ask of one diff or one named
+unit whether the change needs everything it adds. It looks for duplicated jobs,
+logic that compresses, guards no caller reaches and tests no break needs, and it
+settles every removal it proposes by breaking what the removed thing protected. It
+reports and applies nothing. It needs no aiwf, and a per-stack table names the
+mutation harness, coverage profile and clone detector for Go, Python,
+JavaScript/TypeScript and the JVM.
+
 ## Decisions made during implementation
 
 - (none)
@@ -209,6 +217,10 @@ change M-0333 went on to make. The diff run also found a false `coverage:ignore`
 **Limits.** The `aiwf` binary stayed on the path, so the record shows it was not
 called rather than that it could not be. Findings the runs make about the M-0333
 code itself were not checked against the current tree.
+
+**Gates at wrap**, on `milestone/M-0357-ship-the-on-demand-subtraction-skill`:
+`make check-fast` → exit 0 (`golangci-lint run` → `0 issues.`, every package `ok`);
+`aiwf check` → 0 errors.
 
 ## Deferrals
 
