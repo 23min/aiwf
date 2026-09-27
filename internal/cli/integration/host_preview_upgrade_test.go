@@ -180,8 +180,8 @@ func TestHostLifecycle_UpgradePropagatesRefreshAndExecFailures(t *testing.T) {
 }
 
 // Fake only installation: the replacement process runs the actual update
-// command. Git and the personal-guidance check read their configuration from
-// home alone; a caller may write home/.gitconfig before the run.
+// command. Git's global configuration and the personal-guidance homes resolve
+// under home; a caller may write home/.gitconfig before the run.
 func hostUpgradeRun(t *testing.T, binary, cwd, home, path string, brokenExec bool, wantCode int, args ...string) string {
 	t.Helper()
 	installerRoot := t.TempDir()
