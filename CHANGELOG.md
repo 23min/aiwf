@@ -16,6 +16,8 @@ section in this file.
 
 ## [Unreleased]
 
+## [0.40.0] — 2026-09-27
+
 ### Added — E-0097: ask what a change can do without, at plan time and on demand
 
 - `aiwfx-plan-milestones` can now remove work, not only reshape it. A candidate no
