@@ -264,6 +264,10 @@ TestClaudeArtifacts_MatchBaseline ./internal/cli/integration/` → `ok`; `aiwf c
 
 ## Reviewer notes
 
+- Deciding review, over `cd48c204e..HEAD`: the shipped rituals, the test change and
+  the inventories hold; its findings were in this spec's evidence records and are
+  corrected here. The loop closed on a fresh scoped confirmation of those
+  corrections, not on a further full pass. Doc-lint over the change-set: clean.
 - **Obligations this milestone adds**, counted with `git diff --name-status
   cd48c204e..HEAD` (every file modified, none added), `git diff cd48c204e..HEAD --
   '*.go' | grep -cE '^\+func|^\+\s*Policy:'` → 0, and a read of the four ritual
