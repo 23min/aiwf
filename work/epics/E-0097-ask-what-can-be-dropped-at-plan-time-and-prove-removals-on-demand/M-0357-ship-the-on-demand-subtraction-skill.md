@@ -239,6 +239,10 @@ after the skill's last edit, `go test -count=1 ./internal/policies/
 
 ## Reviewer notes
 
+- Deciding review, over `b9feb4108..HEAD`: the skill, the baseline records and the
+  gates hold, and M-0357 AC-1 and M-0357 AC-2 are met without a proxy. Its findings
+  against the trial record are corrected above; the rest are recorded below or
+  tracked in G-0723.
 - How a removal is settled — something goes red, a guard is shown unreachable, or
   a cut that changes no result passes a differential test — and that a test written
   only to reach a dead guard goes with it, are stated in the skill's prose, where
