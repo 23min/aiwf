@@ -1360,19 +1360,19 @@ than a review.
 | M-0354 | Gate everything the binary embeds and clear what it finds | draft |
 | M-0355 | Take aiwf-only rules and aiwf ids out of aiwf check | draft |
 
-## E-0097 — Ask what can be dropped at plan time and prove removals on demand (proposed)
+## E-0097 — Ask what can be dropped at plan time and prove removals on demand (done)
 
 ### Goal
 
 Put the subtraction question at the two moments it pays: before work is proposed,
 where cutting is free, and on demand over a change or a unit, where removing what
-exists has to be proved. The planning rituals gain a step that offers the smallest
-version first; a shipped skill gains the procedure for removing what already
-landed, and the wrap rituals call it instead of restating it.
+exists has to be proved. The milestone sizing rule drops what no success criterion
+requires; a shipped skill gains the procedure for removing what already landed, and the wrap
+rituals call it instead of restating it.
 
 | Milestone | Title | Status |
 |---|---|---|
-| M-0356 | Ask for the smallest version at plan time | draft |
-| M-0357 | Ship the on-demand subtraction skill | draft |
-| M-0358 | Wire the subtraction lens into the wrap rituals | draft |
+| M-0356 | Ask for the smallest version at plan time | done |
+| M-0357 | Ship the on-demand subtraction skill | done |
+| M-0358 | Wire the subtraction lens into the wrap rituals | done |
 

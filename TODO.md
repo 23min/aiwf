@@ -45,8 +45,7 @@ cluster.
 In flight: **E-0092** — shrink the always-on guidance to one home per rule under a
 ceiling, the only work that addresses the restate-and-drift class rather than an
 instance of it. **E-0095** — adopt applicable guidance automatically on upgrade and
-update. **E-0097** — ask what can be dropped at plan time and prove removals on
-demand.
+update.
 
 Planned, not started: **E-0096** — one repo-only gate for everything aiwf ships to
 consumers.
@@ -291,7 +290,6 @@ in is any good. Vocabulary in `docs/design/oracles.md`; initiative context in
   M-0309 are cancelled. Reconcile with E-0019, D-0066,
   `tdd-cycle-subagent-boundaries.md` and
   `milestone-preflight-as-independent-review.md` before reopening *(unfiled)*
-- **G-0662** — `wf-patch`'s review asks none of the five shape questions the wrap asks
 - **G-0697** — `wf-vacuity` has no probe for an expectation computed by the code under
   test, which moves with the implementation and cannot fail
 
