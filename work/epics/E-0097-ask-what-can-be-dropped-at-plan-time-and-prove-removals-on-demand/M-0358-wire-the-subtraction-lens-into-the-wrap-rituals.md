@@ -95,8 +95,9 @@ closure rides `aiwf promote G-0662 addressed --by-commit <sha>`.
   until the block calls the skill.
 - The wrap block carries two things the skill does not: mandated comments, planning
   prose and tests pinning distinct rules do not count toward half, and the
-  Deletions question. Replacing the block with a call to the skill drops both
-  unless the wiring keeps them.
+  Deletions question. Replacing the block with a call to the skill drops both, and
+  this milestone's criteria have the wrap ask only the obligation question while
+  its scope leaves the skill unchanged; settle at start which of the three gives.
 
 ## Surfaces touched
 
