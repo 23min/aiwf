@@ -26,7 +26,7 @@ change to do, and give the patch ritual the lens behind a stated threshold.
 
 ## Closes
 
-- (none)
+- G-0662 — the patch ritual reaches the shape questions through the lens.
 
 ## Context
 
@@ -93,12 +93,19 @@ closure rides `aiwf promote G-0662 addressed --by-commit <sha>`.
   changes no result is a rewrite, settled by a differential test. The wrap block's
   "Nothing red is a surviving mutant, not a clearance" contradicts the second route
   until the block calls the skill.
-- The wrap block carries two things the skill does not: comments the project
-  mandates do not count toward half, and the Deletions question. Replacing the block
-  with a call to the skill drops both, and this milestone's criteria have the wrap
-  ask only the obligation question while its scope leaves the skill unchanged;
-  settle at start which of the three gives. The block also settles a rewrite by a
-  green gate run, where the skill requires a differential test.
+- `wf-trim` joins the milestone wrap's independent review as a third lens beside
+  code quality and design quality, and the shape block keeps only the obligation
+  question. The block's exclusion of mandated comments from half, and its wording
+  for the Deletions question, are not carried: where compression cannot reach half,
+  the skill names the constraint that stops it, a mandated comment among them, and
+  every empty section of its report states why it is empty. The skill is unchanged.
+  Calling it also settles a rewrite by a differential test, where the block settles
+  one by a green gate run.
+- The lens adds no human step. Its report joins the other lenses' findings, and its
+  proposals are approved with theirs once every review has returned; the skill's
+  second-agent confirmation runs after that approval and before any cut is
+  committed. The patch ritual takes the same shape, with its commit gate as the
+  approval point.
 
 ## Surfaces touched
 
