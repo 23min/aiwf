@@ -81,7 +81,7 @@ No user-visible change.
 Mutation probes against `TestBinary_UnattendedUpgradeAdoptsGuidance`, each applied to a working copy and then restored byte for byte:
 
 - Replacing the `projectguidance.Adopt` call in `internal/initrepo/project_guidance.go` with the unchanged selection fails the reachable case: `guidance.packs = <nil>, want [sample/base]`.
-- Re-executing `version` instead of `update` in `internal/cli/upgrade/upgrade.go` fails both cases: `output has 0 guidance sections, want 1`.
+- Re-executing `version`, with no arguments, instead of `update --root <root>` in `internal/cli/upgrade/upgrade.go` fails both cases: `output has 0 guidance sections, want 1`.
 - Dropping the source from the fetch error in `internal/projectguidance/retrieve.go` fails the unreachable case: `report does not name the retrieval failure`.
 
 ## Deferrals
