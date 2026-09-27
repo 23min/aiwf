@@ -16,6 +16,8 @@ section in this file.
 
 ## [Unreleased]
 
+## [0.39.0] — 2026-09-27
+
 ### Changed (internal) — dated audits get their own documentation tier
 
 Nothing user-facing changed. The dated audits move from `docs/initiatives/`
