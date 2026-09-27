@@ -1,7 +1,7 @@
 ---
 id: M-0357
 title: Ship the on-demand subtraction skill
-status: draft
+status: in_progress
 parent: E-0097
 tdd: advisory
 acs:
