@@ -129,6 +129,20 @@ Repeating initialization must skip the npm install when that binary exists.
 The host mount preserves files; it does not keep a running session or tmux
 server alive through container replacement.
 
+## Personal guidance
+
+Personal assistant rules live in the host's `~/.guidance`, a checkout of
+`23min/guidance`, which `devcontainer.json` mounts read-write at
+`/home/vscode/.guidance`. Before each start `initialize.sh` prepares that
+mount, runs the checkout's `build` so Codex's `AGENTS.md` is current, and, once
+a build has produced `~/.guidance/AGENTS.md`, links the container-only Codex
+home's `AGENTS.md` to `../.guidance/AGENTS.md` unless something other than a
+link is already there.
+Claude reads the rules through the `~/.claude/rules/guidance` link that
+`~/.guidance/install` creates on the host, which reaches the container through
+the shared `~/.claude`. Without a checkout the container still starts, and
+`initialize.sh` prints the command that sets one up.
+
 ## Environment variables
 
 The container reads these from the host VS Code session or from
