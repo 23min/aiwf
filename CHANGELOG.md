@@ -16,6 +16,13 @@ section in this file.
 
 ## [Unreleased]
 
+### Changed (internal) — aiwf's devcontainer mounts personal guidance
+
+Nothing user-facing changed. aiwf's own devcontainer mounts the host's
+`~/.guidance` and, once its build has produced `AGENTS.md`, links the
+container-only Codex home's `AGENTS.md` to it, so personal assistant rules
+reach this container once they live there.
+
 ## [0.40.0] — 2026-09-27
 
 ### Added — E-0097: ask what a change can do without, at plan time and on demand

@@ -12,7 +12,8 @@
     "source=/tmp/.codex-mount,target=/home/vscode/.codex,type=bind,consistency=cached",
     "source=/tmp/.claude-mount,target=/home/vscode/.claude,type=bind,consistency=cached",
     "source=/tmp/.claude-plugins-mount,target=/home/vscode/.claude/plugins,type=bind,consistency=cached",
-    "source=/tmp/.gh-mount,target=/home/vscode/.config/gh,type=bind,consistency=cached"
+    "source=/tmp/.gh-mount,target=/home/vscode/.config/gh,type=bind,consistency=cached",
+    "source=/tmp/.aiwf-guidance-mount,target=/home/vscode/.guidance,type=bind,consistency=cached"
   ],
   "features": {
     "ghcr.io/devcontainers/features/common-utils:2": {

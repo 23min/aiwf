@@ -116,14 +116,7 @@ func TestDevcontainerCodexStateMount(t *testing.T) {
 			t.Fatal(err)
 		}
 	}
-	// Redirect only the process's /tmp mount destinations into this fixture;
-	// mkdir, chmod and the underlying symlink operation use real filesystems.
-	devcontainerExecutable(t, filepath.Join(bin, "ln"), `#!/bin/sh
-set -eu
-[ "$1" = -sfn ]
-case "$3" in /tmp/.*-mount) ;; *) exit 98 ;; esac
-exec /bin/ln -sfn "$2" "$FIXTURE_DIR/mounts/${3##*/}"
-`)
+	devcontainerExecutable(t, filepath.Join(bin, "ln"), devcontainerLnStub)
 	root := repoRootForHook(t)
 	for run := range 2 {
 		cmd := exec.CommandContext(t.Context(), "bash", filepath.Join(root, ".devcontainer", "initialize.sh"))
@@ -149,6 +142,31 @@ exec /bin/ln -sfn "$2" "$FIXTURE_DIR/mounts/${3##*/}"
 			t.Fatalf("initialization changed existing state: %q, %v", got, err)
 		}
 	}
+	devcontainerMountResolves(t, root, dir, "/home/vscode/.codex", filepath.Join(dir, ".codex-linux"))
+}
+
+// devcontainerLnStub stands in for ln when initialize.sh runs against a
+// fixture HOME. It redirects the /tmp mount links into $FIXTURE_DIR/mounts,
+// passes links inside the fixture HOME through to the real ln, and refuses
+// any other destination and any path with a ".." component, so the script
+// cannot write outside the fixture.
+const devcontainerLnStub = `#!/bin/sh
+set -eu
+[ "$1" = -sfn ]
+case "$3" in
+  */..|*/../*) exit 98 ;;
+  /tmp/.*-mount) exec /bin/ln -sfn "$2" "$FIXTURE_DIR/mounts/${3##*/}" ;;
+  "$HOME"/*) exec /bin/ln -sfn "$2" "$3" ;;
+  *) exit 98 ;;
+esac
+`
+
+// devcontainerMountResolves checks every devcontainer.json mount whose
+// target is target: each must be a read-write bind from a prepared /tmp path
+// whose link, as initialize.sh left it in the fixture's mounts directory,
+// resolves to want. It fails when no mount has that target.
+func devcontainerMountResolves(t *testing.T, root, fixture, target, want string) {
+	t.Helper()
 	raw, err := os.ReadFile(filepath.Join(root, ".devcontainer", "devcontainer.json"))
 	if err != nil {
 		t.Fatal(err)
@@ -156,8 +174,12 @@ exec /bin/ln -sfn "$2" "$FIXTURE_DIR/mounts/${3##*/}"
 	var config struct {
 		Mounts []string `json:"mounts"`
 	}
-	if err := json.Unmarshal(raw, &config); err != nil {
+	if err = json.Unmarshal(raw, &config); err != nil {
 		t.Fatal(err)
+	}
+	resolvedWant, err := filepath.EvalSymlinks(want)
+	if err != nil {
+		t.Fatalf("mount source %s missing on the host: %v", want, err)
 	}
 	found := false
 	for _, mount := range config.Mounts {
@@ -166,23 +188,25 @@ exec /bin/ln -sfn "$2" "$FIXTURE_DIR/mounts/${3##*/}"
 			key, value, _ := strings.Cut(part, "=")
 			fields[key] = value
 		}
-		if fields["target"] != "/home/vscode/.codex" {
+		if fields["target"] != target {
 			continue
 		}
 		found = true
-		if fields["type"] != "bind" {
-			t.Fatalf("Codex state must be bind-mounted: %s", mount)
+		if fields["type"] != "bind" || !strings.HasPrefix(fields["source"], "/tmp/") {
+			t.Fatalf("%s must be bind-mounted from a prepared /tmp path: %s", target, mount)
 		}
-		if !strings.HasPrefix(fields["source"], "/tmp/") {
-			t.Fatalf("mount source must use the host's prepared /tmp path: %s", mount)
+		for _, flag := range []string{"readonly", "ro"} {
+			if _, ok := fields[flag]; ok {
+				t.Fatalf("%s must be mounted read-write: %s", target, mount)
+			}
 		}
-		got, err := filepath.EvalSymlinks(filepath.Join(mounts, strings.TrimPrefix(fields["source"], "/tmp/")))
-		if err != nil || got != filepath.Join(dir, ".codex-linux") {
-			t.Fatalf("mount does not resolve to host state: %q, %v", got, err)
+		got, err := filepath.EvalSymlinks(filepath.Join(fixture, "mounts", strings.TrimPrefix(fields["source"], "/tmp/")))
+		if err != nil || got != resolvedWant {
+			t.Fatalf("%s mount resolves to %q, %v; want %q", target, got, err, resolvedWant)
 		}
 	}
 	if !found {
-		t.Fatal("Codex state mount missing")
+		t.Fatalf("devcontainer.json has no mount targeting %s", target)
 	}
 }
 
