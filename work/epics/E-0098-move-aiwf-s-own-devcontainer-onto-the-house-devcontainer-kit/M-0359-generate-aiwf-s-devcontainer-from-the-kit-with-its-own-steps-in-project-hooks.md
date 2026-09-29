@@ -164,7 +164,8 @@ aiwf's own development container is generated from the house devcontainer kit. I
 the aiwf checkout, not the folder above it, so sibling repositories and any `CLAUDE.md` beside the
 clone are no longer visible inside the container; a sibling that is needed is added through the
 kit's `siblings` or `writable_siblings` answers. The container runs Go at CI's `GO_VERSION`,
-builds `aiwf` from the checkout, and installs the Go tools CI pins. Codex installs through the
+builds `aiwf` from the checkout, and installs pinned Go tools, golangci-lint and gitleaks at the
+versions CI runs. Codex installs through the
 kit at each start instead of through npm. `.devcontainer/project/README.md` covers aiwf's
 additions, the Playwright opt-in and recovery from a failed container creation. Nothing changes
 for repositories that use aiwf.
@@ -187,7 +188,9 @@ Run on the milestone branch at `e25cc0fa2`, in aiwf's pre-move devcontainer (Lin
   upstream.
 - Each new policy was run against the real tree with its subject broken and failed as stated:
   the parent mount, a `GOTOOLCHAIN` of `go1.27.1`, the recovery command shortened in the notes,
-  the pre-change `gitleaks.yml` comment naming `.devcontainer/init.sh`.
+  the pre-change `gitleaks.yml` comment naming `.devcontainer/init.sh`. The project post-create
+  policy's fixtures fail on each required command removed and on `make install-hooks` present
+  only in a comment.
 - `shellcheck -x .devcontainer/project/post-create.sh` — clean.
 - Not verified: that `AIWF_DEVCONTAINER_E2E=true` set in `containerEnv` reaches the project hook
   at container creation; `make e2e-install`, which the notes give first, does not depend on it.
