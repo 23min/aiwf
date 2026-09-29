@@ -12,10 +12,10 @@ const projectPostCreatePath = ".devcontainer/project/post-create.sh"
 
 // PolicyDevcontainerProjectPostCreate asserts that aiwf's project hook,
 // .devcontainer/project/post-create.sh, does what only aiwf's container
-// needs: installs golangci-lint and govulncheck at their pins and gofumpt,
+// needs: installs golangci-lint and govulncheck at their pins, and gofumpt;
 // builds aiwf from this checkout and materializes its framework files with
-// stdin from /dev/null, installs the kernel pre-commit and pre-push chain, and
-// gates Playwright behind AIWF_DEVCONTAINER_E2E.
+// stdin from /dev/null; installs the kernel pre-commit and pre-push chain; and
+// names AIWF_DEVCONTAINER_E2E (default false) and installs Playwright.
 // Its golangci-lint and govulncheck pins must match .github/workflows/go.yml,
 // which CI treats as the source of truth. Only commands count: everything from
 // a line's first # on is read as a comment and satisfies nothing. What the
@@ -50,7 +50,7 @@ func PolicyDevcontainerProjectPostCreate(root string) ([]Violation, error) {
 		{"aiwf built from this checkout", []string{"go install ./cmd/aiwf"}},
 		{"aiwf init with stdin from /dev/null", []string{"aiwf init --no-prompt </dev/null"}},
 		{"kernel pre-commit and pre-push chain", []string{"make install-hooks"}},
-		{"Playwright behind AIWF_DEVCONTAINER_E2E (default false)", []string{"AIWF_DEVCONTAINER_E2E:-false", "playwright install chromium"}},
+		{"AIWF_DEVCONTAINER_E2E (default false) named and Playwright installed", []string{"AIWF_DEVCONTAINER_E2E:-false", "playwright install chromium"}},
 	}
 	for _, c := range checks {
 		for _, n := range c.needles {
