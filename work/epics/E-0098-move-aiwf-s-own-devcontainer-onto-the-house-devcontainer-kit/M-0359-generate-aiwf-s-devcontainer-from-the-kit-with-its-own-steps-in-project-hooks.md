@@ -34,7 +34,8 @@ file the move removes.
 
 ## Closes
 
-- (none)
+- G-0524 — the workspace mount narrows to the checkout, with explicit sibling
+  mounts recorded as the replacement for the reach the parent mount gave.
 
 ## Context
 
@@ -96,12 +97,14 @@ none. **Code references**: `work/decisions/`.
 
 ### AC-6 — aiwf's operator notes cover the Playwright opt-in and recovery
 
-**Pass criterion**: the operator notes the milestone settles on state how to opt
-into the Playwright install (`AIWF_DEVCONTAINER_E2E=true`, then rebuild) and how to
-recover a container whose creation failed (the command the kit's post-create
-prints), asserted structurally within the section that holds them. **Edge cases**:
-the notes placed in the kit-generated README, which a template update may rewrite.
-**Code references**: the chosen file, and its policy test under `internal/policies/`.
+**Pass criterion**: `.devcontainer/project/README.md`, which template updates never
+touch, states how to opt into the Playwright install (`AIWF_DEVCONTAINER_E2E=true`,
+then rebuild) and how to recover a container whose creation failed (the command the
+kit's post-create prints), asserted structurally within the sections that hold
+them. Each section of the current `.devcontainer/README.md` is carried over while
+still true or dropped where the kit now covers it. **Edge cases**: a section whose
+subject the kit's generated README already states. **Code references**:
+`.devcontainer/project/README.md`, and its policy test under `internal/policies/`.
 
 ## Constraints
 
