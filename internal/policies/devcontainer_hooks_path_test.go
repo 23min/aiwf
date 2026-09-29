@@ -32,7 +32,7 @@ func TestDevcontainerHooksPathRepair(t *testing.T) {
 		{name: "trailing-slash-is-unset", gitRepo: true, local: []string{own + "/"}, wantUnset: true},
 		{name: "set-twice-is-fully-unset", gitRepo: true, local: []string{own, own}, wantUnset: true},
 		{name: "global-setting-keeps-local", gitRepo: true, local: []string{own}, global: "/elsewhere/hooks", wantLocal: own},
-		{name: "another-directory-kept", gitRepo: true, local: []string{"/Users/nobody/Projects/other/.git/hooks"}, wantLocal: "/Users/nobody/Projects/other/.git/hooks"},
+		{name: "another-directory-kept", gitRepo: true, local: []string{"/Users/x/Projects/other/.git/hooks"}, wantLocal: "/Users/x/Projects/other/.git/hooks"},
 		{name: "own-plus-another-kept", gitRepo: true, local: []string{own, "/elsewhere/hooks"}, wantLocal: "/elsewhere/hooks"},
 		{name: "relative-kept", gitRepo: true, local: []string{".githooks"}, wantLocal: ".githooks"},
 		{name: "unset-stays-unset", gitRepo: true},
