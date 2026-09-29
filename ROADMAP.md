@@ -1376,3 +1376,14 @@ rituals call it instead of restating it.
 | M-0357 | Ship the on-demand subtraction skill | done |
 | M-0358 | Wire the subtraction lens into the wrap rituals | done |
 
+## E-0098 — Move aiwf's own devcontainer onto the house devcontainer kit (proposed)
+
+### Goal
+
+aiwf's development container is generated from the house devcontainer kit
+(`gh:23min/devcontainer-kit`) like the maintainer's other repositories, mounts only
+this repository plus any sibling it lists explicitly, and still builds and tests
+aiwf from its own source with tools that match CI.
+
+_No milestones yet._
+
