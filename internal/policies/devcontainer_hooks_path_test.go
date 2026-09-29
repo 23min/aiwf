@@ -4,7 +4,6 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
-	"regexp"
 	"strings"
 	"testing"
 )
@@ -102,15 +101,44 @@ func TestDevcontainerHooksPathRepair(t *testing.T) {
 }
 
 // TestDevcontainerHooksPathRepairRunsOnTheHost pins that the project's
-// initialize hook, which the kit runs on the host before every start, calls
-// the repair as a command rather than in a comment.
+// initialize hook, which the kit runs on the host before every start, runs
+// the repair against its own checkout whatever directory it is started from.
 func TestDevcontainerHooksPathRepairRunsOnTheHost(t *testing.T) {
 	t.Parallel()
-	raw, err := os.ReadFile(filepath.Join(repoRoot(t), ".devcontainer", "project", "initialize.sh"))
-	if err != nil {
+	repo, elsewhere := t.TempDir(), t.TempDir()
+	globalConfig := filepath.Join(t.TempDir(), "gitconfig")
+	if err := os.WriteFile(globalConfig, nil, 0o644); err != nil {
 		t.Fatal(err)
 	}
-	if !regexp.MustCompile(`(?m)^[^#\n]*bash \.devcontainer/project/hooks-path\.sh`).Match(raw) {
-		t.Error(".devcontainer/project/initialize.sh must run bash .devcontainer/project/hooks-path.sh")
+	env := append(os.Environ(), "GIT_CONFIG_GLOBAL="+globalConfig, "GIT_CONFIG_NOSYSTEM=1", "GIT_CEILING_DIRECTORIES="+filepath.Dir(repo))
+	run := func(dir, name string, args ...string) (string, error) {
+		cmd := exec.Command(name, args...)
+		cmd.Dir = dir
+		cmd.Env = env
+		out, err := cmd.CombinedOutput()
+		return strings.TrimSpace(string(out)), err
+	}
+	project := filepath.Join(repo, ".devcontainer", "project")
+	if err := os.MkdirAll(project, 0o755); err != nil {
+		t.Fatal(err)
+	}
+	for _, name := range []string{"initialize.sh", "hooks-path.sh"} {
+		raw, err := os.ReadFile(filepath.Join(repoRoot(t), ".devcontainer", "project", name))
+		if err != nil {
+			t.Fatal(err)
+		}
+		mustWrite(t, filepath.Join(project, name), string(raw))
+	}
+	if out, err := run(repo, "git", "init", "-q"); err != nil {
+		t.Fatalf("git init: %v: %s", err, out)
+	}
+	if out, err := run(repo, "git", "config", "core.hooksPath", filepath.Join(repo, ".git", "hooks")); err != nil {
+		t.Fatalf("git config: %v: %s", err, out)
+	}
+	if out, err := run(elsewhere, "bash", filepath.Join(project, "initialize.sh")); err != nil {
+		t.Fatalf("initialize.sh started outside the checkout exited non-zero, which would stop the container start: %v: %s", err, out)
+	}
+	if got, _ := run(repo, "git", "config", "--local", "--get", "core.hooksPath"); got != "" {
+		t.Errorf("initialize.sh left core.hooksPath = %q; it must run the repair against its own checkout", got)
 	}
 }

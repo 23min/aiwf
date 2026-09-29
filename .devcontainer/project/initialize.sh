@@ -6,6 +6,8 @@
 # before a mount needs it, and failing loudly if it doesn't. macOS bash 3.2.
 set -euo pipefail
 
+cd "$(dirname "$0")/../.."
+
 # A core.hooksPath that only works on the host leaves every git hook dead in the container; the
 # script removes it where that provably changes nothing on the host. It never fails the start.
 bash .devcontainer/project/hooks-path.sh
