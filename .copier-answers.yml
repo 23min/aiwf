@@ -2,7 +2,8 @@
 _commit: v0.4.2
 _src_path: gh:23min/devcontainer-kit
 aiwf: false
-apt_packages: []
+apt_packages:
+- python3
 data_dir: false
 dood: false
 extra_extensions:

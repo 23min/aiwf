@@ -63,6 +63,12 @@ COPY --from=golang:latest /usr/local/go /usr/local/go
 ENV PATH=/usr/local/go/bin:/home/vscode/go/bin:${PATH}
 
 # ─── 3. Project section ─────────────────────────────────────────────────────────────────────
+USER root
+RUN --mount=type=cache,target=/var/cache/apt,sharing=locked \
+    --mount=type=cache,target=/var/lib/apt/lists,sharing=locked \
+    apt-get update \
+    && apt-get install -y --no-install-recommends python3
+USER vscode
 # Image-level steps this repo needs (runs as vscode; use sudo for root). Edit project/image.sh.
 COPY --chmod=0755 project/image.sh /tmp/devkit-project-image.sh
 RUN /tmp/devkit-project-image.sh \
