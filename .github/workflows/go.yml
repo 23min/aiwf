@@ -8,6 +8,9 @@ name: go
 # from the `go:embed` directives themselves and fails when a new embedded
 # tree is not represented here.
 #
+# `.devcontainer/**` and `gitleaks.yml` are read by the devcontainer and
+# gitleaks policy tests, which exist to catch a change to those files alone.
+#
 # `internal/skills/**` names the whole package rather than its five embedded
 # subtrees: nothing lives there but those trees and Go sources, which
 # `**/*.go` already selects, so the wider pattern costs no extra runs and
@@ -20,6 +23,8 @@ on:
       - "go.sum"
       - ".golangci.yml"
       - ".github/workflows/go.yml"
+      - ".github/workflows/gitleaks.yml"
+      - ".devcontainer/**"
       - "Makefile"
       - "internal/skills/**"
       - "internal/recipe/embedded/**"
@@ -32,6 +37,8 @@ on:
       - "go.sum"
       - ".golangci.yml"
       - ".github/workflows/go.yml"
+      - ".github/workflows/gitleaks.yml"
+      - ".devcontainer/**"
       - "Makefile"
       - "internal/skills/**"
       - "internal/recipe/embedded/**"
