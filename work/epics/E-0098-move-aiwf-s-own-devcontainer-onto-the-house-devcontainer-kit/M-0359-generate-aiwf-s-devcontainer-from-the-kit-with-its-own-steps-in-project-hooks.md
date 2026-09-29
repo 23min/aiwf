@@ -171,9 +171,9 @@ runs, plus gofumpt and goimports. Node is the kit's current LTS rather than a pi
 identity comes from the host's global git config. The Go module and build caches and the npm
 cache live in named volumes shared by every kit container, so a rebuild no longer clears them.
 The Go extension's helper tools, the `dlv` debugger among them, are no longer preinstalled;
-install them with **Go: Install/Update Tools**. Container creation removes a `core.hooksPath`
-that names the host's own hooks directory for this checkout from the `.git/config` it shares
-with the host, which leaves the host's hooks as they were. Codex installs through the kit at each
+install them with **Go: Install/Update Tools**. Before each start, a `core.hooksPath` naming this
+repository's own hooks directory by its full host path is removed from `.git/config` when that
+changes nothing on the host, so git hooks run in the container too. Codex installs through the kit at each
 start instead of through npm. `.devcontainer/project/README.md` covers aiwf's additions, the Playwright
 opt-in and recovery from a failed container creation. Nothing changes for repositories that use
 aiwf.
@@ -185,19 +185,18 @@ aiwf.
   hook it checks, since `.devcontainer/init.sh` no longer exists.
 - govulncheck is pinned to CI's version (v1.6.0, down from the v1.7.0 the container ran) and
   compared with `.github/workflows/go.yml`, as golangci-lint is.
-- The project hook unsets `core.hooksPath` only when the repository's own config sets it to the
-  host's path to this checkout's `.git/hooks` (`AIWF_HOST_CHECKOUT`, a `devcontainer.json` hand
-  edit holding `${localWorkspaceFolder}`, with or without a trailing slash) and that path does
-  not exist in the container — the one value that leaves every git hook dead there, and whose
-  removal changes nothing on the host, where that directory is git's default. Every other value,
-  scope and spelling is left alone, since `.git/config` is shared with the host; a path written
-  with `~` names the host's home and is one of them. The repair runs before `aiwf init` and
-  `make install-hooks` (`.devcontainer/project/hooks-path.sh`, run by
-  `TestDevcontainerHooksPathRepair`; order and input held by the post-create policy).
+- A `core.hooksPath` naming the repository's own hooks directory by its absolute host path is
+  removed on the host, before every start, by `.devcontainer/project/hooks-path.sh` (run from
+  `project/initialize.sh`): only when every value set is that directory, a trailing slash
+  allowed, and none comes from the global or system git config, so git's default on the host is
+  the same directory and nothing changes there, while the hooks come back in the container, where
+  that path does not exist. Anything else is left alone, a spelling with `~` among it, and the
+  script never stops a start (`TestDevcontainerHooksPathRepair`). The decision is made on the host
+  because only the host sees its own global git config.
 
 ## Validation
 
-Run on the milestone branch at `7cf745971`, in aiwf's pre-move devcontainer (Linux, Go 1.25.11):
+Run on the milestone branch at `67bc38eb5`, in aiwf's pre-move devcontainer (Linux, Go 1.25.11):
 
 - `make ci` — exit 0: lint 0 issues; `go test -race` 74 packages ok, 0 failing; the diff-scoped
   coverage gate and the firing-fixture gate pass; total statement coverage 91.9%; self-check
@@ -214,13 +213,13 @@ Run on the milestone branch at `7cf745971`, in aiwf's pre-move devcontainer (Lin
   named in `docs/design`, the `Makefile` or `.devcontainer/project/README.md`, on strict mode or
   a version pin present only in a comment, and on a gitleaks install or pin present only in a
   comment.
-- `hooks-path.sh`, in a throwaway repository whose `.git/hooks/pre-commit` exits 1 and whose
-  `core.hooksPath` is `/Users/nobody/Projects/aiwf/.git/hooks`, run with
-  `AIWF_HOST_CHECKOUT=/Users/nobody/Projects/aiwf`: before it runs, a commit succeeds (exit 0,
-  the hook never ran); after it runs, the same commit is refused (exit 1). With the repair call
-  moved after `make install-hooks`, or `AIWF_HOST_CHECKOUT` removed from `devcontainer.json`, the
-  post-create policy fails on the real tree.
-- `shellcheck -x .devcontainer/project/post-create.sh` — clean.
+- `hooks-path.sh`, run in throwaway repositories with an isolated global config
+  (`TestDevcontainerHooksPathRepair`): the repository's own absolute hooks directory is unset,
+  with a trailing slash too and when set twice; it is kept when the global config also sets
+  `core.hooksPath`, for another directory, for a relative path, and when the unset fails, and the
+  script exits 0 in each case. Dropping the global-scope guard, dropping the own-directory match,
+  or exiting 1 on a failed unset each fails that test.
+- `shellcheck -x .devcontainer/project/*.sh` — clean.
 - Not verified: that `AIWF_DEVCONTAINER_E2E=true` set in `containerEnv` reaches the project hook
   at container creation; `make e2e-install`, which the notes give first, does not depend on it.
   Building the container is M-0360.
