@@ -12,9 +12,10 @@ const projectPostCreatePath = ".devcontainer/project/post-create.sh"
 
 // PolicyDevcontainerProjectPostCreate asserts that aiwf's project hook,
 // .devcontainer/project/post-create.sh, does what only aiwf's container
-// needs: installs its pinned Go tools, builds aiwf from this checkout and
-// materializes its framework files with stdin from /dev/null, installs the
-// kernel pre-commit and pre-push chain, and gates Playwright behind AIWF_DEVCONTAINER_E2E.
+// needs: installs golangci-lint and govulncheck at their pins and gofumpt,
+// builds aiwf from this checkout and materializes its framework files with
+// stdin from /dev/null, installs the kernel pre-commit and pre-push chain, and
+// gates Playwright behind AIWF_DEVCONTAINER_E2E.
 // Its golangci-lint and govulncheck pins must match .github/workflows/go.yml,
 // which CI treats as the source of truth. Only commands count: everything from
 // a line's first # on is read as a comment and satisfies nothing. What the
@@ -67,7 +68,7 @@ func PolicyDevcontainerProjectPostCreate(root string) ([]Violation, error) {
 		inCI *regexp.Regexp // the same tool's pin in go.yml; golangci-lint's is the action's own version:, two lines below it
 	}{
 		{"golangci-lint", regexp.MustCompile(`GOLANGCI_LINT_VERSION="?(v\d+\.\d+\.\d+)"?[ \t]*(?:\n|$)`), regexp.MustCompile(`golangci/golangci-lint-action@[^\n]*\n[^\n]*\n\s*version:\s*"?(v\d+\.\d+\.\d+)"?[ \t]*(?:\n|$)`)},
-		{"govulncheck", regexp.MustCompile(`GOVULNCHECK_VERSION="?(v\d+\.\d+\.\d+)"?[ \t]*(?:\n|$)`), regexp.MustCompile(`govulncheck@(v\d+\.\d+\.\d+)(?:["'\s]|$)`)},
+		{"govulncheck", regexp.MustCompile(`GOVULNCHECK_VERSION="?(v\d+\.\d+\.\d+)"?[ \t]*(?:\n|$)`), regexp.MustCompile(`(?m)^[^#\n]*govulncheck@(v\d+\.\d+\.\d+)(?:["'\s]|$)`)},
 	}
 	for _, p := range pins {
 		here := p.here.FindStringSubmatch(commands.String())

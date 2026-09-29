@@ -61,6 +61,7 @@ func TestPolicyDevcontainerProjectPostCreate_Fixtures(t *testing.T) {
 		{name: "golangci-lint-pin-with-a-suffix", firing: true, files: map[string]string{projectPostCreatePath: strings.Replace(good, `GOLANGCI_LINT_VERSION="v2.11.4"`, `GOLANGCI_LINT_VERSION="v2.11.4-rc1"`, 1), goWorkflowPath: goYML}},
 		{name: "govulncheck-pin-with-a-suffix", firing: true, files: map[string]string{projectPostCreatePath: strings.Replace(good, `GOVULNCHECK_VERSION="v1.6.0"`, `GOVULNCHECK_VERSION="v1.6.0-rc1"`, 1), goWorkflowPath: goYML}},
 		{name: "ci-govulncheck-pin-with-a-suffix", firing: true, files: map[string]string{projectPostCreatePath: good, goWorkflowPath: strings.Replace(goYML, "govulncheck@v1.6.0", "govulncheck@v1.6.0-rc1", 1)}},
+		{name: "ci-govulncheck-pin-only-in-a-comment", firing: true, files: map[string]string{projectPostCreatePath: good, goWorkflowPath: "      # govulncheck@v1.6.0 was the last pin\n" + strings.Replace(goYML, "govulncheck@v1.6.0", "govulncheck@v1.7.0", 1)}},
 		{name: "ci-has-no-version", firing: true, files: map[string]string{projectPostCreatePath: good, goWorkflowPath: "jobs: {}\n"}},
 		{name: "no-ci-workflow", firing: true, files: map[string]string{projectPostCreatePath: good}},
 	}

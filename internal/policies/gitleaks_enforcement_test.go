@@ -118,14 +118,31 @@ var gitleaksInstallRe = regexp.MustCompile(`(?m)^[^#\n]*github\.com/zricethezav/
 // with no # before it, so a commented-out pin cannot stand in for the live one.
 var gitleaksPinRe = regexp.MustCompile(`(?m)^[^#\n]*GITLEAKS_VERSION="(v8\.\d+\.\d+)"`)
 
-// gitleaksAtRe reads a gitleaks/v8@vX.Y.Z install pin as a whole value, so a
-// suffixed version such as v8.30.1-rc1 is not read as v8.30.1.
-var gitleaksAtRe = regexp.MustCompile(`gitleaks/v8@(v8\.\d+\.\d+)(?:["'\s]|$)`)
+// gitleaksAtRe reads a gitleaks/v8@vX.Y.Z install pin as a whole value from a
+// line with no # before it, so neither a suffixed version such as v8.30.1-rc1
+// nor a pin in a comment is taken for the live one.
+var gitleaksAtRe = regexp.MustCompile(`(?m)^[^#\n]*gitleaks/v8@(v8\.\d+\.\d+)(?:["'\s]|$)`)
 
-func TestGitleaksEnforcement_AtPinReadsWholeValue(t *testing.T) {
+func TestGitleaksEnforcement_AtPinReadsWholeLiveValue(t *testing.T) {
 	t.Parallel()
-	if m := gitleaksAtRe.FindStringSubmatch("go install github.com/zricethezav/gitleaks/v8@v8.30.1-rc1\n"); m != nil {
-		t.Errorf("read %q from a suffixed pin; want no pin read", m[1])
+	const live = "  run: go install github.com/zricethezav/gitleaks/v8@v8.30.1\n"
+	cases := []struct {
+		name, text, want string // want "" means no pin read
+	}{
+		{"suffixed-pin-not-read", strings.Replace(live, "v8.30.1", "v8.30.1-rc1", 1), ""},
+		{"comment-does-not-stand-in", "# gitleaks/v8@v8.29.0 is next\n" + live, "v8.30.1"},
+	}
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			t.Parallel()
+			got := ""
+			if m := gitleaksAtRe.FindStringSubmatch(tc.text); m != nil {
+				got = m[1]
+			}
+			if got != tc.want {
+				t.Errorf("pin read = %q, want %q", got, tc.want)
+			}
+		})
 	}
 }
 
@@ -168,10 +185,9 @@ func TestGitleaksEnforcement_InstallCountsOnlyCommands(t *testing.T) {
 
 func TestGitleaksEnforcement_PinnedVersionConsistent(t *testing.T) {
 	t.Parallel()
-	atRe := gitleaksAtRe
-	ci := atRe.FindStringSubmatch(gitleaksFile(t, ".github/workflows/gitleaks.yml"))
+	ci := gitleaksAtRe.FindStringSubmatch(gitleaksFile(t, ".github/workflows/gitleaks.yml"))
 	dev := gitleaksPinRe.FindStringSubmatch(gitleaksFile(t, ".devcontainer/project/post-create.sh"))
-	hint := atRe.FindStringSubmatch(gitleaksFile(t, "scripts/git-hooks/pre-push"))
+	hint := gitleaksAtRe.FindStringSubmatch(gitleaksFile(t, "scripts/git-hooks/pre-push"))
 	if ci == nil {
 		t.Fatal("no pinned gitleaks version (gitleaks/v8@vX.Y.Z) in .github/workflows/gitleaks.yml")
 	}
