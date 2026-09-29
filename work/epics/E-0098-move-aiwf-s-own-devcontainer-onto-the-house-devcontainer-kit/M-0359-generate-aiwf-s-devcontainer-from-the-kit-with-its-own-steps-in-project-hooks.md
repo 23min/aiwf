@@ -22,7 +22,7 @@ acs:
       status: open
     - id: AC-6
       title: aiwf's operator notes cover the Playwright opt-in and recovery
-      status: open
+      status: met
 ---
 
 ## Goal
