@@ -10,6 +10,10 @@ set -euo pipefail
 
 cd "$(dirname "$0")/../.."
 
+# --- core.hooksPath -------------------------------------------------------------------------
+# A host path to this repository's own hooks directory disables every git hook here; see the script.
+bash .devcontainer/project/hooks-path.sh
+
 # --- Go tooling -----------------------------------------------------------------------------
 # golangci-lint and govulncheck must match .github/workflows/go.yml and gitleaks
 # .github/workflows/gitleaks.yml, so local checks agree with CI; policy tests in

@@ -12,7 +12,8 @@ const projectPostCreatePath = ".devcontainer/project/post-create.sh"
 
 // PolicyDevcontainerProjectPostCreate asserts that aiwf's project hook,
 // .devcontainer/project/post-create.sh, does what only aiwf's container
-// needs: installs its pinned Go tools, builds aiwf from this checkout and
+// needs: repairs a host-absolute core.hooksPath (hooks-path.sh, tested on its
+// own), installs its pinned Go tools, builds aiwf from this checkout and
 // materializes its framework files with stdin from /dev/null, installs the
 // kernel pre-commit chain, and gates Playwright behind AIWF_DEVCONTAINER_E2E.
 // Its golangci-lint and govulncheck pins must match .github/workflows/go.yml,
@@ -47,6 +48,7 @@ func PolicyDevcontainerProjectPostCreate(root string) ([]Violation, error) {
 		{"golangci-lint, installed once at its pin", []string{"command -v golangci-lint", `"${GOLANGCI_LINT_VERSION}"`}},
 		{"gofumpt, installed once", []string{"command -v gofumpt"}},
 		{"govulncheck, installed once at its pin", []string{"command -v govulncheck", "govulncheck@${GOVULNCHECK_VERSION}"}},
+		{"host core.hooksPath repaired", []string{"bash .devcontainer/project/hooks-path.sh"}},
 		{"aiwf built from this checkout", []string{"go install ./cmd/aiwf"}},
 		{"aiwf init with stdin from /dev/null", []string{"aiwf init --no-prompt </dev/null"}},
 		{"kernel pre-commit chain", []string{"make install-hooks"}},
