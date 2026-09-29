@@ -36,6 +36,12 @@ func TestPolicyDevcontainerWorkspaceMount_Fixtures(t *testing.T) {
 		{name: "parent-in-mounts", firing: true, files: map[string]string{
 			devcontainerConfigPath: "{" + repoMount + `, "mounts": ["source=${localWorkspaceFolder}/../other,target=/workspaces/other,type=bind"]}`,
 		}},
+		{name: "parent-in-mounts-short-spelling", firing: true, files: map[string]string{
+			devcontainerConfigPath: "{" + repoMount + `, "mounts": ["src=${localWorkspaceFolder}/..,dst=/workspaces/all,type=bind"]}`,
+		}},
+		{name: "parent-in-run-args", firing: true, files: map[string]string{
+			devcontainerConfigPath: "{" + repoMount + `, "runArgs": ["-v", "${localWorkspaceFolder}/..:/workspaces/all"]}`,
+		}},
 	}
 	for _, tc := range cases {
 		t.Run(tc.name, func(t *testing.T) {

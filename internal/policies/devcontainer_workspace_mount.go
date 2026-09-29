@@ -14,8 +14,9 @@ const devcontainerConfigPath = ".devcontainer/devcontainer.json"
 // devcontainer policies read.
 type devcontainerConfig struct {
 	WorkspaceMount string            `json:"workspaceMount"`
-	Mounts         []string          `json:"mounts"`
 	ContainerEnv   map[string]string `json:"containerEnv"`
+	// text is the file with its // comment lines dropped: what was decoded.
+	text string
 }
 
 // readDevcontainerConfig decodes .devcontainer/devcontainer.json. The kit
@@ -34,7 +35,8 @@ func readDevcontainerConfig(root string) (cfg devcontainerConfig, problem string
 			kept = append(kept, line)
 		}
 	}
-	if err := json.Unmarshal([]byte(strings.Join(kept, "\n")), &cfg); err != nil {
+	cfg.text = strings.Join(kept, "\n")
+	if err := json.Unmarshal([]byte(cfg.text), &cfg); err != nil {
 		return cfg, fmt.Sprintf("not valid JSON once // comment lines are dropped: %v", err)
 	}
 	return cfg, ""
@@ -52,10 +54,12 @@ func mountOption(mount, key string) string {
 }
 
 // PolicyDevcontainerWorkspaceMount asserts that aiwf's development container
-// mounts the checkout itself at /workspaces/aiwf and that no mount binds the
-// checkout's parent. Binding the parent exposes every sibling repository and
-// any instruction file sitting beside the clone (G-0524); a sibling the
-// container needs is listed explicitly through the kit's siblings answers.
+// mounts the checkout itself at /workspaces/aiwf and that nothing in
+// devcontainer.json names the checkout's parent, ${localWorkspaceFolder}/..,
+// whatever the mount's spelling or route (mounts, runArgs). Binding the parent
+// exposes every sibling repository and any instruction file sitting beside
+// the clone (G-0524); a sibling the container needs is listed explicitly
+// through the kit's siblings answers.
 func PolicyDevcontainerWorkspaceMount(root string) ([]Violation, error) {
 	cfg, problem := readDevcontainerConfig(root)
 	if problem != "" {
@@ -67,11 +71,9 @@ func PolicyDevcontainerWorkspaceMount(root string) ([]Violation, error) {
 		vs = append(vs, Violation{Policy: "devcontainer-workspace-mount", File: devcontainerConfigPath, Detail: fmt.Sprintf(
 			"workspaceMount binds %q at %q, want %q at %q: the container mounts the checkout, not its parent", source, target, wantSource, wantTarget)})
 	}
-	for _, mount := range cfg.Mounts {
-		if strings.HasPrefix(mountOption(mount, "source"), wantSource+"/..") {
-			vs = append(vs, Violation{Policy: "devcontainer-workspace-mount", File: devcontainerConfigPath, Detail: fmt.Sprintf(
-				"mount %q binds the checkout's parent; list a needed sibling through the kit's siblings answers instead", mount)})
-		}
+	if strings.Contains(cfg.text, wantSource+"/..") {
+		vs = append(vs, Violation{Policy: "devcontainer-workspace-mount", File: devcontainerConfigPath, Detail: fmt.Sprintf(
+			"names %s/.., the checkout's parent; list a needed sibling through the kit's siblings answers instead", wantSource)})
 	}
 	return vs, nil
 }
