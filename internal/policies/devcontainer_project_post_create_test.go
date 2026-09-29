@@ -43,6 +43,8 @@ func TestPolicyDevcontainerProjectPostCreate_Fixtures(t *testing.T) {
 		{name: "govulncheck-not-guarded", firing: true, files: map[string]string{projectPostCreatePath: strings.Replace(good, "command -v govulncheck", "true", 1), goWorkflowPath: goYML}},
 		{name: "playwright-not-gated", firing: true, files: map[string]string{projectPostCreatePath: strings.Replace(good, "AIWF_DEVCONTAINER_E2E:-false", "ALWAYS", 1), goWorkflowPath: goYML}},
 		{name: "no-hooks-path-repair", firing: true, files: map[string]string{projectPostCreatePath: strings.Replace(good, "bash .devcontainer/project/hooks-path.sh", "", 1), goWorkflowPath: goYML}},
+		{name: "pin-only-in-a-comment", firing: true, files: map[string]string{projectPostCreatePath: strings.Replace(good, `GOLANGCI_LINT_VERSION="v2.11.4"`, "# GOLANGCI_LINT_VERSION=\"v2.11.4\"\nGOLANGCI_LINT_VERSION=\"v2.10.0\"", 1), goWorkflowPath: goYML}},
+		{name: "playwright-not-installed", firing: true, files: map[string]string{projectPostCreatePath: strings.Replace(good, "playwright install chromium", "true", 1), goWorkflowPath: goYML}},
 		{name: "no-strict-mode", firing: true, files: map[string]string{projectPostCreatePath: strings.Replace(good, "set -euo pipefail", "", 1), goWorkflowPath: goYML}},
 		{name: "install-hooks-only-in-a-comment", firing: true, files: map[string]string{projectPostCreatePath: strings.Replace(good, "make install-hooks", "# make install-hooks", 1), goWorkflowPath: goYML}},
 		{name: "no-aiwf-build", firing: true, files: map[string]string{projectPostCreatePath: strings.Replace(good, "go install ./cmd/aiwf", "", 1), goWorkflowPath: goYML}},

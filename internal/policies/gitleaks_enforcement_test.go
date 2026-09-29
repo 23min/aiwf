@@ -114,6 +114,18 @@ func TestGitleaksEnforcement_Gitleaksignore(t *testing.T) {
 // nothing.
 var gitleaksInstallRe = regexp.MustCompile(`(?m)^[^#\n]*github\.com/zricethezav/gitleaks/v8@\$\{GITLEAKS_VERSION\}`)
 
+// gitleaksPinRe reads the project hook's GITLEAKS_VERSION pin from a line
+// with no # before it, so a commented-out pin cannot stand in for the live one.
+var gitleaksPinRe = regexp.MustCompile(`(?m)^[^#\n]*GITLEAKS_VERSION="(v8\.\d+\.\d+)"`)
+
+func TestGitleaksEnforcement_PinReadsOnlyCommands(t *testing.T) {
+	t.Parallel()
+	hook := "# GITLEAKS_VERSION=\"v8.30.1\"\nGITLEAKS_VERSION=\"v8.29.0\"\n"
+	if m := gitleaksPinRe.FindStringSubmatch(hook); len(m) < 2 || m[1] != "v8.29.0" {
+		t.Errorf("pin read = %v, want the live v8.29.0, not the commented v8.30.1", m)
+	}
+}
+
 func TestGitleaksEnforcement_DevcontainerInstallsGitleaks(t *testing.T) {
 	t.Parallel()
 	if !gitleaksInstallRe.MatchString(gitleaksFile(t, ".devcontainer/project/post-create.sh")) {
@@ -146,9 +158,8 @@ func TestGitleaksEnforcement_InstallCountsOnlyCommands(t *testing.T) {
 func TestGitleaksEnforcement_PinnedVersionConsistent(t *testing.T) {
 	t.Parallel()
 	atRe := regexp.MustCompile(`gitleaks/v8@(v8\.\d+\.\d+)`)
-	devRe := regexp.MustCompile(`(?m)^[^#\n]*GITLEAKS_VERSION="(v8\.\d+\.\d+)"`)
 	ci := atRe.FindStringSubmatch(gitleaksFile(t, ".github/workflows/gitleaks.yml"))
-	dev := devRe.FindStringSubmatch(gitleaksFile(t, ".devcontainer/project/post-create.sh"))
+	dev := gitleaksPinRe.FindStringSubmatch(gitleaksFile(t, ".devcontainer/project/post-create.sh"))
 	hint := atRe.FindStringSubmatch(gitleaksFile(t, "scripts/git-hooks/pre-push"))
 	if ci == nil {
 		t.Fatal("no pinned gitleaks version (gitleaks/v8@vX.Y.Z) in .github/workflows/gitleaks.yml")
