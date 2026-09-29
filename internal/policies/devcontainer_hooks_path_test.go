@@ -25,7 +25,7 @@ func TestDevcontainerHooksPathRepair(t *testing.T) {
 		global     string   // core.hooksPath in the global config; "" for none
 		gitRepo    bool
 		lockConfig bool   // hold .git/config.lock so the unset fails
-		wantLocal  string // local value afterwards; "" means unset
+		wantLocal  string // local values afterwards, one per line; "" means unset
 		wantUnset  bool   // the script reports that it unset the value
 	}{
 		{name: "own-hooks-is-unset", gitRepo: true, local: []string{own}, wantUnset: true},
@@ -33,7 +33,7 @@ func TestDevcontainerHooksPathRepair(t *testing.T) {
 		{name: "set-twice-is-fully-unset", gitRepo: true, local: []string{own, own}, wantUnset: true},
 		{name: "global-setting-keeps-local", gitRepo: true, local: []string{own}, global: "/elsewhere/hooks", wantLocal: own},
 		{name: "another-directory-kept", gitRepo: true, local: []string{"/Users/x/Projects/other/.git/hooks"}, wantLocal: "/Users/x/Projects/other/.git/hooks"},
-		{name: "own-plus-another-kept", gitRepo: true, local: []string{own, "/elsewhere/hooks"}, wantLocal: "/elsewhere/hooks"},
+		{name: "own-plus-another-kept", gitRepo: true, local: []string{own, "/elsewhere/hooks"}, wantLocal: own + "\n/elsewhere/hooks"},
 		{name: "relative-kept", gitRepo: true, local: []string{".githooks"}, wantLocal: ".githooks"},
 		{name: "unset-stays-unset", gitRepo: true},
 		{name: "failed-unset-still-exits-0", gitRepo: true, local: []string{own}, lockConfig: true, wantLocal: own},
@@ -45,7 +45,7 @@ func TestDevcontainerHooksPathRepair(t *testing.T) {
 			dir, runIn := hooksPathSandbox(t)
 			run := func(name string, args ...string) (string, error) { return runIn(dir, name, args...) }
 			ownHooks := filepath.Join(dir, ".git", "hooks")
-			expand := func(v string) string { return strings.Replace(v, own, ownHooks, 1) }
+			expand := func(v string) string { return strings.ReplaceAll(v, own, ownHooks) }
 			if tc.gitRepo {
 				if out, err := run("git", "init", "-q"); err != nil {
 					t.Fatalf("git init: %v: %s", err, out)
@@ -76,7 +76,7 @@ func TestDevcontainerHooksPathRepair(t *testing.T) {
 			if !tc.gitRepo {
 				return
 			}
-			got, _ := run("git", "config", "--local", "--get", "core.hooksPath")
+			got, _ := run("git", "config", "--local", "--get-all", "core.hooksPath")
 			if want := expand(tc.wantLocal); got != want {
 				t.Errorf("local core.hooksPath = %q, want %q", got, want)
 			}
