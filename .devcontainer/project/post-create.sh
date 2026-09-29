@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Project hook — runs INSIDE the container after the kit's post-create.sh (once per container).
+# Project hook — runs INSIDE the container as a step of the kit's post-create.sh (once per container).
 # Owned by this repo: `copier update` never changes this file.
 #
 # aiwf's own setup: its pinned Go tools, aiwf built from this checkout (never a release), its
@@ -55,8 +55,9 @@ echo "==> Installing aiwf from this checkout and materializing its framework fil
 go install ./cmd/aiwf
 aiwf init --no-prompt </dev/null || true
 
-# make install-hooks links scripts/git-hooks/pre-commit into the chain aiwf's pre-commit calls.
-echo "==> Installing the kernel pre-commit chain"
+# make install-hooks links scripts/git-hooks/pre-commit and pre-push into the chain aiwf's own
+# pre-commit and pre-push hooks call.
+echo "==> Installing the kernel pre-commit and pre-push chain"
 make install-hooks
 
 # --- Playwright (opt-in) --------------------------------------------------------------------

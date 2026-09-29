@@ -14,7 +14,7 @@ const projectPostCreatePath = ".devcontainer/project/post-create.sh"
 // .devcontainer/project/post-create.sh, does what only aiwf's container
 // needs: installs its pinned Go tools, builds aiwf from this checkout and
 // materializes its framework files with stdin from /dev/null, installs the
-// kernel pre-commit chain, and gates Playwright behind AIWF_DEVCONTAINER_E2E.
+// kernel pre-commit and pre-push chain, and gates Playwright behind AIWF_DEVCONTAINER_E2E.
 // Its golangci-lint and govulncheck pins must match .github/workflows/go.yml,
 // which CI treats as the source of truth. Only commands count: everything from
 // a line's first # on is read as a comment and satisfies nothing. What the
@@ -48,7 +48,7 @@ func PolicyDevcontainerProjectPostCreate(root string) ([]Violation, error) {
 		{"govulncheck, installed once at its pin", []string{"command -v govulncheck", "govulncheck@${GOVULNCHECK_VERSION}"}},
 		{"aiwf built from this checkout", []string{"go install ./cmd/aiwf"}},
 		{"aiwf init with stdin from /dev/null", []string{"aiwf init --no-prompt </dev/null"}},
-		{"kernel pre-commit chain", []string{"make install-hooks"}},
+		{"kernel pre-commit and pre-push chain", []string{"make install-hooks"}},
 		{"Playwright behind AIWF_DEVCONTAINER_E2E (default false)", []string{"AIWF_DEVCONTAINER_E2E:-false", "playwright install chromium"}},
 	}
 	for _, c := range checks {

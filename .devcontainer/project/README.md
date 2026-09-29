@@ -24,7 +24,7 @@ left alone, and the script never stops a start.
   and goimports;
 - `aiwf`, built from this checkout with `go install ./cmd/aiwf` rather than a released version,
   then `aiwf init` for its framework files;
-- `make install-hooks`, the kernel's pre-commit chain;
+- `make install-hooks`, the kernel's pre-commit and pre-push chain;
 - Playwright, only when opted in (below).
 
 It runs once per container, so the `aiwf` it installs reflects the checkout at creation. After
