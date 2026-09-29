@@ -43,7 +43,9 @@
 
   "containerEnv": {
     "DEVKIT_SLUG": "aiwf",
-    "UV_LINK_MODE": "copy"
+    "UV_LINK_MODE": "copy",
+    // aiwf pin (hand edit): the Go that CI runs, go.yml's GO_VERSION; a policy test ties the two.
+    "GOTOOLCHAIN": "go1.25.12"
   },
 
   "postCreateCommand": "bash .devcontainer/post-create.sh",
