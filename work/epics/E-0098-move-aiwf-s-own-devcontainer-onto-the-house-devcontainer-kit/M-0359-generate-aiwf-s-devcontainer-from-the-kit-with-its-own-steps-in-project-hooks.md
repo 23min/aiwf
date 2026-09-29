@@ -7,7 +7,7 @@ tdd: advisory
 acs:
     - id: AC-1
       title: The generated devcontainer mounts only the repository
-      status: open
+      status: met
     - id: AC-2
       title: The container's Go toolchain matches CI's pinned version
       status: open
