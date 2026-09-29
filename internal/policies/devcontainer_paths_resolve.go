@@ -15,12 +15,14 @@ import (
 var devcontainerPathRe = regexp.MustCompile(`\.devcontainer/[A-Za-z0-9_.*/-]*[A-Za-z0-9_*]`)
 
 // devcontainerReferenceFiles lists the files a reader follows to the
-// development container: the root guides, the Normative docs tier, scripts,
-// CI, and Go source. Archival and exploratory docs keep the paths they were
-// written with, and tests name fixture paths that exist only in a temporary
-// tree, so neither is scanned.
+// development container: the root guides and Makefile, the Normative docs
+// tier, scripts, CI, Go source, and the repository's own hand-written
+// container files under .devcontainer/project/. Archival and exploratory docs
+// keep the paths they were written with, tests name fixture paths that exist
+// only in a temporary tree, and the kit's own files are the kit's to check,
+// so none of those is scanned.
 func devcontainerReferenceFiles(root string) ([]string, error) {
-	files := []string{"CLAUDE.md", "README.md", "CONTRIBUTING.md", "docs/architecture.md", "docs/overview.md", "docs/workflows.md", "docs/skill-author-guide.md"}
+	files := []string{"CLAUDE.md", "README.md", "CONTRIBUTING.md", "Makefile", "docs/architecture.md", "docs/overview.md", "docs/workflows.md", "docs/skill-author-guide.md"}
 	walks := []struct {
 		dir  string
 		keep func(rel string) bool
@@ -32,6 +34,7 @@ func devcontainerReferenceFiles(root string) ([]string, error) {
 		{"docs/reference", func(string) bool { return true }},
 		{"scripts", func(string) bool { return true }},
 		{".github", func(string) bool { return true }},
+		{".devcontainer/project", func(string) bool { return true }},
 		{"internal", isGoSource},
 		{"cmd", isGoSource},
 	}

@@ -41,6 +41,8 @@ func TestPolicyDevcontainerPathsResolve_Fixtures(t *testing.T) {
 		{name: "removed-path-in-adr", firing: true, files: with(map[string]string{"docs/adr/ADR-0001-x.md": "Uses .devcontainer/init.sh\n"})},
 		{name: "archived-adr-ignored", firing: false, files: with(map[string]string{"docs/adr/archive/ADR-0001-x.md": "Uses .devcontainer/init.sh\n"})},
 		{name: "removed-path-in-design-doc", firing: true, files: with(map[string]string{"docs/design/x.md": "Seeded by .devcontainer/init.sh\n"})},
+		{name: "removed-path-in-makefile", firing: true, files: with(map[string]string{"Makefile": "# see .devcontainer/init.sh\n"})},
+		{name: "removed-path-in-project-notes", firing: true, files: with(map[string]string{".devcontainer/project/README.md": "Mechanics live in .devcontainer/init.sh\n"})},
 		{name: "removed-path-in-workflow", firing: true, files: with(map[string]string{".github/workflows/x.yml": "# must match .devcontainer/init.sh\n"})},
 		{name: "removed-path-in-go-source", firing: true, files: with(map[string]string{"internal/x/x.go": "// seeded by .devcontainer/init.sh\n"})},
 		{name: "go-tests-and-testdata-ignored", firing: false, files: with(map[string]string{
