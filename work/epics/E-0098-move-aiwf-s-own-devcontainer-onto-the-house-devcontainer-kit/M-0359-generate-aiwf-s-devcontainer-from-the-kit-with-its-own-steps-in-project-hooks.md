@@ -51,7 +51,7 @@ planning) mounts the same host state the current container does.
 
 **Pass criterion**: a policy test parses `.devcontainer/devcontainer.json` and
 fails unless `workspaceMount` binds `${localWorkspaceFolder}` itself at
-`/workspaces/aiwf`, and no entry in `mounts` binds the checkout's parent.
+`/workspaces/aiwf`, and no entry in `mounts` names `${localWorkspaceFolder}/..`.
 **Edge cases**: a `/..` suffix on the source; a mount whose source is
 `${localWorkspaceFolder}/..` added under `mounts` rather than `workspaceMount`; the
 `//` comment lines the kit writes, which the parser must strip before decoding.
@@ -199,9 +199,9 @@ a failed container creation. Nothing changes for repositories that use aiwf.
 
 ## Validation
 
-Run on the milestone branch at `8d36c9d24`, in aiwf's pre-move devcontainer (Linux, Go 1.25.11):
+Run on the milestone branch at `695f76b9f`, in aiwf's pre-move devcontainer (Linux, Go 1.25.11):
 
-- `make ci` — exit 0: lint 0 issues; `go test -race` 74 packages ok, 0 failing; the diff-scoped
+- `make ci` — exit 0: lint 0 issues; `go test -race` 73 packages ok, 0 failing; the diff-scoped
   coverage gate and the firing-fixture gate pass; total statement coverage 91.9%; self-check
   passes all 29 steps.
 - `aiwf check` — 0 errors. Warnings: `acs-tdd-audit` for each met criterion, which records no TDD
@@ -230,7 +230,7 @@ Run on the milestone branch at `8d36c9d24`, in aiwf's pre-move devcontainer (Lin
   repair call commented out, that test fails. Both tests also pass with `TMPDIR` behind a symlink,
   as macOS's is, and fail there when the throwaway repository's path is not resolved through it.
 - `shellcheck -x .devcontainer/project/*.sh` — clean.
-- `gitleaks git --config=.gitleaks.toml`, the scan CI and the pre-push hook run, at `8d36c9d24` —
+- `gitleaks git --config=.gitleaks.toml`, the scan CI and the pre-push hook run, at `695f76b9f` —
   no leaks found, exit 0; the macOS home paths with an invented user name that earlier commits on
   this branch recorded are accepted by fingerprint in `.gitleaksignore`.
 - Not verified: that `AIWF_DEVCONTAINER_E2E=true` set in `containerEnv` reaches the project hook
@@ -244,6 +244,8 @@ Run on the milestone branch at `8d36c9d24`, in aiwf's pre-move devcontainer (Lin
 ## Deferrals
 
 - G-0725 — `make install-hooks` reports success when it cannot create the hook links.
+- G-0726 — the go workflow skips the policy suite when only a non-Go file it reads changes;
+  `.devcontainer/**` and `gitleaks.yml` are now in its filter, the other inputs are not.
 
 ## Reviewer notes
 
@@ -285,6 +287,9 @@ named, and it retires when the fact it guards leaves the repository.
 - The hooks-path tests inherit `GIT_CONFIG_PARAMETERS`; a value there can only make them fail,
   never pass.
 - The failed-unset case checks the exit status and the kept value, not the warning's wording.
+- The post-create check finds `AIWF_DEVCONTAINER_E2E:-false` and the Playwright install as
+  commands, not that the install sits inside that test's `if`; moving it out would install
+  Playwright on every creation, a visible edit to a short script. The check says what it finds.
 - Each new policy test repeats the package's write-the-fixture-then-run-the-policy loop rather
   than sharing a helper, as the package's other fixture-table policy tests do.
 - Nothing runs the hooks-path tests with a symlinked temporary directory in CI, which runs on
@@ -294,4 +299,6 @@ named, and it retires when the fact it guards leaves the repository.
 their identity from the host's global git config, so `aiwf-actor` follows that address; M-0360
 observes it.
 
-**Verdict.** (written after the deciding review)
+**Verdict.** The deciding review over `5347e7237..7a84d52a0` approved both slices with no blocking
+finding. What landed after it is unread by it: the Playwright check's wording, the go workflow's
+filter, D-0104's enforcement bullet, and AC-1's pass criterion narrowed to what the check tests.
