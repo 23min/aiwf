@@ -199,7 +199,7 @@ aiwf.
 
 ## Validation
 
-Run on the milestone branch at `c80f40f4e`, in aiwf's pre-move devcontainer (Linux, Go 1.25.11):
+Run on the milestone branch at `294ced2fc`, in aiwf's pre-move devcontainer (Linux, Go 1.25.11):
 
 - `make ci` — exit 0: lint 0 issues; `go test -race` 74 packages ok, 0 failing; the diff-scoped
   coverage gate and the firing-fixture gate pass; total statement coverage 91.9%; self-check
@@ -216,8 +216,8 @@ Run on the milestone branch at `c80f40f4e`, in aiwf's pre-move devcontainer (Lin
   named in `docs/design`, the `Makefile` or `.devcontainer/project/README.md`, on strict mode or
   a version pin present only in a comment, on a required command inside a trailing comment, on
   another step's `version:` ahead of the golangci-lint action's, on that action's version
-  carrying a suffix (`v2.11.4-rc1`), and on a gitleaks install or pin present only in a
-  comment.
+  carrying a suffix (`v2.11.4-rc1`), on a suffixed pin in the hook or on govulncheck's or
+  gitleaks's install line, and on a gitleaks install or pin present only in a comment.
 - `hooks-path.sh`, run in throwaway repositories with an isolated global config
   (`TestDevcontainerHooksPathRepair`): the repository's own absolute hooks directory is unset,
   with a trailing slash too and when set twice; it is kept when the global config also sets
@@ -229,11 +229,16 @@ Run on the milestone branch at `c80f40f4e`, in aiwf's pre-move devcontainer (Lin
   repair call commented out, that test fails. Both tests also pass with `TMPDIR` behind a symlink,
   as macOS's is, and fail there when the throwaway repository's path is not resolved through it.
 - `shellcheck -x .devcontainer/project/*.sh` — clean.
+- `gitleaks git --config=.gitleaks.toml`, the scan CI and the pre-push hook run, at `2d9599a0e` —
+  no leaks found, exit 0; the macOS home paths with an invented user name that earlier commits on this branch
+  recorded are accepted by fingerprint in `.gitleaksignore`.
 - Not verified: that `AIWF_DEVCONTAINER_E2E=true` set in `containerEnv` reaches the project hook
   at container creation; `make e2e-install`, which the notes give first, does not depend on it.
   Nor that the built image's `python3` imports `dataclasses`: Ubuntu 24.04's `python3` depends on
   `python3.12`, which depends on `libpython3.12-stdlib`, but no image was built. Building the
-  container and running `make ci` in it is M-0360.
+  container and running `make ci` in it is M-0360. Nor that `make e2e` runs on the new Ubuntu
+  24.04 base after `make e2e-install`, which installs Chromium without its system libraries; the
+  opt-in flow is the old container's, unchanged.
 
 ## Deferrals
 
@@ -259,8 +264,10 @@ named, and it retires when the fact it guards leaves the repository.
   (`DevcontainerPathsResolve`); retires with the directory.
 - `project/README.md` names the Playwright variable and the kit's recovery command
   (`DevcontainerProjectNotes`); retires with the notes.
-- `project/initialize.sh` runs the hooks-path repair and exits 0 from any directory
-  (`DevcontainerHooksPath`).
+- `hooks-path.sh` unsets `core.hooksPath` only when every value is this repository's own hooks
+  directory, all from its local config, and exits 0 in every case; `project/initialize.sh` runs
+  it on its own checkout from any directory (`DevcontainerHooksPath`). Retires when the kit
+  handles a host-only hooks path itself, or the repair is removed.
 - Unchecked, held at review: `uvx copier update` must keep the `devcontainer.json` hand edits
   (only `GOTOOLCHAIN` is checked); gofumpt and goimports pins must build with the Go in
   `GOTOOLCHAIN` (`project/post-create.sh` says so); the host-side scripts stay bash 3.2-safe,
@@ -277,6 +284,8 @@ named, and it retires when the fact it guards leaves the repository.
 - The hooks-path tests inherit `GIT_CONFIG_PARAMETERS`; a value there can only make them fail,
   never pass.
 - The failed-unset case checks the exit status and the kept value, not the warning's wording.
+- Each new policy test repeats the package's write-the-fixture-then-run-the-policy loop rather
+  than sharing a helper; every policy test in the package is written that way.
 - Nothing runs the hooks-path tests with a symlinked temporary directory in CI, which runs on
   Linux; `hooksPathSandbox` is the one place that builds their repositories and resolves it.
 
