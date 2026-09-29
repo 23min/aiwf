@@ -112,8 +112,8 @@ func TestGitleaksEnforcement_Gitleaksignore(t *testing.T) {
 func TestGitleaksEnforcement_DevcontainerInstallsGitleaks(t *testing.T) {
 	t.Parallel()
 	init := gitleaksFile(t, ".devcontainer/project/post-create.sh")
-	if !strings.Contains(init, "github.com/zricethezav/gitleaks/v8@") {
-		t.Error(".devcontainer/project/post-create.sh must install gitleaks so the local pre-push hook actually fires")
+	if !strings.Contains(init, "github.com/zricethezav/gitleaks/v8@${GITLEAKS_VERSION}") {
+		t.Error(".devcontainer/project/post-create.sh must install gitleaks at its GITLEAKS_VERSION pin so the local pre-push hook fires with CI's version")
 	}
 }
 
