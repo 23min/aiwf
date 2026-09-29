@@ -42,19 +42,8 @@ func TestDevcontainerHooksPathRepair(t *testing.T) {
 	for _, tc := range cases {
 		t.Run(tc.name, func(t *testing.T) {
 			t.Parallel()
-			dir := t.TempDir()
-			globalConfig := filepath.Join(t.TempDir(), "gitconfig")
-			if err := os.WriteFile(globalConfig, nil, 0o644); err != nil {
-				t.Fatal(err)
-			}
-			env := append(os.Environ(), "GIT_CONFIG_GLOBAL="+globalConfig, "GIT_CONFIG_NOSYSTEM=1", "GIT_CEILING_DIRECTORIES="+filepath.Dir(dir))
-			run := func(name string, args ...string) (string, error) {
-				cmd := exec.Command(name, args...)
-				cmd.Dir = dir
-				cmd.Env = env
-				out, err := cmd.CombinedOutput()
-				return strings.TrimSpace(string(out)), err
-			}
+			dir, runIn := hooksPathSandbox(t)
+			run := func(name string, args ...string) (string, error) { return runIn(dir, name, args...) }
 			ownHooks := filepath.Join(dir, ".git", "hooks")
 			expand := func(v string) string { return strings.Replace(v, own, ownHooks, 1) }
 			if tc.gitRepo {
@@ -105,23 +94,9 @@ func TestDevcontainerHooksPathRepair(t *testing.T) {
 // the repair against its own checkout whatever directory it is started from.
 func TestDevcontainerHooksPathRepairRunsOnTheHost(t *testing.T) {
 	t.Parallel()
-	repo, elsewhere := t.TempDir(), t.TempDir()
-	globalConfig := filepath.Join(t.TempDir(), "gitconfig")
-	if err := os.WriteFile(globalConfig, nil, 0o644); err != nil {
-		t.Fatal(err)
-	}
-	env := append(os.Environ(), "GIT_CONFIG_GLOBAL="+globalConfig, "GIT_CONFIG_NOSYSTEM=1", "GIT_CEILING_DIRECTORIES="+filepath.Dir(repo))
-	run := func(dir, name string, args ...string) (string, error) {
-		cmd := exec.Command(name, args...)
-		cmd.Dir = dir
-		cmd.Env = env
-		out, err := cmd.CombinedOutput()
-		return strings.TrimSpace(string(out)), err
-	}
+	repo, run := hooksPathSandbox(t)
+	elsewhere := t.TempDir()
 	project := filepath.Join(repo, ".devcontainer", "project")
-	if err := os.MkdirAll(project, 0o755); err != nil {
-		t.Fatal(err)
-	}
 	for _, name := range []string{"initialize.sh", "hooks-path.sh"} {
 		raw, err := os.ReadFile(filepath.Join(repoRoot(t), ".devcontainer", "project", name))
 		if err != nil {
@@ -141,4 +116,31 @@ func TestDevcontainerHooksPathRepairRunsOnTheHost(t *testing.T) {
 	if got, _ := run(repo, "git", "config", "--local", "--get", "core.hooksPath"); got != "" {
 		t.Errorf("initialize.sh left core.hooksPath = %q; it must run the repair against its own checkout", got)
 	}
+}
+
+// hooksPathSandbox returns an empty directory for a throwaway repository and
+// a runner for commands in it or beside it. The directory is resolved through
+// symlinks, as git reports a repository's own paths, so a value written with
+// it compares equal on hosts whose temporary directory sits behind one (macOS
+// reaches it through /var, a link to /private/var). The runner's git reads an
+// empty global config, no system config, and no repository above the directory.
+func hooksPathSandbox(t *testing.T) (dir string, run func(in, name string, args ...string) (string, error)) {
+	t.Helper()
+	dir, err := filepath.EvalSymlinks(t.TempDir())
+	if err != nil {
+		t.Fatal(err)
+	}
+	globalConfig := filepath.Join(t.TempDir(), "gitconfig")
+	if err := os.WriteFile(globalConfig, nil, 0o644); err != nil {
+		t.Fatal(err)
+	}
+	env := append(os.Environ(), "GIT_CONFIG_GLOBAL="+globalConfig, "GIT_CONFIG_NOSYSTEM=1", "GIT_CEILING_DIRECTORIES="+filepath.Dir(dir))
+	run = func(in, name string, args ...string) (string, error) {
+		cmd := exec.Command(name, args...)
+		cmd.Dir = in
+		cmd.Env = env
+		out, err := cmd.CombinedOutput()
+		return strings.TrimSpace(string(out)), err
+	}
+	return dir, run
 }
