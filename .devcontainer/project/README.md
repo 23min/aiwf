@@ -11,12 +11,15 @@ binaries — do not occur, so `make ci` runs as CI does. The host path stays ava
 
 ## What the project hook adds
 
+Before every build or start, on the host, `initialize.sh` in this folder runs `hooks-path.sh`. A
+`core.hooksPath` that names this repository's own hooks directory by its full host path leaves
+every git hook dead in the container, where that path does not exist. The script removes it only
+when doing so changes nothing on the host: every value set is that directory and none comes from
+the global or system git config, so git's default there is the same directory. Anything else is
+left alone, and the script never stops a start.
+
 `post-create.sh` in this folder runs once, after the kit's own post-create:
 
-- `hooks-path.sh`: when the repository's own config sets `core.hooksPath` to the host's path to
-  this checkout's `.git/hooks` (`AIWF_HOST_CHECKOUT` in `devcontainer.json`), which does not exist
-  here and would leave every git hook dead, it unsets it; the host is unaffected, since that
-  directory is git's default there too. Any other value is left alone;
 - pinned Go tools: golangci-lint, govulncheck and gitleaks at the versions CI runs, plus gofumpt
   and goimports;
 - `aiwf`, built from this checkout with `go install ./cmd/aiwf` rather than a released version,

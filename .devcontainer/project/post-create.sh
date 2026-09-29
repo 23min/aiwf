@@ -10,11 +10,6 @@ set -euo pipefail
 
 cd "$(dirname "$0")/../.."
 
-# --- core.hooksPath -------------------------------------------------------------------------
-# The host's path to this checkout's hooks directory disables every git hook here; see the script.
-# It runs before aiwf init and make install-hooks, which both write into the hooks directory.
-bash .devcontainer/project/hooks-path.sh
-
 # --- Go tooling -----------------------------------------------------------------------------
 # golangci-lint and govulncheck must match .github/workflows/go.yml and gitleaks
 # .github/workflows/gitleaks.yml, so local checks agree with CI; policy tests in

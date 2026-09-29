@@ -4,90 +4,113 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"regexp"
 	"strings"
 	"testing"
 )
 
-// TestDevcontainerHooksPathRepair runs .devcontainer/project/hooks-path.sh
-// in throwaway repositories. It unsets core.hooksPath only when the
-// repository's own config holds the host's path to this checkout's hooks
-// directory (AIWF_HOST_CHECKOUT/.git/hooks) and that path is missing — the
-// value that leaves every hook dead in the container and whose removal
-// changes nothing on the host. Every other value, scope and input is left as
-// it was, and the script never fails.
+// TestDevcontainerHooksPathRepair runs .devcontainer/project/hooks-path.sh,
+// which runs on the host before every container start, in throwaway
+// repositories standing in for the host checkout. It unsets core.hooksPath
+// only when every value set is the repository's own hooks directory by its
+// absolute path and none comes from the global config — the one case where
+// removing it changes nothing on the host while restoring the hooks in the
+// container. It exits 0 in every case, including when the unset fails.
 func TestDevcontainerHooksPathRepair(t *testing.T) {
 	t.Parallel()
 	script := filepath.Join(repoRoot(t), ".devcontainer", "project", "hooks-path.sh")
-	const host = "/Users/nobody/Projects/aiwf"
-	existing := filepath.Join(t.TempDir(), "present")
-	if err := os.MkdirAll(filepath.Join(existing, ".git", "hooks"), 0o755); err != nil {
-		t.Fatal(err)
-	}
+	const own = "<own>" // replaced by the repository's absolute hooks directory
 	cases := []struct {
-		name        string
-		hostPath    string   // AIWF_HOST_CHECKOUT; "" leaves it unset
-		local       []string // core.hooksPath values in the repository's config
-		global      string   // core.hooksPath in the global config; "" for none
-		wantLocal   string   // local value afterwards; "" means unset
-		wantGlobal  string
-		wantMessage bool
+		name       string
+		local      []string // core.hooksPath values in the repository's config
+		global     string   // core.hooksPath in the global config; "" for none
+		gitRepo    bool
+		lockConfig bool   // hold .git/config.lock so the unset fails
+		wantLocal  string // local value afterwards; "" means unset
+		wantUnset  bool   // the script reports that it unset the value
 	}{
-		{name: "host-checkout-hooks-missing-is-unset", hostPath: host, local: []string{host + "/.git/hooks"}, wantMessage: true},
-		{name: "trailing-slash-is-unset", hostPath: host, local: []string{host + "/.git/hooks/"}, wantMessage: true},
-		{name: "set-twice-is-fully-unset", hostPath: host, local: []string{host + "/.git/hooks", host + "/.git/hooks"}, wantMessage: true},
-		{name: "another-clones-hooks-kept", hostPath: host, local: []string{"/Users/nobody/Projects/other/.git/hooks"}, wantLocal: "/Users/nobody/Projects/other/.git/hooks"},
-		{name: "existing-path-kept", hostPath: existing, local: []string{existing + "/.git/hooks"}, wantLocal: existing + "/.git/hooks"},
-		{name: "relative-kept", hostPath: host, local: []string{".githooks"}, wantLocal: ".githooks"},
-		{name: "no-host-path-leaves-it", local: []string{host + "/.git/hooks"}, wantLocal: host + "/.git/hooks"},
-		{name: "global-scope-left-alone", hostPath: host, global: host + "/.git/hooks", wantGlobal: host + "/.git/hooks"},
-		{name: "unset-stays-unset", hostPath: host},
+		{name: "own-hooks-is-unset", gitRepo: true, local: []string{own}, wantUnset: true},
+		{name: "trailing-slash-is-unset", gitRepo: true, local: []string{own + "/"}, wantUnset: true},
+		{name: "set-twice-is-fully-unset", gitRepo: true, local: []string{own, own}, wantUnset: true},
+		{name: "global-setting-keeps-local", gitRepo: true, local: []string{own}, global: "/elsewhere/hooks", wantLocal: own},
+		{name: "another-directory-kept", gitRepo: true, local: []string{"/Users/nobody/Projects/other/.git/hooks"}, wantLocal: "/Users/nobody/Projects/other/.git/hooks"},
+		{name: "own-plus-another-kept", gitRepo: true, local: []string{own, "/elsewhere/hooks"}, wantLocal: "/elsewhere/hooks"},
+		{name: "relative-kept", gitRepo: true, local: []string{".githooks"}, wantLocal: ".githooks"},
+		{name: "unset-stays-unset", gitRepo: true},
+		{name: "failed-unset-still-exits-0", gitRepo: true, local: []string{own}, lockConfig: true, wantLocal: own},
+		{name: "not-a-repository", gitRepo: false},
 	}
 	for _, tc := range cases {
 		t.Run(tc.name, func(t *testing.T) {
 			t.Parallel()
-			repo := t.TempDir()
+			dir := t.TempDir()
 			globalConfig := filepath.Join(t.TempDir(), "gitconfig")
 			if err := os.WriteFile(globalConfig, nil, 0o644); err != nil {
 				t.Fatal(err)
 			}
-			env := append(os.Environ(), "GIT_CONFIG_GLOBAL="+globalConfig, "GIT_CONFIG_NOSYSTEM=1")
-			run := func(name string, extraEnv []string, args ...string) (string, error) {
+			env := append(os.Environ(), "GIT_CONFIG_GLOBAL="+globalConfig, "GIT_CONFIG_NOSYSTEM=1", "GIT_CEILING_DIRECTORIES="+filepath.Dir(dir))
+			run := func(name string, args ...string) (string, error) {
 				cmd := exec.Command(name, args...)
-				cmd.Dir = repo
-				cmd.Env = append(append([]string{}, env...), extraEnv...)
+				cmd.Dir = dir
+				cmd.Env = env
 				out, err := cmd.CombinedOutput()
 				return strings.TrimSpace(string(out)), err
 			}
-			if out, err := run("git", nil, "init", "-q"); err != nil {
-				t.Fatalf("git init: %v: %s", err, out)
-			}
-			for _, v := range tc.local {
-				if out, err := run("git", nil, "config", "--add", "core.hooksPath", v); err != nil {
-					t.Fatalf("git config: %v: %s", err, out)
+			ownHooks := filepath.Join(dir, ".git", "hooks")
+			expand := func(v string) string { return strings.Replace(v, own, ownHooks, 1) }
+			if tc.gitRepo {
+				if out, err := run("git", "init", "-q"); err != nil {
+					t.Fatalf("git init: %v: %s", err, out)
 				}
+				for _, v := range tc.local {
+					if out, err := run("git", "config", "--add", "core.hooksPath", expand(v)); err != nil {
+						t.Fatalf("git config: %v: %s", err, out)
+					}
+				}
+				if tc.global != "" {
+					if out, err := run("git", "config", "--global", "core.hooksPath", tc.global); err != nil {
+						t.Fatalf("git config --global: %v: %s", err, out)
+					}
+				}
+				if tc.lockConfig {
+					if err := os.WriteFile(filepath.Join(dir, ".git", "config.lock"), nil, 0o644); err != nil {
+						t.Fatal(err)
+					}
+				}
+			}
+			out, err := run("bash", script)
+			if err != nil {
+				t.Fatalf("hooks-path.sh exited non-zero, which would stop the container start: %v: %s", err, out)
+			}
+			if got := strings.Contains(out, "initialize: unset core.hooksPath="); got != tc.wantUnset {
+				t.Errorf("reported an unset = %v, want %v; output: %q", got, tc.wantUnset, out)
+			}
+			if !tc.gitRepo {
+				return
+			}
+			got, _ := run("git", "config", "--local", "--get", "core.hooksPath")
+			if want := expand(tc.wantLocal); got != want {
+				t.Errorf("local core.hooksPath = %q, want %q", got, want)
 			}
 			if tc.global != "" {
-				if out, err := run("git", nil, "config", "--global", "core.hooksPath", tc.global); err != nil {
-					t.Fatalf("git config --global: %v: %s", err, out)
+				if got, _ := run("git", "config", "--global", "--get", "core.hooksPath"); got != tc.global {
+					t.Errorf("global core.hooksPath = %q, want it left as %q", got, tc.global)
 				}
 			}
-			var scriptEnv []string
-			if tc.hostPath != "" {
-				scriptEnv = []string{"AIWF_HOST_CHECKOUT=" + tc.hostPath}
-			}
-			out, err := run("bash", scriptEnv, script)
-			if err != nil {
-				t.Fatalf("hooks-path.sh failed: %v: %s", err, out)
-			}
-			if got := strings.Contains(out, "Unset core.hooksPath"); got != tc.wantMessage {
-				t.Errorf("reported an unset = %v, want %v; output: %q", got, tc.wantMessage, out)
-			}
-			if got, _ := run("git", nil, "config", "--local", "--get", "core.hooksPath"); got != tc.wantLocal {
-				t.Errorf("local core.hooksPath = %q, want %q", got, tc.wantLocal)
-			}
-			if got, _ := run("git", nil, "config", "--global", "--get", "core.hooksPath"); got != tc.wantGlobal {
-				t.Errorf("global core.hooksPath = %q, want %q", got, tc.wantGlobal)
-			}
 		})
+	}
+}
+
+// TestDevcontainerHooksPathRepairRunsOnTheHost pins that the project's
+// initialize hook, which the kit runs on the host before every start, calls
+// the repair as a command rather than in a comment.
+func TestDevcontainerHooksPathRepairRunsOnTheHost(t *testing.T) {
+	t.Parallel()
+	raw, err := os.ReadFile(filepath.Join(repoRoot(t), ".devcontainer", "project", "initialize.sh"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !regexp.MustCompile(`(?m)^[^#\n]*bash \.devcontainer/project/hooks-path\.sh`).Match(raw) {
+		t.Error(".devcontainer/project/initialize.sh must run bash .devcontainer/project/hooks-path.sh")
 	}
 }
