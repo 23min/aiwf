@@ -16,9 +16,9 @@ const projectPostCreatePath = ".devcontainer/project/post-create.sh"
 // materializes its framework files with stdin from /dev/null, installs the
 // kernel pre-commit chain, and gates Playwright behind AIWF_DEVCONTAINER_E2E.
 // Its golangci-lint and govulncheck pins must match .github/workflows/go.yml,
-// which CI treats as the source of truth. Only commands count: a line whose first non-blank
-// character is # is a comment and satisfies nothing. What the kit's own
-// scripts do is the kit's to test.
+// which CI treats as the source of truth. Only commands count: everything from
+// a line's first # on is read as a comment and satisfies nothing. What the
+// kit's own scripts do is the kit's to test.
 func PolicyDevcontainerProjectPostCreate(root string) ([]Violation, error) {
 	raw, err := os.ReadFile(filepath.Join(root, projectPostCreatePath))
 	if err != nil {
@@ -27,9 +27,8 @@ func PolicyDevcontainerProjectPostCreate(root string) ([]Violation, error) {
 	content := string(raw)
 	var commands strings.Builder
 	for _, line := range strings.Split(content, "\n") {
-		if !strings.HasPrefix(strings.TrimSpace(line), "#") {
-			commands.WriteString(line + "\n")
-		}
+		command, _, _ := strings.Cut(line, "#")
+		commands.WriteString(command + "\n")
 	}
 	var vs []Violation
 	report := func(detail string) {

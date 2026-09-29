@@ -45,6 +45,7 @@ func TestPolicyDevcontainerProjectPostCreate_Fixtures(t *testing.T) {
 		{name: "playwright-not-installed", firing: true, files: map[string]string{projectPostCreatePath: strings.Replace(good, "playwright install chromium", "true", 1), goWorkflowPath: goYML}},
 		{name: "no-strict-mode", firing: true, files: map[string]string{projectPostCreatePath: strings.Replace(good, "set -euo pipefail", "", 1), goWorkflowPath: goYML}},
 		{name: "install-hooks-only-in-a-comment", firing: true, files: map[string]string{projectPostCreatePath: strings.Replace(good, "make install-hooks", "# make install-hooks", 1), goWorkflowPath: goYML}},
+		{name: "aiwf-build-only-in-a-trailing-comment", firing: true, files: map[string]string{projectPostCreatePath: strings.Replace(good, "go install ./cmd/aiwf", ": # go install ./cmd/aiwf", 1), goWorkflowPath: goYML}},
 		{name: "no-aiwf-build", firing: true, files: map[string]string{projectPostCreatePath: strings.Replace(good, "go install ./cmd/aiwf", "", 1), goWorkflowPath: goYML}},
 		{name: "no-install-hooks", firing: true, files: map[string]string{projectPostCreatePath: strings.Replace(good, "make install-hooks", "", 1), goWorkflowPath: goYML}},
 		{name: "init-reads-stdin", firing: true, files: map[string]string{projectPostCreatePath: strings.Replace(good, " </dev/null", "", 1), goWorkflowPath: goYML}},
