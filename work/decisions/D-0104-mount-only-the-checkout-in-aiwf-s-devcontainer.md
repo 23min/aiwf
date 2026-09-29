@@ -1,7 +1,7 @@
 ---
 id: D-0104
 title: Mount only the checkout in aiwf's devcontainer
-status: proposed
+status: accepted
 relates_to:
     - G-0524
     - E-0098
