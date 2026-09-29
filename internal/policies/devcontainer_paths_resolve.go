@@ -27,9 +27,7 @@ func devcontainerReferenceFiles(root string) ([]string, error) {
 		dir  string
 		keep func(rel string) bool
 	}{
-		{"docs/adr", func(rel string) bool {
-			return strings.HasSuffix(rel, ".md") && !strings.HasPrefix(rel, "docs/adr/archive/")
-		}},
+		{"docs/adr", func(rel string) bool { return !strings.HasPrefix(rel, "docs/adr/archive/") }},
 		{"docs/design", func(string) bool { return true }},
 		{"docs/reference", func(string) bool { return true }},
 		{"scripts", func(string) bool { return true }},
