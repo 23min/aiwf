@@ -558,7 +558,7 @@ G-0548 are missing chokepoints rather than stale text.
 The first three are one story: a full disk surfaces as failures in whichever tests
 write most, which is the binary-building and repo-creating ones. That signature
 reads as a flaky suite, so the response it invites — re-run, then hunt a race — is
-aimed a layer below the cause. None of the five is a kernel concern; all cost
+aimed a layer below the cause. None of these is a kernel concern; all cost
 review cycles, and a green run on a nearly-full disk is not evidence either way.
 
 - **G-0552** — nothing bounds the Go build cache; it reached 84 GB and filled
@@ -570,10 +570,6 @@ review cycles, and a green run on a nearly-full disk is not evidence either way.
   reclaimable now
 - **G-0554** — the statusline CI cache mints a file per commit and deletes none.
   Same thesis as G-0555: unbounded growth with no reclaim path
-- **G-0524** — the devcontainer binds the clone's parent, exposing 28 sibling repos
-  as writable and putting a rival `CLAUDE.md` in reach — the capability, not an
-  occupant; there is none there today. Its own fix fails `PolicyM0132DevcontainerShape`,
-  which requires the binding it removes
 - **G-0372** — the history-dependent check rules walk all reachable history from
   scratch on every push
 - **G-0645** — shared test-binary temp dirs are never removed, leaking ~23G to /tmp
