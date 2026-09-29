@@ -131,15 +131,17 @@ subject the kit's generated README already states. **Code references**:
   devcontainer half of gitleaks enforcement.
 - Removed: `init.sh`, the hand-written `initialize.sh` (replaced by the kit's),
   `devcontainer-lock.json` (the kit ignores it).
-- Reworded: the `containerEnv` comment in `internal/cli/doctor/env.go`, the comment in
-  `.github/workflows/gitleaks.yml`, and `CLAUDE.md`'s devcontainer section.
+- Reworded: the `containerEnv` comment in `internal/cli/doctor/env.go`, the comments in
+  `.github/workflows/gitleaks.yml` and `.github/workflows/go.yml`, the doc comment in
+  `internal/policies/m0210_trailer_commit_drift.go`, and `CLAUDE.md`'s devcontainer section.
 
 ## Surfaces touched
 
 - `.devcontainer/`
 - `internal/policies/`
 - `internal/cli/doctor/env.go`
-- `CLAUDE.md`
+- `.github/workflows/`
+- `CLAUDE.md`, `TODO.md`
 
 ## Out of scope
 
@@ -169,8 +171,10 @@ runs, plus gofumpt and goimports. Node is the kit's current LTS rather than a pi
 identity comes from the host's global git config. The Go module and build caches and the npm
 cache live in named volumes shared by every kit container, so a rebuild no longer clears them.
 The Go extension's helper tools, the `dlv` debugger among them, are no longer preinstalled;
-install them with **Go: Install/Update Tools**. Codex installs through the kit at each start
-instead of through npm. `.devcontainer/project/README.md` covers aiwf's additions, the Playwright
+install them with **Go: Install/Update Tools**. Container creation removes a `core.hooksPath`
+that names the host's own hooks directory for this checkout from the `.git/config` it shares
+with the host, which leaves the host's hooks as they were. Codex installs through the kit at each
+start instead of through npm. `.devcontainer/project/README.md` covers aiwf's additions, the Playwright
 opt-in and recovery from a failed container creation. Nothing changes for repositories that use
 aiwf.
 
@@ -181,15 +185,19 @@ aiwf.
   hook it checks, since `.devcontainer/init.sh` no longer exists.
 - govulncheck is pinned to CI's version (v1.6.0, down from the v1.7.0 the container ran) and
   compared with `.github/workflows/go.yml`, as golangci-lint is.
-- The project hook unsets `core.hooksPath` only when it is the host's absolute path to this
-  repository's `.git/hooks` and does not exist in the container — the one value that leaves every
-  git hook dead there, and whose removal changes nothing on the host, where that directory is
-  git's default. Every other value is left alone, since `.git/config` is shared with the host
-  (`.devcontainer/project/hooks-path.sh`, run by `TestDevcontainerHooksPathRepair`).
+- The project hook unsets `core.hooksPath` only when the repository's own config sets it to the
+  host's path to this checkout's `.git/hooks` (`AIWF_HOST_CHECKOUT`, a `devcontainer.json` hand
+  edit holding `${localWorkspaceFolder}`, with or without a trailing slash) and that path does
+  not exist in the container — the one value that leaves every git hook dead there, and whose
+  removal changes nothing on the host, where that directory is git's default. Every other value,
+  scope and spelling is left alone, since `.git/config` is shared with the host; a path written
+  with `~` names the host's home and is one of them. The repair runs before `aiwf init` and
+  `make install-hooks` (`.devcontainer/project/hooks-path.sh`, run by
+  `TestDevcontainerHooksPathRepair`; order and input held by the post-create policy).
 
 ## Validation
 
-Run on the milestone branch at `fa909c2a3`, in aiwf's pre-move devcontainer (Linux, Go 1.25.11):
+Run on the milestone branch at `7cf745971`, in aiwf's pre-move devcontainer (Linux, Go 1.25.11):
 
 - `make ci` — exit 0: lint 0 issues; `go test -race` 74 packages ok, 0 failing; the diff-scoped
   coverage gate and the firing-fixture gate pass; total statement coverage 91.9%; self-check
@@ -207,8 +215,11 @@ Run on the milestone branch at `fa909c2a3`, in aiwf's pre-move devcontainer (Lin
   a version pin present only in a comment, and on a gitleaks install or pin present only in a
   comment.
 - `hooks-path.sh`, in a throwaway repository whose `.git/hooks/pre-commit` exits 1 and whose
-  `core.hooksPath` is `/Users/nobody/repo/.git/hooks`: before it runs, a commit succeeds (exit 0,
-  the hook never ran); after it runs, the same commit is refused (exit 1).
+  `core.hooksPath` is `/Users/nobody/Projects/aiwf/.git/hooks`, run with
+  `AIWF_HOST_CHECKOUT=/Users/nobody/Projects/aiwf`: before it runs, a commit succeeds (exit 0,
+  the hook never ran); after it runs, the same commit is refused (exit 1). With the repair call
+  moved after `make install-hooks`, or `AIWF_HOST_CHECKOUT` removed from `devcontainer.json`, the
+  post-create policy fails on the real tree.
 - `shellcheck -x .devcontainer/project/post-create.sh` — clean.
 - Not verified: that `AIWF_DEVCONTAINER_E2E=true` set in `containerEnv` reaches the project hook
   at container creation; `make e2e-install`, which the notes give first, does not depend on it.
