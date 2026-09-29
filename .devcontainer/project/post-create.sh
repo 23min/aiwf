@@ -17,8 +17,9 @@ cd "$(dirname "$0")/../.."
 git config --unset core.hooksPath 2>/dev/null || true
 
 # --- Go tooling -----------------------------------------------------------------------------
-# golangci-lint must match .github/workflows/go.yml and gitleaks .github/workflows/gitleaks.yml,
-# so local checks agree with CI; policy tests in internal/policies/ hold both pins.
+# golangci-lint and govulncheck must match .github/workflows/go.yml and gitleaks
+# .github/workflows/gitleaks.yml, so local checks agree with CI; policy tests in
+# internal/policies/ hold those pins.
 GOLANGCI_LINT_VERSION="v2.11.4"
 if ! command -v golangci-lint >/dev/null 2>&1; then
   echo "==> Installing golangci-lint ${GOLANGCI_LINT_VERSION}"
@@ -38,7 +39,7 @@ if ! command -v goimports >/dev/null 2>&1; then
   go install "golang.org/x/tools/cmd/goimports@${GOIMPORTS_VERSION}"
 fi
 
-GOVULNCHECK_VERSION="v1.7.0"
+GOVULNCHECK_VERSION="v1.6.0"
 if ! command -v govulncheck >/dev/null 2>&1; then
   echo "==> Installing govulncheck ${GOVULNCHECK_VERSION}"
   go install "golang.org/x/vuln/cmd/govulncheck@${GOVULNCHECK_VERSION}"

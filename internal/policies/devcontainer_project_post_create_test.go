@@ -15,11 +15,12 @@ func TestPolicyDevcontainerProjectPostCreate(t *testing.T) {
 // policy holds against a hook that satisfies all of them.
 func TestPolicyDevcontainerProjectPostCreate_Fixtures(t *testing.T) {
 	t.Parallel()
-	const goYML = "      - uses: golangci/golangci-lint-action@v8\n        with:\n          version: v2.11.4\n"
+	const goYML = "      - uses: golangci/golangci-lint-action@v8\n        with:\n          version: v2.11.4\n      - run: go install golang.org/x/vuln/cmd/govulncheck@v1.6.0\n"
 	good := strings.Join([]string{
 		"#!/usr/bin/env bash",
 		"set -euo pipefail",
 		`GOLANGCI_LINT_VERSION="v2.11.4"`,
+		`GOVULNCHECK_VERSION="v1.6.0"`,
 		"command -v golangci-lint || install golangci-lint",
 		"command -v gofumpt || install gofumpt",
 		"command -v govulncheck || install govulncheck",
@@ -42,6 +43,9 @@ func TestPolicyDevcontainerProjectPostCreate_Fixtures(t *testing.T) {
 		{name: "init-reads-stdin", firing: true, files: map[string]string{projectPostCreatePath: strings.Replace(good, " </dev/null", "", 1), goWorkflowPath: goYML}},
 		{name: "no-version-pin", firing: true, files: map[string]string{projectPostCreatePath: strings.Replace(good, `GOLANGCI_LINT_VERSION="v2.11.4"`, "", 1), goWorkflowPath: goYML}},
 		{name: "version-drift", firing: true, files: map[string]string{projectPostCreatePath: strings.Replace(good, "v2.11.4", "v2.10.0", 1), goWorkflowPath: goYML}},
+		{name: "govulncheck-drift", firing: true, files: map[string]string{projectPostCreatePath: strings.Replace(good, "v1.6.0", "v1.7.0", 1), goWorkflowPath: goYML}},
+		{name: "no-govulncheck-pin", firing: true, files: map[string]string{projectPostCreatePath: strings.Replace(good, `GOVULNCHECK_VERSION="v1.6.0"`, "", 1), goWorkflowPath: goYML}},
+		{name: "ci-has-no-govulncheck-pin", firing: true, files: map[string]string{projectPostCreatePath: good, goWorkflowPath: strings.Replace(goYML, "govulncheck@v1.6.0", "govulncheck@latest", 1)}},
 		{name: "ci-has-no-version", firing: true, files: map[string]string{projectPostCreatePath: good, goWorkflowPath: "jobs: {}\n"}},
 		{name: "no-ci-workflow", firing: true, files: map[string]string{projectPostCreatePath: good}},
 	}

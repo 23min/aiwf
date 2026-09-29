@@ -15,8 +15,8 @@ const projectPostCreatePath = ".devcontainer/project/post-create.sh"
 // needs: installs its pinned Go tools, builds aiwf from this checkout and
 // materializes its framework files with stdin from /dev/null, installs the
 // kernel pre-commit chain, and gates Playwright behind AIWF_DEVCONTAINER_E2E.
-// Its golangci-lint pin must match .github/workflows/go.yml, which CI treats
-// as the source of truth. Only commands count: a line whose first non-blank
+// Its golangci-lint and govulncheck pins must match .github/workflows/go.yml,
+// which CI treats as the source of truth. Only commands count: a line whose first non-blank
 // character is # is a comment and satisfies nothing. What the kit's own
 // scripts do is the kit's to test.
 func PolicyDevcontainerProjectPostCreate(root string) ([]Violation, error) {
@@ -61,31 +61,31 @@ func PolicyDevcontainerProjectPostCreate(root string) ([]Violation, error) {
 		}
 	}
 
-	m := regexp.MustCompile(`GOLANGCI_LINT_VERSION="?(v\d+\.\d+\.\d+)"?`).FindStringSubmatch(commands.String())
-	if m == nil {
-		report("no `GOLANGCI_LINT_VERSION=\"vX.Y.Z\"` pin to compare with CI")
-		return vs, nil
+	ciWorkflow, ciErr := os.ReadFile(filepath.Join(root, goWorkflowPath))
+	pins := []struct {
+		tool string
+		here *regexp.Regexp // the pin in the project hook
+		inCI *regexp.Regexp // the same tool's pin in go.yml
+	}{
+		{"golangci-lint", regexp.MustCompile(`GOLANGCI_LINT_VERSION="?(v\d+\.\d+\.\d+)"?`), regexp.MustCompile(`(?m)^\s*version:\s*"?(v\d+\.\d+\.\d+)"?\s*$`)},
+		{"govulncheck", regexp.MustCompile(`GOVULNCHECK_VERSION="?(v\d+\.\d+\.\d+)"?`), regexp.MustCompile(`govulncheck@(v\d+\.\d+\.\d+)`)},
 	}
-	switch ciVer, ciErr := extractGolangciVersionFromCI(root); {
-	case ciErr != nil:
-		report(fmt.Sprintf("can't read golangci-lint's version from %s: %v", goWorkflowPath, ciErr))
-	case ciVer != m[1]:
-		report(fmt.Sprintf("golangci-lint pinned at %s here but %s in %s; CI is the source of truth", m[1], ciVer, goWorkflowPath))
+	for _, p := range pins {
+		here := p.here.FindStringSubmatch(commands.String())
+		switch {
+		case here == nil:
+			report(fmt.Sprintf("no %s version pin to compare with CI", p.tool))
+		case ciErr != nil:
+			report(fmt.Sprintf("can't read %s: %v", goWorkflowPath, ciErr))
+		default:
+			ci := p.inCI.FindSubmatch(ciWorkflow)
+			switch {
+			case ci == nil:
+				report(fmt.Sprintf("no %s version pin in %s to compare with", p.tool, goWorkflowPath))
+			case string(ci[1]) != here[1]:
+				report(fmt.Sprintf("%s pinned at %s here but %s in %s; CI is the source of truth", p.tool, here[1], ci[1], goWorkflowPath))
+			}
+		}
 	}
 	return vs, nil
-}
-
-// extractGolangciVersionFromCI reads golangci-lint's version from
-// .github/workflows/go.yml: the first `version: vX.Y.Z` line. go.yml's Go
-// versions carry no `v` prefix, so requiring one singles out the
-// golangci-lint action's pin.
-func extractGolangciVersionFromCI(root string) (string, error) {
-	raw, err := os.ReadFile(filepath.Join(root, goWorkflowPath))
-	if err != nil {
-		return "", err
-	}
-	if m := regexp.MustCompile(`(?m)^\s*version:\s*"?(v\d+\.\d+\.\d+)"?\s*$`).FindSubmatch(raw); m != nil {
-		return string(m[1]), nil
-	}
-	return "", fmt.Errorf("no `version: vX.Y.Z` line in %s", goWorkflowPath)
 }
