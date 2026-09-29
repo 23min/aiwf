@@ -74,11 +74,11 @@ current files.
 
 | Question | Blocking? | Resolution path |
 |---|---|---|
-| Which sibling repositories the container mounts, and read-only or writable | yes | Milestone planning |
-| Which aiwf the container runs: from source with the kit's `aiwf: false`, or another arrangement | yes | Milestone planning |
-| Go version: the kit's latest, or pinned to CI's version through `go.mod` | yes | Milestone planning |
-| The fate of each policy test that pins the current files | yes | Milestone planning, per test |
-| Whether the kit's `node` language stays, now needed only for the opt-in Playwright tests | no | Milestone planning |
+| Which sibling repositories the container mounts, and read-only or writable | no | Settled at milestone planning: none |
+| Which aiwf the container runs | no | Settled: built from source, kit answer `aiwf: false`, steps in `project/post-create.sh` (M-0359) |
+| Go version | no | Settled: `GOTOOLCHAIN` pinned to `go.yml`'s `GO_VERSION` (M-0359 AC-2) |
+| The fate of each policy test that pins the current files | no | Settled: listed in M-0359's Design notes |
+| Whether the kit's `node` language stays | no | Settled: kept, for the Playwright tests |
 
 ## Risks
 
@@ -89,12 +89,10 @@ current files.
 
 ## Milestones
 
-Candidates, allocated and sequenced by `aiwfx-plan-milestones`:
-
-- Generate the devcontainer from the kit, move aiwf's own steps into project hooks,
-  and re-point or retire what pins the old files.
-- Rebuild, observe and record: repository-only view, aiwf from source, `make ci`,
-  hooks, Claude and Codex persistence.
+- M-0359 — Generate aiwf's devcontainer from the kit with its own steps in project
+  hooks · depends on: —
+- M-0360 — Trial-build, then rebuild aiwf's container from the kit and record the
+  result · depends on: M-0359
 
 ## References
 
