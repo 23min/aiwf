@@ -11,7 +11,8 @@ set -euo pipefail
 cd "$(dirname "$0")/../.."
 
 # --- core.hooksPath -------------------------------------------------------------------------
-# A host path to this repository's own hooks directory disables every git hook here; see the script.
+# The host's path to this checkout's hooks directory disables every git hook here; see the script.
+# It runs before aiwf init and make install-hooks, which both write into the hooks directory.
 bash .devcontainer/project/hooks-path.sh
 
 # --- Go tooling -----------------------------------------------------------------------------

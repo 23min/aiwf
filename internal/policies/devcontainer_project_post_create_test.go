@@ -24,10 +24,10 @@ func TestPolicyDevcontainerProjectPostCreate_Fixtures(t *testing.T) {
 		`command -v golangci-lint || install.sh | sh -s -- -b bin "${GOLANGCI_LINT_VERSION}"`,
 		"command -v gofumpt || install gofumpt",
 		"command -v govulncheck || go install golang.org/x/vuln/cmd/govulncheck@${GOVULNCHECK_VERSION}",
+		"bash .devcontainer/project/hooks-path.sh",
 		"go install ./cmd/aiwf",
 		"aiwf init --no-prompt </dev/null || true",
 		"make install-hooks",
-		"bash .devcontainer/project/hooks-path.sh",
 		`if [[ "${AIWF_DEVCONTAINER_E2E:-false}" == "true" ]]; then npx playwright install chromium; fi`,
 	}, "\n") + "\n"
 	cases := []struct {
@@ -36,6 +36,9 @@ func TestPolicyDevcontainerProjectPostCreate_Fixtures(t *testing.T) {
 		firing bool
 	}{
 		{name: "complete-passes", firing: false, files: map[string]string{projectPostCreatePath: good, goWorkflowPath: goYML}},
+		{name: "host-checkout-passed-passes", firing: false, files: map[string]string{projectPostCreatePath: good, goWorkflowPath: goYML, devcontainerConfigPath: `{"containerEnv": {"AIWF_HOST_CHECKOUT": "${localWorkspaceFolder}"}}`}},
+		{name: "host-checkout-not-passed", firing: true, files: map[string]string{projectPostCreatePath: good, goWorkflowPath: goYML, devcontainerConfigPath: `{"containerEnv": {}}`}},
+		{name: "repair-after-install-hooks", firing: true, files: map[string]string{projectPostCreatePath: strings.Replace(good, "bash .devcontainer/project/hooks-path.sh\n", "", 1) + "bash .devcontainer/project/hooks-path.sh\n", goWorkflowPath: goYML}},
 		{name: "missing", firing: true, files: map[string]string{goWorkflowPath: goYML}},
 		{name: "strict-mode-only-in-a-comment", firing: true, files: map[string]string{projectPostCreatePath: strings.Replace(good, "set -euo pipefail", "# set -euo pipefail", 1), goWorkflowPath: goYML}},
 		{name: "golangci-lint-not-guarded", firing: true, files: map[string]string{projectPostCreatePath: strings.Replace(good, "command -v golangci-lint", "true", 1), goWorkflowPath: goYML}},

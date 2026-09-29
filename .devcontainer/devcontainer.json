@@ -47,7 +47,9 @@
     // aiwf pin (hand edit): the Go that CI runs, go.yml's GO_VERSION; a policy test ties the two.
     "GOTOOLCHAIN": "go1.25.12",
     // aiwf (hand edit): read by `aiwf doctor` to report that it runs in aiwf's devcontainer.
-    "AIWF_DEVCONTAINER": "1"
+    "AIWF_DEVCONTAINER": "1",
+    // aiwf (hand edit): the host path of this checkout; project/hooks-path.sh compares core.hooksPath with it.
+    "AIWF_HOST_CHECKOUT": "${localWorkspaceFolder}"
   },
 
   "postCreateCommand": "bash .devcontainer/post-create.sh",
