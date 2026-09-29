@@ -45,7 +45,9 @@
     "DEVKIT_SLUG": "aiwf",
     "UV_LINK_MODE": "copy",
     // aiwf pin (hand edit): the Go that CI runs, go.yml's GO_VERSION; a policy test ties the two.
-    "GOTOOLCHAIN": "go1.25.12"
+    "GOTOOLCHAIN": "go1.25.12",
+    // aiwf (hand edit): read by `aiwf doctor` to report that it runs in aiwf's devcontainer.
+    "AIWF_DEVCONTAINER": "1"
   },
 
   "postCreateCommand": "bash .devcontainer/post-create.sh",
@@ -66,8 +68,15 @@
       ],
       "settings": {
         "[go]": {
-          "editor.defaultFormatter": "golang.go"
+          "editor.defaultFormatter": "golang.go",
+          // aiwf (hand edit): organize imports on save, as gofumpt/goimports expect.
+          "editor.codeActionsOnSave": {
+            "source.organizeImports": "explicit"
+          }
         },
+        // aiwf (hand edit): validate and format aiwf.yaml and the workflow files.
+        "yaml.validate": true,
+        "yaml.format.enable": true,
         "editor.formatOnSave": true,
         "terminal.integrated.defaultProfile.linux": "zsh"
       }

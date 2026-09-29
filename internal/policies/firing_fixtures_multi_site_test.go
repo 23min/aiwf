@@ -109,13 +109,6 @@ func TestFiringFixtures_MultiSite(t *testing.T) {
 			files:  map[string]string{"CLAUDE.md": "# X\n\n## Go conventions\n\n### Skills policy\n\nshipped skill bodies cite no real entity id, and nothing else here\n"},
 		},
 
-		// m0132-init-script: missing + present-minimal + unreadable. The
-		// unreadable case makes the path a directory, so os.Stat succeeds
-		// but os.ReadFile fails (the "ReadFile failed" construction line).
-		{name: "m0132-init/missing", policy: PolicyM0132InitScript, files: map[string]string{}},
-		{name: "m0132-init/minimal", policy: PolicyM0132InitScript, files: map[string]string{".devcontainer/init.sh": "#!/usr/bin/env bash\n"}},
-		{name: "m0132-init/unreadable", policy: PolicyM0132InitScript, files: map[string]string{".devcontainer/init.sh/keep": "x"}},
-
 		// m0134-claude-md-test-running-sections: missing + present-malformed.
 		{name: "m0134/missing", policy: PolicyM0134ClaudeMdTestRunningSections, files: map[string]string{}},
 		{

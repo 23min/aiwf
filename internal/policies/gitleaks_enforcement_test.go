@@ -111,9 +111,9 @@ func TestGitleaksEnforcement_Gitleaksignore(t *testing.T) {
 
 func TestGitleaksEnforcement_DevcontainerInstallsGitleaks(t *testing.T) {
 	t.Parallel()
-	init := gitleaksFile(t, ".devcontainer/init.sh")
+	init := gitleaksFile(t, ".devcontainer/project/post-create.sh")
 	if !strings.Contains(init, "github.com/zricethezav/gitleaks/v8@") {
-		t.Error(".devcontainer/init.sh must install gitleaks so the local pre-push hook actually fires")
+		t.Error(".devcontainer/project/post-create.sh must install gitleaks so the local pre-push hook actually fires")
 	}
 }
 
@@ -122,13 +122,13 @@ func TestGitleaksEnforcement_PinnedVersionConsistent(t *testing.T) {
 	atRe := regexp.MustCompile(`gitleaks/v8@(v8\.\d+\.\d+)`)
 	devRe := regexp.MustCompile(`GITLEAKS_VERSION="(v8\.\d+\.\d+)"`)
 	ci := atRe.FindStringSubmatch(gitleaksFile(t, ".github/workflows/gitleaks.yml"))
-	dev := devRe.FindStringSubmatch(gitleaksFile(t, ".devcontainer/init.sh"))
+	dev := devRe.FindStringSubmatch(gitleaksFile(t, ".devcontainer/project/post-create.sh"))
 	hint := atRe.FindStringSubmatch(gitleaksFile(t, "scripts/git-hooks/pre-push"))
 	if ci == nil {
 		t.Fatal("no pinned gitleaks version (gitleaks/v8@vX.Y.Z) in .github/workflows/gitleaks.yml")
 	}
 	if dev == nil {
-		t.Fatal(`no pinned GITLEAKS_VERSION="vX.Y.Z" in .devcontainer/init.sh`)
+		t.Fatal(`no pinned GITLEAKS_VERSION="vX.Y.Z" in .devcontainer/project/post-create.sh`)
 	}
 	if hint == nil {
 		t.Fatal("no pinned gitleaks version (gitleaks/v8@vX.Y.Z) in scripts/git-hooks/pre-push install hint")
@@ -136,6 +136,6 @@ func TestGitleaksEnforcement_PinnedVersionConsistent(t *testing.T) {
 	// CI, devcontainer, and the pre-push install hint must all agree so a
 	// version bump can't leave one site stale.
 	if ci[1] != dev[1] || ci[1] != hint[1] {
-		t.Errorf("pinned gitleaks version must agree: gitleaks.yml=%s, init.sh=%s, pre-push hint=%s", ci[1], dev[1], hint[1])
+		t.Errorf("pinned gitleaks version must agree: gitleaks.yml=%s, project/post-create.sh=%s, pre-push hint=%s", ci[1], dev[1], hint[1])
 	}
 }
