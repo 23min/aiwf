@@ -10,7 +10,7 @@ acs:
       status: met
     - id: AC-2
       title: The container's Go toolchain matches CI's pinned version
-      status: open
+      status: met
     - id: AC-3
       title: Container creation builds aiwf from source with CI-matched tools
       status: open
