@@ -1,8 +1,10 @@
 ---
 id: G-0524
 title: Devcontainer mounts the repo's parent, exposing siblings and a rival CLAUDE.md
-status: open
+status: addressed
 priority: medium
+addressed_by_commit:
+    - 058a31dea
 ---
 ## What's missing
 
