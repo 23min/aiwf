@@ -10,12 +10,6 @@ set -euo pipefail
 
 cd "$(dirname "$0")/../.."
 
-# --- stale core.hooksPath -------------------------------------------------------------------
-# A clone whose hooks an older `make install-hooks` set up can carry an absolute core.hooksPath
-# naming a host path, which does not exist here and makes every hook-resolving aiwf verb fail.
-# Unset it so git's default <gitdir>/hooks applies on host and container alike.
-git config --unset core.hooksPath 2>/dev/null || true
-
 # --- Go tooling -----------------------------------------------------------------------------
 # golangci-lint and govulncheck must match .github/workflows/go.yml and gitleaks
 # .github/workflows/gitleaks.yml, so local checks agree with CI; policy tests in
