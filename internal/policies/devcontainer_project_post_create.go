@@ -66,7 +66,7 @@ func PolicyDevcontainerProjectPostCreate(root string) ([]Violation, error) {
 		here *regexp.Regexp // the pin in the project hook
 		inCI *regexp.Regexp // the same tool's pin in go.yml; golangci-lint's is the action's own version:, two lines below it
 	}{
-		{"golangci-lint", regexp.MustCompile(`GOLANGCI_LINT_VERSION="?(v\d+\.\d+\.\d+)"?`), regexp.MustCompile(`golangci/golangci-lint-action@[^\n]*\n[^\n]*\n\s*version:\s*"?(v\d+\.\d+\.\d+)"?`)},
+		{"golangci-lint", regexp.MustCompile(`GOLANGCI_LINT_VERSION="?(v\d+\.\d+\.\d+)"?`), regexp.MustCompile(`golangci/golangci-lint-action@[^\n]*\n[^\n]*\n\s*version:\s*"?(v\d+\.\d+\.\d+)"?[ \t]*(?:\n|$)`)},
 		{"govulncheck", regexp.MustCompile(`GOVULNCHECK_VERSION="?(v\d+\.\d+\.\d+)"?`), regexp.MustCompile(`govulncheck@(v\d+\.\d+\.\d+)`)},
 	}
 	for _, p := range pins {
