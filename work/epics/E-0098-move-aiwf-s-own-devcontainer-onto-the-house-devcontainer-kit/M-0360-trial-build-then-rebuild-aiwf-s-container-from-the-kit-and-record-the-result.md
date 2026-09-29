@@ -41,7 +41,9 @@ environment: in a container built from a separate clone of the milestone's branc
 version` reports a build of that clone's commit; `go version` reports the Go named by
 `GO_VERSION` in `.github/workflows/go.yml`; golangci-lint, govulncheck and gitleaks report
 the versions pinned in `.devcontainer/project/post-create.sh`; `make ci` passes; `aiwf
-doctor` reports the git hooks installed; Claude Code and Codex start logged in, with
+doctor` reports the git hooks installed; a commit made in the trial clone carries the
+same `aiwf-actor` as the commits made before the move, now that the container's git identity
+comes from the host's global git config; Claude Code and Codex start logged in, with
 their existing sessions listed. **Edge cases**: the trial clone's container name, which
 must differ from the running container's, changed only in the trial clone and
 never committed. **Code references**: none; the record lives in this milestone's
