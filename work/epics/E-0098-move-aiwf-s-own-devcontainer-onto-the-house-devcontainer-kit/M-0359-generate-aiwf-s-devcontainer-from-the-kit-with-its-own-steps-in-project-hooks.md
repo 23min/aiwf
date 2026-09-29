@@ -1,7 +1,7 @@
 ---
 id: M-0359
 title: Generate aiwf's devcontainer from the kit with its own steps in project hooks
-status: in_progress
+status: done
 parent: E-0098
 tdd: advisory
 acs:
