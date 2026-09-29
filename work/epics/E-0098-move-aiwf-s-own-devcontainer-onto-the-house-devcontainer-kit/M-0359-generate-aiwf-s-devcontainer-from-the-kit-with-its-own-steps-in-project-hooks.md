@@ -19,7 +19,7 @@ acs:
       status: met
     - id: AC-5
       title: The parent-mount removal is recorded as a decision
-      status: open
+      status: met
     - id: AC-6
       title: aiwf's operator notes cover the Playwright opt-in and recovery
       status: met
