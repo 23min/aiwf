@@ -22,7 +22,8 @@ container and then in place of it, and record what each showed.
 
 ## Closes
 
-- (none)
+- G-0699: records Codex's configuration, sessions and login surviving a rebuild of the
+  kit-built container (M-0360 AC-2).
 
 ## Context
 
