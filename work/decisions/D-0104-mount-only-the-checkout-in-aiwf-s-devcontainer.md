@@ -43,7 +43,8 @@ whether that reach survives, and in what form.
 ## Consequences
 
 - `PolicyDevcontainerWorkspaceMount` (`internal/policies/devcontainer_workspace_mount.go`) fails
-  when `workspaceMount` or any mount binds the checkout's parent.
+  when `workspaceMount` is not the checkout, or when `devcontainer.json` names
+  `${localWorkspaceFolder}/..` outside a whole-line comment.
 - Cross-repository work that ran from this container moves to the other repository's container,
   or to a sibling answer added for it.
 - `.devcontainer/project/README.md` states how to add a sibling.
