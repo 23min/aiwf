@@ -16,7 +16,7 @@ acs:
       status: met
     - id: AC-4
       title: No reference points at a removed devcontainer file
-      status: open
+      status: met
     - id: AC-5
       title: The parent-mount removal is recorded as a decision
       status: open
