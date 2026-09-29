@@ -160,15 +160,17 @@ subject the kit's generated README already states. **Code references**:
 
 ## Release note
 
-aiwf's own development container is generated from the house devcontainer kit. It mounts only
-the aiwf checkout, not the folder above it, so sibling repositories and any `CLAUDE.md` beside the
-clone are no longer visible inside the container; a sibling that is needed is added through the
-kit's `siblings` or `writable_siblings` answers. The container runs Go at CI's `GO_VERSION`,
-builds `aiwf` from the checkout, and installs pinned Go tools, golangci-lint and gitleaks at the
-versions CI runs. Codex installs through the
-kit at each start instead of through npm. `.devcontainer/project/README.md` covers aiwf's
-additions, the Playwright opt-in and recovery from a failed container creation. Nothing changes
-for repositories that use aiwf.
+aiwf's own development container is generated from the house devcontainer kit, and opens only
+at `/workspaces/aiwf` on this checkout: the folder above it is no longer mounted, so sibling
+repositories and any `CLAUDE.md` beside the clone are out of reach, and the container can no
+longer be opened on a sibling worktree. A sibling that is needed is added through the kit's
+`siblings` or `writable_siblings` answers. The container runs Go at CI's `GO_VERSION`, builds
+`aiwf` from the checkout, and installs golangci-lint, govulncheck and gitleaks at the versions CI
+runs, plus gofumpt and goimports. Git identity comes from the host's global git config. The Go
+extension's helper tools, the `dlv` debugger among them, are no longer preinstalled; install them
+with **Go: Install/Update Tools**. Codex installs through the kit at each start instead of
+through npm. `.devcontainer/project/README.md` covers aiwf's additions, the Playwright opt-in
+and recovery from a failed container creation. Nothing changes for repositories that use aiwf.
 
 ## Decisions made during implementation
 
@@ -178,7 +180,7 @@ for repositories that use aiwf.
 
 ## Validation
 
-Run on the milestone branch at `e25cc0fa2`, in aiwf's pre-move devcontainer (Linux, Go 1.25.11):
+Run on the milestone branch at `a7b295188`, in aiwf's pre-move devcontainer (Linux, Go 1.25.11):
 
 - `make ci` — exit 0: lint 0 issues; `go test -race` 74 packages ok, 0 failing; the diff-scoped
   coverage gate and the firing-fixture gate pass; total statement coverage 91.9%; self-check
@@ -188,9 +190,11 @@ Run on the milestone branch at `e25cc0fa2`, in aiwf's pre-move devcontainer (Lin
   upstream.
 - Each new policy was run against the real tree with its subject broken and failed as stated:
   the parent mount, a `GOTOOLCHAIN` of `go1.27.1`, the recovery command shortened in the notes,
-  the pre-change `gitleaks.yml` comment naming `.devcontainer/init.sh`. The project post-create
-  policy's fixtures fail on each required command removed and on `make install-hooks` present
-  only in a comment.
+  the pre-change `gitleaks.yml` comment naming `.devcontainer/init.sh`, govulncheck pinned at
+  v1.7.0 against CI's v1.6.0, gitleaks and govulncheck installed at `@latest`. Fixtures fail on
+  each required hook command removed, on `make install-hooks` present only in a comment, on a
+  parent bind spelled `src=` in `mounts` or passed as `-v` in `runArgs`, and on a removed path
+  named in `docs/design`, the `Makefile` or `.devcontainer/project/README.md`.
 - `shellcheck -x .devcontainer/project/post-create.sh` — clean.
 - Not verified: that `AIWF_DEVCONTAINER_E2E=true` set in `containerEnv` reaches the project hook
   at container creation; `make e2e-install`, which the notes give first, does not depend on it.
