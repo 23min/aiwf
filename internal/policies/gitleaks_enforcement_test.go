@@ -109,18 +109,44 @@ func TestGitleaksEnforcement_Gitleaksignore(t *testing.T) {
 	}
 }
 
+// gitleaksInstallRe matches the project hook installing gitleaks at its
+// GITLEAKS_VERSION pin, on a line with no # before it: a comment installs
+// nothing.
+var gitleaksInstallRe = regexp.MustCompile(`(?m)^[^#\n]*github\.com/zricethezav/gitleaks/v8@\$\{GITLEAKS_VERSION\}`)
+
 func TestGitleaksEnforcement_DevcontainerInstallsGitleaks(t *testing.T) {
 	t.Parallel()
-	init := gitleaksFile(t, ".devcontainer/project/post-create.sh")
-	if !strings.Contains(init, "github.com/zricethezav/gitleaks/v8@${GITLEAKS_VERSION}") {
+	if !gitleaksInstallRe.MatchString(gitleaksFile(t, ".devcontainer/project/post-create.sh")) {
 		t.Error(".devcontainer/project/post-create.sh must install gitleaks at its GITLEAKS_VERSION pin so the local pre-push hook fires with CI's version")
+	}
+}
+
+func TestGitleaksEnforcement_InstallCountsOnlyCommands(t *testing.T) {
+	t.Parallel()
+	const install = `  go install "github.com/zricethezav/gitleaks/v8@${GITLEAKS_VERSION}"` + "\n"
+	cases := []struct {
+		name string
+		hook string
+		want bool
+	}{
+		{"installed-at-pin", install, true},
+		{"install-only-in-a-comment", "# " + install, false},
+		{"installed-at-latest", strings.Replace(install, "${GITLEAKS_VERSION}", "latest", 1), false},
+	}
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			t.Parallel()
+			if got := gitleaksInstallRe.MatchString(tc.hook); got != tc.want {
+				t.Errorf("install found = %v, want %v", got, tc.want)
+			}
+		})
 	}
 }
 
 func TestGitleaksEnforcement_PinnedVersionConsistent(t *testing.T) {
 	t.Parallel()
 	atRe := regexp.MustCompile(`gitleaks/v8@(v8\.\d+\.\d+)`)
-	devRe := regexp.MustCompile(`GITLEAKS_VERSION="(v8\.\d+\.\d+)"`)
+	devRe := regexp.MustCompile(`(?m)^[^#\n]*GITLEAKS_VERSION="(v8\.\d+\.\d+)"`)
 	ci := atRe.FindStringSubmatch(gitleaksFile(t, ".github/workflows/gitleaks.yml"))
 	dev := devRe.FindStringSubmatch(gitleaksFile(t, ".devcontainer/project/post-create.sh"))
 	hint := atRe.FindStringSubmatch(gitleaksFile(t, "scripts/git-hooks/pre-push"))

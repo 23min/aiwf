@@ -36,6 +36,11 @@ func TestPolicyDevcontainerProjectPostCreate_Fixtures(t *testing.T) {
 	}{
 		{name: "complete-passes", firing: false, files: map[string]string{projectPostCreatePath: good, goWorkflowPath: goYML}},
 		{name: "missing", firing: true, files: map[string]string{goWorkflowPath: goYML}},
+		{name: "strict-mode-only-in-a-comment", firing: true, files: map[string]string{projectPostCreatePath: strings.Replace(good, "set -euo pipefail", "# set -euo pipefail", 1), goWorkflowPath: goYML}},
+		{name: "golangci-lint-not-guarded", firing: true, files: map[string]string{projectPostCreatePath: strings.Replace(good, "command -v golangci-lint", "true", 1), goWorkflowPath: goYML}},
+		{name: "no-gofumpt", firing: true, files: map[string]string{projectPostCreatePath: strings.Replace(good, "command -v gofumpt", "true", 1), goWorkflowPath: goYML}},
+		{name: "govulncheck-not-guarded", firing: true, files: map[string]string{projectPostCreatePath: strings.Replace(good, "command -v govulncheck", "true", 1), goWorkflowPath: goYML}},
+		{name: "playwright-not-gated", firing: true, files: map[string]string{projectPostCreatePath: strings.Replace(good, "AIWF_DEVCONTAINER_E2E:-false", "ALWAYS", 1), goWorkflowPath: goYML}},
 		{name: "no-strict-mode", firing: true, files: map[string]string{projectPostCreatePath: strings.Replace(good, "set -euo pipefail", "", 1), goWorkflowPath: goYML}},
 		{name: "install-hooks-only-in-a-comment", firing: true, files: map[string]string{projectPostCreatePath: strings.Replace(good, "make install-hooks", "# make install-hooks", 1), goWorkflowPath: goYML}},
 		{name: "no-aiwf-build", firing: true, files: map[string]string{projectPostCreatePath: strings.Replace(good, "go install ./cmd/aiwf", "", 1), goWorkflowPath: goYML}},

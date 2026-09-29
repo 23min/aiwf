@@ -36,7 +36,7 @@ func PolicyDevcontainerProjectPostCreate(root string) ([]Violation, error) {
 		vs = append(vs, Violation{Policy: "devcontainer-project-post-create", File: projectPostCreatePath, Detail: detail})
 	}
 
-	if first, _, _ := strings.Cut(content, "\n"); strings.TrimSpace(first) != "#!/usr/bin/env bash" || !strings.Contains(content, "set -euo pipefail") {
+	if first, _, _ := strings.Cut(content, "\n"); strings.TrimSpace(first) != "#!/usr/bin/env bash" || !strings.Contains(commands.String(), "set -euo pipefail") {
 		report("must start with `#!/usr/bin/env bash` and set `set -euo pipefail`")
 	}
 
