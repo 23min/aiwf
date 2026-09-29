@@ -54,9 +54,9 @@ func mountOption(mount, key string) string {
 }
 
 // PolicyDevcontainerWorkspaceMount asserts that aiwf's development container
-// mounts the checkout itself at /workspaces/aiwf and that nothing in
-// devcontainer.json names the checkout's parent, ${localWorkspaceFolder}/..,
-// whatever the mount's spelling or route (mounts, runArgs). Binding the parent
+// mounts the checkout itself at /workspaces/aiwf and that devcontainer.json
+// nowhere contains the text ${localWorkspaceFolder}/.., the checkout's parent as
+// a mount names it, whether in workspaceMount, mounts or runArgs. Binding the parent
 // exposes every sibling repository and any instruction file sitting beside
 // the clone (G-0524); a sibling the container needs is listed explicitly
 // through the kit's siblings answers.
