@@ -13,7 +13,7 @@ acs:
       status: met
     - id: AC-3
       title: Container creation builds aiwf from source with CI-matched tools
-      status: open
+      status: met
     - id: AC-4
       title: No reference points at a removed devcontainer file
       status: open
