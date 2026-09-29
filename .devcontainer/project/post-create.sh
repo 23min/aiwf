@@ -13,7 +13,8 @@ cd "$(dirname "$0")/../.."
 # --- Go tooling -----------------------------------------------------------------------------
 # golangci-lint and govulncheck must match .github/workflows/go.yml and gitleaks
 # .github/workflows/gitleaks.yml, so local checks agree with CI; policy tests in
-# internal/policies/ hold those pins.
+# internal/policies/ hold those pins. gofumpt and goimports have no CI counterpart; each pin must
+# build with the Go in GOTOOLCHAIN, since a later release can require a newer Go and fail here.
 GOLANGCI_LINT_VERSION="v2.11.4"
 if ! command -v golangci-lint >/dev/null 2>&1; then
   echo "==> Installing golangci-lint ${GOLANGCI_LINT_VERSION}"

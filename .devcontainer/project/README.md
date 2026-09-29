@@ -18,7 +18,7 @@ when doing so changes nothing on the host: every value set is that directory and
 the global or system git config, so git's default there is the same directory. Anything else is
 left alone, and the script never stops a start.
 
-`post-create.sh` in this folder runs once, after the kit's own post-create:
+`post-create.sh` in this folder runs once, as the kit's post-create's "project post-create" step:
 
 - pinned Go tools: golangci-lint, govulncheck and gitleaks at the versions CI runs, plus gofumpt
   and goimports;
