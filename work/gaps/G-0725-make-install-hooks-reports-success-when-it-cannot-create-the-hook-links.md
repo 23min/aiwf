@@ -32,14 +32,14 @@ ls: cannot access '.git/hooks/pre-commit.local': No such file or directory
 ```
 
 A `core.hooksPath` naming a directory that cannot be created gives the same result, with `mkdir`
-failing first (`git config core.hooksPath /Users/nobody/repo/.git/hooks`):
+failing first (`git config core.hooksPath /nonexistent/repo/.git/hooks`):
 
 ```
-mkdir: cannot create directory ‘/Users’: Permission denied
-ln: failed to create symbolic link '/Users/nobody/repo/.git/hooks/pre-commit.local': No such file or directory
-ln: failed to create symbolic link '/Users/nobody/repo/.git/hooks/pre-push.local': No such file or directory
-Symlinked scripts/git-hooks/pre-commit -> /Users/nobody/repo/.git/hooks/pre-commit.local
-Symlinked scripts/git-hooks/pre-push   -> /Users/nobody/repo/.git/hooks/pre-push.local
+mkdir: cannot create directory ‘/nonexistent’: Permission denied
+ln: failed to create symbolic link '/nonexistent/repo/.git/hooks/pre-commit.local': No such file or directory
+ln: failed to create symbolic link '/nonexistent/repo/.git/hooks/pre-push.local': No such file or directory
+Symlinked scripts/git-hooks/pre-commit -> /nonexistent/repo/.git/hooks/pre-commit.local
+Symlinked scripts/git-hooks/pre-push   -> /nonexistent/repo/.git/hooks/pre-push.local
 Run 'aiwf init' (if not already done) so the chain-aware aiwf hooks call them.
 make install-hooks exit: 0
 ```
