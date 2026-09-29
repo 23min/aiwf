@@ -39,8 +39,8 @@ jobs:
         with:
           go-version: "1.25"
           cache: true
-      # Pinned; version must match .devcontainer/init.sh (cross-file
-      # consistency asserted by the gitleaks-enforcement policy test).
+      # Pinned; version must match .devcontainer/project/post-create.sh
+      # (cross-file consistency asserted by the gitleaks-enforcement policy test).
       - name: Install gitleaks (pinned)
         run: go install github.com/zricethezav/gitleaks/v8@v8.30.1
       - name: Scan history for secrets / path leaks

@@ -16,8 +16,8 @@ import (
 //   - `/.dockerenv` file existence (Docker convention; set by the
 //     Docker runtime regardless of orchestrator).
 //   - `AIWF_DEVCONTAINER` env var with a truthy value (`1` / `true`,
-//     case-insensitive). Set by `.devcontainer/devcontainer.json`'s
-//     `containerEnv` map for repos using the M-0132 devcontainer.
+//     case-insensitive). aiwf's own devcontainer sets it through
+//     `containerEnv` in `.devcontainer/devcontainer.json`.
 //
 // Returns the boolean state plus the rendered label suitable for the
 // `env:` line in `aiwf doctor` output:
