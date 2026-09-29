@@ -127,8 +127,8 @@ subject the kit's generated README already states. **Code references**:
   `TestDevcontainerCodexStateMount`, `TestDevcontainerGuidanceMount`. The kit owns
   what they pinned; its own tests cover the guidance step.
 - Policy tests re-pointed to `project/post-create.sh`: `m0132-init-script` (only
-  aiwf's own installs and the golangci-lint match) and the devcontainer half of
-  gitleaks enforcement.
+  aiwf's own installs, with golangci-lint and govulncheck matched to CI) and the
+  devcontainer half of gitleaks enforcement.
 - Removed: `init.sh`, the hand-written `initialize.sh` (replaced by the kit's),
   `devcontainer-lock.json` (the kit ignores it).
 - Reworded: `internal/cli/doctor/env.go`'s comments and messages,
@@ -166,7 +166,8 @@ repositories and any `CLAUDE.md` beside the clone are out of reach, and the cont
 longer be opened on a sibling worktree. A sibling that is needed is added through the kit's
 `siblings` or `writable_siblings` answers. The container runs Go at CI's `GO_VERSION`, builds
 `aiwf` from the checkout, and installs golangci-lint, govulncheck and gitleaks at the versions CI
-runs, plus gofumpt and goimports. Git identity comes from the host's global git config. The Go
+runs, plus gofumpt and goimports. Node is the kit's current LTS rather than a pinned 22. Git
+identity comes from the host's global git config. The Go
 extension's helper tools, the `dlv` debugger among them, are no longer preinstalled; install them
 with **Go: Install/Update Tools**. Codex installs through the kit at each start instead of
 through npm. `.devcontainer/project/README.md` covers aiwf's additions, the Playwright opt-in
@@ -177,6 +178,12 @@ and recovery from a failed container creation. Nothing changes for repositories 
 - D-0104 — the container mounts only the checkout; siblings come through the kit's answers.
 - The re-pointed `m0132-init-script` policy is `devcontainer-project-post-create`, named for the
   hook it checks, since `.devcontainer/init.sh` no longer exists.
+- govulncheck is pinned to CI's version (v1.6.0, down from the v1.7.0 the container ran) and
+  compared with `.github/workflows/go.yml`, as golangci-lint is.
+- The project hook no longer unsets `core.hooksPath`: `.git/config` is shared with the host, and
+  the kit's post-create reports a stale absolute path instead of changing it. A clone carrying
+  such a path therefore gets a container without the kernel pre-commit chain, marked only by the
+  kit's warning, until the path is unset by hand.
 
 ## Validation
 
