@@ -118,6 +118,17 @@ var gitleaksInstallRe = regexp.MustCompile(`(?m)^[^#\n]*github\.com/zricethezav/
 // with no # before it, so a commented-out pin cannot stand in for the live one.
 var gitleaksPinRe = regexp.MustCompile(`(?m)^[^#\n]*GITLEAKS_VERSION="(v8\.\d+\.\d+)"`)
 
+// gitleaksAtRe reads a gitleaks/v8@vX.Y.Z install pin as a whole value, so a
+// suffixed version such as v8.30.1-rc1 is not read as v8.30.1.
+var gitleaksAtRe = regexp.MustCompile(`gitleaks/v8@(v8\.\d+\.\d+)(?:["'\s]|$)`)
+
+func TestGitleaksEnforcement_AtPinReadsWholeValue(t *testing.T) {
+	t.Parallel()
+	if m := gitleaksAtRe.FindStringSubmatch("go install github.com/zricethezav/gitleaks/v8@v8.30.1-rc1\n"); m != nil {
+		t.Errorf("read %q from a suffixed pin; want no pin read", m[1])
+	}
+}
+
 func TestGitleaksEnforcement_PinReadsOnlyCommands(t *testing.T) {
 	t.Parallel()
 	hook := "# GITLEAKS_VERSION=\"v8.30.1\"\nGITLEAKS_VERSION=\"v8.29.0\"\n"
@@ -157,7 +168,7 @@ func TestGitleaksEnforcement_InstallCountsOnlyCommands(t *testing.T) {
 
 func TestGitleaksEnforcement_PinnedVersionConsistent(t *testing.T) {
 	t.Parallel()
-	atRe := regexp.MustCompile(`gitleaks/v8@(v8\.\d+\.\d+)`)
+	atRe := gitleaksAtRe
 	ci := atRe.FindStringSubmatch(gitleaksFile(t, ".github/workflows/gitleaks.yml"))
 	dev := gitleaksPinRe.FindStringSubmatch(gitleaksFile(t, ".devcontainer/project/post-create.sh"))
 	hint := atRe.FindStringSubmatch(gitleaksFile(t, "scripts/git-hooks/pre-push"))
