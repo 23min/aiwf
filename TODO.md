@@ -558,7 +558,7 @@ G-0548 are missing chokepoints rather than stale text.
 The first three are one story: a full disk surfaces as failures in whichever tests
 write most, which is the binary-building and repo-creating ones. That signature
 reads as a flaky suite, so the response it invites — re-run, then hunt a race — is
-aimed a layer below the cause. None of the five is a kernel concern; all cost
+aimed a layer below the cause. None of these is a kernel concern; all cost
 review cycles, and a green run on a nearly-full disk is not evidence either way.
 
 - **G-0552** — nothing bounds the Go build cache; it reached 84 GB and filled

@@ -64,9 +64,9 @@ func isGoSource(rel string) bool {
 	return strings.HasSuffix(rel, ".go") && !strings.HasSuffix(rel, "_test.go")
 }
 
-// PolicyDevcontainerPathsResolve asserts that every .devcontainer/ path the
-// guides, Normative docs, scripts, CI and Go source name exists, or matches a
-// file when it is a glob. Replacing the container's files moves and removes
+// PolicyDevcontainerPathsResolve asserts that every .devcontainer/ path named
+// in the files devcontainerReferenceFiles lists exists, or matches a file when
+// it is a glob. Replacing the container's files moves and removes
 // paths; a reference left pointing at one sends the reader nowhere.
 func PolicyDevcontainerPathsResolve(root string) ([]Violation, error) {
 	files, err := devcontainerReferenceFiles(root)
