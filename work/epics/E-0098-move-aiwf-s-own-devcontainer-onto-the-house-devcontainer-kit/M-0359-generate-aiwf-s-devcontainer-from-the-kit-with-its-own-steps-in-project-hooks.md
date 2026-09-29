@@ -161,22 +161,22 @@ subject the kit's generated README already states. **Code references**:
 
 ## Release note
 
-aiwf's own development container is generated from the house devcontainer kit, and opens only at
-`/workspaces/aiwf` on this checkout: the folder above it is no longer mounted, so sibling
-repositories and any `CLAUDE.md` beside the clone are out of reach, and the container can no
-longer be opened on a sibling worktree. A sibling that is needed is added through the kit's
-`siblings` or `writable_siblings` answers. The container runs Go at CI's `GO_VERSION`, builds
-`aiwf` from the checkout, and installs golangci-lint, govulncheck and gitleaks at the versions CI
-runs, plus gofumpt and goimports. Node is the kit's current LTS rather than a pinned 22. Git
-identity comes from the host's global git config. The Go module and build caches and the npm
-cache live in named volumes shared by every kit container, so a rebuild no longer clears them.
-The Go extension's helper tools, the `dlv` debugger among them, are no longer preinstalled;
-install them with **Go: Install/Update Tools**. Before each start, a `core.hooksPath` naming this
-repository's own hooks directory by its full host path is removed from `.git/config` when that
-changes nothing on the host, so git hooks run in the container too. Codex installs through the kit at each
-start instead of through npm. `.devcontainer/project/README.md` covers aiwf's additions, the Playwright
-opt-in and recovery from a failed container creation. Nothing changes for repositories that use
-aiwf.
+aiwf's own development container is generated from the house devcontainer kit, on an Ubuntu 24.04
+base in place of Debian 12, and opens only at `/workspaces/aiwf` on this checkout: the folder
+above it is no longer mounted, so sibling repositories and any `CLAUDE.md` beside the clone are
+out of reach, and the container can no longer be opened on a sibling worktree. A sibling that is
+needed is added through the kit's `siblings` or `writable_siblings` answers. The container runs Go
+at CI's `GO_VERSION`, builds `aiwf` from the checkout, and installs golangci-lint, govulncheck and
+gitleaks at the versions CI runs, plus gofumpt and goimports. Node is the kit's current LTS rather
+than a pinned 22. Git identity comes from the host's global git config. The Go module and build
+caches and the npm cache live in named volumes shared by every kit container, so a rebuild no
+longer clears them. The Go extension's helper tools, the `dlv` debugger among them, are no longer
+preinstalled; install them with **Go: Install/Update Tools**. Before each start, a
+`core.hooksPath` naming this repository's own hooks directory by its full host path is removed
+from `.git/config` when that changes nothing on the host, so git hooks run in the container too.
+Codex installs through the kit at each start instead of through npm.
+`.devcontainer/project/README.md` covers aiwf's additions, the Playwright opt-in and recovery from
+a failed container creation. Nothing changes for repositories that use aiwf.
 
 ## Decisions made during implementation
 
@@ -199,7 +199,7 @@ aiwf.
 
 ## Validation
 
-Run on the milestone branch at `294ced2fc`, in aiwf's pre-move devcontainer (Linux, Go 1.25.11):
+Run on the milestone branch at `8d36c9d24`, in aiwf's pre-move devcontainer (Linux, Go 1.25.11):
 
 - `make ci` — exit 0: lint 0 issues; `go test -race` 74 packages ok, 0 failing; the diff-scoped
   coverage gate and the firing-fixture gate pass; total statement coverage 91.9%; self-check
@@ -217,7 +217,8 @@ Run on the milestone branch at `294ced2fc`, in aiwf's pre-move devcontainer (Lin
   a version pin present only in a comment, on a required command inside a trailing comment, on
   another step's `version:` ahead of the golangci-lint action's, on that action's version
   carrying a suffix (`v2.11.4-rc1`), on a suffixed pin in the hook or on govulncheck's or
-  gitleaks's install line, and on a gitleaks install or pin present only in a comment.
+  gitleaks's install line, on a govulncheck or gitleaks pin in a CI comment ahead of the live
+  one, and on a gitleaks install or pin present only in a comment.
 - `hooks-path.sh`, run in throwaway repositories with an isolated global config
   (`TestDevcontainerHooksPathRepair`): the repository's own absolute hooks directory is unset,
   with a trailing slash too and when set twice; it is kept when the global config also sets
@@ -229,9 +230,9 @@ Run on the milestone branch at `294ced2fc`, in aiwf's pre-move devcontainer (Lin
   repair call commented out, that test fails. Both tests also pass with `TMPDIR` behind a symlink,
   as macOS's is, and fail there when the throwaway repository's path is not resolved through it.
 - `shellcheck -x .devcontainer/project/*.sh` — clean.
-- `gitleaks git --config=.gitleaks.toml`, the scan CI and the pre-push hook run, at `2d9599a0e` —
-  no leaks found, exit 0; the macOS home paths with an invented user name that earlier commits on this branch
-  recorded are accepted by fingerprint in `.gitleaksignore`.
+- `gitleaks git --config=.gitleaks.toml`, the scan CI and the pre-push hook run, at `8d36c9d24` —
+  no leaks found, exit 0; the macOS home paths with an invented user name that earlier commits on
+  this branch recorded are accepted by fingerprint in `.gitleaksignore`.
 - Not verified: that `AIWF_DEVCONTAINER_E2E=true` set in `containerEnv` reaches the project hook
   at container creation; `make e2e-install`, which the notes give first, does not depend on it.
   Nor that the built image's `python3` imports `dataclasses`: Ubuntu 24.04's `python3` depends on
@@ -262,8 +263,8 @@ named, and it retires when the fact it guards leaves the repository.
 - Every `.devcontainer/` path named in the root guides, the Makefile, the Normative docs,
   scripts, workflows, Go source and `.devcontainer/project/` exists
   (`DevcontainerPathsResolve`); retires with the directory.
-- `project/README.md` names the Playwright variable and the kit's recovery command
-  (`DevcontainerProjectNotes`); retires with the notes.
+- `project/README.md` names the Playwright variable with the instruction to rebuild the
+  container, and the kit's recovery command (`DevcontainerProjectNotes`); retires with the notes.
 - `hooks-path.sh` unsets `core.hooksPath` only when every value is this repository's own hooks
   directory, all from its local config, and exits 0 in every case; `project/initialize.sh` runs
   it on its own checkout from any directory (`DevcontainerHooksPath`). Retires when the kit
@@ -285,7 +286,7 @@ named, and it retires when the fact it guards leaves the repository.
   never pass.
 - The failed-unset case checks the exit status and the kept value, not the warning's wording.
 - Each new policy test repeats the package's write-the-fixture-then-run-the-policy loop rather
-  than sharing a helper; every policy test in the package is written that way.
+  than sharing a helper, as the package's other fixture-table policy tests do.
 - Nothing runs the hooks-path tests with a symlinked temporary directory in CI, which runs on
   Linux; `hooksPathSandbox` is the one place that builds their repositories and resolves it.
 
