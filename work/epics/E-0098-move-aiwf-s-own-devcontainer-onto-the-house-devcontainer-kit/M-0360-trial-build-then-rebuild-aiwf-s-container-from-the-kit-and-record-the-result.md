@@ -73,7 +73,8 @@ recorded. **Code references**: none.
 
 ## Out of scope
 
-- Changes to the generated files; a defect found here returns to M-0359 or a gap.
+- Changes to the generated files; a defect found here is filed as a gap, or fixed in this
+  milestone when it is small.
 
 ## Dependencies
 
