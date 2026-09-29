@@ -44,9 +44,9 @@ func PolicyDevcontainerProjectPostCreate(root string) ([]Violation, error) {
 		name    string
 		needles []string // every one must appear
 	}{
-		{"golangci-lint, installed once", []string{"golangci-lint", "command -v golangci-lint"}},
-		{"gofumpt, installed once", []string{"gofumpt", "command -v gofumpt"}},
-		{"govulncheck, installed once", []string{"govulncheck", "command -v govulncheck"}},
+		{"golangci-lint, installed once", []string{"command -v golangci-lint"}},
+		{"gofumpt, installed once", []string{"command -v gofumpt"}},
+		{"govulncheck, installed once", []string{"command -v govulncheck"}},
 		{"aiwf built from this checkout", []string{"go install ./cmd/aiwf"}},
 		{"aiwf init with stdin from /dev/null", []string{"aiwf init --no-prompt </dev/null"}},
 		{"kernel pre-commit chain", []string{"make install-hooks"}},

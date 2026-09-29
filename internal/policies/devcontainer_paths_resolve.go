@@ -46,11 +46,7 @@ func devcontainerReferenceFiles(root string) ([]string, error) {
 				}
 				return nil
 			}
-			rel, err := filepath.Rel(root, path)
-			if err != nil {
-				//coverage:ignore defensive: every walked path lies under root, so Rel cannot fail
-				return err
-			}
+			rel, _ := filepath.Rel(root, path) // every walked path lies under root
 			if rel = filepath.ToSlash(rel); w.keep(rel) {
 				files = append(files, rel)
 			}

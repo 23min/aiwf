@@ -13,10 +13,9 @@ const devcontainerConfigPath = ".devcontainer/devcontainer.json"
 // devcontainerConfig is the part of .devcontainer/devcontainer.json the
 // devcontainer policies read.
 type devcontainerConfig struct {
-	WorkspaceFolder string            `json:"workspaceFolder"`
-	WorkspaceMount  string            `json:"workspaceMount"`
-	Mounts          []string          `json:"mounts"`
-	ContainerEnv    map[string]string `json:"containerEnv"`
+	WorkspaceMount string            `json:"workspaceMount"`
+	Mounts         []string          `json:"mounts"`
+	ContainerEnv   map[string]string `json:"containerEnv"`
 }
 
 // readDevcontainerConfig decodes .devcontainer/devcontainer.json. The kit
