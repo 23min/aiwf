@@ -193,10 +193,13 @@ aiwf.
   that path does not exist. Anything else is left alone, a spelling with `~` among it, and the
   script never stops a start (`TestDevcontainerHooksPathRepair`). The decision is made on the host
   because only the host sees its own global git config.
+- Python 3 comes from the kit's `apt_packages` answer (`python3`), which brings the full standard
+  library `scripts/growth-report.py` imports; the `python3-minimal` the Node feature installs
+  lacks `dataclasses`, so `make ci` would fail without it.
 
 ## Validation
 
-Run on the milestone branch at `67bc38eb5`, in aiwf's pre-move devcontainer (Linux, Go 1.25.11):
+Run on the milestone branch at `c80f40f4e`, in aiwf's pre-move devcontainer (Linux, Go 1.25.11):
 
 - `make ci` — exit 0: lint 0 issues; `go test -race` 74 packages ok, 0 failing; the diff-scoped
   coverage gate and the firing-fixture gate pass; total statement coverage 91.9%; self-check
@@ -211,23 +214,74 @@ Run on the milestone branch at `67bc38eb5`, in aiwf's pre-move devcontainer (Lin
   each required hook command removed, on `make install-hooks` present only in a comment, on a
   parent bind spelled `src=` in `mounts` or passed as `-v` in `runArgs`, on a removed path
   named in `docs/design`, the `Makefile` or `.devcontainer/project/README.md`, on strict mode or
-  a version pin present only in a comment, and on a gitleaks install or pin present only in a
+  a version pin present only in a comment, on a required command inside a trailing comment, on
+  another step's `version:` ahead of the golangci-lint action's, on that action's version
+  carrying a suffix (`v2.11.4-rc1`), and on a gitleaks install or pin present only in a
   comment.
 - `hooks-path.sh`, run in throwaway repositories with an isolated global config
   (`TestDevcontainerHooksPathRepair`): the repository's own absolute hooks directory is unset,
   with a trailing slash too and when set twice; it is kept when the global config also sets
   `core.hooksPath`, for another directory, for a relative path, and when the unset fails, and the
   script exits 0 in each case. Dropping the global-scope guard, dropping the own-directory match,
-  or exiting 1 on a failed unset each fails that test.
+  or exiting 1 on a failed unset each fails that test. `project/initialize.sh`, copied into such
+  a repository and started from an unrelated directory, exits 0 and repairs that repository
+  (`TestDevcontainerHooksPathRepairRunsOnTheHost`); without its `cd` to the checkout, or with the
+  repair call commented out, that test fails. Both tests also pass with `TMPDIR` behind a symlink,
+  as macOS's is, and fail there when the throwaway repository's path is not resolved through it.
 - `shellcheck -x .devcontainer/project/*.sh` — clean.
 - Not verified: that `AIWF_DEVCONTAINER_E2E=true` set in `containerEnv` reaches the project hook
   at container creation; `make e2e-install`, which the notes give first, does not depend on it.
-  Building the container is M-0360.
+  Nor that the built image's `python3` imports `dataclasses`: Ubuntu 24.04's `python3` depends on
+  `python3.12`, which depends on `libpython3.12-stdlib`, but no image was built. Building the
+  container and running `make ci` in it is M-0360.
 
 ## Deferrals
 
-- (none)
+- G-0725 — `make install-hooks` reports success when it cannot create the hook links.
 
 ## Reviewer notes
 
-- (none)
+**Obligations on later changes.** Each rule below is held by the named check, run with
+`go test -count=1 -run '<pattern>' ./internal/policies/`; its owner is whoever makes the change
+named, and it retires when the fact it guards leaves the repository.
+
+- A Go bump in `go.yml`'s `GO_VERSION` also edits `containerEnv.GOTOOLCHAIN`
+  (`DevcontainerGoToolchain`); retires when the container stops pinning Go there.
+- A golangci-lint or govulncheck bump in `go.yml`, or a gitleaks bump in `gitleaks.yml`, also
+  edits the pin in `project/post-create.sh` (gitleaks's in the `scripts/git-hooks/pre-push`
+  install hint too), and that hook keeps each required step as a command, not a comment
+  (`DevcontainerProjectPostCreate|Gitleaks`); retires when the container stops installing its
+  own copies.
+- `workspaceMount` stays the checkout at `/workspaces/aiwf`, and `devcontainer.json` never names
+  `${localWorkspaceFolder}/..` (`DevcontainerWorkspaceMount`); retires with D-0104.
+- Every `.devcontainer/` path named in the root guides, the Makefile, the Normative docs,
+  scripts, workflows, Go source and `.devcontainer/project/` exists
+  (`DevcontainerPathsResolve`); retires with the directory.
+- `project/README.md` names the Playwright variable and the kit's recovery command
+  (`DevcontainerProjectNotes`); retires with the notes.
+- `project/initialize.sh` runs the hooks-path repair and exits 0 from any directory
+  (`DevcontainerHooksPath`).
+- Unchecked, held at review: `uvx copier update` must keep the `devcontainer.json` hand edits
+  (only `GOTOOLCHAIN` is checked); gofumpt and goimports pins must build with the Go in
+  `GOTOOLCHAIN` (`project/post-create.sh` says so); the host-side scripts stay bash 3.2-safe,
+  which the tests, run under bash 5, do not show.
+
+**Findings declined.**
+
+- The parent-mount check is a text search for `${localWorkspaceFolder}/..`; a JSON-escaped
+  `\/..` or `/./..` passes it. It guards against the parent mount returning as someone would
+  type it, and its comment says what it searches for.
+- `.devcontainer/` paths are matched without a left boundary, so a URL into another repository's
+  `.devcontainer/` is flagged; that failure is loud, and no scanned file has one.
+- `AGENTS.md` is not among the files the paths check scans; it names no `.devcontainer/` path.
+- The hooks-path tests inherit `GIT_CONFIG_PARAMETERS`; a value there can only make them fail,
+  never pass.
+- The failed-unset case checks the exit status and the kept value, not the warning's wording.
+- Nothing runs the hooks-path tests with a symlinked temporary directory in CI, which runs on
+  Linux; `hooksPathSandbox` is the one place that builds their repositories and resolves it.
+
+**Left as they are.** A `core.hooksPath` written with `~` is not repaired. Container commits take
+their identity from the host's global git config, so `aiwf-actor` follows that address; M-0360
+observes it.
+
+**Verdict.** (written after the deciding review)
