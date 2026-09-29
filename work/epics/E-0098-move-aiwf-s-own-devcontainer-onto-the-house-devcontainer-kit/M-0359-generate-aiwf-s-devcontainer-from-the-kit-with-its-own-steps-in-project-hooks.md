@@ -160,11 +160,38 @@ subject the kit's generated README already states. **Code references**:
 
 ## Release note
 
+aiwf's own development container is generated from the house devcontainer kit. It mounts only
+the aiwf checkout, not the folder above it, so sibling repositories and any `CLAUDE.md` beside the
+clone are no longer visible inside the container; a sibling that is needed is added through the
+kit's `siblings` or `writable_siblings` answers. The container runs Go at CI's `GO_VERSION`,
+builds `aiwf` from the checkout, and installs the Go tools CI pins. Codex installs through the
+kit at each start instead of through npm. `.devcontainer/project/README.md` covers aiwf's
+additions, the Playwright opt-in and recovery from a failed container creation. Nothing changes
+for repositories that use aiwf.
+
 ## Decisions made during implementation
 
-- (none)
+- D-0104 — the container mounts only the checkout; siblings come through the kit's answers.
+- The re-pointed `m0132-init-script` policy is `devcontainer-project-post-create`, named for the
+  hook it checks, since `.devcontainer/init.sh` no longer exists.
 
 ## Validation
+
+Run on the milestone branch at `e25cc0fa2`, in aiwf's pre-move devcontainer (Linux, Go 1.25.11):
+
+- `make ci` — exit 0: lint 0 issues; `go test -race` 74 packages ok, 0 failing; the diff-scoped
+  coverage gate and the firing-fixture gate pass; total statement coverage 91.9%; self-check
+  passes all 29 steps.
+- `aiwf check` — 0 errors. Warnings: `acs-tdd-audit` for each met criterion, which records no TDD
+  phase under `tdd: advisory`; `provenance-untrailered-scope-undefined`, since the branch has no
+  upstream.
+- Each new policy was run against the real tree with its subject broken and failed as stated:
+  the parent mount, a `GOTOOLCHAIN` of `go1.27.1`, the recovery command shortened in the notes,
+  the pre-change `gitleaks.yml` comment naming `.devcontainer/init.sh`.
+- `shellcheck -x .devcontainer/project/post-create.sh` — clean.
+- Not verified: that `AIWF_DEVCONTAINER_E2E=true` set in `containerEnv` reaches the project hook
+  at container creation; `make e2e-install`, which the notes give first, does not depend on it.
+  Building the container is M-0360.
 
 ## Deferrals
 
