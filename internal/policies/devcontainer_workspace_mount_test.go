@@ -28,7 +28,7 @@ func TestPolicyDevcontainerWorkspaceMount_Fixtures(t *testing.T) {
 		{name: "not-json", firing: true, files: map[string]string{devcontainerConfigPath: "{ not json"}},
 		{name: "no-workspace-mount", firing: true, files: map[string]string{devcontainerConfigPath: "{}"}},
 		{name: "parent-workspace-mount", firing: true, files: map[string]string{
-			devcontainerConfigPath: `{"workspaceMount": "source=${localWorkspaceFolder}/..,target=/workspaces,type=bind"}`,
+			devcontainerConfigPath: `{"workspaceMount": "source=${localWorkspaceFolder}/..,target=/workspaces/aiwf,type=bind"}`,
 		}},
 		{name: "wrong-target", firing: true, files: map[string]string{
 			devcontainerConfigPath: `{"workspaceMount": "source=${localWorkspaceFolder},target=/workspaces,type=bind"}`,

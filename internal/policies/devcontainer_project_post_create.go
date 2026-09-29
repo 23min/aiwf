@@ -16,13 +16,21 @@ const projectPostCreatePath = ".devcontainer/project/post-create.sh"
 // materializes its framework files with stdin from /dev/null, installs the
 // kernel pre-commit chain, and gates Playwright behind AIWF_DEVCONTAINER_E2E.
 // Its golangci-lint pin must match .github/workflows/go.yml, which CI treats
-// as the source of truth. What the kit's own scripts do is the kit's to test.
+// as the source of truth. Only commands count: a line whose first non-blank
+// character is # is a comment and satisfies nothing. What the kit's own
+// scripts do is the kit's to test.
 func PolicyDevcontainerProjectPostCreate(root string) ([]Violation, error) {
 	raw, err := os.ReadFile(filepath.Join(root, projectPostCreatePath))
 	if err != nil {
 		return []Violation{{Policy: "devcontainer-project-post-create", File: projectPostCreatePath, Detail: fmt.Sprintf("missing or unreadable: %v", err)}}, nil
 	}
 	content := string(raw)
+	var commands strings.Builder
+	for _, line := range strings.Split(content, "\n") {
+		if !strings.HasPrefix(strings.TrimSpace(line), "#") {
+			commands.WriteString(line + "\n")
+		}
+	}
 	var vs []Violation
 	report := func(detail string) {
 		vs = append(vs, Violation{Policy: "devcontainer-project-post-create", File: projectPostCreatePath, Detail: detail})
@@ -46,14 +54,14 @@ func PolicyDevcontainerProjectPostCreate(root string) ([]Violation, error) {
 	}
 	for _, c := range checks {
 		for _, n := range c.needles {
-			if !strings.Contains(content, n) {
+			if !strings.Contains(commands.String(), n) {
 				report(fmt.Sprintf("%s: %q not found", c.name, n))
 				break
 			}
 		}
 	}
 
-	m := regexp.MustCompile(`GOLANGCI_LINT_VERSION="?(v\d+\.\d+\.\d+)"?`).FindStringSubmatch(content)
+	m := regexp.MustCompile(`GOLANGCI_LINT_VERSION="?(v\d+\.\d+\.\d+)"?`).FindStringSubmatch(commands.String())
 	if m == nil {
 		report("no `GOLANGCI_LINT_VERSION=\"vX.Y.Z\"` pin to compare with CI")
 		return vs, nil
