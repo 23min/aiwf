@@ -13,7 +13,8 @@ binaries — do not occur, so `make ci` runs as CI does. The host path stays ava
 
 `post-create.sh` in this folder runs once, after the kit's own post-create:
 
-- the Go tools CI pins: golangci-lint, gofumpt, goimports, govulncheck and gitleaks;
+- pinned Go tools: golangci-lint and gitleaks at the versions CI runs, plus gofumpt, goimports
+  and govulncheck;
 - `aiwf`, built from this checkout with `go install ./cmd/aiwf` rather than a released version,
   then `aiwf init` for its framework files;
 - `make install-hooks`, the kernel's pre-commit chain;

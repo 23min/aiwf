@@ -2,7 +2,7 @@
 # Project hook — runs INSIDE the container after the kit's post-create.sh (once per container).
 # Owned by this repo: `copier update` never changes this file.
 #
-# aiwf's own setup: the Go tools CI pins, aiwf built from this checkout (never a release), its
+# aiwf's own setup: its pinned Go tools, aiwf built from this checkout (never a release), its
 # framework hooks, and the opt-in Playwright install. Idempotent — it runs again after every
 # rebuild. Git identity and the gh credential helper come from the kit's post-create, the Go
 # version from devcontainer.json's containerEnv.GOTOOLCHAIN; see .devcontainer/project/README.md.

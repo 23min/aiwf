@@ -38,9 +38,10 @@ on:
       - "internal/htmlrender/embedded/**"
 
 # GO_VERSION is the single source of truth for this workflow's toolchain
-# pin. A stdlib CVE that only a toolchain release can clear is remediated
-# by editing this one value; every job below reads it. The companion pin
-# in gitleaks.yml is that workflow's own.
+# pin; every job below reads it. The devcontainer runs the same Go through
+# containerEnv.GOTOOLCHAIN in .devcontainer/devcontainer.json, which a policy
+# test holds equal to this value, so a bump edits both. The companion pin in
+# gitleaks.yml is that workflow's own.
 env:
   GO_VERSION: "1.25.12"
 

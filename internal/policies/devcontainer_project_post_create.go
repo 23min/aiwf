@@ -12,7 +12,7 @@ const projectPostCreatePath = ".devcontainer/project/post-create.sh"
 
 // PolicyDevcontainerProjectPostCreate asserts that aiwf's project hook,
 // .devcontainer/project/post-create.sh, does what only aiwf's container
-// needs: installs the Go tools CI pins, builds aiwf from this checkout and
+// needs: installs its pinned Go tools, builds aiwf from this checkout and
 // materializes its framework files with stdin from /dev/null, installs the
 // kernel pre-commit chain, and gates Playwright behind AIWF_DEVCONTAINER_E2E.
 // Its golangci-lint pin must match .github/workflows/go.yml, which CI treats
