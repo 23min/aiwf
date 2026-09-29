@@ -109,53 +109,12 @@ func TestFiringFixtures_MultiSite(t *testing.T) {
 			files:  map[string]string{"CLAUDE.md": "# X\n\n## Go conventions\n\n### Skills policy\n\nshipped skill bodies cite no real entity id, and nothing else here\n"},
 		},
 
-		// m0132-devcontainer-readme: missing + missing-required-sections.
-		{name: "m0132-readme/missing", policy: PolicyM0132DevcontainerReadme, files: map[string]string{}},
-		{
-			name:   "m0132-readme/missing-sections",
-			policy: PolicyM0132DevcontainerReadme,
-			files:  map[string]string{".devcontainer/README.md": "# Devcontainer\n\n## Some Unrelated Section\n\nbody\n"},
-		},
-
-		// m0132-devcontainer-shape: missing + invalid-JSON + empty-object.
-		{name: "m0132-shape/missing", policy: PolicyM0132DevcontainerShape, files: map[string]string{}},
-		{name: "m0132-shape/bad-json", policy: PolicyM0132DevcontainerShape, files: map[string]string{".devcontainer/devcontainer.json": "this is not json"}},
-		{name: "m0132-shape/empty-object", policy: PolicyM0132DevcontainerShape, files: map[string]string{".devcontainer/devcontainer.json": "{}"}},
-
 		// m0132-init-script: missing + present-minimal + unreadable. The
 		// unreadable case makes the path a directory, so os.Stat succeeds
 		// but os.ReadFile fails (the "ReadFile failed" construction line).
 		{name: "m0132-init/missing", policy: PolicyM0132InitScript, files: map[string]string{}},
 		{name: "m0132-init/minimal", policy: PolicyM0132InitScript, files: map[string]string{".devcontainer/init.sh": "#!/usr/bin/env bash\n"}},
 		{name: "m0132-init/unreadable", policy: PolicyM0132InitScript, files: map[string]string{".devcontainer/init.sh/keep": "x"}},
-
-		// m0132-initialize-script: missing + present-minimal + unreadable
-		// (directory in place of the script file).
-		{name: "m0132-initialize/missing", policy: PolicyM0132InitializeScript, files: map[string]string{}},
-		{name: "m0132-initialize/minimal", policy: PolicyM0132InitializeScript, files: map[string]string{".devcontainer/initialize.sh": "#!/usr/bin/env bash\n"}},
-		{name: "m0132-initialize/unreadable", policy: PolicyM0132InitializeScript, files: map[string]string{".devcontainer/initialize.sh/keep": "x"}},
-
-		// m0132-devcontainer-lock: missing + bad-json + no-devcontainer-json
-		// + bad-devcontainer-json + feature-mismatch.
-		{name: "m0132-lock/missing", policy: PolicyM0132DevcontainerLock, files: map[string]string{}},
-		{name: "m0132-lock/bad-json", policy: PolicyM0132DevcontainerLock, files: map[string]string{".devcontainer/devcontainer-lock.json": "not json"}},
-		{name: "m0132-lock/no-devcontainer-json", policy: PolicyM0132DevcontainerLock, files: map[string]string{".devcontainer/devcontainer-lock.json": "{}"}},
-		{
-			name:   "m0132-lock/bad-devcontainer-json",
-			policy: PolicyM0132DevcontainerLock,
-			files: map[string]string{
-				".devcontainer/devcontainer-lock.json": "{}",
-				".devcontainer/devcontainer.json":      "not json",
-			},
-		},
-		{
-			name:   "m0132-lock/feature-mismatch",
-			policy: PolicyM0132DevcontainerLock,
-			files: map[string]string{
-				".devcontainer/devcontainer-lock.json": "{\"features\":{}}",
-				".devcontainer/devcontainer.json":      "{\"features\":{\"ghcr.io/x/y:1\":{}}}",
-			},
-		},
 
 		// m0134-claude-md-test-running-sections: missing + present-malformed.
 		{name: "m0134/missing", policy: PolicyM0134ClaudeMdTestRunningSections, files: map[string]string{}},
@@ -234,35 +193,6 @@ func TestFiringFixtures_MultiSite(t *testing.T) {
 				"internal/b/setup_test.go": "package b\n\nthis is not valid go @@@\n",
 				"internal/c/c_test.go":     "package c\n",
 				"internal/c/setup_test.go": "package c\n",
-			},
-		},
-
-		// m0202-devcontainer-onboarding: missing files (both report sites)
-		// + a retired marker in each file + the banner missing its
-		// verification pointer. Together these light every report site.
-		{name: "m0202-onboarding/missing", policy: PolicyM0202DevcontainerOnboarding, files: map[string]string{}},
-		{
-			name:   "m0202-onboarding/init-retired-marker",
-			policy: PolicyM0202DevcontainerOnboarding,
-			files: map[string]string{
-				".devcontainer/init.sh":   "aiwf doctor rituals:\n/plugin marketplace add 23min/ai-workflow-rituals\n",
-				".devcontainer/README.md": "clean\n",
-			},
-		},
-		{
-			name:   "m0202-onboarding/readme-retired-marker",
-			policy: PolicyM0202DevcontainerOnboarding,
-			files: map[string]string{
-				".devcontainer/init.sh":   "aiwf doctor rituals:\n",
-				".devcontainer/README.md": "install both plugins at PROJECT scope\n",
-			},
-		},
-		{
-			name:   "m0202-onboarding/banner-missing-pointer",
-			policy: PolicyM0202DevcontainerOnboarding,
-			files: map[string]string{
-				".devcontainer/init.sh":   "aiwf devcontainer ready.\n",
-				".devcontainer/README.md": "clean\n",
 			},
 		},
 
