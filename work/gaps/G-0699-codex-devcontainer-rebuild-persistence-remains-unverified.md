@@ -1,8 +1,10 @@
 ---
 id: G-0699
 title: Codex devcontainer rebuild persistence remains unverified
-status: open
+status: addressed
 discovered_in: M-0343
+addressed_by_commit:
+    - 7669e059f
 ---
 ## What's missing
 
