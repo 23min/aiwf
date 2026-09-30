@@ -8,12 +8,13 @@ discovered_in: M-0360
 
 `aiwf doctor --self-check` stops for good when its standard input is a terminal. Its `init` step
 and its three `update` steps run without `--no-prompt` (`internal/cli/doctor/selfcheck.go`, the
-steps labelled `init` and `update (…)`). Both verbs ask questions whenever standard input is a
-terminal: the guidance-pack selection (`GuidanceSelector` in `internal/cli/cliutil/guidance.go`)
-and one `[y/N]` per optional Claude hook (`interactive` in `internal/cli/cliutil/hooks.go`). The
-self-check's output shows none of those questions, so it waits on an answer nobody is asked for.
-`make ci` runs the self-check last (`selfcheck:` in the `Makefile`), so `make ci` typed at a
-terminal hangs after every other step has passed.
+steps labelled `init` and `update (…)`). Both verbs ask questions when standard input is a
+terminal: about each guidance pack neither selected nor ignored (`GuidanceSelector` in
+`internal/cli/cliutil/guidance.go`), and one `[y/N]` per optional Claude hook not yet decided
+(`interactive` in `internal/cli/cliutil/hooks.go`). The self-check's output shows none of those
+questions, so it waits on an answer nobody is asked for. `make ci` runs the self-check last
+(`selfcheck:` in the `Makefile`), so `make ci` typed at a terminal hangs after every other step
+has passed.
 
 Measured in the devcontainer (Linux, x86_64), with a binary built from `5f0aa0fc1`, giving the
 self-check a terminal through `script`:
