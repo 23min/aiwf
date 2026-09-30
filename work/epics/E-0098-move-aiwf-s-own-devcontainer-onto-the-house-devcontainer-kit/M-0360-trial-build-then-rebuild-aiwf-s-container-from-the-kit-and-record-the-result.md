@@ -12,7 +12,7 @@ acs:
       status: met
     - id: AC-2
       title: The rebuilt aiwf container passes every check and resumes sessions
-      status: open
+      status: met
 ---
 
 ## Goal
