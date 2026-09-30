@@ -89,9 +89,13 @@ recorded. **Code references**: none.
 
 ## Release note
 
+Nothing user-facing changes in this milestone. It records that the container M-0359 generates
+builds beside a running one and in its place, passes `make ci`, and keeps Claude Code and Codex
+logins, configuration and sessions across a rebuild.
+
 ## Decisions made during implementation
 
-- (none)
+- None — the merge into `main` before the rebuild follows the rollback in Design notes.
 
 ## Validation
 
@@ -170,6 +174,9 @@ file:
   reports `codex-cli 0.159.2`; Claude Code reports 2.1.286.
 - `.devcontainer/README.md` says the same: Codex from the standalone installer into the shared
   `~/.codex`, checked at every start, with its state in the host's `~/.codex-linux`.
+
+**Gate at wrap.** This milestone's branch changes only entity files after `f13a6aa26`, the commit
+AC-2's `make ci` passed at, so that run stands for it. `aiwf check` on the branch reports 0 errors.
 
 ## Deferrals
 
