@@ -1,54 +1,92 @@
 #!/usr/bin/env bash
-# Runs on the HOST (not in the container) via devcontainer.json
-# `initializeCommand`. Prepares stable mount sources under /tmp so
-# devcontainer.json `mounts:` entries don't have to reference $HOME
-# (which devcontainer.json can't expand portably).
+# devcontainer-kit — runs on the HOST (macOS) via initializeCommand, before every build/start.
+# Identical in every kit repo; repo-specific host steps go in .devcontainer/project/initialize.sh.
+# Written for macOS's bash 3.2.
 #
-# Plugin shadow-mount workaround for anthropics/claude-code#31388:
-# Claude Code's plugin index stores absolute host paths. A
-# macOS-pathed index (~/.claude/plugins/...) breaks inside a Linux
-# container, and a Linux-pathed index breaks back on the host. We
-# shadow the container's plugin-index dir with ~/.claude-linux/plugins
-# so the host's macOS-pathed index stays untouched and the container
-# has its own Linux-pathed parallel index.
-#
-# Remove the .claude-plugins-mount entries here AND the corresponding
-# mount in devcontainer.json once claude-code#31388 ships a fix that
-# resolves plugin paths relative to $HOME. Tracking issue:
-#   https://github.com/anthropics/claude-code/issues/31388
-#
-# The mount points:
-#   ~/.codex-linux          → /tmp/.codex-mount           (container-only Codex state)
-#   ~/.claude               → /tmp/.claude-mount          (full state shared with host)
-#   ~/.claude-linux/plugins → /tmp/.claude-plugins-mount  (container-only plugin index)
-#   ~/.config/gh            → /tmp/.gh-mount              (gh auth shared with host)
-#   ~/.guidance             → /tmp/.aiwf-guidance-mount   (personal assistant rules, read-write)
-
+#   1. Create mount sources before Docker does (a missing bind source is created root-owned).
+#   2. Point the project-named /tmp/.<slug>-* links at them. The mounts use these links because
+#      $HOME is always right in this host shell, and the <slug> prefix keeps two open repos from
+#      re-pointing each other's links.
+#   3. Write .host.env: the host's global git identity, passed into the container.
+#   4. Once per ISO week: re-pull the upstream images and bump .refresh, so the image's tool
+#      layers rebuild with the latest versions on the next build.
+#   5. Personal guidance: rebuild ~/.guidance's AGENTS.md and point the container-only Codex
+#      home at it.
 set -euo pipefail
 
-mkdir -p "$HOME/.claude"
-mkdir -p "$HOME/.claude-linux/plugins"
-mkdir -p "$HOME/.config/gh"
-mkdir -p "$HOME/.codex-linux"
+cd "$(dirname "$0")/.."
+# shellcheck source=devkit.conf
+. .devcontainer/devkit.conf
+
+slug=$DEVKIT_SLUG
+link() { ln -sfn "$1" "/tmp/.${slug}-$2"; }
+
+# --- 1 + 2. mount sources and links ------------------------------------------------------------
+# ~/.claude-linux/plugins: container-only plugin index (anthropics/claude-code#31388 — the index
+# stores absolute paths, so macOS and Linux need separate ones). ~/.codex-linux: Codex state and
+# its standalone install, shared by all containers and kept apart from the Mac's ~/.codex.
+# ~/.guidance: personal assistant rules, read-write so a rule can be changed from any container.
+mkdir -p "$HOME/.claude" "$HOME/.claude-linux/plugins" "$HOME/.config/gh" "$HOME/.codex-linux" \
+  "$HOME/.guidance"
 chmod 700 "$HOME/.codex-linux"
-mkdir -p "$HOME/.guidance"
+link "$HOME/.claude" claude
+link "$HOME/.claude-linux/plugins" claude-plugins
+link "$HOME/.config/gh" gh
+link "$HOME/.codex-linux" codex
+link "$HOME/.guidance" guidance
 
-ln -sfn "$HOME/.claude"                /tmp/.claude-mount
-ln -sfn "$HOME/.claude-linux/plugins"  /tmp/.claude-plugins-mount
-ln -sfn "$HOME/.config/gh"             /tmp/.gh-mount
-ln -sfn "$HOME/.codex-linux"           /tmp/.codex-mount
-ln -sfn "$HOME/.guidance"              /tmp/.aiwf-guidance-mount
+if [ "$DEVKIT_DATA_DIR" = 1 ]; then
+  mkdir -p "$HOME/ProjectData/${slug}-dev"
+  link "$HOME/ProjectData/${slug}-dev" data
+fi
 
-# Personal guidance (23min/guidance). Claude reaches ~/.guidance through the
-# shared ~/.claude, so only the container-only Codex home needs a link, and it
-# is made only once a build has produced ~/.guidance/AGENTS.md, so the
-# AGENTS.md there keeps working until then. A missing checkout or a failing
-# build never blocks a start.
+# Other projects' data, mounted read-only. Never created here: a missing folder means the
+# producing project hasn't run (or the path is wrong), and should fail loudly.
+for path in $DEVKIT_READONLY_DATA; do
+  if [ ! -d "$HOME/ProjectData/$path" ]; then
+    echo "devcontainer: read-only data $HOME/ProjectData/$path not found (listed in devkit.conf)." >&2
+    exit 1
+  fi
+  link "$HOME/ProjectData/$path" "ro-${path//\//--}"
+done
+
+parent=$(cd .. && pwd)
+for sibling in $DEVKIT_SIBLINGS; do
+  if [ ! -d "$parent/$sibling" ]; then
+    echo "devcontainer: sibling repo $parent/$sibling not found (listed in devkit.conf)." >&2
+    exit 1
+  fi
+  link "$parent/$sibling" "sibling-$sibling"
+done
+
+# --- 3. host git identity ---------------------------------------------------------------------
+# docker --env-file format: KEY=value, taken literally (no quotes).
+{
+  printf 'GIT_USER_NAME=%s\n' "$(git config --global --get user.name || true)"
+  printf 'GIT_USER_EMAIL=%s\n' "$(git config --global --get user.email || true)"
+} > .devcontainer/.host.env
+
+# --- 4. weekly refresh ------------------------------------------------------------------------
+week=$(date +%G-W%V)
+if [ "$(cat .devcontainer/.refresh 2>/dev/null || true)" != "$week" ]; then
+  echo "devcontainer: weekly refresh ($week) — pulling upstream images"
+  for image in $DEVKIT_PULL_IMAGES; do
+    docker pull --quiet "$image" >/dev/null \
+      || echo "devcontainer: could not pull $image; building with the cached copy" >&2
+  done
+  printf '%s\n' "$week" > .devcontainer/.refresh
+fi
+
+# --- 5. personal guidance ---------------------------------------------------------------------
+# ~/.guidance is a checkout of 23min/guidance. Claude reaches it through the shared ~/.claude, so
+# only the container-only Codex home needs a link, and it is made only once a build has produced
+# ~/.guidance/AGENTS.md, so the AGENTS.md there keeps working until then. A missing checkout or a
+# failing build never blocks a start.
 if [ -x "$HOME/.guidance/build" ]; then
   "$HOME/.guidance/build" \
-    || echo "initialize: $HOME/.guidance/build failed; its previous output, if any, stays in use" >&2
+    || echo "devcontainer: $HOME/.guidance/build failed; its previous output, if any, stays in use" >&2
 else
-  echo "initialize: no personal guidance in $HOME/.guidance. Set it up with:" \
+  echo "devcontainer: no personal guidance in $HOME/.guidance. Set it up with:" \
     "git clone https://github.com/23min/guidance.git $HOME/.guidance && $HOME/.guidance/install" >&2
 fi
 codex_rules=$HOME/.codex-linux/AGENTS.md
@@ -56,7 +94,12 @@ if [ -e "$HOME/.guidance/AGENTS.md" ]; then
   if [ -L "$codex_rules" ] || [ ! -e "$codex_rules" ]; then
     ln -sfn ../.guidance/AGENTS.md "$codex_rules"
   else
-    echo "initialize: $codex_rules exists and is not a link, so Codex in containers" \
+    echo "devcontainer: $codex_rules exists and is not a link, so Codex in containers" \
       "doesn't read $HOME/.guidance; move it aside to use it" >&2
   fi
+fi
+
+# --- project hook -----------------------------------------------------------------------------
+if [ -f .devcontainer/project/initialize.sh ]; then
+  bash .devcontainer/project/initialize.sh
 fi
