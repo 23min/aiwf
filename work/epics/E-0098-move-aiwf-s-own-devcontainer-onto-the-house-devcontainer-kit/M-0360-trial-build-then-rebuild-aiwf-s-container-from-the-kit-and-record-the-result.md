@@ -1,7 +1,7 @@
 ---
 id: M-0360
 title: Trial-build, then rebuild aiwf's container from the kit and record the result
-status: in_progress
+status: done
 parent: E-0098
 depends_on:
     - M-0359
