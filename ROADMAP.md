@@ -1388,5 +1388,5 @@ aiwf from its own source with tools that match CI.
 | Milestone | Title | Status |
 |---|---|---|
 | M-0359 | Generate aiwf's devcontainer from the kit with its own steps in project hooks | done |
-| M-0360 | Trial-build, then rebuild aiwf's container from the kit and record the result | draft |
+| M-0360 | Trial-build, then rebuild aiwf's container from the kit and record the result | in_progress |
 
