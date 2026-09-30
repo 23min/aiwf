@@ -9,7 +9,7 @@ tdd: none
 acs:
     - id: AC-1
       title: A trial container built alongside passes every check
-      status: open
+      status: met
     - id: AC-2
       title: The rebuilt aiwf container passes every check and resumes sessions
       status: open
