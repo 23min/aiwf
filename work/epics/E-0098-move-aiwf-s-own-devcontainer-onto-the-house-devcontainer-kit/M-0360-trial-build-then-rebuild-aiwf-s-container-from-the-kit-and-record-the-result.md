@@ -122,7 +122,7 @@ x86_64. Each check, run in the trial container's terminal, with what was expecte
 - `aiwf doctor` — expected the hooks installed; saw the pre-commit and pre-push hooks resolve to
   the built `aiwf` and chain to their `.local` hooks.
 - `aiwf whoami` — expected `human/peter`, the `aiwf-actor` every trailered commit on `main` since
-  2026-09-01 carries up to `9c262dc53`, the last before the move (998 of them); saw `human/peter`,
+  2026-09-01 carries up to `9c262dc53`, the last before the move; saw `human/peter`,
   from `git config user.email`. `whoami` resolves the actor the same way the verbs that write the
   trailer do; the trial's own empty commit was a plain `git commit` and carries no trailer.
 - `codex login status` and `claude auth status` — expected both logged in; saw "Logged in using
@@ -145,8 +145,8 @@ epic branch into `main`; Ubuntu 24.04.3 LTS, x86_64. The AC-1 checks, run again 
   coverage 91.9%, self-check passed all 29 steps.
 - `aiwf doctor` reports the pre-commit and pre-push hooks installed, chaining to their `.local`
   hooks; `aiwf whoami` reports `human/peter`, and the commits made in this container carry
-  `aiwf-actor: human/peter`, as the 998 trailered commits on `main` from 2026-09-01 to `9c262dc53`
-  do.
+  `aiwf-actor: human/peter`, as every trailered commit on `main` from 2026-09-01 to `9c262dc53`
+  does.
 - `codex login status` reports "Logged in using ChatGPT"; `claude auth status` reports
   `"loggedIn": true`. The Claude Code session doing this work, started before the rebuild, was
   resumed in the rebuilt container with `claude --resume`, and `codex resume --all` listed
@@ -193,6 +193,11 @@ errors.
 (`git diff --name-only 5f0aa0fc1..HEAD`), and no check pins either.
 
 **Accepted as it stands.** AC-1 is met without Codex's session list observed in the trial: the
-same list, read from the same host state, was observed in the rebuilt container under AC-2.
+same list, read from the same host state, was observed in the rebuilt container under AC-2. AC-1's
+actor check is `aiwf whoami` rather than a trailered commit in the trial, since `whoami` and the
+verbs that write `aiwf-actor` share one resolver; the commits made in the rebuilt container carry
+the same actor.
 
-**Verdict.** (written after the deciding review)
+**Verdict.** The deciding review over `5f0aa0fc1..05cc7d0fc` approved, with no blocking finding.
+Its four wording points were applied after it and are unread by it: the actor claim stated without
+a count, the `aiwf whoami` line under Accepted as it stands, and two phrasings in G-0727.
