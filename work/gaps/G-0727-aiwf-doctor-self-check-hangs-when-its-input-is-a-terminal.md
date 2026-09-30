@@ -6,14 +6,14 @@ discovered_in: M-0360
 ---
 ## What's missing
 
-`aiwf doctor --self-check` stops for good when its standard input is a terminal. Its first step
-runs `init` with `--root` and `--actor` but not `--no-prompt`
-(`internal/cli/doctor/selfcheck.go`, the step labelled `init`). `init` asks questions whenever
-standard input is a terminal: the guidance-pack selection (`GuidanceSelector` in
-`internal/cli/cliutil/guidance.go`) and one `[y/N]` per optional Claude hook (`interactive` in
-`internal/cli/cliutil/hooks.go`). The self-check's output shows none of those questions, so it
-waits on an answer nobody is asked for. `make ci` runs the self-check last (`selfcheck:` in the
-`Makefile`), so `make ci` typed at a terminal hangs after every other step has passed.
+`aiwf doctor --self-check` stops for good when its standard input is a terminal. Its `init` step
+and its three `update` steps run without `--no-prompt` (`internal/cli/doctor/selfcheck.go`, the
+steps labelled `init` and `update (…)`). Both verbs ask questions whenever standard input is a
+terminal: the guidance-pack selection (`GuidanceSelector` in `internal/cli/cliutil/guidance.go`)
+and one `[y/N]` per optional Claude hook (`interactive` in `internal/cli/cliutil/hooks.go`). The
+self-check's output shows none of those questions, so it waits on an answer nobody is asked for.
+`make ci` runs the self-check last (`selfcheck:` in the `Makefile`), so `make ci` typed at a
+terminal hangs after every other step has passed.
 
 Measured in the devcontainer (Linux, x86_64), with a binary built from `5f0aa0fc1`, giving the
 self-check a terminal through `script`:
@@ -37,7 +37,7 @@ Enable hook "worktree-rituals-check.sh" — Warns (without blocking) when a sess
 
 ## Why it matters
 
-`make ci` is the local gate `CLAUDE.md` asks for before a merge to `main` or a push, and a
-person runs it from a terminal. There it hangs silently at the last step, after the slow ones,
-with nothing on screen to say it is waiting; the reader's only way out is to find the cause, as
-here, or to abandon the gate.
+`make ci` is the local gate `CLAUDE.md` asks for before a merge to `main` or a push, and a person
+runs it from a terminal. There it hangs silently at the last step, after the slow ones, with
+nothing on screen to say it is waiting; the reader's only way out is to find the cause or to
+abandon the gate.
