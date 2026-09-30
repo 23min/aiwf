@@ -121,8 +121,10 @@ x86_64. Each check, run in the trial container's terminal, with what was expecte
   (G-0727).
 - `aiwf doctor` — expected the hooks installed; saw the pre-commit and pre-push hooks resolve to
   the built `aiwf` and chain to their `.local` hooks.
-- `aiwf whoami` — expected `human/peter`, the `aiwf-actor` every trailered commit before the move
-  carries; saw `human/peter`, from `git config user.email`.
+- `aiwf whoami` — expected `human/peter`, the `aiwf-actor` every trailered commit on `main` since
+  2026-09-01 carries up to `9c262dc53`, the last before the move (998 of them); saw `human/peter`,
+  from `git config user.email`. `whoami` resolves the actor the same way the verbs that write the
+  trailer do; the trial's own empty commit was a plain `git commit` and carries no trailer.
 - `codex login status` and `claude auth status` — expected both logged in; saw "Logged in using
   ChatGPT" and `"loggedIn": true`. `claude --resume` listed the sessions from the running
   container. Codex's session list was not checked in the trial; AC-2 checks it in the rebuilt
@@ -143,11 +145,12 @@ epic branch into `main`; Ubuntu 24.04.3 LTS, x86_64. The AC-1 checks, run again 
   coverage 91.9%, self-check passed all 29 steps.
 - `aiwf doctor` reports the pre-commit and pre-push hooks installed, chaining to their `.local`
   hooks; `aiwf whoami` reports `human/peter`, and the commits made in this container carry
-  `aiwf-actor: human/peter`, as those before the move do.
+  `aiwf-actor: human/peter`, as the 998 trailered commits on `main` from 2026-09-01 to `9c262dc53`
+  do.
 - `codex login status` reports "Logged in using ChatGPT"; `claude auth status` reports
-  `"loggedIn": true`. This conversation, started before the rebuild, was resumed in the rebuilt
-  container with `claude --resume`, and `codex resume --all` listed sessions from before the
-  rebuild.
+  `"loggedIn": true`. The Claude Code session doing this work, started before the rebuild, was
+  resumed in the rebuilt container with `claude --resume`, and `codex resume --all` listed
+  sessions from before the rebuild.
 
 What G-0699 left unobserved, compared with M-0343's AC-5 baseline without reading a credential
 file:
@@ -158,10 +161,11 @@ file:
   has the baseline SHA-256 `307c6b8cf71c43abe0741fb56184d47a934a97b64ecc845c2e80149b5a0f62ec`;
   `sessions/2026/09/18/rollout-2026-09-18T18-33-28-01a0b5cb-8302-7d63-acc1-6f0139ff3ef8.jsonl`,
   the session a Codex terminal ran until the rebuild, last written 00:07:53, is present too.
-- `config.toml` keeps the baseline's `alternate_screen = "never"` and `animations = false`, and
-  its SHA-256 is now `969f247a126b405b22a0edeb7014b163fe452845a28ef047afe7739592b33a94`, not the
-  baseline's: Codex rewrites the file itself, at 10:54:16 by `stat`, two seconds after `codex
-  --yolo` started at 10:54:14 by `ps -o lstart`, and none of the kit's scripts writes it.
+- `config.toml` keeps the baseline's `alternate_screen = "never"` and `animations = false`. Its
+  content differs from the baseline's because Codex rewrites the file itself: read shortly before
+  20:11 UTC, its SHA-256 was `969f247a126b405b22a0edeb7014b163fe452845a28ef047afe7739592b33a94` and
+  its last write, by `stat`, 10:54:16, two seconds after `codex --yolo` started at 10:54:14 by
+  `ps -o lstart`; none of the kit's scripts writes it.
   `auth.json` was last written 2026-09-28, before either build; only its timestamp was read.
 - Login: `codex login status` as above.
 - Install: npm no longer installs Codex, so the baseline's npm checks no longer apply; its
