@@ -92,7 +92,7 @@ Sum the words of the rules placed primed, after their recorded dispositions, for
 
 ## References
 
-- D-0089 — external language-content ownership
+- ADR-0054 — external language-content ownership
 - D-0102 — the evidence rule over the development-guidance set
 - G-0676 — how the guidance grew
 
