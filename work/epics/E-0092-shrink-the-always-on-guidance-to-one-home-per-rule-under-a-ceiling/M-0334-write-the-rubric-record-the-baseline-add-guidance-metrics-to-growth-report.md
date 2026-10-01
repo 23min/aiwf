@@ -4,6 +4,7 @@ title: Write the rubric, record the baseline, add guidance metrics to growth-rep
 status: draft
 parent: E-0092
 depends_on:
+    - M-0349
     - M-0350
 tdd: none
 acs:
