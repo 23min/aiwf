@@ -30,7 +30,7 @@ acs:
 
 ## Goal
 
-Remove from both hosts' development guidance the text that already loads from another home: the rules the shipped fragment carries, the generic Go conventions, and the entity-id asides.
+Remove from both hosts' development guidance the text that already loads from another home — the rules the shipped fragment carries, the generic Go conventions, and the entity-id asides — and move each rule the inventory places in the other home, so every rule ends once, where its audience says.
 
 ## Closes
 
@@ -38,7 +38,7 @@ Remove from both hosts' development guidance the text that already loads from an
 
 ## Context
 
-The shared operating fragment and the selected language packs under `.guidance/packs/` are canonical sources. Development guidance must not restate them. M-0349's inventory records which passages are copies and of what; this milestone deletes exactly those, before M-0335 relocates what remains. Generated host copies are expected delivery outputs and are excluded from duplicate-authoring checks by ownership, not by ignoring an entire host file. D-0102 governs the evidence restriction.
+The shared operating fragment and the selected language packs under `.guidance/packs/` are canonical sources. Development guidance must not restate them. M-0349's inventory records which passages are copies and of what, and which rules belong to the other audience; this milestone deletes exactly those copies and makes exactly those moves, before M-0335 relocates what remains. A move into the shipped fragment changes what every consumer loads, so it carries a CHANGELOG entry under E-0092 and follows the shipped-surface rules: no entity ids, no repository paths, no development history. From this milestone on, a test holds every removal commit to the inventory. Generated host copies are expected delivery outputs and are excluded from duplicate-authoring checks by ownership, not by ignoring an entire host file. D-0102 governs the evidence restriction.
 
 ## Acceptance criteria
 
@@ -60,12 +60,16 @@ Lower each host's ceiling to its measured post-deletion upfront size. The curren
 
 ### AC-5 — Every removal commit traces to an inventory row and its decided home
 
+Each commit that removes text from development guidance or the shipped fragment names, in its disposition block, the inventory row it carries out, and the block agrees with the row's decision: the same kind of disposition and the same destination. **Pass criterion**: a test reads each disposition block in E-0092's commit range and the inventory table in M-0349's body through the loader, and reports a removal that names no row, names a row that does not exist, disagrees with the row's decision, or names a destination that does not exist; fixtures cover each, and the tree passes. Whether the destination states the rule is held at review, since D-0070 and D-0102 bar pinning guidance wording. **Code references**: a new test under `internal/policies/`, reading commits through the existing commit-range machinery.
+
 ### AC-6 — An audience move is one commit that adds the rule and removes the old copy
+
+A rule the inventory moves between homes — `move to the shipped fragment` or `move to repository guidance <document>` — moves in one commit that adds it to its new home and removes it from the old, so no commit leaves it in both homes or in neither. A move into the shipped fragment regenerates the managed `AGENTS.md` block in the same commit. **Pass criterion**: AC-5's test also reports a move whose commit does not change its destination file; a fixture covers it, and the tree passes.
 
 ## Constraints
 
-- Deletion of copies only; what stays is not reworded.
-- Each guidance commit may include its related source and generated outputs together, with a `copy of <path>` disposition per removed passage; an id aside whose reasoning is nowhere else goes to the entity that owns it first, and its block says `relocated to`.
+- Deletion of copies and audience moves only; what stays or moves is not reworded.
+- Each guidance commit may include its related source and generated outputs together, with a `copy of <path>` disposition per removed passage; an id aside whose reasoning is nowhere else goes to the entity that owns it first, and its block says `relocated to`; a move's block says `relocated to <path>`. Every block names its inventory row.
 - One row appended to the iteration log when this lands.
 - A pin on a passage this milestone deletes is retired with its reason, and its entry leaves the guidance-reader list.
 
@@ -73,20 +77,24 @@ Lower each host's ceiling to its measured post-deletion upfront size. The curren
 
 - D-0102 shapes AC-1 and AC-2 as absence and structure checks; neither can hold a sentence in place, and each is listed as a guidance reader.
 - AC-3 is observational, so this milestone runs under `tdd: advisory`; its other criteria carry tests regardless.
+- AC-5's test maps each inventory decision to the block dispositions it allows: `delete as copy of` to `copy of`, the three moves to `relocated to`, `pointer to` to `pointer to`, and `merge into` and `tighten` to the rewording form the fence accepts. Until M-0338 AC-3, a row not yet carried out is not a finding.
 
 ## Surfaces touched
 
 - Both host entry points and `.guidance/project.md`, respecting generated ownership.
 - The existing anchor policy and structural reference scan.
+- `internal/skills/embedded-guidance/aiwf-guidance.md` and `CHANGELOG.md`, for moves into and out of the shipped fragment.
+- The reconciliation test under `internal/policies/`.
 
 ## Out of scope
 
 - The pointer cut (M-0337).
-- Changing the fragment; that is M-0339.
+- Rewording or shortening the shipped fragment's rules; the inventory records any such suggestion for a later epic.
 
 ## Dependencies
 
-- M-0349 — the inventory records which passages are copies and where their canonical home is
+- M-0349 — the inventory records which passages are copies, where their canonical home is, and which rules move between audiences
+- M-0334 — the baseline, recorded before any decision is carried out
 
 ## Coverage notes
 
