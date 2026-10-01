@@ -16,6 +16,32 @@ section in this file.
 
 ## [Unreleased]
 
+### Changed (internal) — E-0098: aiwf's devcontainer is generated from the house devcontainer kit
+
+Nothing changes for repositories that use aiwf. aiwf's own development container:
+
+- is generated from the house devcontainer kit, on an Ubuntu 24.04 base in place of Debian 12;
+- opens only at `/workspaces/aiwf` on this checkout: the folder above it is no longer mounted,
+  so sibling repositories and any `CLAUDE.md` beside the clone are out of reach, and git does not
+  work in a container opened on a sibling worktree, whose `.git` points into the main checkout;
+  a sibling that is needed is added through the kit's `siblings` or `writable_siblings` answers;
+- runs Go at CI's `GO_VERSION`, builds `aiwf` from the checkout, and installs golangci-lint,
+  govulncheck and gitleaks at the versions CI runs, plus gofumpt and goimports; Node is the
+  kit's current LTS rather than a pinned 22;
+- takes git identity from the host's global git config;
+- keeps the Go module and build caches and the npm cache in named volumes shared by every kit
+  container, so a rebuild no longer clears them;
+- no longer preinstalls the Go extension's helper tools, the `dlv` debugger among them; install
+  them with **Go: Install/Update Tools**;
+- before each start, removes a `core.hooksPath` naming this repository's own hooks directory by
+  its full host path from `.git/config` when that changes nothing on the host, so git hooks run
+  in the container too;
+- checks Codex at each start and installs it with the kit's standalone installer when it is
+  missing or behind, instead of through npm.
+
+`.devcontainer/project/README.md` covers aiwf's additions, the Playwright opt-in and recovery
+from a failed container creation.
+
 ### Changed (internal) — aiwf's devcontainer mounts personal guidance
 
 Nothing user-facing changed. aiwf's own devcontainer mounts the host's
