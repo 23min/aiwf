@@ -31,6 +31,10 @@ This is a claim about the filter's shape: compare the `paths:` lists in
 queried; `gh run list --workflow go --commit <sha>` on a push that touches only `CLAUDE.md`
 would show it.
 
+The comment in `scripts/git-hooks/pre-commit` that lists the inputs it leaves to CI (`CLAUDE.md`,
+`docs/`, `.gitleaks.toml` and others) says an edit to one "falls through to CI's unconditional
+run"; the filter above makes that run conditional on the paths it lists.
+
 ## Why it matters
 
 The policy suite is the CI tier that holds the repository's invariants. Where a push can change

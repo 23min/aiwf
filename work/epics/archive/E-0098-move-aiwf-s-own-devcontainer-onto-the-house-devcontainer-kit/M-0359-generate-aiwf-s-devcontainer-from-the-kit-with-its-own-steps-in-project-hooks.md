@@ -69,13 +69,14 @@ absent or not an exact patch version; a `+auto` or `local` suffix on the value.
 
 ### AC-3 — Container creation builds aiwf from source with CI-matched tools
 
-**Pass criterion**: the re-pointed `m0132-init-script` and gitleaks-enforcement
-checks read `.devcontainer/project/post-create.sh` and fail unless it runs
-`go install ./cmd/aiwf`, `aiwf init --no-prompt` with stdin from `/dev/null`, and
-`make install-hooks`, and pins golangci-lint and gitleaks to the versions in
-`.github/workflows/go.yml` and `.github/workflows/gitleaks.yml`. **Edge cases**: a
-tool installed without a pin; a pin that differs from CI; `aiwf init` without the
-`/dev/null` redirect. **Code references**: `internal/policies/m0132_init_script.go`,
+**Pass criterion**: the `devcontainer-project-post-create` check (the re-pointed
+`m0132-init-script`) and the gitleaks-enforcement checks read
+`.devcontainer/project/post-create.sh` and fail unless it runs `go install ./cmd/aiwf`,
+`aiwf init --no-prompt` with stdin from `/dev/null`, and `make install-hooks`, and pins
+golangci-lint and gitleaks to the versions in `.github/workflows/go.yml` and
+`.github/workflows/gitleaks.yml`. **Edge cases**: a tool installed without a pin; a pin that
+differs from CI; `aiwf init` without the `/dev/null` redirect. **Code references**:
+`internal/policies/devcontainer_project_post_create.go`,
 `internal/policies/gitleaks_enforcement_test.go`.
 
 ### AC-4 — No reference points at a removed devcontainer file

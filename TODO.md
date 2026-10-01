@@ -575,6 +575,4 @@ review cycles, and a green run on a nearly-full disk is not evidence either way.
 - **G-0645** — shared test-binary temp dirs are never removed, leaking ~23G to /tmp
 - **G-0654** — `make build` emits a `bin/aiwf` that gets reached for instead of the
   release
-- **G-0699** — Codex devcontainer rebuild persistence has no rebuilt-container
-  observation; M-0343 recorded only the pre-rebuild baseline
 

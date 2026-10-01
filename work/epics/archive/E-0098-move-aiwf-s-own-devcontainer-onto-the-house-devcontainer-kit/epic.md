@@ -1,7 +1,7 @@
 ---
 id: E-0098
 title: Move aiwf's own devcontainer onto the house devcontainer kit
-status: active
+status: done
 ---
 
 ## Goal
@@ -13,24 +13,24 @@ aiwf from its own source with tools that match CI.
 
 ## Context
 
-`.devcontainer/` is hand-written: E-0035 built it (M-0132 landed the skeleton) and
-later work patched it, most recently to mount `~/.guidance`. It binds the **parent**
+`.devcontainer/` was hand-written: E-0035 built it (M-0132 landed the skeleton) and
+later work patched it, most recently to mount `~/.guidance`. It bound the **parent**
 of the clone, which G-0524 records as exposing every sibling repository and a
 parent-level `CLAUDE.md` that displaced this repository's own instructions in a live
 session. Other repositories now take their containers from the kit, which mounts
 only the repository, pins nothing it can take from the language's own version file,
 and keeps repository-specific steps in `.devcontainer/project/*.sh` hooks that
-template updates never touch. The kit mounts the same host state this container
-does today: `~/.claude`, the container-only plugin index under
+template updates never touch. The kit mounts the same host state the hand-written container
+did: `~/.claude`, the container-only plugin index under
 `~/.claude-linux/plugins`, `~/.config/gh`, `~/.codex-linux` and `~/.guidance`.
 
-What only this repository needs lives in `.devcontainer/init.sh` today: aiwf built
+What only this repository needs lived in `.devcontainer/init.sh`: aiwf built
 from source with `go install ./cmd/aiwf`, `aiwf init --no-prompt`,
 `make install-hooks`, pinned golangci-lint, gofumpt, goimports, govulncheck and
 gitleaks (some cross-checked against the CI workflows), and an opt-in Playwright
 install. Policy tests under `internal/policies/`, `internal/cli/doctor/env.go`,
-`scripts/git-hooks/pre-commit` and `.github/workflows/gitleaks.yml` refer to the
-current files.
+`scripts/git-hooks/pre-commit` and `.github/workflows/gitleaks.yml` referred to those
+files.
 
 ## Scope
 
@@ -61,14 +61,14 @@ current files.
 
 ## Success criteria
 
-- [ ] A container rebuilt from the kit-generated `.devcontainer/` sees this
+- [x] A container rebuilt from the kit-generated `.devcontainer/` sees this
       repository and the listed siblings only, and no parent-level `CLAUDE.md`.
-- [ ] In that container, `aiwf` on PATH is built from the checkout, `make ci`
+- [x] In that container, `aiwf` on PATH is built from the checkout, `make ci`
       passes, and the git hooks are installed.
-- [ ] Claude Code and Codex state survive the rebuild, observed and recorded.
-- [ ] `make ci` passes with no policy test, doc or CI step referring to a file the
+- [x] Claude Code and Codex state survive the rebuild, observed and recorded.
+- [x] `make ci` passes with no policy test, doc or CI step referring to a file the
       move removed.
-- [ ] G-0524 and G-0699 are addressed.
+- [x] G-0524 and G-0699 are addressed.
 
 ## Open questions
 

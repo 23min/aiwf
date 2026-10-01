@@ -7,7 +7,7 @@ this folder and a few commented hand edits in `devcontainer.json`.
 The container is where aiwf is developed. On Linux the macOS failures that bite the host path —
 the fork/exec deadlock under `-race` with parallel tests, and syspolicyd crashes on unsigned
 binaries — do not occur, so `make ci` runs as CI does. The host path stays available through
-`scripts/sign-and-run.sh` (see `CLAUDE.md`, "Running tests on macOS host").
+`scripts/sign-and-run.sh` (see `CLAUDE.md`, "Running tests on macOS host (fallback)").
 
 ## What the project hook adds
 
