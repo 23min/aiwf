@@ -23,6 +23,9 @@ acs:
     - id: AC-5
       title: Every removal commit traces to an inventory row and its decided home
       status: open
+    - id: AC-6
+      title: An audience move is one commit that adds the rule and removes the old copy
+      status: open
 ---
 
 ## Goal
@@ -56,6 +59,8 @@ Remove from `CLAUDE.md` the Go conventions the selected Go pack (`.guidance/pack
 Lower each host's ceiling to its measured post-deletion upfront size. The current tree passes at the lowered ceiling; a fixture restoring the larger pre-deletion payload fails. Record commands and both hosts' figures.
 
 ### AC-5 — Every removal commit traces to an inventory row and its decided home
+
+### AC-6 — An audience move is one commit that adds the rule and removes the old copy
 
 ## Constraints
 
