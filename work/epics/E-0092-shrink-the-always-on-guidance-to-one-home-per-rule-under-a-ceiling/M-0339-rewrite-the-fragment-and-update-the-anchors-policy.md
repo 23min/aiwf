@@ -9,7 +9,7 @@ tdd: required
 acs:
     - id: AC-1
       title: Operating anchors have one authored source and valid host renderings
-      status: open
+      status: cancelled
     - id: AC-2
       title: No fragment rule exceeds the per-rule word cap
       status: open
