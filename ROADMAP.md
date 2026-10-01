@@ -1376,7 +1376,7 @@ rituals call it instead of restating it.
 | M-0357 | Ship the on-demand subtraction skill | done |
 | M-0358 | Wire the subtraction lens into the wrap rituals | done |
 
-## E-0098 — Move aiwf's own devcontainer onto the house devcontainer kit (active)
+## E-0098 — Move aiwf's own devcontainer onto the house devcontainer kit (done)
 
 ### Goal
 
