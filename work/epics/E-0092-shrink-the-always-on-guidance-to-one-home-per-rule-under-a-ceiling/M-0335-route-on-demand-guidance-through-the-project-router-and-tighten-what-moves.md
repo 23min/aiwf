@@ -101,7 +101,7 @@ Every rule M-0349 marks "merge" or "tighten" is rewritten in its one home, and e
 ## References
 
 - D-0102 — the decision AC-3 follows; the pin entries are in `guidanceReaderList`
-- D-0089 — selected language conventions have an external source and tracked project delivery
+- ADR-0054 — adopted language conventions have an external source and tracked project delivery
 
 ## Release note
 
