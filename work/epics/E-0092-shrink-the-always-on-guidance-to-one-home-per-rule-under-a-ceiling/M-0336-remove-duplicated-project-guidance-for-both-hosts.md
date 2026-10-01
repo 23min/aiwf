@@ -5,6 +5,7 @@ status: draft
 parent: E-0092
 depends_on:
     - M-0349
+    - M-0334
 tdd: advisory
 acs:
     - id: AC-1
