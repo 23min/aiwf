@@ -15,7 +15,7 @@ acs:
       status: cancelled
     - id: AC-3
       title: The operating-anchors policy passes against the rewritten fragment
-      status: open
+      status: cancelled
 ---
 
 ## Goal
