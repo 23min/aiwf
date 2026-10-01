@@ -88,6 +88,7 @@ var guidanceReaderList = map[string]guidanceReaderEntry{
 	"internal/policies.TestSkillEditProvenance_DocumentedInClaudeMd":          {readerAbsence, "the retired skill-edit mandate stays out; it also requires two CLAUDE.md headings to exist"},
 	"internal/policies.TestAgentIsolationHook_DeniesWorktreeIsolation":        {readerNamesOnly, "names CLAUDE.md as a phrase the hook's message must contain"},
 	"internal/policies.TestPolicy_ConfigFieldsAreDiscoverable":                {readerRelationship, "reads the router to leave routed documents out of the channels"},
+	"internal/policies.TestPolicyDevcontainerPathsResolve":                    {readerRelationship, "checks that every .devcontainer/ path CLAUDE.md names exists"},
 	"internal/policies.TestPolicy_FindingCodesAreDiscoverable":                {readerRelationship, "reads the router to leave routed documents out of the channels"},
 	"internal/policies.TestPolicy_GuidanceCeiling":                            {readerRelationship, "measures each host's primed load against its ceiling"},
 	"internal/policies.TestPolicy_GuidanceFence":                              {readerRelationship, "judges commits that change the guidance"},
