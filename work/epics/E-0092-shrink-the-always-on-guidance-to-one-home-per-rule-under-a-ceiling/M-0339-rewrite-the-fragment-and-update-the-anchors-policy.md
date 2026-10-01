@@ -12,7 +12,7 @@ acs:
       status: cancelled
     - id: AC-2
       title: No fragment rule exceeds the per-rule word cap
-      status: open
+      status: cancelled
     - id: AC-3
       title: The operating-anchors policy passes against the rewritten fragment
       status: open
