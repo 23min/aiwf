@@ -19,7 +19,7 @@ func f(x, y interface{}) {
 	_ = time.Until(y)
 }
 `
-	writeSrcFixture(t, root, "internal/verb/clock.go", src) // verb = tier 2 (core)
+	writeAt(t, root, "internal/verb/clock.go", src) // verb = tier 2 (core)
 
 	violations, err := PolicyNoTimeNowInCore(root)
 	if err != nil {
@@ -58,7 +58,7 @@ func TestPolicyNoTimeNowInCore_EdgeNotScanned(t *testing.T) {
 	t.Parallel()
 	root := t.TempDir()
 	src := "package add\n\nfunc f() { _ = time.Now() }\n"
-	writeSrcFixture(t, root, "internal/cli/add/x.go", src) // cli/* = tier 1 (edge)
+	writeAt(t, root, "internal/cli/add/x.go", src) // cli/* = tier 1 (edge)
 
 	violations, err := PolicyNoTimeNowInCore(root)
 	if err != nil {
@@ -75,7 +75,7 @@ func TestPolicyNoTimeNowInCore_ExemptCoreSkipped(t *testing.T) {
 	t.Parallel()
 	root := t.TempDir()
 	src := "package htmlrender\n\nfunc f(s interface{}) { _ = time.Now(); _ = time.Since(s) }\n"
-	writeSrcFixture(t, root, "internal/htmlrender/x.go", src) // exempt
+	writeAt(t, root, "internal/htmlrender/x.go", src) // exempt
 
 	violations, err := PolicyNoTimeNowInCore(root)
 	if err != nil {
@@ -93,7 +93,7 @@ func TestPolicyNoTimeNowInCore_UntieredSkipped(t *testing.T) {
 	t.Parallel()
 	root := t.TempDir()
 	src := "package newpkg\n\nfunc f() { _ = time.Now() }\n"
-	writeSrcFixture(t, root, "internal/newpkg/x.go", src)
+	writeAt(t, root, "internal/newpkg/x.go", src)
 
 	violations, err := PolicyNoTimeNowInCore(root)
 	if err != nil {
@@ -121,7 +121,7 @@ func f(a, b, d interface{}) {
 	_ = a.b.Now()
 }
 `
-	writeSrcFixture(t, root, "internal/check/x.go", src) // check = tier 4 (core)
+	writeAt(t, root, "internal/check/x.go", src) // check = tier 4 (core)
 
 	violations, err := PolicyNoTimeNowInCore(root)
 	if err != nil {
@@ -137,7 +137,7 @@ func f(a, b, d interface{}) {
 func TestPolicyNoTimeNowInCore_SkipsUnparseableFile(t *testing.T) {
 	t.Parallel()
 	root := t.TempDir()
-	writeSrcFixture(t, root, "internal/verb/broken.go", "packag verb\n")
+	writeAt(t, root, "internal/verb/broken.go", "packag verb\n")
 
 	violations, err := PolicyNoTimeNowInCore(root)
 	if err != nil {

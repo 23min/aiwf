@@ -1335,3 +1335,59 @@ Let maintainers use `aiwf init` and `aiwf update` to select, refresh, and delive
 | M-0347 | Suggest applicable guidance during init and update | done |
 | M-0348 | Verify migration and establish the reduction prerequisite | done |
 
+## E-0095 — Adopt applicable guidance automatically on upgrade and update (active)
+
+### Goal
+
+An `aiwf upgrade` or `aiwf update` leaves a repository with the engineering guidance that applies to it installed, routed into its selected hosts, and reported, with no prompt to answer and nothing to discover afterwards. Packs for languages the repository gains later arrive on the next update the same way.
+
+| Milestone | Title | Status |
+|---|---|---|
+| M-0351 | Adopt applicable guidance packs automatically in init and update | draft |
+| M-0352 | Report guidance outcomes at the end of init, update and upgrade | draft |
+| M-0353 | Verify an unattended upgrade installs applicable guidance | draft |
+
+## E-0096 — One repo-only gate for everything aiwf ships to consumers (proposed)
+
+### Goal
+
+Nothing aiwf ships to a consumer names aiwf's own entity ids, source paths, design
+documents or development history, and one check that exists only in this repository
+proves it on every push. "Is shipped content clean?" becomes a gate result rather
+than a review.
+
+| Milestone | Title | Status |
+|---|---|---|
+| M-0354 | Gate everything the binary embeds and clear what it finds | draft |
+| M-0355 | Take aiwf-only rules and aiwf ids out of aiwf check | draft |
+
+## E-0097 — Ask what can be dropped at plan time and prove removals on demand (done)
+
+### Goal
+
+Put the subtraction question at the two moments it pays: before work is proposed,
+where cutting is free, and on demand over a change or a unit, where removing what
+exists has to be proved. The milestone sizing rule drops what no success criterion
+requires; a shipped skill gains the procedure for removing what already landed, and the wrap
+rituals call it instead of restating it.
+
+| Milestone | Title | Status |
+|---|---|---|
+| M-0356 | Ask for the smallest version at plan time | done |
+| M-0357 | Ship the on-demand subtraction skill | done |
+| M-0358 | Wire the subtraction lens into the wrap rituals | done |
+
+## E-0098 — Move aiwf's own devcontainer onto the house devcontainer kit (done)
+
+### Goal
+
+aiwf's development container is generated from the house devcontainer kit
+(`gh:23min/devcontainer-kit`) like the maintainer's other repositories, mounts only
+this repository plus any sibling it lists explicitly, and still builds and tests
+aiwf from its own source with tools that match CI.
+
+| Milestone | Title | Status |
+|---|---|---|
+| M-0359 | Generate aiwf's devcontainer from the kit with its own steps in project hooks | done |
+| M-0360 | Trial-build, then rebuild aiwf's container from the kit and record the result | done |
+

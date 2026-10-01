@@ -8,6 +8,9 @@ name: go
 # from the `go:embed` directives themselves and fails when a new embedded
 # tree is not represented here.
 #
+# `.devcontainer/**` and `gitleaks.yml` are read by the devcontainer and
+# gitleaks policy tests, which exist to catch a change to those files alone.
+#
 # `internal/skills/**` names the whole package rather than its five embedded
 # subtrees: nothing lives there but those trees and Go sources, which
 # `**/*.go` already selects, so the wider pattern costs no extra runs and
@@ -20,6 +23,8 @@ on:
       - "go.sum"
       - ".golangci.yml"
       - ".github/workflows/go.yml"
+      - ".github/workflows/gitleaks.yml"
+      - ".devcontainer/**"
       - "Makefile"
       - "internal/skills/**"
       - "internal/recipe/embedded/**"
@@ -32,15 +37,18 @@ on:
       - "go.sum"
       - ".golangci.yml"
       - ".github/workflows/go.yml"
+      - ".github/workflows/gitleaks.yml"
+      - ".devcontainer/**"
       - "Makefile"
       - "internal/skills/**"
       - "internal/recipe/embedded/**"
       - "internal/htmlrender/embedded/**"
 
 # GO_VERSION is the single source of truth for this workflow's toolchain
-# pin. A stdlib CVE that only a toolchain release can clear is remediated
-# by editing this one value; every job below reads it. The companion pin
-# in gitleaks.yml is that workflow's own.
+# pin; every job below reads it. The devcontainer runs the same Go through
+# containerEnv.GOTOOLCHAIN in .devcontainer/devcontainer.json, which a policy
+# test holds equal to this value, so a bump edits both. The companion pin in
+# gitleaks.yml is that workflow's own.
 env:
   GO_VERSION: "1.25.12"
 

@@ -68,7 +68,7 @@ func RecipeInstall(ctx context.Context, t *tree.Tree, doc *aiwfyaml.Doc, current
 		return findings(introduced), nil //coverage:ignore installing a validator never touches contracts.Entries, so contractMutationGate's diff is always empty here; this branch is a safety net for a scenario no real input can construct today, per the doc comment above.
 	}
 
-	if err := doc.SetContracts(next); err != nil {
+	if err := setContracts(doc, next); err != nil { //coverage:ignore the block passed Validate when aiwf.yaml was read, the guards above admit only entries and validators that satisfy it, and a widened id still matches the contract grammar, so SetContracts cannot newly fail here
 		return nil, fmt.Errorf("updating aiwf.yaml: %w", err)
 	}
 
@@ -118,7 +118,7 @@ func RecipeRemove(ctx context.Context, t *tree.Tree, doc *aiwfyaml.Doc, current 
 		return findings(introduced), nil //coverage:ignore removing a validator never touches contracts.Entries (and the referential-integrity check above already refuses when any entry still references it), so contractMutationGate's diff is always empty here; this branch is a safety net for a scenario no real input can construct today, per the doc comment above.
 	}
 
-	if err := doc.SetContracts(next); err != nil {
+	if err := setContracts(doc, next); err != nil { //coverage:ignore the block passed Validate when aiwf.yaml was read, the guards above admit only entries and validators that satisfy it, and a widened id still matches the contract grammar, so SetContracts cannot newly fail here
 		return nil, fmt.Errorf("updating aiwf.yaml: %w", err)
 	}
 	result := plan(&Plan{

@@ -48,9 +48,9 @@ func requireExpectedBranchForActivatingTransition(ctx context.Context, t *tree.T
 		return nil
 	}
 	if !reachableFrom(ctx, t.Root, expected, e.Path) {
-		return fmt.Errorf("aiwf promote %s %s: refusing to land on %q — this activation is expected on %q (ADR-0010), and %s is not present on %q, so reaching that branch would replace this refusal with \"entity not found\". The entity exists only where it was created. Resolve that first, or use `--force --reason \"...\"` to land the activation here", e.ID, newStatus, currentBranchLabel(current), expected, e.ID, expected)
+		return fmt.Errorf("aiwf promote %s %s: refusing to land on %q — this activation is expected on %q, and %s is not present on %q, so reaching that branch would replace this refusal with \"entity not found\". The entity exists only where it was created. Resolve that first, or use `--force --reason \"...\"` to land the activation here", e.ID, newStatus, currentBranchLabel(current), expected, e.ID, expected)
 	}
-	return fmt.Errorf("aiwf promote %s %s: refusing to land on %q — this activation is expected on %q (a concurrent session checked out a different branch here? see G-0269); %s, or use `--force --reason \"...\"` to override", e.ID, newStatus, currentBranchLabel(current), expected, retryAdviceFor(ctx, t.Root, expected))
+	return fmt.Errorf("aiwf promote %s %s: refusing to land on %q — this activation is expected on %q (did a concurrent session check out a different branch here?); %s, or use `--force --reason \"...\"` to override", e.ID, newStatus, currentBranchLabel(current), expected, retryAdviceFor(ctx, t.Root, expected))
 }
 
 // reachableFrom reports whether path exists in ref's tree.

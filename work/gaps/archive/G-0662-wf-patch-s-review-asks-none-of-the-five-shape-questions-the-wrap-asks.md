@@ -1,0 +1,30 @@
+---
+id: G-0662
+title: wf-patch's review asks none of the five shape questions the wrap asks
+status: addressed
+discovered_in: M-0327
+addressed_by_commit:
+    - f79f71636
+---
+## What's missing
+
+`aiwfx-wrap-milestone` step 2 asks five questions about the *shape* of a change —
+Recurring obligation, Deletions, Same-outcome clusters, Compression, Over-guarding.
+Every other check at wrap asks whether something is missing; these are the only ones
+that ask whether something is surplus.
+
+`wf-patch` asks none of them. Measured against
+`internal/skills/embedded-rituals/plugins/wf-rituals/skills/wf-patch/SKILL.md`, each
+of the five scores zero.
+
+## Why it matters
+
+A patch is the higher-traffic surface. Work that never becomes a milestone never
+meets the only review lens that can shrink it, so the surplus the wrap ritual exists
+to catch accumulates on the path that skips the wrap.
+
+G-0660 has repaired the compression lens's oracle: a removal it proposes is settled
+by a mutation probe, not by a gate run with no failing state for a deleted test or a
+removed guard. The port carries that repaired form, and the same question applies to
+each of the five — a lens whose result its own oracle cannot falsify belongs on
+neither surface, least of all the busier one.

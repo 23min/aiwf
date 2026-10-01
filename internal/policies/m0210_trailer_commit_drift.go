@@ -43,8 +43,8 @@ import (
 // canonical prescription, not byte-identity across sites.
 //
 // This is an aiwf-repo development invariant — the embedded-rituals tree
-// exists only here — so it lives as a Go policy test, mirroring the sibling
-// PolicyM0202* / PolicyM0132* ritual/devcontainer policies, not as an `aiwf
+// exists only here — so it lives as a Go policy test, like the other
+// repo-development policies in this package, not as an `aiwf
 // check` finding (which would be inert in a consumer tree, where rituals are
 // materialized rather than authored).
 func PolicyM0210TrailerCommitDrift(root string) ([]Violation, error) {

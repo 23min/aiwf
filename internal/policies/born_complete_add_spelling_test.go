@@ -2,7 +2,6 @@ package policies
 
 import (
 	"fmt"
-	"os"
 	"path/filepath"
 	"regexp"
 	"sort"
@@ -228,17 +227,6 @@ func TestShippedSurfaces_SpellBornCompleteCreatesWithABody(t *testing.T) {
 	}
 }
 
-func writeMarkdownFixture(t *testing.T, root, rel, content string) {
-	t.Helper()
-	abs := filepath.Join(root, filepath.FromSlash(rel))
-	if err := os.MkdirAll(filepath.Dir(abs), 0o755); err != nil {
-		t.Fatal(err)
-	}
-	if err := os.WriteFile(abs, []byte(content), 0o600); err != nil {
-		t.Fatal(err)
-	}
-}
-
 func TestBodylessAddReports_WalksEveryShippedMarkdownFileAgainstItsExemptions(t *testing.T) {
 	t.Parallel()
 	root := t.TempDir()
@@ -246,16 +234,16 @@ func TestBodylessAddReports_WalksEveryShippedMarkdownFileAgainstItsExemptions(t 
 	for i, dir := range shippedSurfaceRoots {
 		rel := filepath.ToSlash(filepath.Join(dir, "nested", "bare.md"))
 		command := fmt.Sprintf(`aiwf add decision --title "bare %d"`, i)
-		writeMarkdownFixture(t, root, rel, "Run `"+command+"`.\n")
+		writeAt(t, root, rel, "Run `"+command+"`.\n")
 		want = append(want, bodylessAddReport(rel, command))
 	}
 	kept := filepath.ToSlash(filepath.Join(shippedSurfaceRoots[0], "kept.md"))
-	writeMarkdownFixture(t, root, kept, "Run `aiwf add gap --title \"kept\"`, not `aiwf add gap --title \"other\"`.\n")
+	writeAt(t, root, kept, "Run `aiwf add gap --title \"kept\"`, not `aiwf add gap --title \"other\"`.\n")
 	want = append(want, bodylessAddReport(kept, `aiwf add gap --title "other"`))
 	elsewhere := filepath.ToSlash(filepath.Join(shippedSurfaceRoots[1], "elsewhere.md"))
-	writeMarkdownFixture(t, root, elsewhere, "Run `aiwf add gap --title \"kept\"`.\n")
+	writeAt(t, root, elsewhere, "Run `aiwf add gap --title \"kept\"`.\n")
 	want = append(want, bodylessAddReport(elsewhere, `aiwf add gap --title "kept"`))
-	writeMarkdownFixture(t, root, filepath.Join(shippedSurfaceRoots[0], "notes.txt"), "Run `aiwf add adr --title \"text\"`.\n")
+	writeAt(t, root, filepath.ToSlash(filepath.Join(shippedSurfaceRoots[0], "notes.txt")), "Run `aiwf add adr --title \"text\"`.\n")
 	exemptions := map[addSpelling]string{
 		{kept, `aiwf add gap --title "kept"`}: "still spelled",
 		{kept, `aiwf add adr --title "gone"`}: "no longer spelled",

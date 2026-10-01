@@ -40,9 +40,7 @@ func covFixture(t *testing.T, baseSrc, headSrc, profileContent string) (root, ba
 	runGit("commit", "-m", "head")
 
 	profilePath = filepath.Join(root, "coverage.out")
-	if wErr := os.WriteFile(profilePath, []byte(profileContent), 0o644); wErr != nil {
-		t.Fatalf("write profile: %v", wErr)
-	}
+	mustWrite(t, profilePath, profileContent)
 	return root, baseSHA, profilePath
 }
 
@@ -68,13 +66,7 @@ func repoFileWriter(t *testing.T, root string) func(rel, content string) {
 	t.Helper()
 	return func(rel, content string) {
 		t.Helper()
-		p := filepath.Join(root, filepath.FromSlash(rel))
-		if mkErr := os.MkdirAll(filepath.Dir(p), 0o755); mkErr != nil {
-			t.Fatalf("mkdir %s: %v", p, mkErr)
-		}
-		if wErr := os.WriteFile(p, []byte(content), 0o644); wErr != nil {
-			t.Fatalf("write %s: %v", p, wErr)
-		}
+		writeAt(t, root, rel, content)
 	}
 }
 

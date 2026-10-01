@@ -14,7 +14,7 @@ import "fmt"
 // every branch without depending on the test runner's host OS.
 func AssertSupportedOS(goos string) error {
 	if goos == "windows" {
-		return fmt.Errorf("aiwf is not supported on Windows in the PoC (POSIX-only assumptions: /bin/sh hook, exec.LookPath validators, flock(2) repo lock). See docs/design/design-decisions.md and the README's Known Limitations section")
+		return fmt.Errorf("aiwf is not supported on Windows in the PoC (POSIX-only assumptions: /bin/sh hook, exec.LookPath validators, flock(2) repo lock). See the Known Limitations section of aiwf's README")
 	}
 	return nil
 }

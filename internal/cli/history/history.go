@@ -33,10 +33,10 @@ func NewCmd(correlationID string) *cobra.Command {
 		Use:   "history <id>",
 		Short: "Show the entity's lifecycle from git log trailers",
 		Example: `  # Print one line per lifecycle event
-  aiwf history E-01
+  aiwf history E-NNNN
 
   # Render the full provenance chain as JSON
-  aiwf history M-007 --format=json --pretty`,
+  aiwf history M-NNNN --format=json --pretty`,
 		Args:          cobra.ExactArgs(1),
 		SilenceErrors: true,
 		SilenceUsage:  true,

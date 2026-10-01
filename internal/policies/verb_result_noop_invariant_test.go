@@ -4,7 +4,6 @@ import (
 	"go/ast"
 	"go/parser"
 	"go/token"
-	"os"
 	"path/filepath"
 	"sort"
 	"strings"
@@ -440,14 +439,9 @@ func TestVerbResultNoOpInvariant_SkipsAFileThatDoesNotParse(t *testing.T) {
 	t.Parallel()
 	root := t.TempDir()
 	dir := filepath.Join(root, "internal", "verb")
-	if err := os.MkdirAll(dir, 0o750); err != nil {
-		t.Fatalf("creating the fixture verb dir: %v", err)
-	}
 	write := func(name, content string) {
 		t.Helper()
-		if err := os.WriteFile(filepath.Join(dir, name), []byte(content), 0o600); err != nil {
-			t.Fatalf("writing %s: %v", name, err)
-		}
+		mustWrite(t, filepath.Join(dir, name), content)
 	}
 	write("broken.go", "package verb\n\nfunc Oops( { }\n")
 	write("v.go", "package verb\n\nfunc Foo() (*Result, error) { return nil, nil }\n")

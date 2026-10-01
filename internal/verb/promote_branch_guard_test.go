@@ -64,9 +64,6 @@ func TestPromote_EpicActive_RefusesOnRitualBranch(t *testing.T) {
 	if err == nil {
 		t.Fatal("expected refusal for epic activation off trunk")
 	}
-	if !strings.Contains(err.Error(), "G-0269") {
-		t.Errorf("expected the refusal to name G-0269, got: %v", err)
-	}
 	if !strings.Contains(err.Error(), `expected on "main"`) {
 		t.Errorf("expected the refusal to name the expected trunk branch, got: %v", err)
 	}

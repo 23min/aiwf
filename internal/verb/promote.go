@@ -276,7 +276,7 @@ func Promote(ctx context.Context, t *tree.Tree, id string, newStatus entity.Stat
 		return findings(fs), nil
 	}
 
-	subject := fmt.Sprintf("aiwf promote %s %s -> %s", id, e.Status, newStatus)
+	subject := fmt.Sprintf("aiwf promote %s %s -> %s", entity.Canonicalize(id), e.Status, newStatus)
 	result := plan(&Plan{
 		Subject:  subject,
 		Body:     reason,
@@ -427,8 +427,8 @@ func promoteClaimPaths(t *tree.Tree, e *entity.Entity, opts PromoteOptions) []st
 // Referents are compared, not spellings: a narrower id width or an abbreviated
 // SHA naming the value already stored satisfies the guard. The abbreviated form
 // is what `aiwf history` prints, so it is what a copy-paste produces. A real
-// change still writes the operator's spelling verbatim — normalizing widths
-// across a tree is `aiwf rewidth`'s job, not this guard's.
+// change writes the operator's ids, which entity.Serialize widens to
+// canonical.
 func promoteWouldWrite(ctx context.Context, t *tree.Tree, e *entity.Entity, opts PromoteOptions) bool {
 	if !entityResolverSatisfied(ctx, t.Root, e, opts) {
 		return true
@@ -542,7 +542,7 @@ func requireResolverForResolutionClass(k entity.Kind, newStatus entity.Status, o
 		}
 	case k == entity.KindADR && newStatus == entity.StatusSuperseded:
 		if opts.SupersededBy == "" {
-			return fmt.Errorf("promoting an ADR to %q requires --superseded-by <ADR-id> so the adr-supersession-mutual rule is satisfied; pass --force to override", entity.StatusSuperseded)
+			return fmt.Errorf("promoting an ADR to %q requires --superseded-by <adr-id> so the adr-supersession-mutual rule is satisfied; pass --force to override", entity.StatusSuperseded)
 		}
 	}
 	return nil
@@ -581,6 +581,10 @@ func requireNonEmptyACsAtMilestoneStart(e *entity.Entity, newStatus entity.Statu
 // contract for that criterion yet. Scoped narrowly to draft ->
 // in_progress, same as requireNonEmptyACsAtMilestoneStart.
 //
+// A terminal AC (entity.IsTerminalACStatus) is skipped: it is withdrawn
+// from the milestone's contract, so it owes no prose, and the check
+// rules that judge the same bodies exempt it by the same predicate.
+//
 // An AC with NO `### AC-N` heading in the body at all is a different
 // problem — a frontmatter/body desync the acs-body-coherence/
 // missing-heading check rule already covers — so it is skipped here,
@@ -610,6 +614,9 @@ func requireNonEmptyACBodiesAtMilestoneStart(t *tree.Tree, e *entity.Entity, new
 	}
 	sections := entity.ParseACSections(body)
 	for _, ac := range e.ACs {
+		if entity.IsTerminalACStatus(ac.Status) {
+			continue
+		}
 		content, found := sections[ac.ID]
 		if !found {
 			continue

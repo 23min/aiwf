@@ -65,7 +65,7 @@ func RenameArea(
 	// symmetric to config.validate()'s guard — so the verb can't inject a
 	// global member behind validate()'s back.
 	if newName == entity.AreaGlobal {
-		return nil, fmt.Errorf("area %q is reserved; areas.members may not declare the cross-cutting sentinel (ADR-0021)", entity.AreaGlobal)
+		return nil, fmt.Errorf("area %q is reserved; areas.members may not declare the cross-cutting sentinel", entity.AreaGlobal)
 	}
 
 	names := make([]string, len(members))

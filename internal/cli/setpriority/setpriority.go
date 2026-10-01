@@ -55,13 +55,13 @@ satisfied is not refused: re-setting the level already recorded, or
 writes no commit. The change reverses totally via the same
 verb: a set reverses with --clear, a reset with the prior level.`,
 		Example: `  # Set a gap's priority
-  aiwf set-priority G-0001 urgent
+  aiwf set-priority G-NNNN urgent
 
   # Change it to another level
-  aiwf set-priority G-0001 medium
+  aiwf set-priority G-NNNN medium
 
   # Clear it back to unset
-  aiwf set-priority G-0001 --clear`,
+  aiwf set-priority G-NNNN --clear`,
 		Args:          cobra.RangeArgs(1, 2),
 		SilenceErrors: true,
 		SilenceUsage:  true,
@@ -70,7 +70,7 @@ verb: a set reverses with --clear, a reset with the prior level.`,
 		},
 	}
 	cmd.Flags().StringVar(&actor, "actor", "", "actor for the commit trailer")
-	cmd.Flags().StringVar(&principal, "principal", "", "the human/<id> the actor is acting on behalf of (required when --actor is non-human; gates the verb through the I2.5 allow-rule)")
+	cmd.Flags().StringVar(&principal, "principal", "", cliutil.PrincipalFlagUsage)
 	cmd.Flags().StringVar(&root, "root", "", "consumer repo root")
 	cmd.Flags().BoolVar(&clearTag, "clear", false, "clear the entity's priority tag (mutually exclusive with <level>)")
 	out = cliutil.AddFormatFlags(cmd)

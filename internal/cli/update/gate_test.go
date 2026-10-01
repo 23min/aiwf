@@ -20,7 +20,7 @@ func TestGateAndSyncHookDecisions_MissingAiwfYamlReturnsInternal(t *testing.T) {
 	rootDir := t.TempDir() // deliberately no aiwf.yaml written here
 	hooks := []skills.HookDef{{Name: "test-hook", Description: "does a thing"}}
 
-	rc := gateAndSyncHookDecisions(rootDir, hooks, nil)
+	rc := gateAndSyncHookDecisions(rootDir, hooks, nil, false)
 	if rc != cliutil.ExitInternal {
 		t.Errorf("gateAndSyncHookDecisions() = %d, want ExitInternal", rc)
 	}
@@ -40,7 +40,7 @@ func TestGateAndSyncHookDecisions_UnknownFieldInExistingHooksBlockReturnsInterna
 	}
 	hooks := []skills.HookDef{{Name: "test-hook", Description: "does a thing"}}
 
-	rc := gateAndSyncHookDecisions(rootDir, hooks, nil)
+	rc := gateAndSyncHookDecisions(rootDir, hooks, nil, false)
 	if rc != cliutil.ExitInternal {
 		t.Errorf("gateAndSyncHookDecisions() = %d, want ExitInternal", rc)
 	}

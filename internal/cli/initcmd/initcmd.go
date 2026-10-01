@@ -74,9 +74,9 @@ Safe to re-run: init refreshes derived artifacts and preserves user-owned conten
 		[]string{string(skills.StatuslineScopeProject), string(skills.StatuslineScopeUser)},
 		cobra.ShellCompDirectiveNoFileComp,
 	))
-	cmd.Flags().BoolVar(&wireSettings, "wire-settings", false, "write statusLine to the settings file without interactive confirmation (non-TTY consent per ADR-0015)")
-	cmd.Flags().BoolVar(&allowUntagged, "allow-untagged-statusline", false, "write the statusline script even when this binary's version is untagged (a dev/worktree build), without interactive confirmation (G-0367)")
-	cmd.Flags().StringArrayVar(&enableHooks, "enable-hook", nil, "consent to enabling the named registry hook without an interactive prompt (repeatable; non-TTY consent per ADR-0032)")
+	cmd.Flags().BoolVar(&wireSettings, "wire-settings", false, "write statusLine to the settings file without interactive confirmation (consent for a non-interactive run)")
+	cmd.Flags().BoolVar(&allowUntagged, "allow-untagged-statusline", false, "write the statusline script even when this binary's version is untagged (a dev/worktree build), without interactive confirmation")
+	cmd.Flags().StringArrayVar(&enableHooks, "enable-hook", nil, "consent to enabling the named registry hook without an interactive prompt (repeatable; consent for a non-interactive run)")
 	_ = cmd.RegisterFlagCompletionFunc("enable-hook", cliutil.CompleteHookNames)
 	cmd.Flags().BoolVar(&noPrompt, "no-prompt", false, "never prompt for hook consent or guidance selection; leave undecided choices unchanged")
 	return cmd

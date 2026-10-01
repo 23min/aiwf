@@ -43,10 +43,10 @@ whichever route it takes. The rule is non-regression rather than completeness: a
 entity whose committed body already omits a section stays editable. There is no
 --force; record a deliberate removal with aiwf acknowledge illegal.`,
 		Example: `  # Bless current working-copy edits to the entity body
-  aiwf edit-body M-007
+  aiwf edit-body M-NNNN
 
   # Replace the body from a file
-  aiwf edit-body M-007 --body-file new-body.md --reason "refresh AC list"`,
+  aiwf edit-body M-NNNN --body-file new-body.md --reason "refresh AC list"`,
 		Args:          cobra.ExactArgs(1),
 		SilenceErrors: true,
 		SilenceUsage:  true,
@@ -55,7 +55,7 @@ entity whose committed body already omits a section stays editable. There is no
 		},
 	}
 	cmd.Flags().StringVar(&actor, "actor", "", "actor for the commit trailer")
-	cmd.Flags().StringVar(&principal, "principal", "", "the human/<id> the actor is acting on behalf of (required when --actor is non-human; gates the verb through the I2.5 allow-rule)")
+	cmd.Flags().StringVar(&principal, "principal", "", cliutil.PrincipalFlagUsage)
 	cmd.Flags().StringVar(&root, "root", "", "consumer repo root")
 	cmd.Flags().StringVar(&reason, "reason", "", "free-form prose explaining why; lands in the commit body, surfaces in `aiwf history`")
 	cmd.Flags().StringVar(&bodyFile, "body-file", "", `path to a file whose content becomes the entity's new body (use "-" to read from stdin); the file must contain body content only — leading "---" is refused. Omit to use bless mode: commit whatever the user edited in the working copy of the entity file`)

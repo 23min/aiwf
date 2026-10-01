@@ -1,26 +1,9 @@
 package policies
 
 import (
-	"os"
-	"path/filepath"
 	"strings"
 	"testing"
 )
-
-// writeSrcFixture writes src to <root>/<rel> (creating parent dirs) so
-// a policy can scan it. rel is a forward-slash repo-relative path. (The
-// arity-2 writeFixture in walk_test.go writes a fixed stub; this one
-// carries caller-supplied source.)
-func writeSrcFixture(t *testing.T, root, rel, src string) {
-	t.Helper()
-	abs := filepath.Join(root, filepath.FromSlash(rel))
-	if err := os.MkdirAll(filepath.Dir(abs), 0o755); err != nil {
-		t.Fatal(err)
-	}
-	if err := os.WriteFile(abs, []byte(src), 0o644); err != nil {
-		t.Fatal(err)
-	}
-}
 
 // firedFor reports whether any violation names fn in its Detail (the
 // policy embeds the function name in every Detail string).
@@ -96,7 +79,7 @@ func writeCache(p string) error { return os.WriteFile(p, nil, 0o644) }
 // body-less declaration (assembly-style) exercises the fn.Body == nil skip.
 func IsExternal() bool
 `
-	writeSrcFixture(t, root, "internal/fixture/fixture.go", src)
+	writeAt(t, root, "internal/fixture/fixture.go", src)
 
 	violations, err := PolicyValidateCheckIsNeverWrites(root)
 	if err != nil {
@@ -136,7 +119,7 @@ func IsCacheWarm(p string) bool {
 	return true
 }
 `
-	writeSrcFixture(t, root, "internal/fixture/cache.go", src)
+	writeAt(t, root, "internal/fixture/cache.go", src)
 
 	violations, err := PolicyValidateCheckIsNeverWrites(root)
 	if err != nil {
@@ -170,7 +153,7 @@ func TestPolicyValidateCheckIsNeverWrites_OnlyScansInternal(t *testing.T) {
 
 func IsFlagSet(p string) bool { _ = os.WriteFile(p, nil, 0o644); return true }
 `
-	writeSrcFixture(t, root, "cmd/aiwf/flags.go", src)
+	writeAt(t, root, "cmd/aiwf/flags.go", src)
 
 	violations, err := PolicyValidateCheckIsNeverWrites(root)
 	if err != nil {
@@ -192,7 +175,7 @@ func TestPolicyValidateCheckIsNeverWrites_SkipsUnparseableFile(t *testing.T) {
 func IsBroken( {  // deliberate syntax error
 	os.WriteFile("x", nil, 0o644)
 `
-	writeSrcFixture(t, root, "internal/broken/broken.go", src)
+	writeAt(t, root, "internal/broken/broken.go", src)
 
 	violations, err := PolicyValidateCheckIsNeverWrites(root)
 	if err != nil {

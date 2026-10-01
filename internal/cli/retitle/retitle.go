@@ -50,10 +50,10 @@ that at exit 0 and commits nothing — unless the body H1 has drifted from the
 title, which retitle still repairs. The slug is re-derived only while it still
 tracks the title; one set deliberately with aiwf rename is preserved.`,
 		Example: `  # Refocus an epic's title after scope shifts
-  aiwf retitle E-22 "Planning toolchain hardening" --reason "scope absorbed E-21"
+  aiwf retitle E-NNNN "Planning toolchain hardening" --reason "scope absorbed a sibling epic"
 
   # Retitle an AC (updates frontmatter and body heading atomically)
-  aiwf retitle M-077/AC-1 "retitle works for all top-level kinds"`,
+  aiwf retitle M-NNNN/AC-N "retitle works for all top-level kinds"`,
 		Args:          cobra.ExactArgs(2),
 		SilenceErrors: true,
 		SilenceUsage:  true,
@@ -62,7 +62,7 @@ tracks the title; one set deliberately with aiwf rename is preserved.`,
 		},
 	}
 	cmd.Flags().StringVar(&actor, "actor", "", "actor for the commit trailer")
-	cmd.Flags().StringVar(&principal, "principal", "", "the human/<id> the actor is acting on behalf of (required when --actor is non-human; gates the verb through the I2.5 allow-rule)")
+	cmd.Flags().StringVar(&principal, "principal", "", cliutil.PrincipalFlagUsage)
 	cmd.Flags().StringVar(&root, "root", "", "consumer repo root")
 	cmd.Flags().StringVar(&reason, "reason", "", "free-form prose explaining why; lands in the commit body, surfaces in `aiwf history`")
 	out = cliutil.AddFormatFlags(cmd)

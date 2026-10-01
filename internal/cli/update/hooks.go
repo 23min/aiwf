@@ -17,7 +17,7 @@ import (
 // aiwfyaml's surgical hooks: block writer, so a decision for a hook not
 // named in this run's registry (e.g. one since removed from it) survives
 // untouched rather than being silently dropped.
-func gateAndSyncHookDecisions(rootDir string, hooks []skills.HookDef, enableHooks []string) int {
+func gateAndSyncHookDecisions(rootDir string, hooks []skills.HookDef, enableHooks []string, noPrompt bool) int {
 	configPath := filepath.Join(rootDir, config.FileName)
 	doc, _, err := aiwfyaml.Read(configPath)
 	if err != nil {
@@ -38,7 +38,7 @@ func gateAndSyncHookDecisions(rootDir string, hooks []skills.HookDef, enableHook
 		}
 	}
 
-	newDecisions := cliutil.GateHookDecisions(newHooks, enableHooks, false, false)
+	newDecisions := cliutil.GateHookDecisions(newHooks, enableHooks, false, noPrompt)
 
 	union := make(map[string]bool, len(existing)+len(newDecisions))
 	for name, enabled := range existing {

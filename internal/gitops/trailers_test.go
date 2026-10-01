@@ -67,6 +67,10 @@ func TestValidateTrailer_KnownKeys(t *testing.T) {
 		{"branch tilde rejected", TrailerBranch, "epic/E-0010~1", true},
 		{"branch colon rejected", TrailerBranch, "epic:E-0010", true},
 
+		// aiwf-branch-sha: the full canonical SHA-1, never an abbreviation.
+		{"branch-sha full lowercase hex ok", TrailerBranchSHA, strings.Repeat("a", 40), false},
+		{"branch-sha abbreviated rejected", TrailerBranchSHA, "4b13a0f", true},
+
 		// aiwf-reason / aiwf-force / aiwf-audit-only: non-empty after trim.
 		{"reason ok", TrailerReason, "blocked by E-09 fixture work", false},
 		{"reason whitespace only", TrailerReason, "   ", true},

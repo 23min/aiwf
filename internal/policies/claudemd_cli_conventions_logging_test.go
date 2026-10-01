@@ -14,9 +14,7 @@ func writeCLAUDEMDFixture(t *testing.T, root, cliConventionsBody string) {
 	src := "# CLAUDE.md\n\n## Go conventions\n\n### CLI conventions\n\n" +
 		cliConventionsBody +
 		"\n\n### Commit conventions\n\n- irrelevant, and mentions neither opt-in nor ADR-0017\n"
-	if err := os.WriteFile(filepath.Join(root, "CLAUDE.md"), []byte(src), 0o644); err != nil {
-		t.Fatal(err)
-	}
+	mustWrite(t, filepath.Join(root, "CLAUDE.md"), src)
 }
 
 // TestPolicyCLAUDEMDCLIConventionsLogging_FiresOnStaleClaim proves the
@@ -95,9 +93,7 @@ func TestPolicyCLAUDEMDCLIConventionsLogging_FiresOnMissingSection(t *testing.T)
 
 - no CLI conventions heading here
 `
-	if err := os.WriteFile(filepath.Join(root, "CLAUDE.md"), []byte(src), 0o644); err != nil {
-		t.Fatal(err)
-	}
+	mustWrite(t, filepath.Join(root, "CLAUDE.md"), src)
 	violations, err := PolicyCLAUDEMDCLIConventionsLogging(root)
 	if err != nil {
 		t.Fatalf("policy: %v", err)

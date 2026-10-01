@@ -1,8 +1,6 @@
 package policies
 
 import (
-	"os"
-	"path/filepath"
 	"testing"
 )
 
@@ -13,19 +11,6 @@ import (
 func TestPolicy_GitTestEnvHardened(t *testing.T) {
 	t.Parallel()
 	runPolicy(t, PolicyGitTestEnvHardened)
-}
-
-// writeGoFixture writes a Go source file under root at the
-// forward-slash repo-relative path, creating parent dirs.
-func writeGoFixture(t *testing.T, root, rel, content string) {
-	t.Helper()
-	abs := filepath.Join(root, filepath.FromSlash(rel))
-	if err := os.MkdirAll(filepath.Dir(abs), 0o755); err != nil {
-		t.Fatalf("mkdir %s: %v", rel, err)
-	}
-	if err := os.WriteFile(abs, []byte(content), 0o644); err != nil {
-		t.Fatalf("write %s: %v", rel, err)
-	}
 }
 
 // TestPolicyGitTestEnvHardened_Branches drives the policy over synthetic
@@ -246,7 +231,7 @@ func {{{ this does not parse
 			t.Parallel()
 			root := t.TempDir()
 			for rel, content := range tc.files {
-				writeGoFixture(t, root, rel, content)
+				writeAt(t, root, rel, content)
 			}
 			vs, err := PolicyGitTestEnvHardened(root)
 			if tc.wantErr {

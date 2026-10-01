@@ -172,3 +172,56 @@ func TestPromote_MissingACHeadingNotTreatedAsEmptyBody(t *testing.T) {
 		t.Fatalf("missing-heading AC should not trip the empty-body guard; got %+v", got)
 	}
 }
+
+// TestPromote_EmptyBodyOnWithdrawnACDoesNotBlockStart pins G-0695: the
+// start guard exempts a terminal AC exactly as the check rules do, so
+// an AC withdrawn before the milestone starts needs no prose. The
+// terminal set is read from the AC FSM, so a status added to it is
+// exercised here automatically when it is reachable from open.
+func TestPromote_EmptyBodyOnWithdrawnACDoesNotBlockStart(t *testing.T) {
+	t.Parallel()
+	var terminal []entity.Status
+	for _, s := range entity.AllowedACStatuses() {
+		if entity.IsTerminalACStatus(s) {
+			terminal = append(terminal, s)
+		}
+	}
+	if len(terminal) == 0 {
+		t.Fatal("the AC FSM names no terminal status; nothing to exercise")
+	}
+	for _, status := range terminal {
+		t.Run(string(status), func(t *testing.T) {
+			t.Parallel()
+			r := setupACLessMilestoneOnEpicBranch(t)
+			r.must(verb.AddACBatch(r.ctx, r.tree(), "M-0001", []string{"Does the thing"},
+				[][]byte{[]byte("Real prose describing the criterion.")}, testActor))
+			r.must(verb.AddAC(r.ctx, r.tree(), "M-0001", "Withdrawn before start", testActor))
+			r.must(verb.Promote(r.ctx, r.tree(), "M-0001/AC-2", status, testActor, "", false, verb.PromoteOptions{}))
+
+			r.must(verb.Promote(r.ctx, r.tree(), "M-0001", "in_progress", testActor, "", false, verb.PromoteOptions{}))
+
+			if m := r.tree().ByID("M-0001"); m == nil || m.Status != entity.StatusInProgress {
+				t.Fatalf("milestone with only a %s AC left empty should start; got %+v", status, m)
+			}
+		})
+	}
+}
+
+// TestPromote_WithdrawnACDoesNotEndTheBodyScan pins that skipping a
+// withdrawn AC moves on to the next one: an open AC with an empty body
+// after it is still refused by name.
+func TestPromote_WithdrawnACDoesNotEndTheBodyScan(t *testing.T) {
+	t.Parallel()
+	r := setupACLessMilestoneOnEpicBranch(t)
+	r.must(verb.AddAC(r.ctx, r.tree(), "M-0001", "Withdrawn before start", testActor))
+	r.must(verb.AddAC(r.ctx, r.tree(), "M-0001", "Still owed", testActor))
+	r.must(verb.Promote(r.ctx, r.tree(), "M-0001/AC-1", entity.StatusCancelled, testActor, "", false, verb.PromoteOptions{}))
+
+	_, err := verb.Promote(r.ctx, r.tree(), "M-0001", "in_progress", testActor, "", false, verb.PromoteOptions{})
+	if err == nil {
+		t.Fatal("expected error promoting a milestone with an open empty AC after a withdrawn one; got nil")
+	}
+	if !strings.Contains(err.Error(), "M-0001/AC-2") {
+		t.Errorf("error should name the open AC M-0001/AC-2; got %v", err)
+	}
+}

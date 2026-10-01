@@ -24,8 +24,10 @@ If the epic doesn't exist yet, use `aiwfx-plan-epic` first.
 2. **Decompose into milestones.** Each milestone:
    - Is **independently shippable**. After a prior milestone lands, the system is in a coherent state even if this one never runs.
    - Has clear, **testable acceptance criteria**.
-   - Targets **1–3 days of focused work**. If a candidate is bigger, split it. If smaller, fold it into a sibling.
+   - Targets **1–3 days of focused work**. If a candidate is bigger, split it. If smaller, fold it into a sibling. If no success criterion in the epic requires it, drop it.
    - Has explicit dependencies (or none). Forward-flowing — a later milestone may depend on an earlier one; never the reverse.
+
+   **Name the cuts before any id is allocated.** Put the drafted list in front of the user with the candidates you would drop first — the ones no success criterion requires, and the ones a sibling already covers. Take them from the list you drafted rather than inventing extras. *Nothing was droppable* is an answer; silence is not. A cut costs nothing here; once step 4 has run it costs a cancel and leaves an id in the ledger for good. Get a yes on the list before allocating.
 
 3. **Sequence them.** Foundational first. Group related work; don't scatter concerns. Identify any milestones that can be parallelized (no dependency between them).
 

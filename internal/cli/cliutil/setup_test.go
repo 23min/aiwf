@@ -12,7 +12,8 @@ import (
 //     TestGuidancePrompt_FailurePreservesInstalledPolicy,
 //     TestGuidancePrompt_NoSelectionLeavesLegacyOwnership (guidance_test.go) —
 //     isolate process-wide guidance environment with t.Setenv.
-//   - TestGuidanceSelection_RealTerminalThroughInitAndUpdate
+//   - TestGuidanceSelection_RealTerminalThroughInitAndUpdate,
+//     TestHookConsent_RealTerminalThroughUpdate
 //     (guidance_terminal_linux_test.go) — isolates environment and replaces os.Stdin.
 //   - TestResolveActorWithSource_TargetRepository (actor_test.go) — changes
 //     cwd and Git config environment to distinguish two repositories.

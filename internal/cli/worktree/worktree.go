@@ -50,13 +50,13 @@ With --format=json, result contains path, host_selection (hosts and source),
 and steps: the artifact ledger with what, action, and optional detail fields.
 A preserved unselected path is not a claim that its files are current or healthy.` + cliutil.HostSetupHelp,
 		Example: `  # Create an in-repo worktree for a new branch off main
-  aiwf worktree add epic/E-0099-my-epic --base main
+  aiwf worktree add epic/E-NNNN-my-epic --base main
 
   # Create a worktree at an explicit sibling directory
-  aiwf worktree add milestone/M-0300-my-milestone ../aiwf-milestone
+  aiwf worktree add milestone/M-NNNN-my-milestone ../aiwf-milestone
 
   # Compose with cd (only the path is printed on success)
-  cd "$(aiwf worktree add patch/G-0100-fix --print-path)"`,
+  cd "$(aiwf worktree add patch/G-NNNN-fix --print-path)"`,
 		Args:          cobra.RangeArgs(1, 2),
 		SilenceErrors: true,
 		SilenceUsage:  true,

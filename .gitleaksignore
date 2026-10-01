@@ -84,3 +84,24 @@ fa2d43057d274ec0c6ed9da2e354bf2b97b8c4c7:work/gaps/G-0135-hook-path-hardcoded-at
 # commit that already recorded the originals.
 58afdc7a755438d10fde90206288c7a5c0b6f5b4:internal/cli/history/history_scope_chip_test.go:generic-api-key:23
 58afdc7a755438d10fde90206288c7a5c0b6f5b4:internal/cli/history/history_scope_chip_test.go:generic-api-key:69
+
+# M-0359: a macOS home path with an invented user name, standing for a host checkout
+# in a hooks-path test case, the milestone's validation record and a gap's recorded
+# output, and spelled out in this file's own comment. It names no contributor. HEAD
+# uses the test-only placeholder and a path under /nonexistent instead; these
+# fingerprints cover the commits that already recorded it.
+02236ac14b70271704b910ef4824639417b5af4c:work/epics/E-0098-move-aiwf-s-own-devcontainer-onto-the-house-devcontainer-kit/M-0359-generate-aiwf-s-devcontainer-from-the-kit-with-its-own-steps-in-project-hooks.md:path-leak-darwin-home:218
+02236ac14b70271704b910ef4824639417b5af4c:work/epics/E-0098-move-aiwf-s-own-devcontainer-onto-the-house-devcontainer-kit/M-0359-generate-aiwf-s-devcontainer-from-the-kit-with-its-own-steps-in-project-hooks.md:path-leak-darwin-home:219
+37f19621bdc1af659216c2b96564d8b847eb0bc4:work/epics/E-0098-move-aiwf-s-own-devcontainer-onto-the-house-devcontainer-kit/M-0359-generate-aiwf-s-devcontainer-from-the-kit-with-its-own-steps-in-project-hooks.md:path-leak-darwin-home:210
+66a727441ddf5932df7917a5e33f6065029f1a32:work/gaps/G-0725-make-install-hooks-reports-success-when-it-cannot-create-the-hook-links.md:path-leak-darwin-home:35
+66a727441ddf5932df7917a5e33f6065029f1a32:work/gaps/G-0725-make-install-hooks-reports-success-when-it-cannot-create-the-hook-links.md:path-leak-darwin-home:39
+66a727441ddf5932df7917a5e33f6065029f1a32:work/gaps/G-0725-make-install-hooks-reports-success-when-it-cannot-create-the-hook-links.md:path-leak-darwin-home:40
+66a727441ddf5932df7917a5e33f6065029f1a32:work/gaps/G-0725-make-install-hooks-reports-success-when-it-cannot-create-the-hook-links.md:path-leak-darwin-home:41
+66a727441ddf5932df7917a5e33f6065029f1a32:work/gaps/G-0725-make-install-hooks-reports-success-when-it-cannot-create-the-hook-links.md:path-leak-darwin-home:42
+67bc38eb52284955b56b1b453eadfe39bfae6ec5:internal/policies/devcontainer_hooks_path_test.go:path-leak-darwin-home:36
+7cf745971f4879b3ac5182881fa03e9b3a41e0aa:internal/policies/devcontainer_hooks_path_test.go:path-leak-darwin-home:21
+7cf745971f4879b3ac5182881fa03e9b3a41e0aa:internal/policies/devcontainer_hooks_path_test.go:path-leak-darwin-home:38
+c877a6463968fdb51c0d0e5c7221498a7f39e1aa:internal/policies/devcontainer_hooks_path_test.go:path-leak-darwin-home:28
+c877a6463968fdb51c0d0e5c7221498a7f39e1aa:internal/policies/devcontainer_hooks_path_test.go:path-leak-darwin-home:31
+60a319f78152f271728c155ee5584f9d537d3031:.gitleaksignore:path-leak-darwin-home:88
+60a319f78152f271728c155ee5584f9d537d3031:.gitleaksignore:path-leak-darwin-home:90

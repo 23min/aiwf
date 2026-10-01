@@ -79,7 +79,7 @@ func guidanceFiles(t *testing.T, root string) map[string]string {
 func guidanceUpdate(t *testing.T, root string) string {
 	t.Helper()
 	return string(testutil.CaptureStdout(t, func() {
-		if rc := update.Run(root, false, "", false, false, false, false, nil, nil); rc != cliutil.ExitOK {
+		if rc := update.Run(root, false, "", false, false, false, false, false, nil, nil); rc != cliutil.ExitOK {
 			t.Errorf("update exit %d", rc)
 		}
 	}))

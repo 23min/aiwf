@@ -3,13 +3,17 @@ package upgrade
 import (
 	"encoding/json"
 	"errors"
+	"fmt"
 	"os"
 	"path/filepath"
 	"runtime"
 	"strings"
 	"testing"
 
+	"github.com/google/go-cmp/cmp"
+
 	"github.com/23min/aiwf/internal/cli/cliutil"
+	"github.com/23min/aiwf/internal/testsupport"
 	"github.com/23min/aiwf/internal/version"
 )
 
@@ -29,42 +33,18 @@ func TestRun_ReexecFails_StillEmittedInstallCompleted(t *testing.T) {
 		t.Skip("shell shim assumes a POSIX-y env")
 	}
 	tmp := t.TempDir()
-	gobinDir := filepath.Join(tmp, "bin")
-	if err := os.MkdirAll(gobinDir, 0o755); err != nil {
-		t.Fatal(err)
-	}
-	shim := filepath.Join(tmp, "go")
-	shimBody := `#!/bin/sh
-case "$1" in
-  env)
-    case "$2" in
-      GOBIN)  printf '%s\n' "` + gobinDir + `" ;;
-      GOPATH) printf '\n' ;;
-    esac
-    ;;
-  install)
-    name=$(echo "$2" | sed 's|.*/||; s|@.*||')
-    cp "` + os.Args[0] + `" "` + gobinDir + `/$name"
-    ;;
-esac
-`
-	if err := os.WriteFile(shim, []byte(shimBody), 0o755); err != nil {
-		t.Fatal(err)
-	}
+	useFakeGoInstall(t, tmp)
 
 	origReexec := reexecUpdate
-	reexecUpdate = func(string, string) error { return errTestReexecFailure }
+	reexecUpdate = func(string, []string) error { return errTestReexecFailure }
 	t.Cleanup(func() { reexecUpdate = origReexec })
-
-	t.Setenv("AIWF_GO_BIN", shim)
-	t.Setenv("GOPROXY", "off")
 
 	diagLogPath := filepath.Join(tmp, "diag.log")
 	t.Setenv("AIWF_LOG", "info")
 	t.Setenv("AIWF_LOG_FORMAT", "json")
 	t.Setenv("AIWF_LOG_FILE", diagLogPath)
 
-	rc := Run(tmp, "v0.1.0", false)
+	rc := Run(tmp, "v0.1.0", false, false)
 	if rc != cliutil.ExitInternal {
 		t.Fatalf("Run() = %d, want ExitInternal (%d) when reexec fails", rc, cliutil.ExitInternal)
 	}
@@ -86,6 +66,78 @@ esac
 }
 
 var errTestReexecFailure = errors.New("simulated reexec failure")
+
+// TestUpgradeCmd_ForwardsNoPromptToReexecutedUpdate pins that upgrade's
+// --no-prompt, parsed from argv, reaches the argv of the update command it
+// re-executes, and that without it the argv carries no such flag. Swaps the
+// unexported reexecUpdate var, so this test is serial.
+func TestUpgradeCmd_ForwardsNoPromptToReexecutedUpdate(t *testing.T) {
+	if runtime.GOOS == "windows" {
+		t.Skip("shell shim assumes a POSIX-y env")
+	}
+	for _, noPrompt := range []bool{false, true} {
+		t.Run(fmt.Sprintf("no-prompt=%v", noPrompt), func(t *testing.T) {
+			tmp := t.TempDir()
+			useFakeGoInstall(t, tmp)
+			var got []string
+			origReexec := reexecUpdate
+			reexecUpdate = func(_ string, args []string) error {
+				got = args
+				return errTestReexecFailure
+			}
+			t.Cleanup(func() { reexecUpdate = origReexec })
+
+			args := []string{"--version", "v0.1.0", "--root", tmp}
+			if noPrompt {
+				args = append(args, "--no-prompt")
+			}
+			cmd := NewCmd()
+			cmd.SetArgs(args)
+			_ = cmd.Execute() // the stubbed re-exec fails by design; only its argv is under test
+			want := []string{"update", "--root", tmp}
+			if noPrompt {
+				want = append(want, "--no-prompt")
+			}
+			if len(got) == 0 {
+				t.Fatal("update was not re-executed")
+			}
+			if diff := cmp.Diff(want, got[1:]); diff != "" {
+				t.Errorf("re-executed argv mismatch (-want +got):\n%s", diff)
+			}
+		})
+	}
+}
+
+// useFakeGoInstall points AIWF_GO_BIN at a shell stand-in for `go` whose
+// `install` copies this test binary into a GOBIN under tmp, named after
+// the requested package, so Run's install step succeeds offline.
+func useFakeGoInstall(t *testing.T, tmp string) {
+	t.Helper()
+	gobinDir := filepath.Join(tmp, "bin")
+	if err := os.MkdirAll(gobinDir, 0o755); err != nil {
+		t.Fatal(err)
+	}
+	shim := filepath.Join(tmp, "go")
+	shimBody := `#!/bin/sh
+case "$1" in
+  env)
+    case "$2" in
+      GOBIN)  printf '%s\n' "` + gobinDir + `" ;;
+      GOPATH) printf '\n' ;;
+    esac
+    ;;
+  install)
+    name=$(echo "$2" | sed 's|.*/||; s|@.*||')
+    cp "` + os.Args[0] + `" "` + gobinDir + `/$name"
+    ;;
+esac
+`
+	if err := testsupport.WriteExecutable(shim, []byte(shimBody)); err != nil {
+		t.Fatal(err)
+	}
+	t.Setenv("AIWF_GO_BIN", shim)
+	t.Setenv("GOPROXY", "off")
+}
 
 // TestProxyStaleHint covers the helper that emits the
 // "proxy may be stale" hint when a pseudo-version's base is newer

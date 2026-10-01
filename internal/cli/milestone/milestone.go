@@ -53,10 +53,10 @@ func newTDDCmd(correlationID string) *cobra.Command {
 A milestone already carrying the named policy has nothing to change, so a re-run
 reports that at exit 0 and commits nothing.`,
 		Example: `  # Downgrade a milestone's TDD policy
-  aiwf milestone tdd M-003 --policy advisory
+  aiwf milestone tdd M-NNNN --policy advisory
 
   # Re-require TDD discipline
-  aiwf milestone tdd M-003 --policy required --reason "AC list stabilized"`,
+  aiwf milestone tdd M-NNNN --policy required --reason "AC list stabilized"`,
 		Args:          cobra.ExactArgs(1),
 		SilenceErrors: true,
 		SilenceUsage:  true,
@@ -65,7 +65,7 @@ reports that at exit 0 and commits nothing.`,
 		},
 	}
 	cmd.Flags().StringVar(&actor, "actor", "", "actor for the commit trailer")
-	cmd.Flags().StringVar(&principal, "principal", "", "the human/<id> the actor is acting on behalf of (required when --actor is non-human; gates the verb through the I2.5 allow-rule)")
+	cmd.Flags().StringVar(&principal, "principal", "", cliutil.PrincipalFlagUsage)
 	cmd.Flags().StringVar(&root, "root", "", "consumer repo root")
 	cmd.Flags().StringVar(&reason, "reason", "", "free-form prose explaining why; lands in the commit body, surfaces in `aiwf history`")
 	cmd.Flags().StringVar(&policy, "policy", "", "the TDD policy to set: none | advisory | required")
@@ -140,11 +140,11 @@ and commits nothing — as does --clear against a milestone with no edges. Order
 counts, so a reordered list is a real change and still commits. Ids compare at
 canonical width, so a narrow --on spelling names the stored entity. Every --on
 id must resolve: an unknown one is refused, never converged.`,
-		Example: `  # Declare M-003 depends on M-001 and M-002
-  aiwf milestone depends-on M-003 --on M-001,M-002
+		Example: `  # Declare that a milestone depends on two others
+  aiwf milestone depends-on M-NNNN --on M-NNNN,M-NNNN
 
   # Empty the depends_on list
-  aiwf milestone depends-on M-003 --clear`,
+  aiwf milestone depends-on M-NNNN --clear`,
 		Args:          cobra.ExactArgs(1),
 		SilenceErrors: true,
 		SilenceUsage:  true,
@@ -153,7 +153,7 @@ id must resolve: an unknown one is refused, never converged.`,
 		},
 	}
 	cmd.Flags().StringVar(&actor, "actor", "", "actor for the commit trailer")
-	cmd.Flags().StringVar(&principal, "principal", "", "the human/<id> the actor is acting on behalf of (required when --actor is non-human; gates the verb through the I2.5 allow-rule)")
+	cmd.Flags().StringVar(&principal, "principal", "", cliutil.PrincipalFlagUsage)
 	cmd.Flags().StringVar(&root, "root", "", "consumer repo root")
 	cmd.Flags().StringVar(&reason, "reason", "", "free-form prose explaining why; lands in the commit body, surfaces in `aiwf history`")
 	cmd.Flags().StringVar(&on, "on", "", "comma-separated milestone ids the target depends on; replace-not-append semantics")

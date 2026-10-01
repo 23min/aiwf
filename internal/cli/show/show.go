@@ -58,13 +58,13 @@ func NewCmd(correlationID string) *cobra.Command {
 		Use:   "show <id>",
 		Short: "Aggregate per-entity view: frontmatter, ACs, history, findings, referenced_by",
 		Example: `  # Aggregate view of an epic
-  aiwf show E-01
+  aiwf show E-NNNN
 
   # JSON envelope (carries body + per-AC descriptions on milestones)
-  aiwf show M-007 --format=json --pretty
+  aiwf show M-NNNN --format=json --pretty
 
   # Composite id: just the AC slice of its parent milestone
-  aiwf show M-007/AC-1`,
+  aiwf show M-NNNN/AC-N`,
 		Args:          cobra.ExactArgs(1),
 		SilenceErrors: true,
 		SilenceUsage:  true,
@@ -74,7 +74,7 @@ func NewCmd(correlationID string) *cobra.Command {
 	}
 	cmd.Flags().StringVar(&root, "root", "", "consumer repo root")
 	cmd.Flags().StringVar(&format, "format", "text", "output format: text or json")
-	cmd.Flags().StringVar(&area, "area", "", "show the entity only when its effective area equals this workstream tag (E-0043)")
+	cmd.Flags().StringVar(&area, "area", "", "show the entity only when its effective area equals this workstream tag")
 	cmd.Flags().BoolVar(&pretty, "pretty", false, "indent JSON output (only with --format=json)")
 	cmd.Flags().IntVar(&historyLimit, "history", 10, "max recent history events to render (0 = none, -1 = all)")
 	cliutil.RegisterFormatCompletion(cmd)

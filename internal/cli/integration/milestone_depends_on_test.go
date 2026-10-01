@@ -322,7 +322,7 @@ func TestMilestoneDependsOn_DispatcherSeam_AddFlag(t *testing.T) {
 		t.Fatalf("read M-004: %v", err)
 	}
 	content := string(body)
-	for _, want := range []string{"depends_on:", "- M-001", "- M-002"} {
+	for _, want := range []string{"depends_on:", "- M-0001", "- M-0002"} {
 		if !strings.Contains(content, want) {
 			t.Errorf("M-004 frontmatter missing %q (seam):\n%s", want, content)
 		}
@@ -360,7 +360,7 @@ func TestMilestoneDependsOn_DispatcherSeam_Verb(t *testing.T) {
 		t.Fatalf("read M-003: %v", err)
 	}
 	content := string(body)
-	for _, want := range []string{"depends_on:", "- M-001", "- M-002"} {
+	for _, want := range []string{"depends_on:", "- M-0001", "- M-0002"} {
 		if !strings.Contains(content, want) {
 			t.Errorf("M-003 frontmatter missing %q (seam):\n%s", want, content)
 		}

@@ -52,6 +52,9 @@ func Run(t *tree.Tree, contracts *aiwfyaml.Contracts, repoRoot string) []check.F
 	boundIDs := make(map[string]bool, len(contracts.Entries))
 
 	resolved, escapeFindings := contractconfig.Resolve(repoRoot, contracts.Entries)
+	for i := range escapeFindings {
+		escapeFindings[i].EntityID = entity.Canonicalize(escapeFindings[i].EntityID)
+	}
 	findings = append(findings, escapeFindings...)
 
 	for i, e := range contracts.Entries {
@@ -64,7 +67,7 @@ func Run(t *tree.Tree, contracts *aiwfyaml.Contracts, repoRoot string) []check.F
 				Code:     "contract-config",
 				Severity: check.SeverityError,
 				Subcode:  "missing-entity",
-				EntityID: e.ID,
+				EntityID: canonE,
 				Path:     "aiwf.yaml",
 				Message:  fmt.Sprintf("contracts.entries[%d]: id %q has no matching contract entity in work/contracts/", i, e.ID),
 			})
@@ -79,7 +82,7 @@ func Run(t *tree.Tree, contracts *aiwfyaml.Contracts, repoRoot string) []check.F
 					Code:     "contract-config",
 					Severity: check.SeverityError,
 					Subcode:  "missing-schema",
-					EntityID: e.ID,
+					EntityID: canonE,
 					Path:     "aiwf.yaml",
 					Message:  fmt.Sprintf("contracts.entries[%d] (id=%s): schema path %q does not exist or is not a regular file", i, e.ID, e.Schema),
 				})
@@ -89,7 +92,7 @@ func Run(t *tree.Tree, contracts *aiwfyaml.Contracts, repoRoot string) []check.F
 					Code:     "contract-config",
 					Severity: check.SeverityError,
 					Subcode:  "missing-fixtures",
-					EntityID: e.ID,
+					EntityID: canonE,
 					Path:     "aiwf.yaml",
 					Message:  fmt.Sprintf("contracts.entries[%d] (id=%s): fixtures path %q does not exist or is not a directory", i, e.ID, e.Fixtures),
 				})

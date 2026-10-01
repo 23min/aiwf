@@ -206,7 +206,8 @@ and also that it re-grows afterwards.
 
 ## Levers
 
-Cost measured, not estimated. None of these is currently shipped.
+Cost measured, not estimated. The iteration log below records which of these have
+shipped.
 
 | lever | what it moves | measured cost | obligation |
 |---|---|---|---|

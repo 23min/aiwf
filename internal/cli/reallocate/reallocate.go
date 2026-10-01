@@ -26,7 +26,7 @@ func NewCmd(correlationID string) *cobra.Command {
 		Use:   "reallocate <id-or-path>",
 		Short: "Renumber the entity; rewrite refs in others",
 		Example: `  # Resolve an id collision detected by aiwf check
-  aiwf reallocate M-007`,
+  aiwf reallocate M-NNNN`,
 		Args:          cobra.ExactArgs(1),
 		SilenceErrors: true,
 		SilenceUsage:  true,
@@ -35,7 +35,7 @@ func NewCmd(correlationID string) *cobra.Command {
 		},
 	}
 	cmd.Flags().StringVar(&actor, "actor", "", "actor for the commit trailer")
-	cmd.Flags().StringVar(&principal, "principal", "", "the human/<id> the actor is acting on behalf of (required when --actor is non-human; gates the verb through the I2.5 allow-rule)")
+	cmd.Flags().StringVar(&principal, "principal", "", cliutil.PrincipalFlagUsage)
 	cmd.Flags().StringVar(&root, "root", "", "consumer repo root")
 	out = cliutil.AddFormatFlags(cmd)
 	out.CorrelationID = correlationID

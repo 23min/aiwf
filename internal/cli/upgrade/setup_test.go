@@ -5,6 +5,11 @@ import (
 	"testing"
 )
 
+// Serial tests (do NOT call t.Parallel):
+//   - TestRun_ReexecFails_StillEmittedInstallCompleted,
+//     TestUpgradeCmd_ForwardsNoPromptToReexecutedUpdate
+//     (upgrade_internal_test.go) — swap the package-level reexecUpdate var and
+//     use t.Setenv.
 func TestMain(m *testing.M) {
 	os.Setenv("GIT_AUTHOR_NAME", "aiwf-test")
 	os.Setenv("GIT_AUTHOR_EMAIL", "test@example.com")
