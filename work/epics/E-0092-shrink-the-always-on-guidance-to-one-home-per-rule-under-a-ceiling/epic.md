@@ -38,7 +38,7 @@ Repository development rules, aiwf operating guidance and project-adopted langua
 
 - External source selection, language detection, pack selection, upstream refresh and tracked-output delivery; E-0094 owns them.
 - Changing the content of external language packs; their wording belongs to the external source.
-- Personal collaboration preferences and machine/session configuration in ai-dotfiles.
+- Personal collaboration preferences and machine/session configuration, which live outside this repository.
 - Entity templates and general changes to ritual or verb skill bodies, except references that must follow relocated guidance.
 - Changing existing check conditions while improving their messages.
 - New host adapters, including Copilot, or universal guarantees of model compliance.
@@ -111,7 +111,7 @@ Repository development rules, aiwf operating guidance and project-adopted langua
 - E-0094 — external guidance delivery and this repository's migration; M-0348 records the post-delivery measurements and host observations.
 - ADR-0052 — project guidance independent of personal bootstrap.
 - ADR-0053 — the instruction-file fence ships in `aiwf check`.
-- D-0089 — external language-content ownership and project-local delivery.
+- ADR-0054 — external language-content ownership and tracked project delivery; applicable packs are adopted on update.
 - D-0102 — the evidence rule over the development-guidance set, superseding D-0091.
 - D-0070 — limits on pins over shipped prose.
 - G-0676, G-0436 — the growth and stale-reference defects this epic addresses.
