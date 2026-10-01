@@ -13,6 +13,9 @@ acs:
     - id: AC-2
       title: Growth is compared with the frozen post-delivery baseline
       status: open
+    - id: AC-3
+      title: Every inventory decision has been carried out
+      status: open
 ---
 
 ## Goal
@@ -36,6 +39,8 @@ Repeat M-0334's tasks and run counts for both hosts at M-0337's completion, judg
 ### AC-2 — Growth is compared with the frozen post-delivery baseline
 
 Run the report at HEAD and at M-0334's frozen post-delivery, pre-reduction revision. Append the commands and results to the growth iteration log. Compare upfront counts per host, conditional inventory, observed task-loaded text and policy/test growth against the baseline expectations; name regressions. Do not use the pre-delivery snapshot as this comparison's baseline.
+
+### AC-3 — Every inventory decision has been carried out
 
 ## Constraints
 
