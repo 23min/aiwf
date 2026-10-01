@@ -33,17 +33,17 @@ List every guidance rule in this repository once, with where it lives today, and
 
 ## Context
 
-M-0333's fence is in place and M-0334 has recorded the baseline, so nothing here changes guidance text; this milestone produces the table the later milestones carry out. The guidance set is the one M-0333 defines — the root `CLAUDE.md` and `AGENTS.md`, `.guidance/project.md` and what it routes to — compared against the shipped aiwf fragment (`internal/skills/embedded-guidance/aiwf-guidance.md`) and the selected packs under `.guidance/packs/`, which are canonical homes for the rules they carry.
+M-0333's fence is in place. Nothing here changes guidance text: this milestone produces the table the later milestones carry out, and M-0334 records its baseline from that table before any decision is carried out. The inventory covers two homes: this repository's development guidance — the set M-0333 defines, the root `CLAUDE.md` and `AGENTS.md`, `.guidance/project.md` and what it routes to — and the shipped aiwf fragment (`internal/skills/embedded-guidance/aiwf-guidance.md`). The selected packs under `.guidance/packs/` are canonical homes for the rules they carry and are compared against, not inventoried.
 
 ## Acceptance criteria
 
 ### AC-1 — The inventory lists every rule in the guidance set once, with its current homes
 
-The table in `## Inventory` below has one row per rule. A row names the rule, every place it is stated today, its words, and whether it is a judgment rule or a check-backed one. **Pass criterion**: a relationship check derives every `##` and `###` section of the handwritten guidance set and asserts each is cited as a home by at least one row, read through the loader; on the tree it passes.
+The table in `## Inventory` below has one row per rule, across both homes. A row carries a label the removal commits cite, and names the rule, every place it is stated today, its words, its audience — operating aiwf in any repository, or developing aiwf — and whether it is a judgment rule or a check-backed one. **Pass criterion**: a relationship check derives every `##` and `###` section of the handwritten guidance set and every top-level rule of the shipped fragment, and asserts each is cited as a home by at least one row, read through the loader; on the tree it passes.
 
 ### AC-2 — Every rule carries one disposition from the closed set
 
-Each row carries a placement — primed or on demand — by E-0092's test, and one disposition: `keep`, `merge into <rule>`, `tighten`, `move on demand to <document>`, `pointer to <policy or finding code>`, `delete as copy of <home>`, or `conflict`. **Pass criterion**: a check over the table rejects a row with no placement, no disposition, or a disposition outside the set; on the table it reports none.
+Each row carries a placement — primed or on demand — by E-0092's test, and one disposition: `keep`, `merge into <rule>`, `tighten`, `move on demand to <document>`, `move to the shipped fragment`, `move to repository guidance <document>`, `pointer to <policy or finding code>`, `delete as copy of <home>`, or `conflict`. A row for a rule in the shipped fragment takes only `keep`, `move to repository guidance <document>` or `conflict`; a tightening it could take is recorded in the row's notes as a suggestion for a later epic. A rule's final home matches its audience: a development rule ends in repository guidance, an operating rule in the shipped fragment. **Pass criterion**: a check over the table rejects a row with no placement, no audience, no disposition, a disposition outside the set or outside what its home allows, or a final home that disagrees with its audience; on the table it reports none.
 
 ### AC-3 — Every conflict is decided by the maintainer and recorded
 
@@ -51,7 +51,7 @@ A rule that contradicts another, in the guidance set or against the fragment, a 
 
 ### AC-4 — The on-demand documents and the router are specified
 
-The on-demand documents are named, with their paths and the tasks each serves, and the `.guidance/project.md` router entries that reach them are drafted here. Every `move on demand to <document>` row names one of them. **Pass criterion**: the check from AC-2 rejects a row whose destination is not in the named set.
+The on-demand documents are named, with their paths and the tasks each serves, and the `.guidance/project.md` router entries that reach them are drafted here. Every `move on demand to <document>` row names one of them, and every `move to repository guidance <document>` row names one of them or the root `CLAUDE.md`. **Pass criterion**: the check from AC-2 rejects a row whose destination is not in the named set.
 
 ### AC-5 — Each host's handwritten primed ceiling is set from the primed rules
 
@@ -60,6 +60,8 @@ Sum the words of the rules placed primed, after their recorded dispositions, for
 ## Constraints
 
 - No guidance text changes in this milestone.
+- Set `guidance.enabled: false` in `aiwf.yaml` at this milestone's start, so no `aiwf update` or `aiwf worktree add` refreshes the installed packs while the inventory is taken; it stays off until M-0338 completes.
+- A rule in the shipped fragment keeps its wording in this epic.
 - The primed test is E-0092's: nearly every task, or harm before the agent would think to look.
 - One home per rule, chosen by audience: operating aiwf in any repository belongs to the shipped fragment; developing aiwf belongs to this repository.
 - Conflicts are the maintainer's decisions, presented one at a time, with the evidence from both homes.
@@ -69,6 +71,7 @@ Sum the words of the rules placed primed, after their recorded dispositions, for
 - A near-duplicate is one row whose disposition is `merge into` the surviving statement; the survivor's row records the merge.
 - A `tighten` row states what the tightened rule must still carry — the obligation and its one-line reason — so review of M-0335 can check the rewrite against it.
 - A check-backed rule is `pointer to` only if its diagnostic already states the remedy or M-0337's audit will make it; otherwise it stays `keep` or `tighten`.
+- A row's label is what a removal commit names in its disposition block, so M-0336's reconciliation test can match the two. Labels are short and not shaped like entity ids.
 
 ## Surfaces touched
 
@@ -77,13 +80,13 @@ Sum the words of the rules placed primed, after their recorded dispositions, for
 
 ## Out of scope
 
-- Any change to guidance text (M-0336, M-0335, M-0337, M-0339).
+- Any change to guidance text (M-0336, M-0335, M-0337).
+- Rewording the shipped fragment; tightening suggestions are recorded for a later epic.
 - The content of external language packs.
 
 ## Dependencies
 
 - M-0333 — the guidance set and the measure
-- M-0334 — the baseline, recorded before any disposition is carried out
 
 ## Coverage notes
 
@@ -97,8 +100,8 @@ Sum the words of the rules placed primed, after their recorded dispositions, for
 
 ## Inventory
 
-| Rule | Current homes | Words | Kind | Placement | Disposition |
-|---|---|---|---|---|---|
+| Label | Rule | Current homes | Words | Audience | Kind | Placement | Disposition | Notes |
+|---|---|---|---|---|---|---|---|---|
 
 ---
 
