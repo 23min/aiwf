@@ -83,7 +83,7 @@ Lower each host's ceiling to its measured post-deletion upfront size. The curren
 
 ## References
 
-- D-0102, D-0089
+- D-0102, ADR-0054
 - `internal/check/skill_body_id.go` — the link-masking shape
 
 ## Release note
