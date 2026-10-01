@@ -87,7 +87,7 @@ Every rule M-0349 marks "merge" or "tighten" is rewritten in its one home, and e
 ## Out of scope
 
 - Deleting copies (M-0336) and the pointer cut (M-0337).
-- The shared fragment (M-0339).
+- Rewording the shipped fragment; moves into and out of it are M-0336's.
 
 ## Dependencies
 
