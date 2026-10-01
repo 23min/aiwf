@@ -20,6 +20,9 @@ acs:
     - id: AC-4
       title: The ceiling constant steps down to the post-deletion size
       status: open
+    - id: AC-5
+      title: Every removal commit traces to an inventory row and its decided home
+      status: open
 ---
 
 ## Goal
@@ -51,6 +54,8 @@ Remove from `CLAUDE.md` the Go conventions the selected Go pack (`.guidance/pack
 ### AC-4 — The ceiling constant steps down to the post-deletion size
 
 Lower each host's ceiling to its measured post-deletion upfront size. The current tree passes at the lowered ceiling; a fixture restoring the larger pre-deletion payload fails. Record commands and both hosts' figures.
+
+### AC-5 — Every removal commit traces to an inventory row and its decided home
 
 ## Constraints
 
