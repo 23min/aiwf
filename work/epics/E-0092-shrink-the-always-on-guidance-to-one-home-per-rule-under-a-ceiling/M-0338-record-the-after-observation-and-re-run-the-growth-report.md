@@ -53,16 +53,17 @@ Every row of M-0349's inventory whose decision changes text has a commit that ca
 ## Design notes
 
 - State the no-lost-effect judgment separately for each host; it is bounded by the recorded task set, not a universal compliance guarantee.
-- Correct lost routing or weakened rules at their canonical source and repeat affected observations before the epic wraps.
+- A changed rule the after-check finds not followed is corrected at its home, in a guidance commit that names the rule's inventory row, and the affected task is repeated before the epic wraps.
 
 ## Surfaces touched
 
 - this milestone's Validation section
+- the home of any rule the after-check finds not followed
 - `docs/design/growth.md` §"Iteration log"
 
 ## Out of scope
 
-- Any change to guidance.
+- Any change to guidance beyond correcting a rule the after-check finds not followed.
 
 ## Dependencies
 
