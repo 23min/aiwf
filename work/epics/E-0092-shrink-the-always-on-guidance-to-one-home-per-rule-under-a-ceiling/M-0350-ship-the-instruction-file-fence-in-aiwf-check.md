@@ -1,7 +1,7 @@
 ---
 id: M-0350
 title: Ship the instruction-file fence in aiwf check
-status: draft
+status: in_progress
 parent: E-0092
 depends_on:
     - M-0333
