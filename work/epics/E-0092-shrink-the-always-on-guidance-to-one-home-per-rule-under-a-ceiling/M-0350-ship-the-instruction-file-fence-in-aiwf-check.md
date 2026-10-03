@@ -18,7 +18,7 @@ acs:
     - id: AC-3
       title: aiwf check refuses an instruction-file removal without a disposition block
       status: open
-      tdd_phase: red
+      tdd_phase: green
     - id: AC-4
       title: The fence is an error by default and an aiwf.yaml setting turns it off
       status: open
