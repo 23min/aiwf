@@ -13,6 +13,8 @@ import (
 //   - TestCheckAndFastAgreeOnAreaUnknownSeverity — testutil.CaptureStdout,
 //     which swaps the process-global os.Stdout.
 //   - TestDocsStrictIsARuleOmissionNotASeverityDivergence — same.
+//   - TestRun_ReportsInstructionFence — same.
+//   - TestRun_InstructionFenceSkipsTrunkCommits — same.
 //   - TestRun_PrettyWithoutJSONWarns — testutil.CaptureStderr, which swaps
 //     the process-global os.Stderr.
 //   - TestRun_UnreadableConfigIsRefusedOnEveryPath — same.

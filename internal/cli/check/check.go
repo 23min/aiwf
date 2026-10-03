@@ -55,7 +55,7 @@ func NewCmd(correlationID string) *cobra.Command {
 	cmd.Flags().StringVar(&root, "root", "", "consumer repo root (default: discover via aiwf.yaml)")
 	cmd.Flags().StringVar(&format, "format", "text", "output format: text or json")
 	cmd.Flags().BoolVar(&pretty, "pretty", false, "indent JSON output (only with --format=json)")
-	cmd.Flags().StringVar(&since, "since", "", "explicit base ref for the provenance audit's commit range, including the untrailered-entity audit and the dropped-body-section gate (default: @{u} when set, else skipped)")
+	cmd.Flags().StringVar(&since, "since", "", "explicit base ref for the provenance audit's commit range, including the untrailered-entity audit, the dropped-body-section gate and the instruction-file fence (default: @{u} when set, else skipped)")
 	cmd.Flags().BoolVar(&shapeOnly, "shape-only", false, "run only the tree-discipline rule (skips trunk read, provenance audit, contract validation); used by the pre-commit hook for a fast LLM-loop check")
 	cmd.Flags().BoolVar(&fast, "fast", false, "run the in-memory content rules (refs, status, ids, cycles, body-prose, ACs) plus tree-discipline, skipping the trunk read / provenance / FSM-history / metrics / contract-validation layer")
 	cmd.Flags().BoolVar(&verbose, "verbose", false, "print one line per warning instance instead of the per-code summary; errors are always per-instance regardless")
@@ -165,6 +165,15 @@ func Run(root, format string, pretty bool, since string, shapeOnly, fast, verbos
 		return cliutil.ExitInternal
 	}
 	findings = append(findings, provenanceFindings...)
+
+	// The instruction-file fence judges the same range as the provenance
+	// audit, less the commits already on trunk (ADR-0053).
+	fenceFindings, fErr := RunInstructionFenceCheck(ctx, resolved, since, trunkRefOf(tr))
+	if fErr != nil { //coverage:ignore RunInstructionFenceCheck errs only when git log fails over a range and trunk ref already resolved this run; see its own ignore
+		cliutil.Errorf("aiwf check: %v\n", fErr) //coverage:ignore see above
+		return cliutil.ExitInternal              //coverage:ignore see above
+	}
+	findings = append(findings, fenceFindings...)
 
 	// FSMHistoryConsistent walks per-entity git history in DAG order
 	// (per-parent comparison, not linearization adjacency) and emits
