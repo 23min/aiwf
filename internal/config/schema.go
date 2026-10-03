@@ -64,13 +64,14 @@ var fieldDescriptions = map[string]string{
 	"entities":                  "Policy for entity-shape constraints the kernel enforces when writing entity files.",
 	"entities.title_max_length": "Maximum length for an entity title and slug (default 80).",
 
-	"guidance":               "Project engineering guidance maintenance and host instruction wiring.",
-	"guidance.enabled":       "Maintain external project guidance (default true); false preserves installed files and routing without fetching.",
-	"guidance.source":        "Git source for the guidance catalogue; omitted or empty uses the default engineering-guidance repository.",
-	"guidance.packs":         "Explicitly selected pack ids; omitted or null leaves policy unadopted, [] adopts an empty selection.",
-	"guidance.ignored":       "Pack ids excluded from suggestions; must not overlap selected packs.",
-	"guidance.wire_claudemd": "Whether aiwf wires and self-heals the guidance import in CLAUDE.md (default true).",
-	"guidance.wire_agentsmd": "Whether aiwf maintains native guidance in AGENTS.md when Codex is selected (default true).",
+	"guidance":                           "Project engineering guidance maintenance and host instruction wiring.",
+	"guidance.enabled":                   "Maintain external project guidance (default true); false preserves installed files and routing without fetching.",
+	"guidance.source":                    "Git source for the guidance catalogue; omitted or empty uses the default engineering-guidance repository.",
+	"guidance.packs":                     "Explicitly selected pack ids; omitted or null leaves policy unadopted, [] adopts an empty selection.",
+	"guidance.ignored":                   "Pack ids excluded from suggestions; must not overlap selected packs.",
+	"guidance.wire_claudemd":             "Whether aiwf wires and self-heals the guidance import in CLAUDE.md (default true).",
+	"guidance.wire_agentsmd":             "Whether aiwf maintains native guidance in AGENTS.md when Codex is selected (default true).",
+	"guidance.fence_instruction_commits": "Whether aiwf check refuses a commit that changes handwritten instructions beside unrelated files, without a resolving aiwf-entity trailer, or removing text without a disposition block (default true).",
 
 	"areas":                 "Declares the closed set of workstream area tags entities may carry.",
 	"areas.members":         "Declared area members, each a name and optional source-path globs.",
@@ -161,6 +162,9 @@ var fieldDefaultResolvers = map[string]func() string{
 	},
 	"guidance.wire_agentsmd": func() string {
 		return fmt.Sprintf("%t", (&Config{}).WireAgentsMd())
+	},
+	"guidance.fence_instruction_commits": func() string {
+		return fmt.Sprintf("%t", (&Config{}).FenceInstructionCommits())
 	},
 }
 

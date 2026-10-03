@@ -166,15 +166,6 @@ func Run(root, format string, pretty bool, since string, shapeOnly, fast, verbos
 	}
 	findings = append(findings, provenanceFindings...)
 
-	// The instruction-file fence judges the same range as the provenance
-	// audit, less the commits already on trunk (ADR-0053).
-	fenceFindings, fErr := RunInstructionFenceCheck(ctx, resolved, since, tr)
-	if fErr != nil { //coverage:ignore RunInstructionFenceCheck errs only when git log fails over a range and trunk ref already resolved this run; see its own ignore
-		cliutil.Errorf("aiwf check: %v\n", fErr) //coverage:ignore see above
-		return cliutil.ExitInternal              //coverage:ignore see above
-	}
-	findings = append(findings, fenceFindings...)
-
 	// FSMHistoryConsistent walks per-entity git history in DAG order
 	// (per-parent comparison, not linearization adjacency) and emits
 	// findings for status transitions that violate the per-kind FSM.
@@ -217,6 +208,17 @@ func Run(root, format string, pretty bool, since string, shapeOnly, fast, verbos
 		for _, m := range cfg.Areas.Members {
 			areaPaths = append(areaPaths, check.AreaPaths{Name: m.Name, Paths: m.Paths})
 		}
+	}
+	// The instruction-file fence judges the same range as the provenance
+	// audit, less the commits already on trunk, unless aiwf.yaml turns it
+	// off (ADR-0053).
+	if cfg.FenceInstructionCommits() {
+		fenceFindings, fErr := RunInstructionFenceCheck(ctx, resolved, since, tr)
+		if fErr != nil { //coverage:ignore RunInstructionFenceCheck errs only when git log fails over a range and trunk ref already resolved this run; see its own ignore
+			cliutil.Errorf("aiwf check: %v\n", fErr) //coverage:ignore see above
+			return cliutil.ExitInternal              //coverage:ignore see above
+		}
+		findings = append(findings, fenceFindings...)
 	}
 	metricsFindings, mErr := RunTestsMetricsCheck(ctx, resolved, tr, requireMetrics)
 	if mErr != nil { //coverage:ignore RunTestsMetricsCheck's only error source is entityview.ReadHistory's `git log` call, which is unreachable once cliutil.HasCommits has already succeeded — the same class internal/entityview's own ReadHistoryChain guard documents (ids are regexp.QuoteMeta-escaped, so a malformed composite id cannot break the --grep pattern either)

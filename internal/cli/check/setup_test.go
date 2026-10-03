@@ -15,6 +15,7 @@ import (
 //   - TestDocsStrictIsARuleOmissionNotASeverityDivergence — same.
 //   - TestRun_ReportsInstructionFence — same.
 //   - TestRun_InstructionFenceSkipsTrunkCommits — same.
+//   - TestRun_InstructionFenceSetting — same.
 //   - TestRun_PrettyWithoutJSONWarns — testutil.CaptureStderr, which swaps
 //     the process-global os.Stderr.
 //   - TestRun_UnreadableConfigIsRefusedOnEveryPath — same.

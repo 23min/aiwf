@@ -170,3 +170,60 @@ func TestRunInstructionFenceCheck_ResolvesTheTrailerThroughTheTree(t *testing.T)
 		t.Errorf("findings = %+v, want one %s naming G-0002", findings, check.CodeInstructionCommitEntityMissing.ID)
 	}
 }
+
+// TestRun_InstructionFenceSetting is M-0350 AC-4 through the verb: with no
+// setting the fence's findings are errors and aiwf check exits non-zero;
+// with guidance.fence_instruction_commits off the rule reports nothing;
+// and with no audited range the provenance scope advisory stands and the
+// rule reports nothing.
+//
+// Serial: captures the process-global os.Stdout.
+func TestRun_InstructionFenceSetting(t *testing.T) {
+	for _, tc := range []struct {
+		name, yaml string
+		noRange    bool
+		wantFence  bool
+		wantExit   int
+	}{
+		{name: "no setting", wantFence: true, wantExit: 1},
+		{name: "turned off", yaml: "guidance:\n  fence_instruction_commits: false\n"},
+		{name: "no audited range", noRange: true},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			root, base := mixedInstructionCommit(t)
+			if tc.yaml != "" {
+				writeAiwfYAML(t, root, tc.yaml)
+			}
+			since := base
+			if tc.noRange {
+				since = ""
+			}
+			var rc int
+			out := testutil.CaptureStdout(t, func() {
+				rc = Run(root, "json", false, since, false, false, false, nil, "")
+			})
+			var env struct {
+				Findings []check.Finding `json:"findings"`
+			}
+			if err := json.Unmarshal(out, &env); err != nil {
+				t.Fatalf("decoding check output: %v\n%s", err, out)
+			}
+			fence, advisory := false, false
+			for _, f := range env.Findings {
+				if strings.HasPrefix(f.Code, "instruction-commit-") {
+					fence = true
+					if f.Severity != check.SeverityError {
+						t.Errorf("%s at %s, want error", f.Code, f.Severity)
+					}
+				}
+				advisory = advisory || f.Code == check.CodeProvenanceUntrailedScopeUndefined
+			}
+			if fence != tc.wantFence || rc != tc.wantExit {
+				t.Errorf("fence findings %v, exit %d; want %v, exit %d\n%+v", fence, rc, tc.wantFence, tc.wantExit, env.Findings)
+			}
+			if tc.noRange && !advisory {
+				t.Errorf("no audited range: the scope advisory must stand; got %+v", env.Findings)
+			}
+		})
+	}
+}
