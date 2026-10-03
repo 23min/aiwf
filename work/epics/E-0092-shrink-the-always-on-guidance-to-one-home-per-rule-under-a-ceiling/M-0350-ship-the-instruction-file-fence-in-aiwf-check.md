@@ -26,7 +26,7 @@ acs:
     - id: AC-5
       title: The fence's finding codes and setting are discoverable
       status: open
-      tdd_phase: red
+      tdd_phase: green
     - id: AC-6
       title: This repository runs the kernel fence in place of its internal one
       status: open
