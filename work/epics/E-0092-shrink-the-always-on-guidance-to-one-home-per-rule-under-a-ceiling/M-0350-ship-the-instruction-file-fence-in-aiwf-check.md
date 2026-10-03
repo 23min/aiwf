@@ -21,7 +21,7 @@ acs:
       tdd_phase: done
     - id: AC-4
       title: The fence is an error by default and an aiwf.yaml setting turns it off
-      status: open
+      status: met
       tdd_phase: done
     - id: AC-5
       title: The fence's finding codes and setting are discoverable
