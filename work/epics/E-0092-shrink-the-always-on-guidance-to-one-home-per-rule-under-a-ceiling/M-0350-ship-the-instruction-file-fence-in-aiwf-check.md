@@ -53,7 +53,7 @@ A commit changing handwritten instruction content with no `aiwf-entity` trailer,
 
 ### AC-3 — aiwf check refuses an instruction-file removal without a disposition block
 
-A commit that removes a handwritten instruction line, a rewording included, and carries no well-formed disposition block produces one finding. **Pass criterion**: fixtures cover a removal with no block, a block whose `Disposition:` value is outside `copy of <path>`, `relocated to <path>`, `pointer to <id>` or `deleted`, a block written as trailers passing, and a pure addition needing none.
+A commit that removes handwritten instruction text, a rewording included, and carries no well-formed disposition block, or a malformed one, produces one finding. **Pass criterion**: fixtures cover a removal with no block, a block whose `Disposition:` value is outside `copy of <path>`, `relocated to <path>`, `pointer to <id>`, `reworded` or `deleted`, a block written as trailers passing, and a pure addition and a re-wrap needing none.
 
 ### AC-4 — The fence is an error by default and an aiwf.yaml setting turns it off
 
@@ -125,6 +125,9 @@ The internal fence policy, its tests and its gate wiring are removed. **Pass cri
 - A host file's managed blocks are read strictly, as `pathutil.ManagedBlockSpan` reads them: a file carrying a stray or doubled `<!-- aiwf:guidance:… -->` marker has no block the rule recognizes, and all of it is judged handwritten. `aiwf update` finds `CLAUDE.md`'s import block by its first exact START and END lines, so it refreshes the block in such a file; the block's content is fixed, so the refresh changes nothing the rule reads, and the strict reading never lets a handwritten change through.
 - When `aiwf update` wraps a bare `@.claude/aiwf-guidance.md` line of `CLAUDE.md` in markers, the rule reads that line as removed from the handwritten text, and the commit carrying the update needs an `aiwf-entity` trailer and a disposition block. Every release that writes the import, from v0.14.0 on, writes it inside markers, so a bare line is one a person typed and the wrap happens once.
 - The rule skips commits already on the configured trunk ref. Such a commit has been pushed: it was judged when it reached the trunk, or it predates the rule. Without the skip, a branch that merges the trunk is held to the trunk's commits since it last synced, which nobody on that branch can change. Commits a merge brings in that are not on the trunk, such as a milestone's merged into its epic, are still judged; judging only the first-parent line, as the untrailered audit does, would leave them unjudged.
+- Text counts as removed when some old line is missing from the new text and the old words do not survive in their order. The line test alone reads a re-wrapped paragraph, or one re-flowed around an inserted sentence, as a removal though no word went; the word test alone passes a reordering of words, which can change what a rule says. A paragraph moved within a file and re-wrapped in the same commit still reads as a removal.
+- The disposition set gains `reworded`, for a rule that stays where it was in new words. Recorded as `deleted`, a rewording cannot be told from a removed rule; M-0336 maps the inventory's `merge into` and `tighten` decisions to it.
+- Every message line starting `Removed:` opens a block, so a half-written block and a sentence that happens to start that way are both malformed, beside a good block or not. Reading a `Removed:` line with no `Disposition:` after it as prose would let a forgotten disposition pass whenever another block is well formed; reading blocks only among the trailers would hold writers to git's trailer parsing.
 
 ## Validation
 
