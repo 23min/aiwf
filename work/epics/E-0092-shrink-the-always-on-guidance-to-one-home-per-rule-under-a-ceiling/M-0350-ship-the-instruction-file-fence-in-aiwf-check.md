@@ -122,6 +122,8 @@ The internal fence policy, its tests and its gate wiring are removed. **Pass cri
 
 ## Release note
 
+`aiwf check` refuses, by default, a commit in the push range that changes handwritten instructions — the root `CLAUDE.md` or `AGENTS.md` outside aiwf's generated blocks, `.guidance/project.md`, or a document it links to — when the commit also carries unrelated files (`instruction-commit-unrelated-file`), names no entity in an `aiwf-entity` trailer (`instruction-commit-entity-missing`), or removes text without a disposition block (`instruction-commit-disposition-missing`). The findings are errors, so the pre-push hook blocks the push until the commit is split or amended. Set `guidance.fence_instruction_commits: false` in `aiwf.yaml` to turn the rule off. Commits already on the configured trunk are not judged, and the rule runs only where the branch has an upstream or `--since <ref>` is passed.
+
 ## Decisions made during implementation
 
 - A host file's managed blocks are read strictly, as `pathutil.ManagedBlockSpan` reads them: a file carrying a stray or doubled `<!-- aiwf:guidance:… -->` marker has no block the rule recognizes, and all of it is judged handwritten. `aiwf update` finds `CLAUDE.md`'s import block by its first exact START and END lines, so it refreshes the block in such a file; the block's content is fixed, so the refresh changes nothing the rule reads, and the strict reading never lets a handwritten change through.
@@ -133,6 +135,8 @@ The internal fence policy, its tests and its gate wiring are removed. **Pass cri
 - `guidance.fence_instruction_commits` turns the fence off, apart from `guidance.enabled`, which governs pack maintenance only; freezing the installed packs leaves the fence running.
 
 ## Validation
+
+- M-0350 AC-5 — `go test -count=1 -run 'TestPolicy_FindingCodesAreDiscoverable|TestPolicy_ConfigFieldsAreDiscoverable|TestPolicy_FindingCodesDocumentedInSkill|TestPolicy_FindingCodesHaveHints' ./internal/policies/`, expected to pass; observed passing at `0da2d5e52` in the aiwf devcontainer, `go1.25.12 linux/amd64`. These policies predate the milestone. They failed during M-0350 AC-1, when `instruction-commit-unrelated-file` first existed without its hint and skill row, and each code's hint and row then landed in the commit that added the code — `32a352145`, `cfea1bf9c`, `34bfecba1` — and the setting's documentation in `fe64dcf5d`, because the pre-commit hook runs the policy suite. M-0350 AC-5's phases were recorded after those events.
 
 ## Deferrals
 
