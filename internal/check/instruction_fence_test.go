@@ -296,7 +296,7 @@ func TestInstructionFence_UnrelatedFiles(t *testing.T) {
 			name: "aiwf creating a host file holding only blocks beside code is not a handwritten change",
 			change: func(r *fenceRepo) {
 				r.git("rm", "-q", projectguidance.AgentsFile)
-				r.commit("chore: no AGENTS.md yet")
+				r.commit("chore: no AGENTS.md yet\n\nRemoved: the Codex entry point\nDisposition: deleted")
 				gStart, gEnd, _ := projectguidance.GuidanceMarkers()
 				r.write(projectguidance.AgentsFile, gStart+"\nfragment v1\n"+gEnd+"\n")
 				touchCode(r)
@@ -540,6 +540,124 @@ func TestRunInstructionFence_EntityTrailer(t *testing.T) {
 				if !strings.Contains(got[0].Message, w) {
 					t.Errorf("message %q does not name %q", got[0].Message, w)
 				}
+			}
+		})
+	}
+}
+
+// TestRemovesText pins what counts as removing handwritten text (M-0350
+// AC-3): some old line is missing from the new text and the old words do
+// not survive in order. A moved line, an insertion, a re-wrap and an
+// insertion re-flowed into a paragraph remove nothing; a deletion, a
+// rewording and a reordering of words do.
+func TestRemovesText(t *testing.T) {
+	t.Parallel()
+	tests := []struct {
+		name, before, after string
+		want                bool
+	}{
+		{"an insertion mid-file", "a\nb\nc\n", "a\nb\nnew\nc\n", false},
+		{"a line moved", "a\nb\n", "b\na\n", false},
+		{"blank lines removed", "a\n\n\nb\n", "a\nb\n", false},
+		{"a paragraph re-wrapped", "keep it\nsimple and\nboring\n", "keep it simple\nand boring\n", false},
+		{"a sentence added and the paragraph re-flowed", "keep it\nsimple.\n", "keep it simple,\nreally. simple.\n", false},
+		{"a line deleted", "a\nb\n", "a\n", true},
+		{"a rewording", "a\nb\n", "a\nB\n", true},
+		{"one of two repeats removed", "x\nx\ny\n", "x\ny\n", true},
+		{"words reordered in a line", "always lint never push\n", "always push never lint\n", true},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+			if got := removesText(tt.before, tt.after); got != tt.want {
+				t.Errorf("removesText = %v, want %v", got, tt.want)
+			}
+		})
+	}
+}
+
+// TestDispositionBlocks pins the block grammar (M-0350 AC-3): a Removed:
+// line immediately followed by a Disposition: line whose value is one of
+// copy of <path>, relocated to <path>, pointer to <id>, reworded or
+// deleted. Every Removed: line opens a block, so a half-written block or a
+// prose line starting that way is malformed even beside a good block.
+func TestDispositionBlocks(t *testing.T) {
+	t.Parallel()
+	tests := []struct {
+		name            string
+		body            string
+		wellFormed, bad int
+	}{
+		{name: "copy of", body: "Removed: the rule\nDisposition: copy of docs/rules.md\n", wellFormed: 1},
+		{name: "relocated to", body: "Removed: the rule\nDisposition: relocated to docs/dev/testing.md\n", wellFormed: 1},
+		{name: "pointer to", body: "Removed: the rule\nDisposition: pointer to some-finding-code\n", wellFormed: 1},
+		{name: "reworded", body: "Removed: the rule\nDisposition: reworded\n", wellFormed: 1},
+		{name: "deleted", body: "Removed: the rule\nDisposition: deleted\n", wellFormed: 1},
+		{name: "a value outside the set is malformed", body: "Removed: the rule\nDisposition: moved somewhere\n", bad: 1},
+		{name: "a form missing its target is malformed", body: "Removed: the rule\nDisposition: copy of\n", bad: 1},
+		{name: "Removed without a following Disposition is malformed", body: "Removed: the rule\n\nDisposition: deleted\n", bad: 1},
+		{name: "Removed on the message's last line is malformed", body: "Removed: the rule", bad: 1},
+		{name: "a prose line starting Removed: beside a good block is malformed", body: "Removed: the rule\nDisposition: deleted\n\nRemoved: nothing else, as it happens.\n", wellFormed: 1, bad: 1},
+		{name: "a Disposition with no Removed is not a block", body: "Disposition: deleted\n"},
+		{name: "two blocks both count", body: "Removed: a\nDisposition: deleted\nRemoved: b\nDisposition: relocated to x.md\n", wellFormed: 2},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+			good, bad := dispositionBlocks(tt.body)
+			if good != tt.wellFormed || len(bad) != tt.bad {
+				t.Errorf("dispositionBlocks = %d well-formed, %v malformed; want %d, %d", good, bad, tt.wellFormed, tt.bad)
+			}
+		})
+	}
+}
+
+// TestInstructionFence_Disposition is M-0350 AC-3 end to end: a commit
+// removing handwritten instruction text records where it went in a
+// well-formed disposition block, in the body or written as trailers; one
+// with no block, or a malformed one, is one finding; a pure addition and a
+// re-wrap need none.
+func TestInstructionFence_Disposition(t *testing.T) {
+	t.Parallel()
+	reworded := fenceHostFile("# Dev rules\n\nKeep it boring.\n", "@.claude/aiwf-guidance.md", "route v1")
+	tests := []struct {
+		name, file, content, body string
+		want                      int
+	}{
+		{name: "a rewording with no block", file: projectguidance.ClaudeFile, content: reworded, want: 1},
+		{name: "a rewording with a reworded block", file: projectguidance.ClaudeFile, content: reworded, body: "Removed: keep it simple\nDisposition: reworded\n\nWhy it changed."},
+		{name: "a block written as trailers", file: projectguidance.ClaudeFile, content: reworded, body: "Removed: keep it simple\nDisposition: reworded"},
+		{name: "a value outside the set", file: projectguidance.ClaudeFile, content: reworded, body: "Removed: keep it simple\nDisposition: tidied", want: 1},
+		{name: "a stray Removed: line beside a good block", file: projectguidance.ClaudeFile, content: reworded, body: "Removed: keep it simple\nDisposition: reworded\n\nRemoved: nothing else.", want: 1},
+		{name: "a routed document deleted with no block", file: fenceRoutedDoc, want: 1},
+		{name: "a pure addition needs no block", file: fenceRoutedDoc, content: "# Testing\n\nRun the suite.\n\nAnd the race detector.\n"},
+		{name: "a re-wrap needs no block", file: fenceRoutedDoc, content: "# Testing\n\nRun\nthe suite.\n"},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+			r := newFenceRepo(t)
+			if tt.content == "" {
+				r.git("rm", "-q", tt.file)
+			} else {
+				r.write(tt.file, tt.content)
+			}
+			message := "docs(guidance): change"
+			if tt.body != "" {
+				message += "\n\n" + tt.body
+			}
+			r.commit(message)
+			var got []Finding
+			for _, f := range r.fenceFindings() {
+				if f.Code == CodeInstructionCommitDispositionMissing.ID {
+					got = append(got, f)
+				}
+			}
+			if len(got) != tt.want {
+				t.Fatalf("disposition findings = %+v, want %d", got, tt.want)
+			}
+			if tt.want == 1 && (got[0].Severity != SeverityError || got[0].Path != tt.file) {
+				t.Errorf("finding = %+v, want an error on %s", got[0], tt.file)
 			}
 		})
 	}

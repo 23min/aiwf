@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"os/exec"
 	"regexp"
+	"slices"
 	"strings"
 
 	codespkg "github.com/23min/aiwf/internal/codes"
@@ -46,6 +47,14 @@ var CodeInstructionCommitEntityMissing = codespkg.Code{
 	Class: codespkg.ClassStructural,
 }
 
+// CodeInstructionCommitDispositionMissing is reported once per commit that
+// removes handwritten instruction text — a rewording included — and whose
+// message carries no well-formed disposition block, or a malformed one.
+var CodeInstructionCommitDispositionMissing = codespkg.Code{
+	ID:    "instruction-commit-disposition-missing",
+	Class: codespkg.ClassStructural,
+}
+
 // InstructionCommit is one commit in the audited range, reduced to what the
 // fence judges. Pre-computed by WalkInstructionCommits; consumed by
 // RunInstructionFence.
@@ -61,6 +70,9 @@ type InstructionCommit struct {
 	// Unrelated lists the files the commit changed that are neither
 	// instruction files nor their allowed companions.
 	Unrelated []string
+	// Removes reports whether the commit removed handwritten text, as
+	// removesText judges it.
+	Removes bool
 }
 
 // RunInstructionFence maps the walked commits to findings. A commit that
@@ -91,6 +103,25 @@ func RunInstructionFence(commits []InstructionCommit, resolves func(string) bool
 				Message:  fmt.Sprintf("commit %s changes handwritten instructions (%s) under aiwf-entity: %s, which names no entity in the tree", shortHash(c.SHA), changed, id),
 				Path:     c.Changed[0],
 			})
+		}
+		if c.Removes {
+			good, bad := dispositionBlocks(c.Body)
+			switch {
+			case len(bad) > 0:
+				out = append(out, Finding{
+					Code:     CodeInstructionCommitDispositionMissing.ID,
+					Severity: SeverityError,
+					Message:  fmt.Sprintf("commit %s removes handwritten instruction text (%s) and carries a malformed disposition block: %s", shortHash(c.SHA), changed, strings.Join(bad, "; ")),
+					Path:     c.Changed[0],
+				})
+			case good == 0:
+				out = append(out, Finding{
+					Code:     CodeInstructionCommitDispositionMissing.ID,
+					Severity: SeverityError,
+					Message:  fmt.Sprintf("commit %s removes handwritten instruction text (%s) but its message carries no disposition block recording where the text went", shortHash(c.SHA), changed),
+					Path:     c.Changed[0],
+				})
+			}
 		}
 		for _, p := range c.Unrelated {
 			out = append(out, Finding{
@@ -263,12 +294,13 @@ func classifyInstructionCommit(br *gitops.BlobReader, rec instructionLogRecord) 
 	for _, ch := range rec.changes {
 		instruction := before.isInstruction(ch.Old) || after.isInstruction(ch.New)
 		if instruction {
-			changed, err := handwrittenChanged(br, rec.parent, rec.sha, ch)
+			changed, removes, err := handwrittenChanged(br, rec.parent, rec.sha, ch)
 			if err != nil { //coverage:ignore propagates a cat-file read failure, as WalkInstructionCommits records
 				return c, err
 			}
 			if changed {
 				c.Changed = append(c.Changed, instructionReportPath(ch))
+				c.Removes = c.Removes || removes
 			}
 			continue
 		}
@@ -356,18 +388,18 @@ func blobAt(br *gitops.BlobReader, rev, p string) (string, error) {
 }
 
 // handwrittenChanged reports whether an instruction pair's handwritten
-// content differs across the commit. For a host instruction file the
-// handwritten content is the file outside its managed blocks; any other
-// instruction document is handwritten throughout, so any change to it — a
-// rename included — counts.
-func handwrittenChanged(br *gitops.BlobReader, parent, sha string, ch instructionChange) (bool, error) {
+// content differs across the commit, and whether the change removes text.
+// For a host instruction file the handwritten content is the file outside
+// its managed blocks; any other instruction document is handwritten
+// throughout, so any change to it — a rename included — counts.
+func handwrittenChanged(br *gitops.BlobReader, parent, sha string, ch instructionChange) (changed, removes bool, err error) {
 	before, err := blobAt(br, parent, ch.Old)
 	if err != nil { //coverage:ignore propagates a cat-file read failure, as WalkInstructionCommits records
-		return false, err
+		return false, false, err
 	}
 	after, err := blobAt(br, sha, ch.New)
 	if err != nil { //coverage:ignore propagates a cat-file read failure, as WalkInstructionCommits records
-		return false, err
+		return false, false, err
 	}
 	if ch.New == projectguidance.ClaudeFile || ch.New == projectguidance.AgentsFile {
 		// aiwf separates a block it inserts with a blank line outside it,
@@ -378,7 +410,106 @@ func handwrittenChanged(br *gitops.BlobReader, parent, sha string, ch instructio
 	// its content, so a host file aiwf creates holding only its blocks is
 	// not a handwritten change.
 	renamed := ch.Old != "" && ch.New != "" && ch.Old != ch.New
-	return renamed || before != after, nil
+	return renamed || before != after, removesText(before, after), nil
+}
+
+// removesText reports whether after drops text before had. Text is removed
+// when some non-blank line of before is missing from after, counting
+// repeats, and the words of before do not survive in after in their order.
+// A line moved within the file, an insertion, and a paragraph re-wrapped —
+// on its own or around an inserted sentence — remove nothing; a deletion, a
+// rewording, and a reordering of words do.
+func removesText(before, after string) bool {
+	return removesLine(before, after) && !wordsSurviveInOrder(before, after)
+}
+
+// removesLine reports whether some non-blank line of before is missing
+// from after, counting repeats.
+func removesLine(before, after string) bool {
+	kept := map[string]int{}
+	for _, l := range strings.Split(after, "\n") {
+		kept[strings.TrimSpace(l)]++
+	}
+	for _, l := range strings.Split(before, "\n") {
+		l = strings.TrimSpace(l)
+		if l == "" {
+			continue
+		}
+		if kept[l] == 0 {
+			return true
+		}
+		kept[l]--
+	}
+	return false
+}
+
+// wordsSurviveInOrder reports whether the whitespace-separated words of
+// before occur in after in the same order, other words between them.
+func wordsSurviveInOrder(before, after string) bool {
+	rest := strings.Fields(after)
+	for _, w := range strings.Fields(before) {
+		i := slices.Index(rest, w)
+		if i < 0 {
+			return false
+		}
+		rest = rest[i+1:]
+	}
+	return true
+}
+
+// Disposition-block grammar: a Removed: line immediately followed by a
+// Disposition: line whose value is one of the closed set.
+const (
+	removedKey     = "Removed:"
+	dispositionKey = "Disposition:"
+)
+
+// dispositionForms are the values that name where removed text went;
+// dispositionWords are the values that stand alone.
+var (
+	dispositionForms = []string{"copy of ", "relocated to ", "pointer to "}
+	dispositionWords = []string{"reworded", "deleted"}
+)
+
+// dispositionBlocks scans a commit message for disposition blocks and
+// returns how many are well-formed and the malformed ones. Every line
+// starting Removed: opens a block, so a half-written block is never
+// mistaken for prose. It checks shape only: whether a named path or id
+// exists, and whether every removed passage has its block, is held at
+// review.
+func dispositionBlocks(body string) (wellFormed int, malformed []string) {
+	lines := strings.Split(body, "\n")
+	for i, l := range lines {
+		if !strings.HasPrefix(strings.TrimSpace(l), removedKey) {
+			continue
+		}
+		next := ""
+		if i+1 < len(lines) {
+			next = strings.TrimSpace(lines[i+1])
+		}
+		value, ok := strings.CutPrefix(next, dispositionKey)
+		switch {
+		case !ok:
+			malformed = append(malformed, strings.TrimSpace(l)+" (no Disposition: line follows)")
+		case validDisposition(strings.TrimSpace(value)):
+			wellFormed++
+		default:
+			malformed = append(malformed, next)
+		}
+	}
+	return wellFormed, malformed
+}
+
+func validDisposition(v string) bool {
+	if slices.Contains(dispositionWords, v) {
+		return true
+	}
+	for _, form := range dispositionForms {
+		if strings.HasPrefix(v, form) {
+			return true
+		}
+	}
+	return false
 }
 
 // nonBlankLines drops blank lines from text.
