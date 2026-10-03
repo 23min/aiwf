@@ -68,7 +68,7 @@ A commit that removes handwritten instruction text, a rewording included, and ca
 
 ### AC-6 — This repository runs the kernel fence in place of its internal one
 
-The internal fence policy, its tests and its gate wiring are removed. **Pass criterion**: the policy suite is green without them, and `aiwf check --since <epic fork point>` on the epic branch reports no fence finding — the command, expectation and output recorded in Validation.
+The internal fence policy and its tests are removed, and the coverage gate that ran them runs the kernel rule instead, compiled from the tree under test. **Pass criterion**: the policy suite is green without the internal fence, the coverage-gate run-pattern of the Makefile and the CI workflow names the policy that runs the kernel rule, and `aiwf check --since <epic fork point>` on the epic branch reports no fence finding — the command, expectation and output recorded in Validation.
 
 ## Constraints
 
@@ -92,7 +92,6 @@ The internal fence policy, its tests and its gate wiring are removed. **Pass cri
   - Under ADR-0054, `aiwf init` and `aiwf update` adopt applicable guidance packs, editing `aiwf.yaml`, `.guidance/` and host instruction files for the maintainer to commit as one change. E-0095 builds that path; the rule must read such a commit as generated output, not as an unrelated change beside guidance.
   - The internal fence and `internal/initrepo` read managed blocks with different parsers: a stray `<!-- aiwf:guidance:… -->` comment makes the fence judge the whole file while `initrepo` refreshes the block in place.
 - The internal fence run over this repository's history since `v0.30.0` reports several dozen historical commits that mixed an instruction-file edit with other files, measured in M-0333's Validation; sorting them informs which companion files the kernel rule allows.
-- The `CLAUDE.md` sentence in §"How to validate changes" naming the gates that judge commits names the internal guidance fence; it changes when that fence is removed.
 
 ## Surfaces touched
 
@@ -100,7 +99,7 @@ The internal fence policy, its tests and its gate wiring are removed. **Pass cri
 - `internal/cli/check/` — wiring into the audited range
 - `internal/config/` — the setting
 - `internal/skills/embedded/aiwf-check/SKILL.md` — the finding table
-- `internal/policies/guidance_fence*.go`, `Makefile`, `.github/workflows/go.yml` — removed internal fence
+- `internal/policies/guidance_fence*.go`, `Makefile`, `.github/workflows/go.yml` — the internal fence replaced by a policy running the kernel rule
 
 ## Out of scope
 
@@ -134,10 +133,12 @@ The internal fence policy, its tests and its gate wiring are removed. **Pass cri
 - The disposition set gains `reworded`, for a rule that stays where it was in new words. Recorded as `deleted`, a rewording cannot be told from a removed rule; M-0336 maps the inventory's `merge into` and `tighten` decisions to it.
 - Every message line starting `Removed:` opens a block, so a half-written block and a sentence that happens to start that way are both malformed, beside a good block or not. Reading a `Removed:` line with no `Disposition:` after it as prose would let a forgotten disposition pass whenever another block is well formed; reading blocks only among the trailers would hold writers to git's trailer parsing.
 - `guidance.fence_instruction_commits` turns the fence off, apart from `guidance.enabled`, which governs pack maintenance only; freezing the installed packs leaves the fence running.
+- The coverage gate that ran the internal fence runs the kernel rule in its place, through a policy compiled from the tree under test, over the same range. The pre-push hook runs the rule through the installed `aiwf`, which until E-0092 reaches main is built from a main that lacks it, and no CI step runs `aiwf check`; without the gate, this repository's instruction-file commits would go unjudged through the rest of E-0092, and past a stale binary after it. The co-author ban backs up its hook the same way. The `CLAUDE.md` sentence naming the gates that judge commits stays true.
 
 ## Validation
 
 - M-0350 AC-5 — `go test -count=1 -run 'TestPolicy_FindingCodesAreDiscoverable|TestPolicy_ConfigFieldsAreDiscoverable|TestPolicy_FindingCodesDocumentedInSkill|TestPolicy_FindingCodesHaveHints' ./internal/policies/`, expected to pass; observed passing at `0da2d5e52` in the aiwf devcontainer, `go1.25.12 linux/amd64`. These policies predate the milestone. They failed during M-0350 AC-1, when `instruction-commit-unrelated-file` first existed without its hint and skill row, and each code's hint and row then landed in the commit that added the code — `32a352145`, `cfea1bf9c`, `34bfecba1` — and the setting's documentation in `fe64dcf5d`, because the pre-commit hook runs the policy suite. M-0350 AC-5's phases were recorded after those events.
+- M-0350 AC-6 — at `a95ada7d1` in the aiwf devcontainer, `go1.25.12 linux/amd64`, with `aiwf` built from that commit, on 2026-10-03: `aiwf check --since a61f3d8de`, the epic's fork point, expected to report no `instruction-commit-*` finding; observed exit 0 with `3 findings (0 errors, 3 warnings)`, none of them the fence's. The same rule run as the coverage gate, `AIWF_COVERAGE_BASE=origin/main go test -count=1 -run 'TestPolicy_InstructionFence$' ./internal/policies/`, over the 187 commits on the branch and not on main: expected to pass; observed passing.
 
 ## Deferrals
 
