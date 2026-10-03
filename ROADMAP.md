@@ -1299,10 +1299,10 @@ Give every guidance rule in this repository one home and one clear form. Rules t
 | M-0333 | Fence project guidance while preserving managed updates | done |
 | M-0334 | Write the rubric, record the baseline, add guidance metrics to growth-report | draft |
 | M-0335 | Route on-demand guidance through the project router and tighten what moves | draft |
-| M-0336 | Remove duplicated project guidance for both hosts | draft |
+| M-0336 | Remove duplicated guidance and move each rule to its audience's home | draft |
 | M-0337 | Audit finding messages and cut chokepointed sections to pointers | draft |
 | M-0338 | Record the after observation and re-run the growth report | draft |
-| M-0339 | Rewrite the fragment and update the anchors policy | draft |
+| M-0339 | Rewrite the fragment and update the anchors policy | cancelled |
 | M-0349 | Inventory every guidance rule and decide its home and form | draft |
 | M-0350 | Ship the instruction-file fence in aiwf check | draft |
 
