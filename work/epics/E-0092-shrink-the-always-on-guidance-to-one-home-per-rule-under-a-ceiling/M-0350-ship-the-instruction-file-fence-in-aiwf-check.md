@@ -17,7 +17,7 @@ acs:
       tdd_phase: done
     - id: AC-3
       title: aiwf check refuses an instruction-file removal without a disposition block
-      status: open
+      status: met
       tdd_phase: done
     - id: AC-4
       title: The fence is an error by default and an aiwf.yaml setting turns it off
