@@ -1,6 +1,6 @@
 ---
 id: M-0336
-title: Remove duplicated project guidance for both hosts
+title: Remove duplicated guidance and move each rule to its audience's home
 status: draft
 parent: E-0092
 depends_on:
