@@ -13,7 +13,7 @@ acs:
       tdd_phase: done
     - id: AC-2
       title: aiwf check refuses an instruction-file commit without a resolving entity
-      status: open
+      status: met
       tdd_phase: done
     - id: AC-3
       title: aiwf check refuses an instruction-file removal without a disposition block
