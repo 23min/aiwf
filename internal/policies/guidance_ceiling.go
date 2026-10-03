@@ -75,8 +75,8 @@ type guidanceLoad struct {
 // host's measured handwritten primed load; E-0092's later milestones
 // lower them.
 var guidanceHosts = []guidanceHost{
-	{Name: "claude-code", Entry: fenceClaudeMD, Ceiling: 9647},
-	{Name: "codex", Entry: fenceAgentsMD, Ceiling: 9776},
+	{Name: "claude-code", Entry: projectguidance.ClaudeFile, Ceiling: 9647},
+	{Name: "codex", Entry: projectguidance.AgentsFile, Ceiling: 9776},
 }
 
 // guidanceReadTable classifies every reference primed text makes today.
@@ -86,33 +86,33 @@ var guidanceHosts = []guidanceHost{
 // requires reading CLAUDE.md in full, so for Codex that read is primed;
 // every reference CLAUDE.md makes is read when a task needs it.
 var guidanceReadTable = map[guidanceRef]readKind{
-	{From: fenceClaudeMD, To: fenceRouter}:                                                                                 readRequired,
-	{From: fenceAgentsMD, To: fenceRouter}:                                                                                 readRequired,
-	{From: fenceClaudeMD, To: ".guidance/index.md"}:                                                                        readGenerated,
-	{From: fenceAgentsMD, To: ".guidance/index.md"}:                                                                        readGenerated,
-	{From: fenceAgentsMD, To: fenceClaudeMD}:                                                                               readRequired,
-	{From: fenceClaudeMD, To: ".claude/hooks/validate-agent-isolation.sh"}:                                                 readConditional,
-	{From: fenceClaudeMD, To: ".devcontainer/README.md"}:                                                                   readConditional,
-	{From: fenceClaudeMD, To: ".devcontainer/devcontainer.json"}:                                                           readConditional,
-	{From: fenceClaudeMD, To: ".devcontainer/project"}:                                                                     readConditional,
-	{From: fenceClaudeMD, To: ".devcontainer/project/README.md"}:                                                           readConditional,
-	{From: fenceClaudeMD, To: ".github/workflows/changelog-check.yml"}:                                                     readConditional,
-	{From: fenceClaudeMD, To: "CHANGELOG.md"}:                                                                              readConditional,
-	{From: fenceClaudeMD, To: "CONTRIBUTING.md"}:                                                                           readConditional,
-	{From: fenceClaudeMD, To: "README.md"}:                                                                                 readConditional,
-	{From: fenceClaudeMD, To: "docs/adr/ADR-0006-skills-policy-per-verb-default-or-help-only.md"}:                          readConditional,
-	{From: fenceClaudeMD, To: "docs/adr/ADR-0015-settings-json-edits-require-explicit-per-invocation-consent.md"}:          readConditional,
-	{From: fenceClaudeMD, To: "docs/adr/ADR-0017-opt-in-slog-diagnostic-logging-default-off-xdg-state-home-file-route.md"}: readConditional,
-	{From: fenceClaudeMD, To: "docs/adr/ADR-0036-same-status-fsm-transitions-converge-to-noop-not-refusal.md"}:             readConditional,
-	{From: fenceClaudeMD, To: "docs/adr/ADR-0037-retitle-re-derives-the-slug-only-while-it-tracks-the-title.md"}:           readConditional,
-	{From: fenceClaudeMD, To: "docs/adr/ADR-0038-refuse-verb-writes-over-head-divergent-entity-content.md"}:                readConditional,
-	{From: fenceClaudeMD, To: "docs/archive/migration/from-prior-systems.md"}:                                              readConditional,
-	{From: fenceClaudeMD, To: "docs/design/design-decisions.md"}:                                                           readConditional,
-	{From: fenceClaudeMD, To: "docs/design/design-lessons.md"}:                                                             readConditional,
-	{From: fenceClaudeMD, To: "docs/design/provenance-model.md"}:                                                           readConditional,
-	{From: fenceClaudeMD, To: "docs/explorations/loom/loom-by-example.md"}:                                                 readConditional,
-	{From: fenceClaudeMD, To: "docs/explorations/loom/loom-light-plan.md"}:                                                 readConditional,
-	{From: fenceClaudeMD, To: "scripts/sign-and-run.sh"}:                                                                   readConditional,
+	{From: projectguidance.ClaudeFile, To: projectguidance.RouterFile}:                                                                  readRequired,
+	{From: projectguidance.AgentsFile, To: projectguidance.RouterFile}:                                                                  readRequired,
+	{From: projectguidance.ClaudeFile, To: ".guidance/index.md"}:                                                                        readGenerated,
+	{From: projectguidance.AgentsFile, To: ".guidance/index.md"}:                                                                        readGenerated,
+	{From: projectguidance.AgentsFile, To: projectguidance.ClaudeFile}:                                                                  readRequired,
+	{From: projectguidance.ClaudeFile, To: ".claude/hooks/validate-agent-isolation.sh"}:                                                 readConditional,
+	{From: projectguidance.ClaudeFile, To: ".devcontainer/README.md"}:                                                                   readConditional,
+	{From: projectguidance.ClaudeFile, To: ".devcontainer/devcontainer.json"}:                                                           readConditional,
+	{From: projectguidance.ClaudeFile, To: ".devcontainer/project"}:                                                                     readConditional,
+	{From: projectguidance.ClaudeFile, To: ".devcontainer/project/README.md"}:                                                           readConditional,
+	{From: projectguidance.ClaudeFile, To: ".github/workflows/changelog-check.yml"}:                                                     readConditional,
+	{From: projectguidance.ClaudeFile, To: "CHANGELOG.md"}:                                                                              readConditional,
+	{From: projectguidance.ClaudeFile, To: "CONTRIBUTING.md"}:                                                                           readConditional,
+	{From: projectguidance.ClaudeFile, To: "README.md"}:                                                                                 readConditional,
+	{From: projectguidance.ClaudeFile, To: "docs/adr/ADR-0006-skills-policy-per-verb-default-or-help-only.md"}:                          readConditional,
+	{From: projectguidance.ClaudeFile, To: "docs/adr/ADR-0015-settings-json-edits-require-explicit-per-invocation-consent.md"}:          readConditional,
+	{From: projectguidance.ClaudeFile, To: "docs/adr/ADR-0017-opt-in-slog-diagnostic-logging-default-off-xdg-state-home-file-route.md"}: readConditional,
+	{From: projectguidance.ClaudeFile, To: "docs/adr/ADR-0036-same-status-fsm-transitions-converge-to-noop-not-refusal.md"}:             readConditional,
+	{From: projectguidance.ClaudeFile, To: "docs/adr/ADR-0037-retitle-re-derives-the-slug-only-while-it-tracks-the-title.md"}:           readConditional,
+	{From: projectguidance.ClaudeFile, To: "docs/adr/ADR-0038-refuse-verb-writes-over-head-divergent-entity-content.md"}:                readConditional,
+	{From: projectguidance.ClaudeFile, To: "docs/archive/migration/from-prior-systems.md"}:                                              readConditional,
+	{From: projectguidance.ClaudeFile, To: "docs/design/design-decisions.md"}:                                                           readConditional,
+	{From: projectguidance.ClaudeFile, To: "docs/design/design-lessons.md"}:                                                             readConditional,
+	{From: projectguidance.ClaudeFile, To: "docs/design/provenance-model.md"}:                                                           readConditional,
+	{From: projectguidance.ClaudeFile, To: "docs/explorations/loom/loom-by-example.md"}:                                                 readConditional,
+	{From: projectguidance.ClaudeFile, To: "docs/explorations/loom/loom-light-plan.md"}:                                                 readConditional,
+	{From: projectguidance.ClaudeFile, To: "scripts/sign-and-run.sh"}:                                                                   readConditional,
 }
 
 // guidanceCeilingViolations measures each host and reports its routing
@@ -158,7 +158,7 @@ func measureGuidanceLoad(read func(string) (string, bool), entry string, table m
 	follow := func(doc, to string, kind readKind) {
 		// Routing on demand is the router's job, so a link from it is
 		// conditional unless the table declares otherwise.
-		if kind == 0 && doc == fenceRouter {
+		if kind == 0 && doc == projectguidance.RouterFile {
 			kind = readConditional
 		}
 		content, exists := read(to)
@@ -180,8 +180,8 @@ func measureGuidanceLoad(read func(string) (string, bool), entry string, table m
 	}
 	// A link is classified by the table.
 	followLinks := func(doc, text string) {
-		for _, target := range markdownLinks(text) {
-			if p, ok := resolveReference(doc, target); ok {
+		for _, target := range projectguidance.MarkdownLinks(text) {
+			if p, ok := projectguidance.ResolveReference(doc, target); ok {
 				follow(doc, p, table[guidanceRef{From: doc, To: p}])
 			}
 		}
@@ -194,8 +194,8 @@ func measureGuidanceLoad(read func(string) (string, bool), entry string, table m
 		doc := queue[0]
 		queue = queue[1:]
 		text, _ := read(doc)
-		if doc == fenceClaudeMD || doc == fenceAgentsMD {
-			text = handwrittenText(text)
+		if doc == projectguidance.ClaudeFile || doc == projectguidance.AgentsFile {
+			text = projectguidance.HandwrittenText(text)
 		}
 		counted := text
 		if memory[doc] {
@@ -221,7 +221,7 @@ func measureGuidanceLoad(read func(string) (string, bool), entry string, table m
 // point the set is empty.
 func claudeMemory(read func(string) (string, bool), entry, entryContent string) map[string]bool {
 	memory := map[string]bool{}
-	if entry != fenceClaudeMD {
+	if entry != projectguidance.ClaudeFile {
 		return memory
 	}
 	memory[entry] = true
@@ -249,7 +249,7 @@ func claudeMemory(read func(string) (string, bool), entry, entryContent string) 
 func repoImports(doc, text string) []string {
 	var out []string
 	for _, target := range markdownImports(text) {
-		if p, ok := resolveReference(doc, target); ok && !strings.HasPrefix(target, "~") && !strings.HasPrefix(target, "/") {
+		if p, ok := projectguidance.ResolveReference(doc, target); ok && !strings.HasPrefix(target, "~") && !strings.HasPrefix(target, "/") {
 			out = append(out, p)
 		}
 	}
@@ -288,7 +288,7 @@ func withoutImports(text string) string {
 // there is text.
 func generatedWords(read func(string) (string, bool), content string, imports bool) int {
 	n := 0
-	for _, markers := range managedBlockMarkers {
+	for _, markers := range projectguidance.ManagedBlockMarkers() {
 		block := blockText(content, markers)
 		if !imports {
 			n += len(strings.Fields(block))

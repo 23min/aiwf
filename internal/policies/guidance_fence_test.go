@@ -8,7 +8,6 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/23min/aiwf/internal/initrepo"
 	"github.com/23min/aiwf/internal/pathutil"
 	"github.com/23min/aiwf/internal/projectguidance"
 )
@@ -18,7 +17,7 @@ import (
 // block carrying routeBody. The markers come from their owning packages,
 // so a marker change there moves these fixtures with it.
 func fenceHostFile(handwritten, guidanceBody, routeBody string) string {
-	gStart, gEnd, _ := initrepo.GuidanceMarkers()
+	gStart, gEnd, _ := projectguidance.GuidanceMarkers()
 	rStart, rEnd, _ := projectguidance.RouteMarkers()
 	return handwritten + "\n" +
 		gStart + "\n" + guidanceBody + "\n" + gEnd + "\n\n" +
@@ -424,7 +423,7 @@ func TestGuidanceFence_FramingIsNotData(t *testing.T) {
 func TestGuidanceFence_InsertedBlockIsNotHandwritten(t *testing.T) {
 	t.Parallel()
 	root, runGit, writeFile, _ := guidanceFenceFixture(t)
-	gStart, gEnd, _ := initrepo.GuidanceMarkers()
+	gStart, gEnd, _ := projectguidance.GuidanceMarkers()
 	bare := "# Dev rules\n\nKeep it simple.\n\n" + gStart + "\n@.claude/aiwf-guidance.md\n" + gEnd + "\n"
 	writeFile("CLAUDE.md", bare)
 	commitOwned(runGit, "docs(guidance): no routing block yet")
@@ -473,42 +472,6 @@ func TestGuidanceFence_OwnedRecordCannotExemptCode(t *testing.T) {
 			t.Errorf("violation files = %v, want %v", got, want)
 		}
 	})
-}
-
-// TestRoutedDocuments pins what the router counts as a route: a markdown
-// link in any CommonMark form — titled, angle-bracketed, reference-style,
-// percent-escaped — resolved against the router's directory, or the
-// repository root for a leading slash, anchor dropped. A link with a
-// scheme, a link to something other than markdown, and a link leaving the
-// repository are not routes.
-func TestRoutedDocuments(t *testing.T) {
-	t.Parallel()
-	router := "Read [a](../docs/a.md#part), [b](b.md), [web](https://example.com/c.md),\n" +
-		"[img](../x.png), [out](../../outside.md), [t](../docs/t.md \"titled\"),\n" +
-		"[angle](<../docs/my doc.md>), [root](/docs/r.md), [esc](../docs/sp%20ace.md) and [ref][r].\n\n" +
-		"[r]: ../docs/ref.md\n"
-	got := routedDocuments(router)
-	want := []string{"docs/a.md", ".guidance/b.md", "docs/t.md", "docs/my doc.md", "docs/r.md", "docs/sp ace.md", "docs/ref.md"}
-	if !equalStrings(got, want) {
-		t.Errorf("routedDocuments = %v, want %v", got, want)
-	}
-}
-
-// TestHandwrittenText pins that a host file's managed blocks are removed
-// and that malformed markers leave the whole file judged as handwritten.
-func TestHandwrittenText(t *testing.T) {
-	t.Parallel()
-	if handwrittenText(fenceHostFile("mine\n", "generated v1", "route v1")) != handwrittenText(fenceHostFile("mine\n", "generated v2", "route v2")) {
-		t.Error("a change inside the managed blocks must leave the handwritten text unchanged")
-	}
-	if handwrittenText(fenceHostFile("mine\n", "generated", "route")) == handwrittenText(fenceHostFile("yours\n", "generated", "route")) {
-		t.Error("a change outside the managed blocks must change the handwritten text")
-	}
-	gStart, _, _ := initrepo.GuidanceMarkers()
-	broken := "mine\n" + gStart + "\nno end marker\n"
-	if got := handwrittenText(broken); got != broken {
-		t.Errorf("malformed markers: handwrittenText = %q, want the whole file", got)
-	}
 }
 
 // TestGuidanceFence_WiredIntoCoverageGate pins that the fence runs at the
@@ -896,7 +859,7 @@ func TestGuidanceFence_CreatedHostFileHoldingOnlyBlocks(t *testing.T) {
 	runGit("rm", "-q", "AGENTS.md")
 	commitOwned(runGit, "chore: no AGENTS.md yet\n\nRemoved: the Codex entry point\nDisposition: deleted")
 	base := trimLine(runGit("rev-parse", "HEAD"))
-	gStart, gEnd, _ := initrepo.GuidanceMarkers()
+	gStart, gEnd, _ := projectguidance.GuidanceMarkers()
 	writeFile("AGENTS.md", gStart+"\nfragment v1\n"+gEnd+"\n")
 	writeFile(fenceCodeFile, "package app\n\nvar x = 1\n")
 	runGit("add", "-A")

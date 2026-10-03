@@ -4,7 +4,6 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/23min/aiwf/internal/initrepo"
 	"github.com/23min/aiwf/internal/projectguidance"
 )
 
@@ -31,7 +30,7 @@ func words(n int) string {
 // counts no words itself.
 func TestMeasureGuidanceLoad(t *testing.T) {
 	t.Parallel()
-	gStart, gEnd, _ := initrepo.GuidanceMarkers()
+	gStart, gEnd, _ := projectguidance.GuidanceMarkers()
 	files := map[string]string{
 		"CLAUDE.md": words(10) + "\n\nSee [design](docs/design.md).\n\n" +
 			gStart + "\n@.claude/aiwf-guidance.md\n" + gEnd + "\n",
@@ -413,7 +412,7 @@ func TestMeasureGuidanceLoad_RouterLinksDefaultToConditional(t *testing.T) {
 // primed document is handwritten and counts in full.
 func TestMeasureGuidanceLoad_OnlyEntryPointsHaveManagedBlocks(t *testing.T) {
 	t.Parallel()
-	gStart, gEnd, _ := initrepo.GuidanceMarkers()
+	gStart, gEnd, _ := projectguidance.GuidanceMarkers()
 	rStart, rEnd, _ := projectguidance.RouteMarkers()
 	files := map[string]string{
 		"CLAUDE.md":            rStart + "\n[p](.guidance/project.md)\n" + rEnd + "\n",
@@ -436,7 +435,7 @@ func TestMeasureGuidanceLoad_OnlyEntryPointsHaveManagedBlocks(t *testing.T) {
 // is text; one in a managed block counts once, toward the generated figure.
 func TestMeasureGuidanceLoad_ImportsExpandOnlyInClaudeMemory(t *testing.T) {
 	t.Parallel()
-	gStart, gEnd, _ := initrepo.GuidanceMarkers()
+	gStart, gEnd, _ := projectguidance.GuidanceMarkers()
 	rStart, rEnd, _ := projectguidance.RouteMarkers()
 	tests := []struct {
 		name                   string

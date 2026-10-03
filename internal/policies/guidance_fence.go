@@ -12,8 +12,6 @@ import (
 
 	"github.com/23min/aiwf/internal/entity"
 	"github.com/23min/aiwf/internal/gitops"
-	"github.com/23min/aiwf/internal/initrepo"
-	"github.com/23min/aiwf/internal/pathutil"
 	"github.com/23min/aiwf/internal/projectguidance"
 )
 
@@ -41,12 +39,9 @@ func PolicyGuidanceFence(root string) ([]Violation, error) {
 	return guidanceFenceViolations(root, os.Getenv("AIWF_COVERAGE_BASE"))
 }
 
-// Paths the fence reads by name.
+// Paths the fence reads by name, beside the guidance set
+// projectguidance defines.
 const (
-	fenceClaudeMD    = "CLAUDE.md"
-	fenceAgentsMD    = "AGENTS.md"
-	fenceRouter      = ".guidance/project.md"
-	fenceOwnedRecord = ".guidance/.aiwf-owned"
 	fenceConfig      = "aiwf.yaml"
 	fenceGuidanceSrc = "internal/skills/embedded-guidance/"
 )
@@ -329,7 +324,7 @@ func fenceReportPath(ch fenceChange) string {
 }
 
 func (r fenceRevision) isGuidance(p string) bool {
-	return p == fenceClaudeMD || p == fenceAgentsMD || p == fenceRouter || r.routed[p]
+	return p == projectguidance.ClaudeFile || p == projectguidance.AgentsFile || p == projectguidance.RouterFile || r.routed[p]
 }
 
 // isRelated reports whether p may ride with a guidance change without
@@ -337,7 +332,7 @@ func (r fenceRevision) isGuidance(p string) bool {
 // lists, the guidance source, and configuration.
 func (r fenceRevision) isRelated(p string) bool {
 	switch {
-	case p == fenceOwnedRecord, p == fenceConfig, r.owned[p]:
+	case p == projectguidance.OwnedRecordFile, p == fenceConfig, r.owned[p]:
 		return true
 	default:
 		return strings.HasPrefix(p, fenceGuidanceSrc) && strings.HasSuffix(p, ".md")
@@ -348,7 +343,7 @@ func (r fenceRevision) isRelated(p string) bool {
 // absent at rev contributes nothing.
 func fenceRevisionAt(br *gitops.BlobReader, rev string) (fenceRevision, error) {
 	r := fenceRevision{routed: map[string]bool{}, owned: map[string]bool{}}
-	rawOwned, err := readAt(br, rev, fenceOwnedRecord)
+	rawOwned, err := readAt(br, rev, projectguidance.OwnedRecordFile)
 	if err != nil { //coverage:ignore propagates a cat-file read failure: the fence reads only paths the diff reports present at that revision, and the router and owned record, whose absence reads as ErrBlobMissing, so only a pump that dies mid-run fails one
 		return r, err
 	}
@@ -362,28 +357,16 @@ func fenceRevisionAt(br *gitops.BlobReader, rev string) (fenceRevision, error) {
 			}
 		}
 	}
-	router, err := readAt(br, rev, fenceRouter)
+	router, err := readAt(br, rev, projectguidance.RouterFile)
 	if err != nil { //coverage:ignore propagates a cat-file read failure: the fence reads only paths the diff reports present at that revision, and the router and owned record, whose absence reads as ErrBlobMissing, so only a pump that dies mid-run fails one
 		return r, err
 	}
-	for _, p := range routedDocuments(router) {
+	for _, p := range projectguidance.RoutedDocuments(router) {
 		if !r.owned[p] {
 			r.routed[p] = true
 		}
 	}
 	return r, nil
-}
-
-// routedDocuments returns the repository-relative markdown documents the
-// router links to, resolved as resolveReference describes.
-func routedDocuments(router string) []string {
-	var out []string
-	for _, target := range markdownLinks(router) {
-		if p, ok := resolveReference(fenceRouter, target); ok && strings.HasSuffix(p, ".md") {
-			out = append(out, p)
-		}
-	}
-	return out
 }
 
 // show returns a file's content at rev, or "" when it is absent there.
@@ -418,10 +401,10 @@ func handwrittenChanged(br *gitops.BlobReader, parent, sha string, ch fenceChang
 	if err != nil { //coverage:ignore propagates a cat-file read failure: the fence reads only paths the diff reports present at that revision, and the router and owned record, whose absence reads as ErrBlobMissing, so only a pump that dies mid-run fails one
 		return false, false, err
 	}
-	if ch.New == fenceClaudeMD || ch.New == fenceAgentsMD {
+	if ch.New == projectguidance.ClaudeFile || ch.New == projectguidance.AgentsFile {
 		// aiwf separates a block it inserts with a blank line outside it,
 		// so blank lines are not handwritten content.
-		before, after = nonBlankLines(handwrittenText(before)), nonBlankLines(handwrittenText(after))
+		before, after = nonBlankLines(projectguidance.HandwrittenText(before)), nonBlankLines(projectguidance.HandwrittenText(after))
 	}
 	// A rename moves the document; an addition or a deletion is judged by
 	// its content, so a host file aiwf creates holding only its blocks is
@@ -508,23 +491,4 @@ func validDisposition(v string) bool {
 		}
 	}
 	return false
-}
-
-// managedBlockMarkers are the marker sets of aiwf's two managed blocks in a
-// host entry point, each owned by the package that writes the block.
-var managedBlockMarkers = []func() (start, end, prefix string){initrepo.GuidanceMarkers, projectguidance.RouteMarkers}
-
-// handwrittenText is a host entry point with its managed blocks removed.
-// A file whose markers are malformed has no block aiwf can own, so all of
-// it is judged as handwritten.
-func handwrittenText(content string) string {
-	for _, markers := range managedBlockMarkers {
-		startMarker, endMarker, prefix := markers()
-		start, end, err := pathutil.ManagedBlockSpan(content, startMarker, endMarker, prefix)
-		if err != nil || start < 0 {
-			continue
-		}
-		content = content[:start] + content[end:]
-	}
-	return content
 }

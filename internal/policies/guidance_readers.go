@@ -1,15 +1,19 @@
 package policies
 
 import (
+	"errors"
 	"fmt"
 	"go/ast"
 	"go/token"
+	"io/fs"
 	"maps"
 	"os"
 	"path"
 	"path/filepath"
 	"slices"
 	"strings"
+
+	"github.com/23min/aiwf/internal/projectguidance"
 )
 
 // PolicyGuidanceReaders holds D-0102 for this repository's
@@ -26,8 +30,10 @@ import (
 // The rule asks whether a test reads the guidance, not whether it asserts a
 // phrase: the first is decidable from syntax, the second is not. A test
 // reads the guidance when it, or a function or method of its package it
-// calls or passes along, names a guidance document by a string literal or
-// a package-level constant, and resolves the repository root through a
+// calls or passes along, names a guidance document by a string literal, a
+// package-level constant, or a constant of the package defining the
+// guidance set named through that package, and resolves the repository
+// root through a
 // repoRoot helper or a literal path climbing to it. It errs toward
 // reporting: a literal naming the file counts wherever it appears, and the
 // list records a test that names it without reading it. It does not see a
@@ -133,51 +139,87 @@ func guidanceReaderTests(root string) (map[string]string, error) {
 		return nil, err
 	}
 	namesGuidance := repoNamesGuidance(root)
+	shared, err := guidanceSetConstants(root, namesGuidance)
+	if err != nil {
+		return nil, err
+	}
 	out := map[string]string{}
 	for _, dir := range dirs {
 		_, files, paths, err := parsePackageDir(root, dir)
 		if err != nil {
 			return nil, err
 		}
-		for name, file := range readersInPackage(files, paths, namesGuidance) {
+		for name, file := range readersInPackage(files, paths, namesGuidance, shared) {
 			out[dir+"."+name] = file
 		}
 	}
 	return out, nil
 }
 
-// readersInPackage returns the tests in one parsed package that read
-// development guidance, mapped to their files. What a function names and
-// resolves is followed through every function or method of the package it
-// calls or passes as a value, to a fixpoint.
-func readersInPackage(files []*ast.File, paths map[*ast.File]string, namesGuidance func(string) bool) map[string]string {
-	funcs := map[string][]*ast.FuncDecl{}
+// guidanceSetPackage is the package defining the guidance set. A test
+// naming one of its constants through the package names the document the
+// constant holds.
+const guidanceSetPackage = "internal/projectguidance"
+
+// guidanceSetConstants returns the constants of the guidance-set package
+// whose value names a guidance document. A tree without the package
+// defines none.
+func guidanceSetConstants(root string, namesGuidance func(string) bool) (map[string]bool, error) {
+	_, files, _, err := parsePackageDir(root, guidanceSetPackage)
+	if errors.Is(err, fs.ErrNotExist) {
+		return nil, nil
+	}
+	if err != nil {
+		return nil, err
+	}
+	return guidanceConstants(files, namesGuidance), nil
+}
+
+// guidanceConstants returns the package-level values in files whose value
+// names a guidance document by a string literal.
+func guidanceConstants(files []*ast.File, namesGuidance func(string) bool) map[string]bool {
 	consts := map[string]bool{}
 	for _, f := range files {
 		for _, d := range f.Decls {
-			switch decl := d.(type) {
-			case *ast.FuncDecl:
-				// Methods are keyed by name as functions are: a call
-				// `x.m(…)` reaches m's body the same way `m(…)` does, and
-				// every declaration sharing a name is followed.
-				if decl.Body != nil {
-					funcs[decl.Name.Name] = append(funcs[decl.Name.Name], decl)
+			decl, ok := d.(*ast.GenDecl)
+			if !ok {
+				continue
+			}
+			for _, sp := range decl.Specs {
+				vs, ok := sp.(*ast.ValueSpec)
+				if !ok {
+					continue
 				}
-			case *ast.GenDecl:
-				for _, sp := range decl.Specs {
-					vs, ok := sp.(*ast.ValueSpec)
-					if !ok {
-						continue
-					}
-					for i, nm := range vs.Names {
-						if i < len(vs.Values) && nm.Name != "_" && literalNamesGuidance(vs.Values[i], namesGuidance) {
-							consts[nm.Name] = true
-						}
+				for i, nm := range vs.Names {
+					if i < len(vs.Values) && nm.Name != "_" && literalNamesGuidance(vs.Values[i], namesGuidance) {
+						consts[nm.Name] = true
 					}
 				}
 			}
 		}
 	}
+	return consts
+}
+
+// readersInPackage returns the tests in one parsed package that read
+// development guidance, mapped to their files. What a function names and
+// resolves is followed through every function or method of the package it
+// calls or passes as a value, to a fixpoint. shared holds the guidance-set
+// package's constants that name a guidance document.
+func readersInPackage(files []*ast.File, paths map[*ast.File]string, namesGuidance func(string) bool, shared map[string]bool) map[string]string {
+	funcs := map[string][]*ast.FuncDecl{}
+	for _, f := range files {
+		for _, d := range f.Decls {
+			// Methods are keyed by name as functions are: a call `x.m(…)`
+			// reaches m's body the same way `m(…)` does, and every
+			// declaration sharing a name is followed.
+			if decl, ok := d.(*ast.FuncDecl); ok && decl.Body != nil {
+				funcs[decl.Name.Name] = append(funcs[decl.Name.Name], decl)
+			}
+		}
+	}
+	consts := guidanceConstants(files, namesGuidance)
+	sharedPkg := path.Base(guidanceSetPackage)
 
 	type reach struct{ names, roots bool }
 	own := map[string]reach{}
@@ -195,6 +237,10 @@ func readersInPackage(files []*ast.File, paths map[*ast.File]string, namesGuidan
 						if strings.HasPrefix(litValue(x), "../") {
 							r.roots = true
 						}
+					}
+				case *ast.SelectorExpr:
+					if pkg, ok := x.X.(*ast.Ident); ok && pkg.Name == sharedPkg && shared[x.Sel.Name] {
+						r.names = true
 					}
 				case *ast.Ident:
 					if consts[x.Name] {
@@ -272,10 +318,10 @@ func namesGuidancePath(s string, routed map[string]bool) bool {
 		s = strings.TrimPrefix(s, "../")
 	}
 	switch path.Base(s) {
-	case fenceClaudeMD, fenceAgentsMD:
+	case projectguidance.ClaudeFile, projectguidance.AgentsFile:
 		return true
 	}
-	return s == fenceRouter || routed[s]
+	return s == projectguidance.RouterFile || routed[s]
 }
 
 // repoNamesGuidance builds the guidance-path predicate for the tree at root,
@@ -288,9 +334,9 @@ func repoNamesGuidance(root string) func(string) bool {
 // repoRoutedDocuments returns the documents the project router at root links
 // to. A missing router reads as empty and routes nothing.
 func repoRoutedDocuments(root string) map[string]bool {
-	router, _ := os.ReadFile(filepath.Join(root, filepath.FromSlash(fenceRouter)))
+	router, _ := os.ReadFile(filepath.Join(root, filepath.FromSlash(projectguidance.RouterFile)))
 	routed := map[string]bool{}
-	for _, p := range routedDocuments(string(router)) {
+	for _, p := range projectguidance.RoutedDocuments(string(router)) {
 		routed[p] = true
 	}
 	return routed
