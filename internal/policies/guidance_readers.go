@@ -97,7 +97,6 @@ var guidanceReaderList = map[string]guidanceReaderEntry{
 	"internal/policies.TestPolicyDevcontainerPathsResolve":                    {readerRelationship, "checks that every .devcontainer/ path CLAUDE.md names exists"},
 	"internal/policies.TestPolicy_FindingCodesAreDiscoverable":                {readerRelationship, "reads the router to leave routed documents out of the channels"},
 	"internal/policies.TestPolicy_GuidanceCeiling":                            {readerRelationship, "measures each host's primed load against its ceiling"},
-	"internal/policies.TestPolicy_GuidanceFence":                              {readerRelationship, "judges commits that change the guidance"},
 	"internal/policies.TestPolicy_NoDanglingEntityRefsInNarrativeDocs":        {readerRelationship, "checks that every entity reference in CLAUDE.md resolves"},
 	"internal/policies.TestPolicy_GuidanceReaders":                            {readerRelationship, "reads the router to know which documents are guidance"},
 }
