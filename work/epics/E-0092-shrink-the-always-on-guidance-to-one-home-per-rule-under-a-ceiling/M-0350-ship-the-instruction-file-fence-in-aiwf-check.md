@@ -25,7 +25,7 @@ acs:
       tdd_phase: done
     - id: AC-5
       title: The fence's finding codes and setting are discoverable
-      status: open
+      status: met
       tdd_phase: done
     - id: AC-6
       title: This repository runs the kernel fence in place of its internal one
