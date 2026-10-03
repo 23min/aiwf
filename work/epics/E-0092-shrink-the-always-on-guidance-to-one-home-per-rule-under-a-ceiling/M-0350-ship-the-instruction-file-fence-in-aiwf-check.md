@@ -120,7 +120,9 @@ The internal fence policy, its tests and its gate wiring are removed. **Pass cri
 
 ## Decisions made during implementation
 
-- (none)
+- A host file's managed blocks are read strictly, as `pathutil.ManagedBlockSpan` reads them: a file carrying a stray or doubled `<!-- aiwf:guidance:… -->` marker has no block the rule recognizes, and all of it is judged handwritten. `aiwf update` finds `CLAUDE.md`'s import block by its first exact START and END lines, so it refreshes the block in such a file; the block's content is fixed, so the refresh changes nothing the rule reads, and the strict reading never lets a handwritten change through.
+- When `aiwf update` wraps a bare `@.claude/aiwf-guidance.md` line of `CLAUDE.md` in markers, the rule reads that line as removed from the handwritten text, and the commit carrying the update needs an `aiwf-entity` trailer and a disposition block. Every release that writes the import, from v0.14.0 on, writes it inside markers, so a bare line is one a person typed and the wrap happens once.
+- The rule skips commits already on the configured trunk ref. Such a commit has been pushed: it was judged when it reached the trunk, or it predates the rule. Without the skip, a branch that merges the trunk is held to the trunk's commits since it last synced, which nobody on that branch can change. Commits a merge brings in that are not on the trunk, such as a milestone's merged into its epic, are still judged; judging only the first-parent line, as the untrailered audit does, would leave them unjudged.
 
 ## Validation
 
