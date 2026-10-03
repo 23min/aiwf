@@ -30,6 +30,7 @@ acs:
     - id: AC-6
       title: This repository runs the kernel fence in place of its internal one
       status: open
+      tdd_phase: red
 ---
 ## Goal
 
