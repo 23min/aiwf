@@ -129,6 +129,7 @@ The internal fence policy, its tests and its gate wiring are removed. **Pass cri
 - Text counts as removed when some old line is missing from the new text and the old words do not survive in their order. The line test alone reads a re-wrapped paragraph, or one re-flowed around an inserted sentence, as a removal though no word went; the word test alone passes a reordering of words, which can change what a rule says. A paragraph moved within a file and re-wrapped in the same commit still reads as a removal.
 - The disposition set gains `reworded`, for a rule that stays where it was in new words. Recorded as `deleted`, a rewording cannot be told from a removed rule; M-0336 maps the inventory's `merge into` and `tighten` decisions to it.
 - Every message line starting `Removed:` opens a block, so a half-written block and a sentence that happens to start that way are both malformed, beside a good block or not. Reading a `Removed:` line with no `Disposition:` after it as prose would let a forgotten disposition pass whenever another block is well formed; reading blocks only among the trailers would hold writers to git's trailer parsing.
+- `guidance.fence_instruction_commits` turns the fence off, apart from `guidance.enabled`, which governs pack maintenance only; freezing the installed packs leaves the fence running.
 
 ## Validation
 
