@@ -9,6 +9,7 @@ import (
 	"sort"
 	"strings"
 
+	"github.com/23min/aiwf/internal/check"
 	"github.com/23min/aiwf/internal/entity"
 	"github.com/23min/aiwf/internal/gitops"
 	"github.com/23min/aiwf/internal/tree"
@@ -152,10 +153,7 @@ func detectUnownedSkillEdits(edits []skillEdit, resolves func(string) bool) []Vi
 }
 
 // entityResolver loads the tree once and returns the id-resolution
-// predicate. `prior_ids` are consulted so an entity renumbered by
-// `aiwf reallocate` keeps its older commit trailers resolving — the verb
-// rewrites references in the tree, but it cannot rewrite a commit
-// message.
+// predicate, check.EntityResolves over that tree.
 //
 // Per-entity load errors are ignored: a malformed entity elsewhere in
 // the tree is a finding for `aiwf check` to report, not a reason this
@@ -165,27 +163,7 @@ func entityResolver(root string) (func(string) bool, error) {
 	if err != nil {
 		return nil, fmt.Errorf("loading entity tree at %s: %w", root, err)
 	}
-	return func(id string) bool {
-		if t.ResolveByCurrentOrPriorID(id) != nil {
-			return true
-		}
-		// A file the loader could not parse still witnesses the entity:
-		// tree.Load records it as a stub whose id comes from the path,
-		// and its malformed YAML is a finding `aiwf check` reports at
-		// error severity, which blocks the push on its own. Counting it
-		// as unresolved would let a landed commit turn red over an edit
-		// to a *different* file, and would tell the operator to name an
-		// entity that already exists. The id is path-derived, so a junk
-		// file at an entity-shaped path would satisfy this — that fence
-		// is the load-error finding, not this resolver, and forging one
-		// costs more than `aiwf add`.
-		for _, s := range t.Stubs {
-			if entity.Canonicalize(s.ID) == entity.Canonicalize(id) {
-				return true
-			}
-		}
-		return false
-	}, nil
+	return func(id string) bool { return check.EntityResolves(t, id) }, nil
 }
 
 // Record and field separators for the `git log` scan. Both are ASCII

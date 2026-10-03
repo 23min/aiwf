@@ -11,8 +11,10 @@ import (
 
 	codespkg "github.com/23min/aiwf/internal/codes"
 	"github.com/23min/aiwf/internal/config"
+	"github.com/23min/aiwf/internal/entity"
 	"github.com/23min/aiwf/internal/gitops"
 	"github.com/23min/aiwf/internal/projectguidance"
+	"github.com/23min/aiwf/internal/tree"
 )
 
 // The instruction-file fence judges commits that change a project's
@@ -35,6 +37,15 @@ var CodeInstructionCommitUnrelatedFile = codespkg.Code{
 	Class: codespkg.ClassStructural,
 }
 
+// CodeInstructionCommitEntityMissing is reported once per commit that
+// changes handwritten instruction content and names, in its first
+// aiwf-entity trailer, no entity that resolves — no trailer at all, or a
+// value naming none.
+var CodeInstructionCommitEntityMissing = codespkg.Code{
+	ID:    "instruction-commit-entity-missing",
+	Class: codespkg.ClassStructural,
+}
+
 // InstructionCommit is one commit in the audited range, reduced to what the
 // fence judges. Pre-computed by WalkInstructionCommits; consumed by
 // RunInstructionFence.
@@ -53,18 +64,39 @@ type InstructionCommit struct {
 }
 
 // RunInstructionFence maps the walked commits to findings. A commit that
-// changed no handwritten instruction content is outside the fence.
-func RunInstructionFence(commits []InstructionCommit) []Finding {
+// changed no handwritten instruction content is outside the fence. One
+// that did must name the entity it belongs to: resolves is handed the
+// trailer's value rolled up to its owning entity and canonicalized, so a
+// composite acceptance-criterion id is owned by its milestone and a narrow
+// legacy id names the same entity.
+func RunInstructionFence(commits []InstructionCommit, resolves func(string) bool) []Finding {
 	var out []Finding
 	for _, c := range commits {
 		if len(c.Changed) == 0 {
 			continue
 		}
+		changed := strings.Join(c.Changed, ", ")
+		switch id := strings.TrimSpace(c.Entity); {
+		case id == "":
+			out = append(out, Finding{
+				Code:     CodeInstructionCommitEntityMissing.ID,
+				Severity: SeverityError,
+				Message:  fmt.Sprintf("commit %s changes handwritten instructions (%s) but carries no aiwf-entity trailer, so nothing records which entity the change belongs to", shortHash(c.SHA), changed),
+				Path:     c.Changed[0],
+			})
+		case !resolves(entity.Canonicalize(entity.CompositeRoot(id))):
+			out = append(out, Finding{
+				Code:     CodeInstructionCommitEntityMissing.ID,
+				Severity: SeverityError,
+				Message:  fmt.Sprintf("commit %s changes handwritten instructions (%s) under aiwf-entity: %s, which names no entity in the tree", shortHash(c.SHA), changed, id),
+				Path:     c.Changed[0],
+			})
+		}
 		for _, p := range c.Unrelated {
 			out = append(out, Finding{
 				Code:     CodeInstructionCommitUnrelatedFile.ID,
 				Severity: SeverityError,
-				Message:  fmt.Sprintf("commit %s changes handwritten instructions (%s) and also %s, which is neither an instruction file, a guidance output aiwf owns, nor %s", shortHash(c.SHA), strings.Join(c.Changed, ", "), p, config.FileName),
+				Message:  fmt.Sprintf("commit %s changes handwritten instructions (%s) and also %s, which is neither an instruction file, a guidance output aiwf owns, nor %s", shortHash(c.SHA), changed, p, config.FileName),
 				Path:     p,
 			})
 		}
@@ -358,4 +390,28 @@ func nonBlankLines(text string) string {
 		}
 	}
 	return strings.Join(kept, "\n")
+}
+
+// EntityResolves reports whether id names an entity in t, by its current
+// id or one it held before `aiwf reallocate` renumbered it: the verb
+// rewrites references in the tree, but it cannot rewrite a commit message.
+//
+// A file the loader could not parse still witnesses its entity: tree.Load
+// records it as a stub whose id comes from the path, and its malformed YAML
+// is a finding of its own at error severity. Counting it as unresolved
+// would turn a commit red over an edit to a different file, and would tell
+// the operator to name an entity that already exists. The id is
+// path-derived, so a junk file at an entity-shaped path satisfies this;
+// that fence is the load-error finding, not this resolver, and forging one
+// costs more than `aiwf add`.
+func EntityResolves(t *tree.Tree, id string) bool {
+	if t.ResolveByCurrentOrPriorID(id) != nil {
+		return true
+	}
+	for _, s := range t.Stubs {
+		if entity.Canonicalize(s.ID) == entity.Canonicalize(id) {
+			return true
+		}
+	}
+	return false
 }

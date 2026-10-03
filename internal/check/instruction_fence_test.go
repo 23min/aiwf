@@ -125,7 +125,7 @@ func (r *fenceRepo) fenceFindingsBeside(trunk string) []Finding {
 	if err != nil {
 		r.t.Fatalf("WalkInstructionCommits: %v", err)
 	}
-	return RunInstructionFence(commits)
+	return RunInstructionFence(commits, func(string) bool { return true })
 }
 
 // unrelatedPaths returns the paths the unrelated-file code names, sorted.
@@ -454,7 +454,7 @@ func TestWalkInstructionCommits_RootAndRange(t *testing.T) {
 	if err != nil {
 		t.Fatalf("WalkInstructionCommits: %v", err)
 	}
-	if diff := cmp.Diff([]string{fenceCodeFile}, unrelatedPaths(RunInstructionFence(commits))); diff != "" {
+	if diff := cmp.Diff([]string{fenceCodeFile}, unrelatedPaths(RunInstructionFence(commits, func(string) bool { return true }))); diff != "" {
 		t.Errorf("root commit unrelated files (-want +got):\n%s", diff)
 	}
 	if _, err := WalkInstructionCommits(context.Background(), r.root, "no-such-ref..HEAD", ""); err == nil {
@@ -492,5 +492,55 @@ func TestParseInstructionLog(t *testing.T) {
 	sha := strings.Repeat("d", 40)
 	if got, err := parseInstructionLog(sha); err != nil || !cmp.Equal(got, []instructionLogRecord{{sha: sha}}, cmp.AllowUnexported(instructionLogRecord{})) {
 		t.Errorf("a header alone = %+v, %v; want one record with no fields", got, err)
+	}
+}
+
+// TestRunInstructionFence_EntityTrailer is M-0350 AC-2: a commit changing
+// handwritten instructions names, in its first aiwf-entity trailer, an
+// entity that resolves. A missing trailer and an unresolvable value are one
+// finding each, naming the commit and the value; a narrow legacy id and a
+// composite acceptance-criterion id are resolved as the entity they name.
+func TestRunInstructionFence_EntityTrailer(t *testing.T) {
+	t.Parallel()
+	known := map[string]bool{"E-0001": true, "M-0002": true}
+	resolves := func(id string) bool { return known[id] }
+	sha := strings.Repeat("a", 40)
+	tests := []struct {
+		name, entity string
+		changed      []string
+		want         []string // substrings the one finding's message carries
+	}{
+		{name: "no trailer", changed: []string{"CLAUDE.md"}, want: []string{"aaaaaaaa", "no aiwf-entity trailer"}},
+		{name: "a value naming no entity", entity: "E-0099", changed: []string{"CLAUDE.md"}, want: []string{"aaaaaaaa", "E-0099"}},
+		{name: "a live entity", entity: "E-0001", changed: []string{"CLAUDE.md"}},
+		{name: "a narrow legacy id", entity: "E-01", changed: []string{"CLAUDE.md"}},
+		{name: "a composite acceptance-criterion id", entity: "M-0002/AC-3", changed: []string{"CLAUDE.md"}},
+		{name: "no instruction change needs no trailer"},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+			fs := RunInstructionFence([]InstructionCommit{{SHA: sha, Entity: tt.entity, Changed: tt.changed}}, resolves)
+			var got []Finding
+			for i := range fs {
+				if fs[i].Code == CodeInstructionCommitEntityMissing.ID {
+					got = append(got, fs[i])
+				}
+			}
+			if len(tt.want) == 0 {
+				if len(got) != 0 {
+					t.Errorf("findings = %+v, want none", got)
+				}
+				return
+			}
+			if len(got) != 1 || got[0].Severity != SeverityError || got[0].Path != "CLAUDE.md" {
+				t.Fatalf("findings = %+v, want one error on CLAUDE.md", got)
+			}
+			for _, w := range tt.want {
+				if !strings.Contains(got[0].Message, w) {
+					t.Errorf("message %q does not name %q", got[0].Message, w)
+				}
+			}
+		})
 	}
 }

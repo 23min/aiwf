@@ -168,7 +168,7 @@ func Run(root, format string, pretty bool, since string, shapeOnly, fast, verbos
 
 	// The instruction-file fence judges the same range as the provenance
 	// audit, less the commits already on trunk (ADR-0053).
-	fenceFindings, fErr := RunInstructionFenceCheck(ctx, resolved, since, trunkRefOf(tr))
+	fenceFindings, fErr := RunInstructionFenceCheck(ctx, resolved, since, tr)
 	if fErr != nil { //coverage:ignore RunInstructionFenceCheck errs only when git log fails over a range and trunk ref already resolved this run; see its own ignore
 		cliutil.Errorf("aiwf check: %v\n", fErr) //coverage:ignore see above
 		return cliutil.ExitInternal              //coverage:ignore see above
