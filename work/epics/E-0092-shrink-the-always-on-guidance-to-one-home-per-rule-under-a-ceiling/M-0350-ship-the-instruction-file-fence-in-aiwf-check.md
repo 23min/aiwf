@@ -10,6 +10,7 @@ acs:
     - id: AC-1
       title: aiwf check refuses an instruction-file commit carrying unrelated files
       status: open
+      tdd_phase: red
     - id: AC-2
       title: aiwf check refuses an instruction-file commit without a resolving entity
       status: open
