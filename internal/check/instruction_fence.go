@@ -137,6 +137,21 @@ func RunInstructionFence(commits []InstructionCommit, resolves func(string) bool
 	return out
 }
 
+// remoteTrackingTrunk resolves trunkRef to its full ref name and reports
+// whether that is a remote-tracking ref, so a short name such as
+// origin/main counts as the ref it names. A ref that does not resolve
+// excludes nothing.
+func remoteTrackingTrunk(ctx context.Context, root, trunkRef string) (string, bool) {
+	if trunkRef == "" {
+		return "", false
+	}
+	full, ok := gitLines(ctx, root, "rev-parse", "--symbolic-full-name", trunkRef)
+	if !ok || len(full) != 1 || !trunk.IsRemoteTrackingRef(full[0]) {
+		return "", false
+	}
+	return full[0], true
+}
+
 // instructionChange is one changed path pair from `git log --name-status`.
 // Old is empty for an addition and New for a deletion; both are set, and
 // equal, for a modification.
@@ -153,9 +168,9 @@ type instructionLogRecord struct {
 // WalkInstructionCommits lists the commits in rangeArg that are not on
 // trunkRef, with their changed paths, and classifies each against the
 // instruction set as it stood at the commit and at its first parent. Only a
-// remote-tracking trunkRef excludes anything: a commit on it has been
-// pushed, while a local branch named as the trunk can carry unpushed
-// commits.
+// trunkRef naming a remote-tracking ref excludes anything: a commit on it
+// has been pushed, while a local branch named as the trunk can carry
+// unpushed commits.
 //
 // The log is NUL-framed: git refuses a NUL byte in a commit message, and -z
 // turns off path quoting, so no message and no path can be mistaken for
@@ -171,8 +186,8 @@ func WalkInstructionCommits(ctx context.Context, root, rangeArg, trunkRef string
 		"--format=%H %P%x00%(trailers:key=" + gitops.TrailerEntity + ",valueonly,unfold,separator=%x0a)%x00%B%x00",
 		"--name-status", rangeArg,
 	}
-	if trunk.IsRemoteTrackingRef(trunkRef) {
-		args = append(args, "--not", trunkRef)
+	if full, ok := remoteTrackingTrunk(ctx, root, trunkRef); ok {
+		args = append(args, "--not", full)
 	}
 	cmd := exec.CommandContext(ctx, "git", args...)
 	cmd.Dir = root

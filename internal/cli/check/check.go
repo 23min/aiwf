@@ -210,8 +210,8 @@ func Run(root, format string, pretty bool, since string, shapeOnly, fast, verbos
 		}
 	}
 	// The instruction-file fence judges the same range as the provenance
-	// audit, less the commits already on trunk, unless aiwf.yaml turns it
-	// off (ADR-0053).
+	// audit, less the commits already on a remote-tracking trunk, unless
+	// aiwf.yaml turns it off (ADR-0053).
 	if cfg.FenceInstructionCommits() {
 		fenceFindings, fErr := RunInstructionFenceCheck(ctx, resolved, since, tr)
 		if fErr != nil { //coverage:ignore RunInstructionFenceCheck errs only when git log fails over a range and trunk ref already resolved this run; see its own ignore

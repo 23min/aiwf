@@ -415,8 +415,9 @@ func TestInstructionFence_MergeCommits(t *testing.T) {
 // TestInstructionFence_TrunkCommitsAreNotJudged is M-0350 AC-1's range: a
 // commit already on a remote-tracking trunk has been pushed, so a branch
 // that merges trunk is not held to it, while the branch's own commits still
-// are. A local branch named as the trunk can carry unpushed commits, so it
-// excludes nothing.
+// are. A short name resolves to the ref it names. A local branch named as
+// the trunk can carry unpushed commits, and a name that resolves to nothing
+// names no pushed commit, so neither excludes anything.
 func TestInstructionFence_TrunkCommitsAreNotJudged(t *testing.T) {
 	t.Parallel()
 	r := newFenceRepo(t)
@@ -438,8 +439,13 @@ func TestInstructionFence_TrunkCommitsAreNotJudged(t *testing.T) {
 	if diff := cmp.Diff([]string{"feature.go"}, unrelatedPaths(r.fenceFindingsBeside("refs/remotes/origin/main"))); diff != "" {
 		t.Errorf("beside a remote-tracking trunk (-want +got):\n%s", diff)
 	}
-	if diff := cmp.Diff([]string{"feature.go", fenceCodeFile}, unrelatedPaths(r.fenceFindingsBeside("refs/heads/main"))); diff != "" {
-		t.Errorf("beside a local trunk branch (-want +got):\n%s", diff)
+	if diff := cmp.Diff([]string{"feature.go"}, unrelatedPaths(r.fenceFindingsBeside("origin/main"))); diff != "" {
+		t.Errorf("beside a remote-tracking trunk named short (-want +got):\n%s", diff)
+	}
+	for _, ref := range []string{"refs/heads/main", "refs/remotes/origin/gone"} {
+		if diff := cmp.Diff([]string{"feature.go", fenceCodeFile}, unrelatedPaths(r.fenceFindingsBeside(ref))); diff != "" {
+			t.Errorf("beside %s (-want +got):\n%s", ref, diff)
+		}
 	}
 }
 
@@ -488,6 +494,9 @@ func TestWalkInstructionCommits_RootAndRange(t *testing.T) {
 	t.Parallel()
 	r := &fenceRepo{t: t, root: t.TempDir()}
 	r.git("init", "-q", "-b", "main")
+	// The walk passes --root, so the root commit is diffed whatever
+	// log.showRoot says.
+	r.git("config", "log.showRoot", "false")
 	r.write(projectguidance.ClaudeFile, fenceClaudeText)
 	r.write(fenceCodeFile, "package app\n")
 	r.commit("root: rules beside code")

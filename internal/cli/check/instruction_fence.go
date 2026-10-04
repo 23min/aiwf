@@ -12,8 +12,8 @@ import (
 // the provenance audit judges, resolved by ResolveUntrailedRange: --since
 // when given, else the upstream. Where no range resolves, the provenance
 // audit reports the scope advisory once and the fence reports nothing.
-// Commits already on t's trunk are not judged, and a commit's entity
-// trailer resolves against t.
+// Commits already on t's trunk, when it names a remote-tracking ref, are
+// not judged, and a commit's entity trailer resolves against t.
 func RunInstructionFenceCheck(ctx context.Context, root, since string, t *tree.Tree) ([]check.Finding, error) {
 	if !cliutil.HasCommits(ctx, root) {
 		return nil, nil

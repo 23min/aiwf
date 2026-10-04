@@ -14,7 +14,6 @@
 0644 20e2db732aa35b100db23a31d5d9558480217f4e7040b29b4310b38a98ff1b1a aiwf.example.yaml
 0644 237453f23c1daa0eb31edfa41728701e7d20152cfd52875d7eec80953d729cc6 .claude/agents/.aiwf-owned
 0644 262ddb84ce188dc83e449ea6726992375e970a00fe3c0468c1fca51c38828ad2 CLAUDE.md
-0644 38b86454758e0e004b7def2c7125fa65a5127f49c6017a59e35da7bbf9258a9d .claude/skills/aiwf-check/SKILL.md
 0644 417069c8044c32e058989b42e5506a93ebdb45d162398d9b00037b2e587d38ca .claude/templates/contract.md
 0644 42a0239d684c86691dcda34e945ecccceb049425bf95736b3200769f69dc286c .claude/templates/.aiwf-owned
 0644 4b869c0d1bec1f0e72b66752c8cba437470ca3b5f5a974389f154546b56b54a7 .claude/skills/wf-review-code/SKILL.md
@@ -50,6 +49,7 @@
 0644 bc579921e510ca8733b599e3eaae35bd91d3b3f3d856a328fe5f7649dbd3e85a .claude/skills/aiwfx-wrap-epic/SKILL.md
 0644 c01c7278c1e41423b3879c96dcccf9848a367346ebaebf98730794ce7405c86f .claude/skills/aiwf-rename/SKILL.md
 0644 d6b141d62c26926e02f66ae841a0fedd581811b0de723538e32e88ab06043d0f .claude/skills/aiwf-area/SKILL.md
+0644 d8ba0de6d3562ec4cb7cdc569ce80952e7fda94afcb9df2711fb2a0c98ff600d .claude/skills/aiwf-check/SKILL.md
 0644 d8d8c567e7abe3bed1cf3bcf191fe1b0ce4d9c459333f2e4e369063f70e4f9ef .claude/skills/README.md
 0644 db3ae26e01bbd148c6312f74f8c5797be8c3f669a9d84bb56c334e97dab8e725 .claude/skills/wf-rethink/SKILL.md
 0644 dceafde94f955c60d7c87ccb87b184f0f399c75eee9b3a3d79a5d606c63a4f7c .claude/skills/aiwfx-start-milestone/SKILL.md

@@ -49,9 +49,10 @@ func ManagedBlockMarkers() []func() (start, end, prefix string) {
 }
 
 // HandwrittenText is a host instruction file with aiwf's managed blocks
-// removed. A block is read strictly, as pathutil.ManagedBlockSpan reads
-// it: a file whose markers are malformed — a stray marker of the family
-// included — has no block aiwf can own, so all of it is handwritten.
+// removed. Each block family is read strictly, as pathutil.ManagedBlockSpan
+// reads it: where a family's markers are malformed — a stray marker of the
+// family included — the file has no block of that family aiwf can own, and
+// that block's text stays handwritten; the other family is still removed.
 func HandwrittenText(content string) string {
 	for _, markers := range ManagedBlockMarkers() {
 		startMarker, endMarker, prefix := markers()

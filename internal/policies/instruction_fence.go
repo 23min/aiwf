@@ -43,8 +43,10 @@ func instructionFenceViolations(root, baseRef string) ([]Violation, error) {
 		return nil, nil
 	}
 	ctx := context.Background()
-	// No trunk is excluded: the base is the pushed range's own start, so
-	// trunk commits are already outside it.
+	// No trunk is excluded: the bases CI and the Makefile compute — a
+	// push's before-SHA, a pull request's merge-base with main — already
+	// leave trunk commits outside the range. A base set by hand to a
+	// commit older than the branch's last trunk merge judges those too.
 	commits, err := check.WalkInstructionCommits(ctx, root, baseRef+"..HEAD", "")
 	if err != nil {
 		return nil, err

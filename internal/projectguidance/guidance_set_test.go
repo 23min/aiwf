@@ -33,9 +33,10 @@ func TestRoutedDocuments(t *testing.T) {
 	}
 }
 
-// TestHandwrittenText pins that a host file's managed blocks are removed
-// and that malformed markers — a stray marker of the family included —
-// leave the whole file handwritten.
+// TestHandwrittenText pins that a host file's managed blocks are removed,
+// and that malformed markers of one family — a stray marker included —
+// leave that family's block handwritten while the other family's block is
+// still removed.
 func TestHandwrittenText(t *testing.T) {
 	t.Parallel()
 	if HandwrittenText(renderHostFile("mine\n", "generated v1", "route v1")) != HandwrittenText(renderHostFile("mine\n", "generated v2", "route v2")) {
@@ -51,5 +52,11 @@ func TestHandwrittenText(t *testing.T) {
 		if got := HandwrittenText(broken); got != broken {
 			t.Errorf("%s: HandwrittenText = %q, want the whole file", name, got)
 		}
+	}
+	strayBesideRoute := "mine\n" + GuidanceStartMarker + "\n@x.md\n" + GuidanceEndMarker + "\n" + GuidanceMarkerPrefix + "note -->\n" +
+		routeStart + "\nroute\n" + routeEnd + "\n"
+	want := "mine\n" + GuidanceStartMarker + "\n@x.md\n" + GuidanceEndMarker + "\n" + GuidanceMarkerPrefix + "note -->\n\n"
+	if got := HandwrittenText(strayBesideRoute); got != want {
+		t.Errorf("a stray guidance marker beside a routing block: HandwrittenText = %q, want %q", got, want)
 	}
 }
