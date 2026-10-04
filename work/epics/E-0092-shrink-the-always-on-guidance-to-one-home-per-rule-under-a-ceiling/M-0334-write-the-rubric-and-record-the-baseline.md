@@ -15,7 +15,7 @@ acs:
       title: The baseline observation is recorded with its command and environment
       status: open
     - id: AC-3
-      title: Growth-report measures upfront guidance per host and guidance commit rate
+      title: The baseline records each host's guidance load and the guidance commit rate
       status: open
 ---
 
@@ -41,7 +41,7 @@ This body's Design notes carry the rubric: a short task per judgment rule the in
 
 Run each rubric task for both hosts in worktrees at the same post-delivery, pre-reduction commit. Record command/prompt, expectation, observed reads and behavior, host/model versions, date, checkout commit, guidance source revision and personal overlay. A judge receives the rubric and anonymised transcript. Record observed violations and unavailable evidence without treating file presence as a read. Freeze the installed guidance during the comparison and state the expected direction of each metric.
 
-### AC-3 — Growth-report measures upfront guidance per host and guidance commit rate
+### AC-3 — The baseline records each host's guidance load and the guidance commit rate
 
 Record at the baseline revision each host's handwritten primed words and aiwf-generated words, as the ceiling policy measures them, the words of each on-demand document, and the number of commits in the trailing thirty days that change either host's instruction files. One command gives the guidance figures from the definition that gates: `go test -count=1 -run TestPolicy_GuidanceCeiling -v ./internal/policies/`, whose log gains a line for each on-demand document's words. The commit count carries its `git log` command, and the growth report runs at the same revision for the policy and test growth M-0338 compares. Report personal/global words and observed task-loaded words in the baseline record rather than claiming Git can reconstruct them. **Pass criterion**: Validation records every figure with its command and environment, and a dated baseline row with its commands is appended to the growth document's iteration log.
 
