@@ -39,11 +39,11 @@ M-0333's fence is in place. Nothing here changes guidance text: this milestone p
 
 ### AC-1 — The inventory lists every rule in the guidance set once, with its current homes
 
-The table in `## Inventory` below has one row per rule, across both homes. A row carries a label the removal commits cite, and names the rule, every place it is stated today, its words, its audience — operating aiwf in any repository, or developing aiwf — and whether it is a judgment rule or a check-backed one. **Pass criterion**: a relationship check derives every `##` and `###` section of the handwritten guidance set and every top-level rule of the shipped fragment, and asserts each is cited as a home by at least one row, read through the loader; on the tree it passes.
+The table in `## Inventory` below has one row per rule, across both homes. A row carries a label the removal commits cite, and names the rule, every place it is stated today, its words, its audience — operating aiwf in any repository, or developing aiwf — and whether it is a judgment rule or a check-backed one. **Pass criterion**: the inventory test derives every `##` and `###` section of the handwritten guidance set and every top-level rule of the shipped fragment, as they stand at the commit that freezes the guidance, and asserts each is cited as a home by at least one row, read through the loader; it passes.
 
 ### AC-2 — Every rule carries one disposition from the closed set
 
-Each row carries a placement — primed or on demand — by E-0092's test, and one disposition: `keep`, `merge into <rule>`, `tighten`, `move on demand to <document>`, `move to the shipped fragment`, `move to repository guidance <document>`, `pointer to <policy or finding code>`, `delete as copy of <home>`, or `conflict`. A row for a rule in the shipped fragment takes only `keep`, `move to repository guidance <document>` or `conflict`; a tightening it could take is recorded in the row's notes as a suggestion for a later epic. A rule's final home matches its audience: a development rule ends in repository guidance, an operating rule in the shipped fragment. **Pass criterion**: a check over the table rejects a row with no placement, no audience, no disposition, a disposition outside the set or outside what its home allows, or a final home that disagrees with its audience; on the table it reports none.
+Each row carries a placement — primed or on demand — by E-0092's test, and one disposition: `keep`, `merge into <rule>`, `tighten`, `move on demand to <document>`, `move to the shipped fragment`, `move to repository guidance <document>`, `pointer to <policy or finding code>`, `delete as copy of <home>`, or `conflict`. A row for a rule in the shipped fragment takes only `keep`, `move to repository guidance <document>` or `conflict`; a tightening it could take is recorded in the row's notes as a suggestion for a later epic. A rule's final home matches its audience: a development rule ends in repository guidance, an operating rule in the shipped fragment. **Pass criterion**: the inventory test rejects a row with no placement, no audience, no disposition, a disposition outside the set or outside what its home allows, or a final home that disagrees with its audience; on the table it reports none.
 
 ### AC-3 — Every conflict is decided by the maintainer and recorded
 
@@ -71,12 +71,14 @@ Sum the words of the rules placed primed, after their recorded dispositions, for
 - A near-duplicate is one row whose disposition is `merge into` the surviving statement; the survivor's row records the merge.
 - A `tighten` row states what the tightened rule must still carry — the obligation and its one-line reason — so review of M-0335 can check the rewrite against it.
 - A check-backed rule is `pointer to` only if its diagnostic already states the remedy or M-0337's audit will make it; otherwise it stays `keep` or `tighten`.
-- A row's label is what a removal commit names in its disposition block, so M-0336's reconciliation test can match the two. Labels are short and not shaped like entity ids.
+- A row's label is what a removal commit names in its disposition block, so the inventory test can match the two. Labels are short and not shaped like entity ids.
+- **The inventory test.** One test file under `internal/policies/` parses this table once and carries every check against it: AC-1's coverage, AC-2's and AC-4's table checks, M-0336 AC-5 and AC-6's reconciliation of removal commits, and M-0337 AC-1's coverage of its audit table. Each rule it enforces has one fixture. The coverage checks read the guidance at the commit each table was taken from, so later milestones' edits leave them green. It runs with the policy suite, and E-0092's wrap deletes it once M-0338 records its last run.
 
 ## Surfaces touched
 
 - This milestone's body: `## Inventory`, `## Decisions made during implementation`, `## Validation`.
 - E-0092's open questions.
+- The inventory test under `internal/policies/`.
 
 ## Out of scope
 
