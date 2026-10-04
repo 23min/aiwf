@@ -38,11 +38,11 @@ Repeat M-0334's tasks and run counts for both hosts at M-0337's completion, judg
 
 ### AC-2 — Growth is compared with the frozen post-delivery baseline
 
-Run the report at HEAD and at M-0334's frozen post-delivery, pre-reduction revision. Append the commands and results to the growth iteration log. Compare upfront counts per host, conditional inventory, observed task-loaded text and policy/test growth against the baseline expectations; name regressions. Do not use the pre-delivery snapshot as this comparison's baseline.
+Run the ceiling measure and the growth report at HEAD, and compare them with M-0334's figures from its frozen post-delivery, pre-reduction revision. Where the ceiling measure's code has changed since that revision, re-measure that revision's guidance with the current code, so both figures come from one definition, and record how. Append the commands and results to the growth iteration log. Compare upfront counts per host, conditional inventory, observed task-loaded text and policy/test growth against the baseline expectations; name regressions. Do not use the pre-delivery snapshot as this comparison's baseline.
 
 ### AC-3 — Every inventory decision has been carried out
 
-Every row of M-0349's inventory whose decision changes text has a commit that carried it out and names the row in its disposition block. **Pass criterion**: M-0336 AC-5's test, run with every decision required, reports a row with no carrying commit; on the tree at this milestone's end it reports none. A row left undone is carried out, or changed by a maintainer decision recorded in M-0349, before the epic wraps.
+Every row of M-0349's inventory whose decision changes text has a commit that carried it out and names the row in its disposition block. **Pass criterion**: the inventory test's reconciliation (M-0336 AC-5), run with every decision required, reports a row with no carrying commit; on the tree at this milestone's end it reports none. Validation records that last run, since E-0092's wrap deletes the test after it. A row left undone is carried out, or changed by a maintainer decision recorded in M-0349, before the epic wraps.
 
 ## Constraints
 
