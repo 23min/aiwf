@@ -1,7 +1,7 @@
 ---
 id: M-0349
 title: Inventory every guidance rule and decide its home and form
-status: draft
+status: in_progress
 parent: E-0092
 depends_on:
     - M-0333
