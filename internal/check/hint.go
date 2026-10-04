@@ -200,6 +200,10 @@ var hintTable = map[string]string{
 	"entity-body-empty/decision":  "write prose for the named section in the decision body via `aiwf edit-body D-NNN`; Question/Decision/Reasoning are the load-bearing record",
 	"entity-body-empty/contract":  "write prose for the named section in the contract body via `aiwf edit-body C-NNN`; Purpose/Stability are the load-bearing record",
 
+	"instruction-commit-disposition-missing": "record where the removed text went: add to the commit message a `Removed: <what>` line followed by `Disposition: copy of <path>`, `relocated to <path>`, `pointer to <id>`, `reworded` or `deleted` — `git commit --amend` for the last commit, or `git rebase -i <base>` and `reword` for an earlier one — then re-run `aiwf check`",
+	"instruction-commit-entity-missing":      "name the entity the change belongs to: with no `aiwf-entity` trailer, add one — `git commit --amend --trailer \"aiwf-entity: <id>\"`; with one naming no entity, correct its value in the message — `git commit --amend` — since a second trailer leaves the first one judged; for an earlier commit use `git rebase -i <base>` and `reword`; `aiwf list` shows the ids that exist — then re-run `aiwf check`",
+	"instruction-commit-unrelated-file":      "an instruction-file edit is its own commit: split this file out before pushing — `git reset --soft HEAD~1` for the last commit, or `git rebase -i <base>` and `edit` for an earlier one — then commit the instruction files and this file separately and re-run `aiwf check`",
+
 	// entity-body-section-dropped: a pushed commit left a required section
 	// out of an entity's body. The remedy restores the heading and, for the
 	// born-complete kinds, its content — an empty required section there is

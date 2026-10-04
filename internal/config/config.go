@@ -767,6 +767,9 @@ type Guidance struct {
 	Ignored      []string  `yaml:"ignored,omitempty"`
 	WireClaudeMd *bool     `yaml:"wire_claudemd,omitempty"`
 	WireAgentsMd *bool     `yaml:"wire_agentsmd,omitempty"`
+	// FenceInstructionCommits turns the instruction-file fence in
+	// `aiwf check` on or off.
+	FenceInstructionCommits *bool `yaml:"fence_instruction_commits,omitempty"`
 }
 
 // WireClaudeMd returns whether aiwf should maintain its guidance import
@@ -796,6 +799,20 @@ func (c *Config) WireAgentsMd() bool {
 
 // DefaultWireAgentsMd applies when guidance.wire_agentsmd is unset.
 const DefaultWireAgentsMd = true
+
+// FenceInstructionCommits returns whether `aiwf check` judges commits that
+// change handwritten instruction files (ADR-0053). A nil receiver defaults
+// on.
+func (c *Config) FenceInstructionCommits() bool {
+	if c == nil || c.Guidance.FenceInstructionCommits == nil {
+		return DefaultFenceInstructionCommits
+	}
+	return *c.Guidance.FenceInstructionCommits
+}
+
+// DefaultFenceInstructionCommits applies when
+// guidance.fence_instruction_commits is unset.
+const DefaultFenceInstructionCommits = true
 
 // Worktree carries the consumer's default placement for the git
 // worktrees the start rituals (`aiwfx-start-epic` / `aiwfx-start-milestone`)

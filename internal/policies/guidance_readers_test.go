@@ -79,6 +79,8 @@ func TestReadersInPackage(t *testing.T) {
 		{"a cycle of helpers settles", `_ = pingPong(1)`, false},
 		{"a document outside the guidance set", `data, _ := os.ReadFile(filepath.Join(repoRoot(t), "docs/other.md")); _ = data`, false},
 		{"a blank package value lends its path to no test", `_ = repoRoot(t)`, false},
+		{"a guidance-set constant named through its package", `data, _ := os.ReadFile(filepath.Join(repoRoot(t), projectguidance.ClaudeFile)); _ = data`, true},
+		{"a same-named constant of another package", `data, _ := os.ReadFile(filepath.Join(repoRoot(t), other.ClaudeFile)); _ = data`, false},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
@@ -87,7 +89,7 @@ func TestReadersInPackage(t *testing.T) {
 				"header.go": readerFixtureHeader,
 				"a_test.go": "package pkg\n\nfunc TestSubject(t *testing.T) {\n\t" + tt.body + "\n}\n",
 			})
-			got := readersInPackage(files, paths, fixtureNamesGuidance)
+			got := readersInPackage(files, paths, fixtureNamesGuidance, fixtureSharedConstants)
 			if _, isReader := got["TestSubject"]; isReader != tt.reader {
 				t.Errorf("reader = %v, want %v", isReader, tt.reader)
 			}
@@ -108,11 +110,15 @@ func TestReadersInPackage_OnlyTestsAreReported(t *testing.T) {
 			"\nfunc (doc) TestMethod(t *testing.T) " + reads +
 			"\nfunc TestMain(m *testing.M) { var t *testing.T; _ = readClaude(t) }\n",
 	})
-	got := readersInPackage(files, paths, fixtureNamesGuidance)
+	got := readersInPackage(files, paths, fixtureNamesGuidance, fixtureSharedConstants)
 	if len(got) != 1 || got["TestSubject"] == "" {
 		t.Errorf("readers = %v, want only TestSubject", got)
 	}
 }
+
+// fixtureSharedConstants stands for the guidance-set package's constants
+// that name a guidance document.
+var fixtureSharedConstants = map[string]bool{"ClaudeFile": true}
 
 // fixtureNamesGuidance is the guidance-path predicate the fixtures use: the
 // entry points at any depth, the router, and one routed document.
@@ -154,6 +160,11 @@ func TestGuidanceReaderTests_Errors(t *testing.T) {
 	writeFile("pkg/a_test.go", "package pkg\n\nfunc TestX(t *testing.T) {\n")
 	if _, err := PolicyGuidanceReaders(root); err == nil {
 		t.Error("an unparseable test file: want an error")
+	}
+	shared := t.TempDir()
+	repoFileWriter(t, shared)(guidanceSetPackage+"/set.go", "package projectguidance\n\nconst (\n")
+	if _, err := guidanceReaderTests(shared); err == nil {
+		t.Error("an unparseable guidance-set package: want an error")
 	}
 	if os.Geteuid() != 0 {
 		denied := filepath.Join(root, "pkg")
