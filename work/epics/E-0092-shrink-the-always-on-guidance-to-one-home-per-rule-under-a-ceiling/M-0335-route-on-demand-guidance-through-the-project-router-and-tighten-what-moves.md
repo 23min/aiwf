@@ -55,7 +55,7 @@ Every test the guidance-reader list names a pin, whose passage this milestone mo
 
 ### AC-4 — The ceiling constant steps down to the re-homed size
 
-Lower each host's handwritten primed ceiling to its measured size after relocation. **Pass criterion**: the relocated tree passes at the new ceilings; fixtures restoring the old primed payload fail when it is larger. Record commands, before/after counts and on-demand loads.
+Lower each host's handwritten primed ceiling to its measured size after relocation. **Pass criterion**: the relocated tree passes at the new ceilings. Record the ceiling measure's command, each host's counts before and after, and the on-demand loads.
 
 ### AC-5 — No instruction file exists below the repository root
 
@@ -63,7 +63,7 @@ Lower each host's handwritten primed ceiling to its measured size after relocati
 
 ### AC-6 — Merge and tighten dispositions are applied as the inventory records
 
-Every rule M-0349 marks "merge" or "tighten" is rewritten in its one home, and every rule marked "move on demand" is in the document the inventory names. **Pass criterion**: a relationship check over the inventory table resolves each "move on demand" row to its destination document; the rewording itself is held at review, and its effect is judged by M-0338's rubric.
+Every rule M-0349 marks "merge" or "tighten" is rewritten in its one home, and every rule marked "move on demand" is in the document the inventory names. **Pass criterion**: the inventory test's reconciliation (M-0336 AC-5) reports a removal whose named destination does not exist, and the tree passes; the rewording itself is held at review, and its effect is judged by M-0338's rubric.
 
 ## Constraints
 
