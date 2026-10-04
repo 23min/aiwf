@@ -286,11 +286,17 @@ const remoteRefPrefix = "refs/remotes/"
 // carried alongside it could only disagree.
 func RemoteVisible(hits []RefHit) bool {
 	for _, h := range hits {
-		if strings.HasPrefix(h.Ref, remoteRefPrefix) {
+		if IsRemoteTrackingRef(h.Ref) {
 			return true
 		}
 	}
 	return false
+}
+
+// IsRemoteTrackingRef reports whether ref names a remote-tracking ref, one
+// a fetch updates from a published branch.
+func IsRemoteTrackingRef(ref string) bool {
+	return strings.HasPrefix(ref, remoteRefPrefix)
 }
 
 // HitIDStrings returns just the id strings from hits, in order.

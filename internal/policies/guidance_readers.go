@@ -41,7 +41,8 @@ import (
 // a helper of another name, a repoRoot method, a climb split across
 // filepath.Join arguments or held in a package constant — nor a constant
 // set to another constant, a function reached through a package variable,
-// or a path computed at run time. The rule is internal to this repository (ADR-0053).
+// a guidance-set constant reached through an aliased or dot import, or a
+// path computed at run time. The rule is internal to this repository (ADR-0053).
 func PolicyGuidanceReaders(root string) ([]Violation, error) {
 	readers, err := guidanceReaderTests(root)
 	if err != nil {

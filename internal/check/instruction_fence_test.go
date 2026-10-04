@@ -315,6 +315,41 @@ func TestInstructionFence_UnrelatedFiles(t *testing.T) {
 			want: []string{fenceCodeFile},
 		},
 		{
+			name: "a host file changed only in its blocks rides along",
+			change: func(r *fenceRepo) {
+				r.write(projectguidance.OwnedRecordFile, "{\n  \".guidance/index.md\": \"aa\"\n}\n")
+				r.commit("chore: a record listing no host file")
+				r.write(projectguidance.AgentsFile, fenceHostFile(fenceAgentsText+"\nAnother rule.\n", "fragment v1", "route v1"))
+				r.write(projectguidance.ClaudeFile, fenceHostFile(fenceClaudeText, "@.claude/aiwf-guidance.md", "route v2"))
+			},
+		},
+		{
+			name: "deleting an unrelated file beside an instruction edit refuses it",
+			change: func(r *fenceRepo) {
+				addToClaude(r)
+				r.git("rm", "-q", fenceCodeFile)
+			},
+			want: []string{fenceCodeFile},
+		},
+		{
+			name: "adding an owned output the record lists beside an instruction edit passes",
+			change: func(r *fenceRepo) {
+				addToClaude(r)
+				r.write(".guidance/packs/py/guide.md", "# Python pack\n")
+				r.write(projectguidance.OwnedRecordFile, strings.Replace(fenceOwnedJSON("bb"), "{\n", "{\n  \".guidance/packs/py/guide.md\": \"ff\",\n", 1))
+			},
+		},
+		{
+			name: "aiwf deleting a host file holding only blocks beside code is not a handwritten change",
+			change: func(r *fenceRepo) {
+				gStart, gEnd, _ := projectguidance.GuidanceMarkers()
+				r.write(projectguidance.AgentsFile, gStart+"\nfragment v1\n"+gEnd+"\n")
+				r.commit("chore: AGENTS.md holds only its block\n\nRemoved: the Codex rules\nDisposition: deleted")
+				r.git("rm", "-q", projectguidance.AgentsFile)
+				touchCode(r)
+			},
+		},
+		{
 			name: "deleting a routed document beside a code edit refuses the code file",
 			change: func(r *fenceRepo) {
 				r.git("rm", "-q", fenceRoutedDoc)
@@ -378,8 +413,10 @@ func TestInstructionFence_MergeCommits(t *testing.T) {
 }
 
 // TestInstructionFence_TrunkCommitsAreNotJudged is M-0350 AC-1's range: a
-// commit already on the trunk ref has been pushed, so a branch that merges
-// trunk is not held to it, while the branch's own commits still are.
+// commit already on a remote-tracking trunk has been pushed, so a branch
+// that merges trunk is not held to it, while the branch's own commits still
+// are. A local branch named as the trunk can carry unpushed commits, so it
+// excludes nothing.
 func TestInstructionFence_TrunkCommitsAreNotJudged(t *testing.T) {
 	t.Parallel()
 	r := newFenceRepo(t)
@@ -391,14 +428,18 @@ func TestInstructionFence_TrunkCommitsAreNotJudged(t *testing.T) {
 	r.write(projectguidance.ClaudeFile, fenceHostFile(fenceClaudeText+"\nA new rule.\n", "@.claude/aiwf-guidance.md", "route v1"))
 	r.write(fenceCodeFile, "package app\n\nvar x = 1\n")
 	r.commit("feat: trunk's mixed commit")
+	r.git("update-ref", "refs/remotes/origin/main", "main")
 	r.git("checkout", "-q", "feature")
 	r.git("merge", "-q", "--no-ff", "-m", "Merge main", "main")
 
 	if diff := cmp.Diff([]string{"feature.go", fenceCodeFile}, unrelatedPaths(r.fenceFindings())); diff != "" {
 		t.Errorf("with no trunk ref (-want +got):\n%s", diff)
 	}
-	if diff := cmp.Diff([]string{"feature.go"}, unrelatedPaths(r.fenceFindingsBeside("main"))); diff != "" {
-		t.Errorf("beside trunk main (-want +got):\n%s", diff)
+	if diff := cmp.Diff([]string{"feature.go"}, unrelatedPaths(r.fenceFindingsBeside("refs/remotes/origin/main"))); diff != "" {
+		t.Errorf("beside a remote-tracking trunk (-want +got):\n%s", diff)
+	}
+	if diff := cmp.Diff([]string{"feature.go", fenceCodeFile}, unrelatedPaths(r.fenceFindingsBeside("refs/heads/main"))); diff != "" {
+		t.Errorf("beside a local trunk branch (-want +got):\n%s", diff)
 	}
 }
 
@@ -459,6 +500,11 @@ func TestWalkInstructionCommits_RootAndRange(t *testing.T) {
 	}
 	if _, err := WalkInstructionCommits(context.Background(), r.root, "no-such-ref..HEAD", ""); err == nil {
 		t.Error("a range naming no commit: want an error")
+	}
+	// git log runs in the process's directory when root is empty, so it is
+	// the content reader that refuses it.
+	if _, err := WalkInstructionCommits(context.Background(), "", "HEAD..HEAD", ""); err == nil {
+		t.Error("an empty root: want an error, not a silent pass")
 	}
 }
 

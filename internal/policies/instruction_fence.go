@@ -43,12 +43,14 @@ func instructionFenceViolations(root, baseRef string) ([]Violation, error) {
 		return nil, nil
 	}
 	ctx := context.Background()
+	// No trunk is excluded: the base is the pushed range's own start, so
+	// trunk commits are already outside it.
 	commits, err := check.WalkInstructionCommits(ctx, root, baseRef+"..HEAD", "")
 	if err != nil {
 		return nil, err
 	}
 	t, _, err := tree.Load(ctx, root)
-	if err != nil { //coverage:ignore git log just walked root, so the tree loader reads the same directory; a load error there is a filesystem fault mid-run
+	if err != nil {
 		return nil, fmt.Errorf("loading entity tree at %s: %w", root, err)
 	}
 	findings := check.RunInstructionFence(commits, func(id string) bool { return check.EntityResolves(t, id) })

@@ -249,7 +249,7 @@ were sorted again.
 
 | Artifact | Original SHA-256 | Updated SHA-256 |
 | --- | --- | --- |
-| `aiwf-check/SKILL.md` | `642ca35f8567665e9faa9000d1d3a3bd707f74e3dc13a2bf2c444a2b401c7642` | `7ff8e9a06bc1c73d521de80fd0b1b26302abebfe286fdcd2da34f607fd9aa232` |
+| `aiwf-check/SKILL.md` | `642ca35f8567665e9faa9000d1d3a3bd707f74e3dc13a2bf2c444a2b401c7642` | `38b86454758e0e004b7def2c7125fa65a5127f49c6017a59e35da7bbf9258a9d` |
 | `aiwf.example.yaml` | `96dc476390b9d7e9e4e6fbf6f75f4b38294992ffd44b269f554d0d1da14ddca2` | `20e2db732aa35b100db23a31d5d9558480217f4e7040b29b4310b38a98ff1b1a` |
 | Scaffolded `aiwf.yaml` | `0c228cad68bc4159a4eb5c86e598c62f90572ad6f93d4892a62dcb9f59425e37` | `947270abfc9c753e39d98147748bcfa20e27538d43cfea83f19cea3c05f0f0e8` |
 | Scaffolded `aiwf.yaml` with hook consent | `b643e6a3f5628f74e5d865b3208b83f7919a54e6fc586a5fdf4f7dbda032af21` | `f22c3b0d0249644483493c5dac208e6c76effbd8cfee137df325ee2101d37d18` |

@@ -2,7 +2,6 @@ package policies
 
 import (
 	"os"
-	"os/exec"
 	"path/filepath"
 	"strings"
 	"testing"
@@ -12,34 +11,25 @@ import (
 
 // instructionFenceRepo seeds a repository with an entity, CLAUDE.md and a
 // code file, then commits an edit to CLAUDE.md beside an edit to the code
-// file under a trailer naming the entity. It returns the root, the seed
-// commit as the audit base, and a git runner.
-func instructionFenceRepo(t *testing.T) (root, base string, git func(...string) string) {
+// file under a trailer naming the entity. It returns the root and the seed
+// commit as the audit base.
+func instructionFenceRepo(t *testing.T) (root, base string) {
 	t.Helper()
 	root = t.TempDir()
 	write := repoFileWriter(t, root)
-	git = func(args ...string) string {
-		t.Helper()
-		cmd := exec.Command("git", args...)
-		cmd.Dir = root
-		out, err := cmd.CombinedOutput()
-		if err != nil {
-			t.Fatalf("git %v: %v\n%s", args, err, out)
-		}
-		return strings.TrimSpace(string(out))
-	}
+	git := repoGitRunner(t, root)
 	git("init", "-q", "-b", "main")
 	write("work/epics/E-0001-probe/epic.md", "---\nid: E-0001\ntitle: Probe\nstatus: active\n---\n\n## Goal\n\nProse.\n")
 	write("CLAUDE.md", "# Rules\n\nKeep it simple.\n")
 	write("app/app.go", "package app\n")
 	git("add", "-A")
 	git("commit", "-q", "-m", "seed")
-	base = git("rev-parse", "HEAD")
+	base = strings.TrimSpace(git("rev-parse", "HEAD"))
 	write("CLAUDE.md", "# Rules\n\nKeep it simple.\n\nA new rule.\n")
 	write("app/app.go", "package app\n\nvar x = 1\n")
 	git("add", "-A")
 	git("commit", "-q", "-m", "feat: rule and code", "--trailer", "aiwf-entity: E-0001")
-	return root, base, git
+	return root, base
 }
 
 // TestInstructionFenceViolations_RunsTheKernelRule is M-0350 AC-6: this
@@ -52,7 +42,7 @@ func TestInstructionFenceViolations_RunsTheKernelRule(t *testing.T) {
 
 	t.Run("a mixed commit is reported", func(t *testing.T) {
 		t.Parallel()
-		root, base, _ := instructionFenceRepo(t)
+		root, base := instructionFenceRepo(t)
 		vs, err := instructionFenceViolations(root, base)
 		if err != nil {
 			t.Fatal(err)
@@ -63,7 +53,7 @@ func TestInstructionFenceViolations_RunsTheKernelRule(t *testing.T) {
 	})
 	t.Run("the repository's setting turns it off", func(t *testing.T) {
 		t.Parallel()
-		root, base, _ := instructionFenceRepo(t)
+		root, base := instructionFenceRepo(t)
 		if err := os.WriteFile(filepath.Join(root, "aiwf.yaml"), []byte("guidance:\n  fence_instruction_commits: false\n"), 0o644); err != nil {
 			t.Fatal(err)
 		}
@@ -73,7 +63,7 @@ func TestInstructionFenceViolations_RunsTheKernelRule(t *testing.T) {
 	})
 	t.Run("no base no-ops", func(t *testing.T) {
 		t.Parallel()
-		root, _, _ := instructionFenceRepo(t)
+		root, _ := instructionFenceRepo(t)
 		for _, base := range []string{"", zeroSHA} {
 			if vs, err := instructionFenceViolations(root, base); err != nil || len(vs) != 0 {
 				t.Errorf("base %q: violations = %+v, err %v; want none", base, vs, err)
@@ -82,9 +72,24 @@ func TestInstructionFenceViolations_RunsTheKernelRule(t *testing.T) {
 	})
 	t.Run("a base naming no commit is an error", func(t *testing.T) {
 		t.Parallel()
-		root, _, _ := instructionFenceRepo(t)
+		root, _ := instructionFenceRepo(t)
 		if _, err := instructionFenceViolations(root, "no-such-ref"); err == nil {
 			t.Error("want an error")
+		}
+	})
+	t.Run("an unreadable planning tree is an error", func(t *testing.T) {
+		t.Parallel()
+		if os.Geteuid() == 0 {
+			t.Skip("running as root; permission bits do not deny the walk")
+		}
+		root, base := instructionFenceRepo(t)
+		denied := filepath.Join(root, "work", "epics")
+		if err := os.Chmod(denied, 0o000); err != nil {
+			t.Fatal(err)
+		}
+		t.Cleanup(func() { _ = os.Chmod(denied, 0o755) })
+		if _, err := instructionFenceViolations(root, base); err == nil {
+			t.Error("want an error when the planning tree cannot be read")
 		}
 	})
 }
@@ -124,7 +129,7 @@ func TestPolicyInstructionFence_Env(t *testing.T) {
 	if vs, err := PolicyInstructionFence(t.TempDir()); err != nil || vs != nil {
 		t.Fatalf("unset base: violations %+v, err %v; want none", vs, err)
 	}
-	root, base, _ := instructionFenceRepo(t)
+	root, base := instructionFenceRepo(t)
 	t.Setenv("AIWF_COVERAGE_BASE", base)
 	if vs, err := PolicyInstructionFence(root); err != nil || len(vs) != 1 {
 		t.Fatalf("set base: violations %+v, err %v; want one", vs, err)

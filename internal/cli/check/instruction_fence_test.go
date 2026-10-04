@@ -74,41 +74,22 @@ func TestRunInstructionFenceCheck_JudgesTheAuditedRange(t *testing.T) {
 	}
 }
 
-// TestRun_ReportsInstructionFence is M-0350 AC-1 through the verb: aiwf
-// check reports the mixed commit and exits with findings.
-//
-// Serial: captures the process-global os.Stdout.
-func TestRun_ReportsInstructionFence(t *testing.T) {
-	root, base := mixedInstructionCommit(t)
-	var rc int
-	out := testutil.CaptureStdout(t, func() {
-		rc = Run(root, "json", false, base, false, false, false, nil, "")
-	})
-	var env struct {
-		Findings []check.Finding `json:"findings"`
-	}
-	if err := json.Unmarshal(out, &env); err != nil {
-		t.Fatalf("decoding check output: %v\n%s", err, out)
-	}
-	found := false
-	for _, f := range env.Findings {
-		found = found || (f.Code == check.CodeInstructionCommitUnrelatedFile.ID && f.Path == "app/app.go")
-	}
-	if !found || rc != 1 {
-		t.Errorf("exit %d, findings %+v; want exit 1 with %s on app/app.go", rc, env.Findings, check.CodeInstructionCommitUnrelatedFile.ID)
-	}
-}
-
 // TestRunInstructionFenceCheck_NoRangeReportsNothing pins the fence's two
-// silent cases: a repository with no commits, and a branch with neither an
+// silent cases: a branch with an upstream but no commits of its own yet,
+// where the range names no HEAD to walk, and a branch with neither an
 // upstream nor --since, where the provenance audit reports the scope
 // advisory once and the fence adds nothing.
 func TestRunInstructionFenceCheck_NoRangeReportsNothing(t *testing.T) {
 	t.Parallel()
+	remote, _ := mixedInstructionCommit(t)
 	empty := t.TempDir()
 	gitRun(t, empty, "init", "-q", "-b", "main")
+	gitRun(t, empty, "remote", "add", "origin", remote)
+	gitRun(t, empty, "fetch", "-q", "origin")
+	gitRun(t, empty, "config", "branch.main.remote", "origin")
+	gitRun(t, empty, "config", "branch.main.merge", "refs/heads/main")
 	root, _ := mixedInstructionCommit(t)
-	for name, dir := range map[string]string{"no commits": empty, "no upstream and no --since": root} {
+	for name, dir := range map[string]string{"an upstream but no commits": empty, "no upstream and no --since": root} {
 		findings, err := RunInstructionFenceCheck(context.Background(), dir, "", loadTree(t, dir))
 		if err != nil || len(findings) != 0 {
 			t.Errorf("%s: findings %+v, err %v; want none", name, findings, err)
@@ -216,13 +197,13 @@ func TestRun_InstructionFenceSetting(t *testing.T) {
 						t.Errorf("%s at %s, want error", f.Code, f.Severity)
 					}
 				}
-				advisory = advisory || f.Code == check.CodeProvenanceUntrailedScopeUndefined
+				advisory = advisory || (f.Code == check.CodeProvenanceUntrailedScopeUndefined && strings.Contains(f.Message, "instruction-file fence"))
 			}
 			if fence != tc.wantFence || rc != tc.wantExit {
 				t.Errorf("fence findings %v, exit %d; want %v, exit %d\n%+v", fence, rc, tc.wantFence, tc.wantExit, env.Findings)
 			}
 			if tc.noRange && !advisory {
-				t.Errorf("no audited range: the scope advisory must stand; got %+v", env.Findings)
+				t.Errorf("no audited range: the scope advisory must stand and name the fence; got %+v", env.Findings)
 			}
 		})
 	}

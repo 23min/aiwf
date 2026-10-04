@@ -16,6 +16,7 @@ import (
 	"github.com/23min/aiwf/internal/gitops"
 	"github.com/23min/aiwf/internal/projectguidance"
 	"github.com/23min/aiwf/internal/tree"
+	"github.com/23min/aiwf/internal/trunk"
 )
 
 // The instruction-file fence judges commits that change a project's
@@ -28,7 +29,8 @@ import (
 // A change confined to a managed block is generated output and is not
 // judged. A merge commit is not judged: the commits it brings in are in
 // the audited range and are judged on their own — except those already on
-// the trunk, which have been pushed and were judged when they reached it.
+// a remote-tracking trunk, which have been pushed and were judged when
+// they reached it.
 
 // CodeInstructionCommitUnrelatedFile is reported once per file a commit
 // carries beside a handwritten instruction change that is not one of its
@@ -148,10 +150,12 @@ type instructionLogRecord struct {
 	changes                   []instructionChange
 }
 
-// WalkInstructionCommits lists the commits in rangeArg that are not on the
-// trunk ref, with their changed paths, and classifies each against the
-// instruction set as it stood at the commit and at its first parent. An
-// empty trunk excludes nothing.
+// WalkInstructionCommits lists the commits in rangeArg that are not on
+// trunkRef, with their changed paths, and classifies each against the
+// instruction set as it stood at the commit and at its first parent. Only a
+// remote-tracking trunkRef excludes anything: a commit on it has been
+// pushed, while a local branch named as the trunk can carry unpushed
+// commits.
 //
 // The log is NUL-framed: git refuses a NUL byte in a commit message, and -z
 // turns off path quoting, so no message and no path can be mistaken for
@@ -161,14 +165,14 @@ type instructionLogRecord struct {
 // whatever log.showSignature says. A merge commit shows no diff, so it
 // reaches the rule with nothing to judge. Content is read through one
 // cat-file pump.
-func WalkInstructionCommits(ctx context.Context, root, rangeArg, trunk string) ([]InstructionCommit, error) {
+func WalkInstructionCommits(ctx context.Context, root, rangeArg, trunkRef string) ([]InstructionCommit, error) {
 	args := []string{
 		"log", "-z", "--root", "-M", "--no-show-signature",
 		"--format=%H %P%x00%(trailers:key=" + gitops.TrailerEntity + ",valueonly,unfold,separator=%x0a)%x00%B%x00",
 		"--name-status", rangeArg,
 	}
-	if trunk != "" {
-		args = append(args, "--not", trunk)
+	if trunk.IsRemoteTrackingRef(trunkRef) {
+		args = append(args, "--not", trunkRef)
 	}
 	cmd := exec.CommandContext(ctx, "git", args...)
 	cmd.Dir = root
@@ -186,7 +190,7 @@ func WalkInstructionCommits(ctx context.Context, root, rangeArg, trunk string) (
 		return nil, err
 	}
 	reader, err := gitops.NewBlobReader(ctx, root)
-	if err != nil { //coverage:ignore git log just ran in root, so the cat-file pump starts there too
+	if err != nil {
 		return nil, err
 	}
 	defer func() { _ = reader.Close() }()
@@ -329,7 +333,7 @@ func instructionReportPath(ch instructionChange) string {
 }
 
 func (r instructionRevision) isInstruction(p string) bool {
-	return p == projectguidance.ClaudeFile || p == projectguidance.AgentsFile || p == projectguidance.RouterFile || r.routed[p]
+	return isHostFile(p) || p == projectguidance.RouterFile || r.routed[p]
 }
 
 // isCompanion reports whether p may ride with an instruction change without
@@ -401,16 +405,25 @@ func handwrittenChanged(br *gitops.BlobReader, parent, sha string, ch instructio
 	if err != nil { //coverage:ignore propagates a cat-file read failure, as WalkInstructionCommits records
 		return false, false, err
 	}
-	if ch.New == projectguidance.ClaudeFile || ch.New == projectguidance.AgentsFile {
-		// aiwf separates a block it inserts with a blank line outside it,
-		// so blank lines are not handwritten content.
-		before, after = nonBlankLines(projectguidance.HandwrittenText(before)), nonBlankLines(projectguidance.HandwrittenText(after))
+	// A host instruction file's handwritten content is the file outside its
+	// managed blocks, read on each side by that side's path. aiwf separates
+	// a block it inserts with a blank line outside it, so blank lines are
+	// not handwritten content.
+	if isHostFile(ch.Old) {
+		before = nonBlankLines(projectguidance.HandwrittenText(before))
+	}
+	if isHostFile(ch.New) {
+		after = nonBlankLines(projectguidance.HandwrittenText(after))
 	}
 	// A rename moves the document; an addition or a deletion is judged by
-	// its content, so a host file aiwf creates holding only its blocks is
-	// not a handwritten change.
+	// its content, so a host file aiwf creates or deletes holding only its
+	// blocks is not a handwritten change.
 	renamed := ch.Old != "" && ch.New != "" && ch.Old != ch.New
 	return renamed || before != after, removesText(before, after), nil
+}
+
+func isHostFile(p string) bool {
+	return p == projectguidance.ClaudeFile || p == projectguidance.AgentsFile
 }
 
 // removesText reports whether after drops text before had. Text is removed
