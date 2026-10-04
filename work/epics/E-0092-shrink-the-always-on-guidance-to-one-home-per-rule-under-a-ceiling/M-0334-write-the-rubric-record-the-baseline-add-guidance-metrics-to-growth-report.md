@@ -43,7 +43,7 @@ Run each rubric task for both hosts in worktrees at the same post-delivery, pre-
 
 ### AC-3 — Growth-report measures upfront guidance per host and guidance commit rate
 
-Extend the report with two figures per host — handwritten primed words and the rendered fragment's words — plus inventory sizes for on-demand guidance, and trailing-thirty-day commits affecting either host's instructions. Use the same source-set definition as M-0333 and compare its counts against the policy. Report personal/global words and observed task-loaded words in the baseline record rather than claiming Git can reconstruct them. **Pass criterion**: run the report at HEAD and at the frozen baseline, test the metrics on fixtures, and append a dated baseline row with commands to the growth document.
+Record at the baseline revision each host's handwritten primed words and aiwf-generated words, as the ceiling policy measures them, the words of each on-demand document, and the number of commits in the trailing thirty days that change either host's instruction files. One command gives the guidance figures from the definition that gates: `go test -count=1 -run TestPolicy_GuidanceCeiling -v ./internal/policies/`, whose log gains a line for each on-demand document's words. The commit count carries its `git log` command, and the growth report runs at the same revision for the policy and test growth M-0338 compares. Report personal/global words and observed task-loaded words in the baseline record rather than claiming Git can reconstruct them. **Pass criterion**: Validation records every figure with its command and environment, and a dated baseline row with its commands is appended to the growth document's iteration log.
 
 ## Constraints
 
@@ -66,7 +66,8 @@ Extend the report with two figures per host — handwritten primed words and the
 
 ## Surfaces touched
 
-- `scripts/growth-report.py`, `docs/design/growth.md`
+- `docs/design/growth.md`
+- the ceiling test's log, in `internal/policies/guidance_ceiling_test.go`
 - this milestone's Validation section
 
 ## Out of scope
@@ -78,7 +79,6 @@ Extend the report with two figures per host — handwritten primed words and the
 
 - E-0094 — done; M-0348 holds the harness this baseline reuses.
 - M-0349 — the inventory whose changed rows the rubric covers.
-- M-0333's source-set definition must agree with the reported measure before the baseline is accepted.
 - The frozen checkout and guidance revisions, recorded in Validation.
 
 ## Coverage notes
