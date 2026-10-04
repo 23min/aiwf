@@ -24,7 +24,7 @@ acs:
       title: Every removal commit traces to an inventory row and its decided home
       status: open
     - id: AC-6
-      title: An audience move is one commit that adds the rule and removes the old copy
+      title: An audience move adds the rule to its new home, then removes the old copy
       status: open
 ---
 
@@ -62,7 +62,7 @@ Lower each host's ceiling to its measured post-deletion upfront size. The curren
 
 Each commit that removes text from development guidance or the shipped fragment names, in its disposition block, the inventory row it carries out, and the block agrees with the row's decision: the same kind of disposition and the same destination. **Pass criterion**: the inventory test (M-0349's design notes) reads each disposition block in E-0092's commit range and the inventory table in M-0349's body through the loader, and reports a removal that names no row, names a row that does not exist, disagrees with the row's decision, or names a destination that does not exist; fixtures cover each, and the tree passes. Whether the destination states the rule is held at review, since D-0070 and D-0102 bar pinning guidance wording. **Code references**: the inventory test under `internal/policies/`, reading commits through the existing commit-range machinery.
 
-### AC-6 — An audience move is one commit that adds the rule and removes the old copy
+### AC-6 — An audience move adds the rule to its new home, then removes the old copy
 
 A rule the inventory moves between homes — `move to the shipped fragment` or `move to repository guidance <document>` — moves in two commits: the first adds it to its new home, the second removes it from the old with `Disposition: copy of <new home>`, so it is briefly in both homes and never in neither. The instruction-file fence keeps the fragment source out of a commit that changes handwritten instructions, so the two halves cannot share a commit. A commit that changes the shipped fragment regenerates the managed `AGENTS.md` block with it. **Pass criterion**: AC-5's check also reports a move whose removal commit has no earlier commit in E-0092's range changing its destination file; a fixture covers it, and the tree passes.
 
