@@ -42,7 +42,7 @@ Most of the root's remaining bulk documents rules that a policy, a check rule, o
 
 ### AC-1 — The audit table lists every policy and finding code a chokepointed section names
 
-This body's audit table lists every policy id and finding code named in the development-guidance set at the milestone's start, each with its current message and a verdict: states the fix, or does not. **Pass criterion**: a test derives the set of ids and codes from those guidance files and asserts each has a row in this milestone's table, read through the loader; on the tree it passes. **Code references**: the policy-id literals under `internal/policies/`, the kernel's code set under `internal/check/`.
+This body's audit table lists every policy id and finding code named in the development-guidance set at the milestone's start, each with its current message and a verdict: states the fix, or does not. **Pass criterion**: the inventory test (M-0349's design notes) derives the set of ids and codes from those guidance files as they stand at the milestone's start and asserts each has a row in this milestone's table, read through the loader; it passes. **Code references**: the policy-id literals under `internal/policies/`, the kernel's code set under `internal/check/`.
 
 ### AC-2 — Every message the audit marks as not stating the fix is corrected and pinned
 
