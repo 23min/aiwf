@@ -1,5 +1,5 @@
 # Changes here will be overwritten by Copier; NEVER EDIT MANUALLY
-_commit: v0.4.2
+_commit: v0.4.3
 _src_path: gh:23min/devcontainer-kit
 aiwf: false
 apt_packages:
