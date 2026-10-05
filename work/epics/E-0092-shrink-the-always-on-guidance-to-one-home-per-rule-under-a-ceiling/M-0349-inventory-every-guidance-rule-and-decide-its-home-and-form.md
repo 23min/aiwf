@@ -291,4 +291,17 @@ Environment: the aiwf devcontainer, Linux, `go1.25.12 linux/amd64`, at commit `f
 
 ## Reviewer notes
 
-- (none)
+- Obligations this milestone adds, counted from `git diff --stat 34a03de6e..HEAD -- aiwf.yaml internal/` (three files):
+  - `guidance.enabled: false` in `aiwf.yaml`; owner E-0092, whose wrap re-enables it;
+  - the inventory test, which every policy-suite run executes and which needs the freeze commit reachable, so a shallow clone fails it; owner E-0092, whose wrap deletes it once M-0338 records its last run;
+  - its `guidanceReaderList` entry, which retires with the test, since the reader policy fails on an entry naming no reader.
+- Declined:
+  - asserting AC-5's targets as constants: they are a recorded observation, and M-0337 takes its ceilings from `inventoryCeilingTargets` rather than retyping them;
+  - the shallow-clone failure: the shallow runners, `flake-hunt.yml` and `mutate-hunt.yml`, run only on dispatch, and the test is deleted before E-0092 reaches `main`;
+  - simplifying the section parser, whose rules are pinned, and fence-awareness in the target's H1 count, since each frozen file holds one H1;
+  - the closed-set checks on audience and placement overlap the final-home rule and stay for their clearer message;
+  - `binary-discipline` stays on demand, since the router's environment entry names its task, and `settings-consent` stays a development rule about this repository's own setup;
+  - the decisions that change what consumers read, the fragment additions and the skill moves, are recorded in E-0092's constraint and out-of-scope text rather than a decision entity.
+- Handed to M-0336: a removal record has no place to name its inventory row, so where the label goes in the `Removed:` and `Disposition:` lines is decided before M-0336's first removal commit; reading the records needs the kernel's block parser exported or a second parser; and the test's refactors — the disposition parsed once, one label index, a general table reader, a reader of the guidance at a commit — land with M-0336's extension of it.
+- The deciding full review over `34a03de6e..0a3da66d2` returned request-changes. Its findings are fixed and pinned, and a scoped review confirmed the fixes. The two further gaps it found are fixed: the fixture is confirmed by a probe that fails without its guard, and the wording by a grep that finds no remaining statement.
+
