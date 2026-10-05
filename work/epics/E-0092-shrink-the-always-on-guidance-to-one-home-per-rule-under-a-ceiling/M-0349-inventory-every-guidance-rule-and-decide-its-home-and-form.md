@@ -63,7 +63,7 @@ Sum the words of the rules placed primed, after their recorded dispositions, for
 - Set `guidance.enabled: false` in `aiwf.yaml` at this milestone's start, so no `aiwf update` or `aiwf worktree add` refreshes the installed packs while the inventory is taken; it stays off until M-0338 completes.
 - A rule in the shipped fragment keeps its wording in this epic; a clause moved into one of its rules is added, never in place of its text.
 - The primed test is E-0092's: nearly every task, or harm before the agent would think to look.
-- One home per rule, chosen by audience and placement: operating aiwf in any repository belongs to the shipped fragment when primed and to the shipped skill for its task when on demand; developing aiwf belongs to `CLAUDE.md` when primed and to `.guidance/project/` when on demand.
+- One home per rule, chosen by audience and placement, as E-0092's constraints set out.
 - Conflicts are the maintainer's decisions, presented one at a time, with the evidence from both homes.
 
 ## Design notes
@@ -131,7 +131,7 @@ document that matches it:
 
 ## Inventory
 
-Words are whitespace-separated words of the rule's text at the commit that freezes the guidance, as the ceiling policy counts them. `F` in a home stands for `internal/skills/embedded-guidance/aiwf-guidance.md`, the shipped fragment, and the text after `›` is the rule's bold lead-in. A `CLAUDE.md` home with no section is its preamble.
+Words are whitespace-separated words of the rule's text at the commit that freezes the guidance, as the ceiling policy counts them. `F` in a home stands for `internal/skills/embedded-guidance/aiwf-guidance.md`, the shipped fragment, and the text after `›` is the rule's bold lead-in. A `CLAUDE.md` home with no section is its preamble. A row's first home is the one its disposition acts on and the section its words belong to; any further homes are where the rule is also stated.
 
 | Label | Rule | Current homes | Words | Audience | Kind | Placement | Disposition | Notes |
 |---|---|---|---|---|---|---|---|---|
@@ -275,15 +275,15 @@ Nothing a consumer sees changes. The inventory, its test and the guidance freeze
 - aiwf's diagnostic-logging rule, opt-in and default-off to a file, stays as a project override of the Go pack, which sends `log/slog` to stderr; it moves on demand to the Go conventions document, which the router names as overriding the pack.
 - The wrap rituals' own orders stand: the milestone wrap merges and then promotes, and the epic wrap promotes as its last verb-driven commit and merges after, since the merge is a plain commit that carries no scope trailer. `CLAUDE.md`'s "promote lands last so a delegated scope stays live for the merge commit" goes with the gate-per-mutation copy.
 - The id-token rule is per file, as the `aiwf-check` skill's table states it: an entity body cites real ids at canonical width and rejects placeholders, and a doc may use a `<prefix>-NNNN` placeholder for an invented example. `CLAUDE.md`'s ban on placeholders in all committed prose goes with the no-fake-ids copy.
-- Clauses of `CLAUDE.md`'s copies of fragment rules that no shipped surface states move into the fragment, added to the rule they belong to: the Q&A trigger, the "something else" option and confirm-in-one-line for one decision at a time; abort-on-deviation for every declared-sequence gate; remote-branch deletes among the outward actions; and surfacing what you noticed. They add about 50 always-on words for consumers.
+- Clauses of `CLAUDE.md`'s copies of fragment rules that no shipped surface states move into the fragment, added to the rule they belong to: the Q&A trigger, the "something else" option and confirm-in-one-line for one decision at a time; abort-on-deviation for every declared-sequence gate; remote-branch deletes among the outward actions; and surfacing what you noticed. Their `CLAUDE.md` text is 45 words; the fragment text is written in M-0336.
 - Operating guidance follows the same placement test as development guidance: a primed operating rule lives in the shipped fragment, an on-demand one in the shipped skill for its task. The disposition `move to the shipped skill <path>` carries it, and E-0092's scope says so.
 
 ## Validation
 
-Environment: the aiwf devcontainer, Linux, `go1.25.12 linux/amd64`, at commit `9b18d4819` on `milestone/M-0349-inventory-every-guidance-rule-and-decide-its-home-and-form`. The guidance was frozen at `3fcc69611`, the commit that set `guidance.enabled: false`.
+Environment: the aiwf devcontainer, Linux, `go1.25.12 linux/amd64`, at commit `55992338f` on `milestone/M-0349-inventory-every-guidance-rule-and-decide-its-home-and-form`. The guidance was frozen at `3fcc69611`, the commit that set `guidance.enabled: false`.
 
-- `go test -count=1 -run 'TestE0092Inventory|TestInventory' -v ./internal/policies/`, the inventory test. Expected exit 0. Observed `ok`. The live test passes, which is AC-1's coverage of every section and fragment rule as frozen, and AC-2's and AC-4's row rules. Each rule's fixture passes too.
-- AC-5's targets, from the same run's log line. Expected: a handwritten primed target for each host, derived from the table. Observed: `M-0349 AC-5 handwritten primed targets: claude-code 1629, codex 1758`. Each target counts every development rule that ends primed, with a tightened rule at its current size; the router at its drafted size; and the H1 and section headings of the rules that stay. Codex's target adds the `AGENTS.md` preamble. The ceiling policy measures 9647 and 9776 words today (`go test -count=1 -run TestPolicy_GuidanceCeiling -v ./internal/policies/`), and M-0337 lowers the ceilings to these targets.
+- `go test -count=1 -run 'TestE0092Inventory|TestInventory' -v ./internal/policies/`, the inventory test. Expected exit 0. Observed `ok`. The live test passes: AC-1's coverage, in which every section with text of its own and every fragment rule, as frozen, is cited directly, and each development section's words equal those of the rows citing it first; and AC-2's and AC-4's row rules. Each rule's fixture passes too.
+- AC-5's targets, from the same run's log line. Expected: a handwritten primed target for each host, derived from the table. Observed: `M-0349 AC-5 handwritten primed targets: claude-code 1629, codex 1758`. Each target counts every development rule that ends primed, a tightened rule at its current size and a merged rule beside its survivor; the router at its drafted size; and the H1 and the headings of the sections the rules stay in. Codex's target adds the `AGENTS.md` preamble and its H1. `---` separators are not counted, though the ceiling policy counts each as a word. The ceiling policy measures 9647 and 9776 words today (`go test -count=1 -run TestPolicy_GuidanceCeiling -v ./internal/policies/`), and M-0337 lowers the ceilings to these targets.
 
 ## Deferrals
 
