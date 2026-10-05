@@ -372,6 +372,59 @@ func inventoryCoverageFindings(rows []invRow, documents map[string]string) []str
 	return out
 }
 
+// inventoryRouterDraft is the router text the body's On-demand documents
+// section drafts, inside its fenced block.
+func inventoryRouterDraft(body string) string {
+	section := extractMarkdownSection(body, 2, "On-demand documents")
+	_, draft, _ := strings.Cut(section, "```markdown\n")
+	draft, _, _ = strings.Cut(draft, "```")
+	return draft
+}
+
+// inventoryCeilingTargets derives each host's handwritten primed target
+// from the table (M-0349 AC-5): the words of every development rule whose
+// final home is a host's primed document, a tightened rule counted at its
+// current size; the router at its drafted size; and the H1 and the
+// headings of the sections those rules sit in, read from the frozen
+// documents. Codex reads CLAUDE.md as well as AGENTS.md, so its target
+// carries both.
+func inventoryCeilingTargets(rows []invRow, routerDraft string, frozen map[string]string, exists func(string) bool) (claude, codex int) {
+	byLabel := map[string]invRow{}
+	for i := range rows {
+		byLabel[rows[i].Label] = rows[i]
+	}
+	headings := map[string]map[string]bool{projectguidance.ClaudeFile: {}, projectguidance.AgentsFile: {}}
+	words := map[string]int{}
+	for i := range rows {
+		r := &rows[i]
+		d, ok := parseDisposition(r.Disposition)
+		if !ok || r.Audience != "development" || r.Placement != "primed" {
+			continue
+		}
+		final, finding := finalHome(*r, d, byLabel, nil, exists)
+		if finding != "" || headings[final] == nil {
+			continue
+		}
+		words[final] += r.Words
+		if d.Kind == "merge" {
+			continue
+		}
+		for n := range r.Homes[0].Path {
+			headings[final][strings.Repeat("#", n+2)+" "+r.Homes[0].Path[n]] = true
+		}
+	}
+	for file, set := range headings {
+		for _, line := range strings.Split(frozen[file], "\n") {
+			if strings.HasPrefix(line, "# ") || set[line] {
+				words[file] += len(strings.Fields(line))
+			}
+		}
+	}
+	draft := len(strings.Fields(routerDraft))
+	claude = words[projectguidance.ClaudeFile] + draft
+	return claude, claude + words[projectguidance.AgentsFile]
+}
+
 // TestE0092Inventory holds M-0349's inventory to its rules against the
 // tree (M-0349 AC-1, AC-2, AC-4): every section of the guidance as frozen
 // is cited by a row, and every row is well formed and ends where its
@@ -409,14 +462,17 @@ func TestE0092Inventory(t *testing.T) {
 	if routed := projectguidance.RoutedDocuments(router); len(routed) != 0 {
 		t.Fatalf("the frozen router links %v; inventory them too", routed)
 	}
-	findings = append(findings, inventoryCoverageFindings(rows, map[string]string{
+	documents := map[string]string{
 		projectguidance.ClaudeFile: projectguidance.HandwrittenText(frozen(projectguidance.ClaudeFile)),
 		projectguidance.AgentsFile: projectguidance.HandwrittenText(frozen(projectguidance.AgentsFile)),
 		projectguidance.RouterFile: router,
 		inventoryFragment:          frozen(inventoryFragment),
 		inventoryHostInserts[0]:    frozen(inventoryHostInserts[0]),
 		inventoryHostInserts[1]:    frozen(inventoryHostInserts[1]),
-	})...)
+	}
+	findings = append(findings, inventoryCoverageFindings(rows, documents)...)
+	claude, codex := inventoryCeilingTargets(rows, inventoryRouterDraft(body), documents, exists)
+	t.Logf("M-0349 AC-5 handwritten primed targets: claude-code %d, codex %d", claude, codex)
 	for _, f := range findings {
 		t.Error(f)
 	}
@@ -528,5 +584,30 @@ func TestInventoryCoverageFindings(t *testing.T) {
 				t.Errorf("findings = %q, want one containing %q", findings, tc.want)
 			}
 		})
+	}
+}
+
+// TestInventoryCeilingTargets pins how a target is derived: a kept,
+// tightened or merged development rule ending in a primed host document
+// counts at its words, with its section's headings and the H1; a moved
+// rule does not count; the router counts at its drafted size; and Codex
+// adds AGENTS.md to CLAUDE.md.
+func TestInventoryCeilingTargets(t *testing.T) {
+	t.Parallel()
+	rows, _ := parseInventory(inventoryFixture(
+		"| kept | A rule | `CLAUDE.md › Rules` | 10 | development | judgment | primed | keep | |",
+		"| tight | A rule | `CLAUDE.md › Rules` | 20 | development | judgment | primed | tighten | |",
+		"| merged | A rule | `CLAUDE.md › Other` | 5 | development | judgment | primed | merge into kept | |",
+		"| moved | A rule | `CLAUDE.md › Other` | 40 | development | judgment | on demand | move on demand to `.guidance/project/testing.md` | |",
+		"| codex | A rule | `AGENTS.md` | 7 | development | judgment | primed | keep | |",
+	))
+	frozen := map[string]string{
+		"CLAUDE.md": "# Repo rules\n\n## Rules\n\ntext\n\n## Other\n\ntext\n",
+		"AGENTS.md": "# Codex\n\ntext\n",
+	}
+	claude, codex := inventoryCeilingTargets(rows, "three draft words", frozen, func(string) bool { return true })
+	// CLAUDE.md: 10 + 20 + 5 rule words, 3 for "# Repo rules", 2 for "## Rules"; the router 3.
+	if claude != 43 || codex != 43+7+2 {
+		t.Errorf("targets = %d, %d; want 43, 52", claude, codex)
 	}
 }
