@@ -9,7 +9,7 @@ tdd: advisory
 acs:
     - id: AC-1
       title: The inventory lists every rule in the guidance set once, with its current homes
-      status: open
+      status: met
     - id: AC-2
       title: Every rule carries one disposition from the closed set
       status: open
