@@ -12,7 +12,7 @@ acs:
       status: met
     - id: AC-2
       title: Every rule carries one disposition from the closed set
-      status: open
+      status: met
     - id: AC-3
       title: Every conflict is decided by the maintainer and recorded
       status: open
