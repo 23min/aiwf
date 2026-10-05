@@ -74,7 +74,7 @@ The harness is `scripts/e0092-observe/`: `run.sh <checkout-sha> <host> <task> <n
 
 Setup then prepares `repo` in this order:
 1. **Hooks and artifacts.** `make install-hooks` and `aiwf update` through the shim install the git hooks and materialize the gitignored host artifacts from the binary under test. Setup fails if that leaves `git status` dirty or `aiwf doctor` reports drift.
-2. **Withholding.** A fixture commit made with `aiwf edit-body` withholds this rubric's subsections and this milestone's Validation from M-0334's body, so no task's violation events sit in the tree the hosts work in. The git history still holds them.
+2. **Withholding.** A fixture commit made with `aiwf edit-body` withholds this rubric's subsections and this milestone's Validation from M-0334's body, and a second removes `scripts/e0092-observe/`, which names every fixture. So no task's violation events or fixtures sit in the tree the hosts work in. The git history still holds them.
 3. **Task fixtures.** Fixture commits a task's setup makes are pushed to `origin.git` with `--no-verify`, so the session starts level with its remote. T10 is the exception: by design, its branch is unpushed and trunk has moved.
 
 Both hosts run with `GOBIN` pointed at the run's `gobin/`, so a `go install` cannot replace the installed `aiwf`. Codex runs with `CODEX_HOME` pointed at the run's `codex-home/`, a copy of `~/.codex`'s configuration, credentials, rules, skills and dereferenced global instruction file. Its per-directory trust entries and session rollout therefore land in the run, not in the personal home.
