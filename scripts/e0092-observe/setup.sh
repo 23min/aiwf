@@ -44,6 +44,9 @@ done
 spec=$(git ls-files | grep '/M-0334-')
 python3 "$H/redact.py" "$spec" > "$RUN/redacted-body.md"
 aiwf edit-body M-0334 --body-file "$RUN/redacted-body.md" > /dev/null
+# The harness names every fixture, so it is withheld with the rubric.
+git rm -r -q scripts/e0092-observe
+git commit -q -m "chore(scripts): withhold the observation harness from this run" --no-verify
 case "$TASK" in
   T3)
     python3 - <<'PY'
