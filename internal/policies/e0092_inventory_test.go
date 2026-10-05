@@ -214,7 +214,7 @@ func inventoryRowFindings(rows []invRow, documents []string, exists func(string)
 			out = append(out, fmt.Sprintf("%q: a label is lower-case letters, digits and hyphens", r.Label))
 		}
 		for _, h := range r.Homes {
-			if !exists(h.File) {
+			if h.File == "" || !exists(h.File) {
 				out = append(out, fmt.Sprintf("%s: home %q names no file in the repository", r.Label, h.File))
 			}
 		}
@@ -497,7 +497,7 @@ func TestE0092Inventory(t *testing.T) {
 	rows, findings := parseInventory(body)
 	exists := func(p string) bool {
 		_, err := os.Stat(filepath.Join(root, filepath.FromSlash(p)))
-		return p != "" && err == nil
+		return err == nil
 	}
 	findings = append(findings, inventoryRowFindings(rows, projectguidance.RoutedDocuments(inventoryRouterDraft(body)), exists)...)
 
@@ -542,7 +542,11 @@ var inventoryHeader = "| " + strings.Join(inventoryColumns, " | ") + " |"
 func TestInventoryRowFindings(t *testing.T) {
 	t.Parallel()
 	const moved = "| moved | A rule | `CLAUDE.md › Testing` | 5 | development | judgment | on demand | move on demand to `.guidance/project/testing.md` | |"
-	files := []string{"CLAUDE.md", inventoryFragment, inventoryHostInserts[1], "go.mod", ".guidance/packs/go/cobra/guide.md", "internal/skills/embedded/aiwf-add/SKILL.md"}
+	files := []string{
+		"CLAUDE.md", "AGENTS.md", ".guidance/project.md", inventoryFragment, inventoryHostInserts[1], "go.mod",
+		".guidance/packs/go/cobra/guide.md", "internal/skills/embedded/aiwf-add/SKILL.md",
+		"internal/skills/embedded-rituals/plugins/aiwf-extensions/templates/adr.md",
+	}
 	exists := func(p string) bool { return slices.Contains(files, p) }
 	cases := []struct {
 		name   string
@@ -559,6 +563,9 @@ func TestInventoryRowFindings(t *testing.T) {
 			"| skilled | A rule | `CLAUDE.md › Testing` | 5 | operating | judgment | on demand | move to the shipped skill `internal/skills/embedded/aiwf-add/SKILL.md` | |",
 			"| shipped | A rule | `CLAUDE.md › Testing` | 5 | operating | judgment | primed | move to the shipped fragment | |",
 			"| fragment-kept | A rule | `F › A rule` | 5 | operating | judgment | primed | keep | |",
+			"| codex-kept | A rule | `AGENTS.md` | 5 | development | judgment | primed | keep | |",
+			"| router-kept | A rule | `.guidance/project.md` | 5 | development | judgment | primed | tighten | |",
+			"| templated | A rule | `CLAUDE.md › Testing` | 5 | operating | judgment | on demand | delete as copy of `internal/skills/embedded-rituals/plugins/aiwf-extensions/templates/adr.md` | |",
 			"| fragment-out | A rule | `F › A rule` | 5 | development | judgment | primed | move to repository guidance `CLAUDE.md` | |",
 		}, ""},
 		{"a header out of order", strings.Replace(inventoryHeader, "Audience | Kind", "Kind | Audience", 1), []string{moved}, "header"},
@@ -567,6 +574,7 @@ func TestInventoryRowFindings(t *testing.T) {
 		{"a label used twice", inventoryHeader, []string{moved, moved}, "more than one row"},
 		{"a label outside the label shape", inventoryHeader, []string{strings.Replace(moved, "| moved |", "| Moved_Rule |", 1)}, "a label is"},
 		{"a home in no file", inventoryHeader, []string{strings.Replace(moved, "`CLAUDE.md › Testing`", "`absent.md › Testing`", 1)}, "names no file"},
+		{"an empty home", inventoryHeader, []string{strings.Replace(moved, "`CLAUDE.md › Testing`", "``", 1)}, "names no file"},
 		{"a row naming no home", inventoryHeader, []string{strings.Replace(moved, "`CLAUDE.md › Testing`", "none", 1)}, "names no home"},
 		{"a value outside a closed set", inventoryHeader, []string{strings.Replace(moved, "| judgment |", "| opinion |", 1)}, "outside its closed set"},
 		{"a disposition outside the closed set", inventoryHeader, []string{strings.Replace(moved, "move on demand to", "relocate to", 1)}, "outside the closed set"},
@@ -628,6 +636,7 @@ func TestInventoryCoverageFindings(t *testing.T) {
 		{"a preamble cited only through a section", strings.Replace(all, "`CLAUDE.md`; ", "", 1), "CLAUDE.md ›  is cited by no row"},
 		{"an uncited fragment rule", strings.Replace(all, "; `F › Another rule`", "", 1), "Another rule; with more is cited by no row"},
 		{"a cite naming no section", strings.Replace(all, "`F › Another rule`", "`F › Another rule`; `CLAUDE.md › Testing › Missing`", 1), "names no section"},
+		{"a lead-in cite with a path beneath it", strings.Replace(all, "`F › Another rule`", "`F › Another rule`; `F › Another rule › More`", 1), "names no section"},
 		{"a cite naming more than one section", strings.Replace(all, "`F › Another rule`", "`F › Another rule`; `F › A`", 1), "more than one section"},
 		{"a lead-in holding a semicolon", strings.Replace(all, "`F › Another rule`", "`F › Another rule; with more`", 1), ""},
 	}
@@ -650,16 +659,16 @@ func TestInventoryCoverageFindings(t *testing.T) {
 }
 
 // TestInventoryWordFindings pins the word rule: each section's own words,
-// without its heading, the H1 or --- separators, equal the words of the
-// rows citing it first.
+// without its heading, the H1 or --- separators but with what a fence
+// holds, equal the words of the rows citing it first.
 func TestInventoryWordFindings(t *testing.T) {
 	t.Parallel()
-	claude := "# Title words\n\nOne two three.\n\n---\n\n## Section\n\nFour five.\n"
+	claude := "# Title words\n\nOne two three.\n\n---\n\n## Section\n\nFour five.\n\n```\n---\n```\n"
 	for _, tc := range []struct {
 		name, sectionWords, want string
 	}{
-		{"words that match", "2", ""},
-		{"words that differ", "3", "has 2 words; the rows citing it first count 3"},
+		{"words that match, a fenced line counted", "5", ""},
+		{"words that differ", "6", "has 5 words; the rows citing it first count 6"},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
 			t.Parallel()
