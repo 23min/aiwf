@@ -38,18 +38,18 @@ Repository development rules, aiwf operating guidance and project-adopted langua
 - External source selection, language detection, pack selection, upstream refresh and tracked-output delivery; E-0094 owns them.
 - Changing the content of external language packs; their wording belongs to the external source.
 - Personal collaboration preferences and machine/session configuration, which live outside this repository.
-- Entity templates and general changes to ritual or verb skill bodies, except references that must follow relocated guidance.
+- Entity templates and general changes to ritual or verb skill bodies, except references that must follow relocated guidance and operating rules the inventory moves into the skill for their task.
 - Changing existing check conditions while improving their messages.
 - New host adapters, including Copilot, or universal guarantees of model compliance.
 - A size ceiling or size report for consumer repositories; the ceiling and the guidance-reader list are internal to this repository (ADR-0053).
 - Fencing instruction files below a repository's root (ADR-0053).
-- Rewording or shortening the shipped fragment's rules; the inventory records any such tightening as a suggestion for a later epic.
+- Rewording or shortening the shipped fragment's rules; the inventory records any such tightening as a suggestion for a later epic. A clause the inventory moves into a fragment rule is an addition, not a rewording.
 
 ## Constraints
 
 - **One instruction file per host, at the root.** Claude primes from the root `CLAUDE.md` and Codex from the root `AGENTS.md`. No instruction files in subdirectories; on-demand guidance is reached through `.guidance/project.md`.
 - **Primed versus on demand.** A rule is primed when it applies to nearly every task, or when missing it causes harm before the agent would think to look. Everything else is on demand.
-- **One home per rule, chosen by audience.** Rules for operating aiwf in any repository live in the shipped fragment; rules for developing aiwf live in this repository. Generated copies in host entry points are delivery outputs, not independent homes. A rule in the wrong home moves in two commits: the first adds it to the right home, the second removes it from the wrong one as a copy of it, so it is briefly in both and never in neither.
+- **One home per rule, chosen by audience.** Rules for operating aiwf in any repository ship with aiwf: in the shipped fragment when primed, in the shipped skill for their task when on demand. Rules for developing aiwf live in this repository: in `CLAUDE.md` when primed, under `.guidance/project/` when on demand. Generated copies in host entry points are delivery outputs, not independent homes. A rule in the wrong home moves in two commits: the first adds it to the right home, the second removes it from the wrong one as a copy of it, so it is briefly in both and never in neither.
 - **Effect is preserved, wording is not.** Rules may be merged, tightened or rewritten as the inventory records. The baseline and after-observations are the check that a changed rule kept its effect. No rule is dropped silently: each removed passage's disposition is recorded in its commit body with the inventory row it carries out, and a test holds every removal to the inventory. The epic's wrap deletes that test once M-0338 records its last run, since the inventory is history from then on.
 - **Two ceilings.** Each host has a ceiling on its handwritten primed words, set by M-0349 and enforced by M-0333's policy. The shipped fragment's size is tracked separately; this epic moves rules into and out of it but does not shorten its wording. A reference that requires a full read before any task counts as primed.
 - **Frozen guidance.** From M-0349's inventory until M-0338's after-observation, `guidance.enabled` is `false` in `aiwf.yaml`, so no `aiwf update` or `aiwf worktree add` refreshes the installed packs. Re-enable it at the epic's wrap.
