@@ -15,7 +15,7 @@ acs:
       status: met
     - id: AC-3
       title: Every conflict is decided by the maintainer and recorded
-      status: open
+      status: met
     - id: AC-4
       title: The on-demand documents and the router are specified
       status: open
