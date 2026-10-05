@@ -1,6 +1,7 @@
 package policies
 
 import (
+	"fmt"
 	"strings"
 	"testing"
 
@@ -192,8 +193,9 @@ func TestGuidanceCeiling_AboveCeilingFails(t *testing.T) {
 }
 
 // TestPolicy_GuidanceCeiling runs the ceiling over this repository and
-// logs each host's figures, which is the measurement command M-0333's
-// Validation records: go test -run TestPolicy_GuidanceCeiling -v ./internal/policies/
+// logs each host's figures and the words of each on-demand document,
+// which is the measurement command M-0333's and M-0334's Validation
+// record: go test -count=1 -run TestPolicy_GuidanceCeiling -v ./internal/policies/
 func TestPolicy_GuidanceCeiling(t *testing.T) {
 	t.Parallel()
 	root := repoRoot(t)
@@ -203,7 +205,36 @@ func TestPolicy_GuidanceCeiling(t *testing.T) {
 		t.Logf("%s: handwritten primed %d (ceiling %d), aiwf-generated %d, required reads %v",
 			h.Name, load.Handwritten, h.Ceiling, load.Generated, load.RequiredReads)
 	}
+	for _, line := range onDemandWords(read) {
+		t.Logf("on demand: %s", line)
+	}
 	runPolicy(t, PolicyGuidanceCeiling)
+}
+
+// onDemandWords reports the words of each document the routing sends a
+// host to when a task needs it: the targets of the project router's links
+// and of the pack index's links, the router itself excepted since it is
+// primed. Words are counted as the ceiling counts them. A target that does
+// not exist is reported as absent.
+func onDemandWords(read func(string) (string, bool)) []string {
+	var out []string
+	seen := map[string]bool{projectguidance.RouterFile: true}
+	for _, doc := range []string{projectguidance.RouterFile, ".guidance/index.md"} {
+		text, _ := read(doc)
+		for _, target := range projectguidance.MarkdownLinks(text) {
+			p, ok := projectguidance.ResolveReference(doc, target)
+			if !ok || seen[p] {
+				continue
+			}
+			seen[p] = true
+			if content, exists := read(p); exists {
+				out = append(out, fmt.Sprintf("%s %d", p, len(strings.Fields(content))))
+			} else {
+				out = append(out, p+" absent")
+			}
+		}
+	}
+	return out
 }
 
 // TestRepoGuidanceReader pins the reader: a file reads from disk, a
