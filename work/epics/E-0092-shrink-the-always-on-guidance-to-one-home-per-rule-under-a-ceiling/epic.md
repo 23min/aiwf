@@ -78,7 +78,7 @@ Repository development rules, aiwf operating guidance and project-adopted langua
 
 | Question | Blocking? | Resolution path |
 |---|---|---|
-| Which on-demand documents exist and where they live | resolved | M-0349 names nine documents under `.guidance/project/`, with the router entries that reach them, in its On-demand documents section |
+| Which on-demand documents exist and where they live | resolved | M-0349 names the documents under `.guidance/project/`, with the router entries that reach them, in its On-demand documents section |
 | The handwritten primed ceiling for each host | resolved | M-0349 sets the targets from the inventory at 1,629 words for Claude and 1,758 for Codex, with tightened rules counted at their current size; M-0349's Validation records the command, and later step-downs record what tightening saves |
 | Which diagnostics already state the remedy | no | M-0337 produces the audit |
 
