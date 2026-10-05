@@ -1,7 +1,7 @@
 ---
 id: M-0334
 title: Write the rubric and record the baseline
-status: draft
+status: in_progress
 parent: E-0092
 depends_on:
     - M-0349
