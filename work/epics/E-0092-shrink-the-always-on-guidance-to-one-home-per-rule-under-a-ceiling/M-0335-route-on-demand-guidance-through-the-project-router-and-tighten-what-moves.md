@@ -37,7 +37,7 @@ Make `.guidance/project.md` a short task router, move every on-demand rule into 
 
 ## Context
 
-M-0349's inventory gives each rule a disposition and names the on-demand documents; M-0336 has already deleted the copies. The routing block both entry points carry sends a task to `.guidance/project.md` first, then the index and the packs it needs. Today `.guidance/project.md` says to read `CLAUDE.md` in full and that it takes precedence over the packs, and the `AGENTS.md` preamble requires the same full read for Codex. After this milestone `CLAUDE.md` is the one home of primed development rules, Codex's required read of it covers only those, and everything else is reached through the router.
+M-0349's inventory gives each rule a disposition and names the on-demand documents; M-0336 has already deleted the copies. The routing block both entry points carry sends a task to `.guidance/project.md` first, then the index and the packs it needs. Today `.guidance/project.md` says to read `CLAUDE.md` in full and that it takes precedence over the packs, and the `AGENTS.md` preamble requires the same full read for Codex. After this milestone the primed development rules live only in the root instruction files and the router — `CLAUDE.md` for both hosts, the `AGENTS.md` preamble for Codex alone — Codex's required read of `CLAUDE.md` covers only those, and everything else is reached through the router.
 
 ## Acceptance criteria
 
@@ -75,7 +75,7 @@ Every rule M-0349 marks "merge" or "tighten" is rewritten in its one home, and e
 
 ## Design notes
 
-- `CLAUDE.md` is the one home of primed development rules. Codex reaches them through the `AGENTS.md` preamble's required read, which is why that read counts toward Codex's primed load.
+- `CLAUDE.md` holds the primed development rules both hosts need, the `AGENTS.md` preamble the few that are Codex's alone, and the router its own entries. Codex reaches `CLAUDE.md` through the preamble's required read, which is why that read counts toward Codex's primed load.
 - The on-demand documents and their locations are the ones M-0349 names.
 - Exercise `aiwf update` in a disposable checkout, with `HOME` pointed at a scratch directory, and verify it preserves the handwritten router and regenerates the expected routes without restoring obsolete home-directory imports.
 
