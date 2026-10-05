@@ -21,7 +21,7 @@ acs:
       status: met
     - id: AC-5
       title: Each host's handwritten primed ceiling is set from the primed rules
-      status: open
+      status: met
 ---
 ## Goal
 
