@@ -266,6 +266,8 @@ Words are whitespace-separated words of the rule's text at the commit that freez
 
 ## Release note
 
+Nothing a consumer sees changes. The inventory, its test and the guidance freeze are internal to this repository; the shipped fragment and skills change in M-0336, which carries their release note.
+
 ## Decisions made during implementation
 
 - On-demand development guidance lives under `.guidance/project/`, beside the router; `docs/` is for documentation.
