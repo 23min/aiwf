@@ -1303,7 +1303,7 @@ Give every guidance rule in this repository one home and one clear form. Rules t
 | M-0337 | Audit finding messages and cut chokepointed sections to pointers | draft |
 | M-0338 | Record the after observation and re-run the growth report | draft |
 | M-0339 | Rewrite the fragment and update the anchors policy | cancelled |
-| M-0349 | Inventory every guidance rule and decide its home and form | in_progress |
+| M-0349 | Inventory every guidance rule and decide its home and form | done |
 | M-0350 | Ship the instruction-file fence in aiwf check | done |
 
 ## E-0093 — Enable side-by-side Claude and Codex workflows (done)
