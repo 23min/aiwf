@@ -547,7 +547,9 @@ func TestInventoryRowFindings(t *testing.T) {
 		".guidance/packs/go/cobra/guide.md", "internal/skills/embedded/aiwf-add/SKILL.md",
 		"internal/skills/embedded-rituals/plugins/aiwf-extensions/templates/adr.md",
 	}
-	exists := func(p string) bool { return slices.Contains(files, p) }
+	// The empty path exists, as the repository root does on disk, so the
+	// empty-home rule is what reports an empty home.
+	exists := func(p string) bool { return p == "" || slices.Contains(files, p) }
 	cases := []struct {
 		name   string
 		header string
