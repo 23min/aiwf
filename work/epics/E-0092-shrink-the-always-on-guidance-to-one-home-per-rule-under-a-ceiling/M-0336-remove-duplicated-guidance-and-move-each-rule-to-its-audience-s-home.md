@@ -38,7 +38,7 @@ Remove from both hosts' development guidance the text that already loads from an
 
 ## Context
 
-The shared operating fragment and the selected language packs under `.guidance/packs/` are canonical sources. Development guidance must not restate them. M-0349's inventory records which passages are copies and of what, and which rules belong to the other audience; this milestone deletes exactly those copies and makes exactly those moves, before M-0335 relocates what remains. A move into the shipped fragment changes what every consumer loads, so it carries a CHANGELOG entry under E-0092 and follows the shipped-surface rules: no entity ids, no repository paths, no development history. From this milestone on, a test holds every removal commit to the inventory. Generated host copies are expected delivery outputs and are excluded from duplicate-authoring checks by ownership, not by ignoring an entire host file. D-0102 governs the evidence restriction.
+The shared operating fragment and the selected language packs under `.guidance/packs/` are canonical sources. Development guidance must not restate them. M-0349's inventory records which passages are copies and of what, and which rules belong to the other audience; this milestone deletes exactly those copies and makes exactly those moves, before M-0335 relocates what remains. A move into the shipped fragment or a shipped skill changes what every consumer reads, so it carries a CHANGELOG entry under E-0092 and follows the shipped-surface rules: no entity ids, no repository paths, no development history. From this milestone on, a test holds every removal commit to the inventory. Generated host copies are expected delivery outputs and are excluded from duplicate-authoring checks by ownership, not by ignoring an entire host file. D-0102 governs the evidence restriction.
 
 ## Acceptance criteria
 
@@ -64,7 +64,7 @@ Each commit that removes text from development guidance or the shipped fragment 
 
 ### AC-6 — An audience move adds the rule to its new home, then removes the old copy
 
-A rule the inventory moves between homes — `move to the shipped fragment` or `move to repository guidance <document>` — moves in two commits: the first adds it to its new home, the second removes it from the old with `Disposition: copy of <new home>`, so it is briefly in both homes and never in neither. The instruction-file fence keeps the fragment source out of a commit that changes handwritten instructions, so the two halves cannot share a commit. A commit that changes the shipped fragment regenerates the managed `AGENTS.md` block with it. **Pass criterion**: AC-5's check also reports a move whose removal commit has no earlier commit in E-0092's range changing its destination file; a fixture covers it, and the tree passes.
+A rule the inventory moves between homes — `move to the shipped fragment`, `move to the shipped skill <path>` or `move to repository guidance <document>` — moves in two commits: the first adds it to its new home, the second removes it from the old with `Disposition: copy of <new home>`, so it is briefly in both homes and never in neither. The instruction-file fence keeps shipped sources out of a commit that changes handwritten instructions, so the two halves cannot share a commit. A commit that changes the shipped fragment regenerates the managed `AGENTS.md` block with it. **Pass criterion**: AC-5's check also reports a move whose removal commit has no earlier commit in E-0092's range changing its destination file; a fixture covers it, and the tree passes.
 
 ## Constraints
 
@@ -77,13 +77,13 @@ A rule the inventory moves between homes — `move to the shipped fragment` or `
 
 - D-0102 shapes AC-1 and AC-2 as absence and structure checks; neither can hold a sentence in place, and each is listed as a guidance reader.
 - AC-3 is observational, so this milestone runs under `tdd: advisory`; its other criteria carry tests regardless.
-- AC-5's check maps each inventory decision to the block dispositions it allows: `delete as copy of` and the two audience moves to `copy of`, `move on demand to` to `relocated to`, `pointer to` to `pointer to`, and `merge into` and `tighten` to `reworded`. Until M-0338 AC-3, a row not yet carried out is not a finding.
+- AC-5's check maps each inventory decision to the block dispositions it allows: `delete as copy of` and the three audience moves to `copy of`, `move on demand to` to `relocated to`, `pointer to` to `pointer to`, and `merge into` and `tighten` to `reworded`. Until M-0338 AC-3, a row not yet carried out is not a finding.
 
 ## Surfaces touched
 
 - Both host entry points and `.guidance/project.md`, respecting generated ownership.
 - The existing anchor policy and structural reference scan.
-- `internal/skills/embedded-guidance/aiwf-guidance.md` and `CHANGELOG.md`, for moves into and out of the shipped fragment.
+- `internal/skills/embedded-guidance/aiwf-guidance.md`, the shipped skills a rule moves into, and `CHANGELOG.md`.
 - The inventory test under `internal/policies/`, which this milestone extends with the reconciliation.
 
 ## Out of scope

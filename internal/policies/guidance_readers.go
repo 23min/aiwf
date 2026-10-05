@@ -100,6 +100,7 @@ var guidanceReaderList = map[string]guidanceReaderEntry{
 	"internal/policies.TestPolicy_GuidanceCeiling":                            {readerRelationship, "measures each host's primed load against its ceiling"},
 	"internal/policies.TestPolicy_NoDanglingEntityRefsInNarrativeDocs":        {readerRelationship, "checks that every entity reference in CLAUDE.md resolves"},
 	"internal/policies.TestPolicy_GuidanceReaders":                            {readerRelationship, "reads the router to know which documents are guidance"},
+	"internal/policies.TestE0092Inventory":                                    {readerRelationship, "checks that M-0349's inventory cites every section of the guidance as frozen"},
 }
 
 // guidanceReaderListFile is where guidanceReaderList lives, for a finding
