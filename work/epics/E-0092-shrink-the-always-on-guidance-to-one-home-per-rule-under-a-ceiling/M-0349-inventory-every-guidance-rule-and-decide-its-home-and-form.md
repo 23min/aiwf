@@ -278,6 +278,11 @@ Words are whitespace-separated words of the rule's text at the commit that freez
 
 ## Validation
 
+Environment: the aiwf devcontainer, Linux, `go1.25.12 linux/amd64`, at commit `9b18d4819` on `milestone/M-0349-inventory-every-guidance-rule-and-decide-its-home-and-form`. The guidance was frozen at `3fcc69611`, the commit that set `guidance.enabled: false`.
+
+- `go test -count=1 -run 'TestE0092Inventory|TestInventory' -v ./internal/policies/`, the inventory test. Expected exit 0. Observed `ok`. The live test passes, which is AC-1's coverage of every section and fragment rule as frozen, and AC-2's and AC-4's row rules. Each rule's fixture passes too.
+- AC-5's targets, from the same run's log line. Expected: a handwritten primed target for each host, derived from the table. Observed: `M-0349 AC-5 handwritten primed targets: claude-code 1629, codex 1758`. Each target counts every development rule that ends primed, with a tightened rule at its current size; the router at its drafted size; and the H1 and section headings of the rules that stay. Codex's target adds the `AGENTS.md` preamble. The ceiling policy measures 9647 and 9776 words today (`go test -count=1 -run TestPolicy_GuidanceCeiling -v ./internal/policies/`), and M-0337 lowers the ceilings to these targets.
+
 ## Deferrals
 
 - (none)
