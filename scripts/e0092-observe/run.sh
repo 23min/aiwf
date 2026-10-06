@@ -19,7 +19,8 @@ git -C "$SRC" show "$SHA:$SPEC" > "$RUN/spec.md"
 if [ -n "${PROMPT_FILE:-}" ]; then cp "$PROMPT_FILE" "$RUN/prompt.txt"; else python3 "$H/prompts.py" "$RUN/spec.md" "$TASK" > "$RUN/prompt.txt" || exit 1; fi
 "$H/setup.sh" "$RUN" "$SHA" "$TASK" > "$RUN/setup.log" 2>&1 || { echo "$RUN setup failed"; exit 1; }
 START=$(cat "$RUN/start-head")
-export PATH="$RUN/bin:$PATH" GOBIN="$RUN/gobin"
+# A host must not update itself mid-round, so every run of a round runs one version.
+export PATH="$RUN/bin:$PATH" GOBIN="$RUN/gobin" DISABLE_AUTOUPDATER=1
 cd "$RUN/repo"
 start=$(date +%s)
 if [ "$HOST" = claude ]; then
@@ -35,7 +36,7 @@ fi
 rc=$?
 end=$(date +%s)
 ROLLOUT=""
-[ "$HOST" = codex ] && ROLLOUT=$(find "$RUN/codex-home/sessions" -name 'rollout-*.jsonl' 2>/dev/null | head -1)
+[ "$HOST" = codex ] && ROLLOUT=$(python3 -c "import sys; sys.path.insert(0, '$H'); from codexrollout import threads; print(threads('$RUN/codex-home')[0] or '')")
 breaker=$(python3 -c "
 import json
 for l in open('$RUN/events.jsonl'):
@@ -82,11 +83,6 @@ grep -v -E '^(host=|versions:|--- plugins|\[|.*\.codex|.*\.claude/(rules|setting
   git ls-files --others --exclude-standard | while read -r f; do echo "=== untracked $f (first 20,000 bytes)"; head -c 20000 "$f"; done
   git worktree list --porcelain | awk '/^worktree /{print $2}' | tail -n +2 | while read -r w; do echo "=== worktree $w"; git -C "$w" diff "$START"; git -C "$w" ls-files --others --exclude-standard | while read -r f; do echo "=== untracked $w/$f (first 20,000 bytes)"; head -c 20000 "$w/$f"; done; done
 } > "$RUN/diff.patch" 2>&1
-if [ "$HOST" = codex ]; then
-  git -C "$RUN/repo" show "$START:CLAUDE.md" > "$RUN/CLAUDE.at-start.md"
-  python3 "$H/codex_read_claude.py" "$ROLLOUT" "$RUN/CLAUDE.at-start.md" > "$RUN/codex-read-claude.txt"
-  python3 "$H/reduce.py" "$ROLLOUT" "$RUN" > "$RUN/transcript.txt"
-else
-  python3 "$H/reduce.py" "$RUN/events.jsonl" "$RUN" > "$RUN/transcript.txt"
-fi
+git -C "$RUN/repo" show "$START:CLAUDE.md" > "$RUN/CLAUDE.at-start.md"
+"$H/derive.sh" "$RUN"
 echo "$RUN exit=$rc $((end-start))s"

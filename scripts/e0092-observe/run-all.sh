@@ -4,7 +4,9 @@
 # The rubric's full matrix: every task three times per host, the T1
 # continuation three times per host, then the judge over every complete run.
 # Runs `parallel` at a time (default 4); a run already holding events is
-# skipped, so an interrupted matrix resumes where it stopped.
+# skipped, so an interrupted matrix resumes where it stopped. A run that
+# dies does not stop the others: xargs stops at a command killed by a signal,
+# so each run is wrapped.
 set -uo pipefail
 SHA=$1 P=${2:-4}
 H=$(dirname "$(readlink -f "$0")")
@@ -19,7 +21,7 @@ printf '%s\n' "${jobs[@]}" | while read -r host task n cont; do
   dir="$OBSERVE_DIR/$task${cont:+-cont}/$host-$n"
   [ -s "$dir/events.jsonl" ] && [ -s "$dir/transcript.txt" ] && continue
   echo "$host $task $n${cont:+ $cont}"
-done | xargs -P "$P" -L 1 bash -c '"$0/run.sh" "$1" "$2" "$3" "$4" ${5:-}' "$H" "$SHA" >> "$OBSERVE_DIR/run-all.log" 2>&1
+done | xargs -P "$P" -L 1 bash -c '"$0/run.sh" "$1" "$2" "$3" "$4" ${5:-}; true' "$H" "$SHA" >> "$OBSERVE_DIR/run-all.log" 2>&1
 for dir in "$OBSERVE_DIR"/*/*-[0-9]; do
   [ -s "$dir/verdicts.json" ] && continue
   grep -q '^INCOMPLETE' "$dir/after.txt" 2>/dev/null && continue

@@ -16,7 +16,7 @@ git -C "$RUN/origin.git" for-each-ref --format='%(refname)' | grep -v -x -e refs
 git clone -q --no-hardlinks -b main "$RUN/origin.git" "$RUN/repo"
 # The aiwf under test is built from the checkout commit, once per commit.
 BIN="${OBSERVE_DIR:?run.sh exports it}/aiwf-$SHA"
-if [ ! -x "$BIN" ]; then (cd "$RUN/repo" && go build -o "$BIN.tmp" ./cmd/aiwf && mv "$BIN.tmp" "$BIN"); fi
+if [ ! -x "$BIN" ]; then (cd "$RUN/repo" && go build -o "$BIN.$$.tmp" ./cmd/aiwf && mv "$BIN.$$.tmp" "$BIN"); fi
 cp "$BIN" "$RUN/bin/aiwf-real"
 cat > "$RUN/bin/aiwf" <<SHIM
 #!/usr/bin/env bash

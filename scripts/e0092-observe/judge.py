@@ -10,7 +10,7 @@ import json, os, re, subprocess, sys
 run = sys.argv[1]
 task = os.path.basename(os.path.dirname(run)).removesuffix("-cont")
 spec = open(os.path.join(run, "spec.md")).read()
-m = re.search(r"(\*\*" + re.escape(task) + r" — .*?)(?=\n\*\*(?:T\d+|L\d+|Every task) |\n## )", spec, re.S)
+m = re.search(r"(\*\*" + re.escape(task) + r" — .*?)(?=\n\*\*(?:T\d+ |L\d+ |Every task\b)|\n## )", spec, re.S)
 if not m:
     sys.exit(f"no rubric block for {task}")
 block = m.group(1).strip()

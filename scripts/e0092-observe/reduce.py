@@ -1,11 +1,11 @@
 #!/usr/bin/env python3
-"""reduce.py <events.jsonl | codex rollout.jsonl> <run-dir> — prints one plain
-transcript: assistant text, tool calls with their arguments, tool results as
+"""reduce.py <events.jsonl | codex-home> <run-dir> — prints one plain
+transcript, for Codex the main thread followed by each sub-agent thread: assistant text, tool calls with their arguments, tool results as
 the model saw them truncated at 1,500 characters, and compaction events.
 Product and model names are replaced; the run directory becomes <run>."""
 import json, os, re, sys
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
-from codexrollout import records
+from codexrollout import records, threads
 
 LIMIT = 1500
 # Case-sensitive product and model names only: CLAUDE.md, AGENTS.md, .claude/
@@ -58,6 +58,12 @@ def codex(path):
     return out
 
 path, run = sys.argv[1], sys.argv[2]
-first = open(path).readline()
-out = codex(path) if '"session_meta"' in first or '"timestamp"' in first and '"payload"' in first else claude(path)
+if os.path.isdir(path):
+    main, subs = threads(path)
+    out = codex(main) if main else ["EVENT: no main rollout found"]
+    for agent, f in subs:
+        out.append(f"=== SUB-AGENT THREAD {agent} ===")
+        out.extend(codex(f))
+else:
+    out = claude(path)
 print(NAMES.sub("<assistant>", "\n\n".join(out).replace(run, "<run>")))
