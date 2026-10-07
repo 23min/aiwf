@@ -65,6 +65,13 @@ PY
     id=$(aiwf add milestone --epic E-0092 --tdd none --title "Record a manual export check" | grep -o 'M-[0-9]*' | head -1)
     aiwf add ac "$id" --title "The export lists every milestone's id" > /dev/null ;;
 esac
+# A pilot's fixture, when FIXTURE_HOOK names one, reshapes the guidance after
+# the task fixtures and before the push, in one commit.
+if [ -n "${FIXTURE_HOOK:-}" ]; then
+  python3 "$FIXTURE_HOOK"
+  git add -A CLAUDE.md .guidance internal/policies
+  git commit -q -m "docs(guidance): route the Go conventions on demand" --no-verify
+fi
 git push -q --no-verify origin main
 case "$TASK" in
   T8) echo >> ROADMAP.md ;;

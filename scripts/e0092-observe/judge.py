@@ -69,7 +69,15 @@ def ask():
     result = json.loads(out.stdout)
     text = result.get("result", "")
     j = re.search(r"\{.*\}", text, re.S)
-    return (json.loads(j.group(0)) if j else {"error": text[:2000]}), list(result.get("modelUsage") or {})
+    if not j:
+        return {"error": text[:2000]}, list(result.get("modelUsage") or {})
+    # A judge's quoted evidence can carry a backslash JSON does not accept;
+    # doubling it keeps the evidence text rather than losing the call.
+    raw = re.sub(r'\\(?!["\\/bfnrtu])', r"\\\\", j.group(0))
+    try:
+        return json.loads(raw), list(result.get("modelUsage") or {})
+    except ValueError:
+        return {"error": text[:2000]}, list(result.get("modelUsage") or {})
 
 # Three independent calls; a verdict two of them agree on stands, and one
 # where all three differ is recorded as split, so a borderline reading shows

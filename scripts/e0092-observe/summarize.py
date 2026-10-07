@@ -60,6 +60,10 @@ def codex_events(home):
         for cmd in (commands(script) if name == "exec" else [script]):
             yield ("edit" if is_write(cmd) else "read", cmd)
 
+# Each on-demand document under .guidance/project/ is its own column, named
+# by its file, so a round with documents the baseline lacked still shows them.
+ON_DEMAND = re.compile(r"\.guidance/project/([\w-]+)\.md")
+
 def loading(run, host):
     events = codex_events(os.path.join(run, "codex-home")) if host == "codex" else claude_events(os.path.join(run, "events.jsonl"))
     seen, edited = {}, False
@@ -67,8 +71,10 @@ def loading(run, host):
         if kind == "edit":
             edited = True
             continue
-        for t, pat in TARGETS.items():
-            if t not in seen and re.search(pat, text, re.M):
+        hits = [t for t, pat in TARGETS.items() if re.search(pat, text, re.M)]
+        hits += [m + ".md" for m in ON_DEMAND.findall(text)]
+        for t in hits:
+            if t not in seen:
                 seen[t] = "after" if edited else "before"
     return seen
 
@@ -105,7 +111,8 @@ def main():
     for (task, host), n in sorted(runs.items()):
         c = loads[(task, host)]
         parts = []
-        for t in TARGETS:
+        docs = sorted({k.rsplit(" ", 1)[0] for k in c} - set(TARGETS))
+        for t in list(TARGETS) + docs:
             b, a = c[f"{t} before"], c[f"{t} after"]
             if b or a:
                 parts.append(f"{t} {b}/{a}")
