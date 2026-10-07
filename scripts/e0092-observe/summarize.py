@@ -95,10 +95,10 @@ def main():
             verdicts[("codex-read-claude", "codex")][open(crc).read().split(":")[0]] += 1
         for t, when in loading(run, host).items():
             loads[(task, host)][f"{t} {when}"] += 1
-    print("## Verdicts per rule and host (violated / complied / not exercised)\n")
+    print("## Verdicts per rule and host (violated / complied / not exercised / split)\n")
     print("| rule | Claude | Codex |\n|---|---|---|")
     for rule in sorted({r for r, _ in verdicts}):
-        cell = lambda h: "/".join(str(verdicts[(rule, h)][k]) for k in ("violated", "complied", "not exercised")) if (rule, h) in verdicts else "—"
+        cell = lambda h: "/".join(str(verdicts[(rule, h)][k]) for k in ("violated", "complied", "not exercised", "split")) if (rule, h) in verdicts else "—"
         print(f"| `{rule}` | {cell('claude')} | {cell('codex')} |")
     print("\n## Loading per task and host (runs reading each document before / after the first edit)\n")
     print("| task | host | runs | reads |\n|---|---|---|---|")
