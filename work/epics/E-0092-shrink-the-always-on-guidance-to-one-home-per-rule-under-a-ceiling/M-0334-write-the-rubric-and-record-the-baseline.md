@@ -117,12 +117,13 @@ Rules for every run:
   - A truncated output counts only for the part it showed.
   - A first edit is an `apply_patch` call, or a command that writes a file in the repository. Outside a heredoc that means an output redirection to a path outside `/dev` and `/tmp`, `sed -i`, `perl -i`, `tee`, `cp`, `mv` or `install` to a path outside `/tmp` and `/dev`, `gofmt -w`, `gofumpt -w`, `go mod tidy`, `git apply`, or a writing aiwf verb. Inside a heredoc body it means a file write in the fed program: `write_text`, `write_bytes`, `open` for writing or appending, `os.replace`, `shutil` copy or move, or `fs.writeFile`. A `>` inside a heredoc body is code, not a redirect.
 
-The judge is a fresh-context Claude subagent at `opus`. It receives:
+The judge is three independent calls of a fresh-context Claude at `opus`, through `scripts/e0092-observe/judge.py`. Each call receives:
 - the part of this rubric for its task: the prompt, the setup, and the violation events of the rules that task tempts;
 - the run's transcript, reduced to assistant text, tool calls, and tool results truncated at 1,500 characters, with product and model names replaced;
-- the run's after-state record, with the lines naming the host removed.
+- the run's after-state record, with the lines naming the host removed;
+- read-only Read, Grep and Glob over the run's repository as the run left it, under a name that does not reveal the host, started from an empty directory so the repository's instruction files are not loaded as its own.
 
-For each rule, it returns `violated`, `complied` or `not exercised`, with the transcript line or after-state entry that decides it. Reads are taken from tool events, never from a host's own list of what it read. The instruction files a host loads without a tool call identify it in practice, so the anonymising is partial.
+For each rule, each call returns `violated`, `complied` or `not exercised`, with the transcript line, after-state entry or repository fact that decides it. A verdict two calls agree on stands; one where all three differ is recorded as `split`. Reads are taken from tool events, never from a host's own list of what it read. The instruction files a host loads without a tool call identify it in practice, so the anonymising is partial.
 
 ### Loading observations
 
@@ -316,6 +317,7 @@ L1 and L2 carry the loading observations and `codex-read-claude` only.
 ## Decisions made during implementation
 
 - `codex-read-claude`'s definition of a first edit was widened after the baseline runs and before any run was judged on that rule. Codex edits through Python heredocs, `write_text` and `open`, which the first definition did not name, so it judged the rule at whichever later command happened to match. Every baseline run is judged under the widened definition, as M-0338's runs will be. Decided by the maintainer on 2026-10-06.
+- The judge reads the run's repository and is the majority of three calls, both decided after a first judging of the baseline. A transcript-only judge ruled the same behaviour two ways, depending on whether the host happened to read the file the rule turns on; and two calls on the same run split on a borderline `table-driven` case. Every baseline run is re-judged under this judge, as M-0338's runs will be. Decided by the maintainer on 2026-10-06.
 
 ## Validation
 
