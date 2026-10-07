@@ -314,6 +314,8 @@ L1 and L2 carry the loading observations and `codex-read-claude` only.
 
 ## Release note
 
+Nothing a consumer sees changes. This milestone adds a development-only observation harness under `scripts/e0092-observe/`, which E-0092's wrap deletes, and one log line in a repository-internal test, and it records a baseline in this repository's planning tree.
+
 ## Decisions made during implementation
 
 - `codex-read-claude`'s definition of a first edit was widened after the baseline runs and before any run was judged on that rule. Codex edits through Python heredocs, `write_text` and `open`, which the first definition did not name, so it judged the rule at whichever later command happened to match. Every baseline run is judged under the widened definition, as M-0338's runs will be. Decided by the maintainer on 2026-10-06.
