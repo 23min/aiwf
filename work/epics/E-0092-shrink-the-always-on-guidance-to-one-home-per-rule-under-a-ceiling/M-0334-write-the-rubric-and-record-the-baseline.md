@@ -13,7 +13,7 @@ acs:
       status: met
     - id: AC-2
       title: The baseline observation is recorded with its command and environment
-      status: open
+      status: met
     - id: AC-3
       title: The baseline records each host's guidance load and the guidance commit rate
       status: open
