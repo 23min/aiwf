@@ -16,7 +16,7 @@ acs:
       status: met
     - id: AC-3
       title: The baseline records each host's guidance load and the guidance commit rate
-      status: open
+      status: met
 ---
 
 ## Goal
