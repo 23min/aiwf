@@ -10,7 +10,7 @@ tdd: none
 acs:
     - id: AC-1
       title: The rubric names each judgment rule and what counts as a violation
-      status: open
+      status: met
     - id: AC-2
       title: The baseline observation is recorded with its command and environment
       status: open
