@@ -10,3 +10,4 @@ if head -1 "$RUN/after.txt" | grep -q '^host=codex '; then
 else
   python3 "$H/reduce.py" "$RUN/events.jsonl" "$RUN" > "$RUN/transcript.txt"
 fi
+python3 "$H/blind.py" "$RUN"

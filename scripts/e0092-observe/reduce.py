@@ -10,9 +10,32 @@ from codexrollout import records, threads
 LIMIT = 1500
 # Case-sensitive product and model names only: CLAUDE.md, AGENTS.md, .claude/
 # and .agents/ paths are evidence the judge needs, so they stay.
-NAMES = re.compile(r"claude-opus-5-5|gpt-6-astra|\b(?:Claude Code|Claude|Codex|Anthropic|OpenAI|GPT)\b")
+NAMES = re.compile(r"claude-opus-5-5|gpt-6-astra|\b(?:Claude Code|Claude|Codex|Anthropic|OpenAI|GPT|Opus|Sonnet|Haiku)\b")
+
+def mask(text, run):
+    """Removes every mark of the host from text a judge reads: the run's path
+    in any spelling, the hosts' own home directories and file names, and
+    product and model names."""
+    run = run.rstrip("/")
+    observe = os.path.dirname(os.path.dirname(run))
+    text = text.replace(run, "<run>")
+    text = text.replace(run.replace("/", "-"), "<run>")
+    # A path into another run, or anywhere under the observation directory,
+    # names a task and host the same way, as does Claude Code's own
+    # temporary directory.
+    text = re.sub(r"\S*/(?:T\d+|L\d+)(?:-cont)?/(?:claude|codex)-\d+", "<run>", text)
+    text = text.replace(observe, "<observe>").replace(observe.replace("/", "-"), "<observe>")
+    text = re.sub(r"/tmp/claude-[\w-]+", "/tmp/<tmp>", text)
+    text = text.replace("<run>/codex-home", "<run>/agent-home")
+    text = re.sub(r"\bcodex\d+-", "tool-", text)
+    return NAMES.sub("<assistant>", text)
+
+# The run whose transcript is being reduced; set before any reduction, so a
+# result is masked before it is cut and no half path escapes the mask.
+RUN = ""
 
 def trunc(s):
+    s = mask(s, RUN) if RUN else s
     return s if len(s) <= LIMIT else s[:LIMIT] + f"\n…[{len(s) - LIMIT} more chars]"
 
 def claude(path):
@@ -57,13 +80,15 @@ def codex(path):
             out.append("EVENT: context compacted")
     return out
 
-path, run = sys.argv[1], sys.argv[2]
-if os.path.isdir(path):
-    main, subs = threads(path)
-    out = codex(main) if main else ["EVENT: no main rollout found"]
-    for agent, f in subs:
-        out.append(f"=== SUB-AGENT THREAD {agent} ===")
-        out.extend(codex(f))
-else:
-    out = claude(path)
-print(NAMES.sub("<assistant>", "\n\n".join(out).replace(run, "<run>")))
+if __name__ == "__main__":
+    path, run = sys.argv[1], sys.argv[2]
+    RUN = os.path.abspath(run)
+    if os.path.isdir(path):
+        main, subs = threads(path)
+        out = codex(main) if main else ["EVENT: no main rollout found"]
+        for agent, f in subs:
+            out.append(f"=== SUB-AGENT THREAD {agent} ===")
+            out.extend(codex(f))
+    else:
+        out = claude(path)
+    print(mask("\n\n".join(out), os.path.abspath(run)))

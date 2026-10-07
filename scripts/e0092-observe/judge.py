@@ -26,7 +26,9 @@ if not labels:
     sys.exit(0)
 transcript = open(os.path.join(run, "transcript.txt")).read()
 after = open(os.path.join(run, "judge-after.txt")).read()
-diff = open(os.path.join(run, "diff.patch")).read()[:60000]
+diff = open(os.path.join(run, "judge-diff.patch")).read()
+if len(diff) > 60000:
+    diff = diff[:60000] + f"\n…[diff truncated: {len(diff) - 60000} more characters]"
 prompt = f"""You judge one recorded run of an AI coding assistant against a rubric. Judge from the evidence below, and from the repository where a verdict turns on a fact in it; do not assume anything neither shows.
 
 The rubric for this task:
@@ -60,7 +62,7 @@ def ask():
         view = os.path.join(cwd, "r" + hashlib.sha256(run.encode()).hexdigest()[:12])
         os.symlink(os.path.join(run, "repo"), view)
         out = subprocess.run(
-            ["claude", "--print", "--model", "opus", "--tools", "Read,Grep,Glob", "--allowedTools", "Read,Grep,Glob",
+            ["claude", "--print", "--model", "claude-opus-5-5", "--tools", "Read,Grep,Glob", "--allowedTools", "Read,Grep,Glob",
              "--permission-mode", "dontAsk", "--add-dir", view, "--strict-mcp-config", "--mcp-config", '{"mcpServers":{}}',
              "--output-format", "json"],
             input=prompt.replace("{view}", view), capture_output=True, text=True, timeout=1800, cwd=cwd,
@@ -72,12 +74,20 @@ def ask():
     if not j:
         return {"error": text[:2000]}, list(result.get("modelUsage") or {})
     # A judge's quoted evidence can carry a backslash JSON does not accept;
-    # doubling it keeps the evidence text rather than losing the call.
-    raw = re.sub(r'\\(?!["\\/bfnrtu])', r"\\\\", j.group(0))
-    try:
-        return json.loads(raw), list(result.get("modelUsage") or {})
-    except ValueError:
-        return {"error": text[:2000]}, list(result.get("modelUsage") or {})
+    # each one the parser stops at is doubled, so the evidence text is kept
+    # rather than the call lost.
+    raw = j.group(0)
+    for _ in range(200):
+        try:
+            return json.JSONDecoder(strict=False).decode(raw), list(result.get("modelUsage") or {})
+        except json.JSONDecodeError as e:
+            if "escape" not in e.msg:
+                break
+            at = raw.rfind("\\", 0, e.pos + 1)
+            if at < 0:
+                break
+            raw = raw[:at] + "\\" + raw[at:]
+    return {"error": text[:2000]}, list(result.get("modelUsage") or {})
 
 # Three independent calls; a verdict two of them agree on stands, and one
 # where all three differ is recorded as split, so a borderline reading shows

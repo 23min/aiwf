@@ -12,11 +12,15 @@ SHA=$1 P=${2:-4}
 H=$(dirname "$(readlink -f "$0")")
 export OBSERVE_DIR=${OBSERVE_DIR:-${TMPDIR:-/tmp}/e0092-observe}
 mkdir -p "$OBSERVE_DIR"
+python3 "$H/codexrollout.py" || exit 1
 jobs=()
-for task in T1 T2 T3 T4 T5 T6 T7 T8 T9 T10 T11 L1 L2; do
-  for host in claude codex; do for n in 1 2 3; do jobs+=("$host $task $n"); done; done
-done
-for host in claude codex; do for n in 1 2 3; do jobs+=("$host T1 $n cont"); done; done
+# Consecutive jobs run side by side, so the order puts different tasks next
+# to each other: two runs of one task would share whatever files it writes
+# outside its clone.
+for n in 1 2 3; do for host in claude codex; do
+  for task in T1 T2 T3 T4 T5 T6 T7 T8 T9 T10 T11 L1 L2; do jobs+=("$host $task $n"); done
+  jobs+=("$host T1 $n cont")
+done; done
 printf '%s\n' "${jobs[@]}" | while read -r host task n cont; do
   dir="$OBSERVE_DIR/$task${cont:+-cont}/$host-$n"
   [ -s "$dir/events.jsonl" ] && [ -s "$dir/transcript.txt" ] && continue

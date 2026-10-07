@@ -20,7 +20,8 @@ if [ -n "${PROMPT_FILE:-}" ]; then cp "$PROMPT_FILE" "$RUN/prompt.txt"; else pyt
 "$H/setup.sh" "$RUN" "$SHA" "$TASK" > "$RUN/setup.log" 2>&1 || { echo "$RUN setup failed"; exit 1; }
 START=$(cat "$RUN/start-head")
 # A host must not update itself mid-round, so every run of a round runs one version.
-export PATH="$RUN/bin:$PATH" GOBIN="$RUN/gobin" DISABLE_AUTOUPDATER=1
+mkdir -p "$RUN/tmp"
+export PATH="$RUN/bin:$PATH" GOBIN="$RUN/gobin" DISABLE_AUTOUPDATER=1 TMPDIR="$RUN/tmp"
 cd "$RUN/repo"
 start=$(date +%s)
 if [ "$HOST" = claude ]; then
@@ -67,7 +68,9 @@ for l in open('$RUN/events.jsonl'):
     else echo "rollout=$ROLLOUT"; [ -n "$ROLLOUT" ] && grep -c '"type":"compacted"' "$ROLLOUT"; fi
   fi
   echo "--- branch at end: $(git branch --show-current)"
-  echo "--- commits since start (all refs)"; git log --all --format='%h %D | %s%n%b' "$START".. 2>/dev/null
+  echo "--- commits since start (all refs)"; git log --all --format='%h %D | %s%n%b' "^$START" "^$(cat "$RUN/start-origin")" 2>/dev/null
+  echo "--- binary under test after the run"; sha256sum "$RUN/bin/aiwf-real" | cut -c1-64
+  echo "--- files written under /tmp during the run, outside run directories"; find /tmp -xdev -newer "$RUN/.start" -type f 2>/dev/null | grep -v -F "$OBSERVE_DIR" | grep -v -E '^/tmp/claude-[0-9]+/' | head -50
   echo "--- status"; git status --porcelain
   echo "--- worktrees"; git worktree list
   echo "--- origin refs"; git -C "$RUN/origin.git" for-each-ref --format='%(refname) %(objectname:short)'
@@ -76,8 +79,6 @@ for l in open('$RUN/events.jsonl'):
   echo "--- files changed outside the clone during run (host session and log stores excluded)"
   find ~/.claude ~/.codex ~/go/bin ~/.guidance -newer "$RUN/.start" -type f 2>/dev/null | grep -v -E '/projects/|/sessions/|/shell-snapshots/|/todos/|/statsig/|/logs?/|\.log$|\.sqlite(-wal|-shm)?$|history\.jsonl|/file-history/|/session-env/|models_cache\.json|/tmp/|/plugins/|\.claude\.json|/backups/|/\.git/'
 } > "$RUN/after.txt" 2>&1
-# The judge's copy drops what names the host: the header, versions, plugins and home paths.
-grep -v -E '^(host=|versions:|--- plugins|\[|.*\.codex|.*\.claude/(rules|settings|skills)|.*/codex-home)' "$RUN/after.txt" > "$RUN/judge-after.txt"
 {
   git diff "$START"
   git ls-files --others --exclude-standard | while read -r f; do echo "=== untracked $f (first 20,000 bytes)"; head -c 20000 "$f"; done

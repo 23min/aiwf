@@ -11,6 +11,7 @@ sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from codexrollout import commands, is_write, records, threads
 
 home, claude = sys.argv[1], sys.argv[2]
+repo = os.path.join(os.path.dirname(os.path.abspath(home)), "repo")
 main, subs = threads(home)
 want = [l.strip() for l in open(claude) if l.strip()]
 names, seen, edited, truncated = {}, [], None, 0
@@ -23,7 +24,7 @@ for _, in_main, r in stream:
             edited = "apply_patch"
             break
         cmds = commands(script) if name == "exec" else [script]
-        w = next((c for c in cmds if is_write(c)), None)
+        w = next((c for c in cmds if is_write(c, repo)), None)
         if w:
             edited = "command " + " ".join(w.split())[:160]
             break

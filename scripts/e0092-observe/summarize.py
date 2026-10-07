@@ -1,123 +1,186 @@
 #!/usr/bin/env python3
-"""summarize.py <observe-dir> — the baseline or after-run tables M-0334 and
-M-0338 record: each rule's verdicts per host, and each task's loading
-observations per host.
+"""summarize.py <observe-dir> — the tables M-0334 and M-0338 record: each
+rule's verdicts per host, the continuation runs' verdicts, and each task's
+loading observations and task-loaded words per host.
 
-A read is a tool call naming the file: Claude's Read, Grep or Glob input, or a
-shell command; Codex's main-thread commands. A skill counts as read when its
-SKILL.md is read or Claude's Skill tool invokes it. A first edit is Claude's
-Edit or Write, or a command codexrollout.is_write judges to write a file."""
-import collections, glob, json, os, re, sys
+A guidance document counts as read when a tool result showed the model one of
+its signature lines: lines at least 40 characters long that occur once in the
+document as the run's start commit holds it, three taken from its start,
+middle and end. Claude invoking a skill through its Skill tool counts as
+reading that skill. A first edit is Claude's Edit or Write on a file in the
+run's repository, or a command codexrollout.is_write judges to write one.
+Reads are counted until the first edit, and after it."""
+import collections, glob, json, os, re, subprocess, sys
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
-from codexrollout import commands, is_write, records, threads
+from codexrollout import _inside, commands, is_write, records, threads
 
-TARGETS = {
-    "CLAUDE.md": r"(?<![\w./-])CLAUDE\.md",
-    "router": r"\.guidance/project\.md",
-    "index": r"\.guidance/index\.md",
-    "code-health": r"packs/code-health/guide\.md",
-    "code-health rubric": r"packs/code-health/rubric\.md",
-    "go": r"packs/go/cobra/guide\.md",
-    "python": r"packs/python/astral/guide\.md",
-    "typescript": r"packs/typescript/npm-vitest/guide\.md",
-    "aiwf-promote skill": r"aiwf-promote/SKILL\.md|^skill:aiwf-promote$",
-    "aiwf-reallocate skill": r"aiwf-reallocate/SKILL\.md|^skill:aiwf-reallocate$",
+# The documents the loading observations follow. CLAUDE.md is Codex's only:
+# Claude has it injected, so no tool call of Claude's reads it.
+FIXED = {
+    "CLAUDE.md": "CLAUDE.md",
+    "router": ".guidance/project.md",
+    "index": ".guidance/index.md",
+    "code-health": ".guidance/packs/code-health/guide.md",
+    "code-health rubric": ".guidance/packs/code-health/rubric.md",
+    "go": ".guidance/packs/go/cobra/guide.md",
+    "python": ".guidance/packs/python/astral/guide.md",
+    "typescript": ".guidance/packs/typescript/npm-vitest/guide.md",
+    "aiwf-promote skill": ".claude/skills/aiwf-promote/SKILL.md",
+    "aiwf-reallocate skill": ".claude/skills/aiwf-reallocate/SKILL.md",
 }
+# A document no tool reads at the start, such as one a reduction creates,
+# joins the columns by its file name under .guidance/project/.
+PRIMED = {"CLAUDE.md", "router", "index"}
 
-def claude_events(path):
+def text_at(repo, start, path):
+    """A document as the run started with it: from the clone at the start
+    commit, or, once the clone is gone, from the run's start-tree/ copy."""
+    if os.path.isdir(os.path.join(repo, ".git")):
+        out = subprocess.run(["git", "-C", repo, "show", f"{start}:{path}"], capture_output=True, text=True)
+        if out.returncode == 0:
+            return out.stdout
+        p = os.path.join(repo, path)
+    else:
+        p = os.path.join(os.path.dirname(repo), "start-tree", path)
+    return open(p).read() if os.path.exists(p) else None
+
+def signature(text):
+    lines = [l.strip() for l in text.split("\n")]
+    long_once = [l for l in lines if len(l) >= 40 and lines.count(l) == 1]
+    if not long_once:
+        best = max(lines, key=len, default="")
+        return [best] if best else []
+    picks = {long_once[0], long_once[len(long_once) // 2], long_once[-1]}
+    return sorted(picks)
+
+def documents(run):
+    repo = os.path.join(run, "repo")
+    start = open(os.path.join(run, "start-head")).read().strip()
+    docs = {}
+    for name, path in FIXED.items():
+        t = text_at(repo, start, path)
+        if t:
+            docs[name] = (path, t)
+    if os.path.isdir(os.path.join(repo, ".git")):
+        listed = subprocess.run(["git", "-C", repo, "ls-tree", "--name-only", start, ".guidance/project/"], capture_output=True, text=True).stdout.split()
+    else:
+        tree = os.path.join(os.path.dirname(repo), "start-tree", ".guidance", "project")
+        listed = [f".guidance/project/{f}" for f in sorted(os.listdir(tree))] if os.path.isdir(tree) else []
+    for path in listed:
+        t = text_at(repo, start, path)
+        if t:
+            docs[os.path.basename(path)] = (path, t)
+    return docs, repo
+
+def claude_events(path, repo):
+    pending = {}
     for line in open(path):
         try:
             e = json.loads(line)
         except ValueError:
             continue
-        if e.get("type") != "assistant":
-            continue
-        for c in e.get("message", {}).get("content", []):
-            if c.get("type") != "tool_use":
-                continue
-            name, inp = c.get("name"), c.get("input") or {}
-            if name in ("Edit", "Write", "NotebookEdit"):
-                yield ("edit", inp.get("file_path", ""))
-            elif name == "Skill":
-                yield ("read", "skill:" + str(inp.get("skill") or inp.get("name") or ""))
-            elif name == "Bash":
-                cmd = inp.get("command", "")
-                yield ("edit" if is_write(cmd) else "read", cmd)
-            else:
-                yield ("read", json.dumps(inp))
+        if e.get("type") == "assistant":
+            for c in e.get("message", {}).get("content", []):
+                if c.get("type") != "tool_use":
+                    continue
+                name, inp = c.get("name"), c.get("input") or {}
+                if name in ("Edit", "Write", "NotebookEdit") and _inside(inp.get("file_path", "") or inp.get("notebook_path", ""), repo):
+                    yield ("edit", None)
+                elif name == "Bash" and is_write(inp.get("command", ""), repo):
+                    yield ("edit", None)
+                elif name == "Skill":
+                    yield ("skill", str(inp.get("skill") or inp.get("name") or ""))
+        elif e.get("type") == "user":
+            content = e.get("message", {}).get("content", [])
+            if isinstance(content, list):
+                for c in content:
+                    if c.get("type") == "tool_result":
+                        r = c.get("content")
+                        if isinstance(r, list):
+                            r = "\n".join(x.get("text", "") for x in r if isinstance(x, dict))
+                        yield ("shown", str(r))
 
-def codex_events(home):
+def codex_events(home, repo):
     main, _ = threads(home)
     if not main:
         return
     for r in records(main):
-        if r[0] != "call":
-            continue
-        _, _, name, script = r
-        if name == "apply_patch" or "apply_patch" in script:
-            yield ("edit", script)
-            continue
-        for cmd in (commands(script) if name == "exec" else [script]):
-            yield ("edit" if is_write(cmd) else "read", cmd)
-
-# Each on-demand document under .guidance/project/ is its own column, named
-# by its file, so a round with documents the baseline lacked still shows them.
-ON_DEMAND = re.compile(r"\.guidance/project/([\w-]+)\.md")
+        if r[0] == "call":
+            _, _, name, script = r
+            if name == "apply_patch" or "apply_patch" in script or any(is_write(c, repo) for c in (commands(script) if name == "exec" else [script])):
+                yield ("edit", None)
+        elif r[0] == "output":
+            yield ("shown", r[2])
 
 def loading(run, host):
-    events = codex_events(os.path.join(run, "codex-home")) if host == "codex" else claude_events(os.path.join(run, "events.jsonl"))
+    docs, repo = documents(run)
+    if host == "claude":
+        docs.pop("CLAUDE.md", None)
+    sigs = {name: signature(t) for name, (_, t) in docs.items()}
+    events = codex_events(os.path.join(run, "codex-home"), repo) if host == "codex" else claude_events(os.path.join(run, "events.jsonl"), repo)
     seen, edited = {}, False
-    for kind, text in events:
+    for kind, payload in events:
         if kind == "edit":
             edited = True
             continue
-        hits = [t for t, pat in TARGETS.items() if re.search(pat, text, re.M)]
-        hits += [m + ".md" for m in ON_DEMAND.findall(text)]
-        for t in hits:
-            if t not in seen:
-                seen[t] = "after" if edited else "before"
-    return seen
+        hits = []
+        if kind == "skill":
+            hits = [n for n in docs if n.endswith(" skill") and n.split(" ")[0] == payload.split(":")[-1]]
+        else:
+            hits = [n for n, lines in sigs.items() if lines and any(l in payload for l in lines)]
+        for n in hits:
+            seen.setdefault(n, "after" if edited else "before")
+    words = sum(len(docs[n][1].split()) for n in seen if n not in PRIMED)
+    return seen, words
+
+def incomplete(run):
+    return re.search(r"^INCOMPLETE", open(os.path.join(run, "after.txt")).read(), re.M) is not None
 
 def main():
     root = sys.argv[1]
-    verdicts = collections.defaultdict(collections.Counter)
+    verdicts = {"main": collections.defaultdict(collections.Counter), "cont": collections.defaultdict(collections.Counter)}
     loads = collections.defaultdict(collections.Counter)
+    words = collections.defaultdict(list)
     runs = collections.Counter()
-    incomplete = []
+    skipped = []
     for run in sorted(glob.glob(f"{root}/*/*-[0-9]")):
         task = os.path.basename(os.path.dirname(run))
         host = os.path.basename(run).split("-")[0]
-        if "INCOMPLETE" in open(os.path.join(run, "after.txt")).read():
-            incomplete.append(f"{task}/{os.path.basename(run)}")
+        if incomplete(run):
+            skipped.append(f"{task}/{os.path.basename(run)}")
             continue
         runs[(task, host)] += 1
+        table = verdicts["cont" if task.endswith("-cont") else "main"]
         v = os.path.join(run, "verdicts.json")
         if os.path.exists(v):
             for rule, x in json.load(open(v)).get("verdicts", {}).items():
-                if isinstance(x, dict):
-                    verdicts[(rule, host)][x.get("verdict")] += 1
+                assert x.get("verdict") in ("violated", "complied", "not exercised", "split"), (run, rule, x)
+                table[(rule, host)][x["verdict"]] += 1
         crc = os.path.join(run, "codex-read-claude.txt")
         if host == "codex" and os.path.exists(crc):
-            verdicts[("codex-read-claude", "codex")][open(crc).read().split(":")[0]] += 1
-        for t, when in loading(run, host).items():
+            table[("codex-read-claude", "codex")][open(crc).read().split(":")[0]] += 1
+        seen, w = loading(run, host)
+        for t, when in seen.items():
             loads[(task, host)][f"{t} {when}"] += 1
-    print("## Verdicts per rule and host (violated / complied / not exercised / split)\n")
-    print("| rule | Claude | Codex |\n|---|---|---|")
-    for rule in sorted({r for r, _ in verdicts}):
-        cell = lambda h: "/".join(str(verdicts[(rule, h)][k]) for k in ("violated", "complied", "not exercised", "split")) if (rule, h) in verdicts else "—"
-        print(f"| `{rule}` | {cell('claude')} | {cell('codex')} |")
-    print("\n## Loading per task and host (runs reading each document before / after the first edit)\n")
-    print("| task | host | runs | reads |\n|---|---|---|---|")
+        words[(task, host)].append(w)
+    for key, title in (("main", "Verdicts per rule and host"), ("cont", "Continuation runs' verdicts per rule and host")):
+        if not verdicts[key]:
+            continue
+        print(f"## {title} (violated / complied / not exercised / split)\n")
+        print("| rule | Claude | Codex |\n|---|---|---|")
+        for rule in sorted({r for r, _ in verdicts[key]}):
+            cell = lambda h: "/".join(str(verdicts[key][(rule, h)][k]) for k in ("violated", "complied", "not exercised", "split")) if (rule, h) in verdicts[key] else "—"
+            print(f"| `{rule}` | {cell('claude')} | {cell('codex')} |")
+        print()
+    print("## Loading per task and host (runs shown each document before / after their first edit; mean task-loaded words)\n")
+    print("| task | host | runs | reads | task-loaded words |\n|---|---|---|---|---|")
     for (task, host), n in sorted(runs.items()):
         c = loads[(task, host)]
-        parts = []
-        docs = sorted({k.rsplit(" ", 1)[0] for k in c} - set(TARGETS))
-        for t in list(TARGETS) + docs:
-            b, a = c[f"{t} before"], c[f"{t} after"]
-            if b or a:
-                parts.append(f"{t} {b}/{a}")
-        print(f"| {task} | {host} | {n} | {', '.join(parts) or 'none'} |")
-    if incomplete:
-        print("\nIncomplete, not judged: " + ", ".join(incomplete))
+        names = list(FIXED) + sorted({k.rsplit(" ", 1)[0] for k in c} - set(FIXED))
+        parts = [f"{t} {c[f'{t} before']}/{c[f'{t} after']}" for t in names if c[f"{t} before"] or c[f"{t} after"]]
+        mean = round(sum(words[(task, host)]) / n)
+        print(f"| {task} | {host} | {n} | {', '.join(parts) or 'none'} | {mean} |")
+    if skipped:
+        print("\nIncomplete, not judged: " + ", ".join(skipped))
 
 main()
