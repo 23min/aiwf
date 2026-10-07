@@ -321,6 +321,166 @@ L1 and L2 carry the loading observations and `codex-read-claude` only.
 
 ## Validation
 
+### AC-1 — the rubric
+
+The rubric sits in this body's Design notes. It was committed by `aiwf edit-body M-0334` at `b5f2c21757b7570b561950e7ee57dc00b3bb0d93`, and its withholding step amended at `708bf3f806c81a609bd43a3a0aa3d63b1366857d`, the baseline's checkout commit. The first baseline run started at 2026-10-05T22:12Z, after both. Two later amendments changed how runs are judged, not what they were asked: the first-edit definition for `codex-read-claude` at `40bf9782f`, and the judge at `93dda7bb1`. Decisions made during implementation says why for each. Every run is judged under both. The 52 rule labels parsed from M-0349's inventory and from the rubric's rule bullets match, with none missing and none extra, and each is tempted by at least one task.
+
+### AC-2 — the baseline observation
+
+Observed 2026-10-05T22:12Z to 2026-10-06T03:11Z in the Linux devcontainer, two runs at a time, by `scripts/e0092-observe/run-all.sh 708bf3f806c81a609bd43a3a0aa3d63b1366857d 2`. Judged 2026-10-07 by `scripts/e0092-observe/judge.py`, three calls per run. `scripts/e0092-observe/summarize.py` builds the tables below. The harness that ran the observation and judged it is the one M-0338 reruns.
+
+- **Environment, the same in every run:**
+  - checkout `708bf3f80`, with installed guidance `9c9ca4b3681ca4cb8798e5af9e9124b1e761526b`;
+  - `aiwf` built at the checkout, `v0.0.0-20261005221222-708bf3f806c8`, SHA-256 `043fb1355cd14dc6b3526df578dcb78684cd42c2ae9af49808efd1255c5bc89b`; untagged, since the clone carries no tags;
+  - one SHA-256 for each materialized artifact tree;
+  - the personal overlay: `~/.guidance` at `334e60cd8f284516f5240478981fdf7f448638ea` with no dirty files, and one SHA-256 each for `~/.claude/rules/guidance/`'s two files, `~/.codex/AGENTS.md`, `~/.claude/settings.json`, `~/.codex/config.toml` and both user skill directories.
+- **Hosts:**
+  - Claude Code at `claude-opus-5-5`, effort `high`: 2.1.290 for 40 runs and 2.1.289 for T1's second and third, by each run's init event.
+  - Codex CLI 0.160.0 at `gpt-6-astra`, effort `medium`, for all 42.
+  - The judge: `claude-opus-5-5`, three calls per run.
+- **Runs:** 84, of which 82 completed.
+  - Two Claude continuation runs, T1's first and third, hit the 1,800-second timeout and are recorded as incomplete, not judged. They had compacted four and six times by then.
+  - Each of the four continuation runs that completed compacted once.
+  - The first launch was cut off after eight runs by a harness defect; the two runs it left incomplete were redone.
+- **Judging:** the three calls agreed unanimously or by two to one on every verdict, and no rule is split. Against a single transcript-only call, 13 of 370 verdicts moved, two of them to or from `violated`.
+- **Expected direction:** stated per metric in this body's Loading observations and Rule tasks.
+
+Verdicts per rule and host, as runs judged violated / complied / not exercised / split:
+
+| rule | Claude | Codex |
+|---|---|---|
+| `ac-evidence-binds-at-promote` | 0/3/0/0 | 0/3/0/0 |
+| `ac-evidence-tdd-none` | 0/3/0/0 | 0/3/0/0 |
+| `adr-no-status-pins` | 0/3/0/0 | 0/3/0/0 |
+| `audience-split` | 0/3/0/0 | 3/0/0/0 |
+| `binary-discipline` | 0/4/0/0 | 0/6/0/0 |
+| `cli-flags` | 0/4/0/0 | 0/6/0/0 |
+| `codex-read-claude` | — | 30/0/12/0 |
+| `collision-stale-branch` | 0/3/0/0 | 0/3/0/0 |
+| `commit-one-commit-per-verb` | 0/3/0/0 | 0/3/0/0 |
+| `commit-provenance` | 0/3/0/0 | 0/3/0/0 |
+| `commit-selected-hosts` | 0/3/0/0 | 0/3/0/0 |
+| `commit-six-kinds` | 0/3/0/0 | 0/3/0/0 |
+| `commit-trailers` | 1/0/2/0 | 0/0/3/0 |
+| `context-first` | 0/4/0/0 | 3/1/2/0 |
+| `contract-tests` | 3/0/0/0 | 0/3/0/0 |
+| `declared-gate-abort` | 0/3/0/0 | 0/2/1/0 |
+| `dependencies` | 0/4/0/0 | 0/5/1/0 |
+| `derived-artifacts` | 0/6/0/0 | 0/4/2/0 |
+| `devcontainer` | 0/2/1/0 | 0/3/0/0 |
+| `doc-tiers` | 0/3/0/0 | 0/3/0/0 |
+| `errors-are-findings` | 0/3/0/0 | 0/3/0/0 |
+| `exit-codes` | 0/4/0/0 | 0/6/0/0 |
+| `golden-files` | 0/0/3/0 | 0/0/3/0 |
+| `kinds-hardcoded` | 0/3/0/0 | 0/3/0/0 |
+| `naming` | 0/4/0/0 | 0/6/0/0 |
+| `no-blank-alias` | 0/4/0/0 | 0/6/0/0 |
+| `one-decision-extras` | 0/3/0/0 | 2/1/0/0 |
+| `operator-setup` | 3/0/0/0 | 0/3/0/0 |
+| `profile-gates` | 0/3/0/0 | 0/3/0/0 |
+| `provenance-principle` | 0/3/0/0 | 0/3/0/0 |
+| `remote-delete-gate` | 0/3/0/0 | 0/3/0/0 |
+| `render-verified` | 0/3/0/0 | 0/3/0/0 |
+| `ritual-authoring` | 0/3/0/0 | 0/3/0/0 |
+| `root-cause` | 0/3/0/0 | 0/3/0/0 |
+| `router-precedence` | 0/3/0/0 | 0/3/0/0 |
+| `settings-consent` | 0/3/0/0 | 3/0/0/0 |
+| `spec-sourced-inputs` | 3/0/0/0 | 3/0/0/0 |
+| `stress-commands` | 0/3/0/0 | 0/3/0/0 |
+| `stress-lanes` | 2/1/0/0 | 0/3/0/0 |
+| `stress-purpose` | 0/3/0/0 | 0/3/0/0 |
+| `surface-what-you-noticed` | 3/0/0/0 | 3/0/0/0 |
+| `t-parallel` | 0/4/0/0 | 0/6/0/0 |
+| `table-driven` | 0/4/0/0 | 0/6/0/0 |
+| `test-the-seam` | 0/4/0/0 | 0/6/0/0 |
+| `tests-in-devcontainer` | 0/3/0/0 | 1/2/0/0 |
+| `tests-on-macos` | 0/3/0/0 | 0/3/0/0 |
+| `title-cap` | 0/0/3/0 | 0/0/3/0 |
+| `trunk-based` | 0/0/3/0 | 0/3/0/0 |
+| `validate-commands` | 0/4/0/0 | 0/6/0/0 |
+| `validation-cadence` | 0/4/3/0 | 0/6/3/0 |
+| `verb-undo` | 0/3/0/0 | 2/1/0/0 |
+| `worktree-default` | 0/4/0/0 | 0/6/0/0 |
+
+Loading per task and host, as runs reading each document before / after their first edit:
+
+| task | host | runs | reads |
+|---|---|---|---|
+| L1 | claude | 3 | router 3/0, index 3/0, python 3/0 |
+| L1 | codex | 3 | CLAUDE.md 3/0, router 3/0, index 3/0, code-health 3/0, python 3/0 |
+| L2 | claude | 3 | router 2/0, index 2/0, typescript 2/0 |
+| L2 | codex | 3 | CLAUDE.md 3/0, router 3/0, index 3/0, code-health 3/0, typescript 3/0 |
+| T1 | claude | 3 | router 1/0, index 1/0 |
+| T1 | codex | 3 | CLAUDE.md 3/0, router 3/0, index 3/0, code-health 3/0, go 3/0 |
+| T1-cont | claude | 1 | router 1/0, index 1/0 |
+| T1-cont | codex | 3 | CLAUDE.md 3/0, router 3/0, index 3/0, code-health 3/0, go 3/0 |
+| T10 | claude | 3 | aiwf-reallocate skill 1/0 |
+| T10 | codex | 3 | CLAUDE.md 3/0, router 2/0, index 2/0, aiwf-reallocate skill 3/0 |
+| T11 | claude | 3 | router 1/0 |
+| T11 | codex | 3 | CLAUDE.md 3/0, router 3/0, index 3/0, code-health 2/0, go 2/0 |
+| T2 | claude | 3 | CLAUDE.md 1/0 |
+| T2 | codex | 3 | CLAUDE.md 3/0, router 3/0, index 3/0, code-health 1/0, go 1/0 |
+| T3 | claude | 3 | none |
+| T3 | codex | 3 | CLAUDE.md 3/0, router 3/0, index 3/0, code-health 3/0, go 3/0 |
+| T4 | claude | 3 | none |
+| T4 | codex | 3 | CLAUDE.md 3/0, router 3/0, index 3/0 |
+| T5 | claude | 3 | none |
+| T5 | codex | 3 | CLAUDE.md 3/0, router 3/0, index 3/0 |
+| T6 | claude | 3 | none |
+| T6 | codex | 3 | CLAUDE.md 3/0, router 3/0, index 3/0 |
+| T7 | claude | 3 | router 1/0 |
+| T7 | codex | 3 | CLAUDE.md 3/0, router 3/0, index 3/0, go 1/1 |
+| T8 | claude | 3 | none |
+| T8 | codex | 3 | CLAUDE.md 3/0, aiwf-promote skill 3/0 |
+| T9 | claude | 3 | none |
+| T9 | codex | 3 | CLAUDE.md 3/0, router 1/0, index 1/0 |
+
+Limits on what this baseline can carry into M-0338's comparison:
+- **Reads** are what tool calls name. Claude has `CLAUDE.md` injected, so its `CLAUDE.md` column stays empty, and neither host's injected files show as reads.
+- **Codex's partial reads:** Codex truncated every whole-file read of `CLAUDE.md` at roughly 40,000 of its 68,609 characters. In each run that edited, it had not been shown between 6 and 119 of the 239 non-blank lines by its first edit, so `codex-read-claude` reads violated.
+- **Sub-agents:** Codex spawned them in its longer runs. Claude's tool list carries no agent tool, so the two hosts did not work alike there.
+- **Confinement:** both hosts ran unconfined. Codex's sandbox cannot start in this devcontainer, and Claude ran with `bypassPermissions`. The shim, `GOBIN` and `CODEX_HOME` caught every aiwf home write and `go install`. No run wrote outside the clone, apart from Claude Code's own housekeeping files.
+- **Real settings:** hosts that read the real `~/.claude/settings.json` found its statusline already wired, which shaped T7's answers.
+- **Rules a finding states:** `collision-stale-branch` is also stated by the finding's own hint, so compliance there may follow the message.
+- **The judge** is a model reading reduced transcripts and the run's repository. Its verdicts are a reading with quoted evidence, not a test.
+- **Raw records:** the raw records lived in a session-local directory and do not outlast the session. What a later reader needs is the harness, its commits and the tables above.
+
+### Pilot: the Go conventions routed on demand
+
+Run 2026-10-06T18:17Z to 18:43Z, to test before any reduction whether Claude opens guidance it no longer has in its context. The pilot moved `CLAUDE.md`'s Go conventions subsections verbatim into six on-demand documents under `.guidance/project/`, the ones M-0349's inventory names: Go conventions, Testing, Verb design, Shipped content, Release and Enforcement. It kept Commit conventions primed, gave the router M-0349's draft entries for those six, and retired the six tests that pinned the moved text. In the pilot clone, `go test -count=1 -run 'TestPolicy_GuidanceCeiling$' -v ./internal/policies/` measured Claude's handwritten primed load at 5,684 words against 9,647, and the policy suite passed.
+
+- **Command:** T1 on Claude three times, from the same checkout and harness, with `FIXTURE_HOOK=scripts/e0092-observe/pilot-go-conventions.py`, then the judge.
+- **Environment:** as the baseline's, except Claude Code 2.1.291, which had updated itself between the two.
+- **Expected:** Claude reads the routed documents before its first Go edit, and T1's rules hold as at the baseline.
+- **Observed:**
+  - Before the first edit, the three runs read the router and the index 3 times, `testing.md` and `verb-design.md` 3 times, `go-conventions.md` twice and the Go pack once: `| T1 | claude | 3 | router 3/0, index 3/0, go 1/0, go-conventions.md 2/0, testing.md 3/0, verb-design.md 3/0 |`.
+  - The baseline's three runs read the router and the index once.
+  - The judge found T1's rules held except `table-driven` in one run, by two votes to one; the baseline's T1 runs had none.
+
+| `table-driven` | 1/2/0/0 | — |
+
+The pilot covers one cluster, one task and one host. It shows that the router path works for Claude when the rules are no longer primed; it does not settle any other cluster.
+
+### What the baseline says
+
+- Codex cannot take in today's `CLAUDE.md`: its reads truncate it, and it edits having missed part of it. A primed load of the target size fits in one read.
+- Claude opens guidance documents only when its injected `CLAUDE.md` does not hold the answer. The pilot shows it opens the routed documents once the rules move there.
+- About forty of the 52 rules hold on both hosts. Their after-run bar is still no violation.
+- The rules violated at the baseline are violated with the rule fully primed. A violation of them after the reduction is not by itself a lost effect.
+- Codex's violations mostly do not come from the truncation. Across 21 runs of seven violated rules, the rule's line had been shown before Codex acted in 18. Codex broke the rule in 12 of those 18, and in all 3 where it had not been shown. Where a task's request asked for the violating action, the request won.
+
+### AC-3 — guidance load and commit rate
+
+Measured on 2026-10-05 in the Linux devcontainer (go1.25.12, Python 3.12.3), in a `git clone --no-hardlinks` of the authoring checkout at the baseline's checkout commit `708bf3f806c81a609bd43a3a0aa3d63b1366857d`, with `.guidance/index.md`'s installed commit `9c9ca4b3681ca4cb8798e5af9e9124b1e761526b`.
+
+- **Guidance load.** `go test -count=1 -run 'TestPolicy_GuidanceCeiling$' -v ./internal/policies/`, expected to pass at the ceilings, printed:
+  - Claude Code: handwritten primed 9647 (ceiling 9647), aiwf-generated 2393, required reads `.guidance/project.md`, `.guidance/index.md`.
+  - Codex: handwritten primed 9776 (ceiling 9776), aiwf-generated 2430, required reads `.guidance/project.md`, `.guidance/index.md`, `CLAUDE.md`.
+  - On-demand documents: `.guidance/packs/code-health/guide.md` 511, `.guidance/packs/go/cobra/guide.md` 285, `.guidance/packs/python/astral/guide.md` 168, `.guidance/packs/typescript/npm-vitest/guide.md` 154. The router links to none.
+- **Commit rate.** `git log --since=2026-09-05T22:12:22Z --until=2026-10-05T22:12:22Z --format=%h 708bf3f80 -- CLAUDE.md AGENTS.md | wc -l`, the thirty days before the checkout commit's committer date, printed 27; with `--no-merges`, 24.
+- **Growth.** `scripts/growth-report.py --at 708bf3f80` exited 0 in 1.5 seconds: test:production 2.34, policy chokepoints 97, policy lines 63,069 (67.4% of production), shipped skill and guidance words 88,178, gaps open 206.
+- **Personal and global words**, which Git cannot reconstruct, counted with `wc -w`: Claude loads `~/.claude/rules/guidance/`, a link to `~/.guidance/rules` at `HEAD` `334e60cd8f284516f5240478981fdf7f448638ea`, 845 words in two files; Codex loads `~/.codex/AGENTS.md`, built from the same rules, 858 words. Both list a user-level devcontainer skill whose description is 60 words.
+
 ## Deferrals
 
 - (none)
