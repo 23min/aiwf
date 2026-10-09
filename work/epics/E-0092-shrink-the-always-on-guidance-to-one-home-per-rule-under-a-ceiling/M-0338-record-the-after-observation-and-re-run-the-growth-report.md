@@ -54,6 +54,7 @@ Every row of M-0349's inventory whose decision changes text has a commit that ca
 
 - State the no-lost-effect judgment separately for each host; it is bounded by the recorded task set, not a universal compliance guarantee.
 - A changed rule the after-check finds not followed is corrected at its home, in a guidance commit that names the rule's inventory row, and the affected task is repeated before the epic wraps.
+- Before the after-run, settle which host settings to observe. M-0334 ran Claude at `claude-opus-5-5` with effort `high`, while the maintainer's own sessions run at `xhigh` and the builder agent runs on Sonnet, which neither round covers. Whether Sonnet at `xhigh` matches or beats Opus at `high` on cost, tokens or quality is open. Settings that change between rounds void the comparison, so a change means re-observing M-0334's baseline under the new settings first.
 
 ## Surfaces touched
 

@@ -77,6 +77,7 @@ Every rule M-0349 marks "merge" or "tighten" is rewritten in its one home, and e
 
 - `CLAUDE.md` holds the primed development rules both hosts need, the `AGENTS.md` preamble the few that are Codex's alone, and the router its own entries. Codex reaches `CLAUDE.md` through the preamble's required read, which is why that read counts toward Codex's primed load.
 - The on-demand documents and their locations are the ones M-0349 names.
+- M-0334's Validation records a pilot of this routing for the Go conventions cluster: with those rules moved out of `CLAUDE.md`, Claude opened the routed documents before its first edit.
 - Exercise `aiwf update` in a disposable checkout, with `HOME` pointed at a scratch directory, and verify it preserves the handwritten router and regenerates the expected routes without restoring obsolete home-directory imports.
 
 ## Surfaces touched
