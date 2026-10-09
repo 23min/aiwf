@@ -73,7 +73,7 @@ The harness is `scripts/e0092-observe/`: `run.sh <checkout-sha> <host> <task> <n
 - `bin/aiwf`, a shim first on the session's `PATH` that runs the `aiwf` built from the checkout commit, pointing `HOME` and the XDG directories at the run's `home/` directory for `update`, `init`, `upgrade` and `worktree`, and passing every other verb through unchanged.
 
 Setup then prepares `repo` in this order:
-1. **Hooks and artifacts.** `make install-hooks` and `aiwf update` through the shim install the git hooks and materialize the gitignored host artifacts from the binary under test. Setup fails if that leaves `git status` dirty or `aiwf doctor` reports drift.
+1. **Hooks and artifacts.** `make install-hooks` and `aiwf update` through the shim install the git hooks and materialize the gitignored host artifacts from the binary under test. Setup fails if that leaves `git status` dirty, and records `aiwf doctor`'s report.
 2. **Withholding.** A fixture commit made with `aiwf edit-body` withholds this rubric's subsections and this milestone's Validation from M-0334's body, and a second removes `scripts/e0092-observe/`, which names every fixture. So no task's violation events or fixtures sit in the tree the hosts work in. The git history still holds them.
 3. **Task fixtures.** Fixture commits a task's setup makes are pushed to `origin.git` with `--no-verify`, so the session starts level with its remote. T10 is the exception: by design, its branch is unpushed and trunk has moved.
 
@@ -329,12 +329,12 @@ Nothing a consumer sees changes.
 
 ### AC-1 — the rubric
 
-The rubric sits in this body's Design notes. It was committed by `aiwf edit-body M-0334` at `b5f2c21757b7570b561950e7ee57dc00b3bb0d93`, and its withholding step amended at `708bf3f806c81a609bd43a3a0aa3d63b1366857d`, the baseline's checkout commit. The first baseline run started at 2026-10-05T22:12Z, after both. Two later amendments changed how runs are judged, not what they were asked: the first-edit definition for `codex-read-claude` at `40bf9782f`, and the judge at `93dda7bb1`. Decisions made during implementation gives the reason for each. Every run is judged under both. The Harness subsection states the harness M-0338 reruns. The rubric's rule bullets name exactly the 52 judgment rows of M-0349's inventory whose disposition moves, merges, tightens or points: `judgment` rows other than keep and delete-as-copy, compared label for label. Each is tempted by at least one task.
+The rubric sits in this body's Design notes. It was committed by `aiwf edit-body M-0334` at `b5f2c21757b7570b561950e7ee57dc00b3bb0d93`, and its withholding step amended at `708bf3f806c81a609bd43a3a0aa3d63b1366857d`, the baseline's checkout commit. That commit is dated 2026-10-05T22:12:22Z, and the round's start record puts the first run at 22:12:35Z. Later amendments, all to the Harness subsection, changed how runs are read and judged, not what they were asked; `aiwf history M-0334` lists them, Rule tasks and Loading observations are unchanged since `708bf3f80`, and Decisions made during implementation gives the reasons. Every run is judged under the latest. The Harness subsection states the harness M-0338 reruns. The rubric's rule bullets name exactly the 52 judgment rows of M-0349's inventory whose disposition moves, merges, tightens or points: `judgment` rows other than keep and delete-as-copy, compared label for label. Each is tempted by at least one task.
 
 ### AC-2 — the baseline observation
 
 Observed 2026-10-05T22:12Z to 2026-10-06T03:11Z in the Linux devcontainer, two runs at a time, by `scripts/e0092-observe/run-all.sh 708bf3f806c81a609bd43a3a0aa3d63b1366857d 2`.
-- **Harness:** the runs used `setup.sh` and `run.sh` as committed at `7ec3698bd`. Every run's records were then re-derived, judged and tabulated with the harness at `3f1982276`, which is the one M-0338 reruns. It differs from the run-time harness in how records are read and judged, and in how runs are kept apart: the baseline's runs shared `/tmp` and could run beside a run of the same prompt; M-0338's do not.
+- **Harness:** the runs used `setup.sh` and `run.sh` as committed at `7ec3698bd`. Every run's records were then re-derived, judged and tabulated with the harness at `5092de5fd`, which is the one M-0338 reruns. It differs from the run-time harness in how records are read and judged, and in how runs are set up. A baseline run could run beside a run of the same prompt and used the shared temporary directory; an M-0338 run cannot, and has a temporary directory of its own, though `/tmp` itself stays shared. M-0338's hosts also run with Claude Code's auto-updater off, and find more of M-0334's body withheld.
 - **Environment, the same in every run:**
   - checkout `708bf3f80`, with installed guidance `9c9ca4b3681ca4cb8798e5af9e9124b1e761526b`;
   - `aiwf` built at the checkout, `v0.0.0-20261005221222-708bf3f806c8`, SHA-256 `043fb1355cd14dc6b3526df578dcb78684cd42c2ae9af49808efd1255c5bc89b`; untagged, since the clone carries no tags;
@@ -343,7 +343,7 @@ Observed 2026-10-05T22:12Z to 2026-10-06T03:11Z in the Linux devcontainer, two r
 - **Hosts:**
   - Claude Code at `claude-opus-5-5`, effort `high`: 2.1.290 for 40 runs and 2.1.289 for T1's second and third, by each run's init event.
   - Codex CLI 0.160.0 at `gpt-6-astra`, effort `medium`, for all 42.
-  - The judge: `claude-opus-5-5`, three calls per run, every call returning a verdict for every rule. 360 verdicts were unanimous and 10 two to one, and none is split.
+  - The judge: `claude-opus-5-5` at effort `xhigh`, Claude Code 2.1.291, three calls per run, every call returning a verdict for every rule, run 2026-10-08T16:37Z to 17:29Z with the maintainer's personal rules loaded, as the hosts had them. 360 verdicts were unanimous and 10 two to one, and none is split.
 - **Runs:** 84, of which 82 completed.
   - Two Claude continuation runs, T1's first and third, hit the 1,800-second timeout and are recorded as incomplete, not judged. They had compacted four and six times by then.
   - Each of the four continuation runs that completed compacted once.
@@ -460,7 +460,7 @@ Loading per task and host, in runs shown each document before / after their firs
 
 Limits on what this baseline can carry into M-0338's comparison:
 - **Reads** are what a tool result showed the model of a document: one of its signature lines, as `summarize.py` defines them. Claude has `CLAUDE.md` injected, so its `CLAUDE.md` column stays empty, and neither host's injected files show as reads. A first edit is the first write to any file in the run's repository, in any of Codex's threads, not only to a file the guidance governs; in the Go tasks every first edit was a Go file.
-- **Codex's partial reads:** `CLAUDE.md` at the checkout is 68,609 characters. Codex's tool cut every one of its 52 whole-file reads of it in the middle: each returned 35,993 to 39,522 characters, marked the cut, kept the file's first 100 to 105 lines, and kept the end of the whole tool result. The file's own end was shown in 20 reads, those where what the call printed after it fitted in that kept end. `trunc_final.py`, kept with the raw records, measures this. Of the 29 runs where Codex edited, it had not been shown between 6 and 47 of the 239 non-blank lines by its first edit, by `codex_read_claude.py`.
+- **Codex's partial reads:** `CLAUDE.md` at the checkout is 68,609 characters. Codex's tool cut every one of its 52 whole-file reads of it in the middle: each returned 35,993 to 39,522 characters, marked the cut, kept the file's first 100 to 105 lines, and kept the end of the whole tool result. The file's own end was shown in 20 reads, those where what the call printed after it fitted in that kept end. `scripts/e0092-observe/trunc_final.py` measures this. Of the 29 runs where Codex edited, it had not been shown between 6 and 47 of the 239 non-blank lines by its first edit, by `codex_read_claude.py`.
 - **Sub-agents:** Codex spawned them in its longer runs. Claude's tool list carries no agent tool, so the two hosts did not work alike there.
 - **Confinement:** both hosts ran unconfined. Codex's sandbox cannot start in this devcontainer, and Claude ran with `bypassPermissions`.
   - The shim, `GOBIN` and `CODEX_HOME` caught every aiwf home write and `go install`. No run wrote under `~/.claude`, `~/.codex`, `~/.guidance` or `~/go/bin`, apart from Claude Code's own housekeeping files.
@@ -479,7 +479,8 @@ Limits on what this baseline can carry into M-0338's comparison:
   - The tools each host calls name it, so the judge can tell the hosts apart.
   - The transcript and the after-state replace each path into a host's own store, such as `~/.claude/settings.json`, with one token, so a T7 run's write there is not named; a path spelled from `$HOME` stays unmasked. Both rounds are masked alike.
   - Its verdicts are not stable on borderline readings. Across the last three judgings of the same records, three run-rules crossed between violated and not: T9/claude-1 `one-decision-extras` and T1-cont/codex-3 `naming` at the baseline, and T1/claude-1 `table-driven` in the pilot. `stability.py`, kept with the raw records, measures this.
-- **First-edit detection** reads shell text, and misjudges some shapes it does not follow. `shapes_scan.py`, kept with the raw records, names them and lists each recorded command holding one where the answer goes the way that shape errs. Over the baseline and the pilot it listed 20 commands, each judged right when checked by hand. M-0338 runs it over its own records before relying on a first edit.
+- **Setup's doctor check:** `aiwf doctor`'s report is recorded but does not stop setup; no baseline run's report names a drifted, missing or blocked artifact. M-0338 checks its own runs' reports the same way.
+- **First-edit detection** reads shell text, and misjudges some shapes it does not follow. `scripts/e0092-observe/shapes_scan.py` names them and lists each recorded command holding one where the answer goes the way that shape errs. Over the baseline and the pilot it listed 20 commands, each judged right when checked by hand. M-0338 runs it over its own records before relying on a first edit.
 - **What M-0338's hosts can read:** withholding covers M-0334's body only. In M-0338's tree, M-0335's body names the pilot's fixture script and the reads it measured, and M-0338's body describes this observation.
 - **Raw records:** each run's records, Codex's session rollouts and the guidance documents each run started with are kept, compressed to 5.6 MB and without the credentials Codex was given, in `.scratch/e0092-baseline/records.tar.xz`, gitignored, in E-0092's worktree. They go with the worktree at E-0092's wrap. Unpacked, `scripts/e0092-observe/derive.sh` re-derives each run's judge inputs from them byte for byte, and `scripts/e0092-observe/summarize.py` the tables above. The clones the runs worked in are not kept, so a verdict cannot be judged again against the repository.
 
@@ -498,7 +499,7 @@ Run 2026-10-06T18:17Z to 18:43Z, to test before any reduction whether Claude ope
   - `| T1 | claude | 3 | router 3/0, index 3/0, go 1/0, go-conventions.md 2/0, testing.md 3/0, verb-design.md 3/0 | 2636 |`
   - Before the first edit, all three runs read the router, the index, `testing.md` and `verb-design.md`. Two read `go-conventions.md`, and one the Go pack.
   - The baseline's three T1 runs read the router and the index once, and nothing routed.
-  - The judge found one T1 rule violated, `table-driven` in one run, by all three calls. That verdict has moved between violated and complied across judgings; at the baseline, no T1 rule was violated.
+  - The judge found one T1 rule violated, `table-driven` in one run, by all three calls. That verdict has moved between violated and complied across judgings; at the baseline, no T1 rule was violated on Claude.
 
 The pilot covers one cluster, one task and one host, in three runs; it shows that the router path worked for Claude there, and settles no other cluster.
 
@@ -531,4 +532,17 @@ Measured on 2026-10-05 and 2026-10-07 in the Linux devcontainer (go1.25.12, Pyth
 
 ## Reviewer notes
 
-- (none)
+- **Obligations this milestone adds.** `grep -rln e0092 internal Makefile .github` finds nothing, and the ceiling test's change adds log lines only, so no check binds a later change. These bind M-0338 by hand, and E-0092's wrap retires them when it deletes the harness:
+  - M-0334's Loading observations and Rule tasks stay byte-identical through M-0337's completion commit, since the harness parses them and a reworded rule bullet drops out of the judge's rules without an error. M-0335 to M-0337 keep them; M-0338 checks before its first run.
+  - M-0338 reruns `scripts/e0092-observe/` at the pin AC-2 names, and `git log <pin>.. -- scripts/e0092-observe/` is empty when it starts.
+  - M-0338 keeps the personal overlay and host settings, and discloses what has moved: Claude's user skills already hash `c5bb882a` against the baseline's `b581cca6`. It takes each Claude run's version from its init event, checks every run's `doctor.txt`, runs `shapes_scan.py` before relying on a first edit, and keeps each run's starting guidance documents if it archives its records.
+  - `.scratch/e0092-baseline/records.tar.xz` stays until M-0338 has compared.
+  - The ceiling test's `on demand:` log is unpinned; AC-3's figures and M-0338's read it. E-0092's wrap decides whether it stays.
+- **Open for M-0338:** how a held rule's violation on a two-to-one vote counts, given the judge's instability on borderline readings.
+- **Declined:**
+  - The harness changes the subtraction lens proposed: removing the pilot fixture, `blind.py`'s clone path, `PROMPT_FILE` and `tmpdir.txt`, and sharing one Codex event reader. Each moves the pin of a harness E-0092's wrap deletes; the harness changes only for a defect that moves a baseline figure or makes M-0338's comparison unfair.
+  - Further first-edit gaps (`aiwf worktree` not counted as writing, a `>& file` redirect, Codex's `workdir:` argument), comments in the scripts that claim more than the code does, `derive.sh` stopping on a Codex run with no main rollout, and setup's `aiwf doctor` check not stopping setup. None moves a recorded figure, and both rounds share them.
+  - Pinning the ceiling test's `on demand:` log with a test: AC-3 records an observation.
+  - Moving the Sonnet-at-`xhigh` question out of M-0338: the maintainer placed it there.
+- **Rejected approach:** a complete shell parser for first-edit detection. The detector is a heuristic both rounds share, and `shapes_scan.py` names its known misjudgments.
+- **Verdict:** approve. The deciding review re-derived every recorded figure and table byte for byte from the raw records, and found M-0338's judge inputs built the same way as the baseline's. Its blocking findings were sentences in this body that claimed more than the records show; they are corrected above.
