@@ -101,10 +101,11 @@ def _record(e):
 # target is judged by its text. A write counts only inside the run's
 # repository, at absolute path repo when given; a relative path is resolved
 # against a `cd` to an absolute directory earlier in the same command, and
-# is otherwise inside it. A variable the command itself sets to a path, or to
-# a `mktemp` result, stands for that path; a target led by a variable the
-# command does not set is not placed in the repository. A help request runs
-# no aiwf verb.
+# is otherwise inside it; a `cd` inside a subshell holds only until its `)`.
+# A variable the command itself sets to an absolute path, or to a `mktemp`
+# result under the temporary directory, stands for that path. Any other
+# variable, such as $PWD, a loop variable or a command substitution, is read
+# as a relative path. A help request runs no aiwf verb.
 import shlex
 
 _HEREDOC = re.compile(r"<<-?\s*(['\"]?)(\w+)\1")
@@ -118,25 +119,30 @@ _ASSIGN = re.compile(r"(?:^|[;&|\s(])(?:export\s+)?([A-Za-z_]\w*)=(\$\(mktemp[^)
 _VAR = re.compile(r"^\$(?:\{(\w+)\}|(\w+))")
 
 def _assignments(shell):
-    """The paths the command's own variable assignments name."""
+    """The absolute paths the command's own variable assignments name."""
     env = {}
     for name, value in _ASSIGN.findall(shell):
         value = value.strip("'\"")
-        env[name] = "/tmp/mktemp" if value.startswith("$(mktemp") else _expand(value, env)
+        if value.startswith("$(mktemp"):
+            if not re.search(r"\s(?:-p|--tmpdir)\b", value):
+                env[name] = "/tmp/mktemp"
+            continue
+        value = _expand(value, env)
+        if value.startswith("/"):
+            env[name] = value
     return env
 
 def _expand(target, env):
     """target with a leading variable the command sets replaced by its value."""
     m = _VAR.match(target)
-    if m and (m.group(1) or m.group(2)) in env and env[m.group(1) or m.group(2)] is not None:
-        return env[m.group(1) or m.group(2)] + target[m.end():]
-    return target
+    name = m and (m.group(1) or m.group(2))
+    return env[name] + target[m.end():] if name in env else target
 
 def _inside(target, repo, cwd=None, env=None):
     target = _expand(target.strip("'\""), env or {})
     if not target or target.startswith(("/dev/", "&")) or target.isdigit():
         return False
-    if target.startswith(("~", "$")):
+    if target.startswith(("~", "$HOME", "${HOME}", "$TMPDIR", "${TMPDIR}")):
         return False
     if not target.startswith("/"):
         if not cwd:
@@ -170,6 +176,8 @@ def _commands(shell):
         if t in _SEPARATORS:
             out.append((words, targets))
             words, targets = [], []
+            if t in ("(", ")"):
+                out.append(([t], []))
         elif t in _REDIRECTS:
             if i + 1 < len(tokens):
                 targets.append(tokens[i + 1])
@@ -222,8 +230,12 @@ def is_write(cmd, repo=None):
         # Text the shell would not parse, such as an unbalanced quote, is
         # judged by its plain words.
         commands_ = [(shell.split(), [])]
-    cwd, env = None, _assignments(shell)
+    cwd, env, outer = None, _assignments(shell), []
     for words, targets in commands_:
+        if words == ["("]:
+            outer.append(cwd)
+        elif words == [")"] and outer:
+            cwd = outer.pop()
         if words[:1] == ["cd"] and len(words) == 2 and _expand(words[1], env).startswith("/"):
             cwd = _expand(words[1], env)
         if _command_writes(words, targets, repo, cwd, env):
@@ -250,7 +262,10 @@ def selftest():
         "sed -i s/a/b/ /tmp/f": False, "gofmt -w /tmp/x.go": False, "cd /tmp/x && printf y > ../ac.md": False,
         "J=/tmp/tmp.tjKoBLrYNB; A=$J/aiwf; rm -rf $J/r3 && mkdir -p $J/r3/main && cd $J/r3/main && $A add milestone --epic E-0001 --body-file $J/ms.md >/dev/null && printf 'probe body\\n' > ../ac.md": False,
         "cat scripts/guidance-audit.py && D=$(mktemp -d) && make check-fast > $D/cf.log 2>&1; echo \"exit=$?\"": False,
-        "echo x > $R/aiwf.yaml": False, "W=" + repo + "/internal; echo y > $W/a.go": True, 'echo y > "${HOME}/x"': False,
+        "echo x > $R/aiwf.yaml": True, "echo x > $PWD/f.go": True, 'echo x > "$(pwd)/f.go"': True,
+        "W=$(pwd); echo x > $W/f.go": True, "W=$(git rev-parse --show-toplevel); echo x > $W/f.go": True,
+        "for f in a.go; do echo x > $f; done": True, 'while read f; do printf y > "$f"; done < list.txt': True,
+        "T=$(mktemp -d); (cd $T && git init -q) > init.log": True, "echo > ${W:-x}/f": True, "T=$(mktemp -d -p .); echo > $T/f": True, "W=" + repo + "/internal; echo y > $W/a.go": True, 'echo y > "${HOME}/x"': False,
         "cat <<EOF > /tmp/x\nhi\nEOF": False, "cd " + repo + "/internal && echo y > a.go": True, '"$(go env GOBIN)/aiwf" update --wire-settings </dev/null': True,
         '"$(go env GOBIN)/aiwf" update --help': False, "/opt/bin/aiwf promote M-0001 done": True, "printf 'probe\\n' >> README.md": True, "x=$(cat a) && echo $x": False,
     }

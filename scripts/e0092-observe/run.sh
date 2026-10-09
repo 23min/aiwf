@@ -11,6 +11,7 @@ SHA=$1 HOST=$2 TASK=$3 N=$4 CONT=${5:-}
 H=$(dirname "$(readlink -f "$0")")
 SRC=${AIWF_SRC:-$(git -C "$H" rev-parse --show-toplevel)}
 export OBSERVE_DIR=${OBSERVE_DIR:-${TMPDIR:-/tmp}/e0092-observe}
+OBSERVE_DIR=${OBSERVE_DIR%/}
 TIMEOUT=1800
 SPEC=$(git -C "$SRC" ls-tree -r --name-only "$SHA" | grep '/M-0334-')
 RUN=$OBSERVE_DIR/$TASK${CONT:+-cont}/$HOST-$N
@@ -49,7 +50,6 @@ else
 fi
 rc=$?
 end=$(date +%s)
-flock -u 9
 ROLLOUT=""
 [ "$HOST" = codex ] && ROLLOUT=$(python3 -c "import sys; sys.path.insert(0, '$H'); from codexrollout import threads; print(threads('$RUN/codex-home')[0] or '')")
 breaker=$(python3 -c "
@@ -93,6 +93,8 @@ for l in open('$RUN/events.jsonl'):
   echo "--- files changed outside the clone during run (host session and log stores excluded)"
   find ~/.claude ~/.codex ~/go/bin ~/.guidance -newer "$RUN/.start" -type f 2>/dev/null | grep -v -E '/projects/|/sessions/|/shell-snapshots/|/todos/|/statsig/|/logs?/|\.log$|\.sqlite(-wal|-shm)?$|history\.jsonl|/file-history/|/session-env/|models_cache\.json|/tmp/|/plugins/|\.claude\.json|/backups/|/\.git/'
 } > "$RUN/after.txt" 2>&1
+# The window closes once the after-state is taken.
+flock -u 9
 {
   git diff "$START"
   git ls-files --others --exclude-standard | while read -r f; do echo "=== untracked $f (first 20,000 bytes)"; head -c 20000 "$f"; done
