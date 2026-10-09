@@ -8,10 +8,10 @@ nothing into the main thread, so they do not count. An edit is an apply_patch
 call or a command codexrollout.is_write judges to write a file. """
 import os, re, sys
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
-from codexrollout import commands, is_write, records, threads
+from codexrollout import commands, is_write, records, run_path, threads
 
 home, claude = sys.argv[1], sys.argv[2]
-repo = os.path.join(os.path.dirname(os.path.abspath(home)), "repo")
+repo = os.path.join(run_path(os.path.dirname(os.path.abspath(home))), "repo")
 main, subs = threads(home)
 want = [l.strip() for l in open(claude) if l.strip()]
 names, seen, edited, truncated = {}, [], None, 0

@@ -14,9 +14,9 @@ export OBSERVE_DIR=${OBSERVE_DIR:-${TMPDIR:-/tmp}/e0092-observe}
 mkdir -p "$OBSERVE_DIR"
 python3 "$H/codexrollout.py" || exit 1
 jobs=()
-# Consecutive jobs run side by side, so the order puts different tasks next
-# to each other: two runs of one task would share whatever files it writes
-# outside its clone.
+# Consecutive jobs run side by side. run.sh's per-prompt lock keeps two runs
+# of one prompt from overlapping; this order puts different tasks next to
+# each other so the lock seldom has to wait.
 for n in 1 2 3; do for host in claude codex; do
   for task in T1 T2 T3 T4 T5 T6 T7 T8 T9 T10 T11 L1 L2; do jobs+=("$host $task $n"); done
   jobs+=("$host T1 $n cont")

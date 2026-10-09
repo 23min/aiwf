@@ -12,7 +12,7 @@ run's repository, or a command codexrollout.is_write judges to write one.
 Reads are counted until the first edit, and after it."""
 import collections, glob, json, os, re, subprocess, sys
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
-from codexrollout import _inside, commands, is_write, records, threads
+from codexrollout import _inside, commands, is_write, records, run_path, threads
 
 # The documents the loading observations follow. CLAUDE.md is Codex's only:
 # Claude has it injected, so no tool call of Claude's reads it.
@@ -44,9 +44,11 @@ def text_at(repo, start, path):
         p = os.path.join(os.path.dirname(repo), "start-tree", path)
     return open(p).read() if os.path.exists(p) else None
 
-def signature(text):
+def signature(text, others=""):
+    """Up to three lines that identify a document: at least 40 characters,
+    once in it, and in no other text the run could be shown in their place."""
     lines = [l.strip() for l in text.split("\n")]
-    long_once = [l for l in lines if len(l) >= 40 and lines.count(l) == 1]
+    long_once = [l for l in lines if len(l) >= 40 and lines.count(l) == 1 and l not in others]
     if not long_once:
         best = max(lines, key=len, default="")
         return [best] if best else []
@@ -55,6 +57,7 @@ def signature(text):
 
 def documents(run):
     repo = os.path.join(run, "repo")
+    recorded = os.path.join(run_path(run), "repo")
     start = open(os.path.join(run, "start-head")).read().strip()
     docs = {}
     for name, path in FIXED.items():
@@ -70,7 +73,8 @@ def documents(run):
         t = text_at(repo, start, path)
         if t:
             docs[os.path.basename(path)] = (path, t)
-    return docs, repo
+    agents = text_at(repo, start, "AGENTS.md") or ""
+    return docs, recorded, agents
 
 def claude_events(path, repo):
     pending = {}
@@ -101,22 +105,27 @@ def claude_events(path, repo):
                         yield ("shown", str(r))
 
 def codex_events(home, repo):
-    main, _ = threads(home)
+    """What Codex's main thread was shown, and edits from any thread, in time
+    order: a sub-agent's edit is the run's edit, its reads are not the main
+    model's."""
+    main, subs = threads(home)
     if not main:
         return
-    for r in records(main):
+    stream = [(ts, True, r) for ts, r in records(main, True)] + [(ts, False, r) for _, f in subs for ts, r in records(f, True)]
+    stream.sort(key=lambda x: x[0])
+    for _, in_main, r in stream:
         if r[0] == "call":
             _, _, name, script = r
             if name == "apply_patch" or "apply_patch" in script or any(is_write(c, repo) for c in (commands(script) if name == "exec" else [script])):
                 yield ("edit", None)
-        elif r[0] == "output":
+        elif r[0] == "output" and in_main:
             yield ("shown", r[2])
 
 def loading(run, host):
-    docs, repo = documents(run)
+    docs, repo, agents = documents(run)
     if host == "claude":
         docs.pop("CLAUDE.md", None)
-    sigs = {name: signature(t) for name, (_, t) in docs.items()}
+    sigs = {name: signature(t, agents + "".join(o for n2, (_, o) in docs.items() if n2 != name)) for name, (_, t) in docs.items()}
     events = codex_events(os.path.join(run, "codex-home"), repo) if host == "codex" else claude_events(os.path.join(run, "events.jsonl"), repo)
     seen, edited = {}, False
     for kind, payload in events:
@@ -158,7 +167,9 @@ def main():
                 table[(rule, host)][x["verdict"]] += 1
         crc = os.path.join(run, "codex-read-claude.txt")
         if host == "codex" and os.path.exists(crc):
-            table[("codex-read-claude", "codex")][open(crc).read().split(":")[0]] += 1
+            verdict = open(crc).read().split(":")[0]
+            assert verdict in ("violated", "complied", "not exercised"), (run, verdict)
+            table[("codex-read-claude", "codex")][verdict] += 1
         seen, w = loading(run, host)
         for t, when in seen.items():
             loads[(task, host)][f"{t} {when}"] += 1

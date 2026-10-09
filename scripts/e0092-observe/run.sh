@@ -19,10 +19,21 @@ git -C "$SRC" show "$SHA:$SPEC" > "$RUN/spec.md"
 if [ -n "${PROMPT_FILE:-}" ]; then cp "$PROMPT_FILE" "$RUN/prompt.txt"; else python3 "$H/prompts.py" "$RUN/spec.md" "$TASK" > "$RUN/prompt.txt" || exit 1; fi
 "$H/setup.sh" "$RUN" "$SHA" "$TASK" > "$RUN/setup.log" 2>&1 || { echo "$RUN setup failed"; exit 1; }
 START=$(cat "$RUN/start-head")
+# The run's path as it ran, so its records still read right once moved.
+echo "$RUN" > "$RUN/run-path.txt"
+# Each run gets its own short temporary directory. gpg-agent puts sockets
+# under it and refuses a socket path past about 107 characters, so a deep
+# observation directory cannot hold it.
+RUNTMP=$(mktemp -d /tmp/e0092.XXXXXX)
+[ "${#RUNTMP}" -le 44 ] || { echo "$RUN temporary directory too long: $RUNTMP"; exit 1; }
+echo "$RUNTMP" > "$RUN/tmpdir.txt"
 # A host must not update itself mid-round, so every run of a round runs one version.
-mkdir -p "$RUN/tmp"
-export PATH="$RUN/bin:$PATH" GOBIN="$RUN/gobin" DISABLE_AUTOUPDATER=1 TMPDIR="$RUN/tmp"
+export PATH="$RUN/bin:$PATH" GOBIN="$RUN/gobin" DISABLE_AUTOUPDATER=1 TMPDIR="$RUNTMP"
 cd "$RUN/repo"
+# Runs of one prompt, a task and its continuation alike, write the same
+# names outside their clones, so they never run side by side.
+exec 9> "$OBSERVE_DIR/.lock-$TASK"
+flock 9
 start=$(date +%s)
 if [ "$HOST" = claude ]; then
   extra=(); [ -n "$CONT" ] && extra=(--autocompact 120000)
@@ -36,6 +47,7 @@ else
 fi
 rc=$?
 end=$(date +%s)
+flock -u 9
 ROLLOUT=""
 [ "$HOST" = codex ] && ROLLOUT=$(python3 -c "import sys; sys.path.insert(0, '$H'); from codexrollout import threads; print(threads('$RUN/codex-home')[0] or '')")
 breaker=$(python3 -c "
@@ -70,7 +82,7 @@ for l in open('$RUN/events.jsonl'):
   echo "--- branch at end: $(git branch --show-current)"
   echo "--- commits since start (all refs)"; git log --all --format='%h %D | %s%n%b' "^$START" "^$(cat "$RUN/start-origin")" 2>/dev/null
   echo "--- binary under test after the run"; sha256sum "$RUN/bin/aiwf-real" | cut -c1-64
-  echo "--- files written under /tmp during the run, outside run directories"; find /tmp -xdev -newer "$RUN/.start" -type f 2>/dev/null | grep -v -F "$OBSERVE_DIR" | grep -v -E '^/tmp/claude-[0-9]+/' | head -50
+  echo "--- files written under /tmp during the run, outside run directories"; find /tmp -xdev -newer "$RUN/.start" -type f 2>/dev/null | grep -v -F -e "$OBSERVE_DIR" -e "$RUNTMP" | grep -v -E '^/tmp/claude-[0-9]+/' | head -50
   echo "--- status"; git status --porcelain
   echo "--- worktrees"; git worktree list
   echo "--- origin refs"; git -C "$RUN/origin.git" for-each-ref --format='%(refname) %(objectname:short)'

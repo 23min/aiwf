@@ -212,13 +212,13 @@ func TestPolicy_GuidanceCeiling(t *testing.T) {
 
 // onDemandWords reports the words of each document the routing sends a
 // host to when a task needs it: the targets of the project router's links
-// and of the pack index's links, the router itself excepted since it is
-// primed, and the guidance documents those targets link to in turn, such as
-// a pack guide's fuller rubric. Words are counted as the ceiling counts
-// them. A target that does not exist is reported as absent.
+// and of the pack index's links, and the guidance documents those targets
+// link to in turn, such as a pack guide's fuller rubric. The router and the
+// index are required reads, so neither is listed. Words are whitespace-
+// separated words. A target that does not exist is reported as absent.
 func onDemandWords(read func(string) (string, bool)) []string {
 	var out []string
-	seen := map[string]bool{projectguidance.RouterFile: true}
+	seen := map[string]bool{projectguidance.RouterFile: true, ".guidance/index.md": true}
 	queue := []string{projectguidance.RouterFile, ".guidance/index.md"}
 	for len(queue) > 0 {
 		doc := queue[0]

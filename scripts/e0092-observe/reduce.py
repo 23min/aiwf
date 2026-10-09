@@ -18,13 +18,14 @@ def mask(text, run):
     product and model names."""
     run = run.rstrip("/")
     observe = os.path.dirname(os.path.dirname(run))
-    text = text.replace(run, "<run>")
-    text = text.replace(run.replace("/", "-"), "<run>")
+    escaped = lambda p: re.sub(r"[/._]", "-", p)
+    text = text.replace(run, "<run>").replace(escaped(run), "<run>")
     # A path into another run, or anywhere under the observation directory,
-    # names a task and host the same way, as does Claude Code's own
-    # temporary directory.
-    text = re.sub(r"\S*/(?:T\d+|L\d+)(?:-cont)?/(?:claude|codex)-\d+", "<run>", text)
-    text = text.replace(observe, "<observe>").replace(observe.replace("/", "-"), "<observe>")
+    # names a task and host the same way, as do Claude Code's own temporary
+    # directory and either host's own store under the home directory.
+    text = re.sub(r"[\w./~-]*/(?:T\d+|L\d+)(?:-cont)?/(?:claude|codex)-\d+", "<run>", text)
+    text = text.replace(observe, "<observe>").replace(escaped(observe), "<observe>")
+    text = re.sub(r"(?:/home/[\w.-]+|~)/\.(?:claude|codex)/[^\s'\"]*", "<host-store>", text)
     text = re.sub(r"/tmp/claude-[\w-]+", "/tmp/<tmp>", text)
     text = text.replace("<run>/codex-home", "<run>/agent-home")
     text = re.sub(r"\bcodex\d+-", "tool-", text)
@@ -82,7 +83,8 @@ def codex(path):
 
 if __name__ == "__main__":
     path, run = sys.argv[1], sys.argv[2]
-    RUN = os.path.abspath(run)
+    from codexrollout import run_path
+    RUN = run_path(run)
     if os.path.isdir(path):
         main, subs = threads(path)
         out = codex(main) if main else ["EVENT: no main rollout found"]
@@ -91,4 +93,4 @@ if __name__ == "__main__":
             out.extend(codex(f))
     else:
         out = claude(path)
-    print(mask("\n\n".join(out), os.path.abspath(run)))
+    print(mask("\n\n".join(out), RUN))

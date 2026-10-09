@@ -1,5 +1,5 @@
 """Shared reading of a Codex session rollout: what the model was shown."""
-import json, re
+import json, os, re
 
 def _unescape(s):
     s = re.sub(r"\\u([0-9a-fA-F]{4})", lambda m: chr(int(m.group(1), 16)), s)
@@ -33,11 +33,18 @@ def commands(script):
     found = [_unescape(c) for c in re.findall(r'cmd:\s*"((?:[^"\\]|\\.)*)"', script)]
     found += [_unescape(c) for c in re.findall(r"cmd:\s*'((?:[^'\\]|\\.)*)'", script)]
     found += re.findall(r"cmd:\s*`((?:[^`\\]|\\.)*)`", script)
-    if script.count("exec_command(") > len(found):
+    concatenated = re.search(r"cmd:\s*[\"'`](?:[^\"'`\\]|\\.)*[\"'`]\s*\+", script)
+    if script.count("exec_command(") > len(found) or concatenated:
         found += [_unescape(c) for c in re.findall(r'"((?:[^"\\]|\\.)*)"', script)]
         found += [_unescape(c) for c in re.findall(r"'((?:[^'\\]|\\.)*)'", script)]
         found += re.findall(r"`((?:[^`\\]|\\.)*)`", script)
     return found
+
+def run_path(run):
+    """The absolute path a run ran at, as run.sh recorded it, so records read
+    the same after they move; where none is recorded, where they are now."""
+    p = os.path.join(run, "run-path.txt")
+    return open(p).read().strip() if os.path.exists(p) else os.path.abspath(run)
 
 def threads(codex_home):
     """The run's session rollouts: the main thread's path, then each
@@ -86,61 +93,43 @@ def _record(e):
         text, truncated = visible(p.get("output"))
         yield ("output", p.get("call_id"), text, truncated)
 
-# A command writes a file when its shell text redirects into one, edits in
-# place, copies or moves, formats in place, applies a patch, or runs a writing
-# aiwf verb; or when a heredoc it feeds to an interpreter writes one. Each
-# shell segment, split at `;`, `&&`, `||`, `|` and newlines, is judged on its
-# own with quoted text masked, so a pattern a grep searches for or code a
-# one-liner runs is not shell syntax; a segment asking for help writes
-# nothing. A heredoc's body is judged as the program it feeds. A path
-# outside the run's repository is not a write the rubric counts, except that
-# a relative path is always inside it.
+# A command writes a file when it redirects into one, edits one in place,
+# copies, moves or installs onto one, formats one in place, applies a patch,
+# or runs a writing aiwf verb; or when a heredoc it feeds to an interpreter
+# writes one. The shell text is split into words the way the shell would, so
+# a quoted pattern or one-liner is a word rather than syntax, and a quoted
+# target is judged by its text. A write counts only inside the run's
+# repository, at absolute path repo when given; a relative path is resolved
+# against a `cd` to an absolute directory earlier in the same command, and
+# is otherwise inside it. A help request runs no aiwf verb.
+import os, shlex
+
 _HEREDOC = re.compile(r"<<-?\s*(['\"]?)(\w+)\1")
-_QUOTED = re.compile(r"'[^']*'|\"(?:[^\"\\]|\\.)*\"")
-_SEGMENT = re.compile(r"&&|\|\||;|\||\n")
-_TARGET = r"(?:Q|[^\s;&|<>()]+)"
-_REDIRECT = re.compile(r"(?<![<=&-])(?:\d)?>>?\s*(?!&)(" + _TARGET + r")")
-_INPLACE = re.compile(r"\b(?:sed|perl)\s+(?:-\S+\s+)*-\w*i|\btee\s+(?:-\S+\s+)*(" + _TARGET + r")|\bgo(?:fmt|fumpt)\s+(?:-\w+\s+)*-w\b|\bgo\s+mod\s+tidy\b|\bgit\s+apply\b|\bapply_patch\b")
-_COPY = re.compile(r"(?:^|\s)(?:cp|mv|install)\s")
-_AIWF = re.compile(r"\baiwf\s+(?:add|promote|edit-body|retitle|rename|move|cancel|reallocate|archive|update|init|render\s+roadmap\s+--write)\b")
-_HELP = re.compile(r"(?:^|\s)(?:--help|-h)(?:\s|$)")
 _CODE_WRITE = re.compile(
     r"\.write_(?:text|bytes)\(|\bopen\([^)]*['\"](?:w|a|wb|ab|w\+|r\+|x)['\"]|\bos\.replace\(|\bshutil\.(?:copy\w*|move)\(|\bfs\.writeFile")
+_AIWF_WRITERS = {"add", "promote", "edit-body", "retitle", "rename", "move", "cancel", "reallocate", "archive", "update", "init"}
+_SEPARATORS = {";", "&&", "||", "|", "&", "|&", "(", ")"}
+_REDIRECTS = {">", ">>", ">|", "&>", "&>>"}
 
-def _inside(target, repo):
+def _inside(target, repo, cwd=None):
     target = target.strip("'\"")
-    if target in ("", "Q"):
-        return True
-    if target.startswith(("/dev/", "&")):
+    if not target or target.startswith(("/dev/", "&")) or target.isdigit():
         return False
-    if target.startswith("/"):
-        return bool(repo) and target.startswith(repo.rstrip("/") + "/")
-    return not target.startswith(("~", "$HOME", "$TMPDIR"))
-
-def _segment_writes(seg, repo):
-    if _HELP.search(seg):
+    if target.startswith(("~", "$HOME", "${HOME}", "$TMPDIR", "${TMPDIR}")):
         return False
-    for m in _REDIRECT.finditer(seg):
-        if _inside(m.group(1), repo):
+    if not target.startswith("/"):
+        if not cwd:
             return True
-    m = _INPLACE.search(seg)
-    if m and (m.group(1) is None or _inside(m.group(1), repo)):
-        return True
-    if _COPY.search(" " + seg.strip()):
-        words = seg.split()
-        if len(words) >= 3 and _inside(words[-1], repo):
-            return True
-    return bool(_AIWF.search(seg))
+        target = os.path.normpath(os.path.join(cwd, target))
+    return bool(repo) and (target + "/").startswith(repo.rstrip("/") + "/")
 
-def is_write(cmd, repo=None):
-    """Whether a shell command writes a file in the run's repository, at
-    absolute path repo when given."""
+def _split_heredocs(cmd):
     shell, bodies, rest = [], [], cmd
     while True:
         m = _HEREDOC.search(rest)
         if not m:
             shell.append(rest)
-            break
+            return "\n".join(shell), bodies
         line_end = rest.find("\n", m.end())
         line_end = len(rest) if line_end < 0 else line_end
         shell.append(rest[: m.start()] + rest[m.end():line_end])
@@ -148,10 +137,75 @@ def is_write(cmd, repo=None):
         body_end = line_end + (end.start() if end else len(rest) - line_end)
         bodies.append(rest[line_end:body_end])
         rest = rest[line_end + (end.end() if end else len(rest) - line_end):]
-    # A quoted path to the aiwf binary is still aiwf, so its verb is judged.
-    masked = _QUOTED.sub(lambda m: "aiwf" if re.search(r"(?:^|/)aiwf$", m.group(0)[1:-1]) else "Q", "\n".join(shell))
-    if any(_segment_writes(seg, repo) for seg in _SEGMENT.split(masked)):
+
+def _commands(shell):
+    """The simple commands in shell text, each as (words, redirect targets)."""
+    lx = shlex.shlex(shell.replace("\n", " ; "), posix=True, punctuation_chars=True)
+    lx.whitespace_split = True
+    tokens = list(lx)
+    out, words, targets, i = [], [], [], 0
+    while i < len(tokens):
+        t = tokens[i]
+        if t in _SEPARATORS:
+            out.append((words, targets))
+            words, targets = [], []
+        elif t in _REDIRECTS:
+            if i + 1 < len(tokens):
+                targets.append(tokens[i + 1])
+            i += 1
+        elif t in ("<", "<<<", ">&", "<&"):
+            i += 1
+        else:
+            words.append(t)
+        i += 1
+    out.append((words, targets))
+    return [c for c in out if c[0] or c[1]]
+
+def _command_writes(words, targets, repo, cwd):
+    if any(_inside(t, repo, cwd) for t in targets):
         return True
+    while words and re.match(r"^\w+=", words[0]):
+        words = words[1:]
+    if not words:
+        return False
+    name, args = os.path.basename(words[0]), words[1:]
+    operands = [a for a in args if not a.startswith("-")]
+    if name == "aiwf":
+        if "--help" in args or "-h" in args or not args:
+            return False
+        if args[0] in _AIWF_WRITERS:
+            return True
+        return args[:2] == ["render", "roadmap"] and "--write" in args
+    if name in ("sed", "perl"):
+        inplace = any(a == "--in-place" or a.startswith("--in-place=") or (a.startswith("-") and not a.startswith("--") and "i" in a[1:]) for a in args)
+        return inplace and any(_inside(o, repo, cwd) for o in operands[1:] or operands)
+    if name == "tee":
+        return any(_inside(o, repo, cwd) for o in operands)
+    if name in ("cp", "mv", "install"):
+        return len(operands) >= 2 and _inside(operands[-1], repo, cwd)
+    if name in ("gofmt", "gofumpt") and "-w" in args:
+        return any(_inside(o, repo, cwd) for o in operands) or not operands
+    if name == "go" and args[:2] == ["mod", "tidy"]:
+        return True
+    if name == "git" and args[:1] == ["apply"]:
+        return True
+    return name == "apply_patch"
+
+def is_write(cmd, repo=None):
+    """Whether a shell command writes a file in the run's repository."""
+    shell, bodies = _split_heredocs(cmd)
+    try:
+        commands_ = _commands(shell)
+    except ValueError:
+        # Text the shell would not parse, such as an unbalanced quote, is
+        # judged by its plain words.
+        commands_ = [(shell.split(), [])]
+    cwd = None
+    for words, targets in commands_:
+        if words[:1] == ["cd"] and len(words) == 2 and words[1].startswith("/"):
+            cwd = words[1]
+        if _command_writes(words, targets, repo, cwd):
+            return True
     return any(_CODE_WRITE.search(b) for b in bodies)
 
 
@@ -169,7 +223,10 @@ def selftest():
         "go test ./x 2> err.log": True, "ls > /tmp/x": False, "cmd 2>&1 >/dev/null": False, "cp a /tmp/b": False,
         "cp a b": True, "install -m 755 bin/x " + repo + "/bin/x": True, "go test -coverprofile=x " + repo + "/c.out > " + repo + "/c.out": True,
         "make ci > /tmp/ci.log 2>&1": False, "aiwf render roadmap": False, "aiwf render roadmap --write": True,
-        "tee -a notes.md": True, '"$(go env GOBIN)/aiwf" update --wire-settings </dev/null': True,
+        "tee -a notes.md": True, 'echo x > "/tmp/x"': False, 'echo x > "$TMPDIR/x"': False, 'cp a "$TMPDIR/b"': False,
+        "du -h internal > sizes.txt": True, "cmd &> out.log": True, "echo x >| f": True, "sed --in-place s/a/b/ f": True,
+        "sed -i s/a/b/ /tmp/f": False, "gofmt -w /tmp/x.go": False, "cd /tmp/x && printf y > ../ac.md": False,
+        "cat <<EOF > /tmp/x\nhi\nEOF": False, "cd " + repo + "/internal && echo y > a.go": True, '"$(go env GOBIN)/aiwf" update --wire-settings </dev/null': True,
         '"$(go env GOBIN)/aiwf" update --help': False, "/opt/bin/aiwf promote M-0001 done": True, "printf 'probe\\n' >> README.md": True, "x=$(cat a) && echo $x": False,
     }
     bad = [c for c, want in writes.items() if is_write(c, repo) != want]
@@ -177,6 +234,7 @@ def selftest():
         'text(await tools.exec_command({cmd:"cat CLAUDE.md"}))': ["cat CLAUDE.md"],
         "text(await tools.exec_command({cmd:'sed -n 1,9p CLAUDE.md'}))": ["sed -n 1,9p CLAUDE.md"],
         'for (const cmd of ["cat a.md","cat b.md"]) out += (await tools.exec_command({cmd})).output;': ["cat a.md", "cat b.md"],
+        'const f="CLAUDE.md"; text(await tools.exec_command({cmd:"sed -n 1,400p "+f}))': ["CLAUDE.md"],
     }
     bad += [s for s, want in cmds.items() if not all(w in commands(s) for w in want)]
     if bad:

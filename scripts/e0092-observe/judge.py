@@ -62,7 +62,7 @@ def ask():
         view = os.path.join(cwd, "r" + hashlib.sha256(run.encode()).hexdigest()[:12])
         os.symlink(os.path.join(run, "repo"), view)
         out = subprocess.run(
-            ["claude", "--print", "--model", "claude-opus-5-5", "--tools", "Read,Grep,Glob", "--allowedTools", "Read,Grep,Glob",
+            ["claude", "--print", "--model", "claude-opus-5-5", "--effort", "xhigh", "--tools", "Read,Grep,Glob", "--allowedTools", "Read,Grep,Glob",
              "--permission-mode", "dontAsk", "--add-dir", view, "--strict-mcp-config", "--mcp-config", '{"mcpServers":{}}',
              "--output-format", "json"],
             input=prompt.replace("{view}", view), capture_output=True, text=True, timeout=1800, cwd=cwd,
@@ -70,24 +70,29 @@ def ask():
         )
     result = json.loads(out.stdout)
     text = result.get("result", "")
-    j = re.search(r"\{.*\}", text, re.S)
-    if not j:
-        return {"error": text[:2000]}, list(result.get("modelUsage") or {})
-    # A judge's quoted evidence can carry a backslash JSON does not accept;
-    # each one the parser stops at is doubled, so the evidence text is kept
-    # rather than the call lost.
-    raw = j.group(0)
-    for _ in range(200):
-        try:
-            return json.JSONDecoder(strict=False).decode(raw), list(result.get("modelUsage") or {})
-        except json.JSONDecodeError as e:
-            if "escape" not in e.msg:
+    usage = list(result.get("modelUsage") or {})
+    # The verdicts are the first JSON object in the reply that parses, read
+    # from each brace in turn, so prose around it does not lose the call. A
+    # judge's quoted evidence can carry raw control characters or a backslash
+    # JSON does not accept; each backslash the parser stops at is doubled, so
+    # the evidence text is kept.
+    decoder = json.JSONDecoder(strict=False)
+    for start in [m.start() for m in re.finditer(r"\{", text)]:
+        raw = text[start:]
+        for _ in range(200):
+            try:
+                obj, _end = decoder.raw_decode(raw)
+                if isinstance(obj, dict) and any(isinstance(v, dict) and "verdict" in v for v in obj.values()):
+                    return obj, usage
                 break
-            at = raw.rfind("\\", 0, e.pos + 1)
-            if at < 0:
-                break
-            raw = raw[:at] + "\\" + raw[at:]
-    return {"error": text[:2000]}, list(result.get("modelUsage") or {})
+            except json.JSONDecodeError as e:
+                if "escape" not in e.msg:
+                    break
+                at = raw.rfind("\\", 0, e.pos + 1)
+                if at < 0:
+                    break
+                raw = raw[:at] + "\\" + raw[at:]
+    return {"error": text[:2000]}, usage
 
 # Three independent calls; a verdict two of them agree on stands, and one
 # where all three differ is recorded as split, so a borderline reading shows
