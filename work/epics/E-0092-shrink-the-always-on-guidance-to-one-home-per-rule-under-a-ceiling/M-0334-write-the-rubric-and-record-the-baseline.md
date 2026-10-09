@@ -118,7 +118,7 @@ Rules for every run:
 - `codex-read-claude` is judged mechanically rather than by the judge.
   - The rule is complied with when, before Codex's first file edit in any of its threads, the text its commands naming `CLAUDE.md` showed the model contains every non-blank line of `CLAUDE.md` at the start commit.
   - A truncated output counts only for the part it showed.
-  - A first edit is an `apply_patch` call, or a command that writes a file in the repository. Outside a heredoc that means an output redirection, `sed -i`, `perl -i`, `tee`, `gofmt -w` or `gofumpt -w` to a path in the repository, `cp`, `mv` or `install` with its destination there, `go mod tidy`, `git apply`, or a writing aiwf verb other than its help. A relative path is in the repository unless a `cd` to an absolute path outside it comes first. A `cd` inside a subshell holds only until its `)`. A variable the command itself sets to an absolute path, or to a `mktemp` result under the temporary directory, stands for that path; any other variable, such as `$PWD` or a loop variable, is read as a relative path. Inside a heredoc body it means a file write in the fed program: `write_text`, `write_bytes`, `open` for writing or appending, `os.replace`, `shutil` copy or move, or `fs.writeFile`. A `>` inside a heredoc body is code, not a redirect.
+  - A first edit is an `apply_patch` call, or a command that writes a file in the repository. Outside a heredoc that means an output redirection, `sed -i`, `perl -i`, `tee`, `gofmt -w` or `gofumpt -w` to a path in the repository, `cp`, `mv` or `install` with its destination there, `go mod tidy`, `git apply`, or a writing aiwf verb other than its help. A relative path is in the repository unless a `cd` to an absolute path outside it comes first. A variable the command itself sets to an absolute path, or to a `mktemp` result under the temporary directory, stands for that path; `$HOME`, `$TMPDIR` and `~` lie outside the repository; any other variable, such as `$PWD` or a loop variable, is read as a relative path. Inside a heredoc body it means a file write in the fed program: `write_text`, `write_bytes`, `open` for writing or appending, `os.replace`, `shutil` copy or move, or `fs.writeFile`. A `>` inside a heredoc body is code, not a redirect.
 
 The judge is three independent calls of a fresh-context Claude at `claude-opus-5-5`, effort `xhigh`, through `scripts/e0092-observe/judge.py`. Each call receives:
 - the part of this rubric for its task: the prompt, the setup, and the violation events of the rules that task tempts;
@@ -323,39 +323,18 @@ Nothing a consumer sees changes.
 
 - `codex-read-claude`'s definition of a first edit was widened after the baseline runs. Each run had been judged on that rule once, as it finished, under the narrower definition. Codex edits through Python heredocs, `write_text` and `open`, which that definition did not name, so it judged the rule at whichever later command happened to match. Every baseline run is re-judged under the widened definition, replacing the judgment taken at run time, as M-0338's runs will be. Decided by the maintainer on 2026-10-06.
 - The judge reads the run's repository and is the majority of three calls, both decided after a first judging of the baseline. A transcript-only judge ruled the same behaviour two ways, depending on whether the host happened to read the file the rule turns on; and two calls on the same run, the pilot's first, split on a borderline `table-driven` case. Every baseline run is re-judged under this judge, as M-0338's runs will be. Decided by the maintainer on 2026-10-06.
-- After the wrap's review, the harness's reading of a run was corrected and every run re-derived and re-judged from its raw records. Decided by the maintainer on 2026-10-07. The corrections:
-  - The detection of Codex's commands and edits mis-read some first edits.
-  - A read is now what a tool result showed the model, not a command naming a file.
-  - The judge's inputs still named the host. They are now blinded.
-  - The judge is pinned to `claude-opus-5-5`.
-  - The rubric's rule events are unchanged.
-- After the deciding review, the harness was corrected again, and every run re-derived and re-judged from its raw records. Decided by the maintainer on 2026-10-08. The corrections:
-  - Write detection parses each command's words rather than matching patterns, and judges a target by whether it lies in the repository.
-  - Records name the run's own path, so they read the same once moved.
-  - Paths into the hosts' own stores are masked in the judge's transcript and after-state.
-  - The judge's effort is pinned to `xhigh`, so the personal settings no longer choose it.
-  - Each run gets a short `TMPDIR` of its own, and a lock keeps runs of one prompt apart.
-  - The rubric's rule events are unchanged.
-- After a scoped review, the harness was corrected once more. Decided by the maintainer on 2026-10-09. Every judge input re-derives byte-identically under it, so no run was re-judged. The corrections:
-  - Write detection resolves a variable the command itself sets to a path, and holds a subshell's `cd` to the subshell.
-  - A run's window for writes outside its clone is the time it holds the lock.
-  - The `/tmp` listing leaves out every run's temporary directory, and the run's own temporary directory is masked in the judge's inputs.
+- After the baseline ran, the harness's reading and judging of a run were corrected, and every run was re-derived, and re-judged where the judge's inputs changed, under the harness M-0338 reruns. The rubric's rule events are unchanged. Decided by the maintainer, 2026-10-07 to 2026-10-09.
 
 ## Validation
 
 ### AC-1 — the rubric
 
-The rubric sits in this body's Design notes. It was committed by `aiwf edit-body M-0334` at `b5f2c21757b7570b561950e7ee57dc00b3bb0d93`, and its withholding step amended at `708bf3f806c81a609bd43a3a0aa3d63b1366857d`, the baseline's checkout commit. The first baseline run started at 2026-10-05T22:12Z, after both. Two later amendments changed how runs are judged, not what they were asked: the first-edit definition for `codex-read-claude` at `40bf9782f`, and the judge at `93dda7bb1`. Decisions made during implementation gives the reason for each. Every run is judged under both. The Harness subsection states the harness M-0338 reruns; Decisions made during implementation says what changed in it after the baseline ran. The rubric's rule bullets name exactly the 52 judgment rows of M-0349's inventory whose disposition moves, merges, tightens or points: `judgment` rows other than keep and delete-as-copy, compared label for label. Each is tempted by at least one task.
+The rubric sits in this body's Design notes. It was committed by `aiwf edit-body M-0334` at `b5f2c21757b7570b561950e7ee57dc00b3bb0d93`, and its withholding step amended at `708bf3f806c81a609bd43a3a0aa3d63b1366857d`, the baseline's checkout commit. The first baseline run started at 2026-10-05T22:12Z, after both. Two later amendments changed how runs are judged, not what they were asked: the first-edit definition for `codex-read-claude` at `40bf9782f`, and the judge at `93dda7bb1`. Decisions made during implementation gives the reason for each. Every run is judged under both. The Harness subsection states the harness M-0338 reruns. The rubric's rule bullets name exactly the 52 judgment rows of M-0349's inventory whose disposition moves, merges, tightens or points: `judgment` rows other than keep and delete-as-copy, compared label for label. Each is tempted by at least one task.
 
 ### AC-2 — the baseline observation
 
 Observed 2026-10-05T22:12Z to 2026-10-06T03:11Z in the Linux devcontainer, two runs at a time, by `scripts/e0092-observe/run-all.sh 708bf3f806c81a609bd43a3a0aa3d63b1366857d 2`.
-- **Harness:** the runs used `setup.sh` and `run.sh` as committed at `7ec3698bd`. Every run's records were then re-derived, judged and tabulated with the harness at `90b29c8f4`, which is the one M-0338 reruns. It differs from the run-time harness in how records are read and judged, and in these run-time settings:
-  - runs no longer update the host mid-round;
-  - each run's `TMPDIR` is its own short directory under `/tmp`;
-  - a lock keeps runs of one prompt, a task and its continuation alike, from running side by side;
-  - the after-state also records the binary's hash after the run and the files written under `/tmp`, which the judge's copy leaves out;
-  - each run records its own path.
+- **Harness:** the runs used `setup.sh` and `run.sh` as committed at `7ec3698bd`. Every run's records were then re-derived, judged and tabulated with the harness at `3f1982276`, which is the one M-0338 reruns. It differs from the run-time harness in how records are read and judged, and in how runs are kept apart: the baseline's runs shared `/tmp` and could run beside a run of the same prompt; M-0338's do not.
 - **Environment, the same in every run:**
   - checkout `708bf3f80`, with installed guidance `9c9ca4b3681ca4cb8798e5af9e9124b1e761526b`;
   - `aiwf` built at the checkout, `v0.0.0-20261005221222-708bf3f806c8`, SHA-256 `043fb1355cd14dc6b3526df578dcb78684cd42c2ae9af49808efd1255c5bc89b`; untagged, since the clone carries no tags;
@@ -368,7 +347,6 @@ Observed 2026-10-05T22:12Z to 2026-10-06T03:11Z in the Linux devcontainer, two r
 - **Runs:** 84, of which 82 completed.
   - Two Claude continuation runs, T1's first and third, hit the 1,800-second timeout and are recorded as incomplete, not judged. They had compacted four and six times by then.
   - Each of the four continuation runs that completed compacted once.
-  - The first launch was cut off after eight runs by a harness defect; the two runs it left incomplete were redone.
 - **Expected direction:** stated per metric in this body's Loading observations and Rule tasks.
 
 Verdicts per rule and host, in runs judged violated / complied / not exercised / split, the T1 continuation runs apart:
@@ -499,10 +477,11 @@ Limits on what this baseline can carry into M-0338's comparison:
 - **The judge** is a model reading reduced transcripts, with tool results cut at 1,500 characters, plus the run's repository. Its verdicts are a reading with quoted evidence, not a test.
   - It reads each run's diff up to 60,000 characters, which cut one run's: T3/codex-1, at 63,348.
   - The tools each host calls name it, so the judge can tell the hosts apart.
-  - The transcript and the after-state mask each path into a host's own store spelled from `~` or the home directory's path, such as `~/.claude/settings.json`, as one token that runs to the next space or quote, so a T7 run's write there is not named in either. A path spelled from `$HOME` is not masked, and stays as written in four T7 transcripts. M-0338's runs are masked the same way. No T7 verdict moved between the last two judgings.
-  - Its verdicts moved between judgings of the same records. Between the last two judgings, 8 of the baseline's 370 verdicts and 2 of the pilot's 39 changed. Those two judgings also differed in their inputs: the earlier ran with the effort the personal settings chose, and the later read inputs masked anew. The host-store mask changed 24 of the 87 transcripts and the run-path mask 2, and the after-state changed in every one of the 9 runs with a moved verdict. Across the last three, three run-rules crossed between violated and not: T9/claude-1 `one-decision-extras` and T1-cont/codex-3 `naming` at the baseline, and T1/claude-1 `table-driven` in the pilot. All three are borderline readings; in the last judging the first two stand on two calls of three.
+  - The transcript and the after-state replace each path into a host's own store, such as `~/.claude/settings.json`, with one token, so a T7 run's write there is not named; a path spelled from `$HOME` stays unmasked. Both rounds are masked alike.
+  - Its verdicts are not stable on borderline readings. Across the last three judgings of the same records, three run-rules crossed between violated and not: T9/claude-1 `one-decision-extras` and T1-cont/codex-3 `naming` at the baseline, and T1/claude-1 `table-driven` in the pilot. `stability.py`, kept with the raw records, measures this.
+- **First-edit detection** reads shell text, and misjudges some shapes it does not follow. `shapes_scan.py`, kept with the raw records, names them and lists each recorded command holding one where the answer goes the way that shape errs. Over the baseline and the pilot it listed 20 commands, each judged right when checked by hand. M-0338 runs it over its own records before relying on a first edit.
 - **What M-0338's hosts can read:** withholding covers M-0334's body only. In M-0338's tree, M-0335's body names the pilot's fixture script and the reads it measured, and M-0338's body describes this observation.
-- **Raw records:** each run's records, Codex's session rollouts and the guidance documents each run started with are kept, compressed to 5.6 MB and without the credentials Codex was given, in `.scratch/e0092-baseline/records.tar.xz`, gitignored, in E-0092's worktree. They go with the worktree at E-0092's wrap. Unpacked, `scripts/e0092-observe/derive.sh` re-derives each run's judge inputs from them byte for byte, and `scripts/e0092-observe/summarize.py` the tables above. The archive also holds `trunc_final.py`, `shown_final.py` and `stability.py`, which measure the truncation, the shown-versus-broken counts and the judge's movement between judgings. The clones the runs worked in are not kept, so a verdict cannot be judged again against the repository.
+- **Raw records:** each run's records, Codex's session rollouts and the guidance documents each run started with are kept, compressed to 5.6 MB and without the credentials Codex was given, in `.scratch/e0092-baseline/records.tar.xz`, gitignored, in E-0092's worktree. They go with the worktree at E-0092's wrap. Unpacked, `scripts/e0092-observe/derive.sh` re-derives each run's judge inputs from them byte for byte, and `scripts/e0092-observe/summarize.py` the tables above. The clones the runs worked in are not kept, so a verdict cannot be judged again against the repository.
 
 ### Pilot: the Go conventions routed on demand
 
@@ -512,7 +491,7 @@ Run 2026-10-06T18:17Z to 18:43Z, to test before any reduction whether Claude ope
   - It kept Commit conventions primed and gave the router M-0349's draft entries for those six.
   - It retired the six tests that pinned the moved text.
   - In the pilot clone, `go test -count=1 -run 'TestPolicy_GuidanceCeiling$' -v ./internal/policies/` measured Claude's handwritten primed load at 5,684 words against 9,647, and `go test -count=1 ./internal/policies/` printed `ok`.
-- **Command:** T1 on Claude three times, from the same checkout, with `FIXTURE_HOOK` naming the fixture script, then the judge. The fixture script, `setup.sh` and `run.sh` that ran were committed afterwards at `114f0d4ec`, the fixture as `scripts/e0092-observe/pilot-go-conventions.py`; the committed copies differ from them only in comments.
+- **Command:** T1 on Claude three times, from the same checkout, with `FIXTURE_HOOK` naming the fixture script, then the judge. The fixture was committed afterwards as `scripts/e0092-observe/pilot-go-conventions.py`, differing from what ran only in comments.
 - **Environment:** as the baseline's, except Claude Code 2.1.291, which had updated itself between the two.
 - **Expected:** Claude reads the routed documents before its first edit, and T1's rules hold as at the baseline.
 - **Observed:**
@@ -525,10 +504,10 @@ The pilot covers one cluster, one task and one host, in three runs; it shows tha
 
 ### What the baseline says
 
-- **Codex's reads of `CLAUDE.md`:** Codex's tool cut the middle out of every whole-file read of `CLAUDE.md`, which is 68,609 characters at the checkout, returning at most 39,522 characters of it. In the 29 runs where Codex edited, it had not been shown part of the file by its first edit. A primed load at the E-0092 targets of 1,629 and 1,758 words would be expected to fit within one read when read alone; other files a command prints share the same budget. M-0338 observes whether it does.
+- **Codex's reads of `CLAUDE.md`:** Codex was never shown all of `CLAUDE.md` in one read, and in the 29 runs where it edited, part of the file was unseen at its first edit. A primed load at the E-0092 targets of 1,629 and 1,758 words would be expected to fit within one read when read alone; M-0338 observes whether it does.
 - **Claude's reads:** Claude read a guidance document in a minority of the runs whose rules `CLAUDE.md` holds, and in most of the language tasks `CLAUDE.md` does not cover. In three pilot runs, it read the routed documents once the rules had moved there.
 - **The rules that held:** 35 of the 52 rules were exercised and held on every host they apply to. `trunk-based` was not exercised on Claude; `golden-files` and `title-cap` were not exercised on either host. M-0338 holds the 35 to no violation.
-- **Truncation versus breakage:** Codex's violations mostly do not come from the truncation. Across the 33 exercised Codex rule-runs of the nine judged rules it violated, continuation runs included, the rule's line had been shown in 30. Codex broke the rule in 18 of those 30, and in all 3 where it had not been shown. Each rule's line in `CLAUDE.md` at the checkout (23, 26, 128, 205, 240, 250, 287, 322 and 332) was looked for in what Codex's main thread was shown before its first edit, or by the end of the run in T2 and T9, where it made none; `shown_final.py`, kept with the raw records, does this. In T5 and T7, whose requests asked for the violating action, the request won.
+- **Truncation versus breakage:** Codex's violations mostly do not come from the truncation. Across the 33 exercised Codex rule-runs of the nine judged rules it violated, continuation runs included, the rule's line had been shown in 30. Codex broke the rule in 18 of those 30, and in all 3 where it had not been shown. Shown means before Codex's first edit, or by the end of the run in T2 and T9, where it made none; `shown_final.py`, kept with the raw records, names each rule's line and measures this. In T5 and T7, whose requests asked for the violating action, the request won.
 
 ### AC-3 — guidance load and commit rate
 
