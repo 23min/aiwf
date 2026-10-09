@@ -101,11 +101,11 @@ def _record(e):
 # target is judged by its text. A write counts only inside the run's
 # repository, at absolute path repo when given; a relative path is resolved
 # against a `cd` to an absolute directory earlier in the same command, and
-# is otherwise inside it; a `cd` inside a subshell holds only until its `)`.
-# A variable the command itself sets to an absolute path, or to a `mktemp`
-# result under the temporary directory, stands for that path. Any other
-# variable, such as $PWD, a loop variable or a command substitution, is read
-# as a relative path. A help request runs no aiwf verb.
+# is otherwise inside it. A variable the command itself sets to an absolute
+# path, or to a `mktemp` result under the temporary directory, stands for that
+# path; $HOME, $TMPDIR and ~ lie outside the repository; any other variable,
+# such as $PWD, a loop variable or a command substitution, is read as a
+# relative path. A help request runs no aiwf verb.
 import shlex
 
 _HEREDOC = re.compile(r"<<-?\s*(['\"]?)(\w+)\1")
@@ -114,6 +114,9 @@ _CODE_WRITE = re.compile(
 _AIWF_WRITERS = {"add", "promote", "edit-body", "retitle", "rename", "move", "cancel", "reallocate", "archive", "update", "init"}
 _SEPARATORS = {";", "&&", "||", "|", "&", "|&", "(", ")"}
 _REDIRECTS = {">", ">>", ">|", "&>", "&>>"}
+# shlex returns a run of operator characters such as `);` or `)>` as one
+# token; it is split into the operators the shell reads.
+_OPERATOR = re.compile(r"&>>|<<<|>>|&&|\|\||\|&|>\||&>|>&|<&|[();<>|&]")
 
 _ASSIGN = re.compile(r"(?:^|[;&|\s(])(?:export\s+)?([A-Za-z_]\w*)=(\$\(mktemp[^)]*\)|\"[^\"]*\"|'[^']*'|[^\s;&|)]+)")
 _VAR = re.compile(r"^\$(?:\{(\w+)\}|(\w+))")
@@ -169,15 +172,13 @@ def _commands(shell):
     """The simple commands in shell text, each as (words, redirect targets)."""
     lx = shlex.shlex(shell.replace("\n", " ; "), posix=True, punctuation_chars=True)
     lx.whitespace_split = True
-    tokens = list(lx)
+    tokens = [op for t in lx for op in (_OPERATOR.findall(t) if set(t) <= set("();<>|&") else [t])]
     out, words, targets, i = [], [], [], 0
     while i < len(tokens):
         t = tokens[i]
         if t in _SEPARATORS:
             out.append((words, targets))
             words, targets = [], []
-            if t in ("(", ")"):
-                out.append(([t], []))
         elif t in _REDIRECTS:
             if i + 1 < len(tokens):
                 targets.append(tokens[i + 1])
@@ -230,12 +231,8 @@ def is_write(cmd, repo=None):
         # Text the shell would not parse, such as an unbalanced quote, is
         # judged by its plain words.
         commands_ = [(shell.split(), [])]
-    cwd, env, outer = None, _assignments(shell), []
+    cwd, env = None, _assignments(shell)
     for words, targets in commands_:
-        if words == ["("]:
-            outer.append(cwd)
-        elif words == [")"] and outer:
-            cwd = outer.pop()
         if words[:1] == ["cd"] and len(words) == 2 and _expand(words[1], env).startswith("/"):
             cwd = _expand(words[1], env)
         if _command_writes(words, targets, repo, cwd, env):
@@ -265,7 +262,7 @@ def selftest():
         "echo x > $R/aiwf.yaml": True, "echo x > $PWD/f.go": True, 'echo x > "$(pwd)/f.go"': True,
         "W=$(pwd); echo x > $W/f.go": True, "W=$(git rev-parse --show-toplevel); echo x > $W/f.go": True,
         "for f in a.go; do echo x > $f; done": True, 'while read f; do printf y > "$f"; done < list.txt': True,
-        "T=$(mktemp -d); (cd $T && git init -q) > init.log": True, "echo > ${W:-x}/f": True, "T=$(mktemp -d -p .); echo > $T/f": True, "W=" + repo + "/internal; echo y > $W/a.go": True, 'echo y > "${HOME}/x"': False,
+        "echo > ${W:-x}/f": True, "T=$(mktemp -d); cd $T && echo > f": False, "(cd /tmp && make)>" + repo + "/m.log": True, "T=$(mktemp -d -p .); echo > $T/f": True, "W=" + repo + "/internal; echo y > $W/a.go": True, 'echo y > "${HOME}/x"': False,
         "cat <<EOF > /tmp/x\nhi\nEOF": False, "cd " + repo + "/internal && echo y > a.go": True, '"$(go env GOBIN)/aiwf" update --wire-settings </dev/null': True,
         '"$(go env GOBIN)/aiwf" update --help': False, "/opt/bin/aiwf promote M-0001 done": True, "printf 'probe\\n' >> README.md": True, "x=$(cat a) && echo $x": False,
     }

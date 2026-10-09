@@ -5,12 +5,12 @@ Hands a fresh `claude --print` at claude-opus-5-5, effort xhigh, the part of
 the rubric for the run's task (its prompt, setup and the violation events of
 the rules it tempts), the run's reduced transcript and its after-state with
 the host's name removed, and writes the verdicts it returns to
-<run-dir>/verdicts.json. The judge may read
-the run's repository as the run left it, through Read, Grep and Glob only, so
-a verdict that turns on a fact in the tree checks the fact rather than
-guessing it from the transcript. It starts in an empty directory with the
-repository added under an opaque name, so neither the repository's instruction
-files nor the run directory's host name reach it."""
+<run-dir>/verdicts.json. The judge may read the run's repository as the run
+left it, through Read, Grep and Glob only, so a verdict that turns on a fact
+in the tree checks the fact rather than guessing it from the transcript. It
+starts in an empty directory with the repository added under an opaque name,
+so neither the repository's instruction files nor the run directory's host
+name reach it."""
 import hashlib, json, os, re, subprocess, sys, tempfile
 
 run = sys.argv[1]
