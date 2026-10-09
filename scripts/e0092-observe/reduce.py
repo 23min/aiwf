@@ -22,11 +22,13 @@ def mask(text, run):
     text = text.replace(run, "<run>").replace(escaped(run), "<run>")
     # A path into another run, or anywhere under the observation directory,
     # names a task and host the same way, as do Claude Code's own temporary
-    # directory and either host's own store under the home directory.
+    # directory, under /tmp or under the run's own TMPDIR, and either host's
+    # own store under the home directory.
     text = re.sub(r"[\w./~-]*/(?:T\d+|L\d+)(?:-cont)?/(?:claude|codex)-\d+", "<run>", text)
     text = text.replace(observe, "<observe>").replace(escaped(observe), "<observe>")
     text = re.sub(r"(?:/home/[\w.-]+|~)/\.(?:claude|codex)/[^\s'\"]*", "<host-store>", text)
-    text = re.sub(r"/tmp/claude-[\w-]+", "/tmp/<tmp>", text)
+    text = re.sub(r"/tmp/(?:e0092\.\w+/)?claude-[\w-]+", "/tmp/<tmp>", text)
+    text = re.sub(r"/tmp/e0092\.\w+", "/tmp/<tmp>", text)
     text = text.replace("<run>/codex-home", "<run>/agent-home")
     text = re.sub(r"\bcodex\d+-", "tool-", text)
     return NAMES.sub("<assistant>", text)

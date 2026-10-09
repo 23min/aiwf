@@ -24,8 +24,7 @@ echo "$RUN" > "$RUN/run-path.txt"
 # Each run gets its own short temporary directory. gpg-agent puts sockets
 # under it and refuses a socket path past about 107 characters, so a deep
 # observation directory cannot hold it.
-RUNTMP=$(mktemp -d /tmp/e0092.XXXXXX)
-[ "${#RUNTMP}" -le 44 ] || { echo "$RUN temporary directory too long: $RUNTMP"; exit 1; }
+RUNTMP=$(mktemp -d /tmp/e0092.XXXXXX) || { echo "$RUN no temporary directory"; exit 1; }
 echo "$RUNTMP" > "$RUN/tmpdir.txt"
 # A host must not update itself mid-round, so every run of a round runs one version.
 export PATH="$RUN/bin:$PATH" GOBIN="$RUN/gobin" DISABLE_AUTOUPDATER=1 TMPDIR="$RUNTMP"
@@ -34,6 +33,9 @@ cd "$RUN/repo"
 # names outside their clones, so they never run side by side.
 exec 9> "$OBSERVE_DIR/.lock-$TASK"
 flock 9
+# The run's window opens once it holds the lock, so its records of writes
+# outside the clone leave out the run it waited for.
+touch "$RUN/.start"
 start=$(date +%s)
 if [ "$HOST" = claude ]; then
   extra=(); [ -n "$CONT" ] && extra=(--autocompact 120000)
@@ -82,7 +84,7 @@ for l in open('$RUN/events.jsonl'):
   echo "--- branch at end: $(git branch --show-current)"
   echo "--- commits since start (all refs)"; git log --all --format='%h %D | %s%n%b' "^$START" "^$(cat "$RUN/start-origin")" 2>/dev/null
   echo "--- binary under test after the run"; sha256sum "$RUN/bin/aiwf-real" | cut -c1-64
-  echo "--- files written under /tmp during the run, outside run directories"; find /tmp -xdev -newer "$RUN/.start" -type f 2>/dev/null | grep -v -F -e "$OBSERVE_DIR" -e "$RUNTMP" | grep -v -E '^/tmp/claude-[0-9]+/' | head -50
+  echo "--- files written under /tmp during the run, outside run directories"; find /tmp -xdev -newer "$RUN/.start" -type f 2>/dev/null | grep -v -F -e "$OBSERVE_DIR/" | grep -v -E '^/tmp/(claude-[0-9]+|e0092\.[[:alnum:]]+)/' | head -50
   echo "--- status"; git status --porcelain
   echo "--- worktrees"; git worktree list
   echo "--- origin refs"; git -C "$RUN/origin.git" for-each-ref --format='%(refname) %(objectname:short)'

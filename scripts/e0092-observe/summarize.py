@@ -8,7 +8,8 @@ its signature lines: lines at least 40 characters long that occur once in the
 document as the run's start commit holds it, three taken from its start,
 middle and end. Claude invoking a skill through its Skill tool counts as
 reading that skill. A first edit is Claude's Edit or Write on a file in the
-run's repository, or a command codexrollout.is_write judges to write one.
+run's repository, an apply_patch call, or a command codexrollout.is_write
+judges to write one, in any of Codex's threads.
 Reads are counted until the first edit, and after it."""
 import collections, glob, json, os, re, subprocess, sys
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))

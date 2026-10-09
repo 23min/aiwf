@@ -95,4 +95,3 @@ for f in auth.json config.toml hooks.json rules skills version.json installation
   [ -e ~/.codex/$f ] && cp -a ~/.codex/$f "$RUN/codex-home/"
 done
 cp -L ~/.codex/AGENTS.md "$RUN/codex-home/AGENTS.md"
-touch "$RUN/.start"
