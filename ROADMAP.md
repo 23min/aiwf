@@ -1297,7 +1297,7 @@ Give every guidance rule in this repository one home and one clear form. Rules t
 | Milestone | Title | Status |
 |---|---|---|
 | M-0333 | Fence project guidance while preserving managed updates | done |
-| M-0334 | Write the rubric and record the baseline | in_progress |
+| M-0334 | Write the rubric and record the baseline | done |
 | M-0335 | Route on-demand guidance through the project router and tighten what moves | draft |
 | M-0336 | Remove duplicated guidance and move each rule to its audience's home | draft |
 | M-0337 | Audit finding messages and cut chokepointed sections to pointers | draft |
