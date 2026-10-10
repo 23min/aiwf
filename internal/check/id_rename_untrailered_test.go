@@ -8,11 +8,8 @@ import (
 )
 
 // id_rename_untrailered_test.go — M-0160/AC-4: unit-level
-// coverage of the new id-rename-untrailered kernel chokepoint
-// rule per CLAUDE.md §"Id-collision resolution at merge time":
-//
-//	"a kernel-side check that flags 'id-renames missing
-//	 reallocate trailers' would be the chokepoint to add"
+// coverage of the id-rename-untrailered kernel chokepoint rule,
+// which holds the shipped guidance's reallocate-not-git-mv rule.
 //
 // The rule fires when a commit between merge-base(HEAD, trunk)
 // and HEAD renames an id-bearing entity file AND lacks a

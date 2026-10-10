@@ -19,8 +19,8 @@ import (
 // reallocate / archive / move per `renameClassVerbs` below,
 // mirrored from internal/gitops/refs.go::renameVerbs).
 //
-// Catches the operator-discipline gap CLAUDE.md
-// §"Id-collision resolution at merge time" documents: an operator
+// Catches the operator-discipline gap the shipped guidance's
+// reallocate-not-git-mv rule names: an operator
 // resolves a trunk-collision via inline `git mv` instead of
 // `aiwf reallocate <id-or-path>`. The immediate trunk-collision
 // finding clears (git's rename detection paired the move via
@@ -113,7 +113,7 @@ func RunIDRenameUntrailered(renames []UntrailedIDRename, ackedSHAs map[string]bo
 			Code:     CodeIDRenameUntrailered.ID,
 			Severity: SeverityWarning,
 			Message: fmt.Sprintf(
-				"commit %s renames id-bearing entity file %s -> %s without an aiwf-verb trailer in the rename-class set (retitle/rename/reallocate/archive/move); inline `git mv` was likely used instead of the kernel verb. See CLAUDE.md §\"Id-collision resolution at merge time\".",
+				"commit %s renames id-bearing entity file %s -> %s without an aiwf-verb trailer in the rename-class set (retitle/rename/reallocate/archive/move); inline `git mv` was likely used instead of the kernel verb. See the aiwf-reallocate skill.",
 				shortHash(r.SHA), r.OldPath, r.NewPath),
 			Path:     r.NewPath,
 			EntityID: entityID,

@@ -37,9 +37,8 @@ import (
 // TestIDRenameUntrailered_AC4_InlineGitMvFiresFinding pins the
 // load-bearing claim: an inline `git mv` of an id-bearing entity
 // file, committed without an aiwf-verb trailer, fires the new
-// rule. Mirrors CLAUDE.md §"Id-collision resolution at merge
-// time" — the operator-discipline failure mode where someone
-// resolves a trunk-collision via direct git mv instead of
+// rule: the failure mode the shipped guidance's
+// reallocate-not-git-mv rule names, where someone resolves a trunk-collision via direct git mv instead of
 // `aiwf reallocate <id-or-path>`.
 //
 // Setup:

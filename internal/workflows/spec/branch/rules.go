@@ -190,8 +190,8 @@ func Rules() []spec.Rule {
 		},
 		// branch-cell-id-rename-untrailered — M-0160/AC-4: an
 		// inline `git mv` rename of an id-bearing entity file (the
-		// CLAUDE.md §"Id-collision resolution at merge time"
-		// operator-discipline failure mode) commits without an
+		// failure mode the shipped guidance's reallocate-not-git-mv
+		// rule names) commits without an
 		// `aiwf-verb` trailer in the rename-class closed set
 		// (retitle / rename / reallocate / archive / move). The
 		// kernel rule id-rename-untrailered fires at check time.

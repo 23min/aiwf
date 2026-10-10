@@ -187,8 +187,8 @@ func RunProvenanceCheck(ctx context.Context, root string, t *tree.Tree, since st
 	// merge-base(HEAD, trunk)..HEAD for commits that rename
 	// id-bearing entity files without an aiwf-verb trailer in the
 	// rename-class closed set (retitle/rename/reallocate/archive/
-	// move). Catches the CLAUDE.md §"Id-collision resolution at
-	// merge time" failure mode where an operator used inline
+	// move). Catches the failure mode the shipped guidance's
+	// reallocate-not-git-mv rule names: an operator used inline
 	// `git mv` instead of `aiwf reallocate`. ackedSHAs (M-0159/AC-3
 	// helper-lift) exempts retroactively acknowledged commits.
 	//
