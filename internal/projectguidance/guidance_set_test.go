@@ -60,3 +60,22 @@ func TestHandwrittenText(t *testing.T) {
 		t.Errorf("a stray guidance marker beside a routing block: HandwrittenText = %q, want %q", got, want)
 	}
 }
+
+// TestHandwrittenDocuments pins the handwritten routed set: a document aiwf
+// owns is generated output and leaves it, a record entry not shaped like
+// an aiwf output excludes nothing, and the host files and the router are
+// instruction files by name rather than routed documents.
+func TestHandwrittenDocuments(t *testing.T) {
+	t.Parallel()
+	router := "- [Testing](project/testing.md)\n- [Go](packs/go/guide.md)\n- [Notes](notes.md)\n" +
+		"- [Claude](../CLAUDE.md)\n- [Codex](../AGENTS.md)\n- [Self](project.md)\n"
+	record := `{".guidance/packs/go/guide.md": "x", ".guidance/notes.md": "x"}`
+	got := HandwrittenDocuments(router, OwnedOutputs(record))
+	want := []string{".guidance/project/testing.md", ".guidance/notes.md"}
+	if diff := cmp.Diff(want, got); diff != "" {
+		t.Errorf("HandwrittenDocuments (-want +got):\n%s", diff)
+	}
+	if got := OwnedOutputs("not json"); len(got) != 0 {
+		t.Errorf("OwnedOutputs of an unreadable record = %v, want none", got)
+	}
+}

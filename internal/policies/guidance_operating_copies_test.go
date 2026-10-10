@@ -17,8 +17,9 @@ func TestPolicy_GuidanceNoOperatingCopies(t *testing.T) {
 // TestOperatingCopyViolations pins what counts as a copy (M-0336 AC-1): a
 // rendered managed block carrying a rule is generated output and passes,
 // while a handwritten statement of it in the same file fails; an anchor's
-// fragments count only within one paragraph or list item; and the
-// documents the router links to are guidance too.
+// fragments count only within one paragraph or list item, read across its
+// line wraps; and the router and the handwritten documents it links to are
+// guidance too, while a routed output aiwf owns is not.
 func TestOperatingCopyViolations(t *testing.T) {
 	t.Parallel()
 	const rule = "Decide one thing at a time."
@@ -32,6 +33,13 @@ func TestOperatingCopyViolations(t *testing.T) {
 		{"a handwritten copy beside the rendered block fails", map[string]string{"CLAUDE.md": "# Rules\n\n" + rule + "\n\n" + block}, "one-decision-at-a-time"},
 		{"fragments in separate list items pass", map[string]string{"AGENTS.md": "- Run aiwf reallocate on a collision.\n- Never use git mv.\n"}, ""},
 		{"fragments in one paragraph fail", map[string]string{"AGENTS.md": "Run aiwf reallocate on a collision,\nnever git mv.\n"}, "reallocate-not-git-mv"},
+		{"fragments split across a line wrap fail", map[string]string{"AGENTS.md": "Decide one thing at a\ntime.\n"}, "one-decision-at-a-time"},
+		{"a copy in the router fails", map[string]string{projectguidance.RouterFile: rule + "\n"}, "one-decision-at-a-time"},
+		{"a routed document aiwf owns is generated and passes", map[string]string{
+			projectguidance.RouterFile:      "- [Go](packs/go/guide.md)\n",
+			projectguidance.OwnedRecordFile: `{".guidance/packs/go/guide.md": "x"}`,
+			".guidance/packs/go/guide.md":   rule + "\n",
+		}, ""},
 		{"a copy in a routed document fails", map[string]string{
 			projectguidance.RouterFile:     "- [Testing](project/testing.md)\n",
 			".guidance/project/testing.md": rule + "\n",

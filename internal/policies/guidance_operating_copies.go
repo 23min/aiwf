@@ -6,8 +6,6 @@ import (
 	"regexp"
 	"slices"
 	"strings"
-
-	"github.com/23min/aiwf/internal/projectguidance"
 )
 
 // PolicyGuidanceNoOperatingCopies holds this repository's development
@@ -23,41 +21,18 @@ func PolicyGuidanceNoOperatingCopies(root string) ([]Violation, error) {
 	return operatingCopyViolations(developmentGuidance(repoGuidanceReader(root))), nil
 }
 
-// developmentGuidance returns the handwritten text of each development
-// guidance document present in the tree: the two host instruction files
-// with aiwf's managed blocks removed, the project router, and the
-// documents it links to.
-func developmentGuidance(read func(string) (string, bool)) map[string]string {
-	out := map[string]string{}
-	for _, p := range []string{projectguidance.ClaudeFile, projectguidance.AgentsFile} {
-		if content, ok := read(p); ok {
-			out[p] = projectguidance.HandwrittenText(content)
-		}
-	}
-	router, ok := read(projectguidance.RouterFile)
-	if !ok {
-		return out
-	}
-	out[projectguidance.RouterFile] = router
-	for _, p := range projectguidance.RoutedDocuments(router) {
-		if content, ok := read(p); ok {
-			out[p] = content
-		}
-	}
-	return out
-}
-
 // listItemStart opens a list item, which is a paragraph of its own here.
-var listItemStart = regexp.MustCompile(`^(?:[-*+]|\d+\.) `)
+var listItemStart = regexp.MustCompile(`^(?:[-*+]|\d+[.)])[ \t]`)
 
 // guidanceParagraphs splits a document at blank lines and at each list
-// item that starts at the margin.
+// item that starts at the margin, and joins each paragraph's words with
+// single spaces, so a phrase hard-wrapped across lines reads as written.
 func guidanceParagraphs(doc string) []string {
 	var out []string
 	var current []string
 	flush := func() {
 		if len(current) > 0 {
-			out = append(out, strings.Join(current, "\n"))
+			out = append(out, strings.Join(strings.Fields(strings.Join(current, " ")), " "))
 			current = nil
 		}
 	}

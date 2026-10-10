@@ -2,7 +2,6 @@ package check
 
 import (
 	"context"
-	"encoding/json"
 	"errors"
 	"fmt"
 	"os/exec"
@@ -366,24 +365,13 @@ func instructionRevisionAt(br *gitops.BlobReader, rev string) (instructionRevisi
 	if err != nil { //coverage:ignore propagates a cat-file read failure, as WalkInstructionCommits records
 		return r, err
 	}
-	var record map[string]string
-	if json.Unmarshal([]byte(rawOwned), &record) == nil {
-		// Only a path shaped like one aiwf owns counts, so a commit cannot
-		// list a file of its own in the record to carry it.
-		for p := range record {
-			if projectguidance.ValidOwnedPath(p) {
-				r.owned[p] = true
-			}
-		}
-	}
+	r.owned = projectguidance.OwnedOutputs(rawOwned)
 	router, err := blobAt(br, rev, projectguidance.RouterFile)
 	if err != nil { //coverage:ignore propagates a cat-file read failure, as WalkInstructionCommits records
 		return r, err
 	}
-	for _, p := range projectguidance.RoutedDocuments(router) {
-		if !r.owned[p] {
-			r.routed[p] = true
-		}
+	for _, p := range projectguidance.HandwrittenDocuments(router, r.owned) {
+		r.routed[p] = true
 	}
 	return r, nil
 }
@@ -448,7 +436,7 @@ func isHostFile(p string) bool {
 // on its own or around an inserted sentence — remove nothing; a deletion, a
 // rewording, and a reordering of words do.
 func removesText(before, after string) bool {
-	return removesLine(before, after) && !wordsSurviveInOrder(before, after)
+	return removesLine(before, after) && !WordsSurviveInOrder(before, after)
 }
 
 // removesLine reports whether some non-blank line of before is missing
@@ -471,9 +459,9 @@ func removesLine(before, after string) bool {
 	return false
 }
 
-// wordsSurviveInOrder reports whether the whitespace-separated words of
+// WordsSurviveInOrder reports whether the whitespace-separated words of
 // before occur in after in the same order, other words between them.
-func wordsSurviveInOrder(before, after string) bool {
+func WordsSurviveInOrder(before, after string) bool {
 	rest := strings.Fields(after)
 	for _, w := range strings.Fields(before) {
 		i := slices.Index(rest, w)

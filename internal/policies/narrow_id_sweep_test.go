@@ -341,10 +341,9 @@ func TestPolicy_NarrowIDPlaceholderLiteralsAllowlisted(t *testing.T) {
 	// Each entry holds narrow placeholder literals because the literal
 	// is the input space of a rule that rejects exactly that shape.
 	allowlist := map[string]string{
-		"internal/policies/narrow_id_sweep_test.go":     "this file: the doc comments name the shapes both sweeps ban",
-		"internal/policies/m083_test.go":                "input space of the CLAUDE.md commitment sweep: the per-kind narrow enumeration whose absence it asserts",
-		"internal/check/doc_id_width_test.go":           "input space of the doc-id-width rule: the narrow placeholder tokens it rejects in documentation",
-		"internal/policies/guidance_entity_ids_test.go": "input space of the development-guidance id scan: the narrow placeholder it rejects",
+		"internal/policies/narrow_id_sweep_test.go": "this file: the doc comments name the shapes both sweeps ban",
+		"internal/policies/m083_test.go":            "input space of the CLAUDE.md commitment sweep: the per-kind narrow enumeration whose absence it asserts",
+		"internal/check/doc_id_width_test.go":       "input space of the doc-id-width rule: the narrow placeholder tokens it rejects in documentation",
 	}
 
 	var unallowed []string

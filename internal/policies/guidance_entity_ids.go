@@ -25,7 +25,8 @@ func PolicyGuidanceIDsThroughLinks(root string) ([]Violation, error) {
 var flaggedToken = regexp.MustCompile(`"[^"]*"`)
 
 // guidanceIDViolations reports each id-shaped token the shipped-surface
-// scan flags in the given documents.
+// scan flags in the given documents, by file: the scan reads a host file
+// with its managed blocks cut out, so its line numbers are not the file's.
 func guidanceIDViolations(docs map[string]string) []Violation {
 	var vs []Violation
 	for _, file := range slices.Sorted(maps.Keys(docs)) {
@@ -35,7 +36,6 @@ func guidanceIDViolations(docs map[string]string) []Violation {
 			vs = append(vs, Violation{
 				Policy: "guidance-ids-through-links",
 				File:   file,
-				Line:   f.Line,
 				Detail: fmt.Sprintf("%s is an id-shaped token outside a link destination; cite an entity through a link to its document, with the id only in the destination, and write a placeholder in the canonical letter-N form", flaggedToken.FindString(f.Message)),
 			})
 		}

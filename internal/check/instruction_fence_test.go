@@ -636,8 +636,7 @@ func TestRemovesText(t *testing.T) {
 // one of copy of <path>, relocated to <path>, pointer to <id>, reworded or
 // deleted. Every Removed: line opens a block, so a half-written block or a
 // prose line starting that way is malformed even beside a good block. A
-// well-formed block is returned with both values trimmed (M-0336 AC-5
-// reads them).
+// well-formed block is returned with both values trimmed.
 func TestParseDispositionBlocks(t *testing.T) {
 	t.Parallel()
 	tests := []struct {

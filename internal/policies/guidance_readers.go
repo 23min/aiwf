@@ -332,12 +332,14 @@ func repoNamesGuidance(root string) func(string) bool {
 	return func(s string) bool { return namesGuidancePath(s, routed) }
 }
 
-// repoRoutedDocuments returns the documents the project router at root links
-// to. A missing router reads as empty and routes nothing.
+// repoRoutedDocuments returns the handwritten documents the project router
+// at root links to, leaving out the outputs aiwf owns. A missing router
+// reads as empty and routes nothing.
 func repoRoutedDocuments(root string) map[string]bool {
 	router, _ := os.ReadFile(filepath.Join(root, filepath.FromSlash(projectguidance.RouterFile)))
+	record, _ := os.ReadFile(filepath.Join(root, filepath.FromSlash(projectguidance.OwnedRecordFile)))
 	routed := map[string]bool{}
-	for _, p := range projectguidance.RoutedDocuments(string(router)) {
+	for _, p := range projectguidance.HandwrittenDocuments(string(router), projectguidance.OwnedOutputs(string(record))) {
 		routed[p] = true
 	}
 	return routed
