@@ -513,9 +513,10 @@ func decidedDisposition(d invDisposition) (string, bool) {
 }
 
 // isIDEdit reports whether a word is an id-shaped token the development
-// guidance may not carry, as AC-2's scan classifies it.
+// guidance may not carry, as AC-2's scan classifies it. The word is the
+// token itself: one opening a quoted passage is the passage's first word.
 func isIDEdit(word string) bool {
-	return len(check.ScanPlainTextIDs(word, "")) > 0
+	return word != "" && !strings.ContainsRune("\"'`(", rune(word[0])) && len(check.ScanPlainTextIDs(word, "")) > 0
 }
 
 // isEntityID reports whether a disposition's destination names an entity
@@ -914,7 +915,7 @@ func TestInventoryReconcileFindings(t *testing.T) {
 	))
 	rowText := func(r invRow) string {
 		if r.Label == "kept" {
-			return "A rule, as G-0491 records.\n"
+			return "A rule, as G-0491 records for M-0336/AC-1.\n"
 		}
 		return ""
 	}
@@ -948,6 +949,8 @@ func TestInventoryReconcileFindings(t *testing.T) {
 		{"a block whose Removed: is empty", block("rm", "", "deleted"), "names no inventory row"},
 		{"an id edit naming an id the row does not carry", block("rm", "kept G-0999", "reworded"), "does not carry"},
 		{"an id edit naming a shorter id inside one the row carries", block("rm", "kept G-049", "reworded"), "does not carry"},
+		{"an id edit naming an id the row carries only inside a composite", block("rm", "kept M-0336", "reworded"), "does not carry"},
+		{"a quoted passage opening with an id is not an id edit", block("rm", `kept "G-0491 records"`, "deleted"), "removes nothing"},
 		{"an id edit naming an entity that does not resolve", block("rm", "kept G-0491", "copy of G-0999"), "resolves to no entity"},
 		{"a destination that does not exist", block("rm", `missing "x"`, "relocated to .guidance/project/missing.md"), "does not exist"},
 		{"a destination path holding an id is judged as a path", block("rm", "kept G-0491", "copy of docs/adr/ADR-0004-missing.md"), "does not exist"},

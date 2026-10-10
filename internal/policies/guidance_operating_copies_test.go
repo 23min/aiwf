@@ -1,6 +1,7 @@
 package policies
 
 import (
+	"strconv"
 	"strings"
 	"testing"
 
@@ -34,6 +35,7 @@ func TestOperatingCopyViolations(t *testing.T) {
 		{"fragments in separate list items pass", map[string]string{"AGENTS.md": "- Run aiwf reallocate on a collision.\n- Never use git mv.\n"}, ""},
 		{"fragments in one paragraph fail", map[string]string{"AGENTS.md": "Run aiwf reallocate on a collision,\nnever git mv.\n"}, "reallocate-not-git-mv"},
 		{"fragments split across a line wrap fail", map[string]string{"AGENTS.md": "Decide one thing at a\ntime.\n"}, "one-decision-at-a-time"},
+		{"fragments split across an indented continuation fail", map[string]string{"AGENTS.md": "- Decide one thing at a\n  time.\n"}, "one-decision-at-a-time"},
 		{"a copy in the router fails", map[string]string{projectguidance.RouterFile: rule + "\n"}, "one-decision-at-a-time"},
 		{"a routed document aiwf owns is generated and passes", map[string]string{
 			projectguidance.RouterFile:      "- [Go](packs/go/guide.md)\n",
@@ -44,6 +46,17 @@ func TestOperatingCopyViolations(t *testing.T) {
 			projectguidance.RouterFile:     "- [Testing](project/testing.md)\n",
 			".guidance/project/testing.md": rule + "\n",
 		}, "one-decision-at-a-time"},
+	}
+	// CommonMark's list markers: a bullet of -, * or +, or a number closed
+	// by . or ), followed by a space or a tab. Each item is a paragraph of
+	// its own, whichever marker opens it.
+	for _, marker := range []string{"- ", "* ", "+ ", "1. ", "1) ", "-\t"} {
+		doc := marker + "Run aiwf reallocate on a collision.\n" + marker + "Never use git mv.\n"
+		cases = append(cases, struct {
+			name  string
+			files map[string]string
+			want  string
+		}{"fragments in separate items marked " + strconv.Quote(marker) + " pass", map[string]string{"AGENTS.md": doc}, ""})
 	}
 	for _, tc := range cases {
 		t.Run(tc.name, func(t *testing.T) {
