@@ -1,7 +1,7 @@
 ---
 id: M-0336
 title: Remove duplicated guidance and move each rule to its audience's home
-status: draft
+status: in_progress
 parent: E-0092
 depends_on:
     - M-0349
