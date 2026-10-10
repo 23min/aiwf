@@ -12,8 +12,10 @@ import (
 	"strconv"
 	"strings"
 	"testing"
+	"unicode"
 
 	"github.com/23min/aiwf/internal/check"
+	"github.com/23min/aiwf/internal/config"
 	"github.com/23min/aiwf/internal/projectguidance"
 )
 
@@ -516,6 +518,18 @@ func isIDEdit(word string) bool {
 	return len(check.ScanPlainTextIDs(word, "")) > 0
 }
 
+// isEntityID reports whether a disposition's destination names an entity
+// rather than a path: a path holding an id in its file name is a path.
+func isEntityID(target string) bool {
+	return isIDEdit(target) && !strings.Contains(target, "/")
+}
+
+// notIDRune separates the words of a row's text into the tokens an id edit
+// may name, so a shorter id never matches inside a longer one.
+func notIDRune(r rune) bool {
+	return r != '-' && r != '/' && !unicode.IsDigit(r) && !unicode.IsLetter(r)
+}
+
 // inventoryReconcileFindings holds each removal block to the inventory
 // (M-0336 AC-5, AC-6). A block names its row as the first word of its
 // Removed: value. One naming an id second is an edit AC-2 requires: the id
@@ -535,6 +549,10 @@ func inventoryReconcileFindings(blocks []removalBlock, rows []invRow, rowText fu
 	for _, b := range blocks {
 		at := fmt.Sprintf("commit %.9s, block %q", b.SHA, b.Removed)
 		words := strings.Fields(b.Removed)
+		if len(words) == 0 {
+			out = append(out, at+": names no inventory row")
+			continue
+		}
 		row, ok := byLabel[words[0]]
 		if !ok {
 			out = append(out, at+": its first word names no inventory row")
@@ -544,7 +562,7 @@ func inventoryReconcileFindings(blocks []removalBlock, rows []invRow, rowText fu
 			target, named := strings.CutPrefix(b.Disposition, form)
 			switch {
 			case !named:
-			case isIDEdit(target):
+			case isEntityID(target):
 				if !resolves(target) {
 					out = append(out, fmt.Sprintf("%s: names %s, which resolves to no entity", at, target))
 				}
@@ -553,7 +571,7 @@ func inventoryReconcileFindings(blocks []removalBlock, rows []invRow, rowText fu
 			}
 		}
 		if len(words) > 1 && isIDEdit(words[1]) {
-			if !strings.Contains(rowText(row), words[1]) {
+			if !slices.Contains(strings.FieldsFunc(rowText(row), notIDRune), words[1]) {
 				out = append(out, fmt.Sprintf("%s: names %s, which row %s's text at the freeze does not carry", at, words[1], row.Label))
 			}
 			continue
@@ -575,22 +593,42 @@ func inventoryReconcileFindings(blocks []removalBlock, rows []invRow, rowText fu
 	return out
 }
 
-// repoRemovalBlocks reads the disposition blocks of every commit after
-// inventoryReconcileBase.
-func repoRemovalBlocks(t *testing.T, root string) []removalBlock {
-	t.Helper()
-	commits, err := check.WalkInstructionCommits(context.Background(), root, inventoryReconcileBase+"..HEAD", "")
-	if err != nil {
-		t.Fatal(err)
-	}
-	var out []removalBlock
-	for _, c := range commits {
-		blocks, _ := check.ParseDispositionBlocks(c.Body)
-		for _, b := range blocks {
-			out = append(out, removalBlock{c.SHA, b})
+// fragmentLossFindings reports each part of the shipped fragment whose
+// words at the freeze no longer all survive, in order, at HEAD (M-0336
+// AC-5). Every fragment row is kept, so the epic may add to the fragment
+// but never take from it; the fence does not judge the fragment, so this
+// is what holds a removal there.
+func fragmentLossFindings(frozen, current map[string]string) []string {
+	var out []string
+	for _, p := range slices.Sorted(maps.Keys(frozen)) {
+		if !check.WordsSurviveInOrder(frozen[p], current[p]) {
+			out = append(out, fmt.Sprintf("%s: words the fragment held at the freeze are gone; every fragment row is kept, so restore them", p))
 		}
 	}
 	return out
+}
+
+// repoRemovalBlocks reads the disposition blocks of every commit after
+// inventoryReconcileBase that is not on trunk, and reports each malformed
+// one, since a block the parser drops would otherwise escape the check.
+func repoRemovalBlocks(t *testing.T, root string) (blocks []removalBlock, malformed []string) {
+	t.Helper()
+	cfg, _ := config.Load(root)
+	trunk, _ := cfg.AllocateTrunkRef()
+	commits, err := check.WalkInstructionCommits(context.Background(), root, inventoryReconcileBase+"..HEAD", trunk)
+	if err != nil {
+		t.Fatal(err)
+	}
+	for _, c := range commits {
+		good, bad := check.ParseDispositionBlocks(c.Body)
+		for _, b := range good {
+			blocks = append(blocks, removalBlock{c.SHA, b})
+		}
+		for _, m := range bad {
+			malformed = append(malformed, fmt.Sprintf("commit %.9s: malformed disposition block %q", c.SHA, m))
+		}
+	}
+	return blocks, malformed
 }
 
 // TestE0092Inventory holds M-0349's inventory to its rules against the
@@ -635,6 +673,15 @@ func TestE0092Inventory(t *testing.T) {
 	for _, p := range inventoryHostInserts {
 		documents[p] = frozen(p)
 	}
+	frozenFragment, currentFragment := map[string]string{}, map[string]string{}
+	for _, p := range append([]string{inventoryFragment}, inventoryHostInserts...) {
+		frozenFragment[p] = documents[p]
+		current, err := os.ReadFile(filepath.Join(root, filepath.FromSlash(p)))
+		if err != nil {
+			t.Fatal(err)
+		}
+		currentFragment[p] = string(current)
+	}
 	findings = append(findings, inventoryCoverageFindings(rows, documents)...)
 	findings = append(findings, inventoryWordFindings(rows, development)...)
 	rowText := func(r invRow) string {
@@ -653,8 +700,11 @@ func TestE0092Inventory(t *testing.T) {
 		}
 		return strings.TrimSpace(string(out)) != ""
 	}
-	findings = append(findings, inventoryReconcileFindings(repoRemovalBlocks(t, root), rows, rowText, exists,
+	blocks, malformed := repoRemovalBlocks(t, root)
+	findings = append(findings, malformed...)
+	findings = append(findings, inventoryReconcileFindings(blocks, rows, rowText, exists,
 		func(id string) bool { return check.EntityResolves(tr, id) }, changedBefore)...)
+	findings = append(findings, fragmentLossFindings(frozenFragment, currentFragment)...)
 	claude, codex := inventoryCeilingTargets(rows, inventoryRouterDraft(body), development, exists)
 	t.Logf("M-0349 AC-5 handwritten primed targets: claude-code %d, codex %d", claude, codex)
 	for _, f := range findings {
@@ -857,6 +907,10 @@ func TestInventoryReconcileFindings(t *testing.T) {
 		"| merged | A rule | `CLAUDE.md › Testing` | 5 | development | judgment | primed | merge into kept | |",
 		"| shipped | A rule | `CLAUDE.md › Gates` | 5 | operating | judgment | primed | move to the shipped fragment | |",
 		"| kept | A rule | `CLAUDE.md › Kept` | 5 | development | judgment | primed | keep | |",
+		"| tightened | A rule | `CLAUDE.md › Kept` | 5 | development | judgment | primed | tighten | |",
+		"| pointed | A rule | `CLAUDE.md › Kept` | 5 | development | check-backed | primed | pointer to `missing-check` | |",
+		"| skilled | A rule | `CLAUDE.md › Gates` | 5 | operating | judgment | on demand | move to the shipped skill `internal/skills/embedded/aiwf-add/SKILL.md` | |",
+		"| repoed | A rule | `F › A rule` | 5 | development | judgment | primed | move to repository guidance `CLAUDE.md` | |",
 	))
 	rowText := func(r invRow) string {
 		if r.Label == "kept" {
@@ -864,11 +918,12 @@ func TestInventoryReconcileFindings(t *testing.T) {
 		}
 		return ""
 	}
-	exists := func(p string) bool { return p != ".guidance/project/missing.md" }
+	exists := func(p string) bool { return !strings.Contains(p, "missing") }
 	resolves := func(id string) bool { return id == "G-0491" }
 	// The fragment changes in commit "add", ahead of "late", which has no
 	// such commit before it.
-	changedBefore := func(sha, path string) bool { return sha != "late" && path == inventoryFragment }
+	moved := []string{inventoryFragment, "internal/skills/embedded/aiwf-add/SKILL.md", "CLAUDE.md"}
+	changedBefore := func(sha, path string) bool { return sha != "late" && slices.Contains(moved, path) }
 	block := func(sha, removed, disposition string) removalBlock {
 		return removalBlock{sha, check.DispositionBlock{Removed: removed, Disposition: disposition}}
 	}
@@ -878,6 +933,10 @@ func TestInventoryReconcileFindings(t *testing.T) {
 		block("rm", `merged "x"`, "reworded"),
 		block("rm", `shipped "x"`, "copy of "+inventoryFragment),
 		block("rm", "kept G-0491", "copy of G-0491"),
+		block("rm", `tightened "x"`, "reworded"),
+		block("rm", `pointed "x"`, "pointer to missing-check"),
+		block("rm", `skilled "x"`, "copy of internal/skills/embedded/aiwf-add/SKILL.md"),
+		block("rm", `repoed "x"`, "copy of CLAUDE.md"),
 	}
 	cases := []struct {
 		name  string
@@ -886,12 +945,17 @@ func TestInventoryReconcileFindings(t *testing.T) {
 	}{
 		{"a valid set reports nothing", removalBlock{}, ""},
 		{"a block naming no row", block("rm", `absent "x"`, "deleted"), "names no inventory row"},
+		{"a block whose Removed: is empty", block("rm", "", "deleted"), "names no inventory row"},
 		{"an id edit naming an id the row does not carry", block("rm", "kept G-0999", "reworded"), "does not carry"},
+		{"an id edit naming a shorter id inside one the row carries", block("rm", "kept G-049", "reworded"), "does not carry"},
 		{"an id edit naming an entity that does not resolve", block("rm", "kept G-0491", "copy of G-0999"), "resolves to no entity"},
 		{"a destination that does not exist", block("rm", `missing "x"`, "relocated to .guidance/project/missing.md"), "does not exist"},
+		{"a destination path holding an id is judged as a path", block("rm", "kept G-0491", "copy of docs/adr/ADR-0004-missing.md"), "does not exist"},
 		{"a block disagreeing with its row", block("rm", `moved "x"`, "deleted"), "but row moved decides"},
 		{"a block under a row that removes nothing", block("rm", `kept "x"`, "deleted"), "removes nothing"},
 		{"a move removed before its new home changed", block("late", `shipped "x"`, "copy of "+inventoryFragment), "before any commit adds it"},
+		{"a skill move removed before its new home changed", block("late", `skilled "x"`, "copy of internal/skills/embedded/aiwf-add/SKILL.md"), "before any commit adds it"},
+		{"a repository move removed before its new home changed", block("late", `repoed "x"`, "copy of CLAUDE.md"), "before any commit adds it"},
 	}
 	for _, tc := range cases {
 		t.Run(tc.name, func(t *testing.T) {
@@ -909,6 +973,26 @@ func TestInventoryReconcileFindings(t *testing.T) {
 			}
 			if len(findings) != 1 || !strings.Contains(findings[0], tc.want) {
 				t.Errorf("findings = %q, want one containing %q", findings, tc.want)
+			}
+		})
+	}
+}
+
+// TestFragmentLossFindings pins the fragment rule (M-0336 AC-5): words
+// added among the fragment's frozen text pass, and a frozen word gone
+// fails.
+func TestFragmentLossFindings(t *testing.T) {
+	t.Parallel()
+	frozen := map[string]string{inventoryFragment: "- **Decide one thing at a time.** Each: the options.\n"}
+	for _, tc := range []struct{ name, current, want string }{
+		{"a clause added among the frozen words passes", "- **Decide one thing at a time.** The list ends with more. Each: the options.\n", ""},
+		{"a frozen word gone fails", "- **Decide one thing.** Each: the options.\n", "words the fragment held at the freeze are gone"},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			t.Parallel()
+			findings := fragmentLossFindings(frozen, map[string]string{inventoryFragment: tc.current})
+			if tc.want == "" && len(findings) != 0 || tc.want != "" && (len(findings) != 1 || !strings.Contains(findings[0], tc.want)) {
+				t.Errorf("findings = %q, want %q", findings, tc.want)
 			}
 		})
 	}
