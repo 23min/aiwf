@@ -22,7 +22,7 @@ acs:
       status: met
     - id: AC-5
       title: Every removal commit traces to an inventory row and its decided home
-      status: open
+      status: met
     - id: AC-6
       title: An audience move adds the rule to its new home, then removes the old copy
       status: open
