@@ -13,7 +13,7 @@ acs:
       status: met
     - id: AC-2
       title: Development guidance cites entity ids only through links
-      status: open
+      status: met
     - id: AC-3
       title: The generic Go conventions section is deleted
       status: open
