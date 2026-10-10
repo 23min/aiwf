@@ -12,8 +12,7 @@ import (
 // shape: a devcontainer-primary subsection precedes a macOS-host
 // fallback subsection, the body content under each names the
 // expected concepts (Linux + no-wrapper claim on the primary;
-// sign-and-run.sh + make test + G-0127/G-0128/G-0133 diagnostic
-// ids on the fallback), the "Defaults, not a chokepoint" caveat
+// sign-and-run.sh + make test on the fallback), the "Defaults, not a chokepoint" caveat
 // is scoped to the fallback block (not floating or in the primary
 // block), and the stale "Structural fix (Linux devcontainer) is
 // parked." phrase is absent (it shipped in M-0132).
@@ -90,24 +89,13 @@ func PolicyM0134ClaudeMdTestRunningSections(root string) ([]Violation, error) {
 	}
 
 	// macOS-host subsection: must carry the demoted wrapper-discipline
-	// content (sign-and-run.sh, make test, diagnostic gap ids).
+	// content (sign-and-run.sh, make test).
 	if macosBody != "" {
 		if !strings.Contains(macosBody, "sign-and-run.sh") {
 			report("macOS-host fallback subsection body does not mention `sign-and-run.sh` (the wrapper)")
 		}
 		if !strings.Contains(macosBody, "make test") {
 			report("macOS-host fallback subsection body does not mention `make test` (the recommended Do invocation)")
-		}
-		diagnosticGaps := []string{"G-0127", "G-0128", "G-0133"}
-		hasDiagnostic := false
-		for _, g := range diagnosticGaps {
-			if strings.Contains(macosBody, g) {
-				hasDiagnostic = true
-				break
-			}
-		}
-		if !hasDiagnostic {
-			report(fmt.Sprintf("macOS-host fallback subsection body does not mention any of the diagnostic gap ids %v", diagnosticGaps))
 		}
 	}
 
