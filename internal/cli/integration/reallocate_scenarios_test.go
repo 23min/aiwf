@@ -33,8 +33,8 @@ import (
 //     fix (prior_ids populated AND grows oldest-first across
 //     multiple renumbers).
 //
-//  3. Cross-branch merge collision (the CLAUDE.md §"Id-collision
-//     resolution at merge time" scenario) — trunk and branch each
+//  3. Cross-branch merge collision (the trunk collision the
+//     aiwf-reallocate skill resolves) — trunk and branch each
 //     independently allocated G-NNN; the trunk-aware allocator
 //     missed the collision (parallel un-pushed branches); the
 //     check rule `ids-unique/trunk-collision` fires; `aiwf
@@ -158,7 +158,7 @@ func TestReallocateScenarios_AC1_HistoricalCorpus(t *testing.T) {
 
 		// Scenario 3 — cross-branch merge collision.
 		{
-			Name: "cross-branch merge collision: aiwf check fires trunk-collision; reallocate resolves it (M-0160/AC-1: CLAUDE.md §Id-collision)",
+			Name: "cross-branch merge collision: aiwf check fires trunk-collision; reallocate resolves it (M-0160/AC-1)",
 			Setup: func(t *testing.T, env *ScenarioEnv) {
 				t.Helper()
 
@@ -190,7 +190,7 @@ func TestReallocateScenarios_AC1_HistoricalCorpus(t *testing.T) {
 				// `discovered_in:` to a fabricated id would fire
 				// `refs-resolve/unresolved` from the reallocate
 				// verb's own pre-flight check.
-				collidingBody := "---\nid: G-0001\ntitle: 'Different thing from feature branch'\nstatus: open\n---\n\n## What's missing\n\nFeature-side independently allocated G-0001 before trunk's update reached this branch — the parallel-clones case CLAUDE.md §Id-collision documents.\n"
+				collidingBody := "---\nid: G-0001\ntitle: 'Different thing from feature branch'\nstatus: open\n---\n\n## What's missing\n\nFeature-side independently allocated G-0001 before trunk's update reached this branch — the parallel-clones case the aiwf-reallocate skill resolves.\n"
 				if err := os.WriteFile(filepath.Join(env.Root, collidingPath), []byte(collidingBody), 0o644); err != nil {
 					t.Fatalf("write colliding gap: %v", err)
 				}

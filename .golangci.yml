@@ -53,9 +53,9 @@ linters:
         - fieldalignment
       enable-all: true
     forbidigo:
-      # Two project-specific rules from CLAUDE.md § Go conventions:
-      #   - "Library code never panics or os.Exits. Only cmd/<tool>/main.go
-      #      calls os.Exit." (§Error handling)
+      # Two rules:
+      #   - The Go pack's (.guidance/packs/go/cobra/guide.md) "library code
+      #      never panics or exits"; only cmd/<tool>/main.go calls os.Exit.
       #   - The verb/apply.go re-panic in G2's atomic-rollback path is the
       #      single sanctioned panic site; exempted via exclusions below.
       # forbidigo v2 matches the bare qualified name (no trailing call

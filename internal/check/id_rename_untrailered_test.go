@@ -9,7 +9,7 @@ import (
 
 // id_rename_untrailered_test.go — M-0160/AC-4: unit-level
 // coverage of the id-rename-untrailered kernel chokepoint rule,
-// which holds the shipped guidance's reallocate-not-git-mv rule.
+// which holds the shipped guidance's rule to resolve a collision with `aiwf reallocate`, not `git mv`.
 //
 // The rule fires when a commit between merge-base(HEAD, trunk)
 // and HEAD renames an id-bearing entity file AND lacks a

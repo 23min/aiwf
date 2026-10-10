@@ -30,7 +30,12 @@ The always-on guidance `aiwf init` and `aiwf update` install now says:
 
 The `aiwf-promote` skill adds that a milestone's `tdd:` setting never waives the evidence an AC
 needs and that the obligation binds at the promote, held at review. The `aiwf-reallocate` skill
-adds how to rule out a stale branch before reallocating on a trunk collision.
+adds how to rule out a stale branch before reallocating on a trunk collision, and now says the
+new id is allocated against every local branch and remote-tracking ref as well as trunk.
+
+The `id-rename-untrailered` finding and its hint point at that finding's entry in the
+`aiwf-check` skill, and the hint says `aiwf reallocate` rewrites references in other entities'
+frontmatter and reports mentions in body prose, rather than that it rewrites every reference.
 
 ### Changed (internal) — E-0098: aiwf's devcontainer is generated from the house devcontainer kit
 
