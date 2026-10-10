@@ -25,7 +25,7 @@ acs:
       status: met
     - id: AC-6
       title: An audience move adds the rule to its new home, then removes the old copy
-      status: open
+      status: met
 ---
 
 ## Goal
