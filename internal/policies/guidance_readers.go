@@ -91,6 +91,7 @@ var guidanceReaderList = map[string]guidanceReaderEntry{
 	"internal/policies.TestM0127_AC3_NoDanglingDocsPocv3References":           {readerAbsence, "no document references the retired pocv3 tree"},
 	"internal/policies.TestM0290_AC4_NoNormativeDocOffersTheRetiredVerb":      {readerAbsence, "no normative document offers the retired verb"},
 	"internal/policies.TestSkillEditProvenance_DocumentedInClaudeMd":          {readerAbsence, "the retired skill-edit mandate stays out; it also requires two CLAUDE.md headings to exist"},
+	"internal/policies.TestPolicy_GuidanceNoOperatingCopies":                  {readerAbsence, "no handwritten copy of a shipped operating rule"},
 	"internal/policies.TestAgentIsolationHook_DeniesWorktreeIsolation":        {readerNamesOnly, "names CLAUDE.md as a phrase the hook's message must contain"},
 	"internal/policies.TestPolicy_ConfigFieldsAreDiscoverable":                {readerRelationship, "reads the router to leave routed documents out of the channels"},
 	"internal/policies.TestPolicyDevcontainerPathsResolve":                    {readerRelationship, "checks that every .devcontainer/ path CLAUDE.md names exists"},

@@ -104,7 +104,7 @@ var m0211OperatingAnchors = []m0211Anchor{
 	{"ac-mechanical-evidence", []string{"mechanical evidence", "artefacts", "proxy"}},
 	{"one-decision-at-a-time", []string{"one thing at a time"}},
 	{"never-suggest-pause", []string{"never suggest", "pause"}},
-	{"body-prose-id", []string{"body-prose-id"}},
+	{"body-prose-id", []string{"body-prose-id", "canonical width"}},
 	{"cross-branch-allocation", []string{"--fetch", "push promptly"}},
 	{"bless-mode-body-edits", []string{"bless mode", "review-before-commit"}},
 	{"verb-template-managed-entities", []string{"template-managed", "hand-edit frontmatter"}},
