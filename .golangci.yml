@@ -1,5 +1,6 @@
 # Lint configuration for the aiwf Go module.
-# See CLAUDE.md § Go conventions for the full discipline.
+# The Go pack (.guidance/packs/go/cobra/guide.md) holds the generic Go
+# conventions; CLAUDE.md § Go conventions holds aiwf's own.
 version: "2"
 # build-tags brings tag-gated sources into the lint surface. Without
 # `stress`, the concurrency and observation-window scenario drivers under

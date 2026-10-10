@@ -41,8 +41,6 @@ import (
 // chokepoint-rule precedent); a future decision (recorded as a
 // D-NNN) may tighten to error after one epic of usage. This
 // milestone does not pre-commit the tightening timing.
-//
-// It holds the shipped guidance's rule to resolve a collision with `aiwf reallocate`, not `git mv`.
 var CodeIDRenameUntrailered = codespkg.Code{
 	ID:    "id-rename-untrailered",
 	Class: codespkg.ClassBranchChoreography,
