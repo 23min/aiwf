@@ -1,6 +1,8 @@
 package policies
 
 import (
+	"maps"
+	"slices"
 	"strconv"
 	"strings"
 	"testing"
@@ -34,6 +36,9 @@ func TestOperatingCopyViolations(t *testing.T) {
 		{"a handwritten copy beside the rendered block fails", map[string]string{"CLAUDE.md": "# Rules\n\n" + rule + "\n\n" + block}, "one-decision-at-a-time"},
 		{"fragments in separate list items pass", map[string]string{"AGENTS.md": "- Run aiwf reallocate on a collision.\n- Never use git mv.\n"}, ""},
 		{"fragments in one paragraph fail", map[string]string{"AGENTS.md": "Run aiwf reallocate on a collision,\nnever git mv.\n"}, "reallocate-not-git-mv"},
+		{"a copy capitalised at the start of a sentence fails", map[string]string{"AGENTS.md": "Never suggest the user pause.\n"}, "never-suggest-pause"},
+		{"fragments in separate paragraphs pass", map[string]string{"AGENTS.md": "Run aiwf reallocate on a collision.\n\nNever use git mv.\n"}, ""},
+		{"a list marker in mid-line splits nothing", map[string]string{"AGENTS.md": "Run aiwf reallocate on a collision; the\nrule - never git mv - holds.\n"}, "reallocate-not-git-mv"},
 		{"fragments split across a line wrap fail", map[string]string{"AGENTS.md": "Decide one thing at a\ntime.\n"}, "one-decision-at-a-time"},
 		{"fragments split across an indented continuation fail", map[string]string{"AGENTS.md": "- Decide one thing at a\n  time.\n"}, "one-decision-at-a-time"},
 		{"a copy in the router fails", map[string]string{projectguidance.RouterFile: rule + "\n"}, "one-decision-at-a-time"},
@@ -69,7 +74,7 @@ func TestOperatingCopyViolations(t *testing.T) {
 				}
 				return
 			}
-			if len(vs) != 1 || !strings.Contains(vs[0].Detail, tc.want) {
+			if len(vs) != 1 || !strings.Contains(vs[0].Detail, tc.want) || !slices.Contains(slices.Collect(maps.Keys(tc.files)), vs[0].File) {
 				t.Errorf("violations = %v, want one naming %q", vs, tc.want)
 			}
 		})

@@ -516,7 +516,7 @@ func decidedDisposition(d invDisposition) (string, bool) {
 // guidance may not carry, as AC-2's scan classifies it. The word is the
 // token itself: one opening a quoted passage is the passage's first word.
 func isIDEdit(word string) bool {
-	return word != "" && !strings.ContainsRune("\"'`(", rune(word[0])) && len(check.ScanPlainTextIDs(word, "")) > 0
+	return !strings.HasPrefix(word, `"`) && len(check.ScanPlainTextIDs(word, "")) > 0
 }
 
 // isEntityID reports whether a disposition's destination names an entity
@@ -952,6 +952,7 @@ func TestInventoryReconcileFindings(t *testing.T) {
 		{"an id edit naming an id the row carries only inside a composite", block("rm", "kept M-0336", "reworded"), "does not carry"},
 		{"a quoted passage opening with an id is not an id edit", block("rm", `kept "G-0491 records"`, "deleted"), "removes nothing"},
 		{"an id edit naming an entity that does not resolve", block("rm", "kept G-0491", "copy of G-0999"), "resolves to no entity"},
+		{"a pointer naming an entity that does not resolve", block("rm", "kept G-0491", "pointer to G-0999"), "resolves to no entity"},
 		{"a destination that does not exist", block("rm", `missing "x"`, "relocated to .guidance/project/missing.md"), "does not exist"},
 		{"a destination path holding an id is judged as a path", block("rm", "kept G-0491", "copy of docs/adr/ADR-0004-missing.md"), "does not exist"},
 		{"a block disagreeing with its row", block("rm", `moved "x"`, "deleted"), "but row moved decides"},

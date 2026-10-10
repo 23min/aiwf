@@ -37,7 +37,7 @@ func TestGuidanceIDViolations(t *testing.T) {
 				}
 				return
 			}
-			if len(vs) != 1 || !strings.Contains(vs[0].Detail, tc.want) {
+			if len(vs) != 1 || !strings.Contains(vs[0].Detail, tc.want) || vs[0].File != "CLAUDE.md" || vs[0].Line != 0 {
 				t.Errorf("violations = %v, want one naming %s", vs, tc.want)
 			}
 		})
