@@ -631,12 +631,14 @@ func TestRemovesText(t *testing.T) {
 	}
 }
 
-// TestDispositionBlocks pins the block grammar (M-0350 AC-3): a Removed:
-// line immediately followed by a Disposition: line whose value is one of
-// copy of <path>, relocated to <path>, pointer to <id>, reworded or
+// TestParseDispositionBlocks pins the block grammar (M-0350 AC-3): a
+// Removed: line immediately followed by a Disposition: line whose value is
+// one of copy of <path>, relocated to <path>, pointer to <id>, reworded or
 // deleted. Every Removed: line opens a block, so a half-written block or a
-// prose line starting that way is malformed even beside a good block.
-func TestDispositionBlocks(t *testing.T) {
+// prose line starting that way is malformed even beside a good block. A
+// well-formed block is returned with both values trimmed (M-0336 AC-5
+// reads them).
+func TestParseDispositionBlocks(t *testing.T) {
 	t.Parallel()
 	tests := []struct {
 		name            string
@@ -659,12 +661,20 @@ func TestDispositionBlocks(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
-			good, bad := dispositionBlocks(tt.body)
-			if good != tt.wellFormed || len(bad) != tt.bad {
-				t.Errorf("dispositionBlocks = %d well-formed, %v malformed; want %d, %d", good, bad, tt.wellFormed, tt.bad)
+			good, bad := ParseDispositionBlocks(tt.body)
+			if len(good) != tt.wellFormed || len(bad) != tt.bad {
+				t.Errorf("ParseDispositionBlocks = %d well-formed, %v malformed; want %d, %d", len(good), bad, tt.wellFormed, tt.bad)
 			}
 		})
 	}
+	t.Run("values are returned trimmed", func(t *testing.T) {
+		t.Parallel()
+		got, _ := ParseDispositionBlocks("  Removed:  kiss \"Prefer the boring solution.\"  \n Disposition:  copy of a.md \n")
+		want := []DispositionBlock{{Removed: `kiss "Prefer the boring solution."`, Disposition: "copy of a.md"}}
+		if diff := cmp.Diff(want, got); diff != "" {
+			t.Errorf("ParseDispositionBlocks (-want +got):\n%s", diff)
+		}
+	})
 }
 
 // TestInstructionFence_Disposition is M-0350 AC-3 end to end: a commit

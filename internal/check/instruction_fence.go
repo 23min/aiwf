@@ -107,7 +107,7 @@ func RunInstructionFence(commits []InstructionCommit, resolves func(string) bool
 			})
 		}
 		if c.Removes {
-			good, bad := dispositionBlocks(c.Body)
+			blocks, bad := ParseDispositionBlocks(c.Body)
 			switch {
 			case len(bad) > 0:
 				out = append(out, Finding{
@@ -116,7 +116,7 @@ func RunInstructionFence(commits []InstructionCommit, resolves func(string) bool
 					Message:  fmt.Sprintf("commit %s removes handwritten instruction text (%s) and carries a malformed disposition block: %s", shortHash(c.SHA), changed, strings.Join(bad, "; ")),
 					Path:     c.Changed[0],
 				})
-			case good == 0:
+			case len(blocks) == 0:
 				out = append(out, Finding{
 					Code:     CodeInstructionCommitDispositionMissing.ID,
 					Severity: SeverityError,
@@ -499,16 +499,22 @@ var (
 	dispositionWords = []string{"reworded", "deleted"}
 )
 
-// dispositionBlocks scans a commit message for disposition blocks and
-// returns how many are well-formed and the malformed ones. Every line
-// starting Removed: opens a block, so a half-written block is never
-// mistaken for prose. It checks shape only: whether a named path or id
-// exists, and whether every removed passage has its block, is held at
-// review.
-func dispositionBlocks(body string) (wellFormed int, malformed []string) {
+// DispositionBlock is one well-formed disposition block: the values of its
+// Removed: line and of the Disposition: line after it.
+type DispositionBlock struct {
+	Removed, Disposition string
+}
+
+// ParseDispositionBlocks scans a commit message for disposition blocks and
+// returns the well-formed ones and the malformed ones. Every line starting
+// Removed: opens a block, so a half-written block is never mistaken for
+// prose. It checks shape only: whether a named path or id exists, and
+// whether every removed passage has its block, is held at review.
+func ParseDispositionBlocks(body string) (blocks []DispositionBlock, malformed []string) {
 	lines := strings.Split(body, "\n")
 	for i, l := range lines {
-		if !strings.HasPrefix(strings.TrimSpace(l), removedKey) {
+		removed, ok := strings.CutPrefix(strings.TrimSpace(l), removedKey)
+		if !ok {
 			continue
 		}
 		next := ""
@@ -516,16 +522,17 @@ func dispositionBlocks(body string) (wellFormed int, malformed []string) {
 			next = strings.TrimSpace(lines[i+1])
 		}
 		value, ok := strings.CutPrefix(next, dispositionKey)
+		value = strings.TrimSpace(value)
 		switch {
 		case !ok:
 			malformed = append(malformed, strings.TrimSpace(l)+" (no Disposition: line follows)")
-		case validDisposition(strings.TrimSpace(value)):
-			wellFormed++
+		case validDisposition(value):
+			blocks = append(blocks, DispositionBlock{Removed: strings.TrimSpace(removed), Disposition: value})
 		default:
 			malformed = append(malformed, next)
 		}
 	}
-	return wellFormed, malformed
+	return blocks, malformed
 }
 
 func validDisposition(v string) bool {
