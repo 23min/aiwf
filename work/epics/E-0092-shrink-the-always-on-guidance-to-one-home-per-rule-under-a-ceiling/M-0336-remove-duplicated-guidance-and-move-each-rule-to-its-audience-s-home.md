@@ -16,7 +16,7 @@ acs:
       status: met
     - id: AC-3
       title: The generic Go conventions section is deleted
-      status: open
+      status: met
     - id: AC-4
       title: The ceiling constant steps down to the post-deletion size
       status: open
