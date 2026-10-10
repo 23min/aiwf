@@ -11,6 +11,10 @@ The `aiwf reallocate` verb resolves id collisions by picking the next free id, `
 
 `aiwf check` reported `ids-unique` (or the pre-push hook blocked a push for the same reason). Two files claim the same id — almost always because two branches independently allocated the id and were then merged.
 
+### Rule out a stale branch first
+
+When the collision is `ids-unique/trunk-collision` after a merge, first rule out a stale branch: a rename landed on trunk (`aiwf retitle` or `aiwf rename`) after your branch forked, and your branch still holds the old copy of the same entity. Check with `git log --diff-filter=R --follow <trunk-ref> -- <trunk-path>`, naming the trunk ref before the pathspec, or the check reads HEAD and misses the rename; or merge trunk into your branch and see whether the collision resolves. If it does, that merge is the fix, and reallocating your copy would create a genuine duplicate entity. Reallocate only once the two paths are confirmed to be unrelated entities.
+
 ## What to run
 
 ```bash
