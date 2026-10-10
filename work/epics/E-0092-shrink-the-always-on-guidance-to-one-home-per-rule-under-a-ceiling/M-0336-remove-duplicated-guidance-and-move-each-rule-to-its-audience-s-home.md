@@ -19,7 +19,7 @@ acs:
       status: met
     - id: AC-4
       title: The ceiling constant steps down to the post-deletion size
-      status: open
+      status: met
     - id: AC-5
       title: Every removal commit traces to an inventory row and its decided home
       status: open
