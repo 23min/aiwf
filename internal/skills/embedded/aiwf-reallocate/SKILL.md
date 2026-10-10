@@ -29,11 +29,11 @@ When passing an id and two entities share it, `aiwf` runs the trunk-ancestry tie
 
 Sandbox repos with no trunk in scope skip the tiebreaker — operators always pass a path there.
 
-The id format never gets a letter suffix; collision recovery always picks `max + 1` against the working tree ∪ trunk.
+The id format never gets a letter suffix; collision recovery always picks `max + 1` against every id the allocator scans.
 
 ## What aiwf does
 
-1. Picks the next free id for the kind (`max + 1` at call time, scanning the working tree ∪ the configured trunk ref so the new id can't collide with trunk either).
+1. Picks the next free id for the kind (`max + 1` at call time, scanning the working tree, every local branch, every remote-tracking ref and the configured trunk ref, so the new id collides with none of them). That scan feeds allocation only; the `ids-unique` check compares the working tree with trunk.
 2. `git mv` the colliding file or directory to its new path.
 3. Rewrites every reference field in every other entity's frontmatter (e.g., a milestone's `parent`, a gap's `addressed_by`).
 4. Appends the OLD id to the renumbered entity's `prior_ids:` frontmatter list (oldest-first). The list is the tree-level source of truth for lineage; tree-only readers (`aiwf show`, the HTML render, future projections) read it directly without shelling out to git log.

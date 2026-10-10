@@ -11,10 +11,10 @@ turn. The exception is **Code-health priming** at the end — {{aiwf:fragment:sk
   than reading a past approval as a standing preference for batches. The **declared-sequence gate** is
   the one bounded exception: one approval covers *local, reversible* mutations found together in one
   unit of work (an AC, a bug fix, a wrap sequence), verb types mixed freely, provided it enumerates
-  every action verbatim and lets you approve a subset. Any deviation — a conflict, a finding, unexpected
-  dirty state, an action not on the list — aborts the sequence and re-gates. The `aiwfx-wrap-*` rituals use it for their
-  terminal sequence (promote-done, local merge, cleanup). Outward or irreversible actions (push, `gh
-  pr create`, tag-push, remote-branch delete, `--force`) never batch. `tdd: required` phase promotes (red/green/done/met)
+  every action verbatim and lets you approve a subset. The `aiwfx-wrap-*` rituals use it for their
+  terminal sequence (promote-done, local merge, cleanup). Any deviation — a conflict, a finding,
+  unexpected dirty state, an action not on the list — aborts a declared sequence and re-gates. Outward
+  or irreversible actions (push, `gh pr create`, tag-push, remote-branch delete, `--force`) never batch. `tdd: required` phase promotes (red/green/done/met)
   streamline by default — live, ungated, test-evidenced — wrap review and push stay the control points.
 - **Body edits keep a review-before-commit window — prefer bless mode.** A
   structured-state verb (`aiwf promote` / `cancel` / `reallocate`) mutates and
