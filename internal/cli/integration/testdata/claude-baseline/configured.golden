@@ -53,7 +53,6 @@
 0644 db3ae26e01bbd148c6312f74f8c5797be8c3f669a9d84bb56c334e97dab8e725 .claude/skills/wf-rethink/SKILL.md
 0644 dceafde94f955c60d7c87ccb87b184f0f399c75eee9b3a3d79a5d606c63a4f7c .claude/skills/aiwfx-start-milestone/SKILL.md
 0644 e09312b1a5d18c33a74012763b0a46850c23a94a00e65920ce81172357a53e91 .claude/skills/aiwfx-release/SKILL.md
-0644 e3dd094a9e4601da6b77c73d341bf87ca00fc4d0ad8d92df3d13e5bbe80d62b4 .claude/skills/aiwf-reallocate/SKILL.md
 0644 e3f65c3d27b41240fb381ffecc76b84cc72262618273f7b8eb4339c7467218c6 .claude/agents/reviewer.md
 0644 e9e52eb173c4f0246b525ec77f5be5faffc260f6618934def07f6256fcdb3bd4 .claude/agents/builder.md
 0644 f4208309eabc66588c4abb58a091f36198b6dc98f10bacd773e93e2ead41c32b .claude/skills/aiwf-authorize/SKILL.md
@@ -62,6 +61,7 @@
 0644 f94f50abdb93ca954f1ddc7cd8256c6be0b0efb69875974aecb8fccb74d6167e .claude/skills/aiwfx-record-decision/SKILL.md
 0644 fa5a658ca1a1e1de4f8b20b4719756e61f06d993eff8a07efe720f0cac8600b1 .claude/skills/wf-structural-sweep/SKILL.md
 0644 fad0e67abd5c8c9f42ceb60447f48a8ec528c0c27c699bb4bdff68fd5a8626e3 .claude/skills/aiwf-status/SKILL.md
+0644 fbd5d015725aeabb3ff76a26b785051c9c33e42e0c7e19efd3a6e180078683b1 .claude/skills/aiwf-reallocate/SKILL.md
 0644 fe3fa87d57849d66d5251c759de5044cef4e56b73b4cef425e9df46528e3b7c7 .claude/skills/aiwf-list/SKILL.md
 0755 a4abd1afd32f16900d3a659bc529ade4691ac9d71c8bbb3953278e8c703d24be git-hooks/commit-msg
 0755 ac9d397b5f00c7f5ead9a44a017b5d71c70fba0ac5f0e83626fb77c5ebb54517 .claude/hooks/worktree-rituals-check.sh

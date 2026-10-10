@@ -338,7 +338,7 @@ var hintTable = map[string]string{
 	// `aiwf history` bridges old→new. Sovereign-human override via
 	// `aiwf acknowledge illegal` is the post-hoc silencing path for
 	// renames that were deliberate.
-	"id-rename-untrailered": "the commit renamed an id-bearing entity file without an `aiwf-verb` trailer in the rename-class set (retitle/rename/reallocate/archive/move). Canonical resolution: run `aiwf reallocate <new-id-or-path>` to record the renumber with the proper trailer set — that rewrites references in other entities' frontmatter, reports mentions in body prose, and bridges `aiwf history` from the old id; alternatively, if the original rename was deliberate sovereign-human work, run `aiwf acknowledge illegal <sha> --reason \"<text>\"` to silence this specific commit's finding without rewriting history. See the id-rename-untrailered entry in the aiwf-check skill.",
+	"id-rename-untrailered": "the commit renamed an id-bearing entity file without an `aiwf-verb` trailer in the rename-class set (retitle/rename/reallocate/archive/move). Canonical resolution: run `aiwf reallocate <new-id-or-path>` to record the renumber with the proper trailer set — that rewrites cross-references and bridges `aiwf history` from the old id; alternatively, if the original rename was deliberate sovereign-human work, run `aiwf acknowledge illegal <sha> --reason \"<text>\"` to silence this specific commit's finding without rewriting history. See the id-rename-untrailered entry in the aiwf-check skill.",
 
 	// Verb-emitted findings (from internal/verb/).
 	"unexpected-tree-file": "remove the file with `git rm <path>` or move it outside `work/`; if it genuinely belongs there, add a glob to `tree.allow_paths` in aiwf.yaml — but tree-shape changes (new entities, renames, status transitions) go through `aiwf <verb>`, not direct writes",
@@ -375,9 +375,8 @@ var hintTable = map[string]string{
 }
 
 // HintFor returns the canonical action hint for a given code+subcode.
-// Returns "" when no hint is registered. Verb-side findings (e.g.,
-// reallocate-body-reference) call this so the human-facing suggestion
-// stays in one place.
+// Returns "" when no hint is registered. Verb-side findings call this
+// so the human-facing suggestion stays in one place.
 //
 // Two sentences are appended here rather than carried in the table: a
 // ratifiable code's acknowledgment remedy (see ratificationSentence)

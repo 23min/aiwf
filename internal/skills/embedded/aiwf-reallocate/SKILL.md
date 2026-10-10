@@ -5,7 +5,7 @@ description: Use when `aiwf check` reports an `ids-unique` finding (two entities
 
 # aiwf-reallocate
 
-The `aiwf reallocate` verb resolves id collisions by picking the next free id, `git mv`-ing the colliding entity, and walking every other entity's frontmatter to rewrite reference fields. Body-prose mentions are surfaced as findings — humans review those.
+The `aiwf reallocate` verb resolves id collisions by picking the next free id, `git mv`-ing the colliding entity, and rewriting every reference to the old id across the tree — reference fields in frontmatter and mentions in body prose alike, the renumbered entity's own body included.
 
 ## When to use
 
@@ -13,7 +13,7 @@ The `aiwf reallocate` verb resolves id collisions by picking the next free id, `
 
 ### Rule out a stale branch first
 
-When the collision is `ids-unique/trunk-collision` after a merge, first rule out a stale branch: a rename landed on trunk (`aiwf retitle` or `aiwf rename`) after your branch forked, and your branch still holds the old copy of the same entity. Check with `git log --diff-filter=R --follow <trunk-ref> -- <trunk-path>`, naming the trunk ref before the pathspec, or the check reads HEAD and misses the rename; or merge trunk into your branch and see whether the collision resolves. If it does, that merge is the fix, and reallocating your copy would create a genuine duplicate entity. Reallocate only once the two paths are confirmed to be unrelated entities.
+When the collision is `ids-unique/trunk-collision` after a merge, first rule out a stale branch: a rename landed on trunk without an aiwf rename trailer — a plain `git mv` — after your branch forked, and your branch still holds the old copy of the same entity. A trunk rename made with `aiwf retitle` or `aiwf rename` is recognised and does not collide. Check with `git log --diff-filter=R --follow <trunk-ref> -- <trunk-path>`, naming the trunk ref before the pathspec, or the check reads HEAD and misses the rename; or merge trunk into your branch and see whether the collision resolves. If it does, that merge is the fix, and reallocating your copy would create a genuine duplicate entity. Reallocate only once the two paths are confirmed to be unrelated entities.
 
 ## What to run
 
@@ -37,7 +37,7 @@ The id format never gets a letter suffix; collision recovery always picks `max +
 2. `git mv` the colliding file or directory to its new path.
 3. Rewrites every reference field in every other entity's frontmatter (e.g., a milestone's `parent`, a gap's `addressed_by`).
 4. Appends the OLD id to the renumbered entity's `prior_ids:` frontmatter list (oldest-first). The list is the tree-level source of truth for lineage; tree-only readers (`aiwf show`, the HTML render, future projections) read it directly without shelling out to git log.
-5. Reports body-prose mentions of the old id as findings — those need a human eye, since prose is not parsed.
+5. Rewrites every mention of the old id in body prose, in every entity, the renumbered one included.
 6. Commits with trailers `aiwf-verb: reallocate`, `aiwf-entity: <new-id>`, `aiwf-prior-entity: <old-id>`, `aiwf-actor: <actor>`.
 
 `aiwf history <old-id>` still works after a renumber: the cmd dispatcher resolves the queried id through `prior_ids`, walks the full chain (every prior id plus the current id), and runs one `git log` grep against the union. Both the original id and the current id return the same chronological timeline — pre-rename commits, the rename commit, and post-rename commits, in order.
