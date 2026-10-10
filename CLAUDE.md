@@ -6,9 +6,6 @@ This repo carries `aiwf` — a small framework that helps humans and AI assistan
 
 ## Engineering principles
 
-- **KISS.** Prefer the boring solution. A few similar lines beat a premature abstraction. Avoid cleverness (reflection, metaprogramming, deep generics, control-flow tricks) unless the simple version is demonstrably worse.
-- **YAGNI.** No speculative interfaces, no "might need it later" knobs, no plugin systems for one implementation. Add the second case when it shows up; abstract on the third.
-- **No half-finished implementations.** A feature that lands, lands tested. Stubs and TODOs in shipped code are a smell.
 - **Errors are findings, not parse failures.** `aiwf check` loads inconsistent state and reports it; it never refuses to start. Validation is a separate axis from loading.
 - **Framework correctness must not depend on LLM behavior.** Skills are advisory; the pre-push hook and `aiwf check` are authoritative. A guarantee that depends on the LLM remembering to invoke a skill is not a guarantee.
 - **Kernel functionality must be AI-discoverable.** Every verb, flag, JSON field, body-section name, finding code, trailer key, and YAML field is reachable via `aiwf <verb> --help`, embedded skills under the selected host’s `.claude/skills/aiwf-*` or `.agents/skills/aiwf-*`, or the design docs. If an AI must grep source to learn a capability, it's undocumented — ship `--help` + skill docs alongside the implementation.
@@ -184,20 +181,15 @@ Two audiences read guidance, each with a different shippable home. The dividing 
 
 ## Go conventions
 
-Repo-wide principles (KISS, YAGNI, no half-finished implementations, errors-as-findings) cascade in on top of these.
-
 ### Formatting and linting
 
-- **`gofumpt`** formats (via `golangci-lint`, no separate install); gofumpt-clean implies gofmt/goimports-clean.
 - **`golangci-lint`** is the only linter. Enabled: `errcheck`, `govet`, `ineffassign`, `staticcheck`, `unused`, `gocritic`, `revive`, `gosec`, `bodyclose`, `unconvert`, `misspell`, `gofumpt`, `goimports`. CI fails on any finding. No `//nolint` without a one-line rationale.
 - **Never `var _ = x` to silence `unused`.** A blank-identifier alias kept solely to stop `unused`/`staticcheck` flagging reserved-for-future code defeats the check whose job is to find exactly that. No caller → not ready to land; delete it and re-add with its first real caller (the shipped form of this force is `wf-codebase-health` H2).
 
 ### Testing
 
-- **stdlib `testing` + `github.com/google/go-cmp`.** No testify, no assertion DSLs.
 - **Table-driven** when ≥2 cases share a function (subtests via `t.Run`); single-case tests stay flat.
 - **Golden files** under `testdata/`, synthetic (obviously-fictional) content only.
-- **Race detector on every CI run:** `go test -race ./...`.
 
 #### Running tests in the devcontainer (primary)
 
@@ -240,16 +232,9 @@ High coverage on `internal/...` (PoC target 90%; total-coverage check advisory).
 - **Firing-fixture meta-gate.** Every policy's `Policy: "<id>"` construction line must be covered by some test (no vacuous chokepoints), else it fails unless its id is in the shrinking `grandfatherDark` ledger. Engine: `internal/policies/firing_fixture_presence.go`; runs with `make ci` / `make coverage-gate`. Fail-closed if the profile carries no `internal/policies` blocks.
 - **Beyond line coverage.** Fuzz targets (`Fuzz*` in `internal/{entity,gitops,version,pathutil}/`, full runs on the `fuzz` workflow); property tests (`internal/entity/transition_property_test.go` + `PolicyFSMInvariants`); mutation testing (`mutate-hunt`, workflow_dispatch only, `--workers 1 --timeout-coefficient 15`; ignore equivalent-mutant / unreachable-branch noise).
 
-### Error handling
-
-- Wrap across boundaries: `fmt.Errorf("loading %s: %w", path, err)`. Compare with `errors.Is`/`errors.As`, never `==` (except sentinels you own).
-- Sentinel errors for stable conditions; typed errors when the error carries data.
-- **Library code never `panic`s or `os.Exit`s** — only `cmd/<tool>/main.go` exits.
-
 ### Concurrency
 
 - `context.Context` is the first arg of every IO-touching function (cancellation only; don't stuff request data via `WithValue` except across API boundaries).
-- Never hold a mutex across an IO call.
 
 ### CLI conventions
 
@@ -257,7 +242,6 @@ High coverage on `internal/...` (PoC target 90%; total-coverage check advisory).
 - **Exit codes:** `0` ok, `1` findings, `2` usage, `3` internal. Verbs return `int`; the `RunE` adapter shuttles via `*exitError`.
 - **Output:** human-readable by default; `--format=json` emits `{ tool, version, status, findings, result, metadata }` (`status` ∈ `ok`/`findings`/`error`); `--pretty` indents; tool output → stdout. **Diagnostic/operator logging** is opt-in and default-off ([ADR-0017](docs/adr/ADR-0017-opt-in-slog-diagnostic-logging-default-off-xdg-state-home-file-route.md)): `log/slog`, configured via `AIWF_LOG`/`AIWF_LOG_FORMAT`/`AIWF_LOG_FILE` (env beats `aiwf.yaml`'s `logging:` block beats the default), writes structured records to a daily-rotated file under the XDG state home by default — never stderr unless explicitly configured there. `forbidigo` (backed by the `logging-chokepoint` AST policy, which also catches `fmt.Fprintln`/`fmt.Fprintf` to `os.Stdout`/`os.Stderr`) bans bare `fmt.Print*` call sites outside the sanctioned `cliutil` text wrappers, so operator-facing text can't silently drift back onto ad hoc prints; diagnostic logging goes through `log/slog` in `internal/logger`, never a bare print.
 - **Flags:** `--help`, `--version`, `-v`, `--pretty` plus verb-specific. No global config files; config via flags, env, or `aiwf.yaml`.
-- **No package-level mutable state.** Inject dependencies via struct fields / constructors (`func New(deps Deps) *T`) — never a package var tests mutate.
 
 ### Commit conventions
 
@@ -287,7 +271,6 @@ Package names short, lowercase, singular (`entity` not `entities`). Avoid stutte
 
 ### Type design
 
-- **Closed-set enums ship only values with a current call site.** Speculative future values violate YAGNI.
 - **The six kinds and their status sets are hardcoded in Go**, not external YAML (deferred until a real consumer needs custom vocabulary).
 - **`entities.title_max_length` in `aiwf.yaml`** caps title (at `add`/`retitle`/`import`) and slug (at `rename`); default 80. Hard-reject, not truncate — the error points at `--body-file`. Title and slug share the budget so filenames and frontmatter stay in sync. Pre-cap titles are grandfathered; clean up with `aiwf retitle` (re-derives the slug), which the check treats as a git rename so a retitle batch pushes cleanly. Re-derivation applies only while the slug still tracks the title — one set deliberately with `aiwf rename` is preserved, so `rename`'s effect outlives the next retitle rather than lasting until it ([ADR-0037](docs/adr/ADR-0037-retitle-re-derives-the-slug-only-while-it-tracks-the-title.md)).
 
@@ -334,8 +317,6 @@ Relax a blocking rule for a specific call site via the linter's allowlist with a
 <!-- aiwf:guidance:START - DO NOT EDIT, regenerated by aiwf update -->
 @.claude/aiwf-guidance.md
 <!-- aiwf:guidance:END -->
-
-
 
 <!-- aiwf:engineering-guidance:START - DO NOT EDIT, regenerated by aiwf update -->
 Before using engineering guidance, check for .guidance/.aiwf-pending. If it exists,
