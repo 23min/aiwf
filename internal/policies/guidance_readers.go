@@ -78,8 +78,6 @@ var guidanceReaderList = map[string]guidanceReaderEntry{
 	"internal/policies.TestAiwfArchive_AC6_ClaudeMdNamesArchiveConvention":    {readerPin, "pins the archive-convention commitment of CLAUDE.md"},
 	"internal/policies.TestM0154_AC2_CLAUDEMDOperatorSetupAmended":            {readerPin, "pins the operator-setup passage of CLAUDE.md"},
 	"internal/policies.TestM0195_AC5_SkillBodyDisciplineInClaudeMd":           {readerPin, "pins the shipped-surface discipline passage of CLAUDE.md"},
-	"internal/policies.TestM0209_AC1_GeneralizedGateInClaudeMd":               {readerPin, "pins the declared-sequence gate passage of CLAUDE.md"},
-	"internal/policies.TestM0211_AC1_ClaudeMdIdCollisionSplitInPlace":         {readerPin, "pins the id-collision resolution passage of CLAUDE.md"},
 	"internal/policies.TestM0211_AC3_AuthoringRuleNamesDividingPrinciple":     {readerPin, "pins the audience-dividing passage of CLAUDE.md"},
 	"internal/policies.TestM0234_AC4_ClaudeMdWorktreeSectionsCiteWorktreeAdd": {readerPin, "pins the worktree passages of CLAUDE.md"},
 	"internal/policies.TestM0293_KernelGuidanceStatesForceIsHumanOnly":        {readerPin, "pins the force-is-human-only statements of CLAUDE.md"},
