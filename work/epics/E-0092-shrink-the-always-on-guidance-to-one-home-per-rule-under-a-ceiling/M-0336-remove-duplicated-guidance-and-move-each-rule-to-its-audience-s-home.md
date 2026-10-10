@@ -10,7 +10,7 @@ tdd: advisory
 acs:
     - id: AC-1
       title: Development guidance has no independent copy of operating rules
-      status: open
+      status: met
     - id: AC-2
       title: Development guidance cites entity ids only through links
       status: open
