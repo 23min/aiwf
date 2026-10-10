@@ -78,6 +78,7 @@ A rule the inventory moves between homes — `move to the shipped fragment`, `mo
 - D-0102 shapes AC-1 and AC-2 as absence and structure checks; neither can hold a sentence in place, and each is listed as a guidance reader.
 - AC-3 is observational, so this milestone runs under `tdd: advisory`; its other criteria carry tests regardless.
 - AC-5's check maps each inventory decision to the block dispositions it allows: `delete as copy of` and the three audience moves to `copy of`, `move on demand to` to `relocated to`, `pointer to` to `pointer to`, and `merge into` and `tighten` to `reworded`. Until M-0338 AC-3, a row not yet carried out is not a finding.
+- A block names its row as the first word of its `Removed:` value, ahead of the quoted text: `Removed: kiss "…"`. An edit AC-2 requires names the id as the second word, `Removed: write-executable G-0491`, with any disposition the fence accepts; AC-5's check confirms that id is in the row's text at the inventory's freeze and holds it to nothing further, while every other block must agree with its row's decision. The check reads blocks only from commits after this milestone's promote to `in_progress`, since earlier blocks in E-0092's range predate the label.
 
 ## Surfaces touched
 
