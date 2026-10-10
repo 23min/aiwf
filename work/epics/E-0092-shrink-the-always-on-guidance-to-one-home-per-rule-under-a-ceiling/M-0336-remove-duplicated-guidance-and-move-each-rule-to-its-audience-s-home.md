@@ -108,11 +108,24 @@ A rule the inventory moves between homes — `move to the shipped fragment`, `mo
 
 ## Release note
 
+The always-on guidance `aiwf init` and `aiwf update` install adds four clauses to the rules it already states: any deviation from a declared-sequence gate's list aborts the sequence and re-gates; a remote-branch delete is an outward action that never batches; a one-at-a-time decision list ends with "something else", the pick is confirmed in one line, and "Q&A" or "interview me" asks for the same; and what you noticed is surfaced, whether it is fixed in place or filed. The `aiwf-promote` skill says a milestone's `tdd:` setting never waives the evidence an AC needs and that the obligation binds at the promote. The `aiwf-reallocate` skill says how to rule out a stale branch before reallocating on a trunk collision. The `id-rename-untrailered` finding and its hint point at the `aiwf-reallocate` skill rather than at a section of aiwf's own `CLAUDE.md`.
+
 ## Decisions made during implementation
 
-- (none)
+- Where a disposition block names its inventory row, and how an edit M-0336 AC-2 requires is told apart from one that carries out the row's decision, as Design notes state. Decided by the maintainer, 2026-10-10.
+- M-0336 AC-1's check reads a copy as every fragment of an operating anchor within one paragraph or list item, and the `body-prose-id` anchor gains the fragment's "canonical width", so naming the check as an enforcement pointer is not read as restating its rule; the presence policy reads the stronger anchor too. Decided by the maintainer, 2026-10-10.
 
 ## Validation
+
+Environment: the aiwf devcontainer, Linux, `go1.25.12 linux/amd64`, on `milestone/M-0336-remove-duplicated-guidance-and-move-each-rule-to-its-audience-s-home` at `bf2ae0155`; the primed loads are measured in a `git archive` export of the commit named.
+
+- `make check-fast`. Expected exit 0. Observed exit 0.
+- `aiwf check`, built from this tree. Expected no error. Observed 0 errors and 9 warnings, none on this milestone's files: M-0349's five `acs-tdd-audit` warnings, two terminal decisions awaiting the archive sweep and its summary, and `provenance-untrailered-scope-undefined`, since the milestone branch has no upstream.
+- M-0336 AC-1: `TestPolicy_GuidanceNoOperatingCopies` passes on the tree, and `TestOperatingCopyViolations` pins its rules — a rendered block carrying a rule passes while a handwritten copy in the same file fails, fragments count only within one paragraph or list item, and a routed document is guidance too.
+- M-0336 AC-2: `TestPolicy_GuidanceIDsThroughLinks` passes on the tree, and `TestGuidanceIDViolations` pins its rules — an id in a link destination passes and one in its text fails, the canonical placeholder passes and a narrower one fails, and a code span is in scope.
+- M-0336 AC-3, an observation. `bd98a3a17` removes the copies of the Go pack and the code-health pack, and each of its disposition blocks names the pack it copies. `.guidance/packs/go/cobra/guide.md` remains, and both hosts' managed routing blocks are unchanged. `go test -count=1 -run 'TestPolicy_GuidanceCeiling$' -v ./internal/policies/`: expected the handwritten primed load to fall by the removed rows' words. Observed 7995 to 7779 words for Claude and 8124 to 7908 for Codex, from `5f0ee60bf` to `bd98a3a17`.
+- M-0336 AC-4: the same command. Before the deletions, at `aba8c2732`, it measures 9647 words for Claude and 9776 for Codex; after them, at `630edc920`, 7801 and 7930, which are the lowered ceilings, and the test passes there.
+- M-0336 AC-5 and AC-6: `TestE0092Inventory` reconciles every disposition block since `aba8c2732` with its inventory row, and passes; `TestInventoryReconcileFindings` pins each rule, a removal of a moved rule before any commit changed its new home among them. Each guard was mutated out in turn and its case failed. The rules moved into shipped homes were added in `effeaa2d0`, ahead of their removal in `5f0ee60bf`.
 
 ## Deferrals
 
