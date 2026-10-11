@@ -170,22 +170,6 @@ Two audiences read guidance, each with a different shippable home. The dividing 
 
 ## Go conventions
 
-### Formatting and linting
-
-- **`golangci-lint`** is the only linter. Enabled: `errcheck`, `govet`, `ineffassign`, `staticcheck`, `unused`, `gocritic`, `revive`, `gosec`, `bodyclose`, `unconvert`, `misspell`, `gofumpt`, `goimports`. CI fails on any finding. No `//nolint` without a one-line rationale.
-- **Never `var _ = x` to silence `unused`.** A blank-identifier alias kept solely to stop `unused`/`staticcheck` flagging reserved-for-future code defeats the check whose job is to find exactly that. No caller → not ready to land; delete it and re-add with its first real caller (the shipped form of this force is `wf-codebase-health` H2).
-
-### Concurrency
-
-- `context.Context` is the first arg of every IO-touching function (cancellation only; don't stuff request data via `WithValue` except across API boundaries).
-
-### CLI conventions
-
-- **`github.com/spf13/cobra`.** Each verb is a `cobra.Command` with a `runXCmd(...)` body called from `RunE`; wire from `newRootCmd`. Closed-set flag values bind completion via `cobra.FixedCompletions(...)`; entity-id flags use `completeEntityIDFlag(kind)`. Chokepoint: `cmd/aiwf/completion_drift_test.go`.
-- **Exit codes:** `0` ok, `1` findings, `2` usage, `3` internal. Verbs return `int`; the `RunE` adapter shuttles via `*exitError`.
-- **Output:** human-readable by default; `--format=json` emits `{ tool, version, status, findings, result, metadata }` (`status` ∈ `ok`/`findings`/`error`); `--pretty` indents; tool output → stdout. **Diagnostic/operator logging** is opt-in and default-off ([the logging ADR](docs/adr/ADR-0017-opt-in-slog-diagnostic-logging-default-off-xdg-state-home-file-route.md)): `log/slog`, configured via `AIWF_LOG`/`AIWF_LOG_FORMAT`/`AIWF_LOG_FILE` (env beats `aiwf.yaml`'s `logging:` block beats the default), writes structured records to a daily-rotated file under the XDG state home by default — never stderr unless explicitly configured there. `forbidigo` (backed by the `logging-chokepoint` AST policy, which also catches `fmt.Fprintln`/`fmt.Fprintf` to `os.Stdout`/`os.Stderr`) bans bare `fmt.Print*` call sites outside the sanctioned `cliutil` text wrappers, so operator-facing text can't silently drift back onto ad hoc prints; diagnostic logging goes through `log/slog` in `internal/logger`, never a bare print.
-- **Flags:** `--help`, `--version`, `-v`, `--pretty` plus verb-specific. No global config files; config via flags, env, or `aiwf.yaml`.
-
 ### Commit conventions
 
 Subjects follow Conventional Commits (`feat(plan): …`, `chore(plan): …`, `docs(adr): …`) — say *why*, one logical change per commit.
@@ -195,14 +179,6 @@ Subjects follow Conventional Commits (`feat(plan): …`, `chore(plan): …`, `do
 ### Release process
 
 Releases are git tags `vX.Y.Z` on `main`. Before tagging, in one `release(aiwf): vX.Y.Z` commit edit [`CHANGELOG.md`](CHANGELOG.md): rename `## [Unreleased]` to `## [X.Y.Z] — YYYY-MM-DD`, add a fresh empty `## [Unreleased]` above it, verify the moved entries summarize the user-visible delta. Then push the commit, `git tag vX.Y.Z`, `git push origin vX.Y.Z`. The [`changelog-check.yml`](.github/workflows/changelog-check.yml) workflow fails a `v*` tag on two counts. Its first job wants a matching `## [X.Y.Z]` heading — even pure-mechanical patches need a one-line entry. Its second runs `make changelog-audit`, which fails the tag when a change to the embedded content since the last release is cited by no entity id in the release's own notes; a milestone's delta is cited by its parent epic, never by its own id, and Go under those trees is the materializer rather than shipped content and owes nothing. The audit works out which section is current from the changelog rather than from a tag, so it reads the same one either side of the tag push: `[Unreleased]` while the topmost version heading is the release it measures from, and that newer heading once the release commit has moved the entries into it. Run `make changelog-audit` before tagging rather than meeting it at the push — `AIWF_CHANGELOG_BASE=<ref> make changelog-audit` audits a past range. It also reports, without failing, any shipped-surface commit carrying no `aiwf-entity` trailer: with no entity named the audit cannot tell whether an entry covers it ([the changelog-audit decision](work/decisions/D-0087-the-changelog-audit-blocks-an-uncited-entity-and-reports-an-untrailered-commit.md)).
-
-### Dependencies
-
-Minimize external deps (one-line justification per new one). `CGO_ENABLED=0` (static binaries). `go 1.24` minimum in `go.mod` (the consumer-compatibility floor); CI toolchain is pinned separately to `go-version: "1.25"` (bump CI for stdlib CVEs, bump the floor only for a needed language feature). One `go.mod` for the module.
-
-### Naming
-
-Package names short, lowercase, singular (`entity` not `entities`). Avoid stuttering (`entity.Load`, not `entity.Entity`). Exported identifiers get a doc comment starting with the name. Acronyms stay capitalized (`parseURL`, `jsonOut`).
 
 ### Type design
 

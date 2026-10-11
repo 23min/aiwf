@@ -8,3 +8,5 @@ document that matches it:
   acceptance criterion's evidence, the coverage gates, running tests on macOS.
 - [Verb design](project/verb-design.md) — adding or changing a verb, a check
   rule or the loader.
+- [Go conventions](project/go-conventions.md) — Go code in this repository;
+  where it differs from the Go pack, logging included, it overrides the pack.
