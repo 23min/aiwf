@@ -43,7 +43,7 @@ go build -o /tmp/aiwf ./cmd/aiwf # binary builds
 
 `make check-fast` runs `go vet`, the linters and the tests without the race detector; `make ci` is the CI-parity gate, adding the race detector, coverage, the profile-driven gates and the self-check. CI's full gate runs on pull requests and pushes to `main` that touch Go, build or guidance files; a push to an epic or milestone branch runs only the gitleaks scan.
 
-**Cadence.** Run `make check-fast` in the inner loop, a milestone wrap into its epic branch included, and `make ci` at the boundaries that integrate or leave the machine: the epic-to-`main` merge and every push. Skip a run when none of these changed since the last green one: Go and module files, `Makefile`, `.golangci.yml`, `.github/workflows/*`, `internal/skills/**` and the guidance (`CLAUDE.md`, `AGENTS.md`, `.guidance/**`); planning-state commits may skip it. A wrap merge may use `git commit --no-verify`, since its tree is the one already validated. Never `--no-verify` a push: that skips the gitleaks scan, whose boundary is the push.
+**Cadence.** Run `make check-fast` in the inner loop, a milestone wrap into its epic branch included, and `make ci` at the boundaries that integrate or leave the machine: the epic-to-`main` merge and every push. Skip a run when none of these changed since the last green one: Go and module files, `Makefile`, `.golangci.yml`, `.github/workflows/*`, `internal/**/embedded*` and the guidance (`CLAUDE.md`, `AGENTS.md`, `.guidance/**`); planning-state commits may skip it. A wrap merge may use `git commit --no-verify`, since its tree is the one already validated. Never `--no-verify` a push: that skips the gitleaks scan, whose boundary is the push.
 
 ---
 
