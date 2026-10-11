@@ -14,3 +14,5 @@ document that matches it:
   worktrees, diagnosing with a binary built from a worktree.
 - [Shipped content](project/shipped-content.md) — editing embedded skills,
   rituals, templates or the guidance fragment.
+- [Stress harness](project/stress-harness.md) — stress scenarios and their
+  lanes.

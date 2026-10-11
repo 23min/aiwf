@@ -72,31 +72,6 @@ The authoritative gate is CI-on-push; local `make ci` is pre-flight insurance at
 
 ---
 
-## Stress-test harness
-
-`cmd/stresstest` is a correctness stress harness — dev-only tooling, never installed alongside `cmd/aiwf`. It builds the `aiwf` binary under test and drives it as a real subprocess against disposable git repos through a catalog of workflow-legality, concurrency, and fault-injection scenarios, each with a pass/fail oracle. The catalog runner itself (`make stress`, `go run ./cmd/stresstest`) is on-demand only, never scheduled and never wired into `make ci`.
-
-**The scenarios' own Go tests split by what their oracle asserts, and the split is the `stress` build tag.**
-
-- **Hermetic scenarios run on every push**, untagged, inside the ordinary `go test ./...`. The workflow-legality group is what the harness exists for: `verb-sequence` (a seeded random walk of `aiwf promote` across all six kinds, asserting the FSM's legality verdict is honored and that `aiwf check` reports no error-severity finding and no warning outside a curated baseline — an absolute allowlist judging each state on its own terms, not a comparison against the prior step) plus `archive-during-active-scope`, `force-override-durability`, `head-drift`, and `promote-on-wrong-branch-detection`. Six more qualify on the same test and stay untagged despite their subject matter: `disk-fault` (permission-denied write, no timing at all), `parallel-branch-reallocate` and `cross-worktree-edit-body-race` (collisions deterministic by construction — two clones computing the same `max(id)+1`, two sequential commits to one body field), `reachability-isolation` (a byte-identical `aiwf check` outcome either side of an invisible sibling commit), and `concurrent-id-allocation` and `concurrent-move`, which race real subprocesses but between them judge only load-invariant facts: refusals carrying repolock's busy code, a commit count matching exactly the actors that succeeded, at least one actor through, and — each in its own scenario — no id allocated twice and every milestone reported moved really landed under the target epic. Category name is not the criterion; oracle shape is.
-- **Scenarios that drive real, concurrently-scheduled subprocesses carry `//go:build stress`** and run only via `make stress-tests` (or `go test -tags stress ./internal/stresstest/ ./cmd/stresstest/`). Five qualify: `concurrent-milestone-race`, `concurrent-writer-at-scale`, `cross-worktree-id-race`, `mid-write-kill`, and `lock-kill`. The reason is cost, not correctness: sharing a runner with `go test ./...` roughly doubles their wall time. All five judge load-invariant facts, by different means. `concurrent-milestone-race` excuses the documented `repo-lock-busy` refusal an actor takes when another holds the lock, bounds each transition at at-most-one, and asks only that some actor got through. `concurrent-writer-at-scale` retries past that refusal instead of excusing it. `cross-worktree-id-race` races two worktrees, which hold two separate lockfiles, so lock contention does not arise between them. `mid-write-kill` and `lock-kill` bound their observation on the watched process rather than a clock, so slowness delays their verdict instead of falsifying it. In `cmd/stresstest`, the whole-catalog runner tests (`TestRunRun_ScenarioAll_*`) carry the tag because `--scenario all` executes this class, and so does the lock-kill runner test, which drives a real lock-holding subprocess; `--scenario all`'s *selection* claim stays pinned untagged by `TestResolveScenarios_All_NamesEveryCatalogEntryInOrder`.
-
-Adding a scenario means choosing its lane, and since no oracle now measures the machine that choice is a cost decision rather than a correctness one: a scenario goes tagged when it drives real subprocesses and would slow every push, untagged otherwise. An oracle that asserts how *many* actors get through, or how fast, is the thing to refuse at review — that is the runner's throughput, not aiwf's behavior.
-
-The tag applies per file, so a decision test sharing a file with a scenario driver leaves the every-push path with it — silently, since it still passes whenever anyone runs it. `PolicyStressLaneCensus` (`internal/policies/stress_lane_census.go`) is the chokepoint across both stress packages: a `stress`-tagged test that starts no process, waits on no clock and runs no goroutine fails the policy suite, naming the test to move. Driving `RunScenario` / `RunRepeated` / `Setup` counts only alongside a real scenario constructor, since all three take a `Scenario` and this package's own hermetic tests hand them fakes. Split the file rather than tagging around it.
-
-```bash
-make stress                          # run the whole catalog, 5 attempts per scenario by default (override: STRESS_REPEAT=N make stress)
-make stress-tests                    # run the `stress`-tagged Go tests: the real-subprocess scenario drivers + the whole-catalog runner tests
-go run ./cmd/stresstest list         # enumerate every scenario name --scenario can select
-go run ./cmd/stresstest run --scenario <name>|all --repeat N [--out DIR] [--module-root DIR]
-go run ./cmd/stresstest compose <raw-report-path>   # render a human-readable summary from a run's raw-report JSONL
-```
-
-`run` flags: `--scenario` (required; a catalog name, or `all` for the whole catalog), `--repeat` (attempts per scenario, default 1 — statistical coverage for timing-shaped scenarios comes from repeating, not from one lucky run), `--out` (build output, scenario temp dirs, and the raw-report file; defaults to a fresh temp dir, printed on completion), `--module-root` (the aiwf module root to build the binary under test from; defaults to `.`). A failing attempt prints its preserved repo directory for follow-up.
-
----
-
 ## Working in this repo
 
 **Trunk-based development on `main` for maintainers.** Commit directly to trunk; no PR ceremony. Validation is mechanized: `aiwf check` runs pre-commit (shape-only) and pre-push (full), and CI runs the full matrix. Outside contributors use GitHub PRs (see [`CONTRIBUTING.md`](CONTRIBUTING.md)). Conventional Commits subjects are mandatory both paths. When in doubt, the smaller change is the right change.
