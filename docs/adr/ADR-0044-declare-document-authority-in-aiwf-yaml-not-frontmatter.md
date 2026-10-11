@@ -86,8 +86,9 @@ maintains as current truth, excluding generated output and archived snapshots â€
 and proceeds. Configuration sharpens that default; it is not a precondition for
 using any surface that needs the answer.
 
-`CLAUDE.md`'s `## Documentation hierarchy` becomes prose that explains the
-classification rather than a second registry of it.
+The [doc-writing guidance](../../.guidance/project/writing-docs.md)'s
+`## Documentation hierarchy` becomes prose that explains the classification rather
+than a second registry of it.
 
 ## Consequences
 
@@ -104,7 +105,7 @@ Consumers who configure nothing keep working, which is what makes this shippable
 rather than a migration.
 
 The cost is two config keys with their unknown-key guard and defaults, and a
-`CLAUDE.md` section that shrinks to explanation. The drift risk that
+guidance section that shrinks to explanation. The drift risk that
 [G-0092](../../work/gaps/archive/G-0092-no-documented-doc-authority-hierarchy.md)
 closed without addressing moves onto a surface a check can reach, though building
 that check is not part of this decision.
