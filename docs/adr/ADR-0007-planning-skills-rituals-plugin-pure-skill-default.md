@@ -47,7 +47,7 @@ Trigger conditions for promotion to a skill+verb pair:
 - Two or more skills duplicate the same reduction logic, or the same operator workflow runs the synthesis often enough that re-derivation becomes a measurable cost.
 - A reasonable kernel-side query would replace the reduction with a single call returning the same shape.
 
-Until these conditions are observed, the pure-skill form is preferred. This matches the principle "skills are advisory; the verb surface is authoritative" — extending the verb surface speculatively, in advance of a re-derivation pattern, costs both the kernel review burden and the reversibility tax (every kernel verb owes *"what verb undoes this?"* per CLAUDE.md *Designing a new verb*).
+Until these conditions are observed, the pure-skill form is preferred. This matches the principle "skills are advisory; the verb surface is authoritative" — extending the verb surface speculatively, in advance of a re-derivation pattern, costs both the kernel review burden and the reversibility tax (every kernel verb owes *"what verb undoes this?"* per [the verb-design guidance](../../.guidance/project/verb-design.md#designing-a-new-verb) *Designing a new verb*).
 
 The deferred follow-on for `aiwfx-whiteboard` is a backing kernel verb `aiwf whiteboard` that would return the tiered open-work structure as JSON for the skill to narrate. The verb keeps the skill's name so the surface stays unified — no `aiwf landscape` / `aiwfx-whiteboard` split between layers. **It is not filed by E-0021.** The trigger for filing it is the conditions above — concretely, repeated runs of `aiwfx-whiteboard` on real planning sessions where the operator can name the structured data the skill keeps re-deriving.
 
