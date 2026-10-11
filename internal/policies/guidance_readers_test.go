@@ -134,7 +134,7 @@ func TestGuidanceReaderViolations(t *testing.T) {
 	readers := map[string]string{"pkg.TestListed": "pkg/a_test.go", "pkg.TestNew": "pkg/b_test.go"}
 	list := map[string]guidanceReaderEntry{
 		"pkg.TestListed":  {readerRelationship, "fixture"},
-		"pkg.TestRetired": {readerPin, "fixture"},
+		"pkg.TestRetired": {readerAbsence, "fixture"},
 	}
 	vs := guidanceReaderViolations(readers, list)
 	if got, want := violationFiles(vs), []string{"pkg/b_test.go", guidanceReaderListFile}; !equalStrings(got, want) {

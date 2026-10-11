@@ -84,54 +84,6 @@ func TestM0154_AC1_ADR0015RecordsConsentGatedStance(t *testing.T) {
 	}
 }
 
-// TestM0154_AC2_CLAUDEMDOperatorSetupAmended asserts M-0154/AC-2:
-// the `## Operator setup` section of CLAUDE.md states the consent-gated
-// stance (amended from the un-narrowed "aiwf will never edit
-// settings.json" prose). M-0154 is sole owner of this prose change;
-// M-0156 implements the wiring but does not re-author the stance.
-//
-// Section-scoped per CLAUDE.md's "substring assertions are not structural
-// assertions" rule — assertions are bounded to the named section, not
-// flat-grepped over the whole CLAUDE.md.
-//
-// Three layered checks:
-//
-//   - The section still mentions `.claude/settings.json` (the file the
-//     stance is about — preserving the original subject).
-//   - The section names a consent mechanism (`--wire-settings`, `[y/N]`,
-//     or the word "consent") — the new qualifier that turns "never"
-//     into "not without explicit per-invocation consent."
-//   - The section cross-references `ADR-0015` — anchoring the stance
-//     change to the ratified decision, so a reader can trace the prose
-//     to its authoritative record.
-func TestM0154_AC2_CLAUDEMDOperatorSetupAmended(t *testing.T) {
-	t.Parallel()
-	root := repoRoot(t)
-	raw, err := os.ReadFile(filepath.Join(root, "CLAUDE.md"))
-	if err != nil {
-		t.Fatalf("reading CLAUDE.md: %v", err)
-	}
-	opSetup := extractMarkdownSection(string(raw), 2, "Operator setup")
-	if opSetup == "" {
-		t.Fatal("AC-2: CLAUDE.md must carry a `## Operator setup` section (the canonical home of the stance prose)")
-	}
-
-	if !strings.Contains(opSetup, ".claude/settings.json") {
-		t.Errorf("AC-2: CLAUDE.md `## Operator setup` section must still mention `.claude/settings.json` (the file the consent-gated stance is about)")
-	}
-
-	hasConsentPhrase := strings.Contains(opSetup, "--wire-settings") ||
-		strings.Contains(opSetup, "[y/N]") ||
-		strings.Contains(opSetup, "consent")
-	if !hasConsentPhrase {
-		t.Errorf("AC-2: CLAUDE.md `## Operator setup` section must name a consent mechanism (`--wire-settings`, `[y/N]`, or the word `consent`) — the amended stance is consent-gated, not unconditional")
-	}
-
-	if !strings.Contains(opSetup, "ADR-0015") {
-		t.Errorf("AC-2: CLAUDE.md `## Operator setup` section must cross-reference `ADR-0015` — the stance prose must be anchored to the ratified decision, not floating without a record")
-	}
-}
-
 // TestM0154_AC3 retired: the function it asserted on
 // (appendMarketplaceOverlapReport) was removed as part of G-0194's
 // marketplace-retirement completion. The consent-gated stance that

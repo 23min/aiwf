@@ -39,8 +39,8 @@ assigns to Normative — current truth, kept in lockstep with the code. The tier
 the document contradict each other, and the tier is what a reader sees first: a
 reviewer weighting those files by path reads their dated rule statements as stale
 current-truth and proposes correcting them, which would destroy the record they
-exist to hold. `PolicyM0128DocumentationHierarchy` reports nothing either way,
-because it asserts the section's shape and never opens a file. A declared list
+exist to hold. No check reports it either way: the hierarchy is prose, and
+nothing reads it against the files. A declared list
 expresses the exclusion a subtree cannot — the two files are simply not on it.
 
 The question is now load-bearing rather than editorial. A review pass that audits

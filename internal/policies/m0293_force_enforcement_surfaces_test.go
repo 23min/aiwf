@@ -180,27 +180,19 @@ func goFuncBody(t *testing.T, rel, name string) forceSurfaceRegion {
 }
 
 // ---------------------------------------------------------------------
-// Rows 1-4 — the kernel's own guidance and its design record.
+// Rows 3-4 — the design record. Rows 1 and 2, the engineering principle
+// and the kernel commitment in CLAUDE.md, are development guidance, where
+// D-0102 bars a pinned sentence as evidence.
 // ---------------------------------------------------------------------
 
-// TestM0293_KernelGuidanceStatesForceIsHumanOnly pins the four surfaces
-// that state the guarantee without naming a chokepoint. All four were
-// false until the guard reached the apply seam; none needs to name the
-// seam, because a principle and a commitment describe what holds rather
-// than where it is enforced. What they need is to keep saying it, which
-// is what these assertions hold.
+// TestM0293_KernelGuidanceStatesForceIsHumanOnly pins the design-record
+// surfaces that state the guarantee without naming a chokepoint. Both
+// were false until the guard reached the apply seam; neither needs to
+// name the seam, because a property describes what holds rather than
+// where it is enforced. What they need is to keep saying it, which is
+// what these assertions hold.
 func TestM0293_KernelGuidanceStatesForceIsHumanOnly(t *testing.T) {
 	t.Parallel()
-
-	// Row 1 — the engineering principle.
-	principles := mdSection(t, "CLAUDE.md", 2, "Engineering principles")
-	principles.mustSay(t, "`--force` is sovereign — humans only",
-		"the provenance principle is where a reader learns force is not delegable")
-
-	// Row 2 — the kernel commitment.
-	commits := mdSection(t, "CLAUDE.md", 2, "What aiwf commits to")
-	commits.mustSay(t, "`--force` requires a human actor",
-		"commitment 9 is the load-bearing list; a guarantee absent from it is not committed to")
 
 	// Row 3 — the cross-cutting property.
 	crossCutting := mdSection(t, "docs/design/design-decisions.md", 2, "Cross-cutting properties")

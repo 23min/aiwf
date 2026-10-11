@@ -55,10 +55,8 @@ func PolicyGuidanceReaders(root string) ([]Violation, error) {
 type readerKind int
 
 const (
-	// readerPin pins a passage; E-0092 retires it when the passage moves.
-	readerPin readerKind = iota + 1
 	// readerRelationship compares the guidance with another artefact.
-	readerRelationship
+	readerRelationship readerKind = iota + 1
 	// readerAbsence asserts that something is not in the guidance.
 	readerAbsence
 	// readerNamesOnly names a guidance document without reading it.
@@ -72,22 +70,9 @@ type guidanceReaderEntry struct {
 }
 
 // guidanceReaderList names every test that reads development guidance, keyed
-// by package directory and test name. The pins are E-0092's to retire as
-// their passages move; the milestone that retires one deletes its entry.
+// by package directory and test name, with why it reads it. None pins a
+// passage: D-0102 bars evidencing a criterion with a pinned sentence.
 var guidanceReaderList = map[string]guidanceReaderEntry{
-	"internal/policies.TestAiwfArchive_AC6_ClaudeMdNamesArchiveConvention":       {readerPin, "pins the archive-convention commitment of CLAUDE.md"},
-	"internal/policies.TestM0154_AC2_CLAUDEMDOperatorSetupAmended":               {readerPin, "pins the operator-setup passage of CLAUDE.md"},
-	"internal/policies.TestM0195_AC5_SkillBodyDisciplineInClaudeMd":              {readerPin, "pins the shipped-surface discipline passage of CLAUDE.md"},
-	"internal/policies.TestM0211_AC3_AuthoringRuleNamesDividingPrinciple":        {readerPin, "pins the audience-dividing passage of CLAUDE.md"},
-	"internal/policies.TestM0234_AC4_ClaudeMdWorktreeSectionsCiteWorktreeAdd":    {readerPin, "pins the worktree passages of CLAUDE.md"},
-	"internal/policies.TestM0293_KernelGuidanceStatesForceIsHumanOnly":           {readerPin, "pins the force-is-human-only statements of CLAUDE.md"},
-	"internal/policies.TestM083_AC2_CLAUDEMdCommitment2":                         {readerPin, "pins the stable-ids commitment of CLAUDE.md"},
-	"internal/policies.TestPolicy_CLAUDEMDCLIConventionsLogging":                 {readerPin, "pins the CLI-conventions logging passage of CLAUDE.md"},
-	"internal/policies.TestPolicy_ClaudeMdTestDisciplineSection":                 {readerPin, "pins the test-discipline section of CLAUDE.md"},
-	"internal/policies.TestPolicy_M0128DocumentationHierarchy":                   {readerPin, "pins the documentation-hierarchy section of CLAUDE.md"},
-	"internal/policies.TestPolicy_M0132ClaudeMdDevcontainerSection":              {readerPin, "pins the devcontainer subsection of CLAUDE.md"},
-	"internal/policies.TestPolicy_M0134ClaudeMdTestRunningSections":              {readerPin, "pins the test-running subsections of CLAUDE.md"},
-	"internal/policies.TestPolicy_M0228SkillsPolicyBroadenedPrinciple":           {readerPin, "pins the skills-policy principle of CLAUDE.md"},
 	"internal/policies.TestM0127_AC3_NoDanglingDocsPocv3References":              {readerAbsence, "no document references the retired pocv3 tree"},
 	"internal/policies.TestM0290_AC4_NoNormativeDocOffersTheRetiredVerb":         {readerAbsence, "no normative document offers the retired verb"},
 	"internal/policies.TestSkillEditProvenance_RetiredMandateAbsentFromGuidance": {readerAbsence, "the retired skill-edit mandate stays out of every guidance document"},

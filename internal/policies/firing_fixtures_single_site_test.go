@@ -75,11 +75,6 @@ func TestFiringFixtures_SingleSite(t *testing.T) {
 			files:  map[string]string{"internal/foo/a.go": "package foo\n\nfunc F() { _ = T{Key: gitops.TrailerAuthorizedBy} }\n"},
 		},
 		{
-			id:     "claude-md-test-discipline-section",
-			policy: PolicyClaudeMdTestDisciplineSection,
-			files:  map[string]string{"CLAUDE.md": "# X\n\n## Go conventions\n\nno test-discipline subsection here\n"},
-		},
-		{
 			id:     "cli-helper-locations",
 			policy: PolicyCLIHelperLocations,
 			files:  map[string]string{"cmd/aiwf/h.go": "package main\n\nfunc resolveRoot() {}\n"},

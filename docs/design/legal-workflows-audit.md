@@ -164,7 +164,6 @@ Each in-scope policy fires as a test failure that blocks CI. Severity throughout
 
 Listed here so the audit shows we *considered* and explicitly excluded them, not silently missed them. Per ADR-0011 §Scope, this catalog covers kernel-verb workflow legality only; CI / source-style invariants are out of scope.
 
-- `claude_md_test_discipline.go` — CLAUDE.md must have `### Test discipline` section under `## Go conventions`. (Doc structure, not workflow.)
 - `config_fields_discoverable.go` — every yaml-tagged field on aiwf.yaml structs must appear in skill, help, or docs/. (Discoverability, not workflow.)
 - `design_doc_anchors.go` — markdown link anchors in design docs must resolve. (Doc hygiene.)
 - `discoverability.go` — every finding code must appear in skill/help/docs/. (Discoverability.)
