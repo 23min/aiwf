@@ -1,8 +1,11 @@
 ---
 id: G-0728
 title: CLAUDE.md points the completion drift test at files that do not hold it
-status: open
+status: addressed
 discovered_in: E-0098
+addressed_by_commit:
+    - a8b460b7b
+    - c496e5e76
 ---
 ## What's missing
 
