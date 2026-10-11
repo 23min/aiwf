@@ -132,6 +132,31 @@ Command: `go test -count=1 -run 'TestPolicy_GuidanceCeiling$' -v ./internal/poli
 
 The aiwf-generated load is unchanged at 2,460 for Claude and 2,497 for Codex. On-demand loads after re-homing, in words: `testing.md` 1,454, `verb-design.md` 1,139, `shipped-content.md` 895, `stress-harness.md` 783, `enforcement.md` 713, `environment.md` 422, `go-conventions.md` 378, `writing-docs.md` 262, `release.md` 242. Both hosts are below M-0349's targets of 1,629 and 1,758.
 
+### AC-2 — reads before root-started edits
+
+- **Command:** `scripts/e0092-observe/run.sh 95c37637b0d7b2f4b9617d5b22eef74851b912bb <host> <task> <n>` for each host and the M-0334 rubric tasks T1 (a Go change), L1 (a Python script in a new file), L2 (a TypeScript test) and T6 (prose only), two runs at a time, then `scripts/e0092-observe/summarize.py` over the runs; no judge, since this criterion is about reads. The harness is the one M-0334 records, as frozen at `5092de5fd`, and each prompt is the rubric's.
+- **Expected:** before its first edit, each host reads the router and the routed document or pack its task needs; the prose-only task reads no language pack.
+- **Observed,** each document as runs shown it before / after their first edit:
+
+| task | host | runs | reads | task-loaded words |
+|---|---|---|---|---|
+| L1 | claude | 1 | router 1/0, index 1/0, python 1/0 | 168 |
+| L1 | codex | 1 | CLAUDE.md 1/0, router 1/0, index 1/0, code-health 1/0, python 1/0, environment.md 1/0 | 1101 |
+| L2 | claude | 2 | none | 0 |
+| L2 | codex | 1 | CLAUDE.md 1/0, router 1/0, index 1/0, code-health 1/0, typescript 1/0, environment.md 1/0 | 1087 |
+| T1 | claude | 1 | router 1/0, go-conventions.md 1/0, testing.md 1/0, verb-design.md 1/0 | 2971 |
+| T1 | codex | 1 | CLAUDE.md 1/0, router 1/0, index 1/0, code-health 1/0, go 1/0, environment.md 1/0, go-conventions.md 1/0, shipped-content.md 1/0, testing.md 1/0, verb-design.md 1/0 | 5084 |
+| T6 | claude | 1 | router 1/0, stress-harness.md 1/0, writing-docs.md 1/0 | 1045 |
+| T6 | codex | 1 | CLAUDE.md 1/0, router 1/0, index 1/0, testing.md 1/0, writing-docs.md 1/0 | 1716 |
+
+  - Every run that edited read the router and the routed document or pack for its task before its first edit; neither prose-only run read a language pack.
+  - Claude's L2 is not exercised. Both runs found that `e2e/playwright/tests/render.spec.ts` already checks each criterion's title, made no edit, and asked which of several options to take; the second run was made to get an edit and did not. With no edit, there is no read before one to observe. Neither run opened the router.
+  - `codex-read-claude`, judged mechanically by the harness, complied in all four Codex runs: each saw every line of `CLAUDE.md` before its first edit.
+- **Environment:** the aiwf devcontainer, Linux, runs ending 2026-10-11T14:20Z to 15:23Z.
+  - checkout `95c37637b`, installed guidance `9c9ca4b3681ca4cb8798e5af9e9124b1e761526b`; `aiwf` built at the checkout, `v0.0.0-20261011140621-95c37637b0d7`;
+  - Claude Code 2.1.291 at `claude-opus-5-5`, effort `high`; Codex CLI 0.162.1 at `gpt-6-astra`, effort `medium`;
+  - the personal overlay: `~/.guidance` at `d7180c35589fa8bd0d1d69df227d8b358862a82e` with no dirty files. It differs from the baseline's `334e60cd8`, and Codex CLI from its 0.160.0, so these runs are not a comparison with M-0334's; M-0338 makes that comparison.
+
 ### AC-3 — the starting list
 
 `guidanceReaderList` at this milestone's start, `d753e5447`, names thirteen pins. Each pins a passage this milestone moves on demand or rewrites in place, and each is retired, since D-0102 bars a sentence pinned in development guidance as evidence:
