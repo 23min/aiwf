@@ -110,9 +110,32 @@ Every rule M-0349 marks "merge" or "tighten" is rewritten in its one home, and e
 
 ## Decisions made during implementation
 
-- (none)
+- This milestone runs `tdd: advisory`. AC-2 is an observation record and AC-6 a rewording held at review, so neither has a red test to precede it; the phases are recorded, as they happen, for AC-1, AC-4 and AC-5. Decided by the maintainer.
+- A live reference to a moved section is re-pointed at the section's new document: normative docs, Go comments, the messages of CI workflows, hooks and the `Makefile`, and `CONTRIBUTING.md`. It lands in the commit after the move, since the fence admits no file outside the guidance set beside a guidance change. Audits, archived documents, the changelog and entity bodies are records of their date and stay as written. Decided by the maintainer.
 
 ## Validation
+
+### AC-3 — the starting list
+
+`guidanceReaderList` at this milestone's start, `d753e5447`, names thirteen pins. Each pins a passage this milestone moves on demand or rewrites in place:
+
+| Pin | Passage | Row | Disposition |
+|---|---|---|---|
+| `TestAiwfArchive_AC6_ClaudeMdNamesArchiveConvention` | the archive commitment | commit-archive | tighten |
+| `TestM0154_AC2_CLAUDEMDOperatorSetupAmended` | Operator setup | operator-setup, settings-consent | move on demand |
+| `TestM0195_AC5_SkillBodyDisciplineInClaudeMd` | Skills policy, the shipped-surface paragraph | shipped-surfaces | move on demand |
+| `TestM0211_AC3_AuthoringRuleNamesDividingPrinciple` | Consumer-operating guidance vs repo-development guidance | audience-split | move on demand |
+| `TestM0234_AC4_ClaudeMdWorktreeSectionsCiteWorktreeAdd` | the worktree default and Subagent worktree isolation | worktree-default, subagent-isolation | tighten, move on demand |
+| `TestM0293_KernelGuidanceStatesForceIsHumanOnly` | the provenance principle and commitment; its `docs/design/design-decisions.md` half is not guidance | provenance-principle, commit-provenance | merge, tighten |
+| `TestM083_AC2_CLAUDEMdCommitment2` | the stable-ids commitment | commit-stable-ids | tighten |
+| `TestPolicy_CLAUDEMDCLIConventionsLogging` | CLI conventions, logging | output-and-logging | move on demand |
+| `TestPolicy_ClaudeMdTestDisciplineSection` | Test discipline | test-discipline | move on demand |
+| `TestPolicy_M0128DocumentationHierarchy` | Documentation hierarchy | doc-tiers | move on demand |
+| `TestPolicy_M0132ClaudeMdDevcontainerSection` | Devcontainer | devcontainer | move on demand |
+| `TestPolicy_M0134ClaudeMdTestRunningSections` | the two test-running subsections | tests-in-devcontainer, tests-on-macos | move on demand |
+| `TestPolicy_M0228SkillsPolicyBroadenedPrinciple` | Skills policy, the shipped-surface paragraph | shipped-surfaces | move on demand |
+
+Three listed readers that are not pins read moved text too: `TestSkillEditProvenance_DocumentedInClaudeMd` requires the Ritual content authoring and What's enforced and where headings in `CLAUDE.md`; `TestPolicy_NoDanglingEntityRefsInNarrativeDocs` resolves entity links in `CLAUDE.md` and `ROADMAP.md` only; `TestPolicyDevcontainerPathsResolve` does not read `.guidance/`.
 
 ## Deferrals
 
