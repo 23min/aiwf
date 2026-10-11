@@ -8,7 +8,7 @@
 
 The project develops trunk-based on `main`. The contribution path depends on whether you have write access:
 
-- **Maintainers** commit directly to `main`. No PR ceremony, no review queue. The pre-commit and pre-push hooks (`aiwf check`) plus CI are the chokepoints. See [`CLAUDE.md` § Working in this repo](CLAUDE.md#working-in-this-repo).
+- **Maintainers** commit planning state, release commits and doc edits directly to `main`, and put every code change on a branch in a worktree that merges into `main` locally. No PR ceremony, no review queue. The pre-commit and pre-push hooks (`aiwf check`) plus CI are the chokepoints. See [`CLAUDE.md` § Working in this repo](CLAUDE.md#working-in-this-repo).
 - **Outside contributors** propose changes through GitHub. Start with an Issue or Discussion (templates ship under `.github/ISSUE_TEMPLATE/`), then open a PR (`pull_request_template.md` walks the expected body). The `pr-conventions` workflow checks PR title, issue citation, and CHANGELOG touch.
 
 Both paths land on the same trunk; the PR machinery is the protocol for changes coming in from outside the maintainer set, not a parallel internal process.
