@@ -72,11 +72,10 @@ type guidanceLoad struct {
 }
 
 // guidanceHosts are this repository's two hosts. Each ceiling is the
-// host's measured handwritten primed load; E-0092's later milestones
-// lower them.
+// host's measured handwritten primed load, so any growth fails the policy.
 var guidanceHosts = []guidanceHost{
-	{Name: "claude-code", Entry: projectguidance.ClaudeFile, Ceiling: 7801},
-	{Name: "codex", Entry: projectguidance.AgentsFile, Ceiling: 7930},
+	{Name: "claude-code", Entry: projectguidance.ClaudeFile, Ceiling: 1280},
+	{Name: "codex", Entry: projectguidance.AgentsFile, Ceiling: 1420},
 }
 
 // guidanceReadTable classifies every reference primed text makes today.
@@ -86,43 +85,20 @@ var guidanceHosts = []guidanceHost{
 // requires reading CLAUDE.md in full, so for Codex that read is primed;
 // every reference CLAUDE.md makes is read when a task needs it.
 var guidanceReadTable = map[guidanceRef]readKind{
-	{From: projectguidance.ClaudeFile, To: projectguidance.RouterFile}:                                                                                readRequired,
-	{From: projectguidance.AgentsFile, To: projectguidance.RouterFile}:                                                                                readRequired,
-	{From: projectguidance.ClaudeFile, To: ".guidance/index.md"}:                                                                                      readGenerated,
-	{From: projectguidance.AgentsFile, To: ".guidance/index.md"}:                                                                                      readGenerated,
-	{From: projectguidance.AgentsFile, To: projectguidance.ClaudeFile}:                                                                                readRequired,
-	{From: projectguidance.ClaudeFile, To: ".claude/hooks/validate-agent-isolation.sh"}:                                                               readConditional,
-	{From: projectguidance.ClaudeFile, To: ".devcontainer/README.md"}:                                                                                 readConditional,
-	{From: projectguidance.ClaudeFile, To: ".devcontainer/devcontainer.json"}:                                                                         readConditional,
-	{From: projectguidance.ClaudeFile, To: ".devcontainer/project"}:                                                                                   readConditional,
-	{From: projectguidance.ClaudeFile, To: ".devcontainer/project/README.md"}:                                                                         readConditional,
-	{From: projectguidance.ClaudeFile, To: ".github/workflows/changelog-check.yml"}:                                                                   readConditional,
-	{From: projectguidance.ClaudeFile, To: "CHANGELOG.md"}:                                                                                            readConditional,
-	{From: projectguidance.ClaudeFile, To: "CONTRIBUTING.md"}:                                                                                         readConditional,
-	{From: projectguidance.ClaudeFile, To: "README.md"}:                                                                                               readConditional,
-	{From: projectguidance.ClaudeFile, To: "docs/adr/ADR-0006-skills-policy-per-verb-default-or-help-only.md"}:                                        readConditional,
-	{From: projectguidance.ClaudeFile, To: "docs/adr/ADR-0015-settings-json-edits-require-explicit-per-invocation-consent.md"}:                        readConditional,
-	{From: projectguidance.ClaudeFile, To: "docs/adr/ADR-0017-opt-in-slog-diagnostic-logging-default-off-xdg-state-home-file-route.md"}:               readConditional,
-	{From: projectguidance.ClaudeFile, To: "docs/adr/ADR-0036-same-status-fsm-transitions-converge-to-noop-not-refusal.md"}:                           readConditional,
-	{From: projectguidance.ClaudeFile, To: "docs/adr/ADR-0037-retitle-re-derives-the-slug-only-while-it-tracks-the-title.md"}:                         readConditional,
-	{From: projectguidance.ClaudeFile, To: "docs/adr/ADR-0038-refuse-verb-writes-over-head-divergent-entity-content.md"}:                              readConditional,
-	{From: projectguidance.ClaudeFile, To: "docs/archive/migration/from-prior-systems.md"}:                                                            readConditional,
-	{From: projectguidance.ClaudeFile, To: "docs/design/design-decisions.md"}:                                                                         readConditional,
-	{From: projectguidance.ClaudeFile, To: "docs/design/design-lessons.md"}:                                                                           readConditional,
-	{From: projectguidance.ClaudeFile, To: "docs/design/provenance-model.md"}:                                                                         readConditional,
-	{From: projectguidance.ClaudeFile, To: "docs/explorations/loom/loom-by-example.md"}:                                                               readConditional,
-	{From: projectguidance.ClaudeFile, To: "docs/explorations/loom/loom-light-plan.md"}:                                                               readConditional,
-	{From: projectguidance.ClaudeFile, To: "docs/adr/ADR-0004-uniform-archive-convention-for-terminal-status-entities.md"}:                            readConditional,
-	{From: projectguidance.ClaudeFile, To: "docs/adr/ADR-0008-canonicalize-kernel-ids-to-4-digits.md"}:                                                readConditional,
-	{From: projectguidance.ClaudeFile, To: "docs/adr/ADR-0014-embed-and-materialize-rituals-distribution-retire-claude-marketplace.md"}:               readConditional,
-	{From: projectguidance.ClaudeFile, To: "docs/adr/ADR-0016-retire-ai-workflow-rituals-upstream-channel-embedded-snapshot-canonical.md"}:            readConditional,
-	{From: projectguidance.ClaudeFile, To: "docs/adr/ADR-0023-default-to-in-repo-worktree-placement-under-claude-worktrees.md"}:                       readConditional,
-	{From: projectguidance.ClaudeFile, To: "work/decisions/D-0070-retire-prose-content-assertions-over-shipped-surfaces.md"}:                          readConditional,
-	{From: projectguidance.ClaudeFile, To: "work/decisions/D-0071-enforce-provenance-not-content-at-the-skill-edit-backstop.md"}:                      readConditional,
-	{From: projectguidance.ClaudeFile, To: "work/decisions/D-0087-the-changelog-audit-blocks-an-uncited-entity-and-reports-an-untrailered-commit.md"}: readConditional,
-	{From: projectguidance.ClaudeFile, To: "work/decisions/D-0096-refuse-ai-co-author-trailers-behind-an-opt-in-address-list.md"}:                     readConditional,
-	{From: projectguidance.ClaudeFile, To: "work/decisions/D-0102-no-criterion-is-evidenced-by-a-sentence-pinned-in-development-guidance.md"}:         readConditional,
-	{From: projectguidance.ClaudeFile, To: "scripts/sign-and-run.sh"}:                                                                                 readConditional,
+	{From: projectguidance.ClaudeFile, To: projectguidance.RouterFile}:                                                            readRequired,
+	{From: projectguidance.AgentsFile, To: projectguidance.RouterFile}:                                                            readRequired,
+	{From: projectguidance.ClaudeFile, To: ".guidance/index.md"}:                                                                  readGenerated,
+	{From: projectguidance.AgentsFile, To: ".guidance/index.md"}:                                                                  readGenerated,
+	{From: projectguidance.AgentsFile, To: projectguidance.ClaudeFile}:                                                            readRequired,
+	{From: projectguidance.ClaudeFile, To: "CONTRIBUTING.md"}:                                                                     readConditional,
+	{From: projectguidance.ClaudeFile, To: "README.md"}:                                                                           readConditional,
+	{From: projectguidance.ClaudeFile, To: "docs/adr/ADR-0036-same-status-fsm-transitions-converge-to-noop-not-refusal.md"}:       readConditional,
+	{From: projectguidance.ClaudeFile, To: "docs/design/design-decisions.md"}:                                                     readConditional,
+	{From: projectguidance.ClaudeFile, To: "docs/design/provenance-model.md"}:                                                     readConditional,
+	{From: projectguidance.ClaudeFile, To: "docs/adr/ADR-0004-uniform-archive-convention-for-terminal-status-entities.md"}:        readConditional,
+	{From: projectguidance.ClaudeFile, To: "docs/adr/ADR-0008-canonicalize-kernel-ids-to-4-digits.md"}:                            readConditional,
+	{From: projectguidance.ClaudeFile, To: "docs/adr/ADR-0023-default-to-in-repo-worktree-placement-under-claude-worktrees.md"}:   readConditional,
+	{From: projectguidance.ClaudeFile, To: "work/decisions/D-0096-refuse-ai-co-author-trailers-behind-an-opt-in-address-list.md"}: readConditional,
 }
 
 // guidanceCeilingViolations measures each host and reports its routing
