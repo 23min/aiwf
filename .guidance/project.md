@@ -12,3 +12,5 @@ document that matches it:
   where it differs from the Go pack, logging included, it overrides the pack.
 - [Environment](project/environment.md) — setup, the devcontainer, subagent
   worktrees, diagnosing with a binary built from a worktree.
+- [Shipped content](project/shipped-content.md) — editing embedded skills,
+  rituals, templates or the guidance fragment.
