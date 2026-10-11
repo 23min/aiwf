@@ -16,7 +16,7 @@ import (
 // on-demand guidance is reached through the project router instead.
 func PolicyInstructionFilesAtRoot(root string) ([]Violation, error) {
 	out, err := exec.Command("git", "-C", root, "ls-files", "-z").Output()
-	if err != nil { //coverage:ignore propagates a git failure; the live tree is a repository
+	if err != nil {
 		return nil, fmt.Errorf("listing tracked files in %s: %w", root, err)
 	}
 	return instructionFilesBelowRoot(strings.Split(strings.TrimSuffix(string(out), "\x00"), "\x00")), nil
