@@ -9,22 +9,24 @@ discovered_in: M-0359
 The `go` workflow runs the `internal/policies` suite, but its `on.push.paths` and
 `on.pull_request.paths` filters in `.github/workflows/go.yml` list only Go sources, `go.mod`,
 `go.sum`, `.golangci.yml`, the workflow files the suite reads, `.devcontainer/**`, the `Makefile`
-and the embedded trees. Several files the suite reads match none of those patterns, so a push
-that changes only such a file starts no run of the policies that judge it:
+the embedded trees and the development guidance (`CLAUDE.md`, `AGENTS.md`, `.guidance/**`).
+Several files the suite reads match none of those patterns, so a push that changes only such a
+file starts no run of the policies that judge it:
 
-- `CLAUDE.md` — read by `PolicyM0128DocumentationHierarchy`
-  (`internal/policies/m0128_documentation_hierarchy.go`) and by
-  `PolicyDevcontainerPathsResolve` (`internal/policies/devcontainer_paths_resolve.go`), which
-  also reads `README.md`, `CONTRIBUTING.md`, `docs/adr`, `docs/design`, `docs/reference` and
-  `scripts/`;
+- `README.md`, `CONTRIBUTING.md`, `docs/adr`, `docs/design`, `docs/reference` and `scripts/` —
+  read by `PolicyDevcontainerPathsResolve` (`internal/policies/devcontainer_paths_resolve.go`);
 - `scripts/git-hooks/pre-push` — its gitleaks install hint is compared with CI's pin by
   `TestGitleaksEnforcement_PinnedVersionConsistent`
   (`internal/policies/gitleaks_enforcement_test.go`).
 
 A change to one of these alone can break a policy with nothing on the push to say so; the red
 run appears on the next push that touches a filtered path, attached to a commit that did not
-cause it. `CLAUDE.md`'s local cadence rule lets a contributor skip `make ci` for the same change,
-since none of these is a Go or build input.
+cause it. `CLAUDE.md`'s local cadence rule lets a contributor skip `make ci` for the same change, since
+none of these is on its list.
+
+Nothing holds the filter to what the suite reads: deleting the three guidance entries from both
+filters leaves `go test -count=1 ./internal/policies/` passing, measured 2026-10-11 in the aiwf
+devcontainer.
 
 This is a claim about the filter's shape: compare the `paths:` lists in
 `.github/workflows/go.yml` with the files the named policies open. GitHub's run history was not
