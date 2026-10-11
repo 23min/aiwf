@@ -14,7 +14,7 @@ acs:
       tdd_phase: done
     - id: AC-2
       title: Both hosts read relevant guidance before root-started edits
-      status: open
+      status: met
     - id: AC-3
       title: Every pin on a moved passage is retired with a recorded reason
       status: open
