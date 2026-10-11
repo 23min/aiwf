@@ -10,7 +10,7 @@ tdd: advisory
 acs:
     - id: AC-1
       title: Both root entry points route to project-local guidance
-      status: open
+      status: met
       tdd_phase: done
     - id: AC-2
       title: Both hosts read relevant guidance before root-started edits
