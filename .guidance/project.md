@@ -17,3 +17,4 @@ document that matches it:
 - [Stress harness](project/stress-harness.md) — stress scenarios and their
   lanes.
 - [Writing docs](project/writing-docs.md) — documents under `docs/` and ADRs.
+- [Release](project/release.md) — cutting a release.
