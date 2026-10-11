@@ -1,8 +1,10 @@
 ---
 id: G-0715
 title: Full CI skips epic and milestone pushes that CLAUDE.md counts on
-status: open
+status: addressed
 discovered_in: M-0333
+addressed_by_commit:
+    - 81d4f617e
 ---
 ## What's missing
 
