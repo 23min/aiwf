@@ -277,8 +277,8 @@ func TestADR0007_AC4_NameWorkedExample(t *testing.T) {
 }
 
 // TestADR0007_AC5_CrossReferences asserts AC-5: the ADR cites
-// ADR-0006 (M-074's skills judgment ADR) and both CLAUDE.md
-// principles named in the AC spec text. The complementary-not-
+// ADR-0006 (M-074's skills judgment ADR) and both kernel principles
+// named in the AC spec text. The complementary-not-
 // overlapping framing must appear (somewhere in the body — that
 // claim is doctrinal and not section-scoped in the spec).
 func TestADR0007_AC5_CrossReferences(t *testing.T) {
