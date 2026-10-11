@@ -10,3 +10,5 @@ document that matches it:
   rule or the loader.
 - [Go conventions](project/go-conventions.md) — Go code in this repository;
   where it differs from the Go pack, logging included, it overrides the pack.
+- [Environment](project/environment.md) — setup, the devcontainer, subagent
+  worktrees, diagnosing with a binary built from a worktree.
