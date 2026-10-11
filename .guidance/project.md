@@ -16,3 +16,4 @@ document that matches it:
   rituals, templates or the guidance fragment.
 - [Stress harness](project/stress-harness.md) — stress scenarios and their
   lanes.
+- [Writing docs](project/writing-docs.md) — documents under `docs/` and ADRs.
