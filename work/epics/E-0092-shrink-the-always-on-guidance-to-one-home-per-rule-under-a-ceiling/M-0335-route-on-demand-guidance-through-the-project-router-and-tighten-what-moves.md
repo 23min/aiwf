@@ -108,12 +108,21 @@ Every rule M-0349 marks "merge" or "tighten" is rewritten in its one home, and e
 
 ## Release note
 
+Nothing a consumer sees changes. This repository's own development guidance is re-homed: `CLAUDE.md` keeps the rules every task needs, and the rest moves into documents under `.guidance/project/` that the project router names; no embedded skill, template, fragment, verb or message changes.
+
 ## Decisions made during implementation
 
 - This milestone runs `tdd: advisory`. AC-2 is an observation record and AC-6 a rewording held at review, so neither has a red test to precede it; the phases are recorded, as they happen, for AC-1, AC-4 and AC-5. Decided by the maintainer.
 - A live reference to a moved section is re-pointed at the section's new document: normative docs, Go comments, the messages of CI workflows, hooks and the `Makefile`, and `CONTRIBUTING.md`. It lands in the commit after the move, since the fence admits no file outside the guidance set beside a guidance change. Audits, archived documents, the changelog and entity bodies are records of their date and stay as written. Decided by the maintainer.
 
 ## Validation
+
+### Gates
+
+At `0805fae26`, in the aiwf devcontainer, Linux, `go1.25.12 linux/amd64`, 2026-10-11:
+
+- `AIWF_COVERAGE_BASE=eba3965ea make ci` exits 0: vet, lint, the race-enabled suite with coverage, total `92.0%` of statements, the profile-driven gates, the diff-scoped coverage gate among them, and `self-check passed (29 steps)`.
+- `aiwf check` reports 0 errors. Its warnings on this milestone are `acs-tdd-audit` on AC-2, AC-3, AC-4 and AC-6, which this milestone's `tdd: advisory` decision accepts.
 
 ### AC-1 — routes, imports and the updater
 
