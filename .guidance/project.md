@@ -1,6 +1,8 @@
-# Project guidance overrides
+# Project guidance
 
-Read `CLAUDE.md` in full before changing this repository. It is the canonical
-source for aiwf development rules and takes precedence over the guidance packs,
-including validation commands, testing conventions, logging, and approval gates.
-Keep those rules there rather than duplicating them here.
+`CLAUDE.md` holds the rules for every task in this repository, and they take
+precedence over the packs. Before the first edit a task governs, read the
+document that matches it:
+
+- [Testing](project/testing.md) — writing or changing Go tests, choosing an
+  acceptance criterion's evidence, the coverage gates, running tests on macOS.
