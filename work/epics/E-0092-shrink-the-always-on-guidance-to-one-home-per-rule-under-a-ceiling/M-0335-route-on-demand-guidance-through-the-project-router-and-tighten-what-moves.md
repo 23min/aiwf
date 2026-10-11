@@ -1,7 +1,7 @@
 ---
 id: M-0335
 title: Route on-demand guidance through the project router and tighten what moves
-status: draft
+status: in_progress
 parent: E-0092
 depends_on:
     - M-0349
