@@ -129,10 +129,11 @@ Nothing a consumer sees changes. This repository's own development guidance is r
 
 ### Gates
 
-At `0805fae26`, in the aiwf devcontainer, Linux, `go1.25.12 linux/amd64`, 2026-10-11:
+At `f0ed229ac`, in the aiwf devcontainer, Linux, `go1.25.12 linux/amd64`, 2026-10-11:
 
 - `AIWF_COVERAGE_BASE=eba3965ea make ci` exits 0: vet, lint, the race-enabled suite with coverage, total `92.0%` of statements, the profile-driven gates, the diff-scoped coverage gate among them, and `self-check passed (29 steps)`.
-- `aiwf check` reports 0 errors. Its warnings on this milestone are `acs-tdd-audit` on AC-2, AC-3, AC-4 and AC-6, which this milestone's `tdd: advisory` decision accepts.
+- `aiwf check --since origin/epic/E-0092-shrink-the-always-on-guidance-to-one-home-per-rule-under-a-ceiling` reports 0 errors. This is the run the pre-push hook makes; an `aiwf check` with no range skips the provenance audit and the fence. Its warnings on this milestone are `acs-tdd-audit` on AC-2, AC-3, AC-4 and AC-6, which this milestone's `tdd: advisory` decision accepts.
+- `go test -count=1 -run 'TestE0092Inventory$' ./internal/policies/` passes: every removal block reconciles with its inventory row.
 
 ### AC-1 — routes, imports and the updater
 
@@ -213,4 +214,20 @@ Three listed readers that were not pins read moved text too: the skill-edit abse
 
 ## Reviewer notes
 
-- (none)
+- Obligations this milestone adds, counted with `scripts/growth-report.py --at f0ed229ac --baseline d753e5447` (policy ids 99 → 95: six pin policies retired, two bans added):
+  - `instruction-files-at-root`, a ban on a tracked host instruction file below the root; owner M-0335 AC-5. A ban costs nothing per change, so nothing retires it.
+  - `guidance-imports-in-repository`, a ban on importing a file from outside the repository into either entry point; owner M-0335 AC-1, likewise.
+  - Both ceilings equal the measured load, so an edit that grows primed guidance cuts as many words or moves text to a routed document. Owner E-0092, whose success criteria ask the policy to catch regrowth from here on; only a decision to drop the ceiling retires it.
+  - The fence counts the routed documents as instruction files, so an edit to one rides in a commit of its own; owner the shipped fence, ADR-0053.
+  - `go.yml`'s guidance filter entries, which nothing pins; G-0726 carries that.
+- Declined:
+  - rewording text that moved verbatim into a routed document — `enforcement.md`'s "(see the two bullets above)", `stress-harness.md`'s "since no oracle now measures the machine", and `shipped-content.md`'s "in `CLAUDE.md` when it is primed", which leaves out the `AGENTS.md` preamble's Codex-only rules: the inventory reconciliation accepts only a relocation block for a row moved on demand, so these wait for the inventory test's retirement at E-0092's wrap;
+  - a check of `<document> §<section>` citations: section-name drift is rare, and M-0337's cited-path check covers the costlier half;
+  - reporting a read-table row whose link has gone: new enforcement over a table edited by hand at each removal;
+  - exercising `markdownSection`'s not-found arm: it is a test helper, and both callers check for an empty result;
+  - one table for the subsection tests, and dropping the skill-edit test's own guard against a missing `CLAUDE.md`: the first is cosmetic and the second is local to the test;
+  - a pointer from the verb-design document to the skills policy: `skill_coverage.go` reports a verb with no skill;
+  - naming `poc/**` in `CLAUDE.md`'s CI sentence: no such branch exists.
+- `1b2bc6c1b`'s body leaves two changes unnamed: the evidence paragraph's pointer to "Test design rules below" and the router entry's "choosing an acceptance criterion's evidence". Both are correct.
+- G-0436's two sites read correctly; M-0337 closes it with its path check.
+- Verdict: approve, with the deciding pass a scoped confirmation by the maintainer's choice. Every finding is fixed, recorded here, or tracked in G-0726, G-0735 or G-0736. The fixes to the last confirmation's findings, `203dbb0fe`, `efbe27d07` and `f0ed229ac`, were not read by a further reviewer.
