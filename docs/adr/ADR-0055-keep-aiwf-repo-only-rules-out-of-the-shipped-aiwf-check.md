@@ -43,8 +43,9 @@ Two alternatives were considered:
   violation can reach `main`, where CI catches it before a release tag.
 - The shipped `aiwf-check` skill documents only rules a consumer's repository can
   trip.
-- CLAUDE.md's "What's enforced and where" lists `skill-body-id` among the pre-push
-  `aiwf check` rules, so that line changes with M-0355.
+- [The enforcement guidance](../../.guidance/project/enforcement.md) lists
+  `skill-body-id` among the pre-push `aiwf check` rules, so that line changes with
+  M-0355.
 
 ## Validation
 
