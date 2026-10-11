@@ -17,7 +17,7 @@ acs:
       status: met
     - id: AC-3
       title: Every pin on a moved passage is retired with a recorded reason
-      status: open
+      status: met
     - id: AC-4
       title: The ceiling constant steps down to the re-homed size
       status: met
