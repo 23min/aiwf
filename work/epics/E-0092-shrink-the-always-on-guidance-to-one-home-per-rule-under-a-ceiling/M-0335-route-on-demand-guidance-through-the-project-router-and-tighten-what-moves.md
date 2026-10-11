@@ -208,7 +208,7 @@ Three listed readers that were not pins read moved text too: the skill-edit abse
 
 ## Deferrals
 
-- G-0735 — comments, a test message and an ADR cite `CLAUDE.md` rules under names it does not carry; they name sections removed before this milestone.
+- G-0735 — comments, a test message and an ADR cite `CLAUDE.md` rules under names or numbers it does not carry; none names a section this milestone moved.
 - G-0736 — the contribution templates ask for a checklist, an audit and commands the repository does not hold where they point.
 
 ## Reviewer notes
