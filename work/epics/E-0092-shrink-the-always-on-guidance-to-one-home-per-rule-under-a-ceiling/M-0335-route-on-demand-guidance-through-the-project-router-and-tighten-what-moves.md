@@ -27,7 +27,7 @@ acs:
       tdd_phase: done
     - id: AC-6
       title: Merge and tighten dispositions are applied as the inventory records
-      status: open
+      status: met
 ---
 ## Goal
 
