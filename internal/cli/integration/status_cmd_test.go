@@ -196,7 +196,7 @@ func TestRenderStatusText_MarksInProgress(t *testing.T) {
 // narrative view is forward-looking; archive inspection lives in
 // `aiwf list --archived`."
 //
-// The completion-drift test (cmd/aiwf/completion_drift_test.go)
+// The completion-drift test (internal/cli/integration/completion_drift_test.go)
 // already enumerates every flag of every verb at CI time — that's the
 // chokepoint. This AC-level test is the direct mechanical assertion
 // on `status.NewCmd()`'s flag set, scoped to the one flag name the

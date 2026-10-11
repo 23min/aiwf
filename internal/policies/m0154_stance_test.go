@@ -88,4 +88,4 @@ func TestM0154_AC1_ADR0015RecordsConsentGatedStance(t *testing.T) {
 // (appendMarketplaceOverlapReport) was removed as part of G-0194's
 // marketplace-retirement completion. The consent-gated stance that
 // AC-3 pinned is now expressed solely in .guidance/project/environment.md §"Operator setup"
-// (the statusline consent gate) — AC-2 above covers that surface.
+// (the statusline consent gate).

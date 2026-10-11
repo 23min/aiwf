@@ -231,7 +231,7 @@ func TestSkillCoverageAllowlist_AllEntriesHaveRationale(t *testing.T) {
 // should fire specific violations. Without these, the policy's
 // "passes against the live tree" test is parsing-coverage, not
 // enforcement-coverage (.guidance/project/testing.md §"Substring assertions are not
-// structural assertions" / §"Test untested code paths").
+// structural assertions" / §"Test every reachable branch").
 
 // TestCheckSkillFrontmatter_FiresOnEmptyName is M-074 AC-2 negative
 // case: a skill with empty `name:` frontmatter must fire a violation

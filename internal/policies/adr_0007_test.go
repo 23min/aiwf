@@ -299,11 +299,12 @@ func TestADR0007_AC5_CrossReferences(t *testing.T) {
 		t.Error("AC-5: ADR-0007 must articulate that ADR-0006 covers granularity *within a topic* (this ADR covers placement/tiering across kernel/plugin)")
 	}
 
-	// CLAUDE.md principles cited.
+	// Kernel principles cited: the first is in the verb-design guidance,
+	// the second in CLAUDE.md's engineering principles.
 	principle1 := "Kernel functionality must be AI-discoverable"
 	principle2 := "framework's correctness must not depend on the LLM"
 	if !strings.Contains(body, principle1) {
-		t.Errorf("AC-5: ADR-0007 must cite CLAUDE.md principle %q", principle1)
+		t.Errorf("AC-5: ADR-0007 must cite the verb-design principle %q", principle1)
 	}
 	if !strings.Contains(body, principle2) {
 		t.Errorf("AC-5: ADR-0007 must cite CLAUDE.md principle %q (or equivalent phrasing capturing the same principle)", principle2)

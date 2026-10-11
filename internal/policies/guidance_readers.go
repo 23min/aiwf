@@ -21,11 +21,11 @@ import (
 // router, and the documents the router links to. No acceptance criterion is
 // evidenced by a sentence pinned there, so every test that reads one of
 // those documents from the repository root is listed in guidanceReaderList,
-// and each entry says what the test is: a pin E-0092 retires when its
-// passage moves, a relationship check, an absence check, or a test that
-// names a guidance document without reading it. The list is held equal to
-// the tree's readers in both directions: a new reader fails until someone
-// decides what it is, and a retired pin's entry must go with it.
+// and each entry says what the test is: a relationship check, an absence
+// check, or a test that names a guidance document without reading it. The
+// list is held equal to the tree's readers in both directions: a new reader
+// fails until someone decides what it is, and an entry naming no reader
+// must go.
 //
 // The rule asks whether a test reads the guidance, not whether it asserts a
 // phrase: the first is decidable from syntax, the second is not. A test

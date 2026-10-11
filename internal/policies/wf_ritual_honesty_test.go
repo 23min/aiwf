@@ -14,8 +14,8 @@ import (
 //
 // These are doc-shaped assertions — there is no kernel set to source-derive
 // — so each is scoped to the named section (heading order or section-local
-// content), never a flat body grep, per CLAUDE.md §"Substring assertions are
-// not structural assertions".
+// content), never a flat body grep, per .guidance/project/testing.md §"Substring
+// assertions are not structural assertions".
 
 const (
 	wfTddCycleFixturePath   = "internal/skills/embedded-rituals/plugins/wf-rituals/skills/wf-tdd-cycle/SKILL.md"
