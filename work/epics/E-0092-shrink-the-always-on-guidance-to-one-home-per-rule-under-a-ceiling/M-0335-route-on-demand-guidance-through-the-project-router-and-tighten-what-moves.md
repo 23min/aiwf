@@ -117,25 +117,25 @@ Every rule M-0349 marks "merge" or "tighten" is rewritten in its one home, and e
 
 ### AC-3 — the starting list
 
-`guidanceReaderList` at this milestone's start, `d753e5447`, names thirteen pins. Each pins a passage this milestone moves on demand or rewrites in place:
+`guidanceReaderList` at this milestone's start, `d753e5447`, names thirteen pins. Each pins a passage this milestone moves on demand or rewrites in place, and each is retired, since D-0102 bars a sentence pinned in development guidance as evidence:
 
-| Pin | Passage | Row | Disposition |
-|---|---|---|---|
-| `TestAiwfArchive_AC6_ClaudeMdNamesArchiveConvention` | the archive commitment | commit-archive | tighten |
-| `TestM0154_AC2_CLAUDEMDOperatorSetupAmended` | Operator setup | operator-setup, settings-consent | move on demand |
-| `TestM0195_AC5_SkillBodyDisciplineInClaudeMd` | Skills policy, the shipped-surface paragraph | shipped-surfaces | move on demand |
-| `TestM0211_AC3_AuthoringRuleNamesDividingPrinciple` | Consumer-operating guidance vs repo-development guidance | audience-split | move on demand |
-| `TestM0234_AC4_ClaudeMdWorktreeSectionsCiteWorktreeAdd` | the worktree default and Subagent worktree isolation | worktree-default, subagent-isolation | tighten, move on demand |
-| `TestM0293_KernelGuidanceStatesForceIsHumanOnly` | the provenance principle and commitment; its `docs/design/design-decisions.md` half is not guidance | provenance-principle, commit-provenance | merge, tighten |
-| `TestM083_AC2_CLAUDEMdCommitment2` | the stable-ids commitment | commit-stable-ids | tighten |
-| `TestPolicy_CLAUDEMDCLIConventionsLogging` | CLI conventions, logging | output-and-logging | move on demand |
-| `TestPolicy_ClaudeMdTestDisciplineSection` | Test discipline | test-discipline | move on demand |
-| `TestPolicy_M0128DocumentationHierarchy` | Documentation hierarchy | doc-tiers | move on demand |
-| `TestPolicy_M0132ClaudeMdDevcontainerSection` | Devcontainer | devcontainer | move on demand |
-| `TestPolicy_M0134ClaudeMdTestRunningSections` | the two test-running subsections | tests-in-devcontainer, tests-on-macos | move on demand |
-| `TestPolicy_M0228SkillsPolicyBroadenedPrinciple` | Skills policy, the shipped-surface paragraph | shipped-surfaces | move on demand |
+| Pin | Passage | Row | Disposition | Retired, and what still holds |
+|---|---|---|---|---|
+| `TestAiwfArchive_AC6_ClaudeMdNamesArchiveConvention` | the archive commitment | commit-archive | tighten | pinned the commitment's wording; `archive-sweep-pending` and the loader's archive resolution hold the convention itself |
+| `TestM0154_AC2_CLAUDEMDOperatorSetupAmended` | Operator setup | operator-setup, settings-consent | move on demand | pinned the passage's wording; ADR-0015's stance stays pinned by `TestM0154_AC1_ADR0015RecordsConsentGatedStance` |
+| `TestM0195_AC5_SkillBodyDisciplineInClaudeMd` | Skills policy, the shipped-surface paragraph | shipped-surfaces | move on demand | pinned the passage's wording; `skill-body-id` enforces its id-shaped subset |
+| `TestM0211_AC3_AuthoringRuleNamesDividingPrinciple` | Consumer-operating guidance vs repo-development guidance | audience-split | move on demand | pinned the passage's wording; `PolicyM0211GuidanceOperatingAnchors` holds the operating anchors in the fragment |
+| `TestM0234_AC4_ClaudeMdWorktreeSectionsCiteWorktreeAdd` | the worktree default and Subagent worktree isolation | worktree-default, subagent-isolation | tighten, move on demand | pinned the passages' wording; the ritual call sites stay pinned by `TestM0234_AC1_StartMilestoneCutStepInvokesWorktreeAdd` |
+| `TestM0293_KernelGuidanceStatesForceIsHumanOnly` | the provenance principle and commitment; its `docs/design/design-decisions.md` half is not guidance | provenance-principle, commit-provenance | merge, tighten | its two `CLAUDE.md` rows are cut; its design-record rows stay, since `docs/design/` is not guidance |
+| `TestM083_AC2_CLAUDEMdCommitment2` | the stable-ids commitment | commit-stable-ids | tighten | pinned the commitment's wording; `guidance-ids-through-links` holds the guidance to canonical placeholders |
+| `TestPolicy_CLAUDEMDCLIConventionsLogging` | CLI conventions, logging | output-and-logging | move on demand | pinned the passage's wording; ADR-0017 records the decision and `internal/logger` tests the behaviour |
+| `TestPolicy_ClaudeMdTestDisciplineSection` | Test discipline | test-discipline | move on demand | pinned a heading; `test-setup-presence` enforces the rule itself |
+| `TestPolicy_M0128DocumentationHierarchy` | Documentation hierarchy | doc-tiers | move on demand | pinned the passage's subtree list; which tier a subtree carries is a judgment held at review |
+| `TestPolicy_M0132ClaudeMdDevcontainerSection` | Devcontainer | devcontainer | move on demand | pinned the passage's wording; `devcontainer-paths-resolve` now reads the routed documents |
+| `TestPolicy_M0134ClaudeMdTestRunningSections` | the two test-running subsections | tests-in-devcontainer, tests-on-macos | move on demand | pinned the passages' wording; nothing a test can re-derive is lost |
+| `TestPolicy_M0228SkillsPolicyBroadenedPrinciple` | Skills policy, the shipped-surface paragraph | shipped-surfaces | move on demand | pinned the passage's wording; `skill-body-id` enforces its id-shaped subset |
 
-Three listed readers that are not pins read moved text too: `TestSkillEditProvenance_DocumentedInClaudeMd` requires the Ritual content authoring and What's enforced and where headings in `CLAUDE.md`; `TestPolicy_NoDanglingEntityRefsInNarrativeDocs` resolves entity links in `CLAUDE.md` and `ROADMAP.md` only; `TestPolicyDevcontainerPathsResolve` does not read `.guidance/`.
+Three listed readers that are not pins read moved text too: `TestSkillEditProvenance_DocumentedInClaudeMd` requires the Ritual content authoring and What's enforced and where headings in `CLAUDE.md`; `TestPolicy_NoDanglingEntityRefsInNarrativeDocs` resolves entity links in `CLAUDE.md` and `ROADMAP.md` only; `TestPolicyDevcontainerPathsResolve` does not read `.guidance/`. Both relationship checks now read the development-guidance set, and the absence check scans every guidance document.
 
 ## Deferrals
 
