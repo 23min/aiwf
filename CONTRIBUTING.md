@@ -1,6 +1,6 @@
 # Contributing to aiwf
 
-`aiwf` is an experimental framework for keeping humans and AI assistants in sync about what's planned, decided, and done. Forward design and rationale live at [`docs/design/design-decisions.md`](docs/design/design-decisions.md); engineering rules live in [`CLAUDE.md`](CLAUDE.md). Read those before sending substantive changes.
+`aiwf` is an experimental framework for keeping humans and AI assistants in sync about what's planned, decided, and done. Forward design and rationale live at [`docs/design/design-decisions.md`](docs/design/design-decisions.md); engineering rules live in [`CLAUDE.md`](CLAUDE.md) and the documents [`.guidance/project.md`](.guidance/project.md) routes to. Read those before sending substantive changes.
 
 ---
 
