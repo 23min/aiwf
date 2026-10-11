@@ -63,3 +63,14 @@ func TestExtractMarkdownSubsection_IgnoresChildUnderWrongParent(t *testing.T) {
 		t.Error("expected found=false for a CLI conventions heading nested under the wrong parent")
 	}
 }
+
+// TestExtractMarkdownSubsection_TopLevelHeadingClosesTheParent proves a
+// `# ` heading ends the parent section as well as the child: a `### child`
+// after it no longer sits inside `## parent`, so it is not found.
+func TestExtractMarkdownSubsection_TopLevelHeadingClosesTheParent(t *testing.T) {
+	t.Parallel()
+	doc := "## Go conventions\n\n# Another document\n\n### CLI conventions\n\norphaned body\n"
+	if got, ok := extractMarkdownSubsection(doc, "Go conventions", "CLI conventions"); ok {
+		t.Errorf("found %q under a parent a top-level heading closed; want not found", got)
+	}
+}
