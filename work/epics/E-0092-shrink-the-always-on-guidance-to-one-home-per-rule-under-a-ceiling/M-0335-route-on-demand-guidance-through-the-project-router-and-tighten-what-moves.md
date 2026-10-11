@@ -112,8 +112,18 @@ Nothing a consumer sees changes. This repository's own development guidance is r
 
 ## Decisions made during implementation
 
-- This milestone runs `tdd: advisory`. AC-2 is an observation record and AC-6 a rewording held at review, so neither has a red test to precede it; the phases are recorded, as they happen, for AC-1, AC-4 and AC-5. Decided by the maintainer.
-- A live reference to a moved section is re-pointed at the section's new document: normative docs, Go comments, the messages of CI workflows, hooks and the `Makefile`, and `CONTRIBUTING.md`. It lands in the commit after the move, since the fence admits no file outside the guidance set beside a guidance change. Audits, archived documents, the changelog and entity bodies are records of their date and stay as written. Decided by the maintainer.
+- This milestone runs `tdd: advisory`. AC-2 is an observation record and AC-6 a rewording held at review, so neither has a red test to precede it; AC-1 and AC-5 carry the phases recorded as their tests were written. AC-3 retires tests rather than writing one, and AC-4's constant changed after the re-homing had already shrunk the text, so no failing state existed to record for either; both carry none. Decided by the maintainer.
+- A live reference to a moved section is re-pointed at the document that now holds it: Go comments and messages, normative docs and ADR pointers, the messages of CI workflows, hooks and the `Makefile`, `.golangci.yml`, `.devcontainer/project/README.md` and `CONTRIBUTING.md`. The re-pointing lands in one commit after the moves, since the fence admits no file outside the guidance set beside a guidance change. A record of its date stays as written: audits, archived documents, the changelog, gap, decision and milestone bodies, an ADR's context or consequences recording what `CLAUDE.md` said when it was decided, the working catalogs `docs/design/legal-workflows-audit.md` and `docs/design/legal-workflows-first-principles.md`, and `docs/design/growth.md`. References to sections removed before this milestone are left to a gap. Decided by the maintainer.
+- The ADR edits two plain commits made, `f497f3f2c` and `95c37637b`, are acknowledged with `aiwf acknowledge illegal`, one commit per ADR, rather than rebuilt through `aiwf edit-body`, which would rewrite every later commit this body cites. Later ADR edits go through `aiwf edit-body`. Decided by the maintainer.
+- Claude's L2 observation made no edit, so it was run once more on the same prompt; the second run made none either, so the cell is recorded as not exercised and AC-2 is met on the cells that were. Decided by the maintainer.
+- The guidance checks run when guidance changes: `go.yml`'s pull-request and push filters name `CLAUDE.md`, `AGENTS.md` and `.guidance/**`, and the cadence's skip rule names them among what `make ci` checks. Decided by the maintainer.
+- `guidance-imports-in-repository` also reports a relative import that climbs out of the repository, so no import from outside it passes. Decided by the maintainer.
+- A primed clause is cut only where the agent meets its content anyway at the point of need: the scope states (`aiwf authorize --help`), the archive-backlog finding (`aiwf check` reports it), what the updater writes, and the pointer to the convergence rule (the router routes verb work). The tool-not-co-actor clause, the reversal pattern for an archived entity and the reason `aiwf worktree add` materializes artifacts stay, since an agent would make the mistake before thinking to look. Decided by the maintainer.
+- `AGENTS.md`'s "Repository development rules still come from `CLAUDE.md`" stays: in its paragraph it says the rules do not come from Codex's skills, and the preamble's first paragraph names the routed documents. Its row is keep. Decided by the maintainer.
+- G-0715 closes as addressed by `81d4f617e`: `CLAUDE.md` no longer counts on CI running on epic or milestone pushes. G-0436 stays for M-0337, which closes it with the path check that keeps it closed; both of its sites read correctly now. Decided by the maintainer.
+- References naming sections that never moved here go to two gaps, one for code comments and an ADR, one for the contribution templates; no check of section citations is added. Decided by the maintainer.
+- The guidance-reader list's pin kind goes with its last entry: D-0102 bars a pinned sentence as evidence, so no new entry can be a pin.
+- `CLAUDE.md` points at a routed document by a backticked path rather than a link, so the pointer needs no ceiling read-table row; nothing checks it until M-0337's cited-path check.
 
 ## Validation
 
@@ -127,8 +137,8 @@ At `0805fae26`, in the aiwf devcontainer, Linux, `go1.25.12 linux/amd64`, 2026-1
 ### AC-1 — routes, imports and the updater
 
 - **Routes resolve.** `PolicyGuidanceCeiling` follows every link in the router and in both entry points' handwritten text and routing blocks, and reports one whose target does not exist; `TestMeasureGuidanceLoad_RouterLinksDefaultToConditional` holds that a router route to a missing file is reported. On the tree it reports none: `go test -count=1 -run 'TestPolicy_GuidanceCeiling$' -v ./internal/policies/` passes.
-- **No outside import.** `PolicyGuidanceImportsInRepository` reports an import under the home directory or by absolute path in either entry point, managed blocks included; on the tree it reports none.
-- **The updater preserves the handwritten guidance.** Command: in a `git clone --no-hardlinks` of this branch at `81d4f617e`, with `HOME`, the XDG directories and `TMPDIR` pointed at a scratch directory, `aiwf update` built from that commit, run twice, then `git status --porcelain`. Expected: no tracked change, so the router, the routed documents and both entry points' handwritten text and managed blocks are as committed, and no import from outside the repository. Observed: exit 0 both times, `git status --porcelain` printed nothing, and `grep '@~\|@/' CLAUDE.md AGENTS.md` matched nothing. The update reported the guidance import and `AGENTS.md`'s guidance as preserved and listed no pack refresh, since `guidance.enabled` is `false`. Environment: the aiwf devcontainer, Linux, 2026-10-11.
+- **No outside import.** `PolicyGuidanceImportsInRepository` reports an import under the home directory, by absolute path, or by a relative path leaving the repository, in either entry point, managed blocks included; `TestOutsideImports` and `TestPolicyGuidanceImportsInRepository_ReadsManagedBlocks` pin it, and on the tree it reports none.
+- **The updater preserves the handwritten guidance.** Command: in a `git clone --no-hardlinks` of this branch at `81d4f617e`, with `HOME`, the XDG directories and `TMPDIR` pointed at a scratch directory, `aiwf update` built from that commit, run twice, then `git status --porcelain`. Expected: no tracked change, so the router, the routed documents and both entry points' handwritten text and managed blocks are as committed, and no import from outside the repository. Observed: exit 0 both times, `git status --porcelain` printed nothing, and `grep '@~\|@/' CLAUDE.md AGENTS.md` matched nothing. The update reported the guidance import and `AGENTS.md`'s guidance as preserved and listed no pack refresh, since `guidance.enabled` is `false`. Route regeneration was not exercised for the same reason: the run fetched nothing and rewrote no route. Environment: the aiwf devcontainer, Linux, 2026-10-11.
 
 ### AC-4 — the ceilings
 
@@ -139,13 +149,13 @@ Command: `go test -count=1 -run 'TestPolicy_GuidanceCeiling$' -v ./internal/poli
 | Claude | 7,801 | 1,280 | 1,280 |
 | Codex | 7,930 | 1,420 | 1,420 |
 
-The aiwf-generated load is unchanged at 2,460 for Claude and 2,497 for Codex. On-demand loads after re-homing, in words: `testing.md` 1,454, `verb-design.md` 1,139, `shipped-content.md` 895, `stress-harness.md` 783, `enforcement.md` 713, `environment.md` 422, `go-conventions.md` 378, `writing-docs.md` 262, `release.md` 242. Both hosts are below M-0349's targets of 1,629 and 1,758.
+The aiwf-generated load is unchanged at 2,460 for Claude and 2,497 for Codex. On-demand loads after re-homing, in words: `testing.md` 1,454, `verb-design.md` 1,139, `shipped-content.md` 895, `stress-harness.md` 783, `enforcement.md` 713, `environment.md` 422, `go-conventions.md` 378, `writing-docs.md` 262, `release.md` 242. Both hosts are below M-0349's targets of 1,629 and 1,758. The wrap review's trims take them to 1,277 and 1,417, and the ceilings follow.
 
 ### AC-2 — reads before root-started edits
 
 - **Command:** `scripts/e0092-observe/run.sh 95c37637b0d7b2f4b9617d5b22eef74851b912bb <host> <task> <n>` for each host and the M-0334 rubric tasks T1 (a Go change), L1 (a Python script in a new file), L2 (a TypeScript test) and T6 (prose only), two runs at a time, then `scripts/e0092-observe/summarize.py` over the runs; no judge, since this criterion is about reads. The harness is the one M-0334 records, as frozen at `5092de5fd`, and each prompt is the rubric's.
 - **Expected:** before its first edit, each host reads the router and the routed document or pack its task needs; the prose-only task reads no language pack.
-- **Observed,** each document as runs shown it before / after their first edit:
+- **Observed,** each document as the runs were shown it before / after their first edit:
 
 | task | host | runs | reads | task-loaded words |
 |---|---|---|---|---|
@@ -186,7 +196,15 @@ The aiwf-generated load is unchanged at 2,460 for Claude and 2,497 for Codex. On
 | `TestPolicy_M0134ClaudeMdTestRunningSections` | the two test-running subsections | tests-in-devcontainer, tests-on-macos | move on demand | pinned the passages' wording; nothing a test can re-derive is lost |
 | `TestPolicy_M0228SkillsPolicyBroadenedPrinciple` | Skills policy, the shipped-surface paragraph | shipped-surfaces | move on demand | pinned the passage's wording; `skill-body-id` enforces its id-shaped subset |
 
-Three listed readers that are not pins read moved text too: `TestSkillEditProvenance_DocumentedInClaudeMd` requires the Ritual content authoring and What's enforced and where headings in `CLAUDE.md`; `TestPolicy_NoDanglingEntityRefsInNarrativeDocs` resolves entity links in `CLAUDE.md` and `ROADMAP.md` only; `TestPolicyDevcontainerPathsResolve` does not read `.guidance/`. Both relationship checks now read the development-guidance set, and the absence check scans every guidance document.
+Three listed readers that were not pins read moved text too: the skill-edit absence test, then `TestSkillEditProvenance_DocumentedInClaudeMd` and now `TestSkillEditProvenance_RetiredMandateAbsentFromGuidance`, required two `CLAUDE.md` headings; `TestPolicy_NoDanglingEntityRefsInNarrativeDocs` resolved entity links in `CLAUDE.md` and `ROADMAP.md` only; `TestPolicyDevcontainerPathsResolve` did not read `.guidance/`. Both relationship checks now read the development-guidance set, and the absence check scans every guidance document.
+
+### AC-5 — no nested instruction file
+
+`PolicyInstructionFilesAtRoot` lists tracked files with `git ls-files` and reports a `CLAUDE.md` or `AGENTS.md` anywhere but the root, by path. `TestInstructionFilesBelowRoot` pins the rule, `TestPolicyInstructionFilesAtRoot_ReadsTrackedFiles` pins that it judges tracked files and that a directory git cannot list is an error, and on the tree `TestPolicy_InstructionFilesAtRoot` reports none.
+
+### AC-6 — dispositions applied
+
+`TestE0092Inventory` passes: every removal block since M-0336's start names its row and carries the row's decision, and each destination it names exists; `TestInventoryReconcileFindings` pins that a removal naming a destination that does not exist is reported. The rewording was read at the wrap review against each tighten row's list of what it must carry.
 
 ## Deferrals
 
