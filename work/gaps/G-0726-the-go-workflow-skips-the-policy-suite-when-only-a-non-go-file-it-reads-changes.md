@@ -8,13 +8,18 @@ discovered_in: M-0359
 
 The `go` workflow runs the `internal/policies` suite, but its `on.push.paths` and
 `on.pull_request.paths` filters in `.github/workflows/go.yml` list only Go sources, `go.mod`,
-`go.sum`, `.golangci.yml`, the workflow files the suite reads, `.devcontainer/**`, the `Makefile`
-the embedded trees and the development guidance (`CLAUDE.md`, `AGENTS.md`, `.guidance/**`).
+`go.sum`, `.golangci.yml`, `go.yml` and `gitleaks.yml`, `.devcontainer/**`, the `Makefile`, the
+embedded trees and the development guidance (`CLAUDE.md`, `AGENTS.md`, `.guidance/**`).
 Several files the suite reads match none of those patterns, so a push that changes only such a
 file starts no run of the policies that judge it:
 
 - `README.md`, `CONTRIBUTING.md`, `docs/adr`, `docs/design`, `docs/reference` and `scripts/` —
   read by `PolicyDevcontainerPathsResolve` (`internal/policies/devcontainer_paths_resolve.go`);
+- `.github/workflows/flake-hunt.yml` — read by `internal/policies/race_parallel_cap.go` and
+  `internal/policies/flake_hunt_package_isolation.go`;
+- `.github/workflows/changelog-check.yml` — read by
+  `internal/policies/changelog_audit_wiring_test.go` and
+  `internal/policies/release_heading_matches_tag_gate_test.go`;
 - `scripts/git-hooks/pre-push` — its gitleaks install hint is compared with CI's pin by
   `TestGitleaksEnforcement_PinnedVersionConsistent`
   (`internal/policies/gitleaks_enforcement_test.go`).
