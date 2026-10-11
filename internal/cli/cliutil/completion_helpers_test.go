@@ -339,7 +339,7 @@ func TestCompleteAreaArg_OmitsGlobal(t *testing.T) {
 
 // newCompletionFixtureRepo builds a small synthetic planning tree
 // under a tempdir and returns the root. Three entities: one epic and
-// two milestones. Synthetic content per CLAUDE.md test conventions —
+// two milestones. Synthetic content per .guidance/project/testing.md test conventions —
 // the fixtures must read as obviously fictional, not as anonymized
 // copies of any real project.
 func newCompletionFixtureRepo(t *testing.T) string {

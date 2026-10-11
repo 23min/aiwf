@@ -1,6 +1,22 @@
-# Project guidance overrides
+# Project guidance
 
-Read `CLAUDE.md` in full before changing this repository. It is the canonical
-source for aiwf development rules and takes precedence over the guidance packs,
-including validation commands, testing conventions, logging, and approval gates.
-Keep those rules there rather than duplicating them here.
+`CLAUDE.md` holds the rules for every task in this repository, and they take
+precedence over the packs. Before the first edit a task governs, read the
+document that matches it:
+
+- [Testing](project/testing.md) — writing or changing Go tests, choosing an
+  acceptance criterion's evidence, the coverage gates, running tests on macOS.
+- [Verb design](project/verb-design.md) — adding or changing a verb, a check
+  rule or the loader.
+- [Go conventions](project/go-conventions.md) — Go code in this repository;
+  where it differs from the Go pack, logging included, it overrides the pack.
+- [Environment](project/environment.md) — setup, the devcontainer, subagent
+  worktrees, diagnosing with a binary built from a worktree.
+- [Shipped content](project/shipped-content.md) — editing embedded skills,
+  rituals, templates or the guidance fragment.
+- [Stress harness](project/stress-harness.md) — stress scenarios and their
+  lanes.
+- [Writing docs](project/writing-docs.md) — documents under `docs/` and ADRs.
+- [Release](project/release.md) — cutting a release.
+- [Enforcement](project/enforcement.md) — where a rule is enforced, from
+  pre-commit to the release tag.

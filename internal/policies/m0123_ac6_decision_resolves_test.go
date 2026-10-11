@@ -20,7 +20,7 @@ import (
 // the cited set to {D-0002..D-0007}; AC-6 closes the loop by asserting
 // each cited D-NNNN actually exists.
 //
-// Per CLAUDE.md §"Policy tests that read entity files must resolve via
+// Per .guidance/project/testing.md §"Policy tests that read entity files must resolve via
 // the loader": Tree.ByID transparently resolves active and archive paths
 // per ADR-0004, so the test stays correct when a decision entity later
 // reaches terminal status and is archive-swept.

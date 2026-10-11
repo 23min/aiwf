@@ -26,7 +26,7 @@ import (
 // unpinnable defect to a record — stay out of the table: they are already
 // true of a pinned defect and need no edit.
 //
-// Each case is section-scoped per CLAUDE.md *Testing* §"Substring
+// Each case is section-scoped per .guidance/project/testing.md §"Substring
 // assertions are not structural assertions": the disposition has to live
 // inside the section that carries the verdict handling, not merely appear
 // somewhere in the file. Fixture paths and the skill-body reader are the

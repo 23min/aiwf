@@ -15,6 +15,10 @@ name: go
 # subtrees: nothing lives there but those trees and Go sources, which
 # `**/*.go` already selects, so the wider pattern costs no extra runs and
 # needs no edit when a tree is added.
+#
+# `CLAUDE.md`, `AGENTS.md` and `.guidance/**` are the development guidance
+# the guidance ceiling and its sibling policies judge, so a guidance-only
+# change runs them too.
 on:
   pull_request:
     paths:
@@ -29,6 +33,9 @@ on:
       - "internal/skills/**"
       - "internal/recipe/embedded/**"
       - "internal/htmlrender/embedded/**"
+      - "CLAUDE.md"
+      - "AGENTS.md"
+      - ".guidance/**"
   push:
     branches: [main, "poc/**"]
     paths:
@@ -43,6 +50,9 @@ on:
       - "internal/skills/**"
       - "internal/recipe/embedded/**"
       - "internal/htmlrender/embedded/**"
+      - "CLAUDE.md"
+      - "AGENTS.md"
+      - ".guidance/**"
 
 # GO_VERSION is the single source of truth for this workflow's toolchain
 # pin; every job below reads it. The devcontainer runs the same Go through

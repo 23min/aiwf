@@ -3,9 +3,11 @@ package policies
 import (
 	"fmt"
 	"io/fs"
+	"maps"
 	"os"
 	"path/filepath"
 	"regexp"
+	"slices"
 	"strings"
 )
 
@@ -15,14 +17,17 @@ import (
 var devcontainerPathRe = regexp.MustCompile(`\.devcontainer/[A-Za-z0-9_.*/-]*[A-Za-z0-9_*]`)
 
 // devcontainerReferenceFiles lists the files a reader follows to the
-// development container: the root guides and Makefile, the Normative docs
-// tier, scripts, CI, Go source, and the repository's own hand-written
+// development container: the development guidance — both host instruction
+// files, the project router and the documents it routes to — the root
+// guides and Makefile, the Normative docs tier, scripts, CI, Go source, and
+// the repository's own hand-written
 // container files under .devcontainer/project/. Archival and exploratory docs
 // keep the paths they were written with, tests name fixture paths that exist
 // only in a temporary tree, and the kit's own files are the kit's to check,
 // so none of those is scanned.
 func devcontainerReferenceFiles(root string) ([]string, error) {
-	files := []string{"CLAUDE.md", "README.md", "CONTRIBUTING.md", "Makefile", "docs/architecture.md", "docs/overview.md", "docs/workflows.md", "docs/skill-author-guide.md"}
+	files := slices.Sorted(maps.Keys(developmentGuidance(repoGuidanceReader(root))))
+	files = append(files, "README.md", "CONTRIBUTING.md", "Makefile", "docs/architecture.md", "docs/overview.md", "docs/workflows.md", "docs/skill-author-guide.md")
 	walks := []struct {
 		dir  string
 		keep func(rel string) bool

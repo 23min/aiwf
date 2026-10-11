@@ -24,7 +24,7 @@ const newGapCode = "gap-addressed-has-resolver"
 // named sections with non-empty prose, and records both code strings plus
 // the JSON-surface downstream-consumer caveat in its Resolution section.
 //
-// Per CLAUDE.md *Testing* §"Substring assertions are not structural
+// Per .guidance/project/testing.md §"Substring assertions are not structural
 // assertions", the caveat literals are asserted inside the extracted
 // `## Resolution` section, not flat over the whole file — a caveat phrase
 // floating in Context would not satisfy the AC.

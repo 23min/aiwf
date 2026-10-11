@@ -7,7 +7,7 @@ import (
 
 // TestMain seeds the four GIT identity vars once at startup so test
 // functions can call t.Parallel safely (os.Setenv not t.Setenv, which
-// panics under parallel). See CLAUDE.md §"Test discipline".
+// panics under parallel). See .guidance/project/testing.md §"Test discipline".
 //
 // The spec package's tests are pure data-structure unit tests — no
 // git invocations — but the project-wide policy

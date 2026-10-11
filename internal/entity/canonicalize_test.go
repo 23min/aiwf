@@ -187,7 +187,7 @@ func TestIDGrepAlternation_MatchesBothWidths(t *testing.T) {
 // TestIDGrepAlternation_EdgeCases covers the helper's defensive paths
 // (empty input, prefix-only input, non-grammar input). These are
 // branches the matchers above don't traverse; the seam-test rule
-// from CLAUDE.md asks for explicit coverage, not just integration.
+// from .guidance/project/testing.md asks for explicit coverage, not just integration.
 func TestIDGrepAlternation_EdgeCases(t *testing.T) {
 	t.Parallel()
 	tests := []struct {

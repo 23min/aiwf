@@ -169,7 +169,7 @@ surface and say so in their own comments: `retitle` compares the stored title
 file's location; `promote --superseded-by` consults a *second* entity's
 reciprocal link. A frontmatter-only comparison would pass an entity whose H1 the
 operator has hand-repaired on disk, and the verb would then converge — dropping
-the very repair CLAUDE.md says a drifted heading must receive. "That claim rests
+the very repair [the verb-design guidance](../../.guidance/project/verb-design.md#same-state-convergence--resolve-then-converge) says a drifted heading must receive. "That claim rests
 on parsed frontmatter" is simply false at those sites.
 
 The cost is that a true status claim can be refused while the body is mid-edit.

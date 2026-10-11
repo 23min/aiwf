@@ -38,7 +38,7 @@ func skillSection(t *testing.T, skill, heading string) string {
 // and its siblings; this is the surface read by someone working from
 // the skill rather than from a check run.
 //
-// Scoped to the section, per CLAUDE.md §"Substring assertions are not
+// Scoped to the section, per .guidance/project/testing.md §"Substring assertions are not
 // structural assertions": the skill names `aiwf acknowledge illegal` in
 // five other rows already, so a document-wide grep would pass with this
 // section saying nothing.

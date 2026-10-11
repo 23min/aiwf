@@ -1132,7 +1132,7 @@ func fileExists(t *testing.T, env *ScenarioEnv, entityID string) bool {
 // Assumes LF line endings (devcontainer / CI Linux). The closer
 // detection `strings.Index(rest, "\n---")` is not CRLF-aware
 // — on Windows, `\r\n---` would not match and the helper would
-// return "". M-0160 runs in the devcontainer per CLAUDE.md; if
+// return "". M-0160 runs in the devcontainer per .guidance/project/testing.md; if
 // host-side Windows testing is later in scope, port the splitter
 // from replaceStatusInFrontmatter above in this file.
 func readFrontmatter(t *testing.T, absPath string) string {

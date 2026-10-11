@@ -16,7 +16,7 @@ import (
 // (manual argv parsing wrapped around legacy verbs) to native Cobra
 // commands with declarative flag binding. The migration's
 // user-visible payoff is the AI-discoverability and shell-completion
-// guarantees in CLAUDE.md: `aiwf <verb> --help` is authoritative
+// guarantees in .guidance/project/verb-design.md: `aiwf <verb> --help` is authoritative
 // because Cobra generates it from the same flag-binding source the
 // runtime uses, and tab-completion works because every value-taking
 // flag has a completion function bound to that same source.

@@ -1,9 +1,10 @@
 # Codex instructions for developing aiwf
 
-Before changing this repository, read [CLAUDE.md](CLAUDE.md) in full. It is the
-canonical source for aiwf's repository development rules, including engineering
-conventions, validation, commit approvals, and release discipline. Keep those
-rules in that file; do not maintain a second copy here.
+Before changing this repository, read [CLAUDE.md](CLAUDE.md) in full: it holds
+the development rules every task needs. Rules for particular tasks are in the
+documents `.guidance/project.md` routes to, and the operating rules, approval
+gates included, in the aiwf guidance below. Keep each rule in its one home; do
+not copy it here.
 
 For assistant-specific operations, follow the Codex-rendered aiwf guidance and
 skills when installed in this checkout. Claude's `@file` imports and tool names

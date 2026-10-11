@@ -43,7 +43,7 @@ import (
 //
 // Judgment-shaped decisions (when to use a per-verb skill vs. a
 // topical multi-verb skill, when --help suffices) live in the
-// companion ADR and CLAUDE.md `Skills policy` section. This policy
+// companion ADR and .guidance/project/shipped-content.md `Skills policy` section. This policy
 // captures only the mechanical companion.
 func PolicySkillCoverageMatchesVerbs(root string) ([]Violation, error) {
 	kernelSkills, err := loadEmbeddedSkillsForPolicy(root)

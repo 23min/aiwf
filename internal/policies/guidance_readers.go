@@ -21,11 +21,11 @@ import (
 // router, and the documents the router links to. No acceptance criterion is
 // evidenced by a sentence pinned there, so every test that reads one of
 // those documents from the repository root is listed in guidanceReaderList,
-// and each entry says what the test is: a pin E-0092 retires when its
-// passage moves, a relationship check, an absence check, or a test that
-// names a guidance document without reading it. The list is held equal to
-// the tree's readers in both directions: a new reader fails until someone
-// decides what it is, and a retired pin's entry must go with it.
+// and each entry says what the test is: a relationship check, an absence
+// check, or a test that names a guidance document without reading it. The
+// list is held equal to the tree's readers in both directions: a new reader
+// fails until someone decides what it is, and an entry naming no reader
+// must go.
 //
 // The rule asks whether a test reads the guidance, not whether it asserts a
 // phrase: the first is decidable from syntax, the second is not. A test
@@ -55,10 +55,8 @@ func PolicyGuidanceReaders(root string) ([]Violation, error) {
 type readerKind int
 
 const (
-	// readerPin pins a passage; E-0092 retires it when the passage moves.
-	readerPin readerKind = iota + 1
 	// readerRelationship compares the guidance with another artefact.
-	readerRelationship
+	readerRelationship readerKind = iota + 1
 	// readerAbsence asserts that something is not in the guidance.
 	readerAbsence
 	// readerNamesOnly names a guidance document without reading it.
@@ -72,35 +70,24 @@ type guidanceReaderEntry struct {
 }
 
 // guidanceReaderList names every test that reads development guidance, keyed
-// by package directory and test name. The pins are E-0092's to retire as
-// their passages move; the milestone that retires one deletes its entry.
+// by package directory and test name, with why it reads it. None pins a
+// passage: D-0102 bars evidencing a criterion with a pinned sentence.
 var guidanceReaderList = map[string]guidanceReaderEntry{
-	"internal/policies.TestAiwfArchive_AC6_ClaudeMdNamesArchiveConvention":    {readerPin, "pins the archive-convention commitment of CLAUDE.md"},
-	"internal/policies.TestM0154_AC2_CLAUDEMDOperatorSetupAmended":            {readerPin, "pins the operator-setup passage of CLAUDE.md"},
-	"internal/policies.TestM0195_AC5_SkillBodyDisciplineInClaudeMd":           {readerPin, "pins the shipped-surface discipline passage of CLAUDE.md"},
-	"internal/policies.TestM0211_AC3_AuthoringRuleNamesDividingPrinciple":     {readerPin, "pins the audience-dividing passage of CLAUDE.md"},
-	"internal/policies.TestM0234_AC4_ClaudeMdWorktreeSectionsCiteWorktreeAdd": {readerPin, "pins the worktree passages of CLAUDE.md"},
-	"internal/policies.TestM0293_KernelGuidanceStatesForceIsHumanOnly":        {readerPin, "pins the force-is-human-only statements of CLAUDE.md"},
-	"internal/policies.TestM083_AC2_CLAUDEMdCommitment2":                      {readerPin, "pins the stable-ids commitment of CLAUDE.md"},
-	"internal/policies.TestPolicy_CLAUDEMDCLIConventionsLogging":              {readerPin, "pins the CLI-conventions logging passage of CLAUDE.md"},
-	"internal/policies.TestPolicy_ClaudeMdTestDisciplineSection":              {readerPin, "pins the test-discipline section of CLAUDE.md"},
-	"internal/policies.TestPolicy_M0128DocumentationHierarchy":                {readerPin, "pins the documentation-hierarchy section of CLAUDE.md"},
-	"internal/policies.TestPolicy_M0132ClaudeMdDevcontainerSection":           {readerPin, "pins the devcontainer subsection of CLAUDE.md"},
-	"internal/policies.TestPolicy_M0134ClaudeMdTestRunningSections":           {readerPin, "pins the test-running subsections of CLAUDE.md"},
-	"internal/policies.TestPolicy_M0228SkillsPolicyBroadenedPrinciple":        {readerPin, "pins the skills-policy principle of CLAUDE.md"},
-	"internal/policies.TestM0127_AC3_NoDanglingDocsPocv3References":           {readerAbsence, "no document references the retired pocv3 tree"},
-	"internal/policies.TestM0290_AC4_NoNormativeDocOffersTheRetiredVerb":      {readerAbsence, "no normative document offers the retired verb"},
-	"internal/policies.TestSkillEditProvenance_DocumentedInClaudeMd":          {readerAbsence, "the retired skill-edit mandate stays out; it also requires two CLAUDE.md headings to exist"},
-	"internal/policies.TestPolicy_GuidanceIDsThroughLinks":                    {readerAbsence, "no entity id outside a link destination"},
-	"internal/policies.TestPolicy_GuidanceNoOperatingCopies":                  {readerAbsence, "no handwritten copy of a shipped operating rule"},
-	"internal/policies.TestAgentIsolationHook_DeniesWorktreeIsolation":        {readerNamesOnly, "names CLAUDE.md as a phrase the hook's message must contain"},
-	"internal/policies.TestPolicy_ConfigFieldsAreDiscoverable":                {readerRelationship, "reads the router to leave routed documents out of the channels"},
-	"internal/policies.TestPolicyDevcontainerPathsResolve":                    {readerRelationship, "checks that every .devcontainer/ path CLAUDE.md names exists"},
-	"internal/policies.TestPolicy_FindingCodesAreDiscoverable":                {readerRelationship, "reads the router to leave routed documents out of the channels"},
-	"internal/policies.TestPolicy_GuidanceCeiling":                            {readerRelationship, "measures each host's primed load against its ceiling"},
-	"internal/policies.TestPolicy_NoDanglingEntityRefsInNarrativeDocs":        {readerRelationship, "checks that every entity reference in CLAUDE.md resolves"},
-	"internal/policies.TestPolicy_GuidanceReaders":                            {readerRelationship, "reads the router to know which documents are guidance"},
-	"internal/policies.TestE0092Inventory":                                    {readerRelationship, "checks M-0349's inventory against the guidance as frozen, each removal against its row, and the fragment's frozen words against HEAD"},
+	"internal/policies.TestM0127_AC3_NoDanglingDocsPocv3References":              {readerAbsence, "no document references the retired pocv3 tree"},
+	"internal/policies.TestM0290_AC4_NoNormativeDocOffersTheRetiredVerb":         {readerAbsence, "no normative document offers the retired verb"},
+	"internal/policies.TestSkillEditProvenance_RetiredMandateAbsentFromGuidance": {readerAbsence, "the retired skill-edit mandate stays out of every guidance document"},
+	"internal/policies.TestPolicy_GuidanceIDsThroughLinks":                       {readerAbsence, "no entity id outside a link destination"},
+	"internal/policies.TestPolicy_GuidanceNoOperatingCopies":                     {readerAbsence, "no handwritten copy of a shipped operating rule"},
+	"internal/policies.TestPolicy_GuidanceImportsInRepository":                   {readerAbsence, "no host entry point imports a file from outside the repository"},
+	"internal/policies.TestPolicy_InstructionFilesAtRoot":                        {readerAbsence, "no host instruction file below the repository root"},
+	"internal/policies.TestAgentIsolationHook_DeniesWorktreeIsolation":           {readerNamesOnly, "names .guidance/project/environment.md as a phrase the hook's message must contain"},
+	"internal/policies.TestPolicy_ConfigFieldsAreDiscoverable":                   {readerRelationship, "reads the router to leave routed documents out of the channels"},
+	"internal/policies.TestPolicyDevcontainerPathsResolve":                       {readerRelationship, "checks that every .devcontainer/ path the development guidance names exists"},
+	"internal/policies.TestPolicy_FindingCodesAreDiscoverable":                   {readerRelationship, "reads the router to leave routed documents out of the channels"},
+	"internal/policies.TestPolicy_GuidanceCeiling":                               {readerRelationship, "measures each host's primed load against its ceiling"},
+	"internal/policies.TestPolicy_NoDanglingEntityRefsInNarrativeDocs":           {readerRelationship, "checks that every entity reference in the development guidance resolves"},
+	"internal/policies.TestPolicy_GuidanceReaders":                               {readerRelationship, "reads the router to know which documents are guidance"},
+	"internal/policies.TestE0092Inventory":                                       {readerRelationship, "checks M-0349's inventory against the guidance as frozen, each removal against its row, and the fragment's frozen words against HEAD"},
 }
 
 // guidanceReaderListFile is where guidanceReaderList lives, for a finding

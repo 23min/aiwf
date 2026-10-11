@@ -12,7 +12,7 @@ import (
 )
 
 // TestPolicy_FlagsHaveCompletion is the drift-prevention chokepoint
-// behind the auto-completion design principle in CLAUDE.md: every
+// behind the auto-completion design principle in .guidance/project/verb-design.md: every
 // value-taking flag in the Cobra command tree must either have an
 // explicit completion function bound (`RegisterFlagCompletionFunc`)
 // or appear in the curated opt-out list below. A flag added without

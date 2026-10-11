@@ -284,7 +284,7 @@ var hintTable = map[string]string{
 	// M-0137/AC-4: history-walk-error subcode. The M-0130 walker
 	// silently swallowed walker failures; M-0137 surfaces them as
 	// findings so one transient subprocess error doesn't wipe the
-	// rule's output (per CLAUDE.md §Engineering principles).
+	// rule's output (per .guidance/project/verb-design.md §Principles).
 	"fsm-history-consistent/history-walk-error": "the walker hit a real failure reading the named entity's commit history (subprocess crash, blob read error, context cancelled mid-walk); other entities' findings are still surfaced alongside per the partial-preservation contract. Re-run `aiwf check` to confirm whether the failure is transient; if it repeats on a full clone, inspect git's reachable-objects health (`git fsck`) or the consumer-repo permissions on `.git/objects/`. On a partial clone (`--filter=blob:none` or similar) the blob is omitted by design and the walk needs it: re-enable lazy fetching if it is off, restore the remote it fetches from, or backfill with `git fetch --refetch --no-filter` — a clone that can still fetch backfills on read and never reports this",
 
 	"contract-config/missing-entity":        "create a contract entity for this id (`aiwf add contract`), or remove the entry from aiwf.yaml.contracts.entries[]",

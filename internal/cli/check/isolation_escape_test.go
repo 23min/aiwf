@@ -25,7 +25,7 @@ import (
 // regardless of how complete its algorithm is.
 //
 // The assertion is AST-level (not a substring match on the source)
-// per CLAUDE.md §"Substring assertions are not structural
+// per .guidance/project/testing.md §"Substring assertions are not structural
 // assertions". A regression that comments out the call,
 // accidentally reorders the function so the call lives in dead
 // code, or renames it fires this test.

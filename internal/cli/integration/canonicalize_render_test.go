@@ -29,7 +29,7 @@ import (
 // (E-0022, M-0007, G-0093) appear in structural id-bearing positions
 // of the render output.
 //
-// Per CLAUDE.md "Substring assertions are not structural assertions",
+// Per .guidance/project/testing.md "Substring assertions are not structural assertions",
 // the HTML assertions go through htmlSection so each match is scoped
 // to a named tab/element rather than floating anywhere on the page.
 
@@ -307,7 +307,7 @@ func TestShow_JSON_CanonicalIDsFromNarrowTree(t *testing.T) {
 //
 // Pairs htmlSection (which scopes by data-tab) with the more general
 // case of a tag-and-class scope (sidebar lives under <nav class="sidebar">,
-// page header under <header>, etc.). Per CLAUDE.md "Substring
+// page header under <header>, etc.). Per .guidance/project/testing.md "Substring
 // assertions are not structural assertions", AC-3 needs assertions
 // scoped to named elements, not bare grep.
 func htmlElement(s, tag, cls string) string {

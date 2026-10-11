@@ -26,7 +26,7 @@ import (
 // integration test that drives `cli.Execute([]string{"list", ...})` and asserts
 // the rendered output for the V1 core flag set: --kind, --status,
 // --parent, --format=text|json, --pretty. The helper-only path is not
-// sufficient (CLAUDE.md "test the seam" rule); this test fires the
+// sufficient (.guidance/project/testing.md "test the seam" rule); this test fires the
 // dispatcher so a future implementation that wires the flags wrongly
 // fails here, not just at the helper layer.
 //

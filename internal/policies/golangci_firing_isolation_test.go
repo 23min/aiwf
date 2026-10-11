@@ -87,7 +87,7 @@ func TestGolangciFixtureCmd_RunsWhileAnotherRunnerHoldsTheLock(t *testing.T) {
 // golangci-lint reword the message — and the predicate goes permanently
 // false, the harness silently returns to reporting a contended run as a
 // dormant rule, and every test stays green. This is the independent
-// derivation CLAUDE.md § "Contract tests for upstream-cached systems"
+// derivation .guidance/project/testing.md § "Contract tests for upstream-cached systems"
 // asks for.
 //
 // It doubles as the pin on golangciLockPath()'s filename claim: the

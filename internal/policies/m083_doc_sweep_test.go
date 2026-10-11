@@ -15,7 +15,7 @@ import (
 // spans, or the explicit allowlist of historical / foreign / worked-
 // example mentions.
 //
-// Per CLAUDE.md "substring assertions are not structural assertions",
+// Per .guidance/project/testing.md "substring assertions are not structural assertions",
 // the grep is per-line and tracks markdown code-fence and inline-span
 // context so a stray narrow id inside a fenced bash example or
 // inside an inline-code span does not false-positive.

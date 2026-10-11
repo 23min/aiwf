@@ -79,7 +79,7 @@ func TestRender_FixtureTree_FilesAndLinks(t *testing.T) {
 	// AC anchors land as id attributes INSIDE the manifest tab — not
 	// merely somewhere on the page (the `#ac-1` fragment also appears as
 	// href references in the build and tests tabs). Scoping the assertion
-	// to the manifest section is the structural form CLAUDE.md's
+	// to the manifest section is the structural form .guidance/project/testing.md's
 	// substring-vs-structural lesson requires: a bug that rendered the AC
 	// <section> under the wrong tab would pass a bare Contains but fail
 	// this. M-0169 (vacuity strengthening).
@@ -287,7 +287,7 @@ func snippetAround(s, want string) string {
 // <section data-tab="<tab>" …> element: from that opening tag up to the
 // next `<section data-tab=` (or end of document). It lets a test assert
 // WHERE a literal renders, not merely that it renders somewhere — the
-// structural assertion CLAUDE.md's "substring assertions are not structural
+// structural assertion .guidance/project/testing.md's "substring assertions are not structural
 // assertions" lesson requires for the milestone page's tabbed layout.
 func sectionByTab(t *testing.T, html, tab string) string {
 	t.Helper()

@@ -34,7 +34,7 @@ func loadAiwfxReleaseFixture(t *testing.T) string {
 // deployer agent at ~0 dispatches despite existing and being fully
 // documented (session mining in the archived G-0353 gap).
 //
-// Scoped to `## When to use` per CLAUDE.md *Substring assertions are
+// Scoped to `## When to use` per .guidance/project/testing.md *Substring assertions are
 // not structural assertions*: the delegation instruction and the
 // phrase list could otherwise pass vacuously by appearing somewhere
 // unrelated in the file (e.g. the Workflow section already names

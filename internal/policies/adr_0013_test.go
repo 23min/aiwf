@@ -10,7 +10,7 @@ import (
 
 // loadADR0013 resolves ADR-0013 (global-precondition representation;
 // out-of-scope legality classification) through the loader — never a
-// hardcoded path, per CLAUDE.md *Testing* §"Policy tests that read
+// hardcoded path, per .guidance/project/testing.md §"Policy tests that read
 // entity files must resolve via the loader" — so the test survives
 // rename and archive sweeps. Returns the raw file contents
 // (frontmatter + body).
@@ -31,7 +31,7 @@ func loadADR0013(t *testing.T) string {
 // assertDecisionSubsection asserts a `### <name>` subsection under
 // `## Decision` exists, carries real prose, and contains each required
 // identifier literal and prose word — every assertion scoped to the
-// subsection per CLAUDE.md *Testing* §"Substring assertions are not
+// subsection per .guidance/project/testing.md §"Substring assertions are not
 // structural assertions", so a literal floating in another section
 // does not satisfy the AC.
 func assertDecisionSubsection(t *testing.T, body, name string, identifiers, proseWords []string) {

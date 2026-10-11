@@ -1,6 +1,6 @@
 # Lint configuration for the aiwf Go module.
 # The Go pack (.guidance/packs/go/cobra/guide.md) holds the generic Go
-# conventions; CLAUDE.md § Go conventions holds aiwf's own.
+# conventions; .guidance/project/go-conventions.md holds aiwf's own.
 version: "2"
 # build-tags brings tag-gated sources into the lint surface. Without
 # `stress`, the concurrency and observation-window scenario drivers under
@@ -103,8 +103,8 @@ linters:
           - errcheck
           - gosec
         path: _test\.go
-      # dupl on _test.go: table-driven tests are idiomatic per CLAUDE.md §
-      # Testing and routinely produce near-identical subtest bodies by
+      # dupl on _test.go: table-driven tests are idiomatic per .guidance/project/testing.md §
+      # Conventions and routinely produce near-identical subtest bodies by
       # design (varying only the fixture data) — that's expected structure,
       # not the duplicated-logic class G-0423 targets. testutil/ and
       # cellcoverage/ are test-support packages in all but filename (their

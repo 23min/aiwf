@@ -53,7 +53,7 @@ func TestM0290_AC4_NoShippedSurfaceOffersTheRetiredVerb(t *testing.T) {
 }
 
 // TestM0290_AC4_NoNormativeDocOffersTheRetiredVerb covers the docs a
-// reader treats as current truth — the Normative tier as CLAUDE.md's
+// reader treats as current truth — the Normative tier as .guidance/project/writing-docs.md's
 // documentation hierarchy defines it, minus docs/adr/ per the file
 // header, and minus docs/reference/, which is generated from the workflow
 // spec. docs/archive/, docs/audits/, docs/research/ and docs/explorations/

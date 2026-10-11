@@ -10,7 +10,7 @@ import (
 // repo_lock_codes_discoverable_test.go — G-0467. The repo-lock refusal
 // codes are a machine-consumable contract: a caller scripting
 // --format=json switches on them to tell retryable contention from a
-// terminal failure. CLAUDE.md's AI-discoverability principle says a
+// terminal failure. .guidance/project/verb-design.md's AI-discoverability principle says a
 // kernel surface reachable only from source is undocumented, so the
 // root banner documents both — and this test is what stops the banner
 // and the constants drifting apart in either direction.
@@ -20,7 +20,7 @@ import (
 // structurally cannot see a constant declared in internal/cli/cliutil.
 //
 // The assertion is section-scoped rather than a banner-wide grep, per
-// CLAUDE.md §"Substring assertions are not structural assertions": a
+// .guidance/project/testing.md §"Substring assertions are not structural assertions": a
 // code named anywhere in a 100-line banner proves it exists somewhere,
 // not that a reader looking up concurrent-invocation behavior will
 // find it.

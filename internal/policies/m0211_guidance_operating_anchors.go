@@ -27,7 +27,7 @@ import (
 // policy asserts a curated anchor set (each a named rule plus the distinctive
 // fragments that mark its presence) is present in the shipped guidance; trimming
 // any of them out reddens CI. The forward direction — a brand-new rule authored
-// into the wrong home — is the judgment call the CLAUDE.md authoring rule
+// into the wrong home — is the judgment call the .guidance/project/shipped-content.md authoring rule
 // ("audience, not importance") plus review is the interim catch for, until the
 // rule is added to this curated set.
 //
@@ -93,7 +93,7 @@ func (a m0211Anchor) present(lowerBody string) bool {
 // presence in the shipped guidance the chokepoint guarantees. Adding a new
 // consumer-operating rule to the guidance and to this slice extends the
 // guarantee; the set is deliberately hand-curated (the audience call is human
-// judgment, per the CLAUDE.md "audience, not importance" authoring rule).
+// judgment, per the .guidance/project/shipped-content.md "audience, not importance" authoring rule).
 //
 // The guarantee is presence, not meaning: a fragment reports that a rule's
 // distinctive words are still in the body, so deleting a rule fires while a

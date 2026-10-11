@@ -137,7 +137,7 @@ func TestText_HintOmittedWhenEmpty(t *testing.T) {
 // produce two summary lines, sorted by count descending with
 // alphabetic tie-break (pinned in the milestone spec's *Constraints*).
 //
-// Per CLAUDE.md "Substring assertions are not structural assertions"
+// Per .guidance/project/testing.md "Substring assertions are not structural assertions"
 // (AC-8 of the same milestone): the assertion parses the rendered
 // output line-by-line and extracts the leading code token from each
 // summary line via the documented format `<code> (warning) × N — <msg>`.
