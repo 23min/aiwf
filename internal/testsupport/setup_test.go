@@ -7,7 +7,7 @@ import (
 
 // TestMain satisfies the internal/* test-discipline convention (every
 // test-bearing package carries a setup_test.go with a TestMain — see
-// CLAUDE.md *Test discipline*, M-0093/AC-2).
+// .guidance/project/testing.md *Test discipline*, M-0093/AC-2).
 //
 // It hardens its own git test env even though nothing here runs git:
 // execfile_test.go execs the stand-ins it writes, and the chokepoint

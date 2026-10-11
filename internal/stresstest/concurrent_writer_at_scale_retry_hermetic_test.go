@@ -17,7 +17,7 @@ import (
 // G-0467): four pure decision helpers exercised against fabricated
 // envelopes. Every oracle here is a comparison over in-memory bytes with
 // no subprocess, no clock and no contention, so the lane rule in
-// CLAUDE.md §"Stress-test harness" keeps the file untagged. Its sibling
+// .guidance/project/stress-harness.md keeps the file untagged. Its sibling
 // concurrent_writer_at_scale_retry_test.go carries `//go:build stress`
 // because it drives the same helpers through a real binary against a
 // genuinely held lock.

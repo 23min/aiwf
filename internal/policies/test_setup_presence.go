@@ -22,7 +22,7 @@ import (
 // (testdata/) and any dir whose go files are all non-test. Nested
 // test-bearing subpackages are checked independently.
 //
-// Why AST-level instead of substring: per CLAUDE.md's "Substring
+// Why AST-level instead of substring: per .guidance/project/testing.md's "Substring
 // assertions are not structural assertions", a flat grep for
 // `func TestMain(` would match a function hidden under a build tag,
 // a misplaced helper inside another file, or even a comment. The
@@ -77,7 +77,7 @@ func PolicyTestSetupPresence(root string) ([]Violation, error) {
 			vs = append(vs, Violation{
 				Policy: "test-setup-presence",
 				File:   rel,
-				Detail: "test-bearing package missing setup_test.go (see CLAUDE.md *Test discipline*; landed M-0091/M-0092, locked M-0093/AC-2)",
+				Detail: "test-bearing package missing setup_test.go (see .guidance/project/testing.md *Test discipline*; landed M-0091/M-0092, locked M-0093/AC-2)",
 			})
 			continue
 		} else if statErr != nil {
@@ -103,7 +103,7 @@ func PolicyTestSetupPresence(root string) ([]Violation, error) {
 			vs = append(vs, Violation{
 				Policy: "test-setup-presence",
 				File:   setupRel,
-				Detail: "setup_test.go missing top-level `func TestMain(m *testing.M)` declaration (see CLAUDE.md *Test discipline*)",
+				Detail: "setup_test.go missing top-level `func TestMain(m *testing.M)` declaration (see .guidance/project/testing.md *Test discipline*)",
 			})
 		}
 	}

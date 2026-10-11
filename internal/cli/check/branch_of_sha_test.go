@@ -11,7 +11,7 @@ import (
 )
 
 // branch_of_sha_test.go — M-0161/AC-6 (G-0206) unit-level
-// coverage of gitBranchOracle.BranchOfSHA per CLAUDE.md
+// coverage of gitBranchOracle.BranchOfSHA per .guidance/project/testing.md
 // §"Test the seam, not just the layer" + §"Test untested
 // code paths before declaring code paths 'done'". The E2E
 // coverage at internal/cli/integration/isolation_escape_rename_scenarios_test.go

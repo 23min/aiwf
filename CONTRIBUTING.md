@@ -68,7 +68,7 @@ Conventional Commits, in the form:
 
 Types: `feat`, `fix`, `docs`, `chore`, `refactor`, `test`, `ci`. Scopes follow the directory/module touched (e.g., `feat(check)`, `fix(verb)`, `docs(adr)`).
 
-Mutating `aiwf` verbs additionally write structured trailers (`aiwf-verb:`, `aiwf-entity:`, `aiwf-actor:`) so `aiwf history <id>` can reconstruct per-entity timelines. See [`CLAUDE.md` § Commit conventions](CLAUDE.md#commit-conventions).
+Mutating `aiwf` verbs additionally write structured trailers (`aiwf-verb:`, `aiwf-entity:`, `aiwf-actor:`) so `aiwf history <id>` can reconstruct per-entity timelines. See [`.guidance/project/verb-design.md` § Commit trailers](.guidance/project/verb-design.md#commit-trailers).
 
 The Apache-2.0 inbound license terms apply to all contributions; by sending a patch you agree your contribution is licensed under [LICENSE](LICENSE). No CLA, no separate paperwork.
 
@@ -84,7 +84,7 @@ The Apache-2.0 inbound license terms apply to all contributions; by sending a pa
 
 - Changes to the six entity kinds, their status sets, or the FSM.
 - Changes to the commit-trailer keys, JSON envelope, or check-rule codes.
-- New verbs (read [`CLAUDE.md` § Designing a new verb](CLAUDE.md#designing-a-new-verb) first).
+- New verbs (read [`.guidance/project/verb-design.md` § Designing a new verb](.guidance/project/verb-design.md#designing-a-new-verb) first).
 - Anything that touches the *what aiwf commits to* list in [`docs/design/design-decisions.md`](docs/design/design-decisions.md).
 
 Open a Discussion before opening a PR; the conversation will save everyone time.

@@ -22,7 +22,7 @@ import (
 // The tests below pair each named rule with a fixture that fires the
 // rule on an active entity (positive control) and then asserts the
 // same rule does not fire on the same authoring shape under archive/
-// (the scoping invariant). Per CLAUDE.md "test the seam, not just the
+// (the scoping invariant). Per .guidance/project/testing.md "test the seam, not just the
 // layer," the tests drive through tree.Load + check.Run end-to-end.
 
 // TestArchiveScoping_FrontmatterShape — a narrow-width id under

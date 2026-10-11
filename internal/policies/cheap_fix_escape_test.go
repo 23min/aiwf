@@ -12,7 +12,7 @@ import (
 // makes them worth pinning: a mandate that loses its escape reverts silently to
 // the unconditional form, and nothing else in the tree would notice. Each
 // assertion is scoped to the named markdown section that must carry the rule,
-// per CLAUDE.md *Testing* §"Substring assertions are not structural
+// per .guidance/project/testing.md §"Substring assertions are not structural
 // assertions" — the literals here ("cheap-fix test") are short enough that
 // file-wide presence would prove nothing about placement.
 //

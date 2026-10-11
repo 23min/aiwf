@@ -20,7 +20,7 @@ import (
 
 // promote_on_wrong_branch_test.go — M-0161/AC-8 (G-0209
 // partial-close) + G-0270 unit-level coverage of
-// RunPromoteOnWrongBranch per CLAUDE.md §"Test the seam, not just
+// RunPromoteOnWrongBranch per .guidance/project/testing.md §"Test the seam, not just
 // the layer" + the AC-5/AC-7 reviewer pattern: the E2E exercises the
 // production wire-up; the unit tests below pin the rule's
 // input/output contract against in-memory fixtures.

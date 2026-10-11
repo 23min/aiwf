@@ -21,8 +21,8 @@ const aiwfxWrapEpicFixturePath = "internal/skills/embedded-rituals/plugins/aiwf-
 // loadAiwfxWrapEpicFixture reads the fixture relative to repo root.
 // The tests under this file are seam-tests against the authored
 // skill body — they assert the doctrinal content M-0090's ACs
-// require, scoped to the relevant markdown section per CLAUDE.md
-// *Testing* §"Substring assertions are not structural assertions".
+// require, scoped to the relevant markdown section per .guidance/project/testing.md
+// §"Substring assertions are not structural assertions".
 func loadAiwfxWrapEpicFixture(t *testing.T) string {
 	t.Helper()
 	root := repoRoot(t)

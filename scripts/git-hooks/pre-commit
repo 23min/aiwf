@@ -28,7 +28,7 @@ repo_root="$(git rev-parse --show-toplevel)"
 # root-anchored), the embedded ritual skills (frequent edits, policed by
 # skill_coverage), and the kernel hook scripts (so editing this gate re-runs
 # its own test). It is deliberately NOT a complete map of every file a policy
-# reads — other policy inputs are CI-delegated: CLAUDE.md, docs/,
+# reads — other policy inputs are CI-delegated: CLAUDE.md, .guidance/, docs/,
 # .devcontainer/, .golangci.yml, .gitleaks.toml, the other *_hook-tested
 # scripts (scripts/mutate-diff.sh, .claude/hooks/*, .claude/statusline.sh),
 # and notably ROADMAP.md (read by the dangling-ref rule yet skipped here,

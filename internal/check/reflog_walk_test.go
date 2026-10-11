@@ -9,7 +9,7 @@ import (
 
 // reflog_walk_test.go — M-0161/AC-5 (G-0205) unit-level
 // coverage of the RunOrphanedAICommits rule consumer per
-// CLAUDE.md §"Test the seam, not just the layer" + §"Test
+// .guidance/project/testing.md §"Test the seam, not just the layer" + §"Test
 // untested code paths before declaring code paths 'done'".
 //
 // The E2E coverage at

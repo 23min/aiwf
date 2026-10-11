@@ -176,7 +176,7 @@ a guard for a state nothing can produce.
 
 - ADR-0040 — prevention at the verb route, ratification at the history route; the
   source of the constraint that a widened closed set arrives with its call site
-- `CLAUDE.md` §"Same-state convergence — resolve, then converge" — the
+- [Verb-design guidance](../../.guidance/project/verb-design.md#same-state-convergence--resolve-then-converge) §"Same-state convergence — resolve, then converge" — the
   R1-before-R2 ordering the end mode's convergence rules follow. ADR-0036 settles
   the FSM-transition case specifically and does not reach a mode of `authorize`
 - D-0008 — sovereign-act shape is a property over legal transitions, never below

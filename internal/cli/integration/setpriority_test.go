@@ -172,7 +172,7 @@ func TestSetPriority_AC2_TrailersAndHistory(t *testing.T) {
 
 	// aiwf history renders the set-priority row for both entities.
 	// Assert structurally on the JSON envelope's per-event `verb` field
-	// rather than a substring of the text output (CLAUDE.md
+	// rather than a substring of the text output (.guidance/project/testing.md
 	// §"Substring assertions are not structural assertions").
 	for _, id := range []string{"G-0001", "D-0001"} {
 		_, stdout, _ := testutil.CaptureRun(t, func() int {

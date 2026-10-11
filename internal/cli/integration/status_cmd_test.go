@@ -291,7 +291,7 @@ func TestBuildStatus_SweepPendingNilWhenNoTerminalsInActive(t *testing.T) {
 // positioned so the reader sees it inline with the entity / errors
 // / warnings count summary rather than buried in the Warnings list.
 //
-// Per CLAUDE.md "Substring assertions are not structural
+// Per .guidance/project/testing.md "Substring assertions are not structural
 // assertions": the assertion scopes the substring match to the
 // Health section by splitting the output on the "Health\n" header
 // and asserting the message appears after that split. A plain
@@ -356,7 +356,7 @@ func TestRenderStatusText_SweepPendingLineHiddenWhenNil(t *testing.T) {
 // one active gap and one terminal-in-active gap. The text output
 // must show "Sweep pending: 1" inside the Health section.
 //
-// Per CLAUDE.md "Test the seam, not just the layer." Unit coverage
+// Per .guidance/project/testing.md "Test the seam, not just the layer." Unit coverage
 // of status.BuildStatus + status.RenderStatusText is necessary but not sufficient
 // — this test pins that the verb dispatcher actually routes through
 // the new field.

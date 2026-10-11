@@ -89,7 +89,7 @@ func TestAddAC_RewritesPlaceholderHeadingInPlace(t *testing.T) {
 		t.Fatalf("read milestone: %v", err)
 	}
 	// Anchor on the `—` separator so the count can't be fooled by an
-	// `### AC-10`-style prefix collision (CLAUDE.md §"Substring
+	// `### AC-10`-style prefix collision (.guidance/project/testing.md §"Substring
 	// assertions are not structural assertions").
 	if n := strings.Count(body, "### AC-1 —"); n != 1 {
 		t.Errorf("expected exactly one `### AC-1 —` heading, got %d:\n%s", n, body)
@@ -303,7 +303,7 @@ func TestAddAC_PlaceholderHeadingCoLocatesBodyContent(t *testing.T) {
 		t.Fatalf("read milestone: %v", err)
 	}
 	// Anchor on the `—` separator so the count can't be fooled by an
-	// `### AC-10`-style prefix collision (CLAUDE.md §"Substring
+	// `### AC-10`-style prefix collision (.guidance/project/testing.md §"Substring
 	// assertions are not structural assertions").
 	if n := strings.Count(body, "### AC-1 —"); n != 1 {
 		t.Errorf("expected exactly one `### AC-1 —` heading, got %d:\n%s", n, body)

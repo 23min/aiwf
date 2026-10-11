@@ -23,7 +23,7 @@ import (
 // here until the sentence follows.
 //
 // The assertion parses the named clause and compares the full per-kind
-// list rather than grepping for slugs, per CLAUDE.md §"Substring
+// list rather than grepping for slugs, per .guidance/project/testing.md §"Substring
 // assertions are not structural assertions": `goal` appearing somewhere
 // in a 100-line banner proves nothing about the sentence a reader
 // looking up the body map actually finds.

@@ -9,7 +9,7 @@ import (
 
 // (extractMarkdownSection is shared with adr_0007_test.go in the same
 // package — section-scoped extraction at the named heading level, used
-// by M-0154's structural assertions per CLAUDE.md's "substring
+// by M-0154's structural assertions per .guidance/project/testing.md's "substring
 // assertions are not structural assertions" rule.)
 
 // loadADR0015 reads ADR-0015 via the kernel loader. Returns the body
@@ -38,7 +38,7 @@ func loadADR0015(t *testing.T) string {
 // wiring milestone implements what the ADR records but does not
 // re-author it.
 //
-// Two layers of assertion per CLAUDE.md's "substring assertions are not
+// Two layers of assertion per .guidance/project/testing.md's "substring assertions are not
 // structural assertions" rule:
 //
 //   - Structural: the body carries `## Context` / `## Decision` /
@@ -87,5 +87,5 @@ func TestM0154_AC1_ADR0015RecordsConsentGatedStance(t *testing.T) {
 // TestM0154_AC3 retired: the function it asserted on
 // (appendMarketplaceOverlapReport) was removed as part of G-0194's
 // marketplace-retirement completion. The consent-gated stance that
-// AC-3 pinned is now expressed solely in CLAUDE.md §"Operator setup"
+// AC-3 pinned is now expressed solely in .guidance/project/environment.md §"Operator setup"
 // (the statusline consent gate) — AC-2 above covers that surface.

@@ -20,7 +20,7 @@ const aiwfxStartEpicFixturePath = "internal/skills/embedded-rituals/plugins/aiwf
 
 // loadAiwfxStartEpicFixture reads the fixture relative to repo root.
 // Tests under this file assert the doctrinal content M-0096's ACs
-// require, scoped to the relevant markdown section per CLAUDE.md
+// require, scoped to the relevant markdown section per .guidance/project/testing.md
 // §"Substring assertions are not structural assertions".
 func loadAiwfxStartEpicFixture(t *testing.T) string {
 	t.Helper()
@@ -259,7 +259,7 @@ func TestFindWorktreePromptSection_BranchCoverage(t *testing.T) {
 // worktree-placement prompt is a heading-scoped Q&A with three named
 // options — *no worktree (work on main)*, `.claude/worktrees/<branch>/`,
 // and `../aiwf-<branch>/`. The assertion is heading-scoped (not flat
-// substring) per CLAUDE.md §"Substring assertions are not structural
+// substring) per .guidance/project/testing.md §"Substring assertions are not structural
 // assertions"; the literal path strings could plausibly appear in
 // unrelated sections (e.g. an anti-pattern example) so the locator
 // scopes the claim to the prompt's own subsection.

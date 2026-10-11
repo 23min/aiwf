@@ -13,7 +13,7 @@ import (
 // (the (kind, currentStatus) -> terminal table) stays — the code now
 // matches the statement.
 //
-// Structurally scoped per CLAUDE.md §"Substring assertions are not
+// Structurally scoped per .guidance/project/testing.md §"Substring assertions are not
 // structural assertions": negative assertions run against the
 // extracted R-RULE-021 row, not the whole catalog. Positive
 // assertions name the implementing milestone (M-0131) and the

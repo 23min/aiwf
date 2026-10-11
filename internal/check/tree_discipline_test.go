@@ -112,7 +112,7 @@ func TestTreeDiscipline_ContractDir_Auto_Exempt(t *testing.T) {
 // (which decides what counts as a stray) and TreeDiscipline (which
 // classifies them). Without this, a refactor that broke Strays
 // population would still pass the in-memory unit tests above. Per
-// tools/CLAUDE.md "Test the seam, not just the layer."
+// .guidance/project/testing.md "Test the seam, not just the layer."
 func TestTreeDiscipline_LoaderSeam(t *testing.T) {
 	t.Parallel()
 	root := t.TempDir()

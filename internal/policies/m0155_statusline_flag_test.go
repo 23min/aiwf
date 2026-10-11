@@ -17,7 +17,7 @@ import (
 // trip to the binary.
 //
 // The completion-wiring assertion is the load-bearing one — per
-// CLAUDE.md's "auto-completion-friendly" principle, every closed-set
+// .guidance/project/verb-design.md's "auto-completion-friendly" principle, every closed-set
 // flag value must be reachable via completion or the
 // `TestPolicy_FlagsHaveCompletion` drift test (M-054) fires on CI. The
 // per-flag check here catches a missing FixedCompletions before the

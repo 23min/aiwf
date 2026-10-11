@@ -14,7 +14,7 @@ import (
 // claims.
 //
 // The entity is resolved through the loader (never a hardcoded
-// work/gaps path) per CLAUDE.md's "Policy tests that read entity
+// work/gaps path) per .guidance/project/testing.md's "Policy tests that read entity
 // files resolve via the loader" rule — archive sweeps move files,
 // and a hardcoded path would silently stop matching once G-0430
 // eventually moves to work/gaps/archive/.

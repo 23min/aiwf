@@ -16,7 +16,7 @@ import (
 // what the kernel actually does.
 //
 // Each claim is asserted inside the region that must carry it, never by
-// a document-wide grep: per CLAUDE.md §"Substring assertions are not
+// a document-wide grep: per .guidance/project/testing.md §"Substring assertions are not
 // structural assertions", the phrases here are short and appear
 // legitimately elsewhere in the same files. `verb.Apply` in particular
 // is named in half a dozen places in `internal/verb`, so a file-scoped

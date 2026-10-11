@@ -17,7 +17,7 @@ func TestParse(t *testing.T) {
 	// https://go.dev/ref/mod#pseudo-versions for the three
 	// pseudo-version forms, https://semver.org for the base grammar,
 	// and https://go.dev/ref/mod#vcs-stamps for the +dirty VCS-
-	// stamping suffix. Per tools/CLAUDE.md "Spec-sourced inputs":
+	// stamping suffix. Per .guidance/project/testing.md "Spec-sourced inputs":
 	// the table covers the full enumerated space, not just examples.
 	cases := []struct {
 		in       string
@@ -117,7 +117,7 @@ func TestPseudoBase(t *testing.T) {
 	// Inputs sourced from the Go module spec — see
 	// https://go.dev/ref/mod#pseudo-versions for the three
 	// pseudo-version forms and the +dirty VCS-stamping suffix.
-	// Per CLAUDE.md "Spec-sourced inputs": the table covers the full
+	// Per .guidance/project/testing.md "Spec-sourced inputs": the table covers the full
 	// enumerated space, not just one example per form.
 	cases := []struct {
 		name     string
@@ -363,7 +363,7 @@ func TestModulePath_TestBinary(t *testing.T) {
 // https://go.dev/ref/mod#environment-variables (the canonical spec
 // for module-mode environment variables): comma-or-pipe-separated
 // list of entries, each being a URL, the literal `direct`, or the
-// literal `off`. Per tools/CLAUDE.md "Spec-sourced inputs": the
+// literal `off`. Per .guidance/project/testing.md "Spec-sourced inputs": the
 // cases cover every entry shape and chain-position the spec
 // distinguishes, not just examples we've personally hit.
 func TestProxyBase(t *testing.T) {

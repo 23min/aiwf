@@ -83,7 +83,7 @@ func TestBinary_CheckVerbose_ByteIdenticalToBaseline(t *testing.T) {
 // repo, which legitimately varies (tempdir per test, /tmp/ in
 // the baseline capture). The assertion is therefore "byte-identical
 // modulo metadata.root" — every other field, including the entire
-// findings array, must match exactly. Per CLAUDE.md "Substring
+// findings array, must match exactly. Per .guidance/project/testing.md "Substring
 // assertions are not structural assertions", the comparison parses
 // both envelopes and compares parsed structures, not raw bytes.
 func TestBinary_CheckJSON_ByteIdenticalToBaseline(t *testing.T) {

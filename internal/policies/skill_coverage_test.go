@@ -230,7 +230,7 @@ func TestSkillCoverageAllowlist_AllEntriesHaveRationale(t *testing.T) {
 // These exercise the per-check helpers with synthetic inputs that
 // should fire specific violations. Without these, the policy's
 // "passes against the live tree" test is parsing-coverage, not
-// enforcement-coverage (CLAUDE.md §"Substring assertions are not
+// enforcement-coverage (.guidance/project/testing.md §"Substring assertions are not
 // structural assertions" / §"Test untested code paths").
 
 // TestCheckSkillFrontmatter_FiresOnEmptyName is M-074 AC-2 negative

@@ -8,7 +8,7 @@ import (
 )
 
 // loadADR0003 reads ADR-0003 through the loader, which resolves ids
-// across the active tree and archive/ alike. Per CLAUDE.md "substring
+// across the active tree and archive/ alike. Per .guidance/project/testing.md "substring
 // assertions are not structural assertions" rule, every section-content
 // claim asserted by AC-2 lives under a named heading, and the test
 // extracts the section first.

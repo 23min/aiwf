@@ -286,7 +286,7 @@ func TestMilestoneDependsOn_SelfDependencyRejected(t *testing.T) {
 }
 
 // TestMilestoneDependsOn_DispatcherSeam_AddFlag is the seam test for
-// M-076/AC-7 per CLAUDE.md "Test the seam, not just the layer". It
+// M-076/AC-7 per .guidance/project/testing.md "Test the seam, not just the layer". It
 // drives `aiwf add milestone --depends-on …` end-to-end through the
 // dispatcher and asserts the on-disk milestone reflects the writer's
 // contract: the depends_on array landed atomically with the create

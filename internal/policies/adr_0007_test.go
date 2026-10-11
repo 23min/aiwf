@@ -9,14 +9,14 @@ import (
 )
 
 // loadADR0007 reads ADR-0007 from disk by resolving the id through
-// the loader (per CLAUDE.md *Testing* §"Policy tests that read entity
+// the loader (per .guidance/project/testing.md §"Policy tests that read entity
 // files must resolve via the loader"). This survives rename and
 // archive sweeps; an earlier hardcoded-path constant broke when
 // ADR-0007's slug was shortened for the G-0102 cap.
 //
 // The tests are seam-tests against the live document — they assert
 // the doctrinal claims M-078's ACs require, scoped to the relevant
-// markdown section. Per CLAUDE.md *Testing* §"Substring assertions
+// markdown section. Per .guidance/project/testing.md §"Substring assertions
 // are not structural assertions", section-scoped checks beat flat
 // greps because the same word in the wrong section is still wrong.
 func loadADR0007(t *testing.T) string {

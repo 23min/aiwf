@@ -72,7 +72,7 @@ install:
 	fi
 
 # Build a worktree-scoped aiwf binary at ./bin/aiwf-diag and print its
-# absolute path. The convention (per CLAUDE.md *Worktree binary discipline*):
+# absolute path. The convention (per .guidance/project/environment.md *Worktree binary discipline*):
 # when diagnosing aiwf behavior against the current worktree source, run
 # `make diag-aiwf` and invoke the printed path. Avoids the silent-stale
 # PATH-binary trap that prompted G-0147.
@@ -352,7 +352,7 @@ e2e:
 
 # stress runs cmd/stresstest's whole scenario catalog, STRESS_REPEAT
 # attempts per scenario, against a freshly built aiwf binary (see
-# CLAUDE.md "Stress-test harness"). Opt-in and dev-only: not part of
+# .guidance/project/stress-harness.md). Opt-in and dev-only: not part of
 # `make ci`. Override the per-scenario repeat count with STRESS_REPEAT=N.
 STRESS_REPEAT ?= 5
 
