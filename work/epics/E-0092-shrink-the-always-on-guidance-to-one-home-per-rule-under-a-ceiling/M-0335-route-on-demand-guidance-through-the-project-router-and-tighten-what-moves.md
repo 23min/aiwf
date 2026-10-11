@@ -113,14 +113,14 @@ Nothing a consumer sees changes. This repository's own development guidance is r
 ## Decisions made during implementation
 
 - This milestone runs `tdd: advisory`. AC-2 is an observation record and AC-6 a rewording held at review, so neither has a red test to precede it; AC-1 and AC-5 carry the phases recorded as their tests were written. AC-3 retires tests rather than writing one, and AC-4's constant changed after the re-homing had already shrunk the text, so no failing state existed to record for either; both carry none. Decided by the maintainer.
-- A live reference to a moved section is re-pointed at the document that now holds it: Go comments and messages, normative docs and ADR pointers, the messages of CI workflows, hooks and the `Makefile`, `.golangci.yml`, `.devcontainer/project/README.md` and `CONTRIBUTING.md`. The re-pointing lands in one commit after the moves, since the fence admits no file outside the guidance set beside a guidance change. A record of its date stays as written: audits, archived documents, the changelog, gap, decision and milestone bodies, an ADR's context or consequences recording what `CLAUDE.md` said when it was decided, the working catalogs `docs/design/legal-workflows-audit.md` and `docs/design/legal-workflows-first-principles.md`, and `docs/design/growth.md`. References to sections removed before this milestone are left to a gap. Decided by the maintainer.
+- A live reference to a moved section is re-pointed at the document that now holds it: Go comments and messages, normative docs and ADR pointers, the messages of CI workflows, hooks and the `Makefile`, `.golangci.yml`, `.devcontainer/project/README.md` and `CONTRIBUTING.md`. The re-pointing lands after the moves, in commits of its own, since the fence admits no file outside the guidance set beside a guidance change. A record of its date stays as written: audits, archived documents, the changelog, gap, decision and milestone bodies, an ADR's context or consequences recording what `CLAUDE.md` said when it was decided, the working catalogs `docs/design/legal-workflows-audit.md` and `docs/design/legal-workflows-first-principles.md`, `docs/design/growth.md`, and the done-list in `docs/design/design-lessons.md`. References to sections removed before this milestone are left to a gap. Decided by the maintainer.
 - The ADR edits two plain commits made, `f497f3f2c` and `95c37637b`, are acknowledged with `aiwf acknowledge illegal`, one commit per ADR, rather than rebuilt through `aiwf edit-body`, which would rewrite every later commit this body cites. Later ADR edits go through `aiwf edit-body`. Decided by the maintainer.
 - Claude's L2 observation made no edit, so it was run once more on the same prompt; the second run made none either, so the cell is recorded as not exercised and AC-2 is met on the cells that were. Decided by the maintainer.
-- The guidance checks run when guidance changes: `go.yml`'s pull-request and push filters name `CLAUDE.md`, `AGENTS.md` and `.guidance/**`, and the cadence's skip rule names them among what `make ci` checks. Decided by the maintainer.
+- The guidance checks run when guidance changes: `go.yml`'s pull-request and push filters name `CLAUDE.md`, `AGENTS.md` and `.guidance/**`, and the cadence's skip rule names them. The rule states the files whose change requires a run rather than claiming to list everything `make ci` checks, and keeps planning-state commits skippable, as its inventory row requires. Decided by the maintainer.
 - `guidance-imports-in-repository` also reports a relative import that climbs out of the repository, so no import from outside it passes. Decided by the maintainer.
 - A primed clause is cut only where the agent meets its content anyway at the point of need: the scope states (`aiwf authorize --help`), the archive-backlog finding (`aiwf check` reports it), what the updater writes, and the pointer to the convergence rule (the router routes verb work). The tool-not-co-actor clause, the reversal pattern for an archived entity and the reason `aiwf worktree add` materializes artifacts stay, since an agent would make the mistake before thinking to look. Decided by the maintainer.
 - `AGENTS.md`'s "Repository development rules still come from `CLAUDE.md`" stays: in its paragraph it says the rules do not come from Codex's skills, and the preamble's first paragraph names the routed documents. Its row is keep. Decided by the maintainer.
-- G-0715 closes as addressed by `81d4f617e`: `CLAUDE.md` no longer counts on CI running on epic or milestone pushes. G-0436 stays for M-0337, which closes it with the path check that keeps it closed; both of its sites read correctly now. Decided by the maintainer.
+- G-0715 closes as addressed by `81d4f617e`: `CLAUDE.md` no longer counts on CI running on epic or milestone pushes. G-0728 closes as addressed by the moves that corrected both of its sentences. G-0436 stays for M-0337, which closes it with the path check that keeps it closed; both of its sites read correctly now. G-0726 stays open with its body corrected: the guidance is now in `go.yml`'s filters, the rest of the files it names are not, and nothing pins the filter. Decided by the maintainer.
 - References naming sections that never moved here go to two gaps, one for code comments and an ADR, one for the contribution templates; no check of section citations is added. Decided by the maintainer.
 - The guidance-reader list's pin kind goes with its last entry: D-0102 bars a pinned sentence as evidence, so no new entry can be a pin.
 - `CLAUDE.md` points at a routed document by a backticked path rather than a link, so the pointer needs no ceiling read-table row; nothing checks it until M-0337's cited-path check.
@@ -144,12 +144,12 @@ At `0805fae26`, in the aiwf devcontainer, Linux, `go1.25.12 linux/amd64`, 2026-1
 
 Command: `go test -count=1 -run 'TestPolicy_GuidanceCeiling$' -v ./internal/policies/`.
 
-| Host | Handwritten primed, at start (`d753e5447`) | After re-homing (`81d4f617e`) | Ceiling now |
+| Host | Handwritten primed, at start (`d753e5447`) | After re-homing (`81d4f617e`) | At the wrap, and the ceiling |
 |---|---|---|---|
-| Claude | 7,801 | 1,280 | 1,280 |
-| Codex | 7,930 | 1,420 | 1,420 |
+| Claude | 7,801 | 1,280 | 1,275 |
+| Codex | 7,930 | 1,420 | 1,415 |
 
-The aiwf-generated load is unchanged at 2,460 for Claude and 2,497 for Codex. On-demand loads after re-homing, in words: `testing.md` 1,454, `verb-design.md` 1,139, `shipped-content.md` 895, `stress-harness.md` 783, `enforcement.md` 713, `environment.md` 422, `go-conventions.md` 378, `writing-docs.md` 262, `release.md` 242. Both hosts are below M-0349's targets of 1,629 and 1,758. The wrap review's trims take them to 1,277 and 1,417, and the ceilings follow.
+The aiwf-generated load is unchanged at 2,460 for Claude and 2,497 for Codex. On-demand loads after re-homing, in words: `testing.md` 1,454, `verb-design.md` 1,139, `shipped-content.md` 895, `stress-harness.md` 783, `enforcement.md` 713, `environment.md` 422, `go-conventions.md` 378, `writing-docs.md` 262, `release.md` 242. Both hosts are below M-0349's targets of 1,629 and 1,758. The last column follows the trims and wording fixes the wrap review decided; each ceiling equals its host's measured load.
 
 ### AC-2 — reads before root-started edits
 
@@ -169,7 +169,7 @@ The aiwf-generated load is unchanged at 2,460 for Claude and 2,497 for Codex. On
 | T6 | codex | 1 | CLAUDE.md 1/0, router 1/0, index 1/0, testing.md 1/0, writing-docs.md 1/0 | 1716 |
 
   - Every run that edited read the router and the routed document or pack for its task before its first edit; neither prose-only run read a language pack.
-  - Claude's L2 is not exercised. Both runs found that `e2e/playwright/tests/render.spec.ts` already checks each criterion's title, made no edit, and asked which of several options to take; the second run was made to get an edit and did not. With no edit, there is no read before one to observe. Neither run opened the router.
+  - Claude's L2 is not exercised. Both runs found that `e2e/playwright/tests/render.spec.ts` already checks the fixture's criterion titles, made no edit, and asked which of several options to take; the second run was made to get an edit and did not. With no edit, there is no read before one to observe. Neither run opened the router.
   - `codex-read-claude`, judged mechanically by the harness, complied in all four Codex runs: each saw every line of `CLAUDE.md` before its first edit.
 - **Environment:** the aiwf devcontainer, Linux, runs ending 2026-10-11T14:20Z to 15:23Z.
   - checkout `95c37637b`, installed guidance `9c9ca4b3681ca4cb8798e5af9e9124b1e761526b`; `aiwf` built at the checkout, `v0.0.0-20261011140621-95c37637b0d7`;
@@ -208,7 +208,8 @@ Three listed readers that were not pins read moved text too: the skill-edit abse
 
 ## Deferrals
 
-- (none)
+- G-0735 — comments, a test message and an ADR cite `CLAUDE.md` rules under names it does not carry; they name sections removed before this milestone.
+- G-0736 — the contribution templates ask for a checklist, an audit and commands the repository does not hold where they point.
 
 ## Reviewer notes
 
