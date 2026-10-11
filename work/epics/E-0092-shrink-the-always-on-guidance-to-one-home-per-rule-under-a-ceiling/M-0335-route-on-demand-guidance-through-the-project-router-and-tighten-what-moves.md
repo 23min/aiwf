@@ -23,6 +23,7 @@ acs:
     - id: AC-5
       title: No instruction file exists below the repository root
       status: open
+      tdd_phase: red
     - id: AC-6
       title: Merge and tighten dispositions are applied as the inventory records
       status: open
