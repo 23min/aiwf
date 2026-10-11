@@ -115,6 +115,23 @@ Every rule M-0349 marks "merge" or "tighten" is rewritten in its one home, and e
 
 ## Validation
 
+### AC-1 — routes, imports and the updater
+
+- **Routes resolve.** `PolicyGuidanceCeiling` follows every link in the router and in both entry points' handwritten text and routing blocks, and reports one whose target does not exist; `TestMeasureGuidanceLoad_RouterLinksDefaultToConditional` holds that a router route to a missing file is reported. On the tree it reports none: `go test -count=1 -run 'TestPolicy_GuidanceCeiling$' -v ./internal/policies/` passes.
+- **No outside import.** `PolicyGuidanceImportsInRepository` reports an import under the home directory or by absolute path in either entry point, managed blocks included; on the tree it reports none.
+- **The updater preserves the handwritten guidance.** Command: in a `git clone --no-hardlinks` of this branch at `81d4f617e`, with `HOME`, the XDG directories and `TMPDIR` pointed at a scratch directory, `aiwf update` built from that commit, run twice, then `git status --porcelain`. Expected: no tracked change, so the router, the routed documents and both entry points' handwritten text and managed blocks are as committed, and no import from outside the repository. Observed: exit 0 both times, `git status --porcelain` printed nothing, and `grep '@~\|@/' CLAUDE.md AGENTS.md` matched nothing. The update reported the guidance import and `AGENTS.md`'s guidance as preserved and listed no pack refresh, since `guidance.enabled` is `false`. Environment: the aiwf devcontainer, Linux, 2026-10-11.
+
+### AC-4 — the ceilings
+
+Command: `go test -count=1 -run 'TestPolicy_GuidanceCeiling$' -v ./internal/policies/`.
+
+| Host | Handwritten primed, at start (`d753e5447`) | After re-homing (`81d4f617e`) | Ceiling now |
+|---|---|---|---|
+| Claude | 7,801 | 1,280 | 1,280 |
+| Codex | 7,930 | 1,420 | 1,420 |
+
+The aiwf-generated load is unchanged at 2,460 for Claude and 2,497 for Codex. On-demand loads after re-homing, in words: `testing.md` 1,454, `verb-design.md` 1,139, `shipped-content.md` 895, `stress-harness.md` 783, `enforcement.md` 713, `environment.md` 422, `go-conventions.md` 378, `writing-docs.md` 262, `release.md` 242. Both hosts are below M-0349's targets of 1,629 and 1,758.
+
 ### AC-3 — the starting list
 
 `guidanceReaderList` at this milestone's start, `d753e5447`, names thirteen pins. Each pins a passage this milestone moves on demand or rewrites in place, and each is retired, since D-0102 bars a sentence pinned in development guidance as evidence:
