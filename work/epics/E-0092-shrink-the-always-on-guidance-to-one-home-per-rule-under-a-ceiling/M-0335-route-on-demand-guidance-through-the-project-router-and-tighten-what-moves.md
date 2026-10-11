@@ -20,7 +20,7 @@ acs:
       status: open
     - id: AC-4
       title: The ceiling constant steps down to the re-homed size
-      status: open
+      status: met
     - id: AC-5
       title: No instruction file exists below the repository root
       status: met
