@@ -534,10 +534,12 @@ func notIDRune(r rune) bool {
 // inventoryReconcileFindings holds each removal block to the inventory
 // (M-0336 AC-5, AC-6). A block names its row as the first word of its
 // Removed: value. One naming an id second is an edit AC-2 requires: the id
-// must be in the row's text at the freeze, and nothing further is asked
-// of it. Every other block must carry its row's decision. A destination a
-// block names must exist, and a block removing a rule the inventory moves
-// must come after a commit since the base changed the rule's new home.
+// must be in the row's text at the freeze, and the block is held to no
+// decision. Every other block must carry its row's decision. A destination
+// path a block names must exist and an entity it names must resolve, while
+// a pointer to a check is not looked up. A block removing a rule the
+// inventory moves to the shipped fragment, a shipped skill or repository
+// guidance must come after a commit since the base changed its new home.
 // rowText returns a row's first home as frozen; resolves reports whether
 // an entity id resolves; changedBefore whether a commit after the base and
 // before sha changed a path.
@@ -947,6 +949,8 @@ func TestInventoryReconcileFindings(t *testing.T) {
 		{"a valid set reports nothing", removalBlock{}, ""},
 		{"a block naming no row", block("rm", `absent "x"`, "deleted"), "names no inventory row"},
 		{"a block whose Removed: is empty", block("rm", "", "deleted"), "names no inventory row"},
+		{"a block naming only its row carries the row's decision", block("rm", "moved", "deleted"), "but row moved decides"},
+		{"an id later in a quoted passage is not an id edit", block("rm", `moved "cites G-0491"`, "deleted"), "but row moved decides"},
 		{"an id edit naming an id the row does not carry", block("rm", "kept G-0999", "reworded"), "does not carry"},
 		{"an id edit naming a shorter id inside one the row carries", block("rm", "kept G-049", "reworded"), "does not carry"},
 		{"an id edit naming an id the row carries only inside a composite", block("rm", "kept M-0336", "reworded"), "does not carry"},

@@ -62,14 +62,17 @@ func PolicyM0211GuidanceOperatingAnchors(root string) ([]Violation, error) {
 }
 
 // m0211Anchor names a consumer-operating rule and the distinctive lower-case
-// fragments that must all appear for the rule to count as present in the
-// shipped guidance. Fragments are matched against a lower-cased body, so a
-// sentence-position capitalization difference does not defeat the match.
+// fragments that must all appear for the rule to count as stated. Two policies
+// read it: the presence policy here, for which the rule must be in the shipped
+// guidance, and the copy check over development guidance, for which it must
+// not be (guidance_operating_copies.go). Fragments are matched against
+// lower-cased text, so a sentence-position capitalization difference does not
+// defeat the match.
 //
-// The body is hard-wrapped markdown and is matched verbatim, so a fragment must
-// sit within one source line: a phrase that reads as adjacent prose but straddles
-// a wrap never matches, and the anchor then reports a rule as absent while it is
-// present.
+// The presence policy matches the shipped guidance's hard-wrapped body verbatim, so a
+// fragment must sit within one source line there: a phrase that straddles a
+// wrap never matches, and the anchor then reports a rule as absent while it is
+// present. The copy check joins each paragraph's lines first.
 type m0211Anchor struct {
 	name      string
 	fragments []string
