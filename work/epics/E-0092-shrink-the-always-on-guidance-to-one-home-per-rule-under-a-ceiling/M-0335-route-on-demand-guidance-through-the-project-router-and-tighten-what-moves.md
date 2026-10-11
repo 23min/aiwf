@@ -6,7 +6,7 @@ parent: E-0092
 depends_on:
     - M-0349
     - M-0336
-tdd: required
+tdd: advisory
 acs:
     - id: AC-1
       title: Both root entry points route to project-local guidance
