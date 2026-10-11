@@ -78,8 +78,6 @@ var guidanceReaderList = map[string]guidanceReaderEntry{
 	"internal/policies.TestAiwfArchive_AC6_ClaudeMdNamesArchiveConvention":    {readerPin, "pins the archive-convention commitment of CLAUDE.md"},
 	"internal/policies.TestM0154_AC2_CLAUDEMDOperatorSetupAmended":            {readerPin, "pins the operator-setup passage of CLAUDE.md"},
 	"internal/policies.TestM0195_AC5_SkillBodyDisciplineInClaudeMd":           {readerPin, "pins the shipped-surface discipline passage of CLAUDE.md"},
-	"internal/policies.TestM0209_AC1_GeneralizedGateInClaudeMd":               {readerPin, "pins the declared-sequence gate passage of CLAUDE.md"},
-	"internal/policies.TestM0211_AC1_ClaudeMdIdCollisionSplitInPlace":         {readerPin, "pins the id-collision resolution passage of CLAUDE.md"},
 	"internal/policies.TestM0211_AC3_AuthoringRuleNamesDividingPrinciple":     {readerPin, "pins the audience-dividing passage of CLAUDE.md"},
 	"internal/policies.TestM0234_AC4_ClaudeMdWorktreeSectionsCiteWorktreeAdd": {readerPin, "pins the worktree passages of CLAUDE.md"},
 	"internal/policies.TestM0293_KernelGuidanceStatesForceIsHumanOnly":        {readerPin, "pins the force-is-human-only statements of CLAUDE.md"},
@@ -93,6 +91,8 @@ var guidanceReaderList = map[string]guidanceReaderEntry{
 	"internal/policies.TestM0127_AC3_NoDanglingDocsPocv3References":           {readerAbsence, "no document references the retired pocv3 tree"},
 	"internal/policies.TestM0290_AC4_NoNormativeDocOffersTheRetiredVerb":      {readerAbsence, "no normative document offers the retired verb"},
 	"internal/policies.TestSkillEditProvenance_DocumentedInClaudeMd":          {readerAbsence, "the retired skill-edit mandate stays out; it also requires two CLAUDE.md headings to exist"},
+	"internal/policies.TestPolicy_GuidanceIDsThroughLinks":                    {readerAbsence, "no entity id outside a link destination"},
+	"internal/policies.TestPolicy_GuidanceNoOperatingCopies":                  {readerAbsence, "no handwritten copy of a shipped operating rule"},
 	"internal/policies.TestAgentIsolationHook_DeniesWorktreeIsolation":        {readerNamesOnly, "names CLAUDE.md as a phrase the hook's message must contain"},
 	"internal/policies.TestPolicy_ConfigFieldsAreDiscoverable":                {readerRelationship, "reads the router to leave routed documents out of the channels"},
 	"internal/policies.TestPolicyDevcontainerPathsResolve":                    {readerRelationship, "checks that every .devcontainer/ path CLAUDE.md names exists"},
@@ -100,7 +100,7 @@ var guidanceReaderList = map[string]guidanceReaderEntry{
 	"internal/policies.TestPolicy_GuidanceCeiling":                            {readerRelationship, "measures each host's primed load against its ceiling"},
 	"internal/policies.TestPolicy_NoDanglingEntityRefsInNarrativeDocs":        {readerRelationship, "checks that every entity reference in CLAUDE.md resolves"},
 	"internal/policies.TestPolicy_GuidanceReaders":                            {readerRelationship, "reads the router to know which documents are guidance"},
-	"internal/policies.TestE0092Inventory":                                    {readerRelationship, "checks that M-0349's inventory cites every section of the guidance as frozen"},
+	"internal/policies.TestE0092Inventory":                                    {readerRelationship, "checks M-0349's inventory against the guidance as frozen, each removal against its row, and the fragment's frozen words against HEAD"},
 }
 
 // guidanceReaderListFile is where guidanceReaderList lives, for a finding
@@ -332,12 +332,14 @@ func repoNamesGuidance(root string) func(string) bool {
 	return func(s string) bool { return namesGuidancePath(s, routed) }
 }
 
-// repoRoutedDocuments returns the documents the project router at root links
-// to. A missing router reads as empty and routes nothing.
+// repoRoutedDocuments returns the handwritten documents the project router
+// at root links to, leaving out the outputs aiwf owns. A missing router
+// reads as empty and routes nothing.
 func repoRoutedDocuments(root string) map[string]bool {
 	router, _ := os.ReadFile(filepath.Join(root, filepath.FromSlash(projectguidance.RouterFile)))
+	record, _ := os.ReadFile(filepath.Join(root, filepath.FromSlash(projectguidance.OwnedRecordFile)))
 	routed := map[string]bool{}
-	for _, p := range projectguidance.RoutedDocuments(string(router)) {
+	for _, p := range projectguidance.HandwrittenDocuments(string(router), projectguidance.OwnedOutputs(string(record))) {
 		routed[p] = true
 	}
 	return routed

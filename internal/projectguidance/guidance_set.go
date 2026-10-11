@@ -1,6 +1,7 @@
 package projectguidance
 
 import (
+	"encoding/json"
 	"net/url"
 	"path"
 	"strings"
@@ -71,6 +72,37 @@ func RoutedDocuments(router string) []string {
 	var out []string
 	for _, target := range MarkdownLinks(router) {
 		if p, ok := ResolveReference(RouterFile, target); ok && strings.HasSuffix(p, ".md") {
+			out = append(out, p)
+		}
+	}
+	return out
+}
+
+// OwnedOutputs reads the owned-output record and returns the outputs it
+// lists. Only a path shaped like one aiwf owns counts, so a record cannot
+// list a file of its own to carry it; a record that does not parse lists
+// nothing.
+func OwnedOutputs(record string) map[string]bool {
+	owned := map[string]bool{}
+	var listed map[string]string
+	if json.Unmarshal([]byte(record), &listed) == nil {
+		for p := range listed {
+			if ValidOwnedPath(p) {
+				owned[p] = true
+			}
+		}
+	}
+	return owned
+}
+
+// HandwrittenDocuments returns the documents the router links to that are
+// handwritten instruction content: every routed document except an output
+// aiwf owns, which is generated, and the host files and the router, which
+// are instruction files by name.
+func HandwrittenDocuments(router string, owned map[string]bool) []string {
+	var out []string
+	for _, p := range RoutedDocuments(router) {
+		if !owned[p] && p != ClaudeFile && p != AgentsFile && p != RouterFile {
 			out = append(out, p)
 		}
 	}

@@ -2,7 +2,6 @@ package check
 
 import (
 	"context"
-	"encoding/json"
 	"errors"
 	"fmt"
 	"os/exec"
@@ -107,7 +106,7 @@ func RunInstructionFence(commits []InstructionCommit, resolves func(string) bool
 			})
 		}
 		if c.Removes {
-			good, bad := dispositionBlocks(c.Body)
+			blocks, bad := ParseDispositionBlocks(c.Body)
 			switch {
 			case len(bad) > 0:
 				out = append(out, Finding{
@@ -116,7 +115,7 @@ func RunInstructionFence(commits []InstructionCommit, resolves func(string) bool
 					Message:  fmt.Sprintf("commit %s removes handwritten instruction text (%s) and carries a malformed disposition block: %s", shortHash(c.SHA), changed, strings.Join(bad, "; ")),
 					Path:     c.Changed[0],
 				})
-			case good == 0:
+			case len(blocks) == 0:
 				out = append(out, Finding{
 					Code:     CodeInstructionCommitDispositionMissing.ID,
 					Severity: SeverityError,
@@ -366,24 +365,13 @@ func instructionRevisionAt(br *gitops.BlobReader, rev string) (instructionRevisi
 	if err != nil { //coverage:ignore propagates a cat-file read failure, as WalkInstructionCommits records
 		return r, err
 	}
-	var record map[string]string
-	if json.Unmarshal([]byte(rawOwned), &record) == nil {
-		// Only a path shaped like one aiwf owns counts, so a commit cannot
-		// list a file of its own in the record to carry it.
-		for p := range record {
-			if projectguidance.ValidOwnedPath(p) {
-				r.owned[p] = true
-			}
-		}
-	}
+	r.owned = projectguidance.OwnedOutputs(rawOwned)
 	router, err := blobAt(br, rev, projectguidance.RouterFile)
 	if err != nil { //coverage:ignore propagates a cat-file read failure, as WalkInstructionCommits records
 		return r, err
 	}
-	for _, p := range projectguidance.RoutedDocuments(router) {
-		if !r.owned[p] {
-			r.routed[p] = true
-		}
+	for _, p := range projectguidance.HandwrittenDocuments(router, r.owned) {
+		r.routed[p] = true
 	}
 	return r, nil
 }
@@ -448,7 +436,7 @@ func isHostFile(p string) bool {
 // on its own or around an inserted sentence — remove nothing; a deletion, a
 // rewording, and a reordering of words do.
 func removesText(before, after string) bool {
-	return removesLine(before, after) && !wordsSurviveInOrder(before, after)
+	return removesLine(before, after) && !WordsSurviveInOrder(before, after)
 }
 
 // removesLine reports whether some non-blank line of before is missing
@@ -471,9 +459,9 @@ func removesLine(before, after string) bool {
 	return false
 }
 
-// wordsSurviveInOrder reports whether the whitespace-separated words of
+// WordsSurviveInOrder reports whether the whitespace-separated words of
 // before occur in after in the same order, other words between them.
-func wordsSurviveInOrder(before, after string) bool {
+func WordsSurviveInOrder(before, after string) bool {
 	rest := strings.Fields(after)
 	for _, w := range strings.Fields(before) {
 		i := slices.Index(rest, w)
@@ -499,16 +487,22 @@ var (
 	dispositionWords = []string{"reworded", "deleted"}
 )
 
-// dispositionBlocks scans a commit message for disposition blocks and
-// returns how many are well-formed and the malformed ones. Every line
-// starting Removed: opens a block, so a half-written block is never
-// mistaken for prose. It checks shape only: whether a named path or id
-// exists, and whether every removed passage has its block, is held at
-// review.
-func dispositionBlocks(body string) (wellFormed int, malformed []string) {
+// DispositionBlock is one well-formed disposition block: the values of its
+// Removed: line and of the Disposition: line after it.
+type DispositionBlock struct {
+	Removed, Disposition string
+}
+
+// ParseDispositionBlocks scans a commit message for disposition blocks and
+// returns the well-formed ones and the malformed ones. Every line starting
+// Removed: opens a block, so a half-written block is never mistaken for
+// prose. It checks shape only: whether a named path or id exists, and
+// whether every removed passage has its block, is held at review.
+func ParseDispositionBlocks(body string) (blocks []DispositionBlock, malformed []string) {
 	lines := strings.Split(body, "\n")
 	for i, l := range lines {
-		if !strings.HasPrefix(strings.TrimSpace(l), removedKey) {
+		removed, ok := strings.CutPrefix(strings.TrimSpace(l), removedKey)
+		if !ok {
 			continue
 		}
 		next := ""
@@ -516,16 +510,17 @@ func dispositionBlocks(body string) (wellFormed int, malformed []string) {
 			next = strings.TrimSpace(lines[i+1])
 		}
 		value, ok := strings.CutPrefix(next, dispositionKey)
+		value = strings.TrimSpace(value)
 		switch {
 		case !ok:
 			malformed = append(malformed, strings.TrimSpace(l)+" (no Disposition: line follows)")
-		case validDisposition(strings.TrimSpace(value)):
-			wellFormed++
+		case validDisposition(value):
+			blocks = append(blocks, DispositionBlock{Removed: strings.TrimSpace(removed), Disposition: value})
 		default:
 			malformed = append(malformed, next)
 		}
 	}
-	return wellFormed, malformed
+	return blocks, malformed
 }
 
 func validDisposition(v string) bool {

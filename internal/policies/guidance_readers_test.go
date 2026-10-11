@@ -191,10 +191,12 @@ func TestPolicy_GuidanceReaders(t *testing.T) {
 func TestRepoNamesGuidance(t *testing.T) {
 	t.Parallel()
 	root := t.TempDir()
-	repoFileWriter(t, root)(".guidance/project.md", "Read [t](../docs/dev/testing.md).\n")
+	write := repoFileWriter(t, root)
+	write(".guidance/project.md", "Read [t](../docs/dev/testing.md) and [go](packs/go/guide.md).\n")
+	write(".guidance/.aiwf-owned", `{".guidance/packs/go/guide.md": "x"}`)
 	names := repoNamesGuidance(root)
 	for p, want := range map[string]bool{
-		"docs/dev/testing.md": true, "CLAUDE.md": true, "sub/AGENTS.md": true,
+		"docs/dev/testing.md": true, ".guidance/packs/go/guide.md": false, "CLAUDE.md": true, "sub/AGENTS.md": true,
 		".guidance/project.md": true, "docs/other.md": false,
 		"../../docs/dev/testing.md": true, "./docs/dev/testing.md": true,
 		"sub/.guidance/project.md": false,

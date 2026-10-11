@@ -1,6 +1,7 @@
 package policies
 
 import (
+	"context"
 	"fmt"
 	"maps"
 	"os"
@@ -11,7 +12,10 @@ import (
 	"strconv"
 	"strings"
 	"testing"
+	"unicode"
 
+	"github.com/23min/aiwf/internal/check"
+	"github.com/23min/aiwf/internal/config"
 	"github.com/23min/aiwf/internal/projectguidance"
 )
 
@@ -28,6 +32,10 @@ const (
 	// was taken from. Its router links no document, so the guidance set is
 	// the two host files and the router.
 	inventoryFreeze = "3fcc69611b42b1912261ab10973bf96e2b9e701c"
+	// inventoryReconcileBase is the commit that promoted M-0336 to
+	// in_progress. Disposition blocks after it name the row they carry out
+	// (M-0336 AC-5); those before it predate the label.
+	inventoryReconcileBase = "aba8c273231fb494ed47e75106c15572e66f585e"
 	// inventoryFragment is the shipped fragment, written F in a home.
 	inventoryFragment = "internal/skills/embedded-guidance/aiwf-guidance.md"
 	// inventoryFragmentDir holds the fragment and the host inserts spliced
@@ -287,14 +295,15 @@ func finalHome(r invRow, d invDisposition, byLabel map[string]invRow, documents 
 
 // guidanceSection is a part of a guidance document a home can cite: a
 // heading path, a fragment rule's lead-in, or the preamble (an empty
-// path). Words counts the section's own text, leaving out headings, the
-// H1 and --- separators; a fragment's rules are not text of the heading
-// above them.
+// path). Text and Words are the section's own text, leaving out headings,
+// the H1 and --- separators; a fragment's rules are not text of the
+// heading above them, and a lead-in section holds no text.
 type guidanceSection struct {
 	Path     []string
 	Required bool
 	Lead     bool
 	Words    int
+	Text     string
 }
 
 // guidanceSections returns the sections of a document. Its ## and ###
@@ -325,6 +334,7 @@ func guidanceSections(content string, fragment bool) []guidanceSection {
 		default:
 			inBullet = false
 			out[current].Words += len(strings.Fields(line))
+			out[current].Text += line + "\n"
 		}
 		if fence {
 			inFence = !inFence
@@ -477,11 +487,159 @@ func inventoryCeilingTargets(rows []invRow, routerDraft string, frozen map[strin
 	return claude, claude + words[projectguidance.AgentsFile]
 }
 
+// removalBlock is a disposition block from a commit after
+// inventoryReconcileBase.
+type removalBlock struct {
+	SHA string
+	check.DispositionBlock
+}
+
+// decidedDisposition is the block disposition that carries out a row's
+// decision, or false for a decision that removes nothing.
+func decidedDisposition(d invDisposition) (string, bool) {
+	switch d.Kind {
+	case "copy", "skill", "repository":
+		return "copy of " + d.Target, true
+	case "fragment":
+		return "copy of " + inventoryFragment, true
+	case "on demand":
+		return "relocated to " + d.Target, true
+	case "pointer":
+		return "pointer to " + d.Target, true
+	case "merge", "tighten":
+		return "reworded", true
+	}
+	return "", false
+}
+
+// isIDEdit reports whether a word is an id-shaped token the development
+// guidance may not carry, as AC-2's scan classifies it. The word is the
+// token itself: one opening a quoted passage is the passage's first word.
+func isIDEdit(word string) bool {
+	return !strings.HasPrefix(word, `"`) && len(check.ScanPlainTextIDs(word, "")) > 0
+}
+
+// isEntityID reports whether a disposition's destination names an entity
+// rather than a path: a path holding an id in its file name is a path.
+func isEntityID(target string) bool {
+	return isIDEdit(target) && !strings.Contains(target, "/")
+}
+
+// notIDRune separates the words of a row's text into the tokens an id edit
+// may name, so a shorter id never matches inside a longer one.
+func notIDRune(r rune) bool {
+	return r != '-' && r != '/' && !unicode.IsDigit(r) && !unicode.IsLetter(r)
+}
+
+// inventoryReconcileFindings holds each removal block to the inventory
+// (M-0336 AC-5, AC-6). A block names its row as the first word of its
+// Removed: value. One naming an id second is an edit AC-2 requires: the id
+// must be in the row's text at the freeze, and the block is held to no
+// decision. Every other block must carry its row's decision. A destination
+// path a block names must exist and an entity it names must resolve, while
+// a pointer to a check is not looked up. A block removing a rule the
+// inventory moves to the shipped fragment, a shipped skill or repository
+// guidance must come after a commit since the base changed its new home.
+// rowText returns a row's first home as frozen; resolves reports whether
+// an entity id resolves; changedBefore whether a commit after the base and
+// before sha changed a path.
+func inventoryReconcileFindings(blocks []removalBlock, rows []invRow, rowText func(invRow) string, exists, resolves func(string) bool, changedBefore func(sha, path string) bool) []string {
+	var out []string
+	byLabel := map[string]invRow{}
+	for i := range rows {
+		byLabel[rows[i].Label] = rows[i]
+	}
+	for _, b := range blocks {
+		at := fmt.Sprintf("commit %.9s, block %q", b.SHA, b.Removed)
+		words := strings.Fields(b.Removed)
+		if len(words) == 0 {
+			out = append(out, at+": names no inventory row")
+			continue
+		}
+		row, ok := byLabel[words[0]]
+		if !ok {
+			out = append(out, at+": its first word names no inventory row")
+			continue
+		}
+		for _, form := range []string{"copy of ", "relocated to ", "pointer to "} {
+			target, named := strings.CutPrefix(b.Disposition, form)
+			switch {
+			case !named:
+			case isEntityID(target):
+				if !resolves(target) {
+					out = append(out, fmt.Sprintf("%s: names %s, which resolves to no entity", at, target))
+				}
+			case form != "pointer to " && !exists(target):
+				out = append(out, fmt.Sprintf("%s: names %s, which does not exist", at, target))
+			}
+		}
+		if len(words) > 1 && isIDEdit(words[1]) {
+			if !slices.Contains(strings.FieldsFunc(rowText(row), notIDRune), words[1]) {
+				out = append(out, fmt.Sprintf("%s: names %s, which row %s's text at the freeze does not carry", at, words[1], row.Label))
+			}
+			continue
+		}
+		d, _ := parseDisposition(row.Disposition)
+		want, removes := decidedDisposition(d)
+		switch {
+		case !removes:
+			out = append(out, fmt.Sprintf("%s: row %s decides %q, which removes nothing", at, row.Label, row.Disposition))
+		case b.Disposition != want:
+			out = append(out, fmt.Sprintf("%s: disposition %q, but row %s decides %q", at, b.Disposition, row.Label, want))
+		case d.Kind == "fragment" || d.Kind == "skill" || d.Kind == "repository":
+			home := strings.TrimPrefix(want, "copy of ")
+			if !changedBefore(b.SHA, home) {
+				out = append(out, fmt.Sprintf("%s: removes a rule the inventory moves to %s before any commit adds it there", at, home))
+			}
+		}
+	}
+	return out
+}
+
+// fragmentLossFindings reports each part of the shipped fragment whose
+// words at the freeze no longer all survive, in order, at HEAD (M-0336
+// AC-5). Every fragment row is kept, so the epic may add to the fragment
+// but never take from it; the fence does not judge the fragment, so this
+// is what holds a removal there.
+func fragmentLossFindings(frozen, current map[string]string) []string {
+	var out []string
+	for _, p := range slices.Sorted(maps.Keys(frozen)) {
+		if !check.WordsSurviveInOrder(frozen[p], current[p]) {
+			out = append(out, fmt.Sprintf("%s: words the fragment held at the freeze are gone; every fragment row is kept, so restore them", p))
+		}
+	}
+	return out
+}
+
+// repoRemovalBlocks reads the disposition blocks of every commit after
+// inventoryReconcileBase that is not on trunk, and reports each malformed
+// one, since a block the parser drops would otherwise escape the check.
+func repoRemovalBlocks(t *testing.T, root string) (blocks []removalBlock, malformed []string) {
+	t.Helper()
+	cfg, _ := config.Load(root)
+	trunk, _ := cfg.AllocateTrunkRef()
+	commits, err := check.WalkInstructionCommits(context.Background(), root, inventoryReconcileBase+"..HEAD", trunk)
+	if err != nil {
+		t.Fatal(err)
+	}
+	for _, c := range commits {
+		good, bad := check.ParseDispositionBlocks(c.Body)
+		for _, b := range good {
+			blocks = append(blocks, removalBlock{c.SHA, b})
+		}
+		for _, m := range bad {
+			malformed = append(malformed, fmt.Sprintf("commit %.9s: malformed disposition block %q", c.SHA, m))
+		}
+	}
+	return blocks, malformed
+}
+
 // TestE0092Inventory holds M-0349's inventory to its rules against the
 // tree (M-0349 AC-1, AC-2, AC-4): every section of the guidance as frozen
 // is cited by a row, and each development section's words are its rows';
 // every row is well formed and ends where its audience and placement say.
-// It logs AC-5's targets.
+// Every removal since M-0336's start carries out its row (M-0336 AC-5,
+// AC-6). It logs M-0349 AC-5's targets.
 func TestE0092Inventory(t *testing.T) {
 	t.Parallel()
 	root, tr := sharedRepoTree(t)
@@ -518,8 +676,38 @@ func TestE0092Inventory(t *testing.T) {
 	for _, p := range inventoryHostInserts {
 		documents[p] = frozen(p)
 	}
+	frozenFragment, currentFragment := map[string]string{}, map[string]string{}
+	for _, p := range append([]string{inventoryFragment}, inventoryHostInserts...) {
+		frozenFragment[p] = documents[p]
+		current, err := os.ReadFile(filepath.Join(root, filepath.FromSlash(p)))
+		if err != nil {
+			t.Fatal(err)
+		}
+		currentFragment[p] = string(current)
+	}
 	findings = append(findings, inventoryCoverageFindings(rows, documents)...)
 	findings = append(findings, inventoryWordFindings(rows, development)...)
+	rowText := func(r invRow) string {
+		h := r.Homes[0]
+		for _, s := range guidanceSections(documents[h.File], h.File == inventoryFragment) {
+			if citeNames(h.Path, s) {
+				return s.Text
+			}
+		}
+		return ""
+	}
+	changedBefore := func(sha, path string) bool {
+		out, err := exec.Command("git", "-C", root, "log", "--format=%H", inventoryReconcileBase+".."+sha+"^", "--", path).Output()
+		if err != nil {
+			t.Fatalf("reading the commits that change %s: %v", path, err)
+		}
+		return strings.TrimSpace(string(out)) != ""
+	}
+	blocks, malformed := repoRemovalBlocks(t, root)
+	findings = append(findings, malformed...)
+	findings = append(findings, inventoryReconcileFindings(blocks, rows, rowText, exists,
+		func(id string) bool { return check.EntityResolves(tr, id) }, changedBefore)...)
+	findings = append(findings, fragmentLossFindings(frozenFragment, currentFragment)...)
 	claude, codex := inventoryCeilingTargets(rows, inventoryRouterDraft(body), development, exists)
 	t.Logf("M-0349 AC-5 handwritten primed targets: claude-code %d, codex %d", claude, codex)
 	for _, f := range findings {
@@ -708,5 +896,112 @@ func TestInventoryCeilingTargets(t *testing.T) {
 	// CLAUDE.md: 10 + 20 + 5 rule words, 3 for "# Repo rules", 2 for "## Rules"; the router 3.
 	if claude != 43 || codex != 43+7+2 {
 		t.Errorf("targets = %d, %d; want 43, 52", claude, codex)
+	}
+}
+
+// TestInventoryReconcileFindings pins each reconciliation rule (M-0336
+// AC-5, AC-6), one case per rule, against a valid set that reports nothing.
+func TestInventoryReconcileFindings(t *testing.T) {
+	t.Parallel()
+	rows, _ := parseInventory(inventoryFixture(inventoryHeader,
+		"| copied | A rule | `CLAUDE.md › Go` | 5 | development | judgment | on demand | delete as copy of `.guidance/packs/go/cobra/guide.md` | |",
+		"| moved | A rule | `CLAUDE.md › Testing` | 5 | development | judgment | on demand | move on demand to `.guidance/project/testing.md` | |",
+		"| missing | A rule | `CLAUDE.md › Testing` | 5 | development | judgment | on demand | move on demand to `.guidance/project/missing.md` | |",
+		"| merged | A rule | `CLAUDE.md › Testing` | 5 | development | judgment | primed | merge into kept | |",
+		"| shipped | A rule | `CLAUDE.md › Gates` | 5 | operating | judgment | primed | move to the shipped fragment | |",
+		"| kept | A rule | `CLAUDE.md › Kept` | 5 | development | judgment | primed | keep | |",
+		"| tightened | A rule | `CLAUDE.md › Kept` | 5 | development | judgment | primed | tighten | |",
+		"| pointed | A rule | `CLAUDE.md › Kept` | 5 | development | check-backed | primed | pointer to `missing-check` | |",
+		"| skilled | A rule | `CLAUDE.md › Gates` | 5 | operating | judgment | on demand | move to the shipped skill `internal/skills/embedded/aiwf-add/SKILL.md` | |",
+		"| repoed | A rule | `F › A rule` | 5 | development | judgment | primed | move to repository guidance `CLAUDE.md` | |",
+	))
+	rowText := func(r invRow) string {
+		if r.Label == "kept" {
+			return "A rule, as G-0491 records for M-0336/AC-1.\n"
+		}
+		return ""
+	}
+	exists := func(p string) bool { return !strings.Contains(p, "missing") }
+	resolves := func(id string) bool { return id == "G-0491" }
+	// The fragment changes in commit "add", ahead of "late", which has no
+	// such commit before it.
+	moved := []string{inventoryFragment, "internal/skills/embedded/aiwf-add/SKILL.md", "CLAUDE.md"}
+	changedBefore := func(sha, path string) bool { return sha != "late" && slices.Contains(moved, path) }
+	block := func(sha, removed, disposition string) removalBlock {
+		return removalBlock{sha, check.DispositionBlock{Removed: removed, Disposition: disposition}}
+	}
+	valid := []removalBlock{
+		block("rm", `copied "x"`, "copy of .guidance/packs/go/cobra/guide.md"),
+		block("rm", `moved "x"`, "relocated to .guidance/project/testing.md"),
+		block("rm", `merged "x"`, "reworded"),
+		block("rm", `shipped "x"`, "copy of "+inventoryFragment),
+		block("rm", "kept G-0491", "copy of G-0491"),
+		block("rm", `tightened "x"`, "reworded"),
+		block("rm", `pointed "x"`, "pointer to missing-check"),
+		block("rm", `skilled "x"`, "copy of internal/skills/embedded/aiwf-add/SKILL.md"),
+		block("rm", `repoed "x"`, "copy of CLAUDE.md"),
+	}
+	cases := []struct {
+		name  string
+		block removalBlock
+		want  string
+	}{
+		{"a valid set reports nothing", removalBlock{}, ""},
+		{"a block naming no row", block("rm", `absent "x"`, "deleted"), "names no inventory row"},
+		{"a block whose Removed: is empty", block("rm", "", "deleted"), "names no inventory row"},
+		{"a block naming only its row carries the row's decision", block("rm", "moved", "deleted"), "but row moved decides"},
+		{"an id later in a quoted passage is not an id edit", block("rm", `moved "cites G-0491"`, "deleted"), "but row moved decides"},
+		{"an id edit naming an id the row does not carry", block("rm", "kept G-0999", "reworded"), "does not carry"},
+		{"an id edit naming a shorter id inside one the row carries", block("rm", "kept G-049", "reworded"), "does not carry"},
+		{"an id edit naming an id the row carries only inside a composite", block("rm", "kept M-0336", "reworded"), "does not carry"},
+		{"a quoted passage opening with an id is not an id edit", block("rm", `kept "G-0491 records"`, "deleted"), "removes nothing"},
+		{"an id edit naming an entity that does not resolve", block("rm", "kept G-0491", "copy of G-0999"), "resolves to no entity"},
+		{"a pointer naming an entity that does not resolve", block("rm", "kept G-0491", "pointer to G-0999"), "resolves to no entity"},
+		{"a destination that does not exist", block("rm", `missing "x"`, "relocated to .guidance/project/missing.md"), "does not exist"},
+		{"a destination path holding an id is judged as a path", block("rm", "kept G-0491", "copy of docs/adr/ADR-0004-missing.md"), "does not exist"},
+		{"a block disagreeing with its row", block("rm", `moved "x"`, "deleted"), "but row moved decides"},
+		{"a block under a row that removes nothing", block("rm", `kept "x"`, "deleted"), "removes nothing"},
+		{"a move removed before its new home changed", block("late", `shipped "x"`, "copy of "+inventoryFragment), "before any commit adds it"},
+		{"a skill move removed before its new home changed", block("late", `skilled "x"`, "copy of internal/skills/embedded/aiwf-add/SKILL.md"), "before any commit adds it"},
+		{"a repository move removed before its new home changed", block("late", `repoed "x"`, "copy of CLAUDE.md"), "before any commit adds it"},
+	}
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			t.Parallel()
+			blocks := slices.Clone(valid)
+			if tc.want != "" {
+				blocks = append(blocks, tc.block)
+			}
+			findings := inventoryReconcileFindings(blocks, rows, rowText, exists, resolves, changedBefore)
+			if tc.want == "" {
+				if len(findings) != 0 {
+					t.Errorf("findings = %q, want none", findings)
+				}
+				return
+			}
+			if len(findings) != 1 || !strings.Contains(findings[0], tc.want) {
+				t.Errorf("findings = %q, want one containing %q", findings, tc.want)
+			}
+		})
+	}
+}
+
+// TestFragmentLossFindings pins the fragment rule (M-0336 AC-5): words
+// added among the fragment's frozen text pass, and a frozen word gone
+// fails.
+func TestFragmentLossFindings(t *testing.T) {
+	t.Parallel()
+	frozen := map[string]string{inventoryFragment: "- **Decide one thing at a time.** Each: the options.\n"}
+	for _, tc := range []struct{ name, current, want string }{
+		{"a clause added among the frozen words passes", "- **Decide one thing at a time.** The list ends with more. Each: the options.\n", ""},
+		{"a frozen word gone fails", "- **Decide one thing.** Each: the options.\n", "words the fragment held at the freeze are gone"},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			t.Parallel()
+			findings := fragmentLossFindings(frozen, map[string]string{inventoryFragment: tc.current})
+			if tc.want == "" && len(findings) != 0 || tc.want != "" && (len(findings) != 1 || !strings.Contains(findings[0], tc.want)) {
+				t.Errorf("findings = %q, want %q", findings, tc.want)
+			}
+		})
 	}
 }

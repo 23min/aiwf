@@ -16,6 +16,27 @@ section in this file.
 
 ## [Unreleased]
 
+### Changed — E-0092: the shipped guidance states operating rules aiwf's own repository kept to itself
+
+The always-on guidance `aiwf init` and `aiwf update` install now says:
+
+- any deviation from a declared-sequence gate's list — a conflict, a finding, unexpected dirty
+  state, an action not on the list — aborts the sequence and re-gates;
+- a remote-branch delete is an outward action and never batches;
+- a one-at-a-time decision list ends with "something else", the pick is confirmed in one line,
+  and a human asking for "Q&A" or "interview me" asks for the same;
+- whether a closely related issue is fixed in place or filed, what you noticed is surfaced, not
+  silently deferred.
+
+The `aiwf-promote` skill adds that a milestone's `tdd:` setting never waives the evidence an AC
+needs and that the obligation binds at the promote, held at review. The `aiwf-reallocate` skill
+adds how to rule out a stale branch before reallocating on a trunk collision, and now says the
+new id is allocated against every local branch and remote-tracking ref as well as trunk and
+that the verb rewrites mentions of the old id in body prose rather than reporting them.
+
+The `id-rename-untrailered` finding and its hint point at that finding's entry in the
+`aiwf-check` skill.
+
 ### Changed (internal) — E-0098: aiwf's devcontainer is generated from the house devcontainer kit
 
 Nothing changes for repositories that use aiwf. aiwf's own development container:

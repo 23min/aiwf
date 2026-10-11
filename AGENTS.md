@@ -30,8 +30,9 @@ turn. The exception is **Code-health priming** at the end — read `.agents/skil
   the one bounded exception: one approval covers *local, reversible* mutations found together in one
   unit of work (an AC, a bug fix, a wrap sequence), verb types mixed freely, provided it enumerates
   every action verbatim and lets you approve a subset. The `aiwfx-wrap-*` rituals use it for their
-  terminal sequence (promote-done, local merge, cleanup). Outward or irreversible actions (push, `gh
-  pr create`, tag-push, `--force`) never batch. `tdd: required` phase promotes (red/green/done/met)
+  terminal sequence (promote-done, local merge, cleanup). Any deviation — a conflict, a finding,
+  unexpected dirty state, an action not on the list — aborts a declared sequence and re-gates. Outward
+  or irreversible actions (push, `gh pr create`, tag-push, remote-branch delete, `--force`) never batch. `tdd: required` phase promotes (red/green/done/met)
   streamline by default — live, ungated, test-evidenced — wrap review and push stay the control points.
 - **Body edits keep a review-before-commit window — prefer bless mode.** A
   structured-state verb (`aiwf promote` / `cancel` / `reallocate`) mutates and
@@ -77,7 +78,9 @@ turn. The exception is **Code-health priming** at the end — read `.agents/skil
 - **Decide one thing at a time.** Three or more queued? Present one at a time,
   never batched into one `AskUserQuestion` card. Each: the context, options
   with pros/cons and risks, your plain lean *with its argument*, a numbered
-  pick-list. The reasoning is the deliverable; the container serves it — write
+  pick-list. The list ends with "something else"; wait for the pick, confirm it
+  in one line, then move to the next. A human saying "Q&A" or "interview me"
+  asks for the same. The reasoning is the deliverable; the container serves it — write
   prose by default, and reach for a card only for a trivial either/or or a
   side-by-side of concrete options. A card's terseness must not drop the
   pros/cons, the lean, or the argument.
@@ -98,7 +101,8 @@ turn. The exception is **Code-health priming** at the end — read `.agents/skil
   under review.
 - **Fix closely-related issues in place — the cheap-fix test.** Small, in a file this
   work already touches, covered by a test you're writing? Make it now. Needs its own
-  branch, its own review, or a real decision? File it via `aiwfx-record-gap`.
+  branch, its own review, or a real decision? File it via `aiwfx-record-gap`. Either
+  way, surface what you noticed plainly; don't silently defer it.
 - **A gap names what is wrong and where, or it is not a gap.** Point at a file, a
   symbol, or an observable behaviour a reader can go and look at. One that cannot
   name where is a wish, not a defect — write it as an epic or a milestone, where a

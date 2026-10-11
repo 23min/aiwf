@@ -184,5 +184,5 @@ If a proposed change forces a violation of any of these, treat it as a kernel-le
 - Gap entities under `work/gaps/` (post-G38 dogfood migration). `aiwf list --kind gap` for open gaps; `aiwf show G-NNN` for one. Pre-migration history is archived at [`archive/gaps-pre-migration.md`](archive/pocv3/gaps-pre-migration.md).
 - [`plans/poc-plan.md`](archive/pocv3/poc-plan-pre-migration.md) — the four sessions of work that produced the engine, plus the I1 contracts iteration that built on top.
 - [`skill-author-guide.md`](skill-author-guide.md) — the contract for AI skill scaffolders. The published surface from §4 above, expressed as rules and a worked example.
-- Root [`CLAUDE.md`](../CLAUDE.md) — the engineering principles (KISS, YAGNI, no half-finished implementations).
-- [`CLAUDE.md`](../CLAUDE.md) — Go-specific rules (formatting, testing, error handling, CLI conventions, commit-trailer convention).
+- The [code-health pack](../.guidance/packs/code-health/guide.md) — the engineering principles (KISS, YAGNI, no half-finished implementations).
+- Root [`CLAUDE.md`](../CLAUDE.md) and the [Go pack](../.guidance/packs/go/cobra/guide.md) — Go rules: aiwf's own conventions (testing, CLI conventions, commit-trailer convention) in `CLAUDE.md`, the generic ones (formatting, error handling) in the pack.

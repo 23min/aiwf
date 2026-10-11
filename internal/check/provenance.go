@@ -708,8 +708,8 @@ func buildEndedByIndex(commits []scope.Commit) map[string]*scope.Commit {
 // rituals plugin's `aiwfx-wrap-epic` / `aiwfx-wrap-milestone` skills
 // produce (wrap.md artefact, CHANGELOG entries, merge trailers). New
 // wrap-related verbs must be added here explicitly; the empty / non-
-// matching case keeps the exception narrow per CLAUDE.md
-// §"Engineering principles" YAGNI.
+// matching case keeps the exception narrow, per the code-health
+// pack's YAGNI.
 var wrapBundleVerbs = map[string]bool{
 	"wrap-epic":      true,
 	"wrap-milestone": true,
