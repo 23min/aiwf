@@ -18,3 +18,5 @@ document that matches it:
   lanes.
 - [Writing docs](project/writing-docs.md) — documents under `docs/` and ADRs.
 - [Release](project/release.md) — cutting a release.
+- [Enforcement](project/enforcement.md) — where a rule is enforced, from
+  pre-commit to the release tag.
