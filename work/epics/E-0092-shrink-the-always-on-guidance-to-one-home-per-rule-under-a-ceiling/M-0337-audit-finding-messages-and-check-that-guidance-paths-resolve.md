@@ -96,6 +96,37 @@ Both hosts' handwritten primed words, as defined by E-0092 and measured by M-033
 - G-0436
 - G-0676 — how root guidance grows
 
+## Audit
+
+Each row is a policy or finding code the handwritten development guidance named at `65d846222`, the commit that started this milestone, by its id, by the policy file, or by its `Policy` function. A message states the fix when it names the action to take; one that only describes the defect does not, however plain the remedy. A finding code's message is its check's text with the hint `aiwf check` appends, and the hint is what names the action. Message quotes the remedy clause of a check that states the fix, and each message naming no action, at its source line, of one that does not. The quotes are as they stood at that commit.
+
+| Check | Kind | Message | Verdict |
+|---|---|---|---|
+| `acs-tdd-audit` | finding | hint: "advance the AC's tdd_phase to `done` via `aiwf promote <id>/AC-N --phase done`, or relax the milestone's tdd: setting" | states the fix |
+| `body-prose-id` | finding | hint, per subcode: "fix it with `aiwf edit-body <id>` …" | states the fix |
+| `branch-coverage-audit` | policy | "Add a test that reaches it, or annotate the line `//coverage:ignore <reason>` if it is genuinely unreachable" | states the fix |
+| `claim-guard-presence` | policy | `claim_guard_presence.go:100`: "… records claim scope %q, but no package-level function by that name was found under internal/verb — the row is either stale … or it names a shape this scan does not see, such as a method; either way this policy cannot vouch for it"; `:191`: "%s and %s record the same exemption reason — an exempt route carries its own specific reason, not a category label shared across routes …" | does not |
+| `coauthor-trailer-ban` | policy | "rewrite the message to drop the line, or remove the address from that list" | states the fix |
+| `comment-history-attrition` | policy | "state it in the present tense as current truth about the input space; otherwise drop the clause" | states the fix |
+| `entity-id-narrow-width` | finding | hint: "undo the change that produced it (`git checkout -- <path>` if uncommitted, `git revert <sha>` if it landed)" | states the fix |
+| `firing-fixture-presence` | policy | "Add a firing test beside the policy that drives it to return >=1 violation; if it is a structure-auditor …, grandfather it in grandfatherDark" | states the fix |
+| `fsm-invariants` | policy | `fsm_invariants.go:50`: "kind %q is in AllKinds() but has no AllowedStatuses; FSM unwired"; `:72`: "kind %q has no non-terminal statuses; FSM is unwired or every state is terminal"; `:88`: "kind %q: transition %q → %q targets a status not in AllowedStatuses"; `:117`: "kind %q at %q: CancelTarget %q not in AllowedStatuses"; `:124`: "… CancelTarget %q has outgoing transitions %v; must be terminal"; `:148`: "kind %q: FSM contains a cycle: %v"; `:189`: "composite FSM %q contains a cycle: %v" | does not |
+| `git-test-env-harden` | policy | `git_test_env_harden.go:111`: "exec-bearing test package has no setup_test.go to host the testsupport.HardenGitTestEnv() call"; `:126`: "test package shells out to a subprocess but its TestMain does not call testsupport.HardenGitTestEnv(); ambient git-locator env vars leak …" | does not |
+| `guidance-readers` | policy | "list it with that reason; if it pins a phrase, state the claim as a relationship check or record it as an observation"; "delete the entry" | states the fix |
+| `logging-chokepoint` | policy | "route through cliutil's text-output wrapper set … or allowlist the file with a rationale" | states the fix |
+| `m0211-guidance-operating-anchors` | policy | `m0211_guidance_operating_anchors.go:46`: "shippable guidance source is unreadable — consumer-operating rules cannot ship from it: %v" | does not |
+| `no-hardcoded-entity-paths` | policy | "Resolve the entity via tree.Load(ctx, root) + Tree.ByID + entity.Path instead" | states the fix |
+| `race-parallel-cap` | policy | `race_parallel_cap.go:71`: "expected a `go test ... -race ...` line; none found" | does not |
+| `shipped-prose-assertion` | policy | "D-0070 retires this class: delete the assertion" | states the fix |
+| `skill-body-id` | finding | hint: "write the canonical `<prefix>-NNNN` placeholder or a shape-description" | states the fix |
+| `skill-coverage` | policy | `skill_coverage.go:120`: "skill is missing a `name:` frontmatter field"; `:126`: "skill `name: %s` does not match its directory %q"; `:132`: "skill name %q does not match the `%s<topic>` convention"; `:139`: "skill is missing a `description:` frontmatter field — the host's match-scoring depends on it"; `:232`: "skill body references `aiwf %s` but %q does not resolve to a registered command path …" | does not |
+| `skill-edit-provenance-backstop` | policy | "re-commit naming the epic, milestone, gap or decision that owns it"; "name an entity that exists or create one first" | states the fix |
+| `stress-lane-census` | policy | "Move it to an untagged sibling file, or, if it drives real work through a helper, name that helper in slowWorkIdents" | states the fix |
+| `test-executable-write` | policy | "Use testsupport.WriteExecutable. When the mode itself is the subject, annotate with //exec:ok <reason>" | states the fix |
+| `test-setup-presence` | policy | `test_setup_presence.go:80`: "test-bearing package missing setup_test.go (see .guidance/project/testing.md *Test discipline*; …)"; `:97`: "setup_test.go failed to parse: " followed by the parser's error; `:106`: "setup_test.go missing top-level `func TestMain(m *testing.M)` declaration (see .guidance/project/testing.md *Test discipline*)" | does not |
+| `trailer-verb-unknown` | finding | hint: "`git commit --amend` and drop the trailer … if it's a new ritual verb, add it to the ritualVerbs allowlist" | states the fix |
+| `verb-result-noop-invariant` | policy | "repoint it at the verbs' new location"; "add a same-state test asserting the verb converges to a NoOp, or add an allowlist entry" | states the fix |
+
 ## Release note
 
 ## Decisions made during implementation
