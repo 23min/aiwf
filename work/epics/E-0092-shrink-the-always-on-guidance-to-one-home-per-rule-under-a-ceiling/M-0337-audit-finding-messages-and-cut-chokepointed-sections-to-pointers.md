@@ -15,7 +15,7 @@ acs:
       status: open
     - id: AC-3
       title: Every guidance enforcement pointer resolves to a policy or finding code
-      status: open
+      status: cancelled
     - id: AC-4
       title: Every repository path cited by development guidance exists
       status: open
