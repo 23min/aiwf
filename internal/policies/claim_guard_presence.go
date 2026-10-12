@@ -97,7 +97,7 @@ func checkClaimGuardPresence(ledger []claimScope, funcs map[string]verbFunc) []V
 			out = append(out, Violation{
 				Policy: "claim-guard-presence",
 				File:   "internal/policies/noop_claim_scope.go",
-				Detail: fmt.Sprintf("%s records claim scope %q, but no package-level function by that name was found under internal/verb — the row is either stale, which PolicyNoOpClaimScope reports on its own terms, or it names a shape this scan does not see, such as a method; either way this policy cannot vouch for it",
+				Detail: fmt.Sprintf("%s records claim scope %q, but no package-level function by that name was found under internal/verb — the row is either stale, which PolicyNoOpClaimScope reports on its own terms, or it names a shape this scan does not see, such as a method; either way this policy cannot vouch for it — correct the row to name the package-level function under internal/verb that converges, or delete it if the route is gone",
 					entry.Func, entry.Scope),
 			})
 			continue
@@ -188,7 +188,7 @@ func validateExemptClaimReasons(ledger []claimScope) []Violation {
 			out = append(out, Violation{
 				Policy: "claim-guard-presence",
 				File:   "internal/policies/noop_claim_scope.go",
-				Detail: fmt.Sprintf("%s and %s record the same exemption reason — an exempt route carries its own specific reason, not a category label shared across routes, because the reason is the only thing distinguishing a reasoned exemption from an omission",
+				Detail: fmt.Sprintf("%s and %s record the same exemption reason; give each route its own reason, saying what makes its claim uncontradictable or what its comparison is scoped to — the reason is the only thing distinguishing a reasoned exemption from an omission",
 					prior, entry.Func),
 			})
 		}

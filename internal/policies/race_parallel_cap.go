@@ -68,7 +68,7 @@ func PolicyRaceParallelCap(root string) ([]Violation, error) {
 			vs = append(vs, Violation{
 				Policy: "race-parallel-cap",
 				File:   rel,
-				Detail: "expected a `go test ... -race ...` line; none found (M-0091 AC-1)",
+				Detail: "expected a `go test ... -race ...` line; none found — add the race-mode invocation as `go test -race -parallel 8 ...`, or drop the file from the targets in internal/policies/race_parallel_cap.go if it no longer runs race tests (M-0091 AC-1)",
 			})
 		}
 	}

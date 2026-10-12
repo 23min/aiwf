@@ -248,6 +248,7 @@ func TestCheckSkillFrontmatter_FiresOnEmptyName(t *testing.T) {
 	}
 	got := checkSkillFrontmatter(skills, "aiwf-")
 	mustHaveViolation(t, got, "missing a `name:` frontmatter")
+	mustHaveViolation(t, got, "add `name: aiwf-broken`")
 }
 
 // TestCheckSkillFrontmatter_FiresOnEmptyDescription is M-074 AC-2
@@ -264,6 +265,7 @@ func TestCheckSkillFrontmatter_FiresOnEmptyDescription(t *testing.T) {
 	}
 	got := checkSkillFrontmatter(skills, "aiwf-")
 	mustHaveViolation(t, got, "missing a `description:` frontmatter")
+	mustHaveViolation(t, got, "add one saying when to use the skill")
 }
 
 // TestCheckSkillFrontmatter_FiresOnNameDirMismatch is M-074 AC-3
@@ -281,6 +283,7 @@ func TestCheckSkillFrontmatter_FiresOnNameDirMismatch(t *testing.T) {
 	}
 	got := checkSkillFrontmatter(skills, "aiwf-")
 	mustHaveViolation(t, got, "does not match its directory")
+	mustHaveViolation(t, got, "set it to `name: aiwf-foo`, or rename the directory")
 }
 
 // TestCheckSkillFrontmatter_FiresOnAiwfPrefixMissing is M-074 AC-3
@@ -299,6 +302,7 @@ func TestCheckSkillFrontmatter_FiresOnAiwfPrefixMissing(t *testing.T) {
 	}
 	got := checkSkillFrontmatter(skills, "aiwf-")
 	mustHaveViolation(t, got, "does not match the `aiwf-<topic>` convention")
+	mustHaveViolation(t, got, "rename the skill and its directory to `aiwf-<topic>`")
 }
 
 // TestCheckSkillFrontmatter_FiresOnAiwfPrefixOnly is M-074 AC-3 edge
@@ -599,6 +603,7 @@ func TestCheckSkillBodyMentionsResolve_FiresOnUnknownVerb(t *testing.T) {
 
 	got := checkSkillBodyMentionsResolve(skills, verbs)
 	mustHaveViolation(t, got, "`aiwf nosuchverb`")
+	mustHaveViolation(t, got, "correct the reference to a registered command path, or remove it")
 }
 
 // TestCheckSkillBodyMentionsResolve_FiresOnInvalidSubverb is G-0284's

@@ -15,3 +15,14 @@ func TestPolicy_M0211GuidanceOperatingAnchors(t *testing.T) {
 	t.Parallel()
 	runPolicy(t, PolicyM0211GuidanceOperatingAnchors)
 }
+
+// TestPolicyM0211GuidanceOperatingAnchors_UnreadableSourceStatesTheFix pins
+// M-0337 AC-2: an unreadable guidance source is told what to restore.
+func TestPolicyM0211GuidanceOperatingAnchors_UnreadableSourceStatesTheFix(t *testing.T) {
+	t.Parallel()
+	vs, err := PolicyM0211GuidanceOperatingAnchors(t.TempDir())
+	if err != nil {
+		t.Fatal(err)
+	}
+	mustHaveViolation(t, vs, "restore the file, or repoint this policy at the guidance source's new path")
+}

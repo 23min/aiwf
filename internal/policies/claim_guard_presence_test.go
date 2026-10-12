@@ -123,6 +123,7 @@ func TestCheckClaimGuardPresence_RowTheScanCannotSeeFires(t *testing.T) {
 		scopedFuncs(),
 	)
 	assertDetail(t, vs, "no package-level function by that name")
+	assertDetail(t, vs, "correct the row to name the package-level function")
 }
 
 // TestCheckDormantClaimExemptions_ExemptRowThatReachesTheGuardFires is
@@ -181,6 +182,7 @@ func TestValidateExemptClaimReasons_SharedReasonFires(t *testing.T) {
 		{Func: "OtherVerb", Scope: claimScopeNone, Reason: "nothing can contradict the claim"},
 	})
 	assertDetail(t, vs, "record the same exemption reason")
+	assertDetail(t, vs, "give each route its own reason")
 }
 
 // TestValidateExemptClaimReasons_ReasonThatIsJustTheRouteNameFires covers

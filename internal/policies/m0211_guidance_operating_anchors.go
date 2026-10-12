@@ -43,7 +43,7 @@ func PolicyM0211GuidanceOperatingAnchors(root string) ([]Violation, error) {
 		return []Violation{{
 			Policy: "m0211-guidance-operating-anchors",
 			File:   rel,
-			Detail: fmt.Sprintf("shippable guidance source is unreadable — consumer-operating rules cannot ship from it: %v", err),
+			Detail: fmt.Sprintf("shippable guidance source is unreadable — consumer-operating rules cannot ship from it: %v; restore the file, or repoint this policy at the guidance source's new path", err),
 		}}, nil
 	}
 

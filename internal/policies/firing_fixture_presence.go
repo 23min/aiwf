@@ -182,7 +182,7 @@ func lineInZeroBlock(fileBlocks []coverBlock, line int) bool {
 // the G-0259 audit (a Violation construction site no test covers). The
 // meta-gate tolerates these; G-0262 burns the list to empty by adding a
 // firing fixture per policy — or, for a structure-auditor (one that can
-// fire only by mutating a hardcoded Go structure, e.g. fsm-invariants or
+// fire only by mutating a hardcoded Go structure, e.g.
 // trailer-order-matches-constants), routing it through mutate-hunt and
 // keeping it here with that note.
 //
@@ -192,12 +192,8 @@ func lineInZeroBlock(fileBlocks []coverBlock, line int) bool {
 // forces the matching deletion — the ledger cannot rot, and it shrinks
 // monotonically toward zero.
 var grandfatherDark = map[string]bool{
-	// Seeded from the G-0259 audit (44 policies with >=1 dark
-	// construction line), burned down to empty-but-one by G-0262 / M-0166:
-	// AC-1 lit the 25 single-dark-site policies, AC-2 the 16 multi-site
-	// policies, AC-3 the 11-site acks-helper-lift — each via a firing
+	// Empty: every policy's construction lines are covered, by a firing
 	// fixture (firing_fixtures_{single,multi}_site_test.go,
-	// firing_fixtures_acks_helper_test.go). Only fsm-invariants remains: a
-	// structure-auditor no fixture can reach.
-	"fsm-invariants": true, // structure-auditor: routes through mutate-hunt, not a firing fixture — introspects compiled-in entity FSM tables (discards root), so no fixture reaches its construction line; stays grandfathered permanently (G-0262 exempts this class).
+	// firing_fixtures_acks_helper_test.go) or, for fsm-invariants, by
+	// synthetic status machines (fsm_invariants_test.go).
 }

@@ -41,113 +41,14 @@ func PolicyFSMInvariants(_ string) ([]Violation, error) {
 	var out []Violation
 
 	for _, kind := range entity.AllKinds() {
-		statuses := entity.AllowedStatuses(kind)
-
-		// Drift mode 1: kind has no AllowedStatuses entry.
-		if len(statuses) == 0 {
-			out = append(out, Violation{
-				Policy: "fsm-invariants",
-				Detail: fmt.Sprintf("kind %q is in AllKinds() but has no AllowedStatuses; FSM unwired", kind),
-			})
-			continue
-		}
-
-		// Drift mode 2: kind is unwired (no transitions at all). Every
-		// kind needs at least one non-terminal status with outgoing
-		// transitions, otherwise the entity has no lifecycle. This
-		// catches "Kind constant added to AllKinds() without an entry
-		// in the FSM data" (AllowedTransitions returns nil for an
-		// unknown kind, indistinguishable from "all states terminal"
-		// at the public API — but both are bugs).
-		anyWired := false
-		for _, from := range statuses {
-			if len(entity.AllowedTransitions(kind, from)) > 0 {
-				anyWired = true
-				break
-			}
-		}
-		if !anyWired {
-			out = append(out, Violation{
-				Policy: "fsm-invariants",
-				Detail: fmt.Sprintf("kind %q has no non-terminal statuses; FSM is unwired or every state is terminal", kind),
-			})
-		}
-
-		// Drift mode 2b: every transition target must itself be in
-		// the kind's AllowedStatuses. Catches "FSM transitions to a
-		// status the schemas table doesn't know about."
-		declared := make(map[entity.Status]struct{}, len(statuses))
-		for _, s := range statuses {
-			declared[s] = struct{}{}
-		}
-		for _, from := range statuses {
-			for _, to := range entity.AllowedTransitions(kind, from) {
-				if _, ok := declared[to]; !ok {
-					out = append(out, Violation{
-						Policy: "fsm-invariants",
-						Detail: fmt.Sprintf("kind %q: transition %q → %q targets a status not in AllowedStatuses", kind, from, to),
-					})
-				}
-			}
-		}
-
-		// Drift mode 3: CancelTarget pins the cancel verb's commitment
-		// that any cancel projection routed through the verb lands on a
-		// legal terminal state. Since M-0131 the signature is
-		// state-aware (`(kind, currentStatus) string`); walk every
-		// non-terminal status of the kind and, when the returned target
-		// is non-empty, assert it is (a) in AllowedStatuses and (b)
-		// itself terminal. An empty return is permitted — the FSM may
-		// have no cancel target from a particular non-terminal state
-		// (ADR.accepted and Decision.accepted exit only via promote →
-		// superseded; G-0163). The verb surfaces the empty case to the
-		// operator as "no cancel target." Terminal current-states are
-		// skipped — the verb's IsTerminal pre-flight guard handles them.
-		for _, from := range statuses {
-			if entity.IsTerminal(kind, from) {
-				continue
-			}
-			target := entity.CancelTarget(kind, from)
-			if target == "" {
-				continue
-			}
-			if !entity.IsAllowedStatus(kind, target) {
-				out = append(out, Violation{
-					Policy: "fsm-invariants",
-					Detail: fmt.Sprintf("kind %q at %q: CancelTarget %q not in AllowedStatuses", kind, from, target),
-				})
-				continue
-			}
-			if outs := entity.AllowedTransitions(kind, target); len(outs) != 0 {
-				out = append(out, Violation{
-					Policy: "fsm-invariants",
-					Detail: fmt.Sprintf("kind %q at %q: CancelTarget %q has outgoing transitions %v; must be terminal", kind, from, target, outs),
-				})
-			}
-		}
-
-		// Drift mode 4: FSM contains a cycle. Kernel commitment 1
-		// declares the FSM one-directional ("there is no demote").
-		// Any transition that closes a cycle (e.g., cancelled → active)
-		// silently violates that. DFS with three-color marking
-		// detects back-edges in O(V+E). Because the FSMs are tiny
-		// (≤5 states per kind), the deterministic ordering helps
-		// reproducibility — sort sources before walking.
-		sortedSources := make([]entity.Status, len(statuses))
-		copy(sortedSources, statuses)
-		slices.Sort(sortedSources)
-
-		// One cycle is enough to violate the commitment. Stop at the
-		// first one found per kind to keep the violation message
-		// readable; finding all cycles is not the point.
-		if cycle := findCycle(sortedSources, func(from entity.Status) []entity.Status {
-			return entity.AllowedTransitions(kind, from)
-		}); cycle != nil {
-			out = append(out, Violation{
-				Policy: "fsm-invariants",
-				Detail: fmt.Sprintf("kind %q: FSM contains a cycle: %v", kind, cycle),
-			})
-		}
+		out = append(out, kindFSMViolations(fsmView{
+			kind:         kind,
+			statuses:     entity.AllowedStatuses(kind),
+			transitions:  func(from entity.Status) []entity.Status { return entity.AllowedTransitions(kind, from) },
+			isTerminal:   func(s entity.Status) bool { return entity.IsTerminal(kind, s) },
+			isAllowed:    func(s entity.Status) bool { return entity.IsAllowedStatus(kind, s) },
+			cancelTarget: func(from entity.Status) entity.Status { return entity.CancelTarget(kind, from) },
+		})...)
 	}
 
 	// AC and TDD-phase composite FSMs: same DAG check, exposed via
@@ -161,6 +62,131 @@ func PolicyFSMInvariants(_ string) ([]Violation, error) {
 	out = append(out, fsmDAGViolations("tdd-phase", entity.AllowedTDDPhases(), []string{"", entity.TDDPhaseRed}, entity.IsLegalTDDPhaseTransition)...)
 
 	return out, nil
+}
+
+// fsmView is one kind's status machine as PolicyFSMInvariants reads it
+// through entity's exported API, so the checks run the same over the
+// kernel's tables and over a test's synthetic machine.
+type fsmView struct {
+	kind         entity.Kind
+	statuses     []entity.Status
+	transitions  func(from entity.Status) []entity.Status
+	isTerminal   func(s entity.Status) bool
+	isAllowed    func(s entity.Status) bool
+	cancelTarget func(from entity.Status) entity.Status
+}
+
+// kindFSMViolations checks one kind's status machine for the invariants
+// PolicyFSMInvariants documents.
+func kindFSMViolations(v fsmView) []Violation {
+	var out []Violation
+
+	// Drift mode 1: kind has no AllowedStatuses entry.
+	if len(v.statuses) == 0 {
+		out = append(out, Violation{
+			Policy: "fsm-invariants",
+			Detail: fmt.Sprintf("kind %q is in AllKinds() but has no AllowedStatuses; FSM unwired — add the kind's statuses to the schemas table in internal/entity/entity.go", v.kind),
+		})
+		return out
+	}
+
+	// Drift mode 2: kind is unwired (no transitions at all). Every
+	// kind needs at least one non-terminal status with outgoing
+	// transitions, otherwise the entity has no lifecycle. This
+	// catches "Kind constant added to AllKinds() without an entry
+	// in the FSM data" (AllowedTransitions returns nil for an
+	// unknown kind, indistinguishable from "all states terminal"
+	// at the public API — but both are bugs).
+	anyWired := false
+	for _, from := range v.statuses {
+		if len(v.transitions(from)) > 0 {
+			anyWired = true
+			break
+		}
+	}
+	if !anyWired {
+		out = append(out, Violation{
+			Policy: "fsm-invariants",
+			Detail: fmt.Sprintf("kind %q has no non-terminal statuses; FSM is unwired or every state is terminal — give the kind's statuses outgoing transitions in the transitions table in internal/entity/transition.go", v.kind),
+		})
+	}
+
+	// Drift mode 2b: every transition target must itself be in
+	// the kind's AllowedStatuses. Catches "FSM transitions to a
+	// status the schemas table doesn't know about."
+	declared := make(map[entity.Status]struct{}, len(v.statuses))
+	for _, s := range v.statuses {
+		declared[s] = struct{}{}
+	}
+	for _, from := range v.statuses {
+		for _, to := range v.transitions(from) {
+			if _, ok := declared[to]; !ok {
+				out = append(out, Violation{
+					Policy: "fsm-invariants",
+					Detail: fmt.Sprintf("kind %q: transition %q → %q targets a status not in AllowedStatuses — add %q to the kind's statuses in internal/entity/entity.go, or retarget the transition in internal/entity/transition.go", v.kind, from, to, to),
+				})
+			}
+		}
+	}
+
+	// Drift mode 3: CancelTarget pins the cancel verb's commitment
+	// that any cancel projection routed through the verb lands on a
+	// legal terminal state. Since M-0131 the signature is
+	// state-aware (`(kind, currentStatus) string`); walk every
+	// non-terminal status of the kind and, when the returned target
+	// is non-empty, assert it is (a) in AllowedStatuses and (b)
+	// itself terminal. An empty return is permitted — the FSM may
+	// have no cancel target from a particular non-terminal state
+	// (ADR.accepted and Decision.accepted exit only via promote →
+	// superseded; G-0163). The verb surfaces the empty case to the
+	// operator as "no cancel target." Terminal current-states are
+	// skipped — the verb's IsTerminal pre-flight guard handles them.
+	for _, from := range v.statuses {
+		if v.isTerminal(from) {
+			continue
+		}
+		target := v.cancelTarget(from)
+		if target == "" {
+			continue
+		}
+		if !v.isAllowed(target) {
+			out = append(out, Violation{
+				Policy: "fsm-invariants",
+				Detail: fmt.Sprintf("kind %q at %q: CancelTarget %q not in AllowedStatuses — return one of the kind's statuses from CancelTarget in internal/entity/transition.go", v.kind, from, target),
+			})
+			continue
+		}
+		if outs := v.transitions(target); len(outs) != 0 {
+			out = append(out, Violation{
+				Policy: "fsm-invariants",
+				Detail: fmt.Sprintf("kind %q at %q: CancelTarget %q has outgoing transitions %v; must be terminal — return a terminal status from CancelTarget, or remove %q's outgoing transitions", v.kind, from, target, outs, target),
+			})
+		}
+	}
+
+	// Drift mode 4: FSM contains a cycle. Kernel commitment 1
+	// declares the FSM one-directional ("there is no demote").
+	// Any transition that closes a cycle (e.g., cancelled → active)
+	// silently violates that. DFS with three-color marking
+	// detects back-edges in O(V+E). Because the FSMs are tiny
+	// (≤5 states per kind), the deterministic ordering helps
+	// reproducibility — sort sources before walking.
+	sortedSources := make([]entity.Status, len(v.statuses))
+	copy(sortedSources, v.statuses)
+	slices.Sort(sortedSources)
+
+	// One cycle is enough to violate the commitment. Stop at the
+	// first one found per kind to keep the violation message
+	// readable; finding all cycles is not the point.
+	if cycle := findCycle(sortedSources, func(from entity.Status) []entity.Status {
+		return v.transitions(from)
+	}); cycle != nil {
+		out = append(out, Violation{
+			Policy: "fsm-invariants",
+			Detail: fmt.Sprintf("kind %q: FSM contains a cycle: %v — remove the transition that closes it in internal/entity/transition.go, since a status only moves forward", v.kind, cycle),
+		})
+	}
+	return out
 }
 
 // fsmDAGViolations runs cycle detection on a composite FSM (one whose
@@ -186,7 +212,7 @@ func fsmDAGViolations[T ~string](name string, statuses, entryStates []T, isLegal
 	if cycle := findCycle(allFroms, successors); cycle != nil {
 		return []Violation{{
 			Policy: "fsm-invariants",
-			Detail: fmt.Sprintf("composite FSM %q contains a cycle: %v", name, cycle),
+			Detail: fmt.Sprintf("composite FSM %q contains a cycle: %v — remove the transition that closes it in internal/entity/transition.go, since a status only moves forward", name, cycle),
 		}}
 	}
 	return nil
