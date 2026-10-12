@@ -30,7 +30,7 @@ Repository development rules, aiwf operating guidance and project-adopted langua
 - **The baseline, M-0334.** Record both hosts' loading and rule-following on tasks aimed at the rules the inventory changes, before any decision is carried out, using M-0348's observation harness.
 - **Remove copies and move rules home, M-0336.** Delete text whose rule already lives in the aiwf fragment or a selected pack, and move each rule the inventory places in the other home, as the inventory records. From here on a test holds every removal to the inventory.
 - **Route and tighten, M-0335.** Make `.guidance/project.md` a short task router, move on-demand rules into the documents it names, and apply the inventory's merge and tighten dispositions. The root `CLAUDE.md` keeps only primed rules.
-- **Pointer cut, M-0337.** Audit diagnostics, correct messages that omit the remedy, shorten check-backed rules, and reach the ceiling for each host.
+- **Diagnostics, M-0337.** Audit diagnostics, correct messages that omit the remedy, check that the repository paths development guidance cites exist, and confirm the ceiling for each host. No check-backed rule is cut to a pointer, since the inventory decides none.
 - **After observation, M-0338.** Compare each host against its own frozen baseline, including guidance read during the task, and confirm every inventory decision was carried out.
 
 ## Out of scope
