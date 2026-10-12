@@ -1,6 +1,6 @@
 ---
 id: M-0337
-title: Audit finding messages and cut chokepointed sections to pointers
+title: Audit finding messages and check that guidance paths resolve
 status: in_progress
 parent: E-0092
 depends_on:
