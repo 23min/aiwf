@@ -1091,7 +1091,7 @@ func parseAudit(body string) (verdicts map[string]string, findings []string) {
 
 // auditCoverageFindings reports each named check the table has no row
 // for, and each row whose verdict is outside the closed set.
-func auditCoverageFindings(named map[string]string, verdicts map[string]string) []string {
+func auditCoverageFindings(named, verdicts map[string]string) []string {
 	var out []string
 	for _, c := range slices.Sorted(maps.Keys(named)) {
 		if _, ok := verdicts[c]; !ok {
@@ -1147,8 +1147,8 @@ func TestM0337Audit(t *testing.T) {
 		t.Fatal(err)
 	}
 	docs := developmentGuidance(func(p string) (string, bool) {
-		out, err := exec.Command("git", "-C", root, "show", auditBase+":"+p).Output()
-		return string(out), err == nil
+		out, gitErr := exec.Command("git", "-C", root, "show", auditBase+":"+p).Output()
+		return string(out), gitErr == nil
 	})
 	files, err := WalkGoFiles(root, true)
 	if err != nil {
