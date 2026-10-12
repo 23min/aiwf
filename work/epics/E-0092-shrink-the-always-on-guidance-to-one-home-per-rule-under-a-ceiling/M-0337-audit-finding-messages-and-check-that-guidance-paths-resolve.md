@@ -26,17 +26,17 @@ acs:
 
 ## Goal
 
-Turn every section that documents a rule a check already enforces into a one-line pointer, once the check's message says what to do; close G-0436.
+Audit the message of every policy and finding code the development guidance names, correct each one that does not say what to do, and check that every repository path the guidance cites exists; close G-0436.
 
 ## Closes
 
-- G-0436 — stale `cmd/aiwf/` paths cited by `CLAUDE.md`; AC-4 is the check that keeps it closed.
+- G-0436 — stale `cmd/aiwf/` paths cited by guidance; both citations it names read correctly in the tree, and AC-4 is the check that keeps development guidance's paths resolving.
 
 ## Context
 
 The development-guidance set is the one M-0333 defines: both root entry points, `.guidance/project.md` and the on-demand documents it routes to. Generated operating and language blocks are judged through their owning sources; expected rendered copies are not independent rule restatements. E-0092 defines the primed/on-demand split and the two ceilings.
 
-Most of the root's remaining bulk documents rules that a policy, a check rule, or a hook enforces. The check does the work; the prose spares one failed-check round trip, which a pointer spares equally once the finding message names the fix. The audit decides, per message, whether it already does.
+Much of the development guidance documents rules that a policy, a check rule, or a hook enforces. The check does the work; the prose spares one failed-check round trip, which the finding message spares equally once it names the fix. The audit decides, per message, whether it already does, and the messages that do not are corrected.
 
 ## Acceptance criteria
 
@@ -50,11 +50,11 @@ Every message the table marks as not stating the fix is changed to state it, and
 
 ### AC-3 — Every guidance enforcement pointer resolves to a policy or finding code
 
-Every pointer in development guidance of the form "enforced by `<id>`" resolves to an existing policy id or finding code. **Pass criterion**: a relationship check derives the pointer set from the files and the id set from the code, and reports a pointer that resolves to neither; on the tree it reports none. **Code references**: a new policy under `internal/policies/`.
+Cancelled. No guidance section is cut to a pointer, so the check would guard only the pointers already written: the development guidance holds one of the form "enforced by `<id>`", and it names a policy that exists. AC-4's check covers the pointers written as paths. A pointer naming a policy id, a finding code or a Go function is not checked.
 
 ### AC-4 — Every repository path cited by development guidance exists
 
-Every backticked repository-relative path cited in development guidance exists. **Pass criterion**: a relationship check reports a cited path absent from the tree; on the tree it reports none. **Edge cases**: a glob-shaped citation is matched as a glob; a placeholder in angle brackets is not a path; a path under a gitignored directory is checked on disk. **Code references**: the same policy; G-0436's two stale citations are the fixture.
+Every backticked repository-relative path cited in development guidance exists. **Pass criterion**: a relationship check reports a cited path absent from the tree; on the tree it reports none. **Edge cases**: a glob-shaped citation is matched as a glob; a placeholder in angle brackets is not a path; a path under a gitignored directory is checked on disk. **Code references**: a new policy under `internal/policies/`; G-0436's two stale citations are the fixture.
 
 ### AC-5 — The ceiling constant reaches its target
 
@@ -62,30 +62,29 @@ Both hosts' handwritten primed words, as defined by E-0092 and measured by M-033
 
 ## Constraints
 
-- A section becomes a pointer only after its row's verdict is "states the fix".
 - Message edits change text only; a condition change is a kernel change and out of scope.
-- Each guidance commit may include its related source and generated outputs together, with a `pointer to <id>` disposition per compressed section.
 - One row appended to the iteration log when this lands.
 
 ## Design notes
 
-- The pointer shape is fixed so AC-3 can parse it: the section heading, one sentence, and "enforced by `<id>`".
-- A gotcha that is not a rule, found inside a compressed section, lands in the skill for its task before the section is cut; the disposition block says `relocated to`.
+- The audit table's verdicts are what a later cut of a check-backed section starts from: a section can become a pointer once its message states the fix, which E-0092 sets as the precondition.
 
 ## Surfaces touched
 
-- Both host entry points and canonical development guidance
-- messages under `internal/policies/` and `internal/check/`
+- messages under `internal/policies/` and `internal/check/`, with the tests that pin them
+- a new policy under `internal/policies/` for the paths development guidance cites
+- the inventory test, for AC-1's coverage of the audit table
 
 ## Out of scope
 
 - Any change to what a check enforces.
 - The fragment.
+- Cutting a check-backed section to a pointer: M-0349's inventory decides `pointer to` for no row, and its test refuses a removal that does not carry its row's decision.
 
 ## Dependencies
 
-- M-0335 — on-demand rules have moved and the primed remainder is tightened before check-backed rules are compressed
-- M-0349 — the ceiling this milestone reaches
+- M-0335 — the routed guidance the audit and the path check read
+- M-0349 — the ceiling AC-5 measures against
 
 ## Coverage notes
 
@@ -94,13 +93,15 @@ Both hosts' handwritten primed words, as defined by E-0092 and measured by M-033
 ## References
 
 - G-0436
-- G-0676 — the mechanism the pointers no longer feed
+- G-0676 — how root guidance grows
 
 ## Release note
 
 ## Decisions made during implementation
 
-- (none)
+- No guidance section is cut to a pointer. M-0349's inventory decides `pointer to` for no row, its test refuses a removal that does not carry its row's decision, and the primed load already meets both targets, so a cut would override recorded decisions to save no primed words.
+- AC-3 is cancelled, for the reason under its heading.
+- The milestone runs `tdd: advisory`: AC-5 is met by the ceiling test, which already passes, so it has no red phase; AC-1, AC-2 and AC-4 record their phases as their tests are written.
 
 ## Validation
 
