@@ -9,7 +9,7 @@ tdd: advisory
 acs:
     - id: AC-1
       title: The audit table lists every policy and finding code a chokepointed section names
-      status: open
+      status: met
       tdd_phase: done
     - id: AC-2
       title: Every message the audit marks as not stating the fix is corrected and pinned
