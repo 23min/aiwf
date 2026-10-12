@@ -13,7 +13,7 @@ acs:
       tdd_phase: done
     - id: AC-2
       title: Every message the audit marks as not stating the fix is corrected and pinned
-      status: open
+      status: met
       tdd_phase: done
     - id: AC-3
       title: Every guidance enforcement pointer resolves to a policy or finding code
