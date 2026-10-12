@@ -1005,3 +1005,211 @@ func TestFragmentLossFindings(t *testing.T) {
 		})
 	}
 }
+
+// M-0337's audit. Its table holds a row, with the check's message and a
+// verdict, for every policy and finding code the development guidance
+// named when the milestone started (M-0337 AC-1).
+const (
+	// auditEntity is the milestone whose body holds the audit table.
+	auditEntity = "M-0337"
+	// auditBase is the commit that promoted M-0337 to in_progress; the
+	// guidance as it stood there is what the audit covers.
+	auditBase = "65d8462221205a42a3f76a4acd3caf7ee80470e7"
+)
+
+// auditColumns is the audit table's header, in order.
+var auditColumns = []string{"Check", "Kind", "Message", "Verdict"}
+
+// auditVerdicts is the closed set a row's verdict takes.
+var auditVerdicts = []string{"states the fix", "does not"}
+
+// guidanceSpan is one backticked span in guidance text.
+var guidanceSpan = regexp.MustCompile("`([^`\n]+)`")
+
+// policyFunc is a policy's entry-point declaration.
+var policyFunc = regexp.MustCompile(`(?m)^func (Policy[A-Za-z0-9]+)\(`)
+
+// namedChecks returns each policy id and finding code the documents name,
+// mapped to its kind. A policy is named by its id, by the file that
+// constructs its violations, or by a Policy function declared in that
+// file; byFile maps a policy file to the ids it constructs, byFunc a
+// Policy function to its file.
+func namedChecks(docs map[string]string, byFile map[string][]string, byFunc map[string]string, codes map[string]struct{}) map[string]string {
+	policies := map[string]bool{}
+	for _, ids := range byFile {
+		for _, id := range ids {
+			policies[id] = true
+		}
+	}
+	out := map[string]string{}
+	for _, text := range docs {
+		for _, m := range guidanceSpan.FindAllStringSubmatch(text, -1) {
+			span := m[1]
+			if file, ok := byFunc[span]; ok {
+				span = file
+			}
+			switch _, isCode := codes[span]; {
+			case policies[span]:
+				out[span] = "policy"
+			case isCode:
+				out[span] = "finding"
+			default:
+				for _, id := range byFile[span] {
+					out[id] = "policy"
+				}
+			}
+		}
+	}
+	return out
+}
+
+// parseAudit reads the rows of the table under a body's Audit heading,
+// keyed by check. A header or row that cannot be read is a finding.
+func parseAudit(body string) (verdicts map[string]string, findings []string) {
+	verdicts = map[string]string{}
+	for _, line := range strings.Split(extractMarkdownSection(body, 2, "Audit"), "\n") {
+		if !strings.HasPrefix(line, "| ") || strings.HasPrefix(line, "|---") {
+			continue
+		}
+		cells := strings.Split(strings.Trim(strings.TrimSpace(line), "|"), " | ")
+		for i := range cells {
+			cells[i] = strings.TrimSpace(cells[i])
+		}
+		switch {
+		case cells[0] == auditColumns[0]:
+			if !slices.Equal(cells, auditColumns) {
+				findings = append(findings, fmt.Sprintf("header %q, want %q", cells, auditColumns))
+			}
+		case len(cells) != len(auditColumns):
+			findings = append(findings, fmt.Sprintf("row %q has %d cells, want %d", line, len(cells), len(auditColumns)))
+		default:
+			verdicts[strings.Trim(cells[0], "`")] = cells[3]
+		}
+	}
+	return verdicts, findings
+}
+
+// auditCoverageFindings reports each named check the table has no row
+// for, and each row whose verdict is outside the closed set.
+func auditCoverageFindings(named map[string]string, verdicts map[string]string) []string {
+	var out []string
+	for _, c := range slices.Sorted(maps.Keys(named)) {
+		if _, ok := verdicts[c]; !ok {
+			out = append(out, fmt.Sprintf("%s %s is named by the development guidance and has no audit row", named[c], c))
+		}
+	}
+	for _, c := range slices.Sorted(maps.Keys(verdicts)) {
+		if !slices.Contains(auditVerdicts, verdicts[c]) {
+			out = append(out, fmt.Sprintf("%s: verdict %q, want one of %q", c, verdicts[c], auditVerdicts))
+		}
+	}
+	return out
+}
+
+// policyFiles maps each policy source file to the ids it constructs and
+// each Policy function to the file declaring it.
+func policyFiles(t *testing.T, root string) (byFile map[string][]string, byFunc map[string]string) {
+	t.Helper()
+	sites, err := constructionSites(root)
+	if err != nil {
+		t.Fatal(err)
+	}
+	byFile, byFunc = map[string][]string{}, map[string]string{}
+	for _, s := range sites {
+		if !slices.Contains(byFile[s.file], s.id) {
+			byFile[s.file] = append(byFile[s.file], s.id)
+		}
+	}
+	for file := range byFile {
+		data, err := os.ReadFile(filepath.Join(root, filepath.FromSlash(file)))
+		if err != nil {
+			t.Fatal(err)
+		}
+		for _, m := range policyFunc.FindAllStringSubmatch(string(data), -1) {
+			byFunc[m[1]] = file
+		}
+	}
+	return byFile, byFunc
+}
+
+// TestM0337Audit holds M-0337's audit table to the development guidance
+// as it stood at the milestone's start (M-0337 AC-1): every policy and
+// finding code it named has a row with a verdict.
+func TestM0337Audit(t *testing.T) {
+	t.Parallel()
+	root, tr := sharedRepoTree(t)
+	e := tr.ByID(auditEntity)
+	if e == nil {
+		t.Fatalf("%s not found in the tree", auditEntity)
+	}
+	body, err := os.ReadFile(filepath.Join(root, e.Path))
+	if err != nil {
+		t.Fatal(err)
+	}
+	docs := developmentGuidance(func(p string) (string, bool) {
+		out, err := exec.Command("git", "-C", root, "show", auditBase+":"+p).Output()
+		return string(out), err == nil
+	})
+	files, err := WalkGoFiles(root, true)
+	if err != nil {
+		t.Fatal(err)
+	}
+	byFile, byFunc := policyFiles(t, root)
+	named := namedChecks(docs, byFile, byFunc, allCheckCodes(files))
+	verdicts, findings := parseAudit(string(body))
+	findings = append(findings, auditCoverageFindings(named, verdicts)...)
+	for _, f := range findings {
+		t.Error(f)
+	}
+}
+
+// TestNamedChecks pins how the guidance names a check (M-0337 AC-1): by
+// policy id, by policy file, by Policy function, or by finding code; any
+// other span names none.
+func TestNamedChecks(t *testing.T) {
+	t.Parallel()
+	byFile := map[string][]string{
+		"internal/policies/a.go": {"policy-a"},
+		"internal/policies/b.go": {"policy-b"},
+		"internal/policies/c.go": {"policy-c"},
+	}
+	byFunc := map[string]string{"PolicyCee": "internal/policies/c.go"}
+	codes := map[string]struct{}{"code-x": {}}
+	got := namedChecks(map[string]string{
+		"CLAUDE.md":              "Enforced by `policy-a`; see `internal/policies/b.go`.",
+		".guidance/project/x.md": "Chokepoint: `PolicyCee`. Reported as `code-x`. Run `make ci` or `internal/policies/`.",
+	}, byFile, byFunc, codes)
+	want := map[string]string{"policy-a": "policy", "policy-b": "policy", "policy-c": "policy", "code-x": "finding"}
+	if !maps.Equal(got, want) {
+		t.Errorf("namedChecks = %v, want %v", got, want)
+	}
+}
+
+// TestAuditCoverageFindings pins the audit table's rules (M-0337 AC-1): a
+// named check needs a row, a row's verdict is from the closed set, and a
+// header or row that cannot be read is reported.
+func TestAuditCoverageFindings(t *testing.T) {
+	t.Parallel()
+	body := "## Audit\n\n| Check | Kind | Message | Verdict |\n|---|---|---|---|\n" +
+		"| `policy-a` | policy | run X | states the fix |\n" +
+		"| `code-x` | finding | bad | maybe |\n" +
+		"| `short` | policy |\n\n## Next\n\n| Check | Kind | Message | Verdict |\n| `outside` | policy | m | does not |\n"
+	verdicts, findings := parseAudit(body)
+	findings = append(findings, auditCoverageFindings(map[string]string{"policy-a": "policy", "code-x": "finding", "policy-b": "policy"}, verdicts)...)
+	want := []string{
+		"has 2 cells",
+		"policy policy-b is named by the development guidance and has no audit row",
+		`code-x: verdict "maybe"`,
+	}
+	if len(findings) != len(want) {
+		t.Fatalf("findings = %q, want %d", findings, len(want))
+	}
+	for i := range want {
+		if !strings.Contains(findings[i], want[i]) {
+			t.Errorf("finding %d = %q, want it to contain %q", i, findings[i], want[i])
+		}
+	}
+	if _, f := parseAudit("## Audit\n\n| Check | Message | Verdict |\n"); len(f) != 1 || !strings.Contains(f[0], "header") {
+		t.Errorf("a wrong header: findings = %q, want one header finding", f)
+	}
+}
