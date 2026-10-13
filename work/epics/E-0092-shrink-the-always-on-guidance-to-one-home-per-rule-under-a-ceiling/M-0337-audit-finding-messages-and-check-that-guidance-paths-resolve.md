@@ -105,9 +105,9 @@ Each row is a policy or finding code the handwritten development guidance named 
 | Check | Kind | Message | Verdict |
 |---|---|---|---|
 | `acs-tdd-audit` | finding | hint: "advance the AC's tdd_phase to `done` via `aiwf promote <id>/AC-N --phase done`, or relax the milestone's tdd: setting" | states the fix |
-| `body-prose-id` | finding | hint, per subcode: "fix it with `aiwf edit-body <id>` …" | states the fix |
+| `body-prose-id` | finding | each subcode's hint names a command, e.g. "fix it with `aiwf edit-body <id>` …" or "run `aiwf check` to settle it" | states the fix |
 | `branch-coverage-audit` | policy | "Add a test that reaches it, or annotate the line `//coverage:ignore <reason>` if it is genuinely unreachable" | states the fix |
-| `claim-guard-presence` | policy | `claim_guard_presence.go:100`: "… records claim scope %q, but no package-level function by that name was found under internal/verb — the row is either stale … or it names a shape this scan does not see, such as a method; either way this policy cannot vouch for it"; `:191`: "%s and %s record the same exemption reason — an exempt route carries its own specific reason, not a category label shared across routes …" | does not |
+| `claim-guard-presence` | policy | `claim_guard_presence.go:100`: "… records claim scope %q, but no package-level function by that name was found under internal/verb — the row is either stale … or it names a shape this scan does not see, such as a method; either way this policy cannot vouch for it"; `:191`: "%s and %s record the same exemption reason — an exempt route carries its own specific reason, not a category label shared across routes …"; `:323`: "%s is not declared under internal/verb — every %s finding is phrased against that name, so this policy cannot answer anything until the anchor is repointed …" | does not |
 | `coauthor-trailer-ban` | policy | "rewrite the message to drop the line, or remove the address from that list" | states the fix |
 | `comment-history-attrition` | policy | "state it in the present tense as current truth about the input space; otherwise drop the clause" | states the fix |
 | `entity-id-narrow-width` | finding | hint: "undo the change that produced it (`git checkout -- <path>` if uncommitted, `git revert <sha>` if it landed)" | states the fix |
@@ -118,7 +118,7 @@ Each row is a policy or finding code the handwritten development guidance named 
 | `logging-chokepoint` | policy | "route through cliutil's text-output wrapper set … or allowlist the file with a rationale" | states the fix |
 | `m0211-guidance-operating-anchors` | policy | `m0211_guidance_operating_anchors.go:46`: "shippable guidance source is unreadable — consumer-operating rules cannot ship from it: %v" | does not |
 | `no-hardcoded-entity-paths` | policy | "Resolve the entity via tree.Load(ctx, root) + Tree.ByID + entity.Path instead" | states the fix |
-| `race-parallel-cap` | policy | `race_parallel_cap.go:71`: "expected a `go test ... -race ...` line; none found" | does not |
+| `race-parallel-cap` | policy | `race_parallel_cap.go:63`: "race-mode go test invocation must carry `-parallel 8`"; `:71`: "expected a `go test ... -race ...` line; none found" | does not |
 | `shipped-prose-assertion` | policy | "D-0070 retires this class: delete the assertion" | states the fix |
 | `skill-body-id` | finding | hint: "write the canonical `<prefix>-NNNN` placeholder or a shape-description" | states the fix |
 | `skill-coverage` | policy | `skill_coverage.go:120`: "skill is missing a `name:` frontmatter field"; `:126`: "skill `name: %s` does not match its directory %q"; `:132`: "skill name %q does not match the `%s<topic>` convention"; `:139`: "skill is missing a `description:` frontmatter field — the host's match-scoring depends on it"; `:232`: "skill body references `aiwf %s` but %q does not resolve to a registered command path …" | does not |
@@ -135,11 +135,10 @@ Nothing a consumer sees changes: the policies whose messages changed, and the ne
 
 ## Decisions made during implementation
 
-- No guidance section is cut to a pointer. M-0349's inventory decides `pointer to` for no row, its test refuses a removal that does not carry its row's decision, and the primed load already meets both targets, so a cut would override recorded decisions to save no primed words.
-- AC-3 is cancelled, for the reason under its heading.
-- AC-1's table covers a policy the guidance names by its id, by the file that constructs its violations, or by its `Policy` function; checks named only as tests are not policies or finding codes, and are left out.
-- A message states the fix only when it names the action to take; one that only describes the defect does not, however plain the remedy.
-- AC-4 does not judge a cited path git ignores: the materialized host files and build outputs the guidance cites exist only after `aiwf update` or a build, and CI's checkout runs neither before the policy suite.
+- No guidance section is cut to a pointer. M-0349's inventory decides `pointer to` for no row, its test refuses a removal that does not carry its row's decision, and the primed load already meets both targets, so a cut would override recorded decisions with no target left to meet.
+- AC-1's table covers a policy the guidance names by its id, by the file that constructs its violations, or by its `Policy` function; checks named only as tests are not policies or finding codes, and are left out. Its verdicts use the strict standard its section states.
+- AC-4 reads a backticked span as a cited path when it has no whitespace or angle-bracket placeholder, holds a slash, and starts with an entry at the repository root; a bare file name, a path inside a command, and a path into a top-level directory that no longer exists are not judged. The root-entry anchor is what keeps `origin/main`, `github.com/…` and Go import paths out.
+- AC-4 does not judge a cited path git ignores: the materialized host files and build outputs the guidance cites exist only after `aiwf update` or a build, and CI's test job creates none of them before the policy suite.
 - The milestone runs `tdd: advisory`: AC-5 is met by the ceiling test, which already passes, so it has no red phase; AC-1, AC-2 and AC-4 record their phases as their tests are written.
 
 ## Validation
@@ -151,17 +150,17 @@ Gates, run at `6c662c30a` in the aiwf devcontainer (Linux x86_64, go1.25.12):
 
 ### AC-1 — the audit table
 
-`TestM0337Audit` derives the policies and finding codes the handwritten development guidance names at `65d846222` and fails for any without a row under `## Audit`, or a row whose verdict is outside the closed set; `TestNamedChecks` and `TestAuditCoverageFindings` pin how a check is named and the table's rules.
+`TestM0337Audit` derives the policies and finding codes the handwritten development guidance names at `65d846222`, failing if that commit cannot be read, and fails for any without a row under `## Audit`, or a row whose verdict is outside the closed set; `TestNamedChecks` and `TestAuditCoverageFindings` pin how a check is named and the table's rules.
 
 ### AC-2 — the pinned messages
 
 Each message the audit marks as not stating the fix now names the action, and an assertion on the message's remedy clause fails without it:
 
-- `claim-guard-presence`: a row naming no package-level function, and two routes sharing an exemption reason (`TestCheckClaimGuardPresence_RowTheScanCannotSeeFires`, `TestValidateExemptClaimReasons_SharedReasonFires`).
-- `fsm-invariants`: each of the six ways a kind's status machine is miswired, and a cycle in a composite machine (`TestKindFSMViolations_MessagesStateTheFix`, over synthetic machines through `kindFSMViolations` and `fsmDAGViolations`).
+- `claim-guard-presence`: a row naming no package-level function, two routes sharing an exemption reason, and a guard wrapper missing from `internal/verb` (`TestCheckClaimGuardPresence_RowTheScanCannotSeeFires`, `TestValidateExemptClaimReasons_SharedReasonFires`, `TestPolicyClaimGuardPresence_MissingAnchorFiresOnce`).
+- `fsm-invariants`: each of the six ways a kind's status machine is miswired, and a cycle in a composite machine (`TestKindFSMViolations_MessagesStateTheFix`, over synthetic machines through `kindFSMViolations` and `fsmDAGViolations`); `TestKernelFSMView_ReadsTheEntityTables` holds the view the policy checks for each kind to `entity`'s exported API.
 - `git-test-env-harden`: a package with no `setup_test.go`, and a `TestMain` that does not harden (`TestPolicyGitTestEnvHardened_Branches`).
 - `m0211-guidance-operating-anchors`: an unreadable guidance source (`TestPolicyM0211GuidanceOperatingAnchors_UnreadableSourceStatesTheFix`).
-- `race-parallel-cap`: a target with no race-mode invocation (`TestPolicyRaceParallelCap_MissingRaceLineStatesTheFix`).
+- `race-parallel-cap`: a race-mode invocation without the cap, and a target with no race-mode invocation (`TestPolicyRaceParallelCap_MessagesStateTheFix`).
 - `skill-coverage`: a missing `name:`, a missing `description:`, a name that differs from its directory, a name off the prefix convention, and an unresolved `aiwf` reference (`TestCheckSkillFrontmatter_FiresOnEmptyName`, `…_FiresOnEmptyDescription`, `…_FiresOnNameDirMismatch`, `…_FiresOnAiwfPrefixMissing`, `TestCheckSkillBodyMentionsResolve_FiresOnUnknownVerb`).
 - `test-setup-presence`: a missing `setup_test.go`, one that does not parse, and one with no `TestMain` (`TestPolicyTestSetupPresence_MessagesStateTheFix`).
 
@@ -169,7 +168,7 @@ No check's condition changed. `fsm-invariants` reads one kind's machine through 
 
 ### AC-4 — cited paths
 
-`TestPolicy_GuidancePathsResolve` holds the live guidance to `guidance-paths-resolve`; `TestCitedPath`, `TestPathResolves` and `TestPolicyGuidancePathsResolve_ReportsStalePaths` pin which spans are paths, how globs and brace groups resolve, and that G-0436's two stale citations are reported while an ignored path is not judged.
+`TestPolicy_GuidancePathsResolve` holds the live guidance to `guidance-paths-resolve`; `TestCitedPath`, `TestPathResolves` and `TestPolicyGuidancePathsResolve_ReportsStalePaths` pin which spans are paths, how globs and brace groups resolve, that G-0436's two stale citations are reported at the line a reader finds them on below a managed block, and that a path git ignores, as a file or under a pattern naming only directories, is not judged.
 
 ### AC-5 — the ceilings
 
@@ -180,7 +179,7 @@ Command: `go test -count=1 -run 'TestPolicy_GuidanceCeiling$' -v ./internal/poli
 | Claude Code | 1,275 | 1,275 | 1,629 | 2,460 |
 | Codex | 1,415 | 1,415 | 1,758 | 2,497 |
 
-Observed: the test passes, and each ceiling constant sits below its host's target. Codex's handwritten load includes `CLAUDE.md`, which its preamble requires in full before any task; the test lists it among Codex's required reads. The aiwf-generated column counts the managed blocks in each entry point, with the shipped fragment Claude Code imports or Codex carries inline, and `.guidance/index.md`, which aiwf generates.
+Observed: the test passes, and each ceiling constant sits below its host's target. `TestE0092Inventory` holds each ceiling constant at or under the target it derives from the inventory, so the load, which the ceiling policy holds at or under the constant, stays under the target while the inventory test runs. Codex's handwritten load includes `CLAUDE.md`, which its preamble requires in full before any task; the test lists it among Codex's required reads. The aiwf-generated column counts the managed blocks in each entry point, with the shipped fragment Claude Code imports or Codex carries inline, and `.guidance/index.md`, which aiwf generates.
 
 ## Deferrals
 
