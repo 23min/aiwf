@@ -91,6 +91,12 @@ func TestKindFSMViolations_MessagesStateTheFix(t *testing.T) {
 			mustHaveViolation(t, kindFSMViolations(tc.v), tc.want)
 		})
 	}
+	t.Run("no statuses ends the kind's checks", func(t *testing.T) {
+		t.Parallel()
+		if vs := kindFSMViolations(view(nil, nil, nil)); len(vs) != 1 {
+			t.Errorf("violations = %+v, want only the missing-statuses one", vs)
+		}
+	})
 	t.Run("composite cycle", func(t *testing.T) {
 		t.Parallel()
 		vs := fsmDAGViolations("widget-phase", []string{"x", "y"}, nil, func(from, to string) bool { return from != to })

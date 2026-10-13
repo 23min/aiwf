@@ -33,8 +33,9 @@ import (
 //     DFS on the FSM graph and reports any back-edge.
 //
 // The policy uses only entity's exported API, through kernelFSMView and
-// the composite-FSM predicates, so the dependency direction stays clean. The rootDir argument is unused — this policy is a runtime-
-// introspection policy, not a source-scan policy. The framework's
+// the composite-FSM predicates, so the dependency direction stays clean.
+// The rootDir argument is unused — this policy is a runtime-introspection
+// policy, not a source-scan policy. The framework's
 // signature is preserved for consistency with policies_test.go.
 func PolicyFSMInvariants(_ string) ([]Violation, error) {
 	var out []Violation

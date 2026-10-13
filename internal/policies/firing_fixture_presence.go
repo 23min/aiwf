@@ -31,9 +31,8 @@ import (
 //     "no audit" (the live test t.Skips; the synthetic tests call
 //     firingFixtureCore directly).
 //
-// Grandfathering: a policy listed in grandfatherDark is tolerated, and
-// the list is empty. A policy added after this gate landed is NOT
-// grandfathered — it has no
+// Grandfathering: a policy listed in grandfatherDark is tolerated. A
+// policy added after this gate landed is NOT grandfathered — it has no
 // allowlist entry, so its dark construction line fails the gate until a
 // firing fixture covers it. That is the ratchet.
 func PolicyFiringFixturePresence(root string) ([]Violation, error) {
@@ -187,9 +186,4 @@ func lineInZeroBlock(fileBlocks []coverBlock, line int) bool {
 // line. The stale-entry test (TestPolicy_FiringFixtureNoStaleAllowlist)
 // fails if an id here is no longer dark, so adding a firing fixture
 // forces the matching deletion and the ledger cannot rot.
-var grandfatherDark = map[string]bool{
-	// Empty: every policy's construction lines are covered, by a firing
-	// fixture (firing_fixtures_{single,multi}_site_test.go,
-	// firing_fixtures_acks_helper_test.go) or, for fsm-invariants, by
-	// synthetic status machines (fsm_invariants_test.go).
-}
+var grandfatherDark = map[string]bool{}
