@@ -21,7 +21,7 @@ acs:
     - id: AC-4
       title: Every repository path cited by development guidance exists
       status: open
-      tdd_phase: red
+      tdd_phase: green
     - id: AC-5
       title: The ceiling constant reaches its target
       status: open
