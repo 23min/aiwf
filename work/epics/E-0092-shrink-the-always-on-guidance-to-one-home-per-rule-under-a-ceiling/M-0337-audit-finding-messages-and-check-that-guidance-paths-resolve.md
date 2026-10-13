@@ -142,6 +142,17 @@ Each row is a policy or finding code the handwritten development guidance named 
 
 ## Validation
 
+### AC-5 — the ceilings
+
+Command: `go test -count=1 -run 'TestPolicy_GuidanceCeiling$' -v ./internal/policies/`, run at `ad4ba93ed` in the aiwf devcontainer (Linux x86_64, go1.25.12). Expected: each host's handwritten primed load at or under the target M-0349 set, which `go test -count=1 -run 'TestE0092Inventory$' -v ./internal/policies/` logs from the inventory as 1,629 words for Claude Code and 1,758 for Codex.
+
+| Host | Handwritten primed | Ceiling constant | M-0349 target | aiwf-generated, reported separately |
+|---|---|---|---|---|
+| Claude Code | 1,275 | 1,275 | 1,629 | 2,460 |
+| Codex | 1,415 | 1,415 | 1,758 | 2,497 |
+
+Observed: the test passes, and each ceiling constant sits below its host's target. Codex's handwritten load includes `CLAUDE.md`, which its preamble requires in full before any task; the test lists it among Codex's required reads. The aiwf-generated column counts the managed blocks in each entry point, with the shipped fragment Claude Code imports or Codex carries inline, and `.guidance/index.md`, which aiwf generates.
+
 ## Deferrals
 
 - (none)
