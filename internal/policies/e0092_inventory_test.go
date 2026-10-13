@@ -641,8 +641,12 @@ func repoRemovalBlocks(t *testing.T, root string) (blocks []removalBlock, malfor
 func ceilingTargetFindings(hosts []guidanceHost, targets map[string]int) []string {
 	var out []string
 	for _, h := range hosts {
-		if h.Ceiling > targets[h.Name] {
-			out = append(out, fmt.Sprintf("%s's ceiling %d is above M-0349's target %d", h.Name, h.Ceiling, targets[h.Name]))
+		target, ok := targets[h.Name]
+		switch {
+		case !ok:
+			out = append(out, fmt.Sprintf("%s has no target in M-0349's inventory", h.Name))
+		case h.Ceiling > target:
+			out = append(out, fmt.Sprintf("%s's ceiling %d is above M-0349's target %d", h.Name, h.Ceiling, target))
 		}
 	}
 	return out
@@ -1173,6 +1177,9 @@ func TestM0337Audit(t *testing.T) {
 	}
 	byFile, byFunc := policyFiles(t, root)
 	named := namedChecks(docs, byFile, byFunc, allCheckCodes(files))
+	if len(named) == 0 {
+		t.Fatalf("the guidance at %s names no policy or finding code; reading it failed", auditBase)
+	}
 	verdicts, findings := parseAudit(string(body))
 	findings = append(findings, auditCoverageFindings(named, verdicts)...)
 	for _, f := range findings {
@@ -1232,12 +1239,14 @@ func TestAuditCoverageFindings(t *testing.T) {
 }
 
 // TestCeilingTargetFindings pins M-0337 AC-5's rule: a host's ceiling at
-// or under its target passes, and one above it is reported.
+// or under its target passes, and one above it, or a host with no target,
+// is reported.
 func TestCeilingTargetFindings(t *testing.T) {
 	t.Parallel()
-	hosts := []guidanceHost{{Name: "claude-code", Ceiling: 100}, {Name: "codex", Ceiling: 201}}
+	hosts := []guidanceHost{{Name: "claude-code", Ceiling: 100}, {Name: "codex", Ceiling: 201}, {Name: "other", Ceiling: 1}}
 	got := ceilingTargetFindings(hosts, map[string]int{"claude-code": 100, "codex": 200})
-	if len(got) != 1 || got[0] != "codex's ceiling 201 is above M-0349's target 200" {
-		t.Errorf("findings = %q, want one for codex", got)
+	want := []string{"codex's ceiling 201 is above M-0349's target 200", "other has no target in M-0349's inventory"}
+	if !slices.Equal(got, want) {
+		t.Errorf("findings = %q, want %q", got, want)
 	}
 }
