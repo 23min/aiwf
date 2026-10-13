@@ -123,7 +123,8 @@ func TestCheckClaimGuardPresence_RowTheScanCannotSeeFires(t *testing.T) {
 		scopedFuncs(),
 	)
 	assertDetail(t, vs, "no package-level function by that name")
-	assertDetail(t, vs, "correct the row to name the package-level function")
+	assertDetail(t, vs, "if the row is stale, correct it to name the package-level function")
+	assertDetail(t, vs, "if it names a method, move the same-state comparison and its NoOp return into a package-level function")
 }
 
 // TestCheckDormantClaimExemptions_ExemptRowThatReachesTheGuardFires is
