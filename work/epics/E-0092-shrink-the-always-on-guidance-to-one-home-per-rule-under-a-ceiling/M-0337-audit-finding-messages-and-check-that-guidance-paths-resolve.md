@@ -20,7 +20,7 @@ acs:
       status: cancelled
     - id: AC-4
       title: Every repository path cited by development guidance exists
-      status: open
+      status: met
       tdd_phase: done
     - id: AC-5
       title: The ceiling constant reaches its target
