@@ -634,12 +634,27 @@ func repoRemovalBlocks(t *testing.T, root string) (blocks []removalBlock, malfor
 	return blocks, malformed
 }
 
+// ceilingTargetFindings reports each host whose ceiling sits above the
+// target M-0349's inventory sets for it (M-0337 AC-5). The ceiling policy
+// holds each host's load at or under its ceiling, so this holds the load
+// at or under the target.
+func ceilingTargetFindings(hosts []guidanceHost, targets map[string]int) []string {
+	var out []string
+	for _, h := range hosts {
+		if h.Ceiling > targets[h.Name] {
+			out = append(out, fmt.Sprintf("%s's ceiling %d is above M-0349's target %d", h.Name, h.Ceiling, targets[h.Name]))
+		}
+	}
+	return out
+}
+
 // TestE0092Inventory holds M-0349's inventory to its rules against the
 // tree (M-0349 AC-1, AC-2, AC-4): every section of the guidance as frozen
 // is cited by a row, and each development section's words are its rows';
 // every row is well formed and ends where its audience and placement say.
 // Every removal since M-0336's start carries out its row (M-0336 AC-5,
-// AC-6). It logs M-0349 AC-5's targets.
+// AC-6). It logs M-0349 AC-5's targets and holds each host's ceiling at or
+// under its target (M-0337 AC-5).
 func TestE0092Inventory(t *testing.T) {
 	t.Parallel()
 	root, tr := sharedRepoTree(t)
@@ -710,6 +725,7 @@ func TestE0092Inventory(t *testing.T) {
 	findings = append(findings, fragmentLossFindings(frozenFragment, currentFragment)...)
 	claude, codex := inventoryCeilingTargets(rows, inventoryRouterDraft(body), development, exists)
 	t.Logf("M-0349 AC-5 handwritten primed targets: claude-code %d, codex %d", claude, codex)
+	findings = append(findings, ceilingTargetFindings(guidanceHosts, map[string]int{"claude-code": claude, "codex": codex})...)
 	for _, f := range findings {
 		t.Error(f)
 	}
@@ -1008,7 +1024,8 @@ func TestFragmentLossFindings(t *testing.T) {
 
 // M-0337's audit. Its table holds a row, with the check's message and a
 // verdict, for every policy and finding code the development guidance
-// named when the milestone started (M-0337 AC-1).
+// named when the milestone started (M-0337 AC-1). These tests go with the
+// file at E-0092's wrap, and their guidance-reader entry with them.
 const (
 	// auditEntity is the milestone whose body holds the audit table.
 	auditEntity = "M-0337"
@@ -1065,7 +1082,7 @@ func namedChecks(docs map[string]string, byFile map[string][]string, byFunc map[
 func parseAudit(body string) (verdicts map[string]string, findings []string) {
 	verdicts = map[string]string{}
 	for _, line := range strings.Split(extractMarkdownSection(body, 2, "Audit"), "\n") {
-		if !strings.HasPrefix(line, "| ") || strings.HasPrefix(line, "|---") {
+		if !strings.HasPrefix(line, "| ") {
 			continue
 		}
 		cells := strings.Split(strings.Trim(strings.TrimSpace(line), "|"), " | ")
@@ -1143,6 +1160,9 @@ func TestM0337Audit(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
+	if out, gitErr := exec.Command("git", "-C", root, "cat-file", "-e", auditBase+"^{commit}").CombinedOutput(); gitErr != nil {
+		t.Fatalf("reading the guidance at %s needs that commit: %v\n%s", auditBase, gitErr, out)
+	}
 	docs := developmentGuidance(func(p string) (string, bool) {
 		out, gitErr := exec.Command("git", "-C", root, "show", auditBase+":"+p).Output()
 		return string(out), gitErr == nil
@@ -1208,5 +1228,16 @@ func TestAuditCoverageFindings(t *testing.T) {
 	}
 	if _, f := parseAudit("## Audit\n\n| Check | Message | Verdict |\n"); len(f) != 1 || !strings.Contains(f[0], "header") {
 		t.Errorf("a wrong header: findings = %q, want one header finding", f)
+	}
+}
+
+// TestCeilingTargetFindings pins M-0337 AC-5's rule: a host's ceiling at
+// or under its target passes, and one above it is reported.
+func TestCeilingTargetFindings(t *testing.T) {
+	t.Parallel()
+	hosts := []guidanceHost{{Name: "claude-code", Ceiling: 100}, {Name: "codex", Ceiling: 201}}
+	got := ceilingTargetFindings(hosts, map[string]int{"claude-code": 100, "codex": 200})
+	if len(got) != 1 || got[0] != "codex's ceiling 201 is above M-0349's target 200" {
+		t.Errorf("findings = %q, want one for codex", got)
 	}
 }
