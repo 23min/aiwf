@@ -31,9 +31,9 @@ import (
 //     "no audit" (the live test t.Skips; the synthetic tests call
 //     firingFixtureCore directly).
 //
-// Grandfathering: policies dark at the G-0259 audit are listed in
-// grandfatherDark and tolerated; G-0262 burns that list to empty. A
-// policy added after this gate landed is NOT grandfathered — it has no
+// Grandfathering: a policy listed in grandfatherDark is tolerated, and
+// the list is empty. A policy added after this gate landed is NOT
+// grandfathered — it has no
 // allowlist entry, so its dark construction line fails the gate until a
 // firing fixture covers it. That is the ratchet.
 func PolicyFiringFixturePresence(root string) ([]Violation, error) {
@@ -178,19 +178,15 @@ func lineInZeroBlock(fileBlocks []coverBlock, line int) bool {
 	return false
 }
 
-// grandfatherDark lists the policy ids whose firing branch was dark at
-// the G-0259 audit (a Violation construction site no test covers). The
-// meta-gate tolerates these; G-0262 burns the list to empty by adding a
-// firing fixture per policy — or, for a structure-auditor (one that can
-// fire only by mutating a hardcoded Go structure, e.g.
-// trailer-order-matches-constants), routing it through mutate-hunt and
-// keeping it here with that note.
+// grandfatherDark lists the policy ids the meta-gate tolerates with a
+// Violation construction site no test covers. A structure-auditor — one
+// that can fire only by mutating a hardcoded Go structure — that no
+// fixture can reach would be listed here with a mutate-hunt note.
 //
 // A policy leaves this list the moment a test covers its construction
 // line. The stale-entry test (TestPolicy_FiringFixtureNoStaleAllowlist)
 // fails if an id here is no longer dark, so adding a firing fixture
-// forces the matching deletion — the ledger cannot rot, and it shrinks
-// monotonically toward zero.
+// forces the matching deletion and the ledger cannot rot.
 var grandfatherDark = map[string]bool{
 	// Empty: every policy's construction lines are covered, by a firing
 	// fixture (firing_fixtures_{single,multi}_site_test.go,

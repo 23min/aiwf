@@ -32,32 +32,22 @@ import (
 //     transition is a regular entry. This policy detects cycles via
 //     DFS on the FSM graph and reports any back-edge.
 //
-// The policy uses only entity's exported API (AllKinds, AllowedStatuses,
-// AllowedTransitions, CancelTarget) so the dependency direction stays
-// clean. The rootDir argument is unused — this policy is a runtime-
+// The policy uses only entity's exported API, through kernelFSMView and
+// the composite-FSM predicates, so the dependency direction stays clean. The rootDir argument is unused — this policy is a runtime-
 // introspection policy, not a source-scan policy. The framework's
 // signature is preserved for consistency with policies_test.go.
 func PolicyFSMInvariants(_ string) ([]Violation, error) {
 	var out []Violation
 
 	for _, kind := range entity.AllKinds() {
-		out = append(out, kindFSMViolations(fsmView{
-			kind:         kind,
-			statuses:     entity.AllowedStatuses(kind),
-			transitions:  func(from entity.Status) []entity.Status { return entity.AllowedTransitions(kind, from) },
-			isTerminal:   func(s entity.Status) bool { return entity.IsTerminal(kind, s) },
-			isAllowed:    func(s entity.Status) bool { return entity.IsAllowedStatus(kind, s) },
-			cancelTarget: func(from entity.Status) entity.Status { return entity.CancelTarget(kind, from) },
-		})...)
+		out = append(out, kindFSMViolations(kernelFSMView(kind))...)
 	}
 
 	// AC and TDD-phase composite FSMs: same DAG check, exposed via
 	// IsLegalACTransition / IsLegalTDDPhaseTransition. We probe the
 	// FSM by querying every (from, to) pair against the closed sets.
-	// These two composite FSMs have different node types after the Status
-	// retype (ac-status is keyed by entity.Status, tdd-phase by plain
-	// string), so they can no longer share a single []struct loop — each
-	// instantiates fsmDAGViolations at its own element type.
+	// ac-status is keyed by entity.Status and tdd-phase by plain string,
+	// so each instantiates fsmDAGViolations at its own element type.
 	out = append(out, fsmDAGViolations("ac-status", entity.AllowedACStatuses(), []entity.Status{entity.StatusOpen}, entity.IsLegalACTransition)...)
 	out = append(out, fsmDAGViolations("tdd-phase", entity.AllowedTDDPhases(), []string{"", entity.TDDPhaseRed}, entity.IsLegalTDDPhaseTransition)...)
 
@@ -74,6 +64,18 @@ type fsmView struct {
 	isTerminal   func(s entity.Status) bool
 	isAllowed    func(s entity.Status) bool
 	cancelTarget func(from entity.Status) entity.Status
+}
+
+// kernelFSMView reads one kind's status machine from entity's tables.
+func kernelFSMView(kind entity.Kind) fsmView {
+	return fsmView{
+		kind:         kind,
+		statuses:     entity.AllowedStatuses(kind),
+		transitions:  func(from entity.Status) []entity.Status { return entity.AllowedTransitions(kind, from) },
+		isTerminal:   func(s entity.Status) bool { return entity.IsTerminal(kind, s) },
+		isAllowed:    func(s entity.Status) bool { return entity.IsAllowedStatus(kind, s) },
+		cancelTarget: func(from entity.Status) entity.Status { return entity.CancelTarget(kind, from) },
+	}
 }
 
 // kindFSMViolations checks one kind's status machine for the invariants
@@ -131,8 +133,8 @@ func kindFSMViolations(v fsmView) []Violation {
 
 	// Drift mode 3: CancelTarget pins the cancel verb's commitment
 	// that any cancel projection routed through the verb lands on a
-	// legal terminal state. Since M-0131 the signature is
-	// state-aware (`(kind, currentStatus) string`); walk every
+	// legal terminal state. The target depends on the current status
+	// (`CancelTarget(kind, currentStatus) Status`), so walk every
 	// non-terminal status of the kind and, when the returned target
 	// is non-empty, assert it is (a) in AllowedStatuses and (b)
 	// itself terminal. An empty return is permitted — the FSM may
@@ -159,7 +161,7 @@ func kindFSMViolations(v fsmView) []Violation {
 		if outs := v.transitions(target); len(outs) != 0 {
 			out = append(out, Violation{
 				Policy: "fsm-invariants",
-				Detail: fmt.Sprintf("kind %q at %q: CancelTarget %q has outgoing transitions %v; must be terminal — return a terminal status from CancelTarget, or remove %q's outgoing transitions", v.kind, from, target, outs, target),
+				Detail: fmt.Sprintf("kind %q at %q: CancelTarget %q has outgoing transitions %v; must be terminal — return a terminal status from CancelTarget in internal/entity/transition.go, or remove %q's outgoing transitions", v.kind, from, target, outs, target),
 			})
 		}
 	}
@@ -178,9 +180,7 @@ func kindFSMViolations(v fsmView) []Violation {
 	// One cycle is enough to violate the commitment. Stop at the
 	// first one found per kind to keep the violation message
 	// readable; finding all cycles is not the point.
-	if cycle := findCycle(sortedSources, func(from entity.Status) []entity.Status {
-		return v.transitions(from)
-	}); cycle != nil {
+	if cycle := findCycle(sortedSources, v.transitions); cycle != nil {
 		out = append(out, Violation{
 			Policy: "fsm-invariants",
 			Detail: fmt.Sprintf("kind %q: FSM contains a cycle: %v — remove the transition that closes it in internal/entity/transition.go, since a status only moves forward", v.kind, cycle),
@@ -212,7 +212,7 @@ func fsmDAGViolations[T ~string](name string, statuses, entryStates []T, isLegal
 	if cycle := findCycle(allFroms, successors); cycle != nil {
 		return []Violation{{
 			Policy: "fsm-invariants",
-			Detail: fmt.Sprintf("composite FSM %q contains a cycle: %v — remove the transition that closes it in internal/entity/transition.go, since a status only moves forward", name, cycle),
+			Detail: fmt.Sprintf("composite FSM %q contains a cycle: %v — remove the transition that closes it in internal/entity/transition.go, since a state only moves forward", name, cycle),
 		}}
 	}
 	return nil

@@ -384,6 +384,7 @@ func Placeholder() {}
 	}
 	assertDetail(t, vs, "guardClaim is not declared under internal/verb")
 	assertDetail(t, vs, "guardClaimConfig is not declared under internal/verb")
+	assertDetail(t, vs, "point claimGuardWrappers at the wrapper's current name, or restore the wrapper")
 }
 
 // --- The shared call-graph walker -------------------------------------

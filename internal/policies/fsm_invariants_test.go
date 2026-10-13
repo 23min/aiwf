@@ -97,3 +97,32 @@ func TestKindFSMViolations_MessagesStateTheFix(t *testing.T) {
 		mustHaveViolation(t, vs, "remove the transition that closes it")
 	})
 }
+
+// TestKernelFSMView_ReadsTheEntityTables pins the seam between
+// PolicyFSMInvariants and the kernel (M-0337 AC-2): the view it checks for
+// each kind answers every lookup as entity's exported API does, so the
+// checks TestKindFSMViolations_MessagesStateTheFix drives over synthetic
+// machines run over the real tables.
+func TestKernelFSMView_ReadsTheEntityTables(t *testing.T) {
+	t.Parallel()
+	for _, kind := range entity.AllKinds() {
+		v := kernelFSMView(kind)
+		if v.kind != kind || !slices.Equal(v.statuses, entity.AllowedStatuses(kind)) {
+			t.Errorf("%s: view kind %q statuses %v, want %q %v", kind, v.kind, v.statuses, kind, entity.AllowedStatuses(kind))
+		}
+		for _, s := range append(slices.Clone(v.statuses), "not-a-status") {
+			if got, want := v.transitions(s), entity.AllowedTransitions(kind, s); !slices.Equal(got, want) {
+				t.Errorf("%s at %q: transitions %v, want %v", kind, s, got, want)
+			}
+			if got, want := v.isTerminal(s), entity.IsTerminal(kind, s); got != want {
+				t.Errorf("%s at %q: isTerminal %v, want %v", kind, s, got, want)
+			}
+			if got, want := v.isAllowed(s), entity.IsAllowedStatus(kind, s); got != want {
+				t.Errorf("%s at %q: isAllowed %v, want %v", kind, s, got, want)
+			}
+			if got, want := v.cancelTarget(s), entity.CancelTarget(kind, s); got != want {
+				t.Errorf("%s at %q: cancelTarget %q, want %q", kind, s, got, want)
+			}
+		}
+	}
+}

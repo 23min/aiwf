@@ -320,7 +320,7 @@ func checkGuardAnchorsExist(funcs map[string]verbFunc) []Violation {
 		out = append(out, Violation{
 			Policy: "claim-guard-presence",
 			File:   "internal/verb/claimguard.go",
-			Detail: fmt.Sprintf("%s is not declared under internal/verb — every %s finding is phrased against that name, so this policy cannot answer anything until the anchor is repointed (it is the wrapper the %q scope requires)",
+			Detail: fmt.Sprintf("%s is not declared under internal/verb — every %s finding is phrased against that name, so this policy cannot answer anything until the anchor is repointed (it is the wrapper the %q scope requires); point claimGuardWrappers at the wrapper's current name, or restore the wrapper",
 				w.Wrapper, "claim-guard-presence", w.Scope),
 		})
 	}

@@ -60,7 +60,7 @@ func PolicyRaceParallelCap(root string) ([]Violation, error) {
 					Policy: "race-parallel-cap",
 					File:   rel,
 					Line:   i + 1,
-					Detail: "race-mode go test invocation must carry `-parallel 8` (M-0091 AC-1)",
+					Detail: "race-mode go test invocation must carry `-parallel 8`; add `-parallel 8` to this invocation (M-0091 AC-1)",
 				})
 			}
 		}
