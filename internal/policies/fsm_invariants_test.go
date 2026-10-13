@@ -2,6 +2,7 @@ package policies
 
 import (
 	"slices"
+	"strings"
 	"testing"
 
 	"github.com/google/go-cmp/cmp"
@@ -91,6 +92,15 @@ func TestKindFSMViolations_MessagesStateTheFix(t *testing.T) {
 			mustHaveViolation(t, kindFSMViolations(tc.v), tc.want)
 		})
 	}
+	t.Run("a terminal status's cancel target is not judged", func(t *testing.T) {
+		t.Parallel()
+		vs := kindFSMViolations(view([]entity.Status{a, b}, map[entity.Status][]entity.Status{a: {b}}, map[entity.Status]entity.Status{b: z}))
+		for _, v := range vs {
+			if strings.Contains(v.Detail, "CancelTarget") {
+				t.Errorf("violation %q judges the cancel target of terminal status %q", v.Detail, b)
+			}
+		}
+	})
 	t.Run("no statuses ends the kind's checks", func(t *testing.T) {
 		t.Parallel()
 		if vs := kindFSMViolations(view(nil, nil, nil)); len(vs) != 1 {

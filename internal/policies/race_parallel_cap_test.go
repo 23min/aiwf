@@ -23,6 +23,6 @@ func TestPolicyRaceParallelCap_MessagesStateTheFix(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	mustHaveViolation(t, vs, "add `-parallel 8` to this invocation")
+	mustHaveViolation(t, vs, "set `-parallel 8` on this invocation")
 	mustHaveViolation(t, vs, "add the race-mode invocation as `go test -race -parallel 8 ...`, or drop the file from the targets")
 }
