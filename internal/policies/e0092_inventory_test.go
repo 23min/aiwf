@@ -1023,9 +1023,6 @@ var auditColumns = []string{"Check", "Kind", "Message", "Verdict"}
 // auditVerdicts is the closed set a row's verdict takes.
 var auditVerdicts = []string{"states the fix", "does not"}
 
-// guidanceSpan is one backticked span in guidance text.
-var guidanceSpan = regexp.MustCompile("`([^`\n]+)`")
-
 // policyFunc is a policy's entry-point declaration.
 var policyFunc = regexp.MustCompile(`(?m)^func (Policy[A-Za-z0-9]+)\(`)
 
