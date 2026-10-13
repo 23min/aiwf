@@ -1,6 +1,7 @@
 package policies
 
 import (
+	"fmt"
 	"os/exec"
 	"path/filepath"
 	"slices"
@@ -93,6 +94,7 @@ func TestPolicyGuidancePathsResolve_ReportsStalePaths(t *testing.T) {
 	mustWrite(t, filepath.Join(root, ".agents", "skills", "README.md"), "x\n")
 	mustWrite(t, filepath.Join(root, "cmd", "aiwf", "main.go"), "package main\n")
 	mustWrite(t, filepath.Join(root, "CLAUDE.md"), "# Repo\n\n"+start+"\n`cmd/aiwf/managed.go`\n"+end+"\n\nThe drift test is `cmd/aiwf/completion_drift_test.go`; history lives in `cmd/aiwf/admin_cmd.go`.\nBuild `./bin/aiwf-diag`; skills are `.agents/skills/aiwf-*`; the entry point is `cmd/aiwf/main.go`.\n")
+	mustWrite(t, filepath.Join(root, "AGENTS.md"), "# Repo\n\n"+start+"\n\n`cmd/aiwf/managed.go`\n"+end+"\n\nSee `cmd/aiwf/gone.go`.\n")
 	if out, err := exec.Command("git", "-C", root, "init", "-q").CombinedOutput(); err != nil {
 		t.Fatalf("git init: %v\n%s", err, out)
 	}
@@ -102,14 +104,15 @@ func TestPolicyGuidancePathsResolve_ReportsStalePaths(t *testing.T) {
 	}
 	var details []string
 	for _, v := range vs {
-		if v.Policy != "guidance-paths-resolve" || v.File != "CLAUDE.md" || v.Line != 7 {
-			t.Errorf("violation %+v, want guidance-paths-resolve on CLAUDE.md:7", v)
+		if v.Policy != "guidance-paths-resolve" {
+			t.Errorf("violation Policy = %q, want guidance-paths-resolve", v.Policy)
 		}
-		details = append(details, v.Detail)
+		details = append(details, fmt.Sprintf("%s:%d %s", v.File, v.Line, v.Detail))
 	}
 	want := []string{
-		"cites cmd/aiwf/completion_drift_test.go, which does not exist; correct the path or remove the citation",
-		"cites cmd/aiwf/admin_cmd.go, which does not exist; correct the path or remove the citation",
+		"AGENTS.md:8 cites cmd/aiwf/gone.go, which does not exist; correct the path or remove the citation",
+		"CLAUDE.md:7 cites cmd/aiwf/completion_drift_test.go, which does not exist; correct the path or remove the citation",
+		"CLAUDE.md:7 cites cmd/aiwf/admin_cmd.go, which does not exist; correct the path or remove the citation",
 	}
 	if !slices.Equal(details, want) {
 		t.Errorf("details = %q, want %q", details, want)

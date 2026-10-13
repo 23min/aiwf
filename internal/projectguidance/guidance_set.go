@@ -55,13 +55,29 @@ func ManagedBlockMarkers() []func() (start, end, prefix string) {
 // family included — the file has no block of that family aiwf can own, and
 // that block's text stays handwritten; the other family is still removed.
 func HandwrittenText(content string) string {
+	return withoutManagedBlocks(content, false)
+}
+
+// HandwrittenLines is HandwrittenText with each removed block's line breaks
+// kept, so every handwritten line keeps the number a reader finds it at.
+func HandwrittenLines(content string) string {
+	return withoutManagedBlocks(content, true)
+}
+
+// withoutManagedBlocks removes each managed block HandwrittenText removes,
+// leaving its line breaks behind when keepLines is set.
+func withoutManagedBlocks(content string, keepLines bool) string {
 	for _, markers := range ManagedBlockMarkers() {
 		startMarker, endMarker, prefix := markers()
 		start, end, err := pathutil.ManagedBlockSpan(content, startMarker, endMarker, prefix)
 		if err != nil || start < 0 {
 			continue
 		}
-		content = content[:start] + content[end:]
+		filler := ""
+		if keepLines {
+			filler = strings.Repeat("\n", strings.Count(content[start:end], "\n"))
+		}
+		content = content[:start] + filler + content[end:]
 	}
 	return content
 }

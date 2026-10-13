@@ -11,7 +11,6 @@ import (
 	"slices"
 	"strings"
 
-	"github.com/23min/aiwf/internal/pathutil"
 	"github.com/23min/aiwf/internal/projectguidance"
 )
 
@@ -42,7 +41,7 @@ func PolicyGuidancePathsResolve(root string) ([]Violation, error) {
 		text := docs[rel]
 		if rel == projectguidance.ClaudeFile || rel == projectguidance.AgentsFile {
 			raw, _ := read(rel) // developmentGuidance listed it, so it reads
-			text = handwrittenLines(raw)
+			text = projectguidance.HandwrittenLines(raw)
 		}
 		for i, line := range strings.Split(text, "\n") {
 			for _, m := range guidanceSpan.FindAllStringSubmatch(line, -1) {
@@ -62,21 +61,6 @@ func PolicyGuidancePathsResolve(root string) ([]Violation, error) {
 		}
 	}
 	return vs, nil
-}
-
-// handwrittenLines is a host instruction file with each managed block's
-// text blanked and its line breaks kept, so a citation in the handwritten
-// text after a block is reported at the line a reader finds it on.
-func handwrittenLines(content string) string {
-	for _, markers := range projectguidance.ManagedBlockMarkers() {
-		startMarker, endMarker, prefix := markers()
-		start, end, err := pathutil.ManagedBlockSpan(content, startMarker, endMarker, prefix)
-		if err != nil || start < 0 {
-			continue
-		}
-		content = content[:start] + strings.Repeat("\n", strings.Count(content[start:end], "\n")) + content[end:]
-	}
-	return content
 }
 
 // citedPath reports the repository path a backticked span cites: a span
