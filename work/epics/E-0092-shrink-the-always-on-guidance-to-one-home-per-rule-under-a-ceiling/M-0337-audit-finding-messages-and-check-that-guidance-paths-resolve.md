@@ -33,7 +33,7 @@ Audit the message of every policy and finding code the development guidance name
 
 ## Closes
 
-- G-0436 — stale `cmd/aiwf/` paths cited by guidance; both citations it names read correctly in the tree, and AC-4 is the check that keeps development guidance's paths resolving.
+- G-0436 — stale `cmd/aiwf/` paths cited by guidance; both citations it names now resolve, the second with the history functions it names corrected, and AC-4 is the check that keeps development guidance's paths resolving.
 
 ## Context
 
@@ -74,15 +74,16 @@ Both hosts' handwritten primed words, as defined by E-0092 and measured by M-033
 
 ## Surfaces touched
 
-- messages under `internal/policies/` and `internal/check/`, with the tests that pin them
-- a new policy under `internal/policies/` for the paths development guidance cites
-- the inventory test, for AC-1's coverage of the audit table
+- messages under `internal/policies/`, with the tests that pin them
+- `fsm-invariants`, restructured so a test reaches each of its messages, and the firing-fixture grandfather list it leaves
+- a new policy under `internal/policies/` for the paths development guidance cites, and `projectguidance.HandwrittenLines`, which it reads the host files through
+- the inventory test, for AC-1's coverage of the audit table and AC-5's ceilings
 
 ## Out of scope
 
 - Any change to what a check enforces.
 - The fragment.
-- Cutting a check-backed section to a pointer: M-0349's inventory decides `pointer to` for no row, and its test refuses a removal that does not carry its row's decision.
+- Cutting a check-backed section to a pointer.
 
 ## Dependencies
 
@@ -113,12 +114,12 @@ Each row is a policy or finding code the handwritten development guidance named 
 | `entity-id-narrow-width` | finding | hint: "undo the change that produced it (`git checkout -- <path>` if uncommitted, `git revert <sha>` if it landed)" | states the fix |
 | `firing-fixture-presence` | policy | "Add a firing test beside the policy that drives it to return >=1 violation; if it is a structure-auditor …, grandfather it in grandfatherDark" | states the fix |
 | `fsm-invariants` | policy | `fsm_invariants.go:50`: "kind %q is in AllKinds() but has no AllowedStatuses; FSM unwired"; `:72`: "kind %q has no non-terminal statuses; FSM is unwired or every state is terminal"; `:88`: "kind %q: transition %q → %q targets a status not in AllowedStatuses"; `:117`: "kind %q at %q: CancelTarget %q not in AllowedStatuses"; `:124`: "… CancelTarget %q has outgoing transitions %v; must be terminal"; `:148`: "kind %q: FSM contains a cycle: %v"; `:189`: "composite FSM %q contains a cycle: %v" | does not |
-| `git-test-env-harden` | policy | `git_test_env_harden.go:111`: "exec-bearing test package has no setup_test.go to host the testsupport.HardenGitTestEnv() call"; `:126`: "test package shells out to a subprocess but its TestMain does not call testsupport.HardenGitTestEnv(); ambient git-locator env vars leak …" | does not |
+| `git-test-env-harden` | policy | `git_test_env_harden.go:111`: "exec-bearing test package has no setup_test.go to host the testsupport.HardenGitTestEnv() call …"; `:126`: "test package shells out to a subprocess but its TestMain does not call testsupport.HardenGitTestEnv(); ambient git-locator env vars leak …" | does not |
 | `guidance-readers` | policy | "list it with that reason; if it pins a phrase, state the claim as a relationship check or record it as an observation"; "delete the entry" | states the fix |
 | `logging-chokepoint` | policy | "route through cliutil's text-output wrapper set … or allowlist the file with a rationale" | states the fix |
 | `m0211-guidance-operating-anchors` | policy | `m0211_guidance_operating_anchors.go:46`: "shippable guidance source is unreadable — consumer-operating rules cannot ship from it: %v" | does not |
 | `no-hardcoded-entity-paths` | policy | "Resolve the entity via tree.Load(ctx, root) + Tree.ByID + entity.Path instead" | states the fix |
-| `race-parallel-cap` | policy | `race_parallel_cap.go:63`: "race-mode go test invocation must carry `-parallel 8`"; `:71`: "expected a `go test ... -race ...` line; none found" | does not |
+| `race-parallel-cap` | policy | `race_parallel_cap.go:63`: "race-mode go test invocation must carry `-parallel 8` …"; `:71`: "expected a `go test ... -race ...` line; none found …" | does not |
 | `shipped-prose-assertion` | policy | "D-0070 retires this class: delete the assertion" | states the fix |
 | `skill-body-id` | finding | hint: "write the canonical `<prefix>-NNNN` placeholder or a shape-description" | states the fix |
 | `skill-coverage` | policy | `skill_coverage.go:120`: "skill is missing a `name:` frontmatter field"; `:126`: "skill `name: %s` does not match its directory %q"; `:132`: "skill name %q does not match the `%s<topic>` convention"; `:139`: "skill is missing a `description:` frontmatter field — the host's match-scoring depends on it"; `:232`: "skill body references `aiwf %s` but %q does not resolve to a registered command path …" | does not |
@@ -136,21 +137,22 @@ Nothing a consumer sees changes: the policies whose messages changed, and the ne
 ## Decisions made during implementation
 
 - No guidance section is cut to a pointer. M-0349's inventory decides `pointer to` for no row, its test refuses a removal that does not carry its row's decision, and the primed load already meets both targets, so a cut would override recorded decisions with no target left to meet.
-- AC-1's table covers a policy the guidance names by its id, by the file that constructs its violations, or by its `Policy` function; checks named only as tests are not policies or finding codes, and are left out. Its verdicts use the strict standard its section states.
+- AC-1's table covers a policy the guidance names by its id, by the file that constructs its violations, or by its `Policy` function; checks named only as tests are not policies or finding codes, and are left out.
 - AC-4 reads a backticked span as a cited path when it has no whitespace or angle-bracket placeholder, holds a slash, and starts with an entry at the repository root; a bare file name, a path inside a command, and a path into a top-level directory that no longer exists are not judged. The root-entry anchor is what keeps `origin/main`, `github.com/…` and Go import paths out.
-- AC-4 does not judge a cited path git ignores: the materialized host files and build outputs the guidance cites exist only after `aiwf update` or a build, and CI's test job creates none of them before the policy suite.
-- The milestone runs `tdd: advisory`: AC-5 is met by the ceiling test, which already passes, so it has no red phase; AC-1, AC-2 and AC-4 record their phases as their tests are written.
+- AC-4's edge case for a path git ignores replaces checking it on disk: CI's test job creates none of the materialized host files or build outputs the guidance cites, so a check on disk fails there.
+- The milestone runs `tdd: advisory`: AC-5's ceilings already met their targets when it started, so it has no red phase.
+- `fsm-invariants` checks each kind through `kindFSMViolations` over a view of its status machine, so a test reaches every message over a synthetic machine, and the policy leaves the firing-fixture grandfather list, which held it as a structure-auditor no fixture could reach.
 
 ## Validation
 
-Gates, run at `6c662c30a` in the aiwf devcontainer (Linux x86_64, go1.25.12):
+Gates, run at `64daa2142`, the last code commit, in the aiwf devcontainer (Linux x86_64, go1.25.12):
 
 - `make ci` exits 0: vet, lint, the race-and-coverage run at 92.1% of statements, the profile-driven gates — diff-scoped coverage, the firing-fixture gate and its stale-entry check, the comment-history scan — and the 29-step self-check.
-- `aiwf check --since origin/epic/E-0092-shrink-the-always-on-guidance-to-one-home-per-rule-under-a-ceiling` reports 0 errors; its one warning on this milestone is `acs-tdd-audit` on AC-5, which is met by an observation and carries no TDD phase.
+- `aiwf check --since origin/epic/E-0092-shrink-the-always-on-guidance-to-one-home-per-rule-under-a-ceiling` reports 0 errors; its one warning on this milestone is `acs-tdd-audit` on AC-5, which carries no TDD phase.
 
 ### AC-1 — the audit table
 
-`TestM0337Audit` derives the policies and finding codes the handwritten development guidance names at `65d846222`, failing if that commit cannot be read, and fails for any without a row under `## Audit`, or a row whose verdict is outside the closed set; `TestNamedChecks` and `TestAuditCoverageFindings` pin how a check is named and the table's rules.
+`TestM0337Audit` derives the policies and finding codes the handwritten development guidance names at `65d846222`, failing if that commit cannot be read or its guidance names nothing, and fails for any without a row under `## Audit`, or a row whose verdict is outside the closed set; `TestNamedChecks` and `TestAuditCoverageFindings` pin how a check is named and the table's rules.
 
 ### AC-2 — the pinned messages
 
@@ -164,7 +166,7 @@ Each message the audit marks as not stating the fix now names the action, and an
 - `skill-coverage`: a missing `name:`, a missing `description:`, a name that differs from its directory, a name off the prefix convention, and an unresolved `aiwf` reference (`TestCheckSkillFrontmatter_FiresOnEmptyName`, `…_FiresOnEmptyDescription`, `…_FiresOnNameDirMismatch`, `…_FiresOnAiwfPrefixMissing`, `TestCheckSkillBodyMentionsResolve_FiresOnUnknownVerb`).
 - `test-setup-presence`: a missing `setup_test.go`, one that does not parse, and one with no `TestMain` (`TestPolicyTestSetupPresence_MessagesStateTheFix`).
 
-No check's condition changed. `fsm-invariants` reads one kind's machine through `kindFSMViolations`, which `PolicyFSMInvariants` feeds from `entity`'s exported API as before, so its construction lines are reached by a test and it leaves the firing-fixture gate's grandfather list, which is now empty.
+No check's condition changed. `fsm-invariants` reads one kind's machine through `kindFSMViolations`, which `PolicyFSMInvariants` feeds from `entity`'s exported API as before, so its construction lines are reached by a test and it leaves the firing-fixture gate's grandfather list.
 
 ### AC-4 — cited paths
 
@@ -172,14 +174,14 @@ No check's condition changed. `fsm-invariants` reads one kind's machine through 
 
 ### AC-5 — the ceilings
 
-Command: `go test -count=1 -run 'TestPolicy_GuidanceCeiling$' -v ./internal/policies/`, run at `ad4ba93ed` in the aiwf devcontainer (Linux x86_64, go1.25.12). Expected: each host's handwritten primed load at or under the target M-0349 set, which `go test -count=1 -run 'TestE0092Inventory$' -v ./internal/policies/` logs from the inventory as 1,629 words for Claude Code and 1,758 for Codex.
+Command: `go test -count=1 -run 'TestPolicy_GuidanceCeiling$' -v ./internal/policies/`, run at `ad4ba93ed` in the aiwf devcontainer (Linux x86_64, go1.25.12). Expected: each host's handwritten primed load at or under the target M-0349 set, which `go test -count=1 -run 'TestE0092Inventory$' -v ./internal/policies/` logs from the inventory.
 
 | Host | Handwritten primed | Ceiling constant | M-0349 target | aiwf-generated, reported separately |
 |---|---|---|---|---|
 | Claude Code | 1,275 | 1,275 | 1,629 | 2,460 |
 | Codex | 1,415 | 1,415 | 1,758 | 2,497 |
 
-Observed: the test passes, and each ceiling constant sits below its host's target. `TestE0092Inventory` holds each ceiling constant at or under the target it derives from the inventory, so the load, which the ceiling policy holds at or under the constant, stays under the target while the inventory test runs. Codex's handwritten load includes `CLAUDE.md`, which its preamble requires in full before any task; the test lists it among Codex's required reads. The aiwf-generated column counts the managed blocks in each entry point, with the shipped fragment Claude Code imports or Codex carries inline, and `.guidance/index.md`, which aiwf generates.
+Observed: the test passes, and each ceiling constant sits below its host's target. `TestE0092Inventory` holds each ceiling constant at or under the target it derives from the inventory, so the load, which the ceiling policy holds at or under the constant, stays at or under the target until E-0092's wrap deletes the inventory test. Codex's handwritten load includes `CLAUDE.md`, which its preamble requires in full before any task; the test lists it among Codex's required reads. The aiwf-generated column counts the managed blocks in each entry point, with the shipped fragment Claude Code imports or Codex carries inline, and `.guidance/index.md`, which aiwf generates.
 
 ## Deferrals
 
