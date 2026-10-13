@@ -24,7 +24,7 @@ acs:
       tdd_phase: done
     - id: AC-5
       title: The ceiling constant reaches its target
-      status: open
+      status: met
 ---
 
 ## Goal
