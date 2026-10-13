@@ -57,7 +57,7 @@ Cancelled. No guidance section is cut to a pointer, so the check would guard onl
 
 ### AC-4 — Every repository path cited by development guidance exists
 
-Every backticked repository-relative path cited in development guidance exists. **Pass criterion**: a relationship check reports a cited path absent from the tree; on the tree it reports none. **Edge cases**: a glob-shaped citation is matched as a glob; a placeholder in angle brackets is not a path; a path under a gitignored directory is checked on disk. **Code references**: a new policy under `internal/policies/`; G-0436's two stale citations are the fixture.
+Every backticked repository-relative path cited in development guidance exists. **Pass criterion**: a relationship check reports a cited path absent from the tree; on the tree it reports none. **Edge cases**: a glob-shaped citation is matched as a glob; a placeholder in angle brackets is not a path; a path git ignores is not judged, since only a command such as `aiwf update` or a build creates it and a fresh checkout lacks it. **Code references**: a new policy under `internal/policies/`; G-0436's two stale citations are the fixture.
 
 ### AC-5 — The ceiling constant reaches its target
 
@@ -135,6 +135,9 @@ Each row is a policy or finding code the handwritten development guidance named 
 
 - No guidance section is cut to a pointer. M-0349's inventory decides `pointer to` for no row, its test refuses a removal that does not carry its row's decision, and the primed load already meets both targets, so a cut would override recorded decisions to save no primed words.
 - AC-3 is cancelled, for the reason under its heading.
+- AC-1's table covers a policy the guidance names by its id, by the file that constructs its violations, or by its `Policy` function; checks named only as tests are not policies or finding codes, and are left out.
+- A message states the fix only when it names the action to take; one that only describes the defect does not, however plain the remedy.
+- AC-4 does not judge a cited path git ignores: the materialized host files and build outputs the guidance cites exist only after `aiwf update` or a build, and CI's checkout runs neither before the policy suite.
 - The milestone runs `tdd: advisory`: AC-5 is met by the ceiling test, which already passes, so it has no red phase; AC-1, AC-2 and AC-4 record their phases as their tests are written.
 
 ## Validation
