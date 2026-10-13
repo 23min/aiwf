@@ -22,7 +22,11 @@ file starts no run of the policies that judge it:
   `internal/policies/release_heading_matches_tag_gate_test.go`;
 - `scripts/git-hooks/pre-push` — its gitleaks install hint is compared with CI's pin by
   `TestGitleaksEnforcement_PinnedVersionConsistent`
-  (`internal/policies/gitleaks_enforcement_test.go`).
+  (`internal/policies/gitleaks_enforcement_test.go`);
+- every file the development guidance cites, such as `docs/workflows.md` and
+  `scripts/sign-and-run.sh` — checked to exist by `PolicyGuidancePathsResolve`
+  (`internal/policies/guidance_paths_resolve.go`), so moving or deleting one outside the
+  filtered paths starts no run.
 
 A change to one of these alone can break a policy with nothing on the push to say so; the red
 run appears on the next push that touches a filtered path, attached to a commit that did not
