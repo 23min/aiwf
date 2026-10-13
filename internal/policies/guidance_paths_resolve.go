@@ -10,6 +10,9 @@ import (
 	"regexp"
 	"slices"
 	"strings"
+
+	"github.com/23min/aiwf/internal/pathutil"
+	"github.com/23min/aiwf/internal/projectguidance"
 )
 
 // guidanceSpan is one backticked span in guidance text.
@@ -32,10 +35,16 @@ func PolicyGuidancePathsResolve(root string) ([]Violation, error) {
 	for _, e := range entries {
 		roots[e.Name()] = true
 	}
-	docs := developmentGuidance(repoGuidanceReader(root))
+	read := repoGuidanceReader(root)
+	docs := developmentGuidance(read)
 	var vs []Violation
 	for _, rel := range slices.Sorted(maps.Keys(docs)) {
-		for i, line := range strings.Split(docs[rel], "\n") {
+		text := docs[rel]
+		if rel == projectguidance.ClaudeFile || rel == projectguidance.AgentsFile {
+			raw, _ := read(rel) // developmentGuidance listed it, so it reads
+			text = handwrittenLines(raw)
+		}
+		for i, line := range strings.Split(text, "\n") {
 			for _, m := range guidanceSpan.FindAllStringSubmatch(line, -1) {
 				p, ok := citedPath(m[1], roots)
 				if !ok || pathResolves(root, p) {
@@ -53,6 +62,21 @@ func PolicyGuidancePathsResolve(root string) ([]Violation, error) {
 		}
 	}
 	return vs, nil
+}
+
+// handwrittenLines is a host instruction file with each managed block's
+// text blanked and its line breaks kept, so a citation in the handwritten
+// text after a block is reported at the line a reader finds it on.
+func handwrittenLines(content string) string {
+	for _, markers := range projectguidance.ManagedBlockMarkers() {
+		startMarker, endMarker, prefix := markers()
+		start, end, err := pathutil.ManagedBlockSpan(content, startMarker, endMarker, prefix)
+		if err != nil || start < 0 {
+			continue
+		}
+		content = content[:start] + strings.Repeat("\n", strings.Count(content[start:end], "\n")) + content[end:]
+	}
+	return content
 }
 
 // citedPath reports the repository path a backticked span cites: a span
@@ -83,20 +107,22 @@ func pathResolves(root, p string) bool {
 		}
 		return true
 	}
-	pattern := strings.TrimSuffix(strings.ReplaceAll(p, "**", "*"), "/")
-	matches, _ := filepath.Glob(filepath.Join(root, filepath.FromSlash(pattern)))
+	matches, _ := filepath.Glob(filepath.Join(root, filepath.FromSlash(p)))
 	return len(matches) > 0
 }
 
-// gitIgnores reports whether git ignores a path in the repository at root.
+// gitIgnores reports whether git ignores a path in the repository at root,
+// as a file or, for a pattern that names only directories, as a directory.
 func gitIgnores(root, p string) (bool, error) {
-	err := exec.Command("git", "-C", root, "check-ignore", "-q", p).Run()
-	var exit *exec.ExitError
-	switch {
-	case err == nil:
-		return true, nil
-	case errors.As(err, &exit) && exit.ExitCode() == 1:
-		return false, nil
+	for _, q := range []string{p, strings.TrimSuffix(p, "/") + "/"} {
+		err := exec.Command("git", "-C", root, "check-ignore", "-q", q).Run()
+		var exit *exec.ExitError
+		switch {
+		case err == nil:
+			return true, nil
+		case !errors.As(err, &exit) || exit.ExitCode() != 1:
+			return false, fmt.Errorf("asking git whether %s is ignored: %w", p, err)
+		}
 	}
-	return false, fmt.Errorf("asking git whether %s is ignored: %w", p, err)
+	return false, nil
 }
