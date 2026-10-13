@@ -131,6 +131,8 @@ Each row is a policy or finding code the handwritten development guidance named 
 
 ## Release note
 
+Nothing a consumer sees changes: the policies whose messages changed, and the new path check, run only in this repository's test suite. Here, every policy and finding code the development guidance names says what to do when it fires, and a policy reports a repository path the development guidance cites that does not exist.
+
 ## Decisions made during implementation
 
 - No guidance section is cut to a pointer. M-0349's inventory decides `pointer to` for no row, its test refuses a removal that does not carry its row's decision, and the primed load already meets both targets, so a cut would override recorded decisions to save no primed words.
@@ -141,6 +143,33 @@ Each row is a policy or finding code the handwritten development guidance named 
 - The milestone runs `tdd: advisory`: AC-5 is met by the ceiling test, which already passes, so it has no red phase; AC-1, AC-2 and AC-4 record their phases as their tests are written.
 
 ## Validation
+
+Gates, run at `6c662c30a` in the aiwf devcontainer (Linux x86_64, go1.25.12):
+
+- `make ci` exits 0: vet, lint, the race-and-coverage run at 92.1% of statements, the profile-driven gates — diff-scoped coverage, the firing-fixture gate and its stale-entry check, the comment-history scan — and the 29-step self-check.
+- `aiwf check --since origin/epic/E-0092-shrink-the-always-on-guidance-to-one-home-per-rule-under-a-ceiling` reports 0 errors; its one warning on this milestone is `acs-tdd-audit` on AC-5, which is met by an observation and carries no TDD phase.
+
+### AC-1 — the audit table
+
+`TestM0337Audit` derives the policies and finding codes the handwritten development guidance names at `65d846222` and fails for any without a row under `## Audit`, or a row whose verdict is outside the closed set; `TestNamedChecks` and `TestAuditCoverageFindings` pin how a check is named and the table's rules.
+
+### AC-2 — the pinned messages
+
+Each message the audit marks as not stating the fix now names the action, and an assertion on the message's remedy clause fails without it:
+
+- `claim-guard-presence`: a row naming no package-level function, and two routes sharing an exemption reason (`TestCheckClaimGuardPresence_RowTheScanCannotSeeFires`, `TestValidateExemptClaimReasons_SharedReasonFires`).
+- `fsm-invariants`: each of the six ways a kind's status machine is miswired, and a cycle in a composite machine (`TestKindFSMViolations_MessagesStateTheFix`, over synthetic machines through `kindFSMViolations` and `fsmDAGViolations`).
+- `git-test-env-harden`: a package with no `setup_test.go`, and a `TestMain` that does not harden (`TestPolicyGitTestEnvHardened_Branches`).
+- `m0211-guidance-operating-anchors`: an unreadable guidance source (`TestPolicyM0211GuidanceOperatingAnchors_UnreadableSourceStatesTheFix`).
+- `race-parallel-cap`: a target with no race-mode invocation (`TestPolicyRaceParallelCap_MissingRaceLineStatesTheFix`).
+- `skill-coverage`: a missing `name:`, a missing `description:`, a name that differs from its directory, a name off the prefix convention, and an unresolved `aiwf` reference (`TestCheckSkillFrontmatter_FiresOnEmptyName`, `…_FiresOnEmptyDescription`, `…_FiresOnNameDirMismatch`, `…_FiresOnAiwfPrefixMissing`, `TestCheckSkillBodyMentionsResolve_FiresOnUnknownVerb`).
+- `test-setup-presence`: a missing `setup_test.go`, one that does not parse, and one with no `TestMain` (`TestPolicyTestSetupPresence_MessagesStateTheFix`).
+
+No check's condition changed. `fsm-invariants` reads one kind's machine through `kindFSMViolations`, which `PolicyFSMInvariants` feeds from `entity`'s exported API as before, so its construction lines are reached by a test and it leaves the firing-fixture gate's grandfather list, which is now empty.
+
+### AC-4 — cited paths
+
+`TestPolicy_GuidancePathsResolve` holds the live guidance to `guidance-paths-resolve`; `TestCitedPath`, `TestPathResolves` and `TestPolicyGuidancePathsResolve_ReportsStalePaths` pin which spans are paths, how globs and brace groups resolve, and that G-0436's two stale citations are reported while an ignored path is not judged.
 
 ### AC-5 — the ceilings
 
