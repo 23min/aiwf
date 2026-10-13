@@ -33,13 +33,13 @@ Audit the message of every policy and finding code the development guidance name
 
 ## Closes
 
-- G-0436 — stale `cmd/aiwf/` paths cited by guidance; both citations it names now resolve, the second with the history functions it names corrected, and AC-4 is the check that keeps development guidance's paths resolving.
+- G-0436 — stale `cmd/aiwf/` paths cited by guidance and `docs/design/id-allocation.md`; both citations it names now resolve, the second with the history functions it names corrected. AC-4's check keeps the development guidance's paths resolving; the design document is outside it.
 
 ## Context
 
 The development-guidance set is the one M-0333 defines: both root entry points, `.guidance/project.md` and the on-demand documents it routes to. Generated operating and language blocks are judged through their owning sources; expected rendered copies are not independent rule restatements. E-0092 defines the primed/on-demand split and the two ceilings.
 
-Much of the development guidance documents rules that a policy, a check rule, or a hook enforces. The check does the work; the prose spares one failed-check round trip, which the finding message spares equally once it names the fix. The audit decides, per message, whether it already does, and the messages that do not are corrected.
+Much of the development guidance documents rules that a policy, a check rule, or a hook enforces. The check does the work; once its finding message names the fix, a failed check costs a re-run rather than an investigation, which is what the prose spares. The audit decides, per message, whether it already does, and the messages that do not are corrected.
 
 ## Acceptance criteria
 
@@ -70,13 +70,14 @@ Both hosts' handwritten primed words, as defined by E-0092 and measured by M-033
 
 ## Design notes
 
-- The audit table's verdicts are what a later cut of a check-backed section starts from: a section can become a pointer once its message states the fix, which E-0092 sets as the precondition.
+- E-0092 lets a check-backed section become a pointer once its check's message states the fix; with AC-2's corrections, every check in the audit table meets that precondition.
 
 ## Surfaces touched
 
 - messages under `internal/policies/`, with the tests that pin them
 - `fsm-invariants`, restructured so a test reaches each of its messages, and the firing-fixture grandfather list it leaves
-- a new policy under `internal/policies/` for the paths development guidance cites, and `projectguidance.HandwrittenLines`, which it reads the host files through
+- a new policy under `internal/policies/` for the paths development guidance cites, `projectguidance.HandwrittenLines`, which it reads the host files through, and its entry in the guidance-reader list
+- `docs/design/id-allocation.md`'s citation of the history functions
 - the inventory test, for AC-1's coverage of the audit table and AC-5's ceilings
 
 ## Out of scope
@@ -98,6 +99,7 @@ Both hosts' handwritten primed words, as defined by E-0092 and measured by M-033
 
 - G-0436
 - G-0676 — how root guidance grows
+- G-0726 — the go workflow's path filters, which leave out files the cited-path check reads
 
 ## Audit
 
@@ -132,27 +134,27 @@ Each row is a policy or finding code the handwritten development guidance named 
 
 ## Release note
 
-Nothing a consumer sees changes: the policies whose messages changed, and the new path check, run only in this repository's test suite. Here, every policy and finding code the development guidance names says what to do when it fires, and a policy reports a repository path the development guidance cites that does not exist.
+Nothing a consumer sees changes: the policies whose messages changed, and the new path check, run only in this repository's test suite. In this repository, every policy and finding code the development guidance names says what to do when it fires, and a policy reports a repository path the development guidance cites that does not exist.
 
 ## Decisions made during implementation
 
 - No guidance section is cut to a pointer. M-0349's inventory decides `pointer to` for no row, its test refuses a removal that does not carry its row's decision, and the primed load already meets both targets, so a cut would override recorded decisions with no target left to meet.
-- AC-1's table covers a policy the guidance names by its id, by the file that constructs its violations, or by its `Policy` function; checks named only as tests are not policies or finding codes, and are left out.
-- AC-4 reads a backticked span as a cited path when it has no whitespace or angle-bracket placeholder, holds a slash, and starts with an entry at the repository root; a bare file name, a path inside a command, and a path into a top-level directory that no longer exists are not judged. The root-entry anchor is what keeps `origin/main`, `github.com/…` and Go import paths out.
+- AC-1's table counts a policy named by its file or `Policy` function as named, not only one named by its id; checks named only as tests are not policies or finding codes, and are left out.
+- AC-4 reads a backticked span as a cited path when it has no whitespace or angle-bracket placeholder, holds a slash, and starts with an entry at the repository root; a bare file name, a path inside a command, and a path into a top-level directory the checkout does not hold are not judged. The root-entry anchor is what keeps `origin/main`, `github.com/…` and Go import paths out.
 - AC-4's edge case for a path git ignores replaces checking it on disk: CI's test job creates none of the materialized host files or build outputs the guidance cites, so a check on disk fails there.
 - The milestone runs `tdd: advisory`: AC-5's ceilings already met their targets when it started, so it has no red phase.
 - `fsm-invariants` checks each kind through `kindFSMViolations` over a view of its status machine, so a test reaches every message over a synthetic machine, and the policy leaves the firing-fixture grandfather list, which held it as a structure-auditor no fixture could reach.
 
 ## Validation
 
-Gates, run at `64daa2142`, the last code commit, in the aiwf devcontainer (Linux x86_64, go1.25.12):
+Gates, run at `322e36bb1`, the last code commit, in the aiwf devcontainer (Linux x86_64, go1.25.12):
 
-- `make ci` exits 0: vet, lint, the race-and-coverage run at 92.1% of statements, the profile-driven gates — diff-scoped coverage, the firing-fixture gate and its stale-entry check, the comment-history scan — and the 29-step self-check.
+- `make ci` exits 0: vet, lint, the race-and-coverage run at 92.1% of statements, the profile-driven gates `make coverage-gate-only` runs, and the 29-step self-check.
 - `aiwf check --since origin/epic/E-0092-shrink-the-always-on-guidance-to-one-home-per-rule-under-a-ceiling` reports 0 errors; its one warning on this milestone is `acs-tdd-audit` on AC-5, which carries no TDD phase.
 
 ### AC-1 — the audit table
 
-`TestM0337Audit` derives the policies and finding codes the handwritten development guidance names at `65d846222`, failing if that commit cannot be read or its guidance names nothing, and fails for any without a row under `## Audit`, or a row whose verdict is outside the closed set; `TestNamedChecks` and `TestAuditCoverageFindings` pin how a check is named and the table's rules.
+`TestM0337Audit` reads the handwritten development guidance at `65d846222`, failing if that commit cannot be read or its guidance names nothing, maps it through the policy files, `Policy` functions and finding codes at HEAD, and fails for any without a row under `## Audit`, or a row whose verdict is outside the closed set; `TestNamedChecks` and `TestAuditCoverageFindings` pin how a check is named and the table's rules.
 
 ### AC-2 — the pinned messages
 
@@ -166,7 +168,7 @@ Each message the audit marks as not stating the fix now names the action, and an
 - `skill-coverage`: a missing `name:`, a missing `description:`, a name that differs from its directory, a name off the prefix convention, and an unresolved `aiwf` reference (`TestCheckSkillFrontmatter_FiresOnEmptyName`, `…_FiresOnEmptyDescription`, `…_FiresOnNameDirMismatch`, `…_FiresOnAiwfPrefixMissing`, `TestCheckSkillBodyMentionsResolve_FiresOnUnknownVerb`).
 - `test-setup-presence`: a missing `setup_test.go`, one that does not parse, and one with no `TestMain` (`TestPolicyTestSetupPresence_MessagesStateTheFix`).
 
-No check's condition changed. `fsm-invariants` reads one kind's machine through `kindFSMViolations`, which `PolicyFSMInvariants` feeds from `entity`'s exported API as before, so its construction lines are reached by a test and it leaves the firing-fixture gate's grandfather list.
+No check's condition changed.
 
 ### AC-4 — cited paths
 
