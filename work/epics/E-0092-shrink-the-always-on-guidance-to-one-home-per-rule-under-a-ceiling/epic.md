@@ -101,7 +101,7 @@ Repository development rules, aiwf operating guidance and project-adopted langua
 - M-0334 — Record the baseline for both hosts on the rules the inventory changes; depends on M-0349 and M-0350.
 - M-0336 — Remove copies and move rules to their audience's home; depends on M-0349 and M-0334.
 - M-0335 — Route on-demand guidance through the project router and tighten what moves; depends on M-0336.
-- M-0337 — Improve diagnostics and reach the ceiling for both hosts; depends on M-0335.
+- M-0337 — Improve diagnostics, check the paths guidance cites, and confirm the ceiling for both hosts; depends on M-0335.
 - M-0338 — Compare behaviour and load against the frozen baseline and confirm every inventory decision was carried out; depends on M-0337.
 - M-0339 — Cancelled: shortening the shipped fragment's wording is left to a later epic.
 
