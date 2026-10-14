@@ -1,6 +1,7 @@
 package projectguidance
 
 import (
+	"strings"
 	"testing"
 
 	"github.com/google/go-cmp/cmp"
@@ -58,6 +59,21 @@ func TestHandwrittenText(t *testing.T) {
 	want := "mine\n" + GuidanceStartMarker + "\n@x.md\n" + GuidanceEndMarker + "\n" + GuidanceMarkerPrefix + "note -->\n\n"
 	if got := HandwrittenText(strayBesideRoute); got != want {
 		t.Errorf("a stray guidance marker beside a routing block: HandwrittenText = %q, want %q", got, want)
+	}
+}
+
+// TestHandwrittenLines pins that a host file's managed blocks are removed
+// with their line breaks kept: the file keeps its line count and holds the
+// words HandwrittenText holds.
+func TestHandwrittenLines(t *testing.T) {
+	t.Parallel()
+	file := renderHostFile("mine\n", "generated\nacross lines", "route")
+	got := HandwrittenLines(file)
+	if strings.Count(got, "\n") != strings.Count(file, "\n") {
+		t.Errorf("HandwrittenLines has %d line breaks, want the file's %d", strings.Count(got, "\n"), strings.Count(file, "\n"))
+	}
+	if diff := cmp.Diff(strings.Fields(HandwrittenText(file)), strings.Fields(got)); diff != "" {
+		t.Errorf("HandwrittenLines words (-HandwrittenText +got):\n%s", diff)
 	}
 }
 

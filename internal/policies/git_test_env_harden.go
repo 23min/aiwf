@@ -108,7 +108,7 @@ func PolicyGitTestEnvHardened(root string) ([]Violation, error) {
 				vs = append(vs, Violation{
 					Policy: "git-test-env-harden",
 					File:   setupRel,
-					Detail: "exec-bearing test package has no setup_test.go to host the testsupport.HardenGitTestEnv() call (G-0250/G-0251)",
+					Detail: "exec-bearing test package has no setup_test.go to host the testsupport.HardenGitTestEnv() call; add a setup_test.go whose TestMain calls it before os.Exit(m.Run()) (G-0250/G-0251)",
 				})
 				continue
 			}
@@ -123,7 +123,7 @@ func PolicyGitTestEnvHardened(root string) ([]Violation, error) {
 			vs = append(vs, Violation{
 				Policy: "git-test-env-harden",
 				File:   setupRel,
-				Detail: "test package shells out to a subprocess but its TestMain does not call testsupport.HardenGitTestEnv(); ambient git-locator env vars leak into fixture git commands under a git-hook run (G-0250) and background auto-gc races fixtures under load (G-0251)",
+				Detail: "test package shells out to a subprocess but its TestMain does not call testsupport.HardenGitTestEnv(); call it after seeding the git identity and before os.Exit(m.Run()) — ambient git-locator env vars leak into fixture git commands under a git-hook run (G-0250) and background auto-gc races fixtures under load (G-0251)",
 			})
 		}
 	}

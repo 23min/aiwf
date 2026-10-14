@@ -97,8 +97,8 @@ func checkClaimGuardPresence(ledger []claimScope, funcs map[string]verbFunc) []V
 			out = append(out, Violation{
 				Policy: "claim-guard-presence",
 				File:   "internal/policies/noop_claim_scope.go",
-				Detail: fmt.Sprintf("%s records claim scope %q, but no package-level function by that name was found under internal/verb — the row is either stale, which PolicyNoOpClaimScope reports on its own terms, or it names a shape this scan does not see, such as a method; either way this policy cannot vouch for it",
-					entry.Func, entry.Scope),
+				Detail: fmt.Sprintf("%s records claim scope %q, but no package-level function by that name was found under internal/verb — the row is either stale, which PolicyNoOpClaimScope reports on its own terms, or it names a shape this scan does not see, such as a method; either way this policy cannot vouch for it — if the row is stale, correct it to name the package-level function under internal/verb that converges, or delete it if the route is gone; if it names a method, move the same-state comparison and its NoOp return into a package-level function under internal/verb that calls %s in its prelude, and record that function",
+					entry.Func, entry.Scope, wrapper),
 			})
 			continue
 		}
@@ -188,7 +188,7 @@ func validateExemptClaimReasons(ledger []claimScope) []Violation {
 			out = append(out, Violation{
 				Policy: "claim-guard-presence",
 				File:   "internal/policies/noop_claim_scope.go",
-				Detail: fmt.Sprintf("%s and %s record the same exemption reason — an exempt route carries its own specific reason, not a category label shared across routes, because the reason is the only thing distinguishing a reasoned exemption from an omission",
+				Detail: fmt.Sprintf("%s and %s record the same exemption reason; give each route its own reason, saying what makes its claim uncontradictable or what its comparison is scoped to — the reason is the only thing distinguishing a reasoned exemption from an omission",
 					prior, entry.Func),
 			})
 		}
@@ -320,7 +320,7 @@ func checkGuardAnchorsExist(funcs map[string]verbFunc) []Violation {
 		out = append(out, Violation{
 			Policy: "claim-guard-presence",
 			File:   "internal/verb/claimguard.go",
-			Detail: fmt.Sprintf("%s is not declared under internal/verb — every %s finding is phrased against that name, so this policy cannot answer anything until the anchor is repointed (it is the wrapper the %q scope requires)",
+			Detail: fmt.Sprintf("%s is not declared under internal/verb — every %s finding is phrased against that name, so this policy cannot answer anything until the anchor is repointed (it is the wrapper the %q scope requires); point claimGuardWrappers at the wrapper's current name, or restore the wrapper",
 				w.Wrapper, "claim-guard-presence", w.Scope),
 		})
 	}

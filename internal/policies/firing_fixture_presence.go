@@ -31,8 +31,7 @@ import (
 //     "no audit" (the live test t.Skips; the synthetic tests call
 //     firingFixtureCore directly).
 //
-// Grandfathering: policies dark at the G-0259 audit are listed in
-// grandfatherDark and tolerated; G-0262 burns that list to empty. A
+// Grandfathering: a policy listed in grandfatherDark is tolerated. A
 // policy added after this gate landed is NOT grandfathered — it has no
 // allowlist entry, so its dark construction line fails the gate until a
 // firing fixture covers it. That is the ratchet.
@@ -178,26 +177,13 @@ func lineInZeroBlock(fileBlocks []coverBlock, line int) bool {
 	return false
 }
 
-// grandfatherDark lists the policy ids whose firing branch was dark at
-// the G-0259 audit (a Violation construction site no test covers). The
-// meta-gate tolerates these; G-0262 burns the list to empty by adding a
-// firing fixture per policy — or, for a structure-auditor (one that can
-// fire only by mutating a hardcoded Go structure, e.g. fsm-invariants or
-// trailer-order-matches-constants), routing it through mutate-hunt and
-// keeping it here with that note.
+// grandfatherDark lists the policy ids the meta-gate tolerates with a
+// Violation construction site no test covers. A structure-auditor — one
+// that can fire only by mutating a hardcoded Go structure — that no
+// fixture can reach would be listed here with a mutate-hunt note.
 //
 // A policy leaves this list the moment a test covers its construction
 // line. The stale-entry test (TestPolicy_FiringFixtureNoStaleAllowlist)
 // fails if an id here is no longer dark, so adding a firing fixture
-// forces the matching deletion — the ledger cannot rot, and it shrinks
-// monotonically toward zero.
-var grandfatherDark = map[string]bool{
-	// Seeded from the G-0259 audit (44 policies with >=1 dark
-	// construction line), burned down to empty-but-one by G-0262 / M-0166:
-	// AC-1 lit the 25 single-dark-site policies, AC-2 the 16 multi-site
-	// policies, AC-3 the 11-site acks-helper-lift — each via a firing
-	// fixture (firing_fixtures_{single,multi}_site_test.go,
-	// firing_fixtures_acks_helper_test.go). Only fsm-invariants remains: a
-	// structure-auditor no fixture can reach.
-	"fsm-invariants": true, // structure-auditor: routes through mutate-hunt, not a firing fixture — introspects compiled-in entity FSM tables (discards root), so no fixture reaches its construction line; stays grandfathered permanently (G-0262 exempts this class).
-}
+// forces the matching deletion and the ledger cannot rot.
+var grandfatherDark = map[string]bool{}

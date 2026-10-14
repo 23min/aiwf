@@ -30,7 +30,7 @@ Repository development rules, aiwf operating guidance and project-adopted langua
 - **The baseline, M-0334.** Record both hosts' loading and rule-following on tasks aimed at the rules the inventory changes, before any decision is carried out, using M-0348's observation harness.
 - **Remove copies and move rules home, M-0336.** Delete text whose rule already lives in the aiwf fragment or a selected pack, and move each rule the inventory places in the other home, as the inventory records. From here on a test holds every removal to the inventory.
 - **Route and tighten, M-0335.** Make `.guidance/project.md` a short task router, move on-demand rules into the documents it names, and apply the inventory's merge and tighten dispositions. The root `CLAUDE.md` keeps only primed rules.
-- **Pointer cut, M-0337.** Audit diagnostics, correct messages that omit the remedy, shorten check-backed rules, and reach the ceiling for each host.
+- **Diagnostics, M-0337.** Audit diagnostics, correct messages that omit the remedy, check that the repository paths development guidance cites exist, and confirm the ceiling for each host. No check-backed rule is cut to a pointer, since the inventory decides none.
 - **After observation, M-0338.** Compare each host against its own frozen baseline, including guidance read during the task, and confirm every inventory decision was carried out.
 
 ## Out of scope
@@ -80,7 +80,7 @@ Repository development rules, aiwf operating guidance and project-adopted langua
 |---|---|---|
 | Which on-demand documents exist and where they live | resolved | M-0349 names the documents under `.guidance/project/`, with the router entries that reach them, in its On-demand documents section |
 | The handwritten primed ceiling for each host | resolved | M-0349 sets the targets from the inventory at 1,629 words for Claude and 1,758 for Codex, with tightened rules counted at their current size; M-0349's Validation records the command, and later step-downs record what tightening saves |
-| Which diagnostics already state the remedy | no | M-0337 produces the audit |
+| Which diagnostics already state the remedy | resolved | M-0337's Audit section records each check's verdict, and its AC-2 corrects every message that did not |
 
 ## Risks
 
@@ -101,7 +101,7 @@ Repository development rules, aiwf operating guidance and project-adopted langua
 - M-0334 — Record the baseline for both hosts on the rules the inventory changes; depends on M-0349 and M-0350.
 - M-0336 — Remove copies and move rules to their audience's home; depends on M-0349 and M-0334.
 - M-0335 — Route on-demand guidance through the project router and tighten what moves; depends on M-0336.
-- M-0337 — Improve diagnostics and reach the ceiling for both hosts; depends on M-0335.
+- M-0337 — Improve diagnostics, check the paths guidance cites, and confirm the ceiling for both hosts; depends on M-0335.
 - M-0338 — Compare behaviour and load against the frozen baseline and confirm every inventory decision was carried out; depends on M-0337.
 - M-0339 — Cancelled: shortening the shipped fragment's wording is left to a later epic.
 

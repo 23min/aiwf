@@ -83,11 +83,13 @@ var guidanceReaderList = map[string]guidanceReaderEntry{
 	"internal/policies.TestAgentIsolationHook_DeniesWorktreeIsolation":           {readerNamesOnly, "names .guidance/project/environment.md as a phrase the hook's message must contain"},
 	"internal/policies.TestPolicy_ConfigFieldsAreDiscoverable":                   {readerRelationship, "reads the router to leave routed documents out of the channels"},
 	"internal/policies.TestPolicyDevcontainerPathsResolve":                       {readerRelationship, "checks that every .devcontainer/ path the development guidance names exists"},
+	"internal/policies.TestPolicy_GuidancePathsResolve":                          {readerRelationship, "checks that every repository path the development guidance cites exists"},
 	"internal/policies.TestPolicy_FindingCodesAreDiscoverable":                   {readerRelationship, "reads the router to leave routed documents out of the channels"},
 	"internal/policies.TestPolicy_GuidanceCeiling":                               {readerRelationship, "measures each host's primed load against its ceiling"},
 	"internal/policies.TestPolicy_NoDanglingEntityRefsInNarrativeDocs":           {readerRelationship, "checks that every entity reference in the development guidance resolves"},
 	"internal/policies.TestPolicy_GuidanceReaders":                               {readerRelationship, "reads the router to know which documents are guidance"},
 	"internal/policies.TestE0092Inventory":                                       {readerRelationship, "checks M-0349's inventory against the guidance as frozen, each removal against its row, and the fragment's frozen words against HEAD"},
+	"internal/policies.TestM0337Audit":                                           {readerRelationship, "checks M-0337's audit table against the policies and finding codes the guidance named at the milestone's start"},
 }
 
 // guidanceReaderListFile is where guidanceReaderList lives, for a finding
