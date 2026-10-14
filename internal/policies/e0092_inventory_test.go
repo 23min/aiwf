@@ -532,14 +532,16 @@ func notIDRune(r rune) bool {
 }
 
 // inventoryReconcileFindings holds each removal block to the inventory
-// (M-0336 AC-5, AC-6). A block names its row as the first word of its
-// Removed: value. One naming an id second is an edit AC-2 requires: the id
-// must be in the row's text at the freeze, and the block is held to no
-// decision. Every other block must carry its row's decision. A destination
-// path a block names must exist and an entity it names must resolve, while
-// a pointer to a check is not looked up. A block removing a rule the
-// inventory moves to the shipped fragment, a shipped skill or repository
-// guidance must come after a commit since the base changed its new home.
+// (M-0336 AC-5, AC-6), and each row whose decision removes text to a
+// block that carries it out (M-0338 AC-3). A block names its row as the
+// first word of its Removed: value. One naming an id second is an edit
+// AC-2 requires: the id must be in the row's text at the freeze, and the
+// block is held to no decision. Every other block must carry its row's
+// decision. A destination path a block names must exist and an entity it
+// names must resolve, while a pointer to a check is not looked up. A block
+// removing a rule the inventory moves to the shipped fragment, a shipped
+// skill or repository guidance must come after a commit since the base
+// changed its new home.
 // rowText returns a row's first home as frozen; resolves reports whether
 // an entity id resolves; changedBefore whether a commit after the base and
 // before sha changed a path.
@@ -548,6 +550,18 @@ func inventoryReconcileFindings(blocks []removalBlock, rows []invRow, rowText fu
 	byLabel := map[string]invRow{}
 	for i := range rows {
 		byLabel[rows[i].Label] = rows[i]
+	}
+	carried := map[string]bool{}
+	for _, b := range blocks {
+		if words := strings.Fields(b.Removed); len(words) > 0 {
+			carried[words[0]+"\x00"+b.Disposition] = true
+		}
+	}
+	for _, r := range rows {
+		d, _ := parseDisposition(r.Disposition)
+		if want, removes := decidedDisposition(d); removes && !carried[r.Label+"\x00"+want] {
+			out = append(out, fmt.Sprintf("row %s decides %q, and no commit carries it out", r.Label, r.Disposition))
+		}
 	}
 	for _, b := range blocks {
 		at := fmt.Sprintf("commit %.9s, block %q", b.SHA, b.Removed)
@@ -926,7 +940,6 @@ func TestInventoryReconcileFindings(t *testing.T) {
 	rows, _ := parseInventory(inventoryFixture(inventoryHeader,
 		"| copied | A rule | `CLAUDE.md › Go` | 5 | development | judgment | on demand | delete as copy of `.guidance/packs/go/cobra/guide.md` | |",
 		"| moved | A rule | `CLAUDE.md › Testing` | 5 | development | judgment | on demand | move on demand to `.guidance/project/testing.md` | |",
-		"| missing | A rule | `CLAUDE.md › Testing` | 5 | development | judgment | on demand | move on demand to `.guidance/project/missing.md` | |",
 		"| merged | A rule | `CLAUDE.md › Testing` | 5 | development | judgment | primed | merge into kept | |",
 		"| shipped | A rule | `CLAUDE.md › Gates` | 5 | operating | judgment | primed | move to the shipped fragment | |",
 		"| kept | A rule | `CLAUDE.md › Kept` | 5 | development | judgment | primed | keep | |",
@@ -967,6 +980,7 @@ func TestInventoryReconcileFindings(t *testing.T) {
 		want  string
 	}{
 		{"a valid set reports nothing", removalBlock{}, ""},
+		{"a row no block carries out", block("", "moved", ""), "no commit carries it out"},
 		{"a block naming no row", block("rm", `absent "x"`, "deleted"), "names no inventory row"},
 		{"a block whose Removed: is empty", block("rm", "", "deleted"), "names no inventory row"},
 		{"a block naming only its row carries the row's decision", block("rm", "moved", "deleted"), "but row moved decides"},
@@ -977,7 +991,7 @@ func TestInventoryReconcileFindings(t *testing.T) {
 		{"a quoted passage opening with an id is not an id edit", block("rm", `kept "G-0491 records"`, "deleted"), "removes nothing"},
 		{"an id edit naming an entity that does not resolve", block("rm", "kept G-0491", "copy of G-0999"), "resolves to no entity"},
 		{"a pointer naming an entity that does not resolve", block("rm", "kept G-0491", "pointer to G-0999"), "resolves to no entity"},
-		{"a destination that does not exist", block("rm", `missing "x"`, "relocated to .guidance/project/missing.md"), "does not exist"},
+		{"a destination that does not exist", block("rm", "kept G-0491", "relocated to .guidance/project/missing.md"), "does not exist"},
 		{"a destination path holding an id is judged as a path", block("rm", "kept G-0491", "copy of docs/adr/ADR-0004-missing.md"), "does not exist"},
 		{"a block disagreeing with its row", block("rm", `moved "x"`, "deleted"), "but row moved decides"},
 		{"a block under a row that removes nothing", block("rm", `kept "x"`, "deleted"), "removes nothing"},
@@ -989,7 +1003,15 @@ func TestInventoryReconcileFindings(t *testing.T) {
 		t.Run(tc.name, func(t *testing.T) {
 			t.Parallel()
 			blocks := slices.Clone(valid)
-			if tc.want != "" {
+			switch {
+			case tc.want == "":
+			case tc.block.SHA == "":
+				// A block with no commit names a row whose carrying
+				// block the case drops from the valid set.
+				blocks = slices.DeleteFunc(blocks, func(b removalBlock) bool {
+					return strings.HasPrefix(b.Removed, tc.block.Removed+" ")
+				})
+			default:
 				blocks = append(blocks, tc.block)
 			}
 			findings := inventoryReconcileFindings(blocks, rows, rowText, exists, resolves, changedBefore)
