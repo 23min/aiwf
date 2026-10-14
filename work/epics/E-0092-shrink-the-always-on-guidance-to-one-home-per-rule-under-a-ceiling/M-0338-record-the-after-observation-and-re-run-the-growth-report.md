@@ -84,7 +84,12 @@ Every row of M-0349's inventory whose decision changes text has a commit that ca
 
 ## Decisions made during implementation
 
-- (none)
+Each settled by the maintainer on 2026-10-14, before the after-run's first run.
+
+- **Host settings:** the after-run uses the baseline's, Claude at `claude-opus-5-5` effort `high` and Codex at `gpt-6-astra` effort `medium`, as `run.sh` at the pin fixes them. Whether Sonnet at `xhigh` matches Opus at `high` is a question about model choice, not about this reduction, and is left to a gap this milestone files, not answered here.
+- **Host versions:** the after-run uses the versions installed now, Claude Code 2.1.296 and Codex 0.162.1, not the baseline's Claude Code 2.1.290 (2.1.289 for two runs) and Codex 0.160.0. The change is a comparison limit: any per-host difference may come from the host as well as from the guidance.
+- **Personal overlay:** the after-run takes the overlay as it stands. `~/.guidance` has moved from `334e60cd` to `d7180c35`, a rewording of the rule on naming a criterion's work item, which no rubric rule turns on; `~/.claude/settings.json` and the synced Claude user skills have also changed, and the baseline kept no copy of either to restore. Each is a comparison limit.
+- **A held rule's two-to-one violation:** the judge's majority stands, as the rubric's harness states, so a violation on a vote of two to one counts as one on three. The comparison shows each held-rule violation with its vote.
 
 ## Validation
 
