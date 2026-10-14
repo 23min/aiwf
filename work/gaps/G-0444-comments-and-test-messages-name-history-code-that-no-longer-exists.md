@@ -1,6 +1,6 @@
 ---
 id: G-0444
-title: Comments and test messages name history functions that no longer exist
+title: Comments and test messages name history code that no longer exists
 status: open
 priority: low
 discovered_in: M-0274
