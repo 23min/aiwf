@@ -15,7 +15,7 @@ acs:
       status: open
     - id: AC-3
       title: Every inventory decision has been carried out
-      status: open
+      status: met
 ---
 
 ## Goal
