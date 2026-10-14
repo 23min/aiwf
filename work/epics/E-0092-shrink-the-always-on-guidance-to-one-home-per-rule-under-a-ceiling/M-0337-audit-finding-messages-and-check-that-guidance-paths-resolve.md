@@ -148,7 +148,7 @@ Nothing a consumer sees changes: the policies whose messages changed, and the ne
 
 ## Validation
 
-Gates, run at `5c37fbfec`, the last code commit, in the aiwf devcontainer (Linux x86_64, go1.25.12):
+Gates, run at `322887029`, the last code commit, in the aiwf devcontainer (Linux x86_64, go1.25.12):
 
 - `make ci` exits 0: vet, lint, the race-and-coverage run at 92.1% of statements, the profile-driven gates `make coverage-gate-only` runs, and the 29-step self-check.
 - `aiwf check --since origin/epic/E-0092-shrink-the-always-on-guidance-to-one-home-per-rule-under-a-ceiling` reports 0 errors; its one warning on this milestone is `acs-tdd-audit` on AC-5, which carries no TDD phase.
