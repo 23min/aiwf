@@ -192,4 +192,26 @@ Observed: the test passes, and each ceiling constant sits below its host's targe
 
 ## Reviewer notes
 
-- (none)
+What this milestone obliges later changes to do, counted from `git diff 090ea06b3..HEAD -- internal/` (new `Test` functions and `Policy:` ids) and `scripts/growth-report.py`'s policy-id count:
+
+- `guidance-paths-resolve`: a change that moves or deletes a file the development guidance cites fixes the citation in the same change. A ban, owned by the policy suite, and nothing retires it; G-0726 records that CI's path filters can skip it.
+- The remedy-clause assertions on the seven audited policies: rewording a remedy means editing its test. Owned by each policy's tests; retired with the message.
+- `fsm-invariants` under the firing-fixture gate, with `TestKernelFSMView_ReadsTheEntityTables` holding its view to `entity`'s exported API: a new drift mode needs a synthetic fixture. Owned by `firing-fixture-presence`; retired with the policy.
+- `TestHandwrittenLines` holds the line-keeping reader to `HandwrittenText`'s words. Owned by `projectguidance`; retired with the helper.
+- `TestM0337Audit` and its rule tests keep the Audit table readable, need `65d846222` reachable, and need a row for any policy id later added to a policy file the guidance named, since they map that guidance through HEAD's policy files. `ceilingTargetFindings` keeps each ceiling constant at or under M-0349's target. Owned by E-0092; deleted with `e0092_inventory_test.go` at E-0092's wrap, with the audit test's guidance-reader entry, after which nothing holds the ceiling constants to the targets.
+
+Accepted as they stand:
+
+- Deleting `PolicyFSMInvariants`' per-kind loop fails no test: over correct tables the policy reports nothing, so a skipped check and a clean one look alike.
+- With git unable to start, `guidance-paths-resolve` reports a missing path rather than an error; both fail the suite, and pinning it needs a test that changes `PATH`.
+- `git check-ignore` also honours a developer's personal ignore files, so a local run can be more lenient than CI.
+- `**` matches one directory level, `path:line` and `path#anchor` citations are read as paths, and a brace citation is asked of `git check-ignore` as one string; no citation uses any of these, and each would be reported rather than passed.
+- `guidance-paths-resolve` and `devcontainer-paths-resolve` both report a stale backticked `.devcontainer/` path in the development guidance; each covers citations the other does not, so both stay.
+- `gitIgnores` resembles inline code in `internal/cli/render/render.go`; with two copies there is no shared helper.
+- Remedy assertions pin each clause's leading phrase, not every word of it.
+- `fsmView.isAllowed` stays, so the restructure reads as a one-for-one substitution of `entity` calls.
+- Removing the `continue` after an undeclared cancel target adds a second, still-true finding rather than a wrong one.
+- The changed messages name files under `internal/entity/` and `internal/policies/` that nothing re-checks, and `test-setup-presence`'s messages state the `TestMain` recipe rather than point at `.guidance/project/testing.md`.
+- E-0092's success criterion that enforcement pointers resolve is held by a check only for pointers written as paths; it is judged at E-0092's wrap.
+
+Verdict: the review ended on a scoped confirmation rather than a clean full pass. The last full pass over the change set requested changes; a fresh reviewer then confirmed everything changed after it. The corrections that confirmation asked for, at `322887029` and in G-0444's body, were not re-read by a reviewer.
