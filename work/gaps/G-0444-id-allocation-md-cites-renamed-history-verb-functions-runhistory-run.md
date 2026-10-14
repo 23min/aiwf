@@ -7,39 +7,20 @@ discovered_in: M-0274
 ---
 ## What's missing
 
-`docs/design/id-allocation.md:164` describes the history verb's `PriorIDs`-chain
-handling using function names the M-0116 CLI restructure renamed:
+Comments and test failure messages name the history verb's functions by names that no longer exist. The verb's entry point is `Run` (`internal/cli/history/history.go:57`), and the chain read is `ReadHistoryChain` in `internal/entityview/historyevent.go:117`; no `runHistory`, `readHistory` or `readHistoryChain` is declared anywhere.
 
-- `runHistory` no longer exists — the history verb's entry point is now `Run`
-  (`internal/cli/history/history.go:60`).
-- `readHistoryChain` survives only in test comments under
-  `internal/cli/integration/` (e.g. `canonicalize_history_test.go`,
-  `show_cmd_test.go`), not in production code; the chain logic now lives inline
-  in `history.go`.
+- Comments: `internal/cli/history/history.go:80` and `internal/cli/show/show.go:527` (`readHistory`), `internal/cli/integration/canonicalize_history_test.go:19,24` and `show_cmd_test.go:260` (`readHistoryChain`), `integration_g37_test.go:928` (`runHistory`), `history_cmd_test.go:153` (`readHistory`).
+- Test failure messages beginning `readHistory`, in `cancel_same_state_noop_test.go`, `history_cmd_test.go`, `move_same_state_noop_test.go`, `promote_same_state_noop_test.go`, `rename_retitle_same_state_noop_test.go` and `status_cmd_test.go` under `internal/cli/integration/`.
 
-The file-path half of this same line was already corrected (G-0443:
-`cmd/aiwf/admin_cmd.go` → `internal/cli/history/history.go`), but the function
-names on the line — plus the stale `readHistoryChain` mentions in the test
-comments — were left. This is function-rename drift, a distinct class from the
-file-path drift G-0443 closed; it was surfaced by G-0443's review and left out
-of that patch's declared file-path scope on purpose.
+```
+$ git grep -nE 'func (\([^)]*\) )?(runHistory|readHistory|readHistoryChain)\(' -- '*.go' | wc -l
+0
+$ git grep -nwE 'runHistory|readHistoryChain|readHistory' -- 'internal/*.go' 'cmd/*.go' | wc -l
+17
+```
+
+Expected: no name in a comment or message that no function carries. Observed 2026-10-13 in the aiwf devcontainer, as above.
 
 ## Why it matters
 
-id-allocation.md is a Normative-tier design doc (current-truth). A reader who
-follows it to `internal/cli/history/history.go` looking for `runHistory` or
-`readHistoryChain` finds neither — the entry point is `Run` and the chain logic
-is inline. Minor in blast radius, but it is real drift in a lockstep doc, and
-it is the second drift class the same M-0116 restructure left behind (the
-first, file paths, is closed as G-0443).
-
-## Suggested approach
-
-Update id-allocation.md:164's function names to the current symbols (`Run`;
-describe the inline `PriorIDs`-chain handling rather than the retired
-`readHistoryChain`), and refresh the `internal/cli/integration/` test comments
-that still name `readHistoryChain`. Small, mechanical, no code change. No
-mechanical guard is warranted: function-name references in prose are heuristic
-to verify and would false-positive on historical/narrative mentions — the same
-reason G-0443's guard was scoped narrowly to resolvable file paths, not symbol
-names.
+A reader following a comment, or a failing test's message, to the function it names finds nothing, and has to search out where the history verb expands an id and reads its chain.
