@@ -1,6 +1,6 @@
 ---
 id: G-0444
-title: id-allocation.md cites renamed history-verb functions (runHistory->Run)
+title: Comments and test messages name history functions that no longer exist
 status: open
 priority: low
 discovered_in: M-0274
