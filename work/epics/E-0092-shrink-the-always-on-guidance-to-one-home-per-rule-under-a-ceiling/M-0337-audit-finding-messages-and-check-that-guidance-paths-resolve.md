@@ -39,7 +39,7 @@ Audit the message of every policy and finding code the development guidance name
 
 The development-guidance set is the one M-0333 defines: both root entry points, `.guidance/project.md` and the on-demand documents it routes to. Generated operating and language blocks are judged through their owning sources; expected rendered copies are not independent rule restatements. E-0092 defines the primed/on-demand split and the two ceilings.
 
-Much of the development guidance documents rules that a policy, a check rule, or a hook enforces. The check does the work; once its finding message names the fix, a failed check costs a re-run rather than an investigation, which is what the prose spares. The audit decides, per message, whether it already does, and the messages that do not are corrected.
+Much of the development guidance documents rules that a policy, a check rule, or a hook enforces. The check does the work; the prose spares the investigation a failed check would otherwise need, and the finding message spares it equally once it names the fix. The audit decides, per message, whether it already does, and the messages that do not are corrected.
 
 ## Acceptance criteria
 
@@ -78,7 +78,7 @@ Both hosts' handwritten primed words, as defined by E-0092 and measured by M-033
 - `fsm-invariants`, restructured so a test reaches each of its messages, and the firing-fixture grandfather list it leaves
 - a new policy under `internal/policies/` for the paths development guidance cites, `projectguidance.HandwrittenLines`, which it reads the host files through, and its entry in the guidance-reader list
 - `docs/design/id-allocation.md`'s citation of the history functions
-- the inventory test, for AC-1's coverage of the audit table and AC-5's ceilings
+- the inventory test, for AC-1's coverage of the audit table and AC-5's ceilings, and the audit test's entry in the guidance-reader list
 
 ## Out of scope
 
@@ -99,7 +99,8 @@ Both hosts' handwritten primed words, as defined by E-0092 and measured by M-033
 
 - G-0436
 - G-0676 — how root guidance grows
-- G-0726 — the go workflow's path filters, which leave out files the cited-path check reads
+- G-0726 — the go workflow's path filters, which leave out files the cited-path check requires to exist
+- G-0444 — retired history function names; `docs/design/id-allocation.md:164` is corrected here, and the comments and test messages it records remain
 
 ## Audit
 
@@ -147,7 +148,7 @@ Nothing a consumer sees changes: the policies whose messages changed, and the ne
 
 ## Validation
 
-Gates, run at `322e36bb1`, the last code commit, in the aiwf devcontainer (Linux x86_64, go1.25.12):
+Gates, run at `5c37fbfec`, the last code commit, in the aiwf devcontainer (Linux x86_64, go1.25.12):
 
 - `make ci` exits 0: vet, lint, the race-and-coverage run at 92.1% of statements, the profile-driven gates `make coverage-gate-only` runs, and the 29-step self-check.
 - `aiwf check --since origin/epic/E-0092-shrink-the-always-on-guidance-to-one-home-per-rule-under-a-ceiling` reports 0 errors; its one warning on this milestone is `acs-tdd-audit` on AC-5, which carries no TDD phase.
