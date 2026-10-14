@@ -1,7 +1,7 @@
 ---
 id: M-0337
 title: Audit finding messages and check that guidance paths resolve
-status: in_progress
+status: done
 parent: E-0092
 depends_on:
     - M-0335
