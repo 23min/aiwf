@@ -11,7 +11,7 @@ func TestPolicy_RaceParallelCap(t *testing.T) {
 }
 
 // TestPolicyRaceParallelCap_MessagesStateTheFix pins M-0337 AC-2: a
-// race-mode invocation without the cap is told to add it, and a target
+// race-mode invocation without the cap is told to set it, and a target
 // with no race-mode invocation is told what to add or drop.
 func TestPolicyRaceParallelCap_MessagesStateTheFix(t *testing.T) {
 	t.Parallel()
