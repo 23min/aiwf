@@ -20,3 +20,5 @@ read the matching document:
 - [Release](project/release.md) — cutting a release.
 - [Enforcement](project/enforcement.md) — where a rule is enforced, from
   pre-commit to the release tag.
+- [Language packs](index.md) — after any matching document above, the pack
+  for the task's language or toolchain.
