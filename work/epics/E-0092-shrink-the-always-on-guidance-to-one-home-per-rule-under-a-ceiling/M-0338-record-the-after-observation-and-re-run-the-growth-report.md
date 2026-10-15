@@ -9,7 +9,7 @@ tdd: none
 acs:
     - id: AC-1
       title: The after observation is recorded against the same rubric
-      status: open
+      status: met
     - id: AC-2
       title: Growth is compared with the frozen post-delivery baseline
       status: open
