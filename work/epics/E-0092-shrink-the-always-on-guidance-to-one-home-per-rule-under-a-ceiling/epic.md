@@ -32,6 +32,7 @@ Repository development rules, aiwf operating guidance and project-adopted langua
 - **Route and tighten, M-0335.** Make `.guidance/project.md` a short task router, move on-demand rules into the documents it names, and apply the inventory's merge and tighten dispositions. The root `CLAUDE.md` keeps only primed rules.
 - **Diagnostics, M-0337.** Audit diagnostics, correct messages that omit the remedy, check that the repository paths development guidance cites exist, and confirm the ceiling for each host. No check-backed rule is cut to a pointer, since the inventory decides none.
 - **After observation, M-0338.** Compare each host against its own frozen baseline, including guidance read during the task, and confirm every inventory decision was carried out.
+- **Go as pack plus overrides, M-0361.** Reduce `go-conventions.md` to what this repository adds to or overrides in the Go pack, route Go work to both, and observe whether Claude now reads the pack.
 
 ## Out of scope
 
@@ -50,9 +51,9 @@ Repository development rules, aiwf operating guidance and project-adopted langua
 - **One instruction file per host, at the root.** Claude primes from the root `CLAUDE.md` and Codex from the root `AGENTS.md`. No instruction files in subdirectories; on-demand guidance is reached through `.guidance/project.md`.
 - **Primed versus on demand.** A rule is primed when it applies to nearly every task, or when missing it causes harm before the agent would think to look. Everything else is on demand.
 - **One home per rule, chosen by audience.** Rules for operating aiwf in any repository ship with aiwf: in the shipped fragment when primed, in the shipped skill for their task when on demand. Rules for developing aiwf live in this repository: in a host's root instruction file or the router when primed, under `.guidance/project/` when on demand. Generated copies in host entry points are delivery outputs, not independent homes. A rule in the wrong home moves in two commits: the first adds it to the right home, the second removes it from the wrong one as a copy of it, so it is briefly in both and never in neither.
-- **Effect is preserved, wording is not.** Rules may be merged, tightened or rewritten as the inventory records. The baseline and after-observations are the check that a changed rule kept its effect. No rule is dropped silently: each removed passage's disposition is recorded in its commit body with the inventory row it carries out, and a test holds every removal to the inventory. The epic's wrap deletes that test once M-0338 records its last run, since the inventory is history from then on. It deletes the observation harness under `scripts/e0092-observe/` at the same point, since no run follows M-0338's.
+- **Effect is preserved, wording is not.** Rules may be merged, tightened or rewritten as the inventory records. The baseline and after-observations are the check that a changed rule kept its effect. No rule is dropped silently: each removed passage's disposition is recorded in its commit body with the inventory row it carries out, and a test holds every removal to the inventory. The epic's wrap deletes that test once the epic's last milestone records its last run, since the inventory is history from then on. It deletes the observation harness under `scripts/e0092-observe/` at the same point, since no run follows that milestone's.
 - **Two ceilings.** Each host has a ceiling on its handwritten primed words, set by M-0349 and enforced by M-0333's policy. The shipped fragment's size is tracked separately; this epic moves rules into and out of it but does not shorten its wording. A reference that requires a full read before any task counts as primed.
-- **Frozen guidance.** From M-0349's inventory until M-0338's after-observation, `guidance.enabled` is `false` in `aiwf.yaml`, so no `aiwf update` or `aiwf worktree add` refreshes the installed packs. Re-enable it at the epic's wrap.
+- **Frozen guidance.** From M-0349's inventory until the epic's last after-observation, `guidance.enabled` is `false` in `aiwf.yaml`, so no `aiwf update` or `aiwf worktree add` refreshes the installed packs. Re-enable it at the epic's wrap.
 - **The fence lands first.** Its commit scope allows related guidance sources and generated outputs together, but excludes unrelated implementation changes. Generated blocks change through their owner, never by hand.
 - **Pins retire with a recorded reason.** D-0102 bars evidencing a criterion with a sentence pinned in either host entry point, the project router or the on-demand documents; a pin retires with its passage and leaves the reader list with it.
 - A check-backed section becomes a pointer only after its diagnostic states the remedy.
@@ -103,6 +104,7 @@ Repository development rules, aiwf operating guidance and project-adopted langua
 - M-0335 — Route on-demand guidance through the project router and tighten what moves; depends on M-0336.
 - M-0337 — Improve diagnostics, check the paths guidance cites, and confirm the ceiling for both hosts; depends on M-0335.
 - M-0338 — Compare behaviour and load against the frozen baseline and confirm every inventory decision was carried out; depends on M-0337.
+- M-0361 — Restructure the Go guidance as the pack plus this repository's overrides; depends on M-0338.
 - M-0339 — Cancelled: shortening the shipped fragment's wording is left to a later epic.
 
 ## References
