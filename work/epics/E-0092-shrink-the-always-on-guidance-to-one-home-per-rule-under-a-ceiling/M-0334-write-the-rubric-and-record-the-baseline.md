@@ -47,7 +47,7 @@ Record at the baseline revision each host's handwritten primed words and aiwf-ge
 
 ## Constraints
 
-- `guidance.enabled` is `false` from M-0349's start, so no `aiwf update` or `aiwf worktree add` refreshes the installed packs; it stays off until M-0338 completes. Confirm `.guidance/index.md`'s installed commit at every observation.
+- `guidance.enabled` is `false` from M-0349's start, so no `aiwf update` or `aiwf worktree add` refreshes the installed packs; it stays off until E-0092's last milestone completes. Confirm `.guidance/index.md`'s installed commit at every observation.
 - Commit the rubric before its first run and do not change it during comparison.
 - Record the post-delivery baseline commit before any reduction; use it for both hosts.
 - Keep host/model settings and personal overlays fixed between paired runs; disclose unavoidable changes as comparison limits.
@@ -532,8 +532,8 @@ Measured on 2026-10-05 and 2026-10-07 in the Linux devcontainer (go1.25.12, Pyth
 
 ## Reviewer notes
 
-- **Obligations this milestone adds.** `grep -rln e0092 internal Makefile .github` finds nothing, and the ceiling test's change adds log lines only, so no check binds a later change. These bind M-0338 by hand, and E-0092's wrap retires them when it deletes the harness:
-  - M-0334's Loading observations and Rule tasks stay byte-identical through M-0337's completion commit, since the harness parses them and a reworded rule bullet drops out of the judge's rules without an error. M-0335 to M-0337 keep them; M-0338 checks before its first run.
+- **Obligations this milestone adds.** `grep -rln e0092 internal Makefile .github` finds nothing, and the ceiling test's change adds log lines only, so no check binds a later change. These bind M-0338 and every later E-0092 run of the harness by hand, and E-0092's wrap retires them when it deletes the harness:
+  - M-0334's Loading observations and Rule tasks stay byte-identical at every checkout the harness runs, since it parses them and a reworded rule bullet drops out of the judge's rules without an error. Each milestone that runs the harness checks before its first run.
   - M-0338 reruns `scripts/e0092-observe/` at the pin AC-2 names, and `git log <pin>.. -- scripts/e0092-observe/` is empty when it starts.
   - M-0338 keeps the personal overlay and host settings, and discloses what has moved: Claude's user skills already hash `c5bb882a` against the baseline's `b581cca6`. It takes each Claude run's version from its init event, checks every run's `doctor.txt`, runs `shapes_scan.py` before relying on a first edit, and keeps each run's starting guidance documents if it archives its records.
   - `.scratch/e0092-baseline/records.tar.xz` stays until M-0338 has compared.
