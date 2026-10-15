@@ -535,12 +535,12 @@ func notIDRune(r rune) bool {
 // (M-0336 AC-5, AC-6), and each row whose decision removes text to a
 // carrier that carries it out (M-0338 AC-3): a block naming the row, not
 // as an id edit, with the row's decided disposition. blocks are the
-// commits not yet on trunk, judged here; carriers are every commit since
-// the base, trunk included, since a block judged before it reached trunk
-// still carries its row. A block names its row as the first word of its
-// Removed: value. One naming an id second is an edit
-// AC-2 requires: the id must be in the row's text at the freeze, and the
-// block is held to no decision. Every other block must carry its row's
+// disposition blocks of the commits not yet on trunk, judged here;
+// carriers are those of every commit since the base, trunk included,
+// since a block judged before it reached trunk still carries its row. A
+// block names its row as the first word of its Removed: value. One naming
+// an id second is an edit M-0336 AC-2 requires: the id must be in the
+// row's text at the freeze, and the block is held to no decision. Every other block must carry its row's
 // decision. A destination path a block names must exist and an entity it
 // names must resolve, while a pointer to a check is not looked up. A block
 // removing a rule the inventory moves to the shipped fragment, a shipped
@@ -630,9 +630,9 @@ func fragmentLossFindings(frozen, current map[string]string) []string {
 }
 
 // repoRemovalBlocks reads the disposition blocks of every commit after
-// inventoryReconcileBase that is not on trunk, or of every such commit
-// when trunk is empty, and reports each malformed one, since a block the
-// parser drops would otherwise escape the check.
+// inventoryReconcileBase that is not on trunk, and reports each malformed
+// one, since a block the parser drops would otherwise escape the check. A
+// trunk that is empty, or names no remote-tracking ref, excludes nothing.
 func repoRemovalBlocks(t *testing.T, root, trunk string) (blocks []removalBlock, malformed []string) {
 	t.Helper()
 	commits, err := check.WalkInstructionCommits(context.Background(), root, inventoryReconcileBase+"..HEAD", trunk)
@@ -994,6 +994,9 @@ func TestInventoryReconcileFindings(t *testing.T) {
 	}{
 		{"a valid set reports nothing", "", false, removalBlock{}, "", ""},
 		{"a row carried only by a commit already on trunk", "moved", true, removalBlock{}, "", ""},
+		{"a block already on trunk is not judged again", "", true, block("late", `shipped "x"`, "copy of "+inventoryFragment), "", ""},
+		{"a block naming only its row carries it out", "moved", false, block("rm", "moved", "relocated to .guidance/project/testing.md"), "", ""},
+		{"a block's destination that does not exist", "", false, block("rm", `moved "x"`, "relocated to .guidance/project/missing.md"), "does not exist", "but row moved decides"},
 		{"an id edit does not carry its row", "tightened", false, block("rm", "tightened G-0491", "reworded"), "row tightened decides", ""},
 		{"a block with another disposition does not carry its row", "moved", false, block("rm", `moved "x"`, "deleted"), "but row moved decides", "row moved decides \"move"},
 		{"a row no block carries out", "moved", false, removalBlock{}, "row moved decides", ""},
@@ -1021,12 +1024,18 @@ func TestInventoryReconcileFindings(t *testing.T) {
 			blocks := slices.DeleteFunc(slices.Clone(valid), func(b removalBlock) bool {
 				return tc.drop != "" && strings.HasPrefix(b.Removed, tc.drop+" ")
 			})
-			if tc.block.SHA != "" {
-				blocks = append(blocks, tc.block)
-			}
 			carriers := blocks
-			if tc.trunk {
-				carriers = valid
+			switch {
+			case tc.trunk:
+				// The case's block, if any, is on trunk: it carries, and
+				// is not judged.
+				carriers = slices.Clone(valid)
+				if tc.block.SHA != "" {
+					carriers = append(carriers, tc.block)
+				}
+			case tc.block.SHA != "":
+				blocks = append(blocks, tc.block)
+				carriers = blocks
 			}
 			findings := inventoryReconcileFindings(blocks, carriers, rows, rowText, exists, resolves, changedBefore)
 			var wants []string
