@@ -12,7 +12,7 @@ acs:
       status: met
     - id: AC-2
       title: Growth is compared with the frozen post-delivery baseline
-      status: open
+      status: met
     - id: AC-3
       title: Every inventory decision has been carried out
       status: met
