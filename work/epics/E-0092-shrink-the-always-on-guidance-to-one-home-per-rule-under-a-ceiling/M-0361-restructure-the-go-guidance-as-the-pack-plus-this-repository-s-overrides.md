@@ -28,7 +28,8 @@ M-0338's after-observation found Go the one language with a project document on 
 - Removing text from `go-conventions.md` changes M-0349 row decisions, so each change is a maintainer decision recorded in M-0349, and the inventory test's reconciliation must accept the blocks that carried a row's earlier decision.
 - The observation reuses `scripts/e0092-observe/` at its pin and M-0334's rubric as committed, with a baseline at M-0338's final commit for T1, T3 and T11 on both hosts.
 - `guidance.enabled` stays `false` until this milestone completes.
-- The harness leaves the hosts' Go build cache at the personal `GOCACHE`, which reached 35 GB and filled the disk during M-0338; free it before a round.
+- The harness leaves the hosts' Go build cache at the personal `GOCACHE`; during M-0338, `du -sh ~/.cache/go-build` printed 35G when the disk filled a second time. Free it before a round.
+- The obligations M-0334's Reviewer notes place on a run of the harness bind this milestone's runs as they bound M-0338's.
 
 ## Design notes
 
