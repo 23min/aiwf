@@ -11,14 +11,14 @@ Give every guidance rule in this repository one home and one clear form. Rules t
 
 E-0094 is done: selected language packs are delivered as tracked files under `.guidance/`, and both host entry points carry a managed routing block that sends a task to `.guidance/project.md`, then the index and the packs it needs. M-0348 observed both hosts following that route from a session started at the repository root, and observed Claude skipping it whenever `CLAUDE.md` already answered.
 
-The primed load today, measured in whitespace-split words on `main` after E-0094:
+The primed load at the epic's start, measured in whitespace-split words on `main` after E-0094:
 
 | Host | Loaded before any task | Words |
 |---|---|---|
 | Claude | `CLAUDE.md`, plus the imported aiwf fragment | 9,543 + 2,235 |
 | Codex | `AGENTS.md` with the fragment rendered inline, plus the required full read of `CLAUDE.md` its preamble demands | 2,503 + 9,543 |
 
-`.guidance/project.md` currently says to read `CLAUDE.md` in full and that it takes precedence over the packs. The largest `CLAUDE.md` sections are Go conventions (4,274 words, mostly aiwf-specific development rules), the stress-test harness (790), what aiwf commits to (543), working with the user (459) and AC promotion (445). The Go pack itself is 285 words.
+At the epic's start, `.guidance/project.md` said to read `CLAUDE.md` in full and that it took precedence over the packs. The largest `CLAUDE.md` sections were Go conventions (4,274 words, mostly aiwf-specific development rules), the stress-test harness (790), what aiwf commits to (543), working with the user (459) and AC promotion (445). The Go pack itself is 285 words.
 
 Repository development rules, aiwf operating guidance and project-adopted language conventions have different owners. A check-backed rule can become a short pointer once its diagnostic states the remedy. G-0676 identifies how root guidance grows during ordinary work; the fence addresses that growth before the reduction starts.
 
