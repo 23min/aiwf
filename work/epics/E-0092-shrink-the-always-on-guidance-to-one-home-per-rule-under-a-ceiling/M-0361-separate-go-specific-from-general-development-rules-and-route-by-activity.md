@@ -8,7 +8,7 @@ depends_on:
 tdd: none
 acs:
     - id: AC-1
-      title: Each disposition block is judged against its row at the block's commit
+      title: The reconciliation judges only blocks after M-0338's end
       status: open
     - id: AC-2
       title: Each on-demand development rule sits where its M-0349 row places it
@@ -35,7 +35,7 @@ Making `go-conventions.md` primed was ruled out, since it takes the primed load 
 
 ## Acceptance criteria
 
-### AC-1 — Each disposition block is judged against its row at the block's commit
+### AC-1 — The reconciliation judges only blocks after M-0338's end
 
 A disposition block is held to the decision its row carried in M-0349's body at the block's own commit, so a row whose decision a later maintainer decision changes leaves the block that carried out the earlier one passing. **Pass criterion**: `inventoryReconcileFindings` reports no finding for a block whose disposition matches its row's decision at the block's commit but not at HEAD, and reports one for a block matching its row at neither; the completeness rule still reports a row whose decision at HEAD no commit carries out. **Edge cases**: a row whose decision changes from a relocation to a deletion as a copy of the Go pack; an id-edit block, still held to the row's text at the freeze. **Code references**: `inventoryReconcileFindings` and `TestE0092Inventory` in `internal/policies/e0092_inventory_test.go`; new cases in `TestInventoryReconcileFindings`.
 
