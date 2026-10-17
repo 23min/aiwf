@@ -45,6 +45,8 @@ const (
 	// inventoryFragmentDir holds the fragment and the host inserts spliced
 	// into it.
 	inventoryFragmentDir = "internal/skills/embedded-guidance/"
+	// inventoryPackDir holds the installed language packs.
+	inventoryPackDir = ".guidance/packs/"
 )
 
 // inventoryHostInserts are the host inserts spliced into the fragment's
@@ -545,9 +547,12 @@ func notIDRune(r rune) bool {
 // still carries its row. A
 // block names its row as the first word of its Removed: value. One naming
 // an id second is an edit M-0336 AC-2 requires: the id must be in the
-// row's text at the freeze, and the block is held to no decision. Every other block must carry its row's
-// decision. A destination path a block names must exist and an entity it
-// names must resolve, while a pointer to a check is not looked up. A block
+// row's text at the freeze, and the block is held to no decision. Every
+// other block must carry its row's decision, except that a row moved on
+// demand also takes a block deleting a passage as a copy of a language
+// pack (M-0361), which carries nothing out: it trims, from the moved rule,
+// what the pack already says. A destination path a block names must exist
+// and an entity it names must resolve, while a pointer to a check is not looked up. A block
 // removing a rule the inventory moves to the shipped fragment, a shipped
 // skill or repository guidance must come after a commit since the base
 // changed its new home.
@@ -607,6 +612,7 @@ func inventoryReconcileFindings(blocks, carriers []removalBlock, rows []invRow, 
 		switch {
 		case !removes:
 			out = append(out, fmt.Sprintf("%s: row %s decides %q, which removes nothing", at, row.Label, row.Disposition))
+		case d.Kind == "on demand" && strings.HasPrefix(b.Disposition, "copy of "+inventoryPackDir):
 		case b.Disposition != want:
 			out = append(out, fmt.Sprintf("%s: disposition %q, but row %s decides %q", at, b.Disposition, row.Label, want))
 		case d.Kind == "fragment" || d.Kind == "skill" || d.Kind == "repository":
@@ -1022,6 +1028,9 @@ func TestInventoryReconcileFindings(t *testing.T) {
 		{"a move removed before its new home changed", "", false, block("late", `shipped "x"`, "copy of "+inventoryFragment), "before any commit adds it", ""},
 		{"a skill move removed before its new home changed", "", false, block("late", `skilled "x"`, "copy of internal/skills/embedded/aiwf-add/SKILL.md"), "before any commit adds it", ""},
 		{"a repository move removed before its new home changed", "", false, block("late", `repoed "x"`, "copy of CLAUDE.md"), "before any commit adds it", ""},
+		{"a moved row takes a block trimming a copy of a pack", "", false, block("rm", `moved "x"`, "copy of .guidance/packs/go/cobra/guide.md"), "", ""},
+		{"a pack copy does not carry a moved row", "moved", false, block("rm", `moved "x"`, "copy of .guidance/packs/go/cobra/guide.md"), "row moved decides", ""},
+		{"a row not moved on demand takes no pack copy", "", false, block("rm", `merged "x"`, "copy of .guidance/packs/go/cobra/guide.md"), "but row merged decides", ""},
 	}
 	for _, tc := range cases {
 		t.Run(tc.name, func(t *testing.T) {
