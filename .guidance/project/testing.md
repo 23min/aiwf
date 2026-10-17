@@ -13,4 +13,4 @@ For doc-shaped ACs, the test is a structural assertion scoped to a named markdow
 - **Render output must be human-verified before an iteration closes.** For rendered UI/docs, run the binary against a real fixture (the kernel's own planning tree), exercise every tab/link/conditional path, then mark done. If you can't run the binary, say so — tests don't stand in for the look.
 - **Test every reachable branch.** Each `if`/`switch`/filter arm needs a test that traverses it, or a `//coverage:ignore <reason>`. Skim uncovered lines before committing; each is a missing test, dead code to delete, or genuinely unreachable (annotate).
 - **Don't paper over a test failure — root-cause it.** A state error (lock contention, projection mismatch, not-found) is information about the system. Dump the state, read the cause. A "manual git commit to keep things clean" inside a test is a yellow flag — the production verb isn't making it.
-- **Golden files** under `testdata/`, synthetic (obviously-fictional) content only.
+- **Golden files** hold synthetic, obviously fictional content only.
