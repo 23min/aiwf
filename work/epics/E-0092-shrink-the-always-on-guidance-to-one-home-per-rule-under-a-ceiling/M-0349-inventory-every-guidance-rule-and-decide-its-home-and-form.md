@@ -60,7 +60,7 @@ Sum the words of the rules placed primed, after their recorded dispositions, for
 ## Constraints
 
 - No guidance text changes in this milestone.
-- Set `guidance.enabled: false` in `aiwf.yaml` at this milestone's start, so no `aiwf update` or `aiwf worktree add` refreshes the installed packs while the inventory is taken; it stays off until M-0338 completes.
+- Set `guidance.enabled: false` in `aiwf.yaml` at this milestone's start, so no `aiwf update` or `aiwf worktree add` refreshes the installed packs while the inventory is taken; it stays off until E-0092's last milestone completes.
 - A rule in the shipped fragment keeps its wording in this epic; a clause moved into one of its rules is added, never in place of its text.
 - The primed test is E-0092's: nearly every task, or harm before the agent would think to look.
 - One home per rule, chosen by audience and placement, as E-0092's constraints set out.
@@ -72,7 +72,7 @@ Sum the words of the rules placed primed, after their recorded dispositions, for
 - A `tighten` row states what the tightened rule must still carry — the obligation and its one-line reason — so review of M-0335 can check the rewrite against it.
 - A check-backed rule is `pointer to` only if its diagnostic already states the remedy or M-0337's audit will make it; otherwise it stays `keep` or `tighten`.
 - A row's label is what a removal commit names in its disposition block, so the inventory test can match the two. Labels are short and not shaped like entity ids.
-- **The inventory test.** One test file under `internal/policies/` parses this table once and carries every check against it: AC-1's coverage, AC-2's and AC-4's table checks, M-0336 AC-5 and AC-6's reconciliation of removal commits, and M-0337 AC-1's coverage of its audit table. Each rule it enforces has one fixture. The coverage checks read the guidance at the commit each table was taken from, so later milestones' edits leave them green. It runs with the policy suite, and E-0092's wrap deletes it once M-0338 records its last run.
+- **The inventory test.** One test file under `internal/policies/` parses this table once and carries every check against it: AC-1's coverage, AC-2's and AC-4's table checks, M-0336 AC-5 and AC-6's reconciliation of removal commits, and M-0337 AC-1's coverage of its audit table. Each rule it enforces has one fixture. The coverage checks read the guidance at the commit each table was taken from, so later milestones' edits leave them green. It runs with the policy suite, and E-0092's wrap deletes it once the epic's last milestone records its last run.
 
 ## Surfaces touched
 
@@ -293,7 +293,7 @@ Environment: the aiwf devcontainer, Linux, `go1.25.12 linux/amd64`, at commit `f
 
 - Obligations this milestone adds, counted from `git diff --stat 34a03de6e..HEAD -- aiwf.yaml internal/` (three files):
   - `guidance.enabled: false` in `aiwf.yaml`; owner E-0092, whose wrap re-enables it;
-  - the inventory test, which every policy-suite run executes and which needs the freeze commit reachable, so a shallow clone fails it; owner E-0092, whose wrap deletes it once M-0338 records its last run;
+  - the inventory test, which every policy-suite run executes and which needs the freeze commit reachable, so a shallow clone fails it; owner E-0092, whose wrap deletes it once the epic's last milestone records its last run;
   - its `guidanceReaderList` entry, which retires with the test, since the reader policy fails on an entry naming no reader.
 - Declined:
   - asserting AC-5's targets as constants: they are a recorded observation, and M-0337 takes its ceilings from `inventoryCeilingTargets` rather than retyping them;

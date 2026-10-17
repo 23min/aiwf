@@ -1,13 +1,13 @@
 # Project guidance
 
 `CLAUDE.md` holds the rules for every task in this repository, and they take
-precedence over the packs. Before the first edit a task governs, read the
-document that matches it:
+precedence over the packs. Before designing or editing what a task governs,
+read the matching document:
 
 - [Testing](project/testing.md) — writing or changing Go tests, choosing an
   acceptance criterion's evidence, the coverage gates, running tests on macOS.
-- [Verb design](project/verb-design.md) — adding or changing a verb, a check
-  rule or the loader.
+- [Verb design](project/verb-design.md) — designing, adding or changing a
+  verb, a check rule or the loader.
 - [Go conventions](project/go-conventions.md) — Go code in this repository;
   where it differs from the Go pack, logging included, it overrides the pack.
 - [Environment](project/environment.md) — setup, the devcontainer, subagent
@@ -20,3 +20,5 @@ document that matches it:
 - [Release](project/release.md) — cutting a release.
 - [Enforcement](project/enforcement.md) — where a rule is enforced, from
   pre-commit to the release tag.
+- [Language packs](index.md) — after any matching document above, the pack
+  for the task's language or toolchain.

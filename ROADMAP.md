@@ -1301,10 +1301,11 @@ Give every guidance rule in this repository one home and one clear form. Rules t
 | M-0335 | Route on-demand guidance through the project router and tighten what moves | done |
 | M-0336 | Remove duplicated guidance and move each rule to its audience's home | done |
 | M-0337 | Audit finding messages and check that guidance paths resolve | done |
-| M-0338 | Record the after observation and re-run the growth report | draft |
+| M-0338 | Record the after observation and re-run the growth report | in_progress |
 | M-0339 | Rewrite the fragment and update the anchors policy | cancelled |
 | M-0349 | Inventory every guidance rule and decide its home and form | done |
 | M-0350 | Ship the instruction-file fence in aiwf check | done |
+| M-0361 | Separate Go-specific from general development rules and route by activity | draft |
 
 ## E-0093 — Enable side-by-side Claude and Codex workflows (done)
 

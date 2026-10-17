@@ -145,7 +145,7 @@ Environment: the aiwf devcontainer, Linux, `go1.25.12 linux/amd64`, on `mileston
   - every anchor added to `m0211OperatingAnchors` is now also an absence rule over development guidance, which the anchor type's comment states;
   - every entity citation in development guidance is a link, and every link from primed text needs a row in the ceiling's read table, ten of them added here; owner: the ceiling policy;
   - the ceilings at 7801 and 7930 words and the fragment's line budget at 172, each with no headroom, so a primed addition needs a removal or a deliberate raise; owner: M-0337, which steps the ceilings down further;
-  - the removal reconciliation and the fragment rule in the inventory test, requiring every disposition block since `aba8c2732` to name its row, the destinations it names to keep existing, and the fragment's frozen words to survive; owner: E-0092, whose wrap deletes the test once M-0338 records its last run;
+  - the removal reconciliation and the fragment rule in the inventory test, requiring every disposition block since `aba8c2732` to name its row, the destinations it names to keep existing, and the fragment's frozen words to survive; owner: E-0092, whose wrap deletes the test once the epic's last milestone records its last run;
   - `check.ParseDispositionBlocks` and `check.WordsSurviveInOrder` are exported; the fence calls both, so they outlive the inventory test.
 - Declined:
   - a denser rewrite of the copy check, and a class rule replacing the read table's per-link rows for ADRs and decisions;
