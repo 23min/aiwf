@@ -63,3 +63,31 @@ Both hosts are observed before and after this milestone's guidance changes, with
 ## Out of scope
 
 - Changing the Go pack itself; its wording belongs to the external source.
+
+## Decisions made during implementation
+
+Each was decided by the maintainer on 2026-10-17.
+
+- **The reconciliation judges only the blocks after M-0338's end.** Judging each block against its row as the block's own commit left it was rejected: it reads M-0349's history to re-judge blocks already judged green while their milestones were open.
+- **One Go document.** The Go-specific testing rules join `go-conventions.md` rather than a Go testing document of their own: most Go tasks write tests and would read both, and a second router entry adds primed words.
+- **A moved rule's clause that repeats a language pack leaves as a copy of the pack.** Most of the Go overlaps are clauses inside rules that also say something the pack does not, so the reconciliation accepts a `copy of` a pack block for a row moved on demand, and that block carries nothing out.
+- **Golden files and testing every branch stay general.** Each holds in any language once the Go pack's `testdata/` clause leaves; M-0349's rows record where every other testing rule went.
+- **The router reaches the Go overrides from the language-pack line.** A Go entry of its own would keep Go the one language with a router line, and an entry presenting `go-conventions.md` as overriding the pack is the shape Claude read instead of the pack in M-0338.
+
+## Validation
+
+### AC-3 — the documents each task needs
+
+Written before the after-run, which runs at `74e8fbd2f`, the last commit to change the guidance. A run needs these documents before its first edit:
+
+| Task | Needs | Needs none of |
+|---|---|---|
+| T1 | the Go pack, `go-conventions.md`, `testing.md`, `verb-design.md` (changing a verb), `environment.md` (checking the flag with a built binary) | — |
+| T3 | the Go pack, `go-conventions.md`, `testing.md` | `environment.md`, `verb-design.md` |
+| T7 | `environment.md` | `testing.md`, the Go pack, `go-conventions.md` |
+| T8 | `testing.md` (a criterion's evidence) | the Go pack, `go-conventions.md`, `environment.md` |
+| T11 | the Go pack, `go-conventions.md`, `testing.md`, `verb-design.md` (changing a verb's output) | `environment.md` |
+| L1 | the Python pack, `testing.md` | the Go pack, `go-conventions.md`, `environment.md` |
+| L2 | the TypeScript pack, `testing.md` | the Go pack, `go-conventions.md`, `environment.md` |
+
+Five judged rules now have part of their text only in the Go pack: `t-parallel` and `table-driven` (T1), the first-parameter half of `context-first` and the code range of `exit-codes` (T1), and the `testdata/` half of `golden-files` (T11). A run that skips the pack can miss them; each is judged as before.
