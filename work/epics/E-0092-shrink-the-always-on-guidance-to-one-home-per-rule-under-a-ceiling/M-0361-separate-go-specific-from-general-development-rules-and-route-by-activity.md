@@ -9,7 +9,7 @@ tdd: none
 acs:
     - id: AC-1
       title: The reconciliation judges only blocks after M-0338's end
-      status: open
+      status: met
     - id: AC-2
       title: Each on-demand development rule sits where its M-0349 row places it
       status: open
