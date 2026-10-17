@@ -35,8 +35,6 @@ Making `go-conventions.md` primed was ruled out, since it takes the primed load 
 
 ## Acceptance criteria
 
-<!-- Planned with aiwfx-plan-milestones after M-0338's wrap. -->
-
 ### AC-1 — Each disposition block is judged against its row at the block's commit
 
 A disposition block is held to the decision its row carried in M-0349's body at the block's own commit, so a row whose decision a later maintainer decision changes leaves the block that carried out the earlier one passing. **Pass criterion**: `inventoryReconcileFindings` reports no finding for a block whose disposition matches its row's decision at the block's commit but not at HEAD, and reports one for a block matching its row at neither; the completeness rule still reports a row whose decision at HEAD no commit carries out. **Edge cases**: a row whose decision changes from a relocation to a deletion as a copy of the Go pack; an id-edit block, still held to the row's text at the freeze. **Code references**: `inventoryReconcileFindings` and `TestE0092Inventory` in `internal/policies/e0092_inventory_test.go`; new cases in `TestInventoryReconcileFindings`.
@@ -56,10 +54,11 @@ Both hosts are observed before and after this milestone's guidance changes, with
 - `guidance.enabled` stays `false` until this milestone completes.
 - The harness leaves the hosts' Go build cache at the personal `GOCACHE`; during M-0338, `du -sh ~/.cache/go-build` printed 35G when the disk filled a second time. Free it before a round.
 - The obligations M-0334's Reviewer notes place on a run of the harness bind this milestone's runs as they bound M-0338's.
+- This milestone changes no file the binary embeds, so nothing it moves ships to a consumer. The wrap records `git diff --stat` over the milestone's range for `internal/skills/embedded*`, `internal/recipe/embedded` and `internal/htmlrender/embedded` under Validation.
 
 ## Design notes
 
-- (planned with the acceptance criteria)
+- M-0338's Decisions made during implementation hold the direction, decided by the maintainer on 2026-10-15 and 2026-10-16. Each row's new placement is a maintainer decision taken when this milestone starts and recorded on its M-0349 row.
 
 ## Out of scope
 
