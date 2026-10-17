@@ -12,7 +12,7 @@ acs:
       status: met
     - id: AC-2
       title: Each on-demand development rule sits where its M-0349 row places it
-      status: open
+      status: met
     - id: AC-3
       title: Before and after, each host reaches the documents its task needs
       status: open
