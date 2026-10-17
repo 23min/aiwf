@@ -103,8 +103,8 @@ linters:
           - errcheck
           - gosec
         path: _test\.go
-      # dupl on _test.go: table-driven tests are idiomatic per .guidance/project/testing.md §
-      # Conventions and routinely produce near-identical subtest bodies by
+      # dupl on _test.go: table-driven tests are idiomatic per .guidance/packs/go/cobra/guide.md §
+      # Testing and routinely produce near-identical subtest bodies by
       # design (varying only the fixture data) — that's expected structure,
       # not the duplicated-logic class G-0423 targets. testutil/ and
       # cellcoverage/ are test-support packages in all but filename (their

@@ -9,7 +9,7 @@ import (
 )
 
 // loadADR0011 reads ADR-0011 (Legal-workflow spec methodology) from
-// disk by resolving the id through the loader, per .guidance/project/testing.md
+// disk by resolving the id through the loader, per .guidance/project/go-conventions.md
 // §"Policy tests that read entity files must resolve via
 // the loader". Returns both the raw body and a sentinel for the
 // error case so individual tests can fail with a clear message.

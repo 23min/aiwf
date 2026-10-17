@@ -8,7 +8,7 @@ import (
 )
 
 // adrBody reads an ADR by resolving its id through the loader, per
-// .guidance/project/testing.md §"Policy tests that read entity files resolve via the
+// .guidance/project/go-conventions.md §"Policy tests that read entity files resolve via the
 // loader" — a hardcoded path breaks on a retitle or an archive sweep.
 func adrBody(t *testing.T, id string) string {
 	t.Helper()

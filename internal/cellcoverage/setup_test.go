@@ -9,7 +9,7 @@ import (
 
 // TestMain seeds the four GIT identity vars once at startup so test
 // functions can call t.Parallel safely (os.Setenv not t.Setenv, which
-// panics under parallel). See .guidance/project/testing.md §"Test discipline".
+// panics under parallel). See .guidance/project/go-conventions.md §"Test discipline".
 func TestMain(m *testing.M) {
 	os.Setenv("GIT_AUTHOR_NAME", "aiwf-test")
 	os.Setenv("GIT_AUTHOR_EMAIL", "test@example.com")

@@ -9,11 +9,11 @@ import (
 
 // TestMain seeds the four GIT identity vars once at startup so test
 // functions can call t.Parallel safely (os.Setenv not t.Setenv, which
-// panics under parallel). See .guidance/project/testing.md §"Test discipline". This
+// panics under parallel). See .guidance/project/go-conventions.md §"Test discipline". This
 // package shells out to git (each scenario's own Setup) and to the
 // aiwf binary under test, so HardenGitTestEnv also applies.
 //
-// Serial skip-list (.guidance/project/testing.md §"Test discipline"): every runRun-driving
+// Serial skip-list (.guidance/project/go-conventions.md §"Test discipline"): every runRun-driving
 // test that reaches runRun's AIWF_LOG* os.Setenv call (past scenario
 // and out-dir resolution, past the binary build) — TestRunCommand_DefaultSeeds,
 // TestRunRun_LockKillScenario_BuildsLockHolderAndRuns (run_test.go),

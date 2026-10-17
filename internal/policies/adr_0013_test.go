@@ -10,7 +10,7 @@ import (
 
 // loadADR0013 resolves ADR-0013 (global-precondition representation;
 // out-of-scope legality classification) through the loader — never a
-// hardcoded path, per .guidance/project/testing.md §"Policy tests that read
+// hardcoded path, per .guidance/project/go-conventions.md §"Policy tests that read
 // entity files must resolve via the loader" — so the test survives
 // rename and archive sweeps. Returns the raw file contents
 // (frontmatter + body).
