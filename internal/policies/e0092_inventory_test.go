@@ -36,6 +36,10 @@ const (
 	// in_progress. Disposition blocks after it name the row they carry out
 	// (M-0336 AC-5); those before it predate the label.
 	inventoryReconcileBase = "aba8c273231fb494ed47e75106c15572e66f585e"
+	// inventoryJudgedFrom is M-0338's final commit. The blocks of commits
+	// up to it were judged while their milestones were open, so only later
+	// ones are judged; every block since the base still carries its row.
+	inventoryJudgedFrom = "24384e301a7c4460312cbf9df97e03decb3ddfdb"
 	// inventoryFragment is the shipped fragment, written F in a home.
 	inventoryFragment = "internal/skills/embedded-guidance/aiwf-guidance.md"
 	// inventoryFragmentDir holds the fragment and the host inserts spliced
@@ -535,9 +539,10 @@ func notIDRune(r rune) bool {
 // (M-0336 AC-5, AC-6), and each row whose decision removes text to a
 // carrier that carries it out (M-0338 AC-3): a block naming the row, not
 // as an id edit, with the row's decided disposition. blocks are the
-// disposition blocks of the commits not yet on trunk, judged here;
-// carriers are those of every commit since the base, trunk included,
-// since a block judged before it reached trunk still carries its row. A
+// disposition blocks judged here, those of the commits after
+// inventoryJudgedFrom not yet on trunk; carriers are those of every
+// commit since the base, trunk included, since a block judged before
+// still carries its row. A
 // block names its row as the first word of its Removed: value. One naming
 // an id second is an edit M-0336 AC-2 requires: the id must be in the
 // row's text at the freeze, and the block is held to no decision. Every other block must carry its row's
@@ -630,12 +635,12 @@ func fragmentLossFindings(frozen, current map[string]string) []string {
 }
 
 // repoRemovalBlocks reads the disposition blocks of every commit after
-// inventoryReconcileBase that is not on trunk, and reports each malformed
-// one, since a block the parser drops would otherwise escape the check. A
-// trunk that is empty, or names no remote-tracking ref, excludes nothing.
-func repoRemovalBlocks(t *testing.T, root, trunk string) (blocks []removalBlock, malformed []string) {
+// from that is not on trunk, and reports each malformed one, since a
+// block the parser drops would otherwise escape the check. A trunk that
+// is empty, or names no remote-tracking ref, excludes nothing.
+func repoRemovalBlocks(t *testing.T, root, from, trunk string) (blocks []removalBlock, malformed []string) {
 	t.Helper()
-	commits, err := check.WalkInstructionCommits(context.Background(), root, inventoryReconcileBase+"..HEAD", trunk)
+	commits, err := check.WalkInstructionCommits(context.Background(), root, from+"..HEAD", trunk)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -742,8 +747,8 @@ func TestE0092Inventory(t *testing.T) {
 	}
 	cfg, _ := config.Load(root)
 	trunk, _ := cfg.AllocateTrunkRef()
-	blocks, malformed := repoRemovalBlocks(t, root, trunk)
-	carriers, _ := repoRemovalBlocks(t, root, "")
+	blocks, malformed := repoRemovalBlocks(t, root, inventoryJudgedFrom, trunk)
+	carriers, _ := repoRemovalBlocks(t, root, inventoryReconcileBase, "")
 	findings = append(findings, malformed...)
 	findings = append(findings, inventoryReconcileFindings(blocks, carriers, rows, rowText, exists,
 		func(id string) bool { return check.EntityResolves(tr, id) }, changedBefore)...)
