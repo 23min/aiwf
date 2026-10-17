@@ -1,7 +1,7 @@
 ---
 id: M-0338
 title: Record the after observation and re-run the growth report
-status: in_progress
+status: done
 parent: E-0092
 depends_on:
     - M-0337
