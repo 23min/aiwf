@@ -1,6 +1,6 @@
 ---
 id: M-0361
-title: Restructure the Go guidance as the pack plus this repository's overrides
+title: Separate Go-specific from general development rules and route by activity
 status: draft
 parent: E-0092
 depends_on:
