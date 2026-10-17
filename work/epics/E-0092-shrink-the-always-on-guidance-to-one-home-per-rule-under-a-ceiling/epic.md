@@ -32,7 +32,7 @@ Repository development rules, aiwf operating guidance and project-adopted langua
 - **Route and tighten, M-0335.** Make `.guidance/project.md` a short task router, move on-demand rules into the documents it names, and apply the inventory's merge and tighten dispositions. The root `CLAUDE.md` keeps only primed rules.
 - **Diagnostics, M-0337.** Audit diagnostics, correct messages that omit the remedy, check that the repository paths development guidance cites exist, and confirm the ceiling for each host. No check-backed rule is cut to a pointer, since the inventory decides none.
 - **After observation, M-0338.** Compare each host against its own frozen baseline, including guidance read during the task, and confirm every inventory decision was carried out.
-- **Go as pack plus overrides, M-0361.** Reduce `go-conventions.md` to what this repository adds to or overrides in the Go pack, route Go work to both, and observe whether Claude now reads the pack.
+- **Go-specific and general development rules apart, M-0361.** Put general development rules in documents named by activity and Go-specific ones in this repository's overrides of the Go pack, read with it; name activities in the router's entries; observe whether each host reads what its task needs and only that.
 
 ## Out of scope
 
@@ -104,7 +104,7 @@ Repository development rules, aiwf operating guidance and project-adopted langua
 - M-0335 — Route on-demand guidance through the project router and tighten what moves; depends on M-0336.
 - M-0337 — Improve diagnostics, check the paths guidance cites, and confirm the ceiling for both hosts; depends on M-0335.
 - M-0338 — Compare behaviour and load against the frozen baseline and confirm every inventory decision was carried out; depends on M-0337.
-- M-0361 — Restructure the Go guidance as the pack plus this repository's overrides; depends on M-0338.
+- M-0361 — Separate Go-specific development rules from general ones and route by activity; depends on M-0338.
 - M-0339 — Cancelled: shortening the shipped fragment's wording is left to a later epic.
 
 ## References
