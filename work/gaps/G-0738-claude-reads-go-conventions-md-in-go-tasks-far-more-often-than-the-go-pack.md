@@ -8,7 +8,7 @@ discovered_in: M-0361
 
 In this repository's Go tasks, Claude reads `.guidance/project/go-conventions.md` far more often than the Go pack, `.guidance/packs/go/cobra/guide.md`, so a Go rule only the pack states often goes unread. The router, `.guidance/project.md`, sends a Go task to the pack and then to `go-conventions.md` from its language-pack line, and `go-conventions.md`'s opening says "Read the pack first."
 
-Measured with E-0092's observation harness (`scripts/e0092-observe/run.sh <checkout> claude <task> <n>`, then `summarize.py <round>`, which counts the runs that read each document before their first edit) in the Linux devcontainer on Claude Code 2.1.296; M-0361's Validation holds the commands, the rounds and the per-round tables. Expected: a run on a Go task reads the pack before its first edit. Observed, in Claude's T1, T3 and T11 runs:
+Measured with E-0092's observation harness (`scripts/e0092-observe/run.sh <checkout> claude <task> <n>`, then `summarize.py <round>`, which counts the runs that read each document before their first edit); E-0092's wrap deleted the harness, and it is read from history at `e8d1d495c` (`git show e8d1d495c:scripts/e0092-observe/run.sh`) in the Linux devcontainer on Claude Code 2.1.296; M-0361's Validation holds the commands, the rounds and the per-round tables. Expected: a run on a Go task reads the pack before its first edit. Observed, in Claude's T1, T3 and T11 runs:
 
 | Checkout | Runs | Opened the router | Read `go-conventions.md` | Read the Go pack |
 |---|---|---|---|---|
