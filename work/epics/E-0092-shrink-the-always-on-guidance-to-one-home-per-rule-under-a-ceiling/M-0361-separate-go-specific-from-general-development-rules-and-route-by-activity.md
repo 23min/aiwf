@@ -1,7 +1,7 @@
 ---
 id: M-0361
 title: Separate Go-specific from general development rules and route by activity
-status: in_progress
+status: done
 parent: E-0092
 depends_on:
     - M-0338
