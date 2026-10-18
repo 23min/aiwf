@@ -11,7 +11,7 @@ package cliutil
 
 import "fmt"
 
-// Exit codes per .guidance/packs/go/cobra/guide.md § CLI.
+// Exit codes per .guidance/project/go-conventions.md § CLI conventions.
 const (
 	ExitOK       = 0 // no error-severity findings (warnings allowed)
 	ExitFindings = 1 // at least one error-severity finding
