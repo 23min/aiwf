@@ -88,8 +88,6 @@ var guidanceReaderList = map[string]guidanceReaderEntry{
 	"internal/policies.TestPolicy_GuidanceCeiling":                               {readerRelationship, "measures each host's primed load against its ceiling"},
 	"internal/policies.TestPolicy_NoDanglingEntityRefsInNarrativeDocs":           {readerRelationship, "checks that every entity reference in the development guidance resolves"},
 	"internal/policies.TestPolicy_GuidanceReaders":                               {readerRelationship, "reads the router to know which documents are guidance"},
-	"internal/policies.TestE0092Inventory":                                       {readerRelationship, "checks M-0349's inventory against the guidance as frozen, each removal against its row, each row that removes text against a commit carrying it out, and the fragment's frozen words against HEAD"},
-	"internal/policies.TestM0337Audit":                                           {readerRelationship, "checks M-0337's audit table against the policies and finding codes the guidance named at the milestone's start"},
 }
 
 // guidanceReaderListFile is where guidanceReaderList lives, for a finding
