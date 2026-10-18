@@ -17,7 +17,7 @@ import (
 // the caller (typically a fresh os.MkdirTemp/t.TempDir) is responsible
 // for that, so the returned path never depends on resolving the
 // process's current working directory. Matches this repo's own
-// worktree-binary discipline (make diag-aiwf's precedent; CLAUDE.md
+// worktree-binary discipline (make diag-aiwf's precedent; .guidance/project/environment.md
 // "Worktree binary discipline"): a stress run builds a fresh binary
 // from source at the start of every run and uses the returned path
 // throughout — never whatever an "aiwf" PATH lookup would resolve,

@@ -213,7 +213,7 @@ func TestRenameArea_PreservesMemberPaths(t *testing.T) {
 	// Structural assertion: write the rewritten aiwf.yaml and re-load it through
 	// the real config parser, then assert the name→paths ASSOCIATION. A substring
 	// check would pass even if a member's paths were emitted under the wrong
-	// member's name (per CLAUDE.md "substring assertions are not structural").
+	// member's name (per .guidance/project/testing.md "substring assertions are not structural").
 	dir := t.TempDir()
 	if werr := os.WriteFile(filepath.Join(dir, config.FileName), res.Plan.Ops[0].Content, 0o644); werr != nil {
 		t.Fatalf("write aiwf.yaml: %v", werr)

@@ -9,14 +9,14 @@ import (
 )
 
 // loadADR0007 reads ADR-0007 from disk by resolving the id through
-// the loader (per CLAUDE.md *Testing* §"Policy tests that read entity
+// the loader (per .guidance/project/go-conventions.md §"Policy tests that read entity
 // files must resolve via the loader"). This survives rename and
 // archive sweeps; an earlier hardcoded-path constant broke when
 // ADR-0007's slug was shortened for the G-0102 cap.
 //
 // The tests are seam-tests against the live document — they assert
 // the doctrinal claims M-078's ACs require, scoped to the relevant
-// markdown section. Per CLAUDE.md *Testing* §"Substring assertions
+// markdown section. Per .guidance/project/testing.md §"Substring assertions
 // are not structural assertions", section-scoped checks beat flat
 // greps because the same word in the wrong section is still wrong.
 func loadADR0007(t *testing.T) string {
@@ -277,8 +277,8 @@ func TestADR0007_AC4_NameWorkedExample(t *testing.T) {
 }
 
 // TestADR0007_AC5_CrossReferences asserts AC-5: the ADR cites
-// ADR-0006 (M-074's skills judgment ADR) and both CLAUDE.md
-// principles named in the AC spec text. The complementary-not-
+// ADR-0006 (M-074's skills judgment ADR) and both kernel principles
+// named in the AC spec text. The complementary-not-
 // overlapping framing must appear (somewhere in the body — that
 // claim is doctrinal and not section-scoped in the spec).
 func TestADR0007_AC5_CrossReferences(t *testing.T) {
@@ -299,11 +299,12 @@ func TestADR0007_AC5_CrossReferences(t *testing.T) {
 		t.Error("AC-5: ADR-0007 must articulate that ADR-0006 covers granularity *within a topic* (this ADR covers placement/tiering across kernel/plugin)")
 	}
 
-	// CLAUDE.md principles cited.
+	// Kernel principles cited: the first is in the verb-design guidance,
+	// the second in CLAUDE.md's engineering principles.
 	principle1 := "Kernel functionality must be AI-discoverable"
 	principle2 := "framework's correctness must not depend on the LLM"
 	if !strings.Contains(body, principle1) {
-		t.Errorf("AC-5: ADR-0007 must cite CLAUDE.md principle %q", principle1)
+		t.Errorf("AC-5: ADR-0007 must cite the verb-design principle %q", principle1)
 	}
 	if !strings.Contains(body, principle2) {
 		t.Errorf("AC-5: ADR-0007 must cite CLAUDE.md principle %q (or equivalent phrasing capturing the same principle)", principle2)

@@ -13,7 +13,7 @@ import (
 // the per-subcode severity that actually ships (illegal-transition +
 // forced-untrailered = error; manual-edit = warning).
 //
-// Structurally scoped per CLAUDE.md §"Substring assertions are not
+// Structurally scoped per .guidance/project/testing.md §"Substring assertions are not
 // structural assertions": the negative assertions run against the
 // extracted R-RULE-149 row and §10.1 legend prose, not the whole
 // catalog. The positive assertions name the implementing milestone

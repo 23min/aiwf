@@ -217,8 +217,7 @@ func FinishVerbOutcome(ctx context.Context, root, label string, outcome *Outcome
 	}
 
 	if !out.JSON() {
-		// Warning-level findings may travel with a successful plan
-		// (e.g., reallocate body-prose mentions).
+		// Warning-level findings may travel with a successful plan.
 		if len(outcome.Findings) > 0 {
 			_ = render.Text(os.Stderr, outcome.Findings)
 		}

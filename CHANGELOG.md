@@ -16,6 +16,44 @@ section in this file.
 
 ## [Unreleased]
 
+### Added — E-0092: `aiwf check` fences commits that change handwritten instructions
+
+`aiwf check` refuses, by default, a commit in the push range that changes handwritten instructions —
+the root `CLAUDE.md` or `AGENTS.md` outside aiwf's generated blocks, `.guidance/project.md`, or a
+handwritten document it links to — when the commit also carries unrelated files
+(`instruction-commit-unrelated-file`), names no entity in an `aiwf-entity` trailer
+(`instruction-commit-entity-missing`), or removes text without a disposition block
+(`instruction-commit-disposition-missing`). The findings are errors, so the pre-push hook blocks the
+push until the commit is split or amended. Set `guidance.fence_instruction_commits: false` in
+`aiwf.yaml` to turn the rule off. Commits already on the configured trunk are not judged when that
+ref is remote-tracking, as the default `refs/remotes/origin/main` is, and the rule runs only where
+the branch has an upstream or `--since <ref>` is passed.
+
+### Changed — E-0092: the shipped guidance states operating rules aiwf's own repository kept to itself
+
+The always-on guidance `aiwf init` and `aiwf update` install now says:
+
+- any deviation from a declared-sequence gate's list — a conflict, a finding, unexpected dirty
+  state, an action not on the list — aborts the sequence and re-gates;
+- a remote-branch delete is an outward action and never batches;
+- a one-at-a-time decision list ends with "something else", the pick is confirmed in one line,
+  and a human asking for "Q&A" or "interview me" asks for the same;
+- whether a closely related issue is fixed in place or filed, what you noticed is surfaced, not
+  silently deferred.
+
+The `aiwf-promote` skill adds that a milestone's `tdd:` setting never waives the evidence an AC
+needs and that the obligation binds at the promote, held at review. The `aiwf-reallocate` skill
+adds how to rule out a stale branch before reallocating on a trunk collision, and now says the
+new id is allocated against every local branch and remote-tracking ref as well as trunk and
+that the verb rewrites mentions of the old id in body prose rather than reporting them.
+
+The `id-rename-untrailered` finding and its hint point at that finding's entry in the
+`aiwf-check` skill.
+
+The `aiwf-check` skill documents the `commit-msg` hook's refusals and the
+`provenance.refuse_coauthors` setting. The rest of E-0092 reorganizes aiwf's own development
+guidance and changes nothing a consumer runs.
+
 ### Changed (internal) — E-0098: aiwf's devcontainer is generated from the house devcontainer kit
 
 Nothing changes for repositories that use aiwf. aiwf's own development container:

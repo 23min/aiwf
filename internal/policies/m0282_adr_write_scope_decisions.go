@@ -47,7 +47,7 @@ var writeScopeDecisionHeadings = []struct {
 // every term a decision would name ("whether it refuses or warns is
 // deferred" contains "refuse"). The distinction is meaning, not
 // vocabulary, so it is a review judgment and belongs at the human gate —
-// which is where CLAUDE.md puts judgment classes no check can cover.
+// which is where .guidance/project/enforcement.md puts judgment classes no check can cover.
 // Overstating this policy's reach is worse than its narrowness: it would
 // be a chokepoint that reads as enforcing and does not.
 //

@@ -187,8 +187,8 @@ func RunProvenanceCheck(ctx context.Context, root string, t *tree.Tree, since st
 	// merge-base(HEAD, trunk)..HEAD for commits that rename
 	// id-bearing entity files without an aiwf-verb trailer in the
 	// rename-class closed set (retitle/rename/reallocate/archive/
-	// move). Catches the CLAUDE.md §"Id-collision resolution at
-	// merge time" failure mode where an operator used inline
+	// move). Catches the failure mode the shipped guidance's rule
+	// against `git mv` names: an operator used inline
 	// `git mv` instead of `aiwf reallocate`. ackedSHAs (M-0159/AC-3
 	// helper-lift) exempts retroactively acknowledged commits.
 	//
@@ -302,7 +302,7 @@ func ResolveUntrailedRange(ctx context.Context, root, since string) (string, *ch
 			advisory := &check.Finding{
 				Code:     check.CodeProvenanceUntrailedScopeUndefined,
 				Severity: check.SeverityWarning,
-				Message: fmt.Sprintf("--since %q does not resolve to a commit; provenance audit and body-section gate skipped",
+				Message: fmt.Sprintf("--since %q does not resolve to a commit; provenance audit, body-section gate and instruction-file fence skipped",
 					since),
 			}
 			return "", advisory, nil
@@ -317,7 +317,7 @@ func ResolveUntrailedRange(ctx context.Context, root, since string) (string, *ch
 	advisory := &check.Finding{
 		Code:     check.CodeProvenanceUntrailedScopeUndefined,
 		Severity: check.SeverityWarning,
-		Message:  "no upstream configured and no --since <ref>; provenance audit and body-section gate skipped",
+		Message:  "no upstream configured and no --since <ref>; provenance audit, body-section gate and instruction-file fence skipped",
 	}
 	return "", advisory, nil
 }

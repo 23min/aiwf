@@ -1,6 +1,7 @@
 package policies
 
 import (
+	"strings"
 	"testing"
 )
 
@@ -107,6 +108,7 @@ func {{{ this does not parse
 		files      map[string]string // rel path -> content
 		wantCount  int
 		wantPolicy string
+		wantDetail string // the remedy clause the violation states
 		wantErr    bool
 	}{
 		{
@@ -125,6 +127,7 @@ func {{{ this does not parse
 			},
 			wantCount:  1,
 			wantPolicy: "git-test-env-harden",
+			wantDetail: "call it after seeding the git identity and before os.Exit(m.Run())",
 		},
 		{
 			name: "CommandContext without harden violates",
@@ -150,6 +153,7 @@ func {{{ this does not parse
 			},
 			wantCount:  1,
 			wantPolicy: "git-test-env-harden",
+			wantDetail: "add a setup_test.go whose TestMain calls it before os.Exit(m.Run())",
 		},
 		{
 			name: "exec with setup lacking TestMain violates",
@@ -248,6 +252,9 @@ func {{{ this does not parse
 			}
 			if tc.wantCount > 0 && vs[0].Policy != tc.wantPolicy {
 				t.Errorf("violation Policy = %q, want %q", vs[0].Policy, tc.wantPolicy)
+			}
+			if tc.wantDetail != "" && !strings.Contains(vs[0].Detail, tc.wantDetail) {
+				t.Errorf("violation Detail = %q, want it to state %q", vs[0].Detail, tc.wantDetail)
 			}
 		})
 	}

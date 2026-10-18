@@ -29,7 +29,7 @@ type documentingPassage struct {
 	relPath string
 	// level and heading scope the structural assertion to one section, so a
 	// surviving phrase elsewhere in the file cannot stand in for the passage
-	// (CLAUDE.md §"Substring assertions are not structural assertions").
+	// (.guidance/project/testing.md §"Substring assertions are not structural assertions").
 	level   int
 	heading string
 	// stopBefore truncates the section at this literal heading line. Needed

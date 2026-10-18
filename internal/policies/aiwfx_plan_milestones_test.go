@@ -20,7 +20,7 @@ const aiwfxPlanMilestonesFixturePath = "internal/skills/embedded-rituals/plugins
 // loadAiwfxPlanMilestonesFixture reads the fixture relative to repo
 // root. The tests under this file are seam-tests against the authored
 // skill body — they assert the doctrinal content G-0079 requires,
-// scoped to the relevant markdown section per CLAUDE.md *Testing*
+// scoped to the relevant markdown section per .guidance/project/testing.md
 // §"Substring assertions are not structural assertions".
 func loadAiwfxPlanMilestonesFixture(t *testing.T) string {
 	t.Helper()

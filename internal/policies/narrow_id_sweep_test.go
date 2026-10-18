@@ -116,6 +116,7 @@ func TestPolicy_NarrowIDLiteralsAllowlisted(t *testing.T) {
 		// proves the comparison canonicalizes rather than string-matches.
 		"internal/check/fsm_history_walker_test.go": "rename identity guard compares canonicalized ids; narrow input proves width-insensitivity",
 		"internal/check/no_cycles_width_test.go":    "the cycle check keys nodes and edges canonically; narrow edges and nodes prove width-insensitivity",
+		"internal/check/instruction_fence_test.go":  "the instruction-file fence resolves its aiwf-entity trailer canonically; a narrow legacy id proves width-insensitivity",
 
 		// Legacy narrow aiwf.yaml bindings and narrow bind/unbind
 		// arguments are the inputs every contracts-block write widens.

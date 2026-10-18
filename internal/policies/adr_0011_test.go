@@ -9,8 +9,8 @@ import (
 )
 
 // loadADR0011 reads ADR-0011 (Legal-workflow spec methodology) from
-// disk by resolving the id through the loader, per CLAUDE.md
-// *Testing* §"Policy tests that read entity files must resolve via
+// disk by resolving the id through the loader, per .guidance/project/go-conventions.md
+// §"Policy tests that read entity files must resolve via
 // the loader". Returns both the raw body and a sentinel for the
 // error case so individual tests can fail with a clear message.
 func loadADR0011(t *testing.T) string {
@@ -55,7 +55,7 @@ func TestADR0011_AC1_AllocationAndCrossReference(t *testing.T) {
 // emptied section here means the methodology has silently lost a
 // commitment.
 //
-// Per CLAUDE.md *Testing* §"Substring assertions are not structural
+// Per .guidance/project/testing.md §"Substring assertions are not structural
 // assertions", this walks the markdown section hierarchy rather than
 // flat-grepping for headings — a `### Independence` line floating
 // outside `## Decision` would not satisfy the AC.

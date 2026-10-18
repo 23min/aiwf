@@ -23,7 +23,7 @@ func EmitVerbOutcome(log *slog.Logger, prefix string, code int, sha string) {
 
 // errorClassForExitCode names the outcome class an operator-facing
 // exit code represents, reusing this repo's own existing exit-code
-// taxonomy (CLAUDE.md §CLI conventions) rather than inventing a
+// taxonomy (.guidance/project/go-conventions.md §CLI conventions) rather than inventing a
 // second one for diagnostic events.
 func errorClassForExitCode(code int) string {
 	switch code {

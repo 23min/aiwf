@@ -12,7 +12,7 @@ import (
 // id.html on a per-kind index page — from that row's opening <tr ...>
 // tag up to its closing </tr> — so a priority-badge assertion is scoped
 // to the one entity's own row, not a flat substring match against the
-// whole table (CLAUDE.md "substring assertions are not structural
+// whole table (.guidance/project/testing.md "substring assertions are not structural
 // assertions"; mirrors areaGroupSlice's containment-scoping idiom).
 //
 // The search is scoped to the <table class="kind-index"> body: every

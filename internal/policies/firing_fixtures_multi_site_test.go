@@ -64,59 +64,6 @@ func TestFiringFixtures_MultiSite(t *testing.T) {
 			files:  map[string]string{"internal/check/x.go": "package check\n\nconst MadeUpCode = \"made-up-code\"\n\nvar _ = Finding{Code: \"other-made-up-code\"}\n"},
 		},
 
-		// m0132-claude-md-devcontainer-section: missing file + present
-		// but missing the ### Devcontainer subsection.
-		{name: "m0132-claude-section/missing", policy: PolicyM0132ClaudeMdDevcontainerSection, files: map[string]string{}},
-		{
-			name:   "m0132-claude-section/no-subsection",
-			policy: PolicyM0132ClaudeMdDevcontainerSection,
-			files:  map[string]string{"CLAUDE.md": "# X\n\n## Operator setup\n\nbody without the devcontainer subsection\n"},
-		},
-
-		// m0128-documentation-hierarchy: missing file (read-error site) +
-		// present-but-no-section (missing-section report branch) +
-		// section-present-but-incomplete (subtree-missing + narrative-file-
-		// missing + bad-tier-name + tier-missing report branches, all four
-		// lit by one fixture body).
-		{name: "m0128-doc-hierarchy/missing", policy: PolicyM0128DocumentationHierarchy, files: map[string]string{}},
-		{
-			name:   "m0128-doc-hierarchy/no-section",
-			policy: PolicyM0128DocumentationHierarchy,
-			files:  map[string]string{"CLAUDE.md": "# X\n\n## Operator setup\n\nbody without the documentation-hierarchy section\n"},
-		},
-		{
-			name:   "m0128-doc-hierarchy/incomplete-and-bad-tier",
-			policy: PolicyM0128DocumentationHierarchy,
-			files: map[string]string{"CLAUDE.md": "# X\n\n## Documentation hierarchy\n\n" +
-				"- **Normative** — docs/adr/, docs/design/, docs/explorations/, docs/research/, docs/initiatives/, architecture.md\n" +
-				"- **Whimsical** — some things\n"},
-		},
-
-		// m0228-skills-policy-broadened-principle: missing file (read-error
-		// site) + present-but-no-section (missing-section report branch) +
-		// section-present-but-no-markers (marker report branch). The three
-		// together light both construction sites and cover every not-green
-		// branch of the section walk.
-		{name: "m0228-skills-policy/missing", policy: PolicyM0228SkillsPolicyBroadenedPrinciple, files: map[string]string{}},
-		{
-			name:   "m0228-skills-policy/no-section",
-			policy: PolicyM0228SkillsPolicyBroadenedPrinciple,
-			files:  map[string]string{"CLAUDE.md": "# X\n\n## Go conventions\n\nbody with no ### Skills policy subsection\n"},
-		},
-		{
-			name:   "m0228-skills-policy/no-markers",
-			policy: PolicyM0228SkillsPolicyBroadenedPrinciple,
-			files:  map[string]string{"CLAUDE.md": "# X\n\n## Go conventions\n\n### Skills policy\n\nshipped skill bodies cite no real entity id, and nothing else here\n"},
-		},
-
-		// m0134-claude-md-test-running-sections: missing + present-malformed.
-		{name: "m0134/missing", policy: PolicyM0134ClaudeMdTestRunningSections, files: map[string]string{}},
-		{
-			name:   "m0134/present-malformed",
-			policy: PolicyM0134ClaudeMdTestRunningSections,
-			files:  map[string]string{"CLAUDE.md": "# X\n\n#### Running tests in the devcontainer (primary)\n\nbody with no required markers\n"},
-		},
-
 		// m0137-ac3-batched-walker: a rule file lacking BulkRevwalk and
 		// BlobReader and still defining a banned per-entity helper lights
 		// all three accumulating lines.

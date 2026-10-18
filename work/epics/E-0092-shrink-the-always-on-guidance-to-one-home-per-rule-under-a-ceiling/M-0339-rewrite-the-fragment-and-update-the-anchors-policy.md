@@ -1,7 +1,7 @@
 ---
 id: M-0339
 title: Rewrite the fragment and update the anchors policy
-status: draft
+status: cancelled
 parent: E-0092
 depends_on:
     - M-0338
@@ -9,13 +9,13 @@ tdd: required
 acs:
     - id: AC-1
       title: Operating anchors have one authored source and valid host renderings
-      status: open
+      status: cancelled
     - id: AC-2
       title: No fragment rule exceeds the per-rule word cap
-      status: open
+      status: cancelled
     - id: AC-3
       title: The operating-anchors policy passes against the rewritten fragment
-      status: open
+      status: cancelled
 ---
 
 ## Goal

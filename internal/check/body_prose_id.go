@@ -313,6 +313,12 @@ func ScanBodyProseID(body []byte, entityID, path string, idx BodyProseIndex) []F
 // divergence between the masker and CommonMark semantics.
 func proseMask(body []byte) string { return maskFor(body, false) }
 
+// ProseMask returns body with everything but its prose text blanked, line
+// structure kept: code spans, code blocks and link destinations are masked,
+// as proseMask describes. A caller outside this package reads prose the
+// same way the id rules do.
+func ProseMask(body []byte) string { return proseMask(body) }
+
 // proseAndCodeMask is proseMask widened to also copy code constructs —
 // inline code spans and fenced/indented code blocks. Non-prose link
 // carriers stay blanked, so the doc-link carve-out is unaffected.

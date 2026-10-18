@@ -50,6 +50,7 @@ func TestSchema_EnumeratesEveryYAMLField(t *testing.T) {
 		{Path: "guidance.ignored", Type: "[]string"},
 		{Path: "guidance.wire_claudemd", Type: "*bool"},
 		{Path: "guidance.wire_agentsmd", Type: "*bool"},
+		{Path: "guidance.fence_instruction_commits", Type: "*bool"},
 		{Path: "areas", Type: "config.Areas"},
 		{Path: "areas.members", Type: "[]config.Member"},
 		{Path: "areas.members[].name", Type: "string"},

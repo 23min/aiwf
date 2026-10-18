@@ -102,7 +102,7 @@ The `tree.Tree` loader reads both directories on every load. Cost is small (the 
 - **`aiwf history <id>`** walks across the location move trivially via the existing trailer model — the sweep commit's `aiwf-verb: archive` trailer is recognized by history; the path-rename is what `git log -- <path>` follows for per-id timelines.
 - **`aiwf render --format=html`** segregates archived entities at the index level. Per-kind index pages render active-only by default (the page reachable from the home nav); a separate full-set index page (`<kind>/all.html`) renders the whole set; per-entity HTML pages render regardless of status (so deep links from external sources don't 404). Static `<a>` nav between views — no JS layer. Concrete UI affordances beyond this segregation rule (filter chips, JS-driven view switching, etc.) are render-implementation decisions captured under a downstream render milestone, not pinned by this ADR.
 
-The active-by-default pattern across these surfaces is the discoverability inversion of CLAUDE.md's "Kernel functionality must be AI-discoverable": archived entities are deliberately *less* discoverable in the default scan. AI assistants and humans alike scan active first; archive is opt-in via explicit flag, explicit id reference, or navigation to the full-set surface.
+The active-by-default pattern across these surfaces is the discoverability inversion of [the verb-design guidance](../../.guidance/project/verb-design.md#principles)'s "Kernel functionality must be AI-discoverable": archived entities are deliberately *less* discoverable in the default scan. AI assistants and humans alike scan active first; archive is opt-in via explicit flag, explicit id reference, or navigation to the full-set surface.
 
 ### Migration
 
@@ -157,7 +157,7 @@ No path overlaps. Both verbs can coexist in the same commit if needed (rare but 
 - CLAUDE.md "What aiwf commits to" §3 (pre-push hook is the chokepoint).
 - CLAUDE.md "What aiwf commits to" §5 (framework correctness must not depend on LLM behavior — drift control is a finding, not a skill prompt alone).
 - CLAUDE.md "What aiwf commits to" §7 (every mutating verb produces exactly one git commit — the sweep is one commit).
-- CLAUDE.md "Designing a new verb" — verb-design rule answered by the Reversal section.
+- [Verb-design guidance](../../.guidance/project/verb-design.md#designing-a-new-verb) "Designing a new verb" — verb-design rule answered by the Reversal section.
 - `internal/entity/transition.go::IsTerminal` — source of truth for terminal statuses per kind.
 - `internal/check/check.go::refsResolve`, `internal/entity/refs.go::ForwardRefs` — id-form ref resolution (archive-safe by id-resolution scope spanning active+archive).
 - Companion **ADR-0003** — `finding` (F-NNN) as a seventh entity kind; co-evolved alongside this ADR because findings are the highest-volume archive consumer.

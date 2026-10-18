@@ -1,6 +1,6 @@
 # Contributing to aiwf
 
-`aiwf` is an experimental framework for keeping humans and AI assistants in sync about what's planned, decided, and done. Forward design and rationale live at [`docs/design/design-decisions.md`](docs/design/design-decisions.md); engineering rules live in [`CLAUDE.md`](CLAUDE.md). Read those before sending substantive changes.
+`aiwf` is an experimental framework for keeping humans and AI assistants in sync about what's planned, decided, and done. Forward design and rationale live at [`docs/design/design-decisions.md`](docs/design/design-decisions.md); engineering rules live in [`CLAUDE.md`](CLAUDE.md) and the documents [`.guidance/project.md`](.guidance/project.md) routes to. Read those before sending substantive changes.
 
 ---
 
@@ -8,7 +8,7 @@
 
 The project develops trunk-based on `main`. The contribution path depends on whether you have write access:
 
-- **Maintainers** commit directly to `main`. No PR ceremony, no review queue. The pre-commit and pre-push hooks (`aiwf check`) plus CI are the chokepoints. See [`CLAUDE.md` § Working in this repo](CLAUDE.md#working-in-this-repo).
+- **Maintainers** commit planning state, release commits and doc edits directly to `main`, and put every code change on a branch in a worktree that merges into `main` locally. No PR ceremony, no review queue. The pre-commit and pre-push hooks (`aiwf check`) plus CI are the chokepoints. See [`CLAUDE.md` § Working in this repo](CLAUDE.md#working-in-this-repo).
 - **Outside contributors** propose changes through GitHub. Start with an Issue or Discussion (templates ship under `.github/ISSUE_TEMPLATE/`), then open a PR (`pull_request_template.md` walks the expected body). The `pr-conventions` workflow checks PR title, issue citation, and CHANGELOG touch.
 
 Both paths land on the same trunk; the PR machinery is the protocol for changes coming in from outside the maintainer set, not a parallel internal process.
@@ -68,7 +68,7 @@ Conventional Commits, in the form:
 
 Types: `feat`, `fix`, `docs`, `chore`, `refactor`, `test`, `ci`. Scopes follow the directory/module touched (e.g., `feat(check)`, `fix(verb)`, `docs(adr)`).
 
-Mutating `aiwf` verbs additionally write structured trailers (`aiwf-verb:`, `aiwf-entity:`, `aiwf-actor:`) so `aiwf history <id>` can reconstruct per-entity timelines. See [`CLAUDE.md` § Commit conventions](CLAUDE.md#commit-conventions).
+Mutating `aiwf` verbs additionally write structured trailers (`aiwf-verb:`, `aiwf-entity:`, `aiwf-actor:`) so `aiwf history <id>` can reconstruct per-entity timelines. See [`.guidance/project/verb-design.md` § Commit trailers](.guidance/project/verb-design.md#commit-trailers).
 
 The Apache-2.0 inbound license terms apply to all contributions; by sending a patch you agree your contribution is licensed under [LICENSE](LICENSE). No CLA, no separate paperwork.
 
@@ -84,7 +84,7 @@ The Apache-2.0 inbound license terms apply to all contributions; by sending a pa
 
 - Changes to the six entity kinds, their status sets, or the FSM.
 - Changes to the commit-trailer keys, JSON envelope, or check-rule codes.
-- New verbs (read [`CLAUDE.md` § Designing a new verb](CLAUDE.md#designing-a-new-verb) first).
+- New verbs (read [`.guidance/project/verb-design.md` § Designing a new verb](.guidance/project/verb-design.md#designing-a-new-verb) first).
 - Anything that touches the *what aiwf commits to* list in [`docs/design/design-decisions.md`](docs/design/design-decisions.md).
 
 Open a Discussion before opening a PR; the conversation will save everyone time.

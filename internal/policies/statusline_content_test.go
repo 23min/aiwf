@@ -35,7 +35,7 @@ func loadStatusline(t *testing.T) string {
 // expansions break the instant the embedded tab is reflowed to spaces —
 // the sync indicator silently drops out of the rendered statusline.
 //
-// Two anchored assertions per CLAUDE.md's "substring assertions are not
+// Two anchored assertions per .guidance/project/testing.md's "substring assertions are not
 // structural assertions" rule:
 //
 //   - Presence: the exact form `read -r ahead behind <<<"$counts"` appears
@@ -97,7 +97,7 @@ func TestStatusline_M0153_AC2_AheadBehindParseRobust(t *testing.T) {
 // position-check failure path — export present but landing *after* the
 // first git call — is exercisable from a synthetic body. The live
 // statusline currently passes all three branches, so without this
-// helper the failure-side branch would never be tested (and CLAUDE.md's
+// helper the failure-side branch would never be tested (and .guidance/project/testing.md's
 // branch-coverage hard rule would not be satisfied).
 func statuslineExportAndFirstGitIdx(body string) (exportIdx, firstGitIdx int) {
 	exportLine := regexp.MustCompile(`^\s*export\s+GIT_OPTIONAL_LOCKS=0\b`)
@@ -144,7 +144,7 @@ func TestStatusline_M0153_AC3_GitIndexLockHardened(t *testing.T) {
 //   - git missing, export present (defensive — AC-3 t.Fatal's on this)
 //   - git present only as a comment-line mention (skip-comment rule)
 //
-// Per CLAUDE.md's branch-coverage hard rule — every reachable branch in
+// Per .guidance/project/testing.md's branch-coverage hard rule — every reachable branch in
 // the helper must have an explicit test exercising it.
 func TestStatuslineExportAndFirstGitIdx_BranchCoverage(t *testing.T) {
 	t.Parallel()

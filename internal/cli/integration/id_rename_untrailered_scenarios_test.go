@@ -37,9 +37,8 @@ import (
 // TestIDRenameUntrailered_AC4_InlineGitMvFiresFinding pins the
 // load-bearing claim: an inline `git mv` of an id-bearing entity
 // file, committed without an aiwf-verb trailer, fires the new
-// rule. Mirrors CLAUDE.md §"Id-collision resolution at merge
-// time" — the operator-discipline failure mode where someone
-// resolves a trunk-collision via direct git mv instead of
+// rule: the failure mode the shipped guidance's rule against
+// `git mv` names, where someone resolves a trunk-collision via direct git mv instead of
 // `aiwf reallocate <id-or-path>`.
 //
 // Setup:
@@ -61,7 +60,7 @@ func TestIDRenameUntrailered_AC4_InlineGitMvFiresFinding(t *testing.T) {
 	RunScenarios(t, []Scenario{
 		{
 			CellID: "branch-cell-m0160-ac4-c1",
-			Name:   "inline git mv of an id-bearing entity file with no aiwf-verb trailer fires id-rename-untrailered (M-0160/AC-4: CLAUDE.md §Id-collision)",
+			Name:   "inline git mv of an id-bearing entity file with no aiwf-verb trailer fires id-rename-untrailered (M-0160/AC-4)",
 			Setup: func(t *testing.T, env *ScenarioEnv) {
 				t.Helper()
 

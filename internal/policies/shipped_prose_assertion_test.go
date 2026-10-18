@@ -286,14 +286,9 @@ func TestDetectProseAssertions(t *testing.T) {
 	}
 }
 
-// TestDetectProseAssertions_EmbeddedTreeNeedsNoRead pins the skills package's
-// access pattern: shipped bytes arrive through a `//go:embed` directive, so a
-// rule keyed on file reads alone would see that whole package as touching
-// nothing.
-func TestDetectProseAssertions_EmbeddedTreeNeedsNoRead(t *testing.T) {
-	t.Parallel()
-
-	src := `package pkg
+// embeddedGuidanceTest reaches shipped bytes through a `//go:embed`
+// directive and asserts a phrase in them.
+const embeddedGuidanceTest = `package pkg
 
 //go:embed embedded-guidance/aiwf-guidance.md
 var guidanceEmbed []byte
@@ -307,6 +302,27 @@ func TestGuidance(t *testing.T) {
 	}
 }
 `
+
+// TestScanPackageForProseAssertions_KeepsEmbedDirectives pins that the package
+// parse keeps comments: a `//go:embed` directive is one, and a scan that drops
+// it no longer sees the embedded tree the test asserts on.
+func TestScanPackageForProseAssertions_KeepsEmbedDirectives(t *testing.T) {
+	t.Parallel()
+	root := t.TempDir()
+	repoFileWriter(t, root)("pkg/g_test.go", embeddedGuidanceTest)
+	if got, err := scanPackageForProseAssertions(root, "pkg"); err != nil || len(got) != 1 {
+		t.Errorf("got %+v, %v; want 1 violation for the embedded-tree read", got, err)
+	}
+}
+
+// TestDetectProseAssertions_EmbeddedTreeNeedsNoRead pins the skills package's
+// access pattern: shipped bytes arrive through a `//go:embed` directive, so a
+// rule keyed on file reads alone would see that whole package as touching
+// nothing.
+func TestDetectProseAssertions_EmbeddedTreeNeedsNoRead(t *testing.T) {
+	t.Parallel()
+
+	src := embeddedGuidanceTest
 	fset, files, paths := parseSyntheticPackage(t, map[string]string{"g_test.go": src})
 	got := detectProseAssertions(fset, files, paths)
 	if len(got) != 1 {

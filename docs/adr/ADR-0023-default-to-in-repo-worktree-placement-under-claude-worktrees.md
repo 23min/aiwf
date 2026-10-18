@@ -71,4 +71,4 @@ default for session and epic worktrees.
 
 - Epic: E-0046 — Formalize in-repo worktrees as the default placement.
 - Milestones: M-0188 (loader guard), M-0189 (`worktree.dir` knob), M-0190 (ritual default).
-- CLAUDE.md — "Subagent worktree isolation", "Worktree binary discipline".
+- [Environment guidance](../../.guidance/project/environment.md) — "Subagent worktree isolation", "Worktree binary discipline".

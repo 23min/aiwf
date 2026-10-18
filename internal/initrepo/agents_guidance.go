@@ -60,5 +60,5 @@ func ensureAgentsGuidance(ctx context.Context, root string, cfg *config.Config, 
 }
 
 func spliceAgentsGuidance(content, body string) (string, error) {
-	return pathutil.SpliceManagedBlock(content, body, guidanceImportStartMarker, guidanceImportEndMarker, "<!-- aiwf:guidance:")
+	return pathutil.SpliceManagedBlock(content, body, guidanceImportStartMarker, guidanceImportEndMarker, guidanceImportPrefix)
 }

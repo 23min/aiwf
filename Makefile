@@ -72,7 +72,7 @@ install:
 	fi
 
 # Build a worktree-scoped aiwf binary at ./bin/aiwf-diag and print its
-# absolute path. The convention (per CLAUDE.md *Worktree binary discipline*):
+# absolute path. The convention (per .guidance/project/environment.md *Worktree binary discipline*):
 # when diagnosing aiwf behavior against the current worktree source, run
 # `make diag-aiwf` and invoke the printed path. Avoids the silent-stale
 # PATH-binary trap that prompted G-0147.
@@ -154,12 +154,16 @@ test-cov:
 # policy has a test that covers its firing branch) plus its no-stale
 # allowlist check, and the skill-edit provenance backstop (G-0220 /
 # D-0071 — a ritual SKILL.md edit must ride a commit whose aiwf-entity
-# trailer names a real entity). It generates a fresh atomic-mode
-# profile, then delegates to coverage-gate-only. The diff-scoped gates
-# compare the base against the working tree, so uncommitted changes are
-# in scope and you need not commit first — except the skill-edit
-# provenance backstop, which judges commits, since an uncommitted edit
-# carries no provenance to judge. CI runs the same gates in the
+# trailer names a real entity), and the instruction-file fence (ADR-0053 —
+# aiwf check's rule, compiled from this tree: a commit changing handwritten
+# instructions carries only allowed companions, names a real entity, and
+# records a disposition for text it removes). It
+# generates a fresh atomic-mode profile, then delegates to
+# coverage-gate-only. The diff-scoped gates compare the base against the
+# working tree, so uncommitted changes are in scope and you need not
+# commit first — except the skill-edit provenance backstop, the co-author
+# ban and the instruction-file fence, which judge commits, since an uncommitted
+# edit carries no trailer or message to judge. CI runs the same gates in the
 # test job.
 coverage-gate:
 	go test -exec=$(TEST_EXEC) -covermode=atomic -coverprofile=coverage.out -coverpkg=./internal/... -parallel 8 ./...
@@ -213,7 +217,7 @@ coverage-gate-only:
 	fi; \
 	AIWF_COVERAGE_PROFILE="$(CURDIR)/coverage.out" \
 	AIWF_COVERAGE_BASE="$$base" \
-	go test -exec=$(TEST_EXEC) -run '^TestPolicy_(BranchCoverageAudit|FiringFixturePresence|FiringFixtureNoStaleAllowlist|SkillEditProvenanceBackstop|CommentHistoryAttrition|TestExecutableWrite|CoauthorTrailerBan)$$' -count=1 ./internal/policies/
+	go test -exec=$(TEST_EXEC) -run '^TestPolicy_(BranchCoverageAudit|FiringFixturePresence|FiringFixtureNoStaleAllowlist|SkillEditProvenanceBackstop|CommentHistoryAttrition|TestExecutableWrite|CoauthorTrailerBan|InstructionFence)$$' -count=1 ./internal/policies/
 
 # comment-history-audit is the focused whole-tree run of the comment
 # history-attrition scan — the surface the wf-codebase-health rubric's
@@ -348,7 +352,7 @@ e2e:
 
 # stress runs cmd/stresstest's whole scenario catalog, STRESS_REPEAT
 # attempts per scenario, against a freshly built aiwf binary (see
-# CLAUDE.md "Stress-test harness"). Opt-in and dev-only: not part of
+# .guidance/project/stress-harness.md). Opt-in and dev-only: not part of
 # `make ci`. Override the per-scenario repeat count with STRESS_REPEAT=N.
 STRESS_REPEAT ?= 5
 

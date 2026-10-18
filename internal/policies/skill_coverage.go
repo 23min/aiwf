@@ -43,7 +43,7 @@ import (
 //
 // Judgment-shaped decisions (when to use a per-verb skill vs. a
 // topical multi-verb skill, when --help suffices) live in the
-// companion ADR and CLAUDE.md `Skills policy` section. This policy
+// companion ADR and .guidance/project/shipped-content.md `Skills policy` section. This policy
 // captures only the mechanical companion.
 func PolicySkillCoverageMatchesVerbs(root string) ([]Violation, error) {
 	kernelSkills, err := loadEmbeddedSkillsForPolicy(root)
@@ -117,26 +117,26 @@ func checkSkillFrontmatter(skills []embeddedSkillEntry, prefix string) []Violati
 			out = append(out, Violation{
 				Policy: "skill-coverage",
 				File:   s.relPath,
-				Detail: "skill is missing a `name:` frontmatter field",
+				Detail: fmt.Sprintf("skill is missing a `name:` frontmatter field; add `name: %s`", s.dirName),
 			})
 		case s.frontmatterName != s.dirName:
 			out = append(out, Violation{
 				Policy: "skill-coverage",
 				File:   s.relPath,
-				Detail: fmt.Sprintf("skill `name: %s` does not match its directory %q", s.frontmatterName, s.dirName),
+				Detail: fmt.Sprintf("skill `name: %s` does not match its directory %q; set it to `name: %s`, or rename the directory to match", s.frontmatterName, s.dirName, s.dirName),
 			})
 		case !strings.HasPrefix(s.frontmatterName, prefix) || len(s.frontmatterName) <= len(prefix):
 			out = append(out, Violation{
 				Policy: "skill-coverage",
 				File:   s.relPath,
-				Detail: fmt.Sprintf("skill name %q does not match the `%s<topic>` convention", s.frontmatterName, prefix),
+				Detail: fmt.Sprintf("skill name %q does not match the `%s<topic>` convention; rename the skill and its directory to `%s<topic>`", s.frontmatterName, prefix, prefix),
 			})
 		}
 		if strings.TrimSpace(s.description) == "" {
 			out = append(out, Violation{
 				Policy: "skill-coverage",
 				File:   s.relPath,
-				Detail: "skill is missing a `description:` frontmatter field — the host's match-scoring depends on it",
+				Detail: "skill is missing a `description:` frontmatter field — the host's match-scoring depends on it; add one saying when to use the skill",
 			})
 		}
 	}
@@ -229,7 +229,7 @@ func checkSkillBodyMentionsResolve(
 				out = append(out, Violation{
 					Policy: "skill-coverage",
 					File:   s.relPath,
-					Detail: fmt.Sprintf("skill body references `aiwf %s` but %q does not resolve to a registered command path (the inverse of the kernel principle that AI-discoverable functionality must resolve)", m.path, m.path),
+					Detail: fmt.Sprintf("skill body references `aiwf %s` but %q does not resolve to a registered command path (the inverse of the kernel principle that AI-discoverable functionality must resolve); correct the reference to a registered command path, or remove it", m.path, m.path),
 				})
 			}
 		}

@@ -123,6 +123,8 @@ func TestCheckClaimGuardPresence_RowTheScanCannotSeeFires(t *testing.T) {
 		scopedFuncs(),
 	)
 	assertDetail(t, vs, "no package-level function by that name")
+	assertDetail(t, vs, "if the row is stale, correct it to name the package-level function")
+	assertDetail(t, vs, "if it names a method, move the same-state comparison and its NoOp return into a package-level function under internal/verb that calls guardClaim in its prelude")
 }
 
 // TestCheckDormantClaimExemptions_ExemptRowThatReachesTheGuardFires is
@@ -181,6 +183,7 @@ func TestValidateExemptClaimReasons_SharedReasonFires(t *testing.T) {
 		{Func: "OtherVerb", Scope: claimScopeNone, Reason: "nothing can contradict the claim"},
 	})
 	assertDetail(t, vs, "record the same exemption reason")
+	assertDetail(t, vs, "give each route its own reason")
 }
 
 // TestValidateExemptClaimReasons_ReasonThatIsJustTheRouteNameFires covers
@@ -382,6 +385,7 @@ func Placeholder() {}
 	}
 	assertDetail(t, vs, "guardClaim is not declared under internal/verb")
 	assertDetail(t, vs, "guardClaimConfig is not declared under internal/verb")
+	assertDetail(t, vs, "point claimGuardWrappers at the wrapper's current name, or restore the wrapper")
 }
 
 // --- The shared call-graph walker -------------------------------------

@@ -1288,7 +1288,7 @@ uniquely holds, and a release's notes rest on whoever cut it remembering.
 | M-0329 | An entity body that omits a required section is refused at the write | done |
 | M-0330 | Check Unreleased against what shipped before the release tag | done |
 
-## E-0092 — Shrink the always-on guidance to one home per rule under a ceiling (active)
+## E-0092 — Shrink the always-on guidance to one home per rule under a ceiling (done)
 
 ### Goal
 
@@ -1296,14 +1296,16 @@ Give every guidance rule in this repository one home and one clear form. Rules t
 
 | Milestone | Title | Status |
 |---|---|---|
-| M-0333 | Fence project guidance while preserving managed updates | draft |
-| M-0334 | Write the rubric, record the baseline, add guidance metrics to growth-report | draft |
-| M-0335 | Route on-demand guidance through the project router and tighten what moves | draft |
-| M-0336 | Remove duplicated project guidance for both hosts | draft |
-| M-0337 | Audit finding messages and cut chokepointed sections to pointers | draft |
-| M-0338 | Record the after observation and re-run the growth report | draft |
-| M-0339 | Rewrite the fragment and update the anchors policy | draft |
-| M-0349 | Inventory every guidance rule and decide its home and form | draft |
+| M-0333 | Fence project guidance while preserving managed updates | done |
+| M-0334 | Write the rubric and record the baseline | done |
+| M-0335 | Route on-demand guidance through the project router and tighten what moves | done |
+| M-0336 | Remove duplicated guidance and move each rule to its audience's home | done |
+| M-0337 | Audit finding messages and check that guidance paths resolve | done |
+| M-0338 | Record the after observation and re-run the growth report | done |
+| M-0339 | Rewrite the fragment and update the anchors policy | cancelled |
+| M-0349 | Inventory every guidance rule and decide its home and form | done |
+| M-0350 | Ship the instruction-file fence in aiwf check | done |
+| M-0361 | Separate Go-specific from general development rules and route by activity | done |
 
 ## E-0093 — Enable side-by-side Claude and Codex workflows (done)
 

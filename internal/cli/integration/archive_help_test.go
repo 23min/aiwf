@@ -12,7 +12,7 @@ import (
 // and worked examples for the three operator-facing call sites
 // (dry-run, --apply, --kind).
 //
-// Binary-level integration per CLAUDE.md §"Test the seam, not just
+// Binary-level integration per .guidance/project/testing.md §"Test the seam, not just
 // the layer": Cobra's help output composes the `Use:` line, `Short:`,
 // `Long:`, the flag table, and `Example:` — testing the verb's
 // definition struct in isolation would miss any future refactor that

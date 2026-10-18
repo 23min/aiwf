@@ -1,10 +1,14 @@
 package policies
 
 import (
+	"maps"
 	"os"
 	"path/filepath"
+	"slices"
 	"strings"
 	"testing"
+
+	"github.com/23min/aiwf/internal/projectguidance"
 )
 
 // Synthetic skill paths for the pure-detector table, using an
@@ -360,23 +364,19 @@ func TestSkillEditProvenance_MergeCommitContributesNothing(t *testing.T) {
 	}
 }
 
-// TestSkillEditProvenance_DocumentedInClaudeMd (AC-4) is an absence
-// assertion: no section of CLAUDE.md may state that an embedded-rituals
-// SKILL.md edit needs a referencing structural test under
+// TestSkillEditProvenance_RetiredMandateAbsentFromGuidance (AC-4) is an
+// absence assertion: no development guidance document may state that an
+// embedded-rituals SKILL.md edit needs a referencing structural test under
 // internal/policies/. It is a ban, so it pins no wording — it fires only
-// if the retired mandate is re-added.
-//
-// The two named sections are asserted to exist first. Without that, the
-// absence would pass trivially against a CLAUDE.md that had lost the
-// section entirely.
-func TestSkillEditProvenance_DocumentedInClaudeMd(t *testing.T) {
+// if the retired mandate is re-added. It reads every guidance document
+// rather than the sections that describe the backstop, so a section that
+// moves between documents stays in scope.
+func TestSkillEditProvenance_RetiredMandateAbsentFromGuidance(t *testing.T) {
 	t.Parallel()
-	root := repoRoot(t)
-	data, err := os.ReadFile(filepath.Join(root, "CLAUDE.md"))
-	if err != nil {
-		t.Fatalf("read CLAUDE.md: %v", err)
+	docs := developmentGuidance(repoGuidanceReader(repoRoot(t)))
+	if docs[projectguidance.ClaudeFile] == "" {
+		t.Fatal("no CLAUDE.md in the development guidance — the absence assertion below would be vacuous")
 	}
-	content := string(data)
 
 	// Signatures of the retired content mandate. Each names the old
 	// predicate rather than paraphrasing the prose around it.
@@ -387,14 +387,10 @@ func TestSkillEditProvenance_DocumentedInClaudeMd(t *testing.T) {
 		"skill_edit_structural_test_backstop",
 	}
 
-	for _, heading := range []string{"## Ritual content authoring", "### What's enforced and where"} {
-		section := markdownSection(content, heading)
-		if section == "" {
-			t.Fatalf("CLAUDE.md has no %q section — the absence assertion below would be vacuous", heading)
-		}
+	for _, file := range slices.Sorted(maps.Keys(docs)) {
 		for _, sig := range retired {
-			if strings.Contains(section, sig) {
-				t.Errorf("%q must not state the retired content mandate, but contains %q (D-0071)", heading, sig)
+			if strings.Contains(docs[file], sig) {
+				t.Errorf("%s must not state the retired content mandate, but contains %q (D-0071)", file, sig)
 			}
 		}
 	}

@@ -50,7 +50,7 @@ func resolvePrebuiltBinary(envVar string) (path string, set bool, err error) {
 // The AC-1..AC-5 real-subprocess scenarios all need a built aiwf
 // binary; rebuilding it per test would multiply an already-slow `go
 // build` across dozens of subtests for no benefit. Mirrors this
-// repo's own sync.Once-shared-fixture convention (CLAUDE.md "Test
+// repo's own sync.Once-shared-fixture convention (.guidance/project/go-conventions.md "Test
 // discipline"). Do not mutate the file the returned path names.
 var (
 	sharedBinaryOnce sync.Once

@@ -200,6 +200,10 @@ var hintTable = map[string]string{
 	"entity-body-empty/decision":  "write prose for the named section in the decision body via `aiwf edit-body D-NNN`; Question/Decision/Reasoning are the load-bearing record",
 	"entity-body-empty/contract":  "write prose for the named section in the contract body via `aiwf edit-body C-NNN`; Purpose/Stability are the load-bearing record",
 
+	"instruction-commit-disposition-missing": "record where the removed text went: add to the commit message a `Removed: <what>` line followed by `Disposition: copy of <path>`, `relocated to <path>`, `pointer to <id>`, `reworded` or `deleted` — `git commit --amend` for the last commit, or `git rebase -i <base>` and `reword` for an earlier one — then re-run `aiwf check`",
+	"instruction-commit-entity-missing":      "name the entity the change belongs to: with no `aiwf-entity` trailer, add one — `git commit --amend --trailer \"aiwf-entity: <id>\"`; with one naming no entity, correct its value in the message — `git commit --amend` — since a second trailer leaves the first one judged; for an earlier commit use `git rebase -i <base>` and `reword`; `aiwf list` shows the ids that exist — then re-run `aiwf check`",
+	"instruction-commit-unrelated-file":      "an instruction-file edit is its own commit: split this file out before pushing — `git reset --soft HEAD~1` for the last commit, or `git rebase -i <base>` and `edit` for an earlier one — then commit the instruction files and this file separately and re-run `aiwf check`",
+
 	// entity-body-section-dropped: a pushed commit left a required section
 	// out of an entity's body. The remedy restores the heading and, for the
 	// born-complete kinds, its content — an empty required section there is
@@ -280,7 +284,7 @@ var hintTable = map[string]string{
 	// M-0137/AC-4: history-walk-error subcode. The M-0130 walker
 	// silently swallowed walker failures; M-0137 surfaces them as
 	// findings so one transient subprocess error doesn't wipe the
-	// rule's output (per CLAUDE.md §Engineering principles).
+	// rule's output (per .guidance/project/verb-design.md §Principles).
 	"fsm-history-consistent/history-walk-error": "the walker hit a real failure reading the named entity's commit history (subprocess crash, blob read error, context cancelled mid-walk); other entities' findings are still surfaced alongside per the partial-preservation contract. Re-run `aiwf check` to confirm whether the failure is transient; if it repeats on a full clone, inspect git's reachable-objects health (`git fsck`) or the consumer-repo permissions on `.git/objects/`. On a partial clone (`--filter=blob:none` or similar) the blob is omitted by design and the walk needs it: re-enable lazy fetching if it is off, restore the remote it fetches from, or backfill with `git fetch --refetch --no-filter` — a clone that can still fetch backfills on read and never reports this",
 
 	"contract-config/missing-entity":        "create a contract entity for this id (`aiwf add contract`), or remove the entry from aiwf.yaml.contracts.entries[]",
@@ -334,7 +338,7 @@ var hintTable = map[string]string{
 	// `aiwf history` bridges old→new. Sovereign-human override via
 	// `aiwf acknowledge illegal` is the post-hoc silencing path for
 	// renames that were deliberate.
-	"id-rename-untrailered": "the commit renamed an id-bearing entity file without an `aiwf-verb` trailer in the rename-class set (retitle/rename/reallocate/archive/move). Canonical resolution: run `aiwf reallocate <new-id-or-path>` to record the renumber with the proper trailer set — that rewrites cross-references and bridges `aiwf history` from the old id; alternatively, if the original rename was deliberate sovereign-human work, run `aiwf acknowledge illegal <sha> --reason \"<text>\"` to silence this specific commit's finding without rewriting history. See CLAUDE.md §\"Id-collision resolution at merge time\".",
+	"id-rename-untrailered": "the commit renamed an id-bearing entity file without an `aiwf-verb` trailer in the rename-class set (retitle/rename/reallocate/archive/move). Canonical resolution: run `aiwf reallocate <new-id-or-path>` to record the renumber with the proper trailer set — that rewrites cross-references and bridges `aiwf history` from the old id; alternatively, if the original rename was deliberate sovereign-human work, run `aiwf acknowledge illegal <sha> --reason \"<text>\"` to silence this specific commit's finding without rewriting history. See the id-rename-untrailered entry in the aiwf-check skill.",
 
 	// Verb-emitted findings (from internal/verb/).
 	"unexpected-tree-file": "remove the file with `git rm <path>` or move it outside `work/`; if it genuinely belongs there, add a glob to `tree.allow_paths` in aiwf.yaml — but tree-shape changes (new entities, renames, status transitions) go through `aiwf <verb>`, not direct writes",
@@ -371,9 +375,8 @@ var hintTable = map[string]string{
 }
 
 // HintFor returns the canonical action hint for a given code+subcode.
-// Returns "" when no hint is registered. Verb-side findings (e.g.,
-// reallocate-body-reference) call this so the human-facing suggestion
-// stays in one place.
+// Returns "" when no hint is registered. Verb-side findings call this
+// so the human-facing suggestion stays in one place.
 //
 // Two sentences are appended here rather than carried in the table: a
 // ratifiable code's acknowledgment remedy (see ratificationSentence)

@@ -103,7 +103,7 @@ func TestScanSkillBodyID_DedupesPerToken(t *testing.T) {
 // check.Run against an on-disk SKILL.md fixture, exercising the seam the
 // byte-level scanner test cannot: the directory walk, the frontmatter
 // split, and the body-relative-to-file-relative line adjustment. Per
-// CLAUDE.md "Test the seam, not just the layer".
+// .guidance/project/testing.md "Test the seam, not just the layer".
 func TestSkillBodyIDReference_Seam(t *testing.T) {
 	t.Parallel()
 	root := t.TempDir()

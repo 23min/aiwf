@@ -20,7 +20,7 @@ const aiwfxStartMilestoneFixturePath = "internal/skills/embedded-rituals/plugins
 
 // loadAiwfxStartMilestoneFixture reads the fixture relative to repo
 // root. Tests under this file assert M-0105's AC content claims,
-// scoped to the relevant markdown section per CLAUDE.md
+// scoped to the relevant markdown section per .guidance/project/testing.md
 // §"Substring assertions are not structural assertions".
 func loadAiwfxStartMilestoneFixture(t *testing.T) string {
 	t.Helper()

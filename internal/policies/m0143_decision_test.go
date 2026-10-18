@@ -13,7 +13,7 @@ import (
 // prose, and records the chosen representation (status:error + an error
 // object) and the exit-code (ExitFindings) inside its Resolution section.
 //
-// Per CLAUDE.md *Testing* §"Substring assertions are not structural
+// Per .guidance/project/testing.md §"Substring assertions are not structural
 // assertions", the representation/exit-code literals are asserted inside
 // the extracted `## Resolution` section, not flat over the whole file.
 func TestM0143_AC1_Decision(t *testing.T) {

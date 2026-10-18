@@ -21,7 +21,7 @@ func hasFindingCode(fs []Finding, code string) bool {
 // M-0094/AC-1: an active epic with zero drafted milestones surfaces a
 // `epic-active-no-drafted-milestones` warning naming the epic. The test
 // drives through check.Run (not the helper directly) so the seam
-// between the rule and the dispatcher is covered per CLAUDE.md
+// between the rule and the dispatcher is covered per .guidance/project/testing.md
 // *Test the seam, not just the layer*.
 func TestEpicActiveNoDraftedMilestones_FiresOnActiveEpicWithNoDrafts(t *testing.T) {
 	t.Parallel()
@@ -117,7 +117,7 @@ func TestEpicActiveNoDraftedMilestones_IgnoresMilestonesUnderOtherEpics(t *testi
 // pins M-0094/AC-4: the hint surface mentions G-0063 (gap framing) and
 // the start-epic preflight role, so a reader who lands on the finding
 // via `aiwf check` can navigate to the framing without re-deriving it.
-// Substring assertion is appropriate here per CLAUDE.md *Substring
+// Substring assertion is appropriate here per .guidance/project/testing.md *Substring
 // assertions are not structural assertions* — the hint is a single
 // short string, not a structured document where placement matters.
 func TestEpicActiveNoDraftedMilestones_HintReferencesStartEpicPreflight(t *testing.T) {

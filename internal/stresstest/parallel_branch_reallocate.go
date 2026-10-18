@@ -9,9 +9,9 @@ import (
 )
 
 // parallel_branch_reallocate.go — M-0243/AC-1: ParallelBranchReallocateScenario
-// reproduces CLAUDE.md's own "Id-collision resolution at merge time"
-// story literally: two operators, each working from an independent
-// clone of one bare origin, allocate an id from the identical,
+// reproduces the trunk collision the aiwf-reallocate skill
+// resolves: two operators, each working from an independent clone
+// of one bare origin, allocate an id from the identical,
 // unadvanced trunk state. Unlike M-0241/AC-3's
 // CrossWorktreeIDRaceScenario (real concurrent goroutines racing a
 // probabilistic timing window within sibling worktrees of ONE repo),

@@ -137,7 +137,7 @@ func TestAddMilestone_TDDPersisted_None(t *testing.T) {
 }
 
 // TestAddMilestone_TDDFlagCompletes pins shell completion for the
-// flag — required by CLAUDE.md's auto-completion principle and the
+// flag — required by .guidance/project/verb-design.md's auto-completion principle and the
 // drift-prevention test in completion_drift_test.go. The completion
 // must return exactly the closed set.
 func TestAddMilestone_TDDFlagCompletes(t *testing.T) {

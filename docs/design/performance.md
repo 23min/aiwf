@@ -392,4 +392,4 @@ Do 0–1 first and re-measure; they may shrink how much of tier 3 is worth build
   about the other (the M-0219 trap). Name which mechanism you're measuring.
 - **Build a worktree-scoped binary** (`make diag-aiwf`) when diagnosing against
   uncommitted kernel source — the PATH `aiwf` was built from stale code (see
-  CLAUDE.md "Worktree binary discipline").
+  [the environment guidance](../../.guidance/project/environment.md#worktree-binary-discipline), "Worktree binary discipline").

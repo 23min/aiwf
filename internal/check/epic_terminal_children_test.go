@@ -11,7 +11,7 @@ import (
 // terminal status `done` with a non-terminal child milestone surfaces
 // an error-severity `epic-terminal-non-terminal-children` finding
 // naming the epic. Driven through check.Run (not the helper directly)
-// per CLAUDE.md *Test the seam, not just the layer*.
+// per .guidance/project/testing.md *Test the seam, not just the layer*.
 func TestEpicTerminalNonTerminalChildren_FiresOnDoneEpicWithOpenMilestone(t *testing.T) {
 	t.Parallel()
 	tr := makeTree(

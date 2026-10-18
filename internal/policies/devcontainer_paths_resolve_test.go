@@ -13,7 +13,8 @@ func TestPolicyDevcontainerPathsResolve(t *testing.T) {
 
 // TestPolicyDevcontainerPathsResolve_Fixtures drives the rules the policy
 // holds: a named path must exist or, as a glob, match; trailing punctuation
-// is not part of a path; archived ADRs, tests and testdata are out of scope.
+// is not part of a path; a document the project router links to is in
+// scope; archived ADRs, tests and testdata are out of scope.
 func TestPolicyDevcontainerPathsResolve_Fixtures(t *testing.T) {
 	t.Parallel()
 	present := map[string]string{
@@ -41,6 +42,10 @@ func TestPolicyDevcontainerPathsResolve_Fixtures(t *testing.T) {
 		{name: "removed-path-in-adr", firing: true, files: with(map[string]string{"docs/adr/ADR-0001-x.md": "Uses .devcontainer/init.sh\n"})},
 		{name: "archived-adr-ignored", firing: false, files: with(map[string]string{"docs/adr/archive/ADR-0001-x.md": "Uses .devcontainer/init.sh\n"})},
 		{name: "removed-path-in-design-doc", firing: true, files: with(map[string]string{"docs/design/x.md": "Seeded by .devcontainer/init.sh\n"})},
+		{name: "removed-path-in-routed-guidance", firing: true, files: with(map[string]string{
+			".guidance/project.md":             "- [Environment](project/environment.md)\n",
+			".guidance/project/environment.md": "Mechanics live in .devcontainer/init.sh\n",
+		})},
 		{name: "removed-path-in-makefile", firing: true, files: with(map[string]string{"Makefile": "# see .devcontainer/init.sh\n"})},
 		{name: "removed-path-in-project-notes", firing: true, files: with(map[string]string{".devcontainer/project/README.md": "Mechanics live in .devcontainer/init.sh\n"})},
 		{name: "removed-path-in-workflow", firing: true, files: with(map[string]string{".github/workflows/x.yml": "# must match .devcontainer/init.sh\n"})},

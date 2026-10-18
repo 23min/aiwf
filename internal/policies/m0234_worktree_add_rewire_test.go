@@ -1,14 +1,11 @@
 package policies
 
 import (
-	"os"
-	"path/filepath"
-	"strings"
 	"testing"
 )
 
 // m0234_worktree_add_rewire_test.go pins M-0234: every ritual call site
-// and CLAUDE.md section that creates a git worktree names the atomic
+// that creates a git worktree names the atomic
 // `aiwf worktree add` verb (M-0233) instead of a raw `git worktree add`
 // (or, for the call sites that never showed a concrete worktree-creation
 // command at all, instead of leaving the step silent on it) — so a
@@ -36,43 +33,4 @@ func TestM0234_AC1_StartMilestoneCutStepInvokesWorktreeAdd(t *testing.T) {
 		{"the aiwf worktree add verb", "aiwf worktree add", false},
 		{"the aiwf-worktree skill cross-reference", "aiwf-worktree", false},
 	})
-}
-
-// TestM0234_AC4_ClaudeMdWorktreeSectionsCiteWorktreeAdd pins AC-4:
-// CLAUDE.md's "Default to a worktree for any branch work" and "Subagent
-// worktree isolation" sections cite `aiwf worktree add` instead of the
-// raw `git worktree add` two-command sequence, and the subagent-dispatch
-// procedure still passes the absolute worktree path into the subagent's
-// prompt rather than relying on `cd` (unchanged by this milestone — the
-// new verb has no more ability to change a subagent's cwd than the raw
-// command did).
-func TestM0234_AC4_ClaudeMdWorktreeSectionsCiteWorktreeAdd(t *testing.T) {
-	t.Parallel()
-	root := repoRoot(t)
-	raw, err := os.ReadFile(filepath.Join(root, "CLAUDE.md"))
-	if err != nil {
-		t.Fatalf("reading CLAUDE.md: %v", err)
-	}
-	body := string(raw)
-
-	defaultSection := extractMarkdownSection(body, 2, "Default to a worktree for any branch work in this repo")
-	if defaultSection == "" {
-		t.Fatal("AC-4: CLAUDE.md must contain a `## Default to a worktree for any branch work in this repo` section")
-	}
-	if !strings.Contains(defaultSection, "aiwf worktree add") {
-		t.Error("AC-4: `## Default to a worktree for any branch work in this repo` must name `aiwf worktree add`")
-	}
-
-	subagentSection := extractMarkdownSection(body, 2, "Subagent worktree isolation")
-	if subagentSection == "" {
-		t.Fatal("AC-4: CLAUDE.md must contain a `## Subagent worktree isolation` section")
-	}
-	assertMarkers(t, "AC-4: CLAUDE.md Subagent worktree isolation section", subagentSection, []marker{
-		{"the aiwf worktree add verb", "aiwf worktree add", false},
-		{"the aiwf doctor materialization check", "aiwf doctor", false},
-		{"the absolute-path-not-cd instruction", "absolute paths", false},
-	})
-	if strings.Contains(subagentSection, "git worktree add") {
-		t.Error("AC-4: `## Subagent worktree isolation` must not name the raw `git worktree add` two-command sequence anymore")
-	}
 }

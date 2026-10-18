@@ -48,6 +48,8 @@ An AC reaches `met` on evidence, and which evidence depends on what the AC claim
 
 The discriminator between the two is re-derivation: can the claim be rebuilt from artefacts a test can reach? Yes — assert it. No — record it.
 
+The obligation holds whatever the milestone's `tdd:` setting. `tdd:` decides only whether the audit that `met` requires `tdd_phase: done` fires; `tdd: none` never waives the test a standing property needs. The rule binds when you run `aiwf promote <M-NNNN>/AC-N met`: the verb checks no evidence, so the obligation is carried at review.
+
 ### Never satisfy this with a proxy
 
 A proxy is a different, checkable claim written in place of the one the AC made. It is worse than no check at all, because it reads as evidence: a later reader sees a passing assertion and takes the AC as pinned, when what is pinned is something else.

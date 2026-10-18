@@ -14,7 +14,7 @@ import (
 
 // verbenvelope.go — shared subprocess/verb-outcome helpers every
 // scenario in this package depends on: the `--format=json`
-// envelope-decoding machinery (CLAUDE.md "Output":
+// envelope-decoding machinery (.guidance/project/go-conventions.md "Output":
 // {tool,version,status,findings,result,metadata}), first built for
 // M-0241/AC-1's VerbSequenceScenario and reused by AC-2 through AC-5's
 // scenarios; and processWasSignaled, first built for M-0242/AC-1's

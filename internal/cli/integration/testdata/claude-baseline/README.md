@@ -226,3 +226,30 @@ frozen records, and hash the result. The inventories were sorted again.
 | `aiwfx-start-milestone/SKILL.md` | `9350dfffec1a1ac39dc4f05f9566fb644358cb6892677648e80cbaeafed68c1e` | `dceafde94f955c60d7c87ccb87b184f0f399c75eee9b3a3d79a5d606c63a4f7c` |
 | `aiwfx-wrap-epic/SKILL.md` | `be2ea37d2dfeafa272214ab96a01aa1e8bc6e096a3cab2a2baf23c44a8b5f2c7` | `bc579921e510ca8733b599e3eaae35bd91d3b3f3d856a328fe5f7649dbd3e85a` |
 | `wf-patch/SKILL.md` | `4a9055dd141c561e39ac17848f6c58395c6d39ea57a6539480c84d9b4a7f11dc` | `0460911f5b4b9ce7c02464c1d8ded8e4393d1468d570525d328d5835aa5e3e8c` |
+
+## Instruction-file fence exception
+
+M-0350 adds three finding codes to the `aiwf-check` skill's findings table and
+the `guidance.fence_instruction_commits` setting to the shared config schema.
+The six inventories change only `.claude/skills/aiwf-check/SKILL.md` and
+`aiwf.example.yaml`, and, in the four scenarios that scaffold config,
+`aiwf.yaml`; all other records stay frozen.
+
+Provenance: derived in the Linux development container on 2026-10-03 without the
+renderer. The skill record hashes the embedded source bytes, which the adapter
+copies unchanged: the source before the change reproduces the frozen record. For
+the config files, isolated `init --no-prompt` runs with a `v0.36.0`-stamped
+binary built from `143f50210`, before the setting was added, reproduced the
+frozen hashes in all six scenarios. Inserting the line
+`  # fence_instruction_commits: true  # <description>`, the description being
+the `guidance.fence_instruction_commits` entry in `internal/config/schema.go`,
+after the commented `wire_agentsmd` line of each captured file produced the
+expected hashes, and the candidate binary's files matched them. The inventories
+were sorted again.
+
+| Artifact | Original SHA-256 | Updated SHA-256 |
+| --- | --- | --- |
+| `aiwf-check/SKILL.md` | `642ca35f8567665e9faa9000d1d3a3bd707f74e3dc13a2bf2c444a2b401c7642` | `d8ba0de6d3562ec4cb7cdc569ce80952e7fda94afcb9df2711fb2a0c98ff600d` |
+| `aiwf.example.yaml` | `96dc476390b9d7e9e4e6fbf6f75f4b38294992ffd44b269f554d0d1da14ddca2` | `20e2db732aa35b100db23a31d5d9558480217f4e7040b29b4310b38a98ff1b1a` |
+| Scaffolded `aiwf.yaml` | `0c228cad68bc4159a4eb5c86e598c62f90572ad6f93d4892a62dcb9f59425e37` | `947270abfc9c753e39d98147748bcfa20e27538d43cfea83f19cea3c05f0f0e8` |
+| Scaffolded `aiwf.yaml` with hook consent | `b643e6a3f5628f74e5d865b3208b83f7919a54e6fc586a5fdf4f7dbda032af21` | `f22c3b0d0249644483493c5dac208e6c76effbd8cfee137df325ee2101d37d18` |

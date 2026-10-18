@@ -1,9 +1,11 @@
 ---
 id: G-0676
 title: A CLAUDE.md edit rides inside any commit and no gate is specific to it
-status: open
+status: addressed
 priority: high
 discovered_in: E-0092
+addressed_by:
+    - M-0333
 ---
 ## What's missing
 

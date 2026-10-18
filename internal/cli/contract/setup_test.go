@@ -9,7 +9,7 @@ import (
 // t.Parallel() without t.Setenv panics. The identity values are
 // immutable for the test binary's lifetime; once-setup is correct.
 //
-// Serial skip-list (per-package convention, CLAUDE.md "Test
+// Serial skip-list (per-package convention, .guidance/project/go-conventions.md "Test
 // discipline"): these tests omit t.Parallel() because they call
 // t.Setenv, which panics under t.Parallel.
 //   - TestRunBind_FallsBackWhenOutputFormatCarriesNone

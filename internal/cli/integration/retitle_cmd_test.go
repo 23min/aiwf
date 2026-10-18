@@ -310,7 +310,7 @@ func TestRetitle_AC_UnknownRejected(t *testing.T) {
 }
 
 // TestRetitle_DispatcherSeam_TopLevel is the seam test for AC-6 on
-// the top-level path, per CLAUDE.md "Test the seam, not just the
+// the top-level path, per .guidance/project/testing.md "Test the seam, not just the
 // layer". Drives the dispatcher end-to-end and asserts both the on-
 // disk title change AND the trailered commit landed (history finds it).
 func TestRetitle_DispatcherSeam_TopLevel(t *testing.T) {

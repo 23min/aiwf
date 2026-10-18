@@ -39,8 +39,8 @@ assigns to Normative — current truth, kept in lockstep with the code. The tier
 the document contradict each other, and the tier is what a reader sees first: a
 reviewer weighting those files by path reads their dated rule statements as stale
 current-truth and proposes correcting them, which would destroy the record they
-exist to hold. `PolicyM0128DocumentationHierarchy` reports nothing either way,
-because it asserts the section's shape and never opens a file. A declared list
+exist to hold. No check reports it either way: the hierarchy is prose, and
+nothing reads it against the files. A declared list
 expresses the exclusion a subtree cannot — the two files are simply not on it.
 
 The question is now load-bearing rather than editorial. A review pass that audits
@@ -86,8 +86,9 @@ maintains as current truth, excluding generated output and archived snapshots �
 and proceeds. Configuration sharpens that default; it is not a precondition for
 using any surface that needs the answer.
 
-`CLAUDE.md`'s `## Documentation hierarchy` becomes prose that explains the
-classification rather than a second registry of it.
+The [doc-writing guidance](../../.guidance/project/writing-docs.md)'s
+`## Documentation hierarchy` becomes prose that explains the classification rather
+than a second registry of it.
 
 ## Consequences
 
@@ -104,7 +105,7 @@ Consumers who configure nothing keep working, which is what makes this shippable
 rather than a migration.
 
 The cost is two config keys with their unknown-key guard and defaults, and a
-`CLAUDE.md` section that shrinks to explanation. The drift risk that
+guidance section that shrinks to explanation. The drift risk that
 [G-0092](../../work/gaps/archive/G-0092-no-documented-doc-authority-hierarchy.md)
 closed without addressing moves onto a surface a check can reach, though building
 that check is not part of this decision.

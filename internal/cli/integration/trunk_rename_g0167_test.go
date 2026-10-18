@@ -160,8 +160,8 @@ func TestTrunkRenameScenarios_AC2_G0167TrailerDrivenRescue(t *testing.T) {
 					t.Fatalf("fixture sanity check failed: per-commit rename detection on the retitle commit (HEAD~1) does not produce an R<score> line\n(output: %q)\n— G-0167's trailer-driven rescue at internal/gitops/refs.go uses `git show -M --diff-filter=R` per commit; if this returns empty, the rescue silently does nothing and the scenario fails to discriminate. Increase the size of `seedBodyAC2` so the title-line change is a smaller fraction of the retitle commit's per-commit diff (target per-commit similarity > 50%%)", perCommit)
 				}
 			},
-			// AC-promotion evidence anchor (per CLAUDE.md §"AC
-			// promotion requires mechanical evidence"): the
+			// AC-promotion evidence anchor (per internal/skills/embedded/aiwf-promote/SKILL.md
+			// §"Evidence for promoting an AC to `met`"): the
 			// load-bearing mechanical assertion for AC-2 lives in
 			// the Expect block below. The pair (Code:
 			// ids-unique, Subcode: trunk-collision) being ABSENT

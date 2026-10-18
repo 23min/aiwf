@@ -78,7 +78,7 @@ func TestM0158_AC7_RulesAndAntiRulesDeterministicallyOrdered(t *testing.T) {
 //
 // Structural assertion: parse the package's doc.go (or spec.go)
 // via go/ast, extract the package-level doc, and assert the
-// load-bearing tokens are present. Heading-scoped per CLAUDE.md
+// load-bearing tokens are present. Heading-scoped per .guidance/project/testing.md
 // §"Substring assertions are not structural assertions" — the
 // markers must live INSIDE the package doc, not in a function
 // comment.

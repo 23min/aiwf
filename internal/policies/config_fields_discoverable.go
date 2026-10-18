@@ -11,8 +11,8 @@ import (
 // PolicyConfigFieldsAreDiscoverable asserts that every yaml-tagged
 // field on a struct in internal/config/config.go appears in at
 // least one channel an AI assistant routinely consults: an embedded
-// skill, the binary's printHelp output, CLAUDE.md, or any markdown
-// under docs/. Shares readDiscoverabilityChannels with
+// skill, the binary's printHelp output, or any markdown under docs/
+// that is not development guidance. Shares readDiscoverabilityChannels with
 // PolicyFindingCodesAreDiscoverable, so the banner channel's source
 // path is pinned there.
 //
@@ -66,7 +66,7 @@ func PolicyConfigFieldsAreDiscoverable(root string) ([]Violation, error) {
 		out = append(out, Violation{
 			Policy: "config-fields-discoverable",
 			File:   "internal/config/config.go",
-			Detail: "yaml field " + tag + " is declared on a Config struct but not mentioned in any AI-discoverable channel (embedded skills, aiwf <verb> --help, CLAUDE.md, or docs/**/*.md)",
+			Detail: "yaml field " + tag + " is declared on a Config struct but not mentioned in any AI-discoverable channel (embedded skills, aiwf <verb> --help, or docs/**/*.md)",
 		})
 	}
 	return out, nil
