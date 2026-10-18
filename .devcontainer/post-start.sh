@@ -15,6 +15,14 @@ warn() { printf '    ! %s\n' "$*" >&2; }
 
 echo "==> ${DEVKIT_SLUG} devcontainer post-start"
 
+# --- git --------------------------------------------------------------------------------------
+# Docker Desktop's VirtioFS can briefly report the workspace as root-owned after an idle spell,
+# and git then refuses the repo as "dubious ownership". The container holds only our own repos.
+step "git: trust /workspaces/*"
+git config --global --get-all safe.directory 2>/dev/null | grep -qxF '/workspaces/*' \
+  || git config --global --add safe.directory '/workspaces/*' \
+  || warn "could not set git safe.directory"
+
 # --- Claude Code ------------------------------------------------------------------------------
 step "Claude Code: update"
 claude update >/dev/null 2>&1 || warn "claude update failed; keeping $(claude --version 2>/dev/null || echo 'the installed version')"
