@@ -1,7 +1,7 @@
 ---
 id: D-0105
 title: Restate the depended-on Go pack rules in go-conventions.md
-status: proposed
+status: accepted
 relates_to:
     - E-0092
     - M-0361
