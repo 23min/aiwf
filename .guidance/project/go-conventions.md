@@ -2,19 +2,25 @@
 
 This repository's additions to the Go pack, and the places it overrides the pack. Read the pack first.
 
+Where a rule here repeats the pack, it is one this repository depends on.
+
 ## Formatting and linting
 
 - **`golangci-lint`** is the only linter, and CI fails on any finding.
+- No `//nolint` without a one-line rationale.
 - **Never `var _ = x` to silence `unused`.** A blank-identifier alias kept solely to stop `unused`/`staticcheck` flagging reserved-for-future code defeats the check whose job is to find exactly that. No caller → not ready to land; delete it and re-add with its first real caller (the shipped form of this force is `wf-codebase-health` H2).
 
 ## Concurrency
 
+- `context.Context` is the first argument of every IO-touching function, used for cancellation only.
 - Don't stuff request data into a `context.Context` via `WithValue`, except across API boundaries.
 
 ## CLI conventions
 
 - Each verb is a `cobra.Command` with a `runXCmd(...)` body called from `RunE`; wire from `newRootCmd`. Closed-set flag values bind completion via `cobra.FixedCompletions(...)`; entity-id flags use `completeEntityIDFlag(kind)`. Chokepoint: `internal/cli/integration/completion_drift_test.go`.
+- The exit codes are `0` ok, `1` findings, `2` usage, `3` internal.
 - **Exit codes:** a verb returns its code as an `int`, and the `RunE` adapter shuttles it via `*exitError`.
+- Output is human-readable by default, and tool output goes to stdout.
 - **Output:** `--format=json` emits `{ tool, version, status, findings, result, metadata }` (`status` ∈ `ok`/`findings`/`error`); `--pretty` indents. **Diagnostic/operator logging** is opt-in and default-off ([the logging ADR](../../docs/adr/ADR-0017-opt-in-slog-diagnostic-logging-default-off-xdg-state-home-file-route.md)): `log/slog`, configured via `AIWF_LOG`/`AIWF_LOG_FORMAT`/`AIWF_LOG_FILE` (env beats `aiwf.yaml`'s `logging:` block beats the default), writes structured records to a daily-rotated file under the XDG state home by default — never stderr unless explicitly configured there. `forbidigo` (backed by the `logging-chokepoint` AST policy, which also catches `fmt.Fprintln`/`fmt.Fprintf` to `os.Stdout`/`os.Stderr`) bans bare `fmt.Print*` call sites outside the sanctioned `cliutil` text wrappers, so operator-facing text can't silently drift back onto ad hoc prints; diagnostic logging goes through `log/slog` in `internal/logger`, never a bare print.
 - **Flags:** `--help`, `--version`, `-v`, `--pretty` plus verb-specific. No global config files; config via flags, env, or `aiwf.yaml`.
 
@@ -22,13 +28,19 @@ This repository's additions to the Go pack, and the places it overrides the pack
 
 Minimize external deps (one-line justification per new one). `go 1.24` minimum in `go.mod` (the consumer-compatibility floor); CI toolchain is pinned separately to `go-version: "1.25"` (bump CI for stdlib CVEs, bump the floor only for a needed language feature). One `go.mod` for the module.
 
+Binaries build with `CGO_ENABLED=0`, so they are static.
+
 ## Naming
 
 Package names short, lowercase, singular (`entity` not `entities`). Avoid stuttering (`entity.Load`, not `entity.Entity`). Exported identifiers get a doc comment starting with the name.
 
+Acronyms stay capitalized (`parseURL`, `jsonOut`).
+
 ## Testing
 
+- Two or more cases of one function share one table, run as subtests through `t.Run`.
 - A test with one case stays flat rather than table-driven.
+- Golden files go under `testdata/`.
 - **Policy tests that read entity files resolve via the loader** — `tree.Load(ctx, root)` + `Tree.ByID(id)` + `entity.Path`, never a hardcoded `filepath.Join(root, "work", …)` literal (archive sweeps move files; the loader resolves across active and archive). Chokepoint: `PolicyNoHardcodedEntityPaths`.
 
 ### Running tests in the devcontainer (primary)
@@ -40,6 +52,8 @@ Inside the devcontainer (Linux) there is no signing requirement and `go test` ru
 On the macOS host, `go test` must route the per-package test binary through [`scripts/sign-and-run.sh`](../../scripts/sign-and-run.sh) via `-exec` (it ad-hoc-signs on Darwin; no-op on Linux/CI). Skipping it lands you in a Sonoma 14.8.x syspolicyd crash loop that stalls every new process launch. **Do:** `make test`, `make test-race`, `make coverage` (CI carries `-exec=./scripts/sign-and-run.sh` equivalently). **Don't:** bare `go test ./...` (bypasses the wrap; `-race` also hits a fork/exec deadlock). Focused runs outside `make`: `export GOFLAGS="-exec=$(pwd)/scripts/sign-and-run.sh"` then bare `go test`. **Defaults, not a chokepoint** — nothing catches a bare `go test` on the host. (Installing the production binary on Darwin needs the same signing: `make install` and `aiwf upgrade` sign automatically; bare `go install …@ver` does not — sign manually with `codesign -s - -f "$(go env GOPATH)/bin/aiwf"`.)
 
 ## Test discipline
+
+`t.Parallel()` is the first line of every parallelizable test, and `TestMain` seeds shared state with `os.Setenv`, never `t.Setenv`, which panics under `t.Parallel`.
 
 Test files run **parallel-by-default**, nested table subtests included; new test files follow suit. The six load-bearing rules:
 
