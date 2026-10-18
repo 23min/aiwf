@@ -15,7 +15,7 @@ acs:
       status: met
     - id: AC-3
       title: Before and after, each host reaches the documents its task needs
-      status: open
+      status: met
 ---
 ## Goal
 
