@@ -1288,7 +1288,7 @@ uniquely holds, and a release's notes rest on whoever cut it remembering.
 | M-0329 | An entity body that omits a required section is refused at the write | done |
 | M-0330 | Check Unreleased against what shipped before the release tag | done |
 
-## E-0092 — Shrink the always-on guidance to one home per rule under a ceiling (active)
+## E-0092 — Shrink the always-on guidance to one home per rule under a ceiling (done)
 
 ### Goal
 
