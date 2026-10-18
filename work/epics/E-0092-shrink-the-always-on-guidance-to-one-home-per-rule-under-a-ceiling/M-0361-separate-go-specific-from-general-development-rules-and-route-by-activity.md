@@ -14,7 +14,7 @@ acs:
       title: Each on-demand development rule sits where its M-0349 row places it
       status: met
     - id: AC-3
-      title: Before and after, each host reaches the documents its task needs
+      title: Each host's reads and rule verdicts are recorded before and after the change
       status: met
 ---
 ## Goal
@@ -43,7 +43,7 @@ The reconciliation judges the disposition blocks of commits after M-0338's final
 
 Each development rule M-0349's inventory routes on demand sits in the document its row names: a general testing or environment rule in a document whose router entry names the activity it serves, a Go-specific rule only in this repository's Go conventions document, which the router reaches after the Go pack and which repeats from the pack only the rules this repository depends on. Each changed placement or deletion is a maintainer decision recorded on its M-0349 row and carried out by a commit whose disposition block names the row; every destination is a document M-0349's router draft routes, the draft standing as the plan M-0349's ceiling targets are computed from while the live router supersedes its wording. Whether a placement is right is judged at that decision and by AC-3; the test holds the tree to the decisions. **Pass criterion**: at this milestone's last guidance commit `TestE0092Inventory` passes, so every destination is a document the router draft routes, every decision has a commit carrying it out and every block matches its row, and `PolicyGuidanceCeiling` holds both hosts' primed load at their ceilings, under M-0349's targets. **Edge cases**: a live reference to a moved or renamed document is re-pointed, and for a Go comment no check reports a miss; a router reword that adds primed words needs a ceiling raised by maintainer decision. **Code references**: M-0349's inventory and router draft; `.guidance/project.md` and `.guidance/project/`; `internal/policies/e0092_inventory_test.go` and `internal/policies/guidance_ceiling.go`.
 
-### AC-3 — Before and after, each host reaches the documents its task needs
+### AC-3 — Each host's reads and rule verdicts are recorded before and after the change
 
 Both hosts are observed before and after this milestone's guidance changes, with `scripts/e0092-observe/` at its pin and M-0334's rubric as committed. **Pass criterion**: Validation records, for T1, T3, T7, T8, T11, L1 and L2 on Claude Code and Codex at three runs each, a baseline at M-0338's final commit and an after-run at the router's commit, and T1 on Claude repeated at each later commit that changes the guidance: the documents each task is expected to need, written into this spec before the after-run starts; each run's reads before its first edit; each task's loaded words; and the judge's verdicts, with every violation of a rule that held on a host at the baseline recorded with its vote, what the run had read, and the maintainer's judgement of it. It also records the ceiling measure and the growth report at the last commit that changes the guidance as a row of `docs/design/growth.md`. Each record carries the command, the expectation, the observation and the environment: host versions and settings, the checkout and the guidance revision. **Edge cases**: a run lost to a provider error, a host that changes version mid-round, or a timeout the maintainer chooses to redo is redone and named, the lost run kept; a first edit `shapes_scan.py` lists is judged by reading the run; an observation not made stays outstanding. **Code references**: `scripts/e0092-observe/run.sh`, `judge.py`, `summarize.py` and `shapes_scan.py`.
 
@@ -101,7 +101,7 @@ At `10cd6adbe`, whose guidance matches `e8d1d495c`: `TestE0092Inventory` passes 
 
 `git diff --stat 24384e301..HEAD -- 'internal/skills/embedded*' internal/recipe/embedded internal/htmlrender/embedded` at `10cd6adbe` printed nothing, as the constraint requires.
 
-### AC-3 — the documents each task needs
+### AC-3 — Each host's reads and rule verdicts are recorded before and after the change
 
 Written before the after-run, which runs at `74e8fbd2f`, the router's commit. A run needs these documents before its first edit:
 
@@ -117,7 +117,7 @@ Written before the after-run, which runs at `74e8fbd2f`, the router's commit. A 
 
 At `74e8fbd2f`, six judged rules had part of their text only in the Go pack: `t-parallel` and `table-driven` (T1), the first-parameter half of `context-first`, the code range of `exit-codes` and the acronym half of `naming` (T1), and the `testdata/` half of `golden-files` (T11). A run that skips the pack can miss them; each is judged as before.
 
-### AC-3 — the observation
+### AC-3 — Each host's reads and rule verdicts are recorded before and after the change
 
 - **Environment.** The Linux devcontainer. Every Claude run reports Claude Code 2.1.296 in its init event, and every Codex run counted here 0.163.0 as its rollout's `cli_version`; the harness runs Claude as `claude-opus-5-5` at effort `high` and Codex as `gpt-6-astra` at `medium`. The judge is `claude-opus-5-5` at effort `xhigh`, three calls per run, the majority standing. The installed packs are at `9c9ca4b3681c`. `git log 5092de5fd..<checkout> -- scripts/e0092-observe/` is empty at each of the four checkouts, and the sha256 of M-0334's text from `### Loading observations` to `## Surfaces touched` is `2b5b146d…` at each. No run's `doctor.txt` reports a problem.
 - **The personal environment, as each run's `after.txt` hashes it.** The `~/.guidance` overlay at `d7180c35` with no dirty file, the personal rules, `~/.codex/AGENTS.md` and `~/.codex/config.toml` are the same in every run. Three moved with work outside the harness: `~/.claude/settings.json` hashes `46148ccb` through the fourth run at `e92ce85e0` and `623f4289` from the fifth on; `~/.claude/skills` hashes `20863cf2`, `ed20ea2b` and then `04b4e9a6` across the baseline's runs (7, 17 and 24 of them) and `04b4e9a6` in every later run; `~/.codex/skills` hashes `0a7009e3`, `c9e11e02` and `8a45876b` across the baseline's (24, 19 and 5), `c9e11e02` or `8a45876b` in the after-run's (43 and 5), and `8a45876b` in the T1 repeats.
