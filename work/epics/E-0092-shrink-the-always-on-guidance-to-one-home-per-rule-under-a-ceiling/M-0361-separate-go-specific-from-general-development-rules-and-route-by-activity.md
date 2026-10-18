@@ -64,6 +64,10 @@ Both hosts are observed before and after this milestone's guidance changes, with
 
 - Changing the Go pack itself; its wording belongs to the external source.
 
+## Release note
+
+Nothing a consumer sees changes. The guidance this milestone reorganizes is this repository's own development guidance, which aiwf does not ship: `git diff --stat 24384e301..HEAD -- 'internal/skills/embedded*' internal/recipe/embedded internal/htmlrender/embedded` prints nothing.
+
 ## Decisions made during implementation
 
 Each was decided by the maintainer, on 2026-10-17 or, for the table rule and the restated clauses, on 2026-10-18.
@@ -77,6 +81,22 @@ Each was decided by the maintainer, on 2026-10-17 or, for the table rule and the
 - **The router reaches the Go overrides from the language-pack line.** A Go entry of its own would keep Go the one language with a router line, and an entry presenting `go-conventions.md` as overriding the pack is the shape Claude read instead of the pack in M-0338.
 
 ## Validation
+
+### AC-1 — the reconciliation's judged range
+
+`go test -count=1 -run 'TestE0092Inventory$' ./internal/policies/` at `787536bdc`, in E-0092's worktree on go1.25.12, expected to pass once M-0349's rows moved eight testing rules to `go-conventions.md`, passed. With `inventoryJudgedFrom` set to `inventoryReconcileBase`, it reported eight findings, each a block of `1b2bc6c1b` relocating one of those rows to `testing.md`, the decision the row carried before; the file was restored byte for byte afterwards.
+
+### AC-2 — every rule where its row places it
+
+At `10cd6adbe`: `TestE0092Inventory` passes within `make check-fast`; `go test -count=1 -run 'TestPolicy_GuidanceCeiling$' -v ./internal/policies/` printed handwritten primed 1288 (ceiling 1288) and 1428 (ceiling 1428), under M-0349's targets of 1,629 and 1,758; and `aiwf check --since 24384e301` reported 0 errors and no `instruction-*` finding.
+
+### Gates
+
+`make check-fast` at `10cd6adbe`, in E-0092's worktree on go1.25.12, exited 0: `golangci-lint` printed `0 issues.` and all 73 test packages printed `ok`. A run just before it failed only `TestFSMHistoryConsistent_PerfBudget` (30.26s against its 10s budget) under the suite's own load; alone, `go test -count=1 -run 'TestFSMHistoryConsistent_PerfBudget' ./internal/check/` passed in 9.2s, the budget G-0730 tracks.
+
+### Nothing shipped changes
+
+`git diff --stat 24384e301..HEAD -- 'internal/skills/embedded*' internal/recipe/embedded internal/htmlrender/embedded` at `10cd6adbe` printed nothing, as the constraint requires.
 
 ### AC-3 — the documents each task needs
 
@@ -112,3 +132,7 @@ At `74e8fbd2f`, five judged rules had part of their text only in the Go pack: `t
 - **Runs that stopped to ask.** Claude stopped T1 to ask a design question before writing code in none of 6 baseline runs, 3 of 6 at `74e8fbd2f`, none of 6 at `e92ce85e0` and 1 of 6 at `e8d1d495c`; those runs exercise no T1 rule. The after-change runs read `verb-design.md`, which the router now names for changing a verb, in most runs, where the baseline read it in 1 of 6; whether that causes the stops is not measured.
 - **Loaded words.** Task-loaded words fell for Codex T7 (1,876 → 422) and T8 (3,168 → 2,256) and rose where a task now reads `testing.md` or the Go documents, Claude L1 among them (168 → 710).
 - **Growth.** `go test -count=1 -run 'TestPolicy_GuidanceCeiling$' -v ./internal/policies/` at `19982ca38`, whose guidance and policy code match `e8d1d495c`, printed handwritten primed 1288 (ceiling 1288) for Claude Code and 1428 (ceiling 1428) for Codex; `scripts/growth-report.py --at e8d1d495c --baseline 24384e301` printed policy lines 63,153 → 63,167 and test lines 219,811 → 219,825, everything else unchanged. Recorded as the 2026-10-18 row of `docs/design/growth.md`.
+
+## Deferrals
+
+- Claude reaches the Go pack in fewer than half its Go tasks: a gap drafted during this wrap and filed after its review.
