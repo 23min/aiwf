@@ -54,7 +54,7 @@ hooks:
 # Tracked engineering guidance for both supported assistants.
 hosts: [claude-code, codex]
 guidance:
-  enabled: false
+  enabled: true
   packs: [code-health, go/cobra, python/astral, typescript/npm-vitest]
   ignored: [javascript/npm-node]
 # Addresses refused in a Co-Authored-By trailer. Emptying this list
