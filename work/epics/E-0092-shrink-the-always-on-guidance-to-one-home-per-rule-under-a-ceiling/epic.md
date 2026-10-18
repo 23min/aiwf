@@ -63,17 +63,17 @@ Repository development rules, aiwf operating guidance and project-adopted langua
 
 ## Success criteria
 
-- [ ] E-0094 is named as the delivery prerequisite and its completion is verified before implementation.
-- [ ] Every guidance rule, in this repository's guidance and the shipped fragment, has one home chosen by its audience and a recorded disposition; no conflicting rules remain.
-- [ ] Both hosts' handwritten primed words meet their ceilings; the policy catches regrowth and required-read indirection.
-- [ ] Every aiwf repository fences edits to its handwritten instruction files by default (ADR-0053).
-- [ ] No instruction file exists below the repository root; both hosts reach task-relevant guidance through `.guidance/project.md` from a root-started session, and no home-directory language import returns.
-- [ ] Development guidance duplicates neither operating rules nor the selected language packs.
-- [ ] Each moved pin is retired with its reason recorded.
-- [ ] Guidance references and enforcement pointers resolve.
-- [ ] Both hosts have before/after observations of the rules this epic changes, against the frozen baseline, with task-loaded text reported separately.
-- [ ] Growth measurements are recorded, every inventory decision is carried out by a commit that names its row, and no removal falls outside the inventory.
-- [ ] G-0676 and G-0436 are closed against evidence of their claims.
+- [x] E-0094 is named as the delivery prerequisite and its completion is verified before implementation.
+- [x] Every guidance rule, in this repository's guidance and the shipped fragment, has one home chosen by its audience and a recorded disposition; no conflicting rules remain.
+- [x] Both hosts' handwritten primed words meet their ceilings; the policy catches regrowth and required-read indirection.
+- [x] Every aiwf repository fences edits to its handwritten instruction files by default (ADR-0053).
+- [ ] No instruction file exists below the repository root; both hosts reach task-relevant guidance through `.guidance/project.md` from a root-started session, and no home-directory language import returns. Partly met: no instruction file sits below the root and no home-directory import returned, but Claude reaches the Go pack in fewer than half its Go tasks and some of its sessions open no guidance document (G-0738).
+- [ ] Development guidance duplicates neither operating rules nor the selected language packs. Not met for the Go pack: `go-conventions.md` and `testing.md` restate the Go pack rules this repository depends on (D-0105).
+- [x] Each moved pin is retired with its reason recorded.
+- [x] Guidance references and enforcement pointers resolve.
+- [x] Both hosts have before/after observations of the rules this epic changes, against the frozen baseline, with task-loaded text reported separately.
+- [x] Growth measurements are recorded, every inventory decision is carried out by a commit that names its row, and no removal falls outside the inventory.
+- [x] G-0676 and G-0436 are closed against evidence of their claims.
 
 ## Open questions
 
