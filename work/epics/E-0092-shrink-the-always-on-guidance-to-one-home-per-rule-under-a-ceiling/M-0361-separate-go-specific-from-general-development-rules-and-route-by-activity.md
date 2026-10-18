@@ -11,7 +11,7 @@ acs:
       title: The reconciliation judges only blocks after M-0338's end
       status: met
     - id: AC-2
-      title: Each on-demand development rule sits where its M-0349 row places it
+      title: Each changed placement is an M-0349 row decision a commit carries out
       status: met
     - id: AC-3
       title: Each host's reads and rule verdicts are recorded before and after the change
@@ -39,7 +39,7 @@ Making `go-conventions.md` primed was ruled out, since it takes the primed load 
 
 The reconciliation judges the disposition blocks of commits after M-0338's final commit, `24384e301`; each earlier block was judged green while its milestone was open, so a row whose decision this milestone changes leaves the block that carried out the earlier decision unjudged. **Pass criterion**: `TestE0092Inventory` passes once this milestone has changed a row's decision and a commit has carried out the new one, where judging every block since the reconciliation base reports the earlier block; the completeness rule still requires, from every commit since that base, a commit carrying out each row's decision at HEAD. **Edge cases**: a row changed twice within this milestone reports its first block, so each row changes once; a malformed block before that commit is no longer reported, and at `b7ada45ee` none existed. **Code references**: `repoRemovalBlocks` and `TestE0092Inventory` in `internal/policies/e0092_inventory_test.go`.
 
-### AC-2 — Each on-demand development rule sits where its M-0349 row places it
+### AC-2 — Each changed placement is an M-0349 row decision a commit carries out
 
 Each development rule M-0349's inventory routes on demand sits in the document its row names: a general testing or environment rule in a document whose router entry names the activity it serves, a Go-specific rule only in this repository's Go conventions document, which the router reaches after the Go pack and which repeats from the pack only the rules this repository depends on. Each changed placement or deletion is a maintainer decision recorded on its M-0349 row and carried out by a commit whose disposition block names the row; every destination is a document M-0349's router draft routes, the draft standing as the plan M-0349's ceiling targets are computed from while the live router supersedes its wording. Whether a placement is right is judged at that decision and by AC-3; the test holds the tree to the decisions. **Pass criterion**: at this milestone's last guidance commit `TestE0092Inventory` passes, so every destination is a document the router draft routes, every decision has a commit carrying it out and every block matches its row, and `PolicyGuidanceCeiling` holds both hosts' primed load at their ceilings, under M-0349's targets. **Edge cases**: a live reference to a moved or renamed document is re-pointed, and for a Go comment no check reports a miss; a router reword that adds primed words needs a ceiling raised by maintainer decision. **Code references**: M-0349's inventory and router draft; `.guidance/project.md` and `.guidance/project/`; `internal/policies/e0092_inventory_test.go` and `internal/policies/guidance_ceiling.go`.
 
@@ -89,7 +89,7 @@ Each was decided by the maintainer on 2026-10-17, or on the date it names.
 
 `go test -count=1 -run 'TestE0092Inventory$' ./internal/policies/` at `787536bdc`, in E-0092's worktree on go1.25.12, expected to pass once M-0349's rows moved eight testing rules to `go-conventions.md`, passed. With `inventoryJudgedFrom` set to `inventoryReconcileBase`, it reported eight findings, each a block of `1b2bc6c1b` relocating one of those rows to `testing.md`, the decision the row carried before.
 
-### AC-2 — every rule where its row places it
+### AC-2 — Each changed placement is an M-0349 row decision a commit carries out
 
 At `10cd6adbe`, whose guidance matches `e8d1d495c`: `TestE0092Inventory` passes within `make check-fast`; `go test -count=1 -run 'TestPolicy_GuidanceCeiling$' -v ./internal/policies/` printed handwritten primed 1288 (ceiling 1288) and 1428 (ceiling 1428), under M-0349's targets of 1,629 and 1,758; and `aiwf check --since 24384e301` reported 0 errors and no `instruction-*` finding.
 
