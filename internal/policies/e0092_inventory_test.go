@@ -960,8 +960,8 @@ func TestInventoryCeilingTargets(t *testing.T) {
 }
 
 // TestInventoryReconcileFindings pins each reconciliation rule (M-0336
-// AC-5, AC-6, M-0338 AC-3), one case per rule, against a valid set that
-// reports nothing.
+// AC-5, AC-6, M-0338 AC-3, M-0361 AC-2), one case per rule, against a
+// valid set that reports nothing.
 func TestInventoryReconcileFindings(t *testing.T) {
 	t.Parallel()
 	rows, _ := parseInventory(inventoryFixture(inventoryHeader,
@@ -1042,6 +1042,7 @@ func TestInventoryReconcileFindings(t *testing.T) {
 		{"a moved row takes no copy of a document outside the packs", "", false, block("rm", `moved "x"`, "copy of CLAUDE.md"), "but row moved decides", ""},
 		{"a moved row takes no pack path that leaves the packs", "", false, block("rm", `moved "x"`, "copy of .guidance/packs/../project/testing.md"), "but row moved decides", ""},
 		{"a moved row takes no copy of a pack directory", "", false, block("rm", `moved "x"`, "copy of .guidance/packs/go"), "but row moved decides", ""},
+		{"a moved row takes a pack only as a copy of it", "", false, block("rm", `moved "x"`, "pointer to .guidance/packs/go/cobra/guide.md"), "but row moved decides", ""},
 	}
 	for _, tc := range cases {
 		t.Run(tc.name, func(t *testing.T) {
