@@ -9,7 +9,7 @@ import (
 )
 
 // loadADR0012 reads ADR-0012 (Typed Coded error pattern) from disk by
-// resolving the id through the loader, per .guidance/project/testing.md §"Policy
+// resolving the id through the loader, per .guidance/project/go-conventions.md §"Policy
 // tests that read entity files must resolve via the loader" — never a
 // hardcoded path, so the test survives rename and archive sweeps.
 func loadADR0012(t *testing.T) string {

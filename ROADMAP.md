@@ -1305,7 +1305,7 @@ Give every guidance rule in this repository one home and one clear form. Rules t
 | M-0339 | Rewrite the fragment and update the anchors policy | cancelled |
 | M-0349 | Inventory every guidance rule and decide its home and form | done |
 | M-0350 | Ship the instruction-file fence in aiwf check | done |
-| M-0361 | Separate Go-specific from general development rules and route by activity | draft |
+| M-0361 | Separate Go-specific from general development rules and route by activity | in_progress |
 
 ## E-0093 — Enable side-by-side Claude and Codex workflows (done)
 

@@ -4,14 +4,13 @@
 precedence over the packs. Before designing or editing what a task governs,
 read the matching document:
 
-- [Testing](project/testing.md) — writing or changing Go tests, choosing an
-  acceptance criterion's evidence, the coverage gates, running tests on macOS.
+- [Testing](project/testing.md) — writing or changing tests in any language,
+  choosing an acceptance criterion's evidence.
 - [Verb design](project/verb-design.md) — designing, adding or changing a
   verb, a check rule or the loader.
-- [Go conventions](project/go-conventions.md) — Go code in this repository;
-  where it differs from the Go pack, logging included, it overrides the pack.
-- [Environment](project/environment.md) — setup, the devcontainer, subagent
-  worktrees, diagnosing with a binary built from a worktree.
+- [Environment](project/environment.md) — setting up a clone or the
+  devcontainer, dispatching a subagent into a worktree of its own, diagnosing
+  aiwf with a binary built from a worktree.
 - [Shipped content](project/shipped-content.md) — editing embedded skills,
   rituals, templates or the guidance fragment.
 - [Stress harness](project/stress-harness.md) — stress scenarios and their
@@ -21,4 +20,5 @@ read the matching document:
 - [Enforcement](project/enforcement.md) — where a rule is enforced, from
   pre-commit to the release tag.
 - [Language packs](index.md) — after any matching document above, the pack
-  for the task's language or toolchain.
+  for the task's language or toolchain; for Go, then
+  [Go conventions](project/go-conventions.md), which add to and override it.

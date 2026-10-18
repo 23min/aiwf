@@ -74,8 +74,8 @@ type guidanceLoad struct {
 // guidanceHosts are this repository's two hosts. Each ceiling is the
 // host's measured handwritten primed load, so any growth fails the policy.
 var guidanceHosts = []guidanceHost{
-	{Name: "claude-code", Entry: projectguidance.ClaudeFile, Ceiling: 1292},
-	{Name: "codex", Entry: projectguidance.AgentsFile, Ceiling: 1432},
+	{Name: "claude-code", Entry: projectguidance.ClaudeFile, Ceiling: 1288},
+	{Name: "codex", Entry: projectguidance.AgentsFile, Ceiling: 1428},
 }
 
 // guidanceReadTable classifies every reference primed text makes today.

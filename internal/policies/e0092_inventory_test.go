@@ -6,6 +6,7 @@ import (
 	"maps"
 	"os"
 	"os/exec"
+	"path"
 	"path/filepath"
 	"regexp"
 	"slices"
@@ -36,11 +37,17 @@ const (
 	// in_progress. Disposition blocks after it name the row they carry out
 	// (M-0336 AC-5); those before it predate the label.
 	inventoryReconcileBase = "aba8c273231fb494ed47e75106c15572e66f585e"
+	// inventoryJudgedFrom is M-0338's final commit. The blocks of commits
+	// up to it were judged while their milestones were open, so only later
+	// ones are judged; every block since the base still carries its row.
+	inventoryJudgedFrom = "24384e301a7c4460312cbf9df97e03decb3ddfdb"
 	// inventoryFragment is the shipped fragment, written F in a home.
 	inventoryFragment = "internal/skills/embedded-guidance/aiwf-guidance.md"
 	// inventoryFragmentDir holds the fragment and the host inserts spliced
 	// into it.
 	inventoryFragmentDir = "internal/skills/embedded-guidance/"
+	// inventoryPackDir holds the installed language packs.
+	inventoryPackDir = ".guidance/packs/"
 )
 
 // inventoryHostInserts are the host inserts spliced into the fragment's
@@ -190,7 +197,7 @@ func classifyHome(p string, documents []string) (homeClass, bool) {
 	switch {
 	case p == projectguidance.ClaudeFile, p == projectguidance.AgentsFile, p == projectguidance.RouterFile:
 		return homeClass{"development", "primed"}, true
-	case slices.Contains(documents, p), strings.HasPrefix(p, ".guidance/packs/"):
+	case slices.Contains(documents, p), strings.HasPrefix(p, inventoryPackDir):
 		return homeClass{"development", "on demand"}, true
 	case p == inventoryFragment, slices.Contains(inventoryHostInserts, p):
 		return homeClass{"operating", "primed"}, true
@@ -512,6 +519,12 @@ func decidedDisposition(d invDisposition) (string, bool) {
 	return "", false
 }
 
+// isPackDocument reports whether a disposition's target is a markdown
+// document inside the language packs, written as a clean path.
+func isPackDocument(target string) bool {
+	return strings.HasPrefix(target, inventoryPackDir) && path.Clean(target) == target && strings.HasSuffix(target, ".md")
+}
+
 // isIDEdit reports whether a word is an id-shaped token the development
 // guidance may not carry, as AC-2's scan classifies it. The word is the
 // token itself: one opening a quoted passage is the passage's first word.
@@ -535,15 +548,19 @@ func notIDRune(r rune) bool {
 // (M-0336 AC-5, AC-6), and each row whose decision removes text to a
 // carrier that carries it out (M-0338 AC-3): a block naming the row, not
 // as an id edit, with the row's decided disposition. blocks are the
-// disposition blocks of the commits not yet on trunk, judged here;
-// carriers are those of every commit since the base, trunk included,
-// since a block judged before it reached trunk still carries its row. A
-// block names its row as the first word of its Removed: value. One naming
-// an id second is an edit M-0336 AC-2 requires: the id must be in the
-// row's text at the freeze, and the block is held to no decision. Every other block must carry its row's
-// decision. A destination path a block names must exist and an entity it
-// names must resolve, while a pointer to a check is not looked up. A block
-// removing a rule the inventory moves to the shipped fragment, a shipped
+// disposition blocks judged here, those of the commits after
+// inventoryJudgedFrom not yet on trunk; carriers are those of every
+// commit since the base, trunk included, since a block judged before
+// still carries its row. A block names its row as the first word of its
+// Removed: value. One naming an id second is an edit M-0336 AC-2
+// requires: the id must be in the row's text at the freeze, and the block
+// is held to no decision. Every other block must carry its row's
+// decision, except that a row moved on demand also takes a block deleting
+// a passage as a copy of a language pack document (M-0361), which carries
+// nothing out: it trims, from the moved rule, what the pack already says.
+// A destination path a block names must exist and an entity it names must
+// resolve, while a pointer to a check is not looked up. A block removing a
+// rule the inventory moves to the shipped fragment, a shipped
 // skill or repository guidance must come after a commit since the base
 // changed its new home.
 // rowText returns a row's first home as frozen; resolves reports whether
@@ -602,6 +619,7 @@ func inventoryReconcileFindings(blocks, carriers []removalBlock, rows []invRow, 
 		switch {
 		case !removes:
 			out = append(out, fmt.Sprintf("%s: row %s decides %q, which removes nothing", at, row.Label, row.Disposition))
+		case d.Kind == "on demand" && isPackDocument(strings.TrimPrefix(b.Disposition, "copy of ")):
 		case b.Disposition != want:
 			out = append(out, fmt.Sprintf("%s: disposition %q, but row %s decides %q", at, b.Disposition, row.Label, want))
 		case d.Kind == "fragment" || d.Kind == "skill" || d.Kind == "repository":
@@ -630,12 +648,12 @@ func fragmentLossFindings(frozen, current map[string]string) []string {
 }
 
 // repoRemovalBlocks reads the disposition blocks of every commit after
-// inventoryReconcileBase that is not on trunk, and reports each malformed
-// one, since a block the parser drops would otherwise escape the check. A
-// trunk that is empty, or names no remote-tracking ref, excludes nothing.
-func repoRemovalBlocks(t *testing.T, root, trunk string) (blocks []removalBlock, malformed []string) {
+// from that is not on trunk, and reports each malformed one, since a
+// block the parser drops would otherwise escape the check. A trunk that
+// is empty, or names no remote-tracking ref, excludes nothing.
+func repoRemovalBlocks(t *testing.T, root, from, trunk string) (blocks []removalBlock, malformed []string) {
 	t.Helper()
-	commits, err := check.WalkInstructionCommits(context.Background(), root, inventoryReconcileBase+"..HEAD", trunk)
+	commits, err := check.WalkInstructionCommits(context.Background(), root, from+"..HEAD", trunk)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -673,9 +691,10 @@ func ceilingTargetFindings(hosts []guidanceHost, targets map[string]int) []strin
 // tree (M-0349 AC-1, AC-2, AC-4): every section of the guidance as frozen
 // is cited by a row, and each development section's words are its rows';
 // every row is well formed and ends where its audience and placement say.
-// Every removal since M-0336's start carries out its row (M-0336 AC-5,
-// AC-6), and every row whose decision removes text is carried out by a
-// commit since then (M-0338 AC-3). It logs M-0349 AC-5's targets and holds
+// Every removal after M-0338's end carries out its row or, for a row moved
+// on demand, trims a copy of a language pack (M-0336 AC-5, AC-6, M-0361),
+// and every row whose decision removes text is carried out by a commit
+// since M-0336's start (M-0338 AC-3). It logs M-0349 AC-5's targets and holds
 // each host's ceiling at or under its target (M-0337 AC-5).
 func TestE0092Inventory(t *testing.T) {
 	t.Parallel()
@@ -742,8 +761,8 @@ func TestE0092Inventory(t *testing.T) {
 	}
 	cfg, _ := config.Load(root)
 	trunk, _ := cfg.AllocateTrunkRef()
-	blocks, malformed := repoRemovalBlocks(t, root, trunk)
-	carriers, _ := repoRemovalBlocks(t, root, "")
+	blocks, malformed := repoRemovalBlocks(t, root, inventoryJudgedFrom, trunk)
+	carriers, _ := repoRemovalBlocks(t, root, inventoryReconcileBase, "")
 	findings = append(findings, malformed...)
 	findings = append(findings, inventoryReconcileFindings(blocks, carriers, rows, rowText, exists,
 		func(id string) bool { return check.EntityResolves(tr, id) }, changedBefore)...)
@@ -941,8 +960,8 @@ func TestInventoryCeilingTargets(t *testing.T) {
 }
 
 // TestInventoryReconcileFindings pins each reconciliation rule (M-0336
-// AC-5, AC-6, M-0338 AC-3), one case per rule, against a valid set that
-// reports nothing.
+// AC-5, AC-6, M-0338 AC-3, M-0361 AC-2), one case per rule, against a
+// valid set that reports nothing.
 func TestInventoryReconcileFindings(t *testing.T) {
 	t.Parallel()
 	rows, _ := parseInventory(inventoryFixture(inventoryHeader,
@@ -1017,6 +1036,13 @@ func TestInventoryReconcileFindings(t *testing.T) {
 		{"a move removed before its new home changed", "", false, block("late", `shipped "x"`, "copy of "+inventoryFragment), "before any commit adds it", ""},
 		{"a skill move removed before its new home changed", "", false, block("late", `skilled "x"`, "copy of internal/skills/embedded/aiwf-add/SKILL.md"), "before any commit adds it", ""},
 		{"a repository move removed before its new home changed", "", false, block("late", `repoed "x"`, "copy of CLAUDE.md"), "before any commit adds it", ""},
+		{"a moved row takes a block trimming a copy of a pack", "", false, block("rm", `moved "x"`, "copy of .guidance/packs/go/cobra/guide.md"), "", ""},
+		{"a pack copy does not carry a moved row", "moved", false, block("rm", `moved "x"`, "copy of .guidance/packs/go/cobra/guide.md"), "row moved decides", ""},
+		{"a row not moved on demand takes no pack copy", "", false, block("rm", `merged "x"`, "copy of .guidance/packs/go/cobra/guide.md"), "but row merged decides", ""},
+		{"a moved row takes no copy of a document outside the packs", "", false, block("rm", `moved "x"`, "copy of CLAUDE.md"), "but row moved decides", ""},
+		{"a moved row takes no pack path that leaves the packs", "", false, block("rm", `moved "x"`, "copy of .guidance/packs/../project/testing.md"), "but row moved decides", ""},
+		{"a moved row takes no copy of a pack directory", "", false, block("rm", `moved "x"`, "copy of .guidance/packs/go"), "but row moved decides", ""},
+		{"a moved row takes a pack only as a copy of it", "", false, block("rm", `moved "x"`, "pointer to .guidance/packs/go/cobra/guide.md"), "but row moved decides", ""},
 	}
 	for _, tc := range cases {
 		t.Run(tc.name, func(t *testing.T) {

@@ -9,7 +9,7 @@ import (
 )
 
 // loadADR0007 reads ADR-0007 from disk by resolving the id through
-// the loader (per .guidance/project/testing.md §"Policy tests that read entity
+// the loader (per .guidance/project/go-conventions.md §"Policy tests that read entity
 // files must resolve via the loader"). This survives rename and
 // archive sweeps; an earlier hardcoded-path constant broke when
 // ADR-0007's slug was shortened for the G-0102 cap.

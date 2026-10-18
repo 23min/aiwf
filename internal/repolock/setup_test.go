@@ -14,7 +14,7 @@ import (
 //
 // worktree_scoping_test.go (M-0241/AC-4) shells out to real git
 // subprocesses (`git init`/`worktree add`), so this TestMain hardens
-// the git test env per .guidance/project/testing.md's exec-bearing-TestMain convention
+// the git test env per .guidance/project/go-conventions.md's exec-bearing-TestMain convention
 // (G-0250/G-0251) — the rest of this package's tests don't invoke
 // git themselves, but the hardening call is package-wide, not
 // per-test.

@@ -31,7 +31,7 @@ var (
 )
 
 // loadM0323Epic reads the epic body by resolving its id through the
-// loader, per .guidance/project/testing.md §"Policy tests that read entity files resolve via
+// loader, per .guidance/project/go-conventions.md §"Policy tests that read entity files resolve via
 // the loader" — Tree.ByID spans active and archive, so the tests survive
 // the archive sweep that follows the epic reaching a terminal status.
 func loadM0323Epic(t *testing.T) string {
