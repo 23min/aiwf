@@ -1,8 +1,10 @@
 ---
 id: G-0740
 title: A bare go build in an in-repo worktree stamps the main checkout's revision
-status: open
+status: addressed
 discovered_in: E-0092
+addressed_by_commit:
+    - 1c5374e97
 ---
 ## What's missing
 
