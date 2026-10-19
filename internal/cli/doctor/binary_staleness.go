@@ -19,7 +19,7 @@ import (
 // G-0176: kernel-developer-side only.
 //
 // Skip-by-shape conditions (binary):
-//   - DevelVersion (working-tree go-build); not deployable
+//   - DevelVersion (a build without git state, e.g. `go run`); not deployable
 //   - +dirty suffix (VCS-stamped working-tree build); same reason
 //   - Tagged release; covered by the latest: row instead
 //   - Not a pseudo-version (defensive — unreachable after the above)

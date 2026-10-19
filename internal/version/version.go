@@ -9,14 +9,18 @@
 //     `go install <module>@v0.1.0`. Tagged is true; Compare can
 //     classify against another tagged value.
 //
-//  2. Working-tree build — "(devel)". Returned for `go build` /
-//     `go run` from a working tree. Tagged is false; Compare always
-//     returns SkewUnknown when this shape is on either side.
+//  2. Build without git state — "(devel)". Returned for `go run`,
+//     and for `go build` / `go install` that read no git state (for
+//     example a tree outside any git repository, or
+//     `-buildvcs=false`). Tagged is false; Compare always returns
+//     SkewUnknown when this shape is on either side.
 //
 //  3. Pseudo-version — "v0.0.0-20260503...-abc123" or
 //     "v0.1.0-pre.0.20060102150405-abcdef123456". Returned for
 //     `go install <module>@<branch-or-sha>` when the commit isn't
-//     tagged. Tagged is false; Compare returns SkewUnknown.
+//     tagged, and for `go build` / `go install` from a git checkout
+//     whose HEAD isn't tagged ("+dirty" appended when the checkout
+//     has changes). Tagged is false; Compare returns SkewUnknown.
 //
 // Pre-release suffixes on otherwise-clean tags ("v0.1.0-rc1") are
 // recognized as tagged (the proxy serves them) but Compare returns
@@ -42,7 +46,8 @@ import (
 )
 
 // DevelVersion is the value reported by runtime/debug.ReadBuildInfo
-// for binaries built from a working tree (`go build`, `go run`).
+// for binaries built without git state (`go run`, `-buildvcs=false`,
+// or a build outside a git checkout).
 const DevelVersion = "(devel)"
 
 // Stamp is the ldflags-injected version string for the running
@@ -131,10 +136,10 @@ func Current() Info {
 }
 
 // resolveVersion picks the authoritative version string: a non-empty
-// ldflags stamp wins over the buildinfo value (which is DevelVersion
-// for a working-tree build even when a stamp was injected). It is a
-// pure function so the stamp-precedence branch is unit-testable
-// without mutating the package-level Stamp.
+// ldflags stamp wins over the buildinfo value, which Go records
+// whether or not a stamp was injected. It is a pure function so the
+// stamp-precedence branch is unit-testable without mutating the
+// package-level Stamp.
 func resolveVersion(stamp, buildInfoVersion string) Info {
 	if stamp != "" {
 		return Parse(stamp)
