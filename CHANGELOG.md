@@ -16,6 +16,10 @@ section in this file.
 
 ## [Unreleased]
 
+### Fixed — the README gives Go 1.24 as the minimum version
+
+The README's install prerequisites said Go 1.22+; `go.mod` requires Go 1.24.
+
 ### Changed (internal) — G-0740: AI sessions build their diagnostic binary with `make diag-aiwf`
 
 AI sessions in aiwf's own repository now build the binary they diagnose with through `make diag-aiwf`,

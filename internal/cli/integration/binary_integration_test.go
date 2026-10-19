@@ -60,11 +60,12 @@ func TestBinary_VersionVerb_RespectsLdflags(t *testing.T) {
 // end-to-end proof of the C1 convergence (G-0235 candidate B): for a
 // single ldflags-stamped binary, the human-facing `aiwf version`
 // output and the JSON envelope's `version` field must report the SAME
-// string. Pre-fix, the human path read the stamp via ResolvedVersion
-// while the envelope read buildinfo via version.Current() — so a
-// `make install` binary printed the stamp but emitted "(devel)" in
-// JSON. `schema --format json` is used because it emits an envelope
-// without needing an aiwf repo on disk.
+// string. A `make install` binary carries both the stamp and the
+// version Go records in its build info, so a surface that reads the
+// build-info version directly, instead of through version.Current(),
+// prints a different string from one that resolves the stamp.
+// `schema --format json` is used because it emits an envelope without
+// needing an aiwf repo on disk.
 func TestBinary_VersionVerb_AndEnvelopeAgree_WhenStamped(t *testing.T) {
 	t.Parallel()
 	testutil.SkipIfShortOrUnsupported(t)
