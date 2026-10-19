@@ -52,19 +52,20 @@ const DevelVersion = "(devel)"
 
 // Stamp is the ldflags-injected version string for the running
 // binary. The Makefile's `make build` / `make install` targets set it
-// to `<branch>@<short-sha>[-dirty]` via
+// to `<branch>@<git describe --always --dirty>` (for example
+// `main@v0.40.0-677-g4ba3a6b2b`) via
 // `-X github.com/23min/aiwf/internal/version.Stamp=…`; a plain
 // `go install <module>@v0.1.0` leaves it empty and Current falls back
 // to runtime/debug.ReadBuildInfo.
 //
-// Stamp is the single source of truth for the binary's reported
-// version: every surface (the `version` verb, the JSON envelope's
-// Version field, `aiwf doctor`'s binary row) resolves through
-// Current(), so one binary always reports one string. It is set once
-// at link time and never mutated at runtime — the package-level var is
-// an ldflags target, not mutable program state.
-// PolicyVersionSingleSource forbids a parallel version global from
-// reappearing outside this package.
+// Current() decides between Stamp and the build-info version, and
+// every surface (the `version` verb, the JSON envelope's Version
+// field, `aiwf doctor`'s binary row) goes through it. Stamp is set
+// once at link time and never mutated at runtime — the package-level
+// var is an ldflags target, not mutable program state.
+//
+// PolicyVersionSingleSource forbids a parallel version global outside
+// this package.
 var Stamp string
 
 // Info is a parsed version with a flag for whether it identifies a

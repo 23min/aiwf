@@ -12,7 +12,8 @@
 
 .PHONY: help build install diag-aiwf test check-fast test-race test-pins lint fmt vet coverage test-cov coverage-gate coverage-gate-only comment-history-audit changelog-audit growth-report mutate-diff selfcheck ci clean install-hooks e2e e2e-install stress stress-tests
 
-# Version embedded into the binary via -ldflags. Format: <branch>@<short-sha>[-dirty].
+# Version embedded into the binary via -ldflags:
+# <branch>@<git describe --always --dirty>, e.g. main@v0.40.0-677-g4ba3a6b2b.
 # Empty (so version.Current falls back to buildinfo) when not in a git checkout
 # (e.g. an extracted source tarball).
 AIWF_VERSION := $(shell git rev-parse --abbrev-ref HEAD 2>/dev/null)@$(shell git describe --always --dirty 2>/dev/null)

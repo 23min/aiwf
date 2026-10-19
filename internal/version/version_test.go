@@ -273,7 +273,7 @@ func TestParseTriple(t *testing.T) {
 
 func TestCurrent_DevelInTestBinary(t *testing.T) {
 	t.Parallel()
-	// `go test` builds the test binary as a working-tree build, so
+	// `go test` records no git state in the test binary, so
 	// runtime/debug.ReadBuildInfo reports Main.Version == "" or
 	// "(devel)" — either way Current() returns DevelVersion with
 	// Tagged=false. This pins the contract that the test binary
@@ -288,12 +288,11 @@ func TestCurrent_DevelInTestBinary(t *testing.T) {
 }
 
 // TestResolveVersion pins the stamp-precedence contract: a non-empty
-// ldflags stamp is authoritative over the buildinfo value (which is
-// "(devel)" for a stamped working-tree build — the `make install`
-// path). Exercising the pure helper covers both branches in-process;
-// the end-to-end stamped path is pinned by
-// TestBinary_VersionVerb_RespectsLdflags, but a subprocess build's
-// coverage does not reach this package's profile.
+// ldflags stamp is authoritative over the buildinfo value, which Go
+// records whether or not a stamp was injected. Exercising the pure
+// helper covers both branches in-process; the end-to-end stamped path
+// is pinned by TestBinary_VersionVerb_RespectsLdflags, but a
+// subprocess build's coverage does not reach this package's profile.
 func TestResolveVersion(t *testing.T) {
 	t.Parallel()
 	tests := []struct {
