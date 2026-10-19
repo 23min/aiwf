@@ -16,6 +16,12 @@ section in this file.
 
 ## [Unreleased]
 
+### Fixed — `make install` outside a git checkout no longer stamps the version `@`
+
+Built from a source tree with no git, such as an extracted archive, `make install` and `make build` stamped the
+binary's version as `@`, so `aiwf --version` printed `@`. They now leave the stamp empty, and the binary reports
+the version Go records, `(devel)`.
+
 ### Fixed — the README gives Go 1.24 as the minimum version
 
 The README's install prerequisites said Go 1.22+; `go.mod` requires Go 1.24.
