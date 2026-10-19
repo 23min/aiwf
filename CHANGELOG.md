@@ -16,6 +16,17 @@ section in this file.
 
 ## [Unreleased]
 
+### Changed (internal) — G-0740: AI sessions build their diagnostic binary with `make diag-aiwf`
+
+AI sessions in aiwf's own repository now build the binary they diagnose with through `make diag-aiwf`,
+so it reports the worktree's own branch and commit. Nothing a consumer runs changed.
+
+### Fixed — the README says what a plain `go install` from a clone reports
+
+The README's install-from-source note said a plain `go install ./cmd/aiwf` leaves `aiwf --version`
+reporting `dev`; it reports the version Go reads from git, which names the commit but not the branch.
+`make install` remains the way to get the branch as well.
+
 ### Added — E-0092: `aiwf check` fences commits that change handwritten instructions
 
 `aiwf check` refuses, by default, a commit in the push range that changes handwritten instructions —

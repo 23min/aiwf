@@ -101,7 +101,7 @@ git clone https://github.com/23min/aiwf && cd aiwf
 make install                                                # embeds branch + short SHA in --version
 ```
 
-`make install` is preferred over `go install ./cmd/aiwf` because it embeds the current branch and short SHA into the binary via `-ldflags`, so `aiwf --version` later tells you exactly what's running. Plain `go install` works but leaves `--version` reporting `dev`.
+`make install` is preferred over `go install ./cmd/aiwf` because it embeds the current branch and short SHA into the binary via `-ldflags`, so `aiwf --version` later tells you exactly what's running. Plain `go install` works too, but `--version` then reports the version Go reads from git, which names the commit and not the branch.
 
 Distribution via brew/apt/scoop/winget will come if and when the project warrants it.
 
