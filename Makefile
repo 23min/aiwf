@@ -14,9 +14,10 @@
 
 # Version embedded into the binary via -ldflags:
 # <branch>@<git describe --always --dirty>, e.g. main@v0.40.0-677-g4ba3a6b2b.
-# Empty (so version.Current falls back to buildinfo) when not in a git checkout
-# (e.g. an extracted source tarball).
-AIWF_VERSION := $(shell git rev-parse --abbrev-ref HEAD 2>/dev/null)@$(shell git describe --always --dirty 2>/dev/null)
+# Empty unless git names both the branch and the commit (not in a git checkout,
+# e.g. an extracted source tarball, or no git installed), so version.Current
+# falls back to buildinfo.
+AIWF_VERSION := $(shell b=$$(git rev-parse --abbrev-ref HEAD 2>/dev/null) && d=$$(git describe --always --dirty 2>/dev/null) && echo "$$b@$$d")
 LDFLAGS := -X github.com/23min/aiwf/internal/version.Stamp=$(AIWF_VERSION)
 
 # Test-binary wrapper that ad-hoc signs Darwin test binaries before exec'ing
