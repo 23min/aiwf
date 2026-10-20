@@ -181,7 +181,7 @@ func DoctorReport(rootDir string, opts DoctorOptions) (lines []string, problems 
 	trunkRef, _ := cfg.AllocateTrunkRef()
 
 	current := version.Current()
-	binaryRow := label("binary:") + renderBinaryVersion(current)
+	binaryRow := label("binary:") + version.Label(current)
 	binaryRow += binaryStaleness(context.Background(), rootDir, trunkRef, current, version.ModulePath())
 	lines = append(lines, binaryRow)
 
@@ -903,8 +903,8 @@ func renderLatestPublished(current version.Info) string {
 	case version.SkewAhead:
 		return fmt.Sprintf("%s (binary newer at %s; rolled back?)", latest.Version, current.Version)
 	default:
-		return fmt.Sprintf("%s (binary at %s; skew unknown — devel or pseudo-version on either side)",
-			latest.Version, current.Version)
+		return fmt.Sprintf("%s (binary at %s; skew unknown — %s)",
+			latest.Version, current.Version, version.SkewUnknownReason)
 	}
 }
 
@@ -930,19 +930,4 @@ func headIsDetached(rootDir string) bool {
 	cmd := exec.Command("git", "rev-parse", "--verify", "HEAD")
 	cmd.Dir = rootDir
 	return cmd.Run() == nil
-}
-
-// renderBinaryVersion formats a version.Info for the doctor binary
-// row: the version string plus a parenthetical state.
-func renderBinaryVersion(info version.Info) string {
-	switch {
-	case info.Version == version.DevelVersion:
-		return info.Version + " (working-tree build)"
-	case strings.HasSuffix(info.Version, "+dirty"):
-		return info.Version + " (working-tree build)"
-	case info.Tagged:
-		return info.Version + " (tagged)"
-	default:
-		return info.Version + " (pseudo-version)"
-	}
 }

@@ -2,7 +2,7 @@
 // binary's version, the latest published version on the Go module
 // proxy, and the skew classification between any two versions.
 //
-// Three version shapes show up in practice:
+// Four version shapes show up in practice:
 //
 //  1. Tagged release — "v0.1.0", "v0.2.3-rc1". Returned by
 //     `runtime/debug.ReadBuildInfo` for binaries installed via
@@ -21,6 +21,13 @@
 //     tagged, and for `go build` / `go install` from a git checkout
 //     whose HEAD isn't tagged ("+dirty" appended when the checkout
 //     has changes). Tagged is false; Compare returns SkewUnknown.
+//
+//  4. Makefile stamp — "main@v0.40.0-677-g4ba3a6b2b". The ldflags
+//     Stamp that `make build` / `make install` set,
+//     `<branch>@<git describe --always --dirty>`; the only shape
+//     with an "@", which semver does not allow. Tagged is false
+//     even when the branch name is itself semver-shaped; Compare
+//     returns SkewUnknown.
 //
 // Pre-release suffixes on otherwise-clean tags ("v0.1.0-rc1") are
 // recognized as tagged (the proxy serves them) but Compare returns
@@ -69,14 +76,16 @@ const DevelVersion = "(devel)"
 var Stamp string
 
 // Info is a parsed version with a flag for whether it identifies a
-// concrete tagged release (vs. devel or a pseudo-version).
+// concrete tagged release rather than one of the untagged shapes the
+// package doc lists.
 type Info struct {
 	// Version is the raw version string. Always non-empty: a binary
 	// with no build info reports DevelVersion.
 	Version string
 	// Tagged is true when Version is a clean semver tag of the form
 	// `vMAJOR.MINOR.PATCH` (optionally with a pre-release or build
-	// suffix). False for DevelVersion and pseudo-versions.
+	// suffix). False for DevelVersion, pseudo-versions, "+dirty"
+	// builds and Makefile stamps.
 	Tagged bool
 }
 
@@ -92,6 +101,10 @@ const (
 	SkewAhead  // a > b
 	SkewBehind // a < b
 )
+
+// SkewUnknownReason is the human-facing reason Compare returns
+// SkewUnknown: at least one side is not exactly vMAJOR.MINOR.PATCH.
+const SkewUnknownReason = "not a vX.Y.Z release on one side"
 
 // String returns the lowercase name of the skew value.
 func (s Skew) String() string {
@@ -198,6 +211,27 @@ func Parse(v string) Info {
 	return Info{Version: v, Tagged: isTagged(v)}
 }
 
+// Label formats info for human display: the version itself plus a
+// parenthetical state. A build without git state ("(devel)") and a
+// build that carries uncommitted changes, by Go's "+dirty" suffix or
+// the Makefile stamp's "-dirty", read as working-tree builds; any
+// other Makefile stamp reads as a local build.
+func Label(info Info) string {
+	stamped := isMakefileStamp(info.Version)
+	switch {
+	case info.Version == DevelVersion,
+		strings.HasSuffix(info.Version, "+dirty"),
+		stamped && strings.HasSuffix(info.Version, "-dirty"):
+		return info.Version + " (working-tree build)"
+	case stamped:
+		return info.Version + " (local build)"
+	case info.Tagged:
+		return info.Version + " (tagged)"
+	default:
+		return info.Version + " (pseudo-version)"
+	}
+}
+
 // Compare classifies how a relates to b. Returns SkewUnknown when
 // either side is not Tagged or when either side carries a pre-release
 // or build suffix (the aiwf upgrade flow only needs to compare
@@ -287,9 +321,10 @@ func PseudoSHA(v string) (string, bool) {
 // The `+dirty` suffix appended by Go's VCS-stamped builds (when
 // uncommitted changes are present in the working tree) flips Tagged
 // false: the binary doesn't correspond to any committed state, so
-// it is not safely comparable as a release.
+// it is not safely comparable as a release. A Makefile stamp is not
+// a release either, whatever its branch is named.
 func isTagged(v string) bool {
-	if strings.HasSuffix(v, "+dirty") {
+	if strings.HasSuffix(v, "+dirty") || isMakefileStamp(v) {
 		return false
 	}
 	if !taggedSemverRE.MatchString(v) {
@@ -299,6 +334,12 @@ func isTagged(v string) bool {
 		return false
 	}
 	return true
+}
+
+// isMakefileStamp reports whether v is the ldflags Stamp the Makefile
+// sets, `<branch>@<git describe>`: the only version shape with an "@".
+func isMakefileStamp(v string) bool {
+	return strings.Contains(v, "@")
 }
 
 // parseTriple extracts the (major, minor, patch) integers from a

@@ -16,6 +16,18 @@ section in this file.
 
 ## [Unreleased]
 
+### Fixed — a `make install` binary from a branch named like a pre-release is not a tagged release
+
+A binary built with `make install` or `make build` on a branch named like a pre-release, such as
+`v0.41.0-rc`, was treated as a tagged release: labelled `(tagged)` and allowed to write `--statusline`
+without the untagged-build confirmation. It is now an untagged build like any other `make` build.
+
+### Fixed — `aiwf doctor` and `aiwf upgrade` label a `make install` binary correctly
+
+A binary built with `make install` or `make build` was labelled `(pseudo-version)`, even with uncommitted
+changes. It is now labelled `(local build)`, or `(working-tree build)` when its stamp ends in `-dirty`.
+When the two versions can't be compared, both now give the reason as one side not being a `vX.Y.Z` release.
+
 ### Fixed — `make install` outside a git checkout no longer stamps the version `@`
 
 Built from a source tree with no git, such as an extracted archive, `make install` and `make build` stamped the
