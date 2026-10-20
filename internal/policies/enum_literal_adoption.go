@@ -56,12 +56,6 @@ func PolicyEnumLiteralAdoption(root string) ([]Violation, error) {
 		if strings.HasPrefix(fileRel, "internal/entity/") {
 			continue
 		}
-		// Skip the policies package: this file's docstring and
-		// the synthetic-input test fixtures both carry status
-		// literals as content, not as comparison-site drift.
-		if strings.HasPrefix(fileRel, "internal/policies/") {
-			continue
-		}
 		astFile, perr := parser.ParseFile(fset, f.AbsPath, f.Contents, parser.ParseComments)
 		if perr != nil {
 			continue
