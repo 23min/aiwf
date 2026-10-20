@@ -16,6 +16,11 @@ section in this file.
 
 ## [Unreleased]
 
+### Fixed — `aiwf doctor` and `aiwf upgrade` label a `make install` binary correctly
+
+A binary built with `make install` or `make build` was labelled `(pseudo-version)`, even with uncommitted
+changes. It is now labelled `(local build)`, or `(working-tree build)` when its stamp ends in `-dirty`.
+
 ### Fixed — `make install` outside a git checkout no longer stamps the version `@`
 
 Built from a source tree with no git, such as an extracted archive, `make install` and `make build` stamped the

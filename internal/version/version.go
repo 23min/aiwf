@@ -198,6 +198,27 @@ func Parse(v string) Info {
 	return Info{Version: v, Tagged: isTagged(v)}
 }
 
+// Label formats info for human display: the version itself plus a
+// parenthetical state. A build without git state ("(devel)") and a
+// build that carries uncommitted changes, by Go's "+dirty" suffix or
+// the Makefile stamp's "-dirty", read as working-tree builds; any
+// other Makefile stamp reads as a local build.
+func Label(info Info) string {
+	stamped := isMakefileStamp(info.Version)
+	switch {
+	case info.Version == DevelVersion,
+		strings.HasSuffix(info.Version, "+dirty"),
+		stamped && strings.HasSuffix(info.Version, "-dirty"):
+		return info.Version + " (working-tree build)"
+	case stamped:
+		return info.Version + " (local build)"
+	case info.Tagged:
+		return info.Version + " (tagged)"
+	default:
+		return info.Version + " (pseudo-version)"
+	}
+}
+
 // Compare classifies how a relates to b. Returns SkewUnknown when
 // either side is not Tagged or when either side carries a pre-release
 // or build suffix (the aiwf upgrade flow only needs to compare
@@ -299,6 +320,12 @@ func isTagged(v string) bool {
 		return false
 	}
 	return true
+}
+
+// isMakefileStamp reports whether v is the ldflags Stamp the Makefile
+// sets, `<branch>@<git describe>`: the only version shape with an "@".
+func isMakefileStamp(v string) bool {
+	return strings.Contains(v, "@")
 }
 
 // parseTriple extracts the (major, minor, patch) integers from a

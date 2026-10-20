@@ -74,6 +74,36 @@ func TestParse(t *testing.T) {
 	}
 }
 
+// TestLabel pins the parenthetical state each version shape is shown
+// with in `aiwf doctor` and `aiwf upgrade`.
+func TestLabel(t *testing.T) {
+	t.Parallel()
+	cases := []struct {
+		name string
+		ver  string
+		want string
+	}{
+		{"tagged", "v0.1.0", "v0.1.0 (tagged)"},
+		{"devel", "(devel)", "(devel) (working-tree build)"},
+		{"dirty tagged", "v0.1.0+dirty", "v0.1.0+dirty (working-tree build)"},
+		{"dirty pseudo", "v0.0.0-20060102150405-abcdef123456+dirty", "v0.0.0-20060102150405-abcdef123456+dirty (working-tree build)"},
+		{"plain pseudo", "v0.0.0-20060102150405-abcdef123456", "v0.0.0-20060102150405-abcdef123456 (pseudo-version)"},
+		{"make stamp", "main@v0.40.0-677-g4ba3a6b2b", "main@v0.40.0-677-g4ba3a6b2b (local build)"},
+		{"dirty make stamp", "main@v0.40.0-677-g4ba3a6b2b-dirty", "main@v0.40.0-677-g4ba3a6b2b-dirty (working-tree build)"},
+		{"make stamp from a version-named branch", "v0.41.0-prep@v0.40.0", "v0.41.0-prep@v0.40.0 (local build)"},
+		{"make stamp from a branch naming dirty", "fix-dirty-flag@v0.40.0-677-g4ba3a6b2b", "fix-dirty-flag@v0.40.0-677-g4ba3a6b2b (local build)"},
+		{"pre-release named dirty", "v0.1.0-dirty", "v0.1.0-dirty (tagged)"},
+	}
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			t.Parallel()
+			if got := Label(Parse(tc.ver)); got != tc.want {
+				t.Errorf("Label(Parse(%q)) = %q, want %q", tc.ver, got, tc.want)
+			}
+		})
+	}
+}
+
 func TestCompare(t *testing.T) {
 	t.Parallel()
 	cases := []struct {

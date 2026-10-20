@@ -16,7 +16,6 @@ import (
 	"github.com/23min/aiwf/internal/cli/upgrade"
 
 	"github.com/23min/aiwf/internal/cli/cliutil"
-	"github.com/23min/aiwf/internal/version"
 )
 
 // TestRunUpgrade_CheckOnly_NoNetworkRequired covers the
@@ -447,29 +446,5 @@ func TestRunUpgrade_BadFlag(t *testing.T) {
 	})
 	if rc != cliutil.ExitUsage {
 		t.Errorf("rc = %d, want %d", rc, cliutil.ExitUsage)
-	}
-}
-
-// TestRenderVersionLabel covers the label-format edge cases.
-func TestRenderVersionLabel(t *testing.T) {
-	t.Parallel()
-	cases := []struct {
-		name string
-		ver  string
-		want string
-	}{
-		{"tagged", "v0.1.0", "v0.1.0 (tagged)"},
-		{"devel", "(devel)", "(devel) (working-tree build)"},
-		{"dirty tagged", "v0.1.0+dirty", "v0.1.0+dirty (working-tree build)"},
-		{"dirty pseudo", "v0.0.0-20060102150405-abcdef123456+dirty", "v0.0.0-20060102150405-abcdef123456+dirty (working-tree build)"},
-		{"plain pseudo", "v0.0.0-20060102150405-abcdef123456", "v0.0.0-20060102150405-abcdef123456 (pseudo-version)"},
-	}
-	for _, tc := range cases {
-		t.Run(tc.name, func(t *testing.T) {
-			got := upgrade.RenderVersionLabel(version.Parse(tc.ver))
-			if got != tc.want {
-				t.Errorf("upgrade.RenderVersionLabel(%q) = %q, want %q", tc.ver, got, tc.want)
-			}
-		})
 	}
 }
