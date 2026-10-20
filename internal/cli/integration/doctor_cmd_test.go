@@ -2,6 +2,9 @@ package integration
 
 import (
 	"context"
+	"fmt"
+	"net/http"
+	"net/http/httptest"
 	"os"
 	"path/filepath"
 	"strings"
@@ -366,6 +369,29 @@ func TestDoctor_CheckLatest_ProxyDisabled(t *testing.T) {
 	}
 	if problems != 0 {
 		t.Errorf("proxy-disabled should not increment problems; got %d:\n%s", problems, joined)
+	}
+}
+
+// TestDoctor_CheckLatest_SkewUnknown verifies the latest row's reason
+// when the binary and the published release can't be compared: the
+// test binary is a "(devel)" build, which is not a vX.Y.Z release.
+func TestDoctor_CheckLatest_SkewUnknown(t *testing.T) {
+	root := setupCLITestRepo(t)
+	if _, err := initrepo.Init(context.Background(), root, initrepo.Options{
+		ActorOverride: "human/test",
+	}); err != nil {
+		t.Fatalf("Init: %v", err)
+	}
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+		fmt.Fprintln(w, `{"Version":"v9.9.9","Time":"2026-05-03T12:00:00Z"}`)
+	}))
+	t.Cleanup(srv.Close)
+	t.Setenv("GOPROXY", srv.URL)
+
+	lines, _ := doctorReport(root, doctor.DoctorOptions{CheckLatest: true})
+	joined := strings.Join(lines, "\n")
+	if !strings.Contains(joined, "v9.9.9 (binary at (devel); skew unknown — not a vX.Y.Z release on one side)") {
+		t.Errorf("expected the skew-unknown reason on the latest row:\n%s", joined)
 	}
 }
 

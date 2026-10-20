@@ -26,6 +26,7 @@ without the untagged-build confirmation. It is now an untagged build like any ot
 
 A binary built with `make install` or `make build` was labelled `(pseudo-version)`, even with uncommitted
 changes. It is now labelled `(local build)`, or `(working-tree build)` when its stamp ends in `-dirty`.
+When the two versions can't be compared, both now give the reason as one side not being a `vX.Y.Z` release.
 
 ### Fixed — `make install` outside a git checkout no longer stamps the version `@`
 

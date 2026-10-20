@@ -903,8 +903,8 @@ func renderLatestPublished(current version.Info) string {
 	case version.SkewAhead:
 		return fmt.Sprintf("%s (binary newer at %s; rolled back?)", latest.Version, current.Version)
 	default:
-		return fmt.Sprintf("%s (binary at %s; skew unknown — devel or pseudo-version on either side)",
-			latest.Version, current.Version)
+		return fmt.Sprintf("%s (binary at %s; skew unknown — %s)",
+			latest.Version, current.Version, version.SkewUnknownReason)
 	}
 }
 

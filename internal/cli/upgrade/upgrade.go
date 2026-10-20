@@ -104,7 +104,7 @@ func Run(root, target string, checkOnly, noPrompt bool) (code int) {
 		case version.SkewBehind:
 			cliutil.Println("status:   upgrade available")
 		default:
-			cliutil.Println("status:   skew unknown (devel or pre-release on either side)")
+			cliutil.Printf("status:   skew unknown (%s)\n", version.SkewUnknownReason)
 		}
 		if hint := proxyStaleHint(current, resolved); hint != "" {
 			cliutil.Print(hint)

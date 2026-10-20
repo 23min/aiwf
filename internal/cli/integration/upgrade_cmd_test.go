@@ -59,6 +59,9 @@ func TestRunUpgrade_CheckOnly_FakeProxy(t *testing.T) {
 	if !strings.Contains(stdout, "v9.9.9 (tagged)") {
 		t.Errorf("expected target line to show v9.9.9 (tagged); stdout:\n%s", stdout)
 	}
+	if !strings.Contains(stdout, "status:   skew unknown (not a vX.Y.Z release on one side)") {
+		t.Errorf("expected the skew-unknown reason on the status line; stdout:\n%s", stdout)
+	}
 }
 
 // TestRunUpgrade_NoGoBinary covers the friendly "where is go?"

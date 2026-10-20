@@ -102,6 +102,10 @@ const (
 	SkewBehind // a < b
 )
 
+// SkewUnknownReason is the human-facing reason Compare returns
+// SkewUnknown: at least one side is not exactly vMAJOR.MINOR.PATCH.
+const SkewUnknownReason = "not a vX.Y.Z release on one side"
+
 // String returns the lowercase name of the skew value.
 func (s Skew) String() string {
 	switch s {
