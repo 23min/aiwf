@@ -51,6 +51,12 @@ func TestParse(t *testing.T) {
 		{"v0.1.0+dirty", "v0.1.0+dirty", false},
 		{"v0.0.0-20260503120000-abcdef123456+dirty", "v0.0.0-20260503120000-abcdef123456+dirty", false},
 
+		// Makefile stamp, `<branch>@<git describe --always --dirty>`
+		// (Makefile's AIWF_VERSION): never tagged, even when the branch
+		// name is itself semver-shaped. Semver allows no "@".
+		{"main@v0.40.0-677-g4ba3a6b2b", "main@v0.40.0-677-g4ba3a6b2b", false},
+		{"v0.41.0-rc@v0.40.0-5-gabcdef0", "v0.41.0-rc@v0.40.0-5-gabcdef0", false},
+
 		// debug.ReadBuildInfo's "no module info" sentinel.
 		{"(devel)", DevelVersion, false},
 		{"", DevelVersion, false},

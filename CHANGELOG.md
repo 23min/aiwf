@@ -16,6 +16,12 @@ section in this file.
 
 ## [Unreleased]
 
+### Fixed — a `make install` binary from a branch named like a pre-release is not a tagged release
+
+A binary built with `make install` or `make build` on a branch named like a pre-release, such as
+`v0.41.0-rc`, was treated as a tagged release: labelled `(tagged)` and allowed to write `--statusline`
+without the untagged-build confirmation. It is now an untagged build like any other `make` build.
+
 ### Fixed — `aiwf doctor` and `aiwf upgrade` label a `make install` binary correctly
 
 A binary built with `make install` or `make build` was labelled `(pseudo-version)`, even with uncommitted
