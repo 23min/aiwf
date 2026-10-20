@@ -4,8 +4,6 @@ import (
 	"go/ast"
 	"go/parser"
 	"go/token"
-	"path/filepath"
-	"strings"
 )
 
 // PolicyEnvelopeVersionSource asserts that every keyed `Version:` in a
@@ -37,11 +35,6 @@ func PolicyEnvelopeVersionSource(root string) ([]Violation, error) {
 	var out []Violation
 	fset := token.NewFileSet()
 	for _, f := range files {
-		// Skip the policy package itself (its source carries the rule
-		// description text, including the forbidden patterns as prose).
-		if strings.HasPrefix(filepath.ToSlash(f.Path), "internal/policies/") {
-			continue
-		}
 		astFile, perr := parser.ParseFile(fset, f.AbsPath, f.Contents, parser.AllErrors)
 		if perr != nil {
 			continue
@@ -70,7 +63,7 @@ func PolicyEnvelopeVersionSource(root string) ([]Violation, error) {
 					Policy: "envelope-version-source",
 					File:   f.Path,
 					Line:   fset.Position(kv.Pos()).Line,
-					Detail: "JSON envelope Version field must source from version.Current().Version (the canonical reader); a direct reference to a package-global Version produces divergence on unstamped local builds — see M-0118 item 6",
+					Detail: "JSON envelope Version must be a function call's .Version, in practice version.Current().Version; a source other than version.Current() can report a different version string from the verbs that use it",
 				})
 			}
 			return true

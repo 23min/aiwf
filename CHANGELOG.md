@@ -16,6 +16,11 @@ section in this file.
 
 ## [Unreleased]
 
+### Changed (internal) — the envelope-version-source policy explains the rule it enforces
+
+Its violation message names what the policy accepts and why another source matters, and a skip the shared
+file walker already performs is removed. Nothing a consumer runs changed.
+
 ### Fixed — a `make install` binary from a branch named like a pre-release is not a tagged release
 
 A binary built with `make install` or `make build` on a branch named like a pre-release, such as
