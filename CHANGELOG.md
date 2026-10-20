@@ -18,8 +18,8 @@ section in this file.
 
 ### Changed (internal) — the envelope-version-source policy explains the rule it enforces
 
-Its violation message names what the policy accepts and why another source matters, and a skip the shared
-file walker already performs is removed. Nothing a consumer runs changed.
+Its violation message names what the policy accepts and why another source matters. It and two sibling
+policies no longer repeat a skip the shared file walker already performs. Nothing a consumer runs changed.
 
 ### Fixed — a `make install` binary from a branch named like a pre-release is not a tagged release
 
