@@ -12,17 +12,15 @@ import (
 	"github.com/23min/aiwf/internal/entity"
 )
 
-// Binary integration tests close G27's bug class: they build the
-// actual cmd binary and run verbs as subprocesses so the production
-// path — `runtime/debug.ReadBuildInfo` plus the ldflags-stamped
-// version.Stamp global — is exercised the way a user's installed
-// binary would be.
+// Binary integration tests build the actual cmd binary and run verbs
+// as subprocesses so the production path — `runtime/debug.ReadBuildInfo`
+// plus the ldflags-stamped version.Stamp global — is exercised the way
+// a user's installed binary would be.
 //
-// `go test` on its own cannot catch the v0.1.0 bug class
-// (`aiwf version` returning "dev" while doctor read buildinfo
-// correctly); the test binary's buildinfo always reads as "(devel)"
-// and there is no runtime way to spoof a different value. Subprocess-
-// ing a freshly-built binary is the only path.
+// `go test` on its own cannot reach that path: the test binary records
+// no version of its own, so Current() reports "(devel)", and there is
+// no runtime way to set a different value. Subprocess-ing a
+// freshly-built binary is the only path.
 //
 // Tests are gated under `-short` because each shells out to
 // `go build` (~3-5s on a warm cache); CI's default `go test` opts
@@ -32,13 +30,6 @@ import (
 // path: a binary built with `-ldflags="-X .../internal/version.Stamp=v0.99.0-…"`
 // must report that exact value from `aiwf version`. This is the
 // `make install` path the kernel-dev repo uses today.
-//
-// The ldflags target moved from `main.Version` to
-// `github.com/23min/aiwf/internal/cli.Version` in M-0118/AC-1, then to
-// `github.com/23min/aiwf/internal/version.Stamp` (G-0235 candidate B)
-// so the human-facing print and the JSON envelope resolve the stamp
-// through the same version.Current() reader — a single binary reports
-// one version string on every surface.
 func TestBinary_VersionVerb_RespectsLdflags(t *testing.T) {
 	t.Parallel()
 	testutil.SkipIfShortOrUnsupported(t)
@@ -104,9 +95,9 @@ func TestBinary_VersionVerb_AndEnvelopeAgree_WhenStamped(t *testing.T) {
 // TestBinary_VersionVerb_FallsBackToBuildInfo pins the seam between
 // `aiwf version` and `aiwf doctor`'s `binary:` row when no ldflags
 // stamp is present. Both surfaces must report the *same* underlying
-// value — a regression that updates one source of truth without the
-// other (the v0.1.0 shape) fails this test even when both surfaces
-// individually look "right" in isolation.
+// value — a change that updates one source of truth without the
+// other fails this test even when both surfaces individually look
+// "right" in isolation.
 func TestBinary_VersionVerb_FallsBackToBuildInfo(t *testing.T) {
 	t.Parallel()
 	testutil.SkipIfShortOrUnsupported(t)

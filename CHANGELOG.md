@@ -16,6 +16,10 @@ section in this file.
 
 ## [Unreleased]
 
+### Changed (internal) — the binary integration tests describe what they guard, not past bugs
+
+Comment-only. Nothing a consumer runs changed.
+
 ### Changed (internal) — the envelope-version-source policy explains the rule it enforces
 
 Its violation message names what the policy accepts and why another source matters. It and two sibling
