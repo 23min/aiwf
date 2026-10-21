@@ -253,3 +253,52 @@ were sorted again.
 | `aiwf.example.yaml` | `96dc476390b9d7e9e4e6fbf6f75f4b38294992ffd44b269f554d0d1da14ddca2` | `20e2db732aa35b100db23a31d5d9558480217f4e7040b29b4310b38a98ff1b1a` |
 | Scaffolded `aiwf.yaml` | `0c228cad68bc4159a4eb5c86e598c62f90572ad6f93d4892a62dcb9f59425e37` | `947270abfc9c753e39d98147748bcfa20e27538d43cfea83f19cea3c05f0f0e8` |
 | Scaffolded `aiwf.yaml` with hook consent | `b643e6a3f5628f74e5d865b3208b83f7919a54e6fc586a5fdf4f7dbda032af21` | `f22c3b0d0249644483493c5dac208e6c76effbd8cfee137df325ee2101d37d18` |
+
+## Automatic guidance adoption configuration exception
+
+M-0351 changes only the generated descriptions of `guidance.packs` and
+`guidance.ignored`, which now describe add-only automatic adoption, an empty
+`packs` list that adoption adds to, and `ignored` as the per-pack opt-out.
+Claude adapters, instructions, settings, hooks, paths and modes remain frozen.
+
+Provenance: in the Linux development container on 2026-09-25, isolated `init
+--no-prompt` runs with a `v0.36.0`-stamped binary built from the pre-change
+`d80b2566e` sources, with a stand-in `claude` executable on `PATH`, reproduced
+the stored `aiwf.example.yaml` and scaffolded `aiwf.yaml` hashes with and
+without `--enable-hook worktree-rituals-check.sh`. Replacing only the two
+description comments in those captured files produced the expected hashes, and
+the candidate binary's files matched that independent text transformation. Only matching records were replaced, and the inventories were
+sorted again. The `configured` and `declined` scenarios supply their own
+`aiwf.yaml`, so only their `aiwf.example.yaml` record changes.
+
+| Config artifact | Original SHA-256 | Updated SHA-256 |
+| --- | --- | --- |
+| `aiwf.example.yaml` | `0b08f65d0dad1ade861ffe266efdd7ee4fdfe476d4a8ccb07c7fe24d7714f17b` | `3faf5d225129b3eb2850222abadce5cf51ec18af6d6e718b01977d7733a101eb` |
+| Scaffolded `aiwf.yaml` | `3ea4441a2e944f541a2de04b79b18900381c43396d66d34d34e7d7e73ea87e65` | `c0b1c621378d00260111b29c945688e3ef9f5ee1810c0d581c74ee58c3ef8f26` |
+| Scaffolded `aiwf.yaml` with hook consent | `7f6fb308a4035d873ea177b96dec222ff0fc5ada90a0b4521e55ef7f5d8bc759` | `a80ee5bc670cbd507e859c57becdcd9cf3023937a2ba8d4606a2a965f9c982c8` |
+
+## Automatic adoption combined with the instruction-file fence
+
+The automatic guidance adoption and instruction-file fence exceptions above each
+change `aiwf.example.yaml` and the scaffolded `aiwf.yaml`, starting from
+different originals. Together those files carry both changes: the commented
+`fence_instruction_commits` line and the rewritten `packs` and `ignored`
+descriptions. The inventories change only those records; every other record
+keeps its value on `main`.
+
+Provenance: derived in the Linux development container on 2026-10-21 without the
+renderer. The undecided and enabled scenarios' `init --no-prompt` steps, run with
+a `v0.36.0`-stamped binary built from `main` at `b2fa89703`, reproduced the
+instruction-file fence exception's updated hashes. Replacing only the `packs` and
+`ignored` description comments in those captured files with the descriptions in
+`internal/config/schema.go` produced the expected hashes, and the merged binary's
+files matched them byte for byte. The two statusline scenarios scaffold the same
+`aiwf.yaml` as the undecided one, so they take its hash; the configured and
+declined scenarios supply their own `aiwf.yaml`, so only their
+`aiwf.example.yaml` record changes. The inventories were sorted again.
+
+| Config artifact | Original SHA-256 | Updated SHA-256 |
+| --- | --- | --- |
+| `aiwf.example.yaml` | `20e2db732aa35b100db23a31d5d9558480217f4e7040b29b4310b38a98ff1b1a` | `885e41949c43f1004b9d5477c1ec2e3686d3923783303c3fccc5e68883de8d27` |
+| Scaffolded `aiwf.yaml` | `947270abfc9c753e39d98147748bcfa20e27538d43cfea83f19cea3c05f0f0e8` | `f44603add5322372af4f3fcd806b84024ddd925968e6ca01446834f7285746b1` |
+| Scaffolded `aiwf.yaml` with hook consent | `f22c3b0d0249644483493c5dac208e6c76effbd8cfee137df325ee2101d37d18` | `5988b136ce0cb533c48931e231cb69f8e073370c0b81608f7d59f501465df5ea` |

@@ -4,7 +4,6 @@ import (
 	"context"
 	"fmt"
 	"slices"
-	"strings"
 
 	"github.com/23min/aiwf/internal/config"
 	"github.com/23min/aiwf/internal/projectguidance"
@@ -12,32 +11,32 @@ import (
 
 func appendProjectGuidanceReport(lines []string, problems []Problem, root string, cfg *config.Config, selection config.HostSelection) ([]string, []Problem) {
 	prefix := label("project policy:")
-	selected := "not adopted (guidance.packs unset)"
-	if cfg != nil && cfg.Guidance.Packs != nil {
-		selected = strings.Join(*cfg.Guidance.Packs, ", ")
-		if selected == "" {
-			selected = "none (explicit empty selection)"
-		}
+	var packs *[]string
+	if cfg != nil {
+		packs = cfg.Guidance.Packs
 	}
-	lines = append(lines, prefix+"selected: "+selected)
+	lines = append(lines, prefix+"selected: "+projectguidance.SelectionState(packs))
 	if !cfg.GuidanceEnabled() {
-		lines = append(lines, prefix+"maintenance disabled; installed policy remains in use")
+		lines = append(lines, prefix+projectguidance.DisabledState)
 	}
 	report, err := projectguidance.Inspect(context.Background(), root)
 	if err != nil {
-		message := "cannot inspect installed policy: " + err.Error()
+		message := projectguidance.InspectErrorState(err)
 		return append(lines, prefix+message), append(problems, Problem{Path: ".guidance", Severity: SeverityWarn, Message: message})
 	}
 	revision := report.Revision
 	if revision == "" {
-		revision = "unknown (no intact owned index)"
+		revision = projectguidance.UnknownRevision
 	}
 	lines = append(lines, prefix+"installed revision: "+revision+"; upstream freshness not checked")
 	for _, file := range report.Files {
 		lines = append(lines, prefix+"recorded artifact: "+file)
 	}
 	if report.Pending {
-		report.Issues = append(report.Issues, projectguidance.Issue{Path: ".guidance/.aiwf-pending", Detail: "installation incomplete; rerun aiwf update before using the pack set"})
+		report.Issues = append(report.Issues, projectguidance.Issue{Path: ".guidance/.aiwf-pending", Detail: projectguidance.PendingState})
+	}
+	for _, state := range projectguidance.NotInstalledStates(packs, cfg.GuidanceEnabled(), report) {
+		report.Issues = append(report.Issues, projectguidance.Issue{Path: "guidance.packs", Detail: state})
 	}
 	if cfg != nil && cfg.Guidance.Packs != nil && cfg.GuidanceEnabled() && !slices.Contains(report.Files, ".guidance/index.md") {
 		report.Issues = append(report.Issues, projectguidance.Issue{Path: ".guidance/index.md", Detail: "selected guidance is not installed; run aiwf update"})

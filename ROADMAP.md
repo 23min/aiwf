@@ -1336,7 +1336,7 @@ Let maintainers use `aiwf init` and `aiwf update` to select, refresh, and delive
 | M-0347 | Suggest applicable guidance during init and update | done |
 | M-0348 | Verify migration and establish the reduction prerequisite | done |
 
-## E-0095 — Adopt applicable guidance automatically on upgrade and update (active)
+## E-0095 — Adopt applicable guidance automatically on upgrade and update (done)
 
 ### Goal
 
@@ -1344,9 +1344,9 @@ An `aiwf upgrade` or `aiwf update` leaves a repository with the engineering guid
 
 | Milestone | Title | Status |
 |---|---|---|
-| M-0351 | Adopt applicable guidance packs automatically in init and update | draft |
-| M-0352 | Report guidance outcomes at the end of init, update and upgrade | draft |
-| M-0353 | Verify an unattended upgrade installs applicable guidance | draft |
+| M-0351 | Adopt applicable guidance packs automatically in init and update | done |
+| M-0352 | Report guidance outcomes at the end of init, update and upgrade | done |
+| M-0353 | Verify an unattended upgrade installs applicable guidance | done |
 
 ## E-0096 — One repo-only gate for everything aiwf ships to consumers (proposed)
 

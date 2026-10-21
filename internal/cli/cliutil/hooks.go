@@ -11,6 +11,10 @@ import (
 	"github.com/23min/aiwf/internal/skills"
 )
 
+// NoPromptUsage is the --no-prompt flag help shared by init, update and the
+// update step upgrade runs; hook consent is the only prompt it governs.
+const NoPromptUsage = "never prompt for hook consent; leave undecided hooks unchanged"
+
 // GateHookDecisions returns consent decisions for the hooks it can decide
 // (ADR-0032). A hook named in enableHooks (the repeatable --enable-hook flag)
 // is enabled without prompting — the non-interactive consent escape hatch,

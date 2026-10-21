@@ -16,9 +16,12 @@ import (
 // with t.Parallel adoption per M-0091.
 //
 // Serial: TestInit_InstallsExplicitProjectGuidance,
-// TestProjectGuidanceRefresh_ReportsFailuresWithoutClaimingInstallation, and
-// TestProjectGuidanceRefresh_OptOutAndDryRun isolate personal-guidance environment
-// variables. Other tests own separate repositories.
+// TestProjectGuidanceRefresh_ReportsFailuresWithoutClaimingInstallation,
+// TestProjectGuidanceRefresh_OptOutAndDryRun,
+// TestProjectGuidanceRefresh_ReportsSelectedPacksMissingFromCatalogue,
+// TestProjectGuidance_ReportsOutcome, and
+// TestProjectGuidanceAdoption_RecordsSelectionOnlyWithInstallation isolate
+// personal-guidance environment variables. Other tests own separate repositories.
 // TestProjectGuidanceRefresh_RoutesOnlySelectedWiredHosts stays serial: isolates process environment.
 func TestMain(m *testing.M) {
 	os.Setenv("GIT_AUTHOR_NAME", "aiwf-test")

@@ -12,6 +12,10 @@ import (
 //     (refresh_statusline_test.go): swaps $HOME via t.Setenv and captures
 //     os.Stdout — both process-globals.
 //   - TestRun_ProjectGuidanceFailuresPreserveInstallationAndContinue,
+//     TestRun_GuidanceReportNamesBlockerAndFix,
+//     TestRun_LaterFailureStillReportsGuidance,
+//     TestRun_HookSyncFailureStillReportsGuidance,
+//     TestRun_HookConsentFailureStillReportsGuidance,
 //     TestRun_ProjectGuidanceDisabledPreservesInstallationWithoutRetrieval, and
 //     TestRun_ProjectGuidanceRemovalAndInterruptedRetry capture os.Stdout;
 //     these also isolate personal-guidance environment variables;

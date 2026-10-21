@@ -5,6 +5,7 @@ import (
 	"io/fs"
 	"os"
 	"path/filepath"
+	"slices"
 	"strings"
 	"testing"
 
@@ -15,6 +16,7 @@ import (
 	"github.com/23min/aiwf/internal/cli/update"
 	"github.com/23min/aiwf/internal/config"
 	"github.com/23min/aiwf/internal/gitops"
+	"github.com/23min/aiwf/internal/skills"
 	"github.com/23min/aiwf/internal/testsupport"
 )
 
@@ -116,7 +118,7 @@ func guidanceInstallBaseline(t *testing.T, root, source string) string {
 
 func TestRun_ProjectGuidanceFailuresPreserveInstallationAndContinue(t *testing.T) {
 	testsupport.IsolateGuidanceEnvironment(t)
-	for _, kind := range []string{"unavailable source", "invalid catalogue", "missing pack", "missing document", "edited document", "edited retired document", "first installation"} {
+	for _, kind := range []string{"unavailable source", "invalid catalogue", "missing document", "edited document", "edited retired document", "first installation"} {
 		t.Run(kind, func(t *testing.T) {
 			root, source := freshInitializedRepo(t), testsupport.GuidanceSource(t)
 			guidanceConfig(t, root, source, "[sample/base]", true)
@@ -132,8 +134,6 @@ func TestRun_ProjectGuidanceFailuresPreserveInstallationAndContinue(t *testing.T
 			case "invalid catalogue":
 				guidanceWrite(t, source, "catalogue.json", "not JSON\n")
 				testsupport.CommitGuidanceSource(t, source)
-			case "missing pack":
-				guidanceConfig(t, root, source, "[missing/base]", true)
 			case "missing document":
 				if err := os.Remove(filepath.Join(source, "packs", "sample", "base", "guide.md")); err != nil {
 					t.Fatal(err)
@@ -254,5 +254,141 @@ func TestRun_ProjectGuidanceRemovalAndInterruptedRetry(t *testing.T) {
 				t.Fatalf("repeat removal changed guidance:\n%s", diff)
 			}
 		})
+	}
+}
+
+// TestRun_GuidanceReportNamesBlockerAndFix pins that a blocked installation
+// ends update with the blocker's cause and the action that clears it, keeps the
+// installed set as it was, and leaves the exit code and other steps unchanged.
+func TestRun_GuidanceReportNamesBlockerAndFix(t *testing.T) {
+	for _, kind := range []string{"retrieval failure", "incompatible delivery", "handwritten legacy import", "locally edited file"} {
+		for _, refresh := range []bool{false, true} {
+			name := kind + "/first adoption"
+			if refresh {
+				name = kind + "/refresh"
+			}
+			t.Run(name, func(t *testing.T) {
+				bin := testsupport.IsolateGuidanceEnvironment(t)
+				root, source := freshInitializedRepo(t), testsupport.GuidanceSource(t, "*.xyz")
+				guidanceWrite(t, root, "source.xyz", "project source")
+				guidanceWrite(t, root, config.FileName, "hosts: [claude-code, codex]\nguidance:\n  source: "+source+"\n")
+				installed := "  installed: none"
+				if refresh {
+					revision := guidanceInstallBaseline(t, root, source)
+					installed = "  installed: sample/base at " + revision
+				}
+				var want string
+				switch kind {
+				case "retrieval failure":
+					absent := filepath.Join(root, "absent-source")
+					configuration := "hosts: [claude-code, codex]\nguidance:\n  source: " + absent + "\n"
+					if refresh {
+						configuration += "  packs: [sample/base]\n"
+					}
+					guidanceWrite(t, root, config.FileName, configuration)
+					want = "  blocked:   fetching guidance from \"" + absent + "\"; check the source and Git access: "
+				case "incompatible delivery":
+					if err := testsupport.WriteExecutable(filepath.Join(bin, "dotfiles-guidance-check"), []byte("#!/bin/sh\nprintf 'reconcile old Claude routing\\n' >&2\nexit 1\n")); err != nil {
+						t.Fatal(err)
+					}
+					want = "  blocked:   incompatible ai-dotfiles guidance delivery: dotfiles-guidance-check failed: exit status 1; reconcile old Claude routing; update/reconcile ai-dotfiles in this environment, then retry"
+				case "handwritten legacy import":
+					original, err := os.ReadFile(filepath.Join(root, "CLAUDE.md"))
+					if err != nil {
+						t.Fatal(err)
+					}
+					guidanceWrite(t, root, "CLAUDE.md", string(original)+"\n@~/.agents/guidance/200-go.md\n")
+					want = "  blocked:   project guidance installation conflict: CLAUDE.md contains handwritten legacy guidance references; reconcile them before retrying"
+				case "locally edited file":
+					guidanceWrite(t, root, ".guidance/packs/sample/base/guide.md", "# Local edits\n")
+					want = "  blocked:   project guidance installation conflict: .guidance/packs/sample/base/guide.md is foreign or locally edited; preserve your changes in project.md or reconcile the generated file before retrying"
+				}
+				example := filepath.Join(root, config.ExampleFileName)
+				if err := os.Remove(example); err != nil {
+					t.Fatal(err)
+				}
+				section := guidanceSection(t, guidanceUpdate(t, root))
+				for _, line := range section {
+					if !strings.HasPrefix(line, "  ") {
+						t.Fatalf("section line %q is not one of the report's labelled lines:\n%s", line, strings.Join(section, "\n"))
+					}
+				}
+				if !slices.Contains(section, installed) {
+					t.Fatalf("installed set not reported as %q:\n%s", installed, strings.Join(section, "\n"))
+				}
+				blocked := slices.IndexFunc(section, func(line string) bool { return strings.HasPrefix(line, "  blocked:") })
+				if blocked < 0 || !strings.HasPrefix(section[blocked], want) || (kind != "retrieval failure" && section[blocked] != want) {
+					t.Fatalf("blocked line, want %q:\n%s", want, strings.Join(section, "\n"))
+				}
+				if slices.Contains(section, "  adopted:   sample/base") {
+					t.Fatalf("blocked run reported an adoption:\n%s", strings.Join(section, "\n"))
+				}
+				// The section reports the selection aiwf.yaml records, not the
+				// one the blocked run would have adopted.
+				selected := "  selected:  not adopted (guidance.packs unset)"
+				if refresh {
+					selected = "  selected:  sample/base"
+				}
+				if section[0] != selected {
+					t.Fatalf("selected line = %q, want %q", section[0], selected)
+				}
+				if _, err := os.Stat(example); err != nil {
+					t.Fatalf("unrelated update step did not run: %v", err)
+				}
+			})
+		}
+	}
+}
+
+// TestRun_LaterFailureStillReportsGuidance makes the hook step fail after
+// guidance ran: update exits with an internal error and still prints the
+// guidance section. Disabled maintenance keeps the run hermetic.
+func TestRun_LaterFailureStillReportsGuidance(t *testing.T) {
+	root := freshInitializedRepo(t)
+	guidanceWrite(t, root, config.FileName, "hosts: [codex]\nguidance:\n  enabled: false\n")
+	hooks := filepath.Join(root, ".git", "hooks")
+	if err := os.RemoveAll(hooks); err != nil {
+		t.Fatal(err)
+	}
+	guidanceWrite(t, root, filepath.Join(".git", "hooks"), "not a directory")
+	rc := cliutil.ExitOK
+	output := string(testutil.CaptureStdout(t, func() {
+		rc = update.Run(root, false, "", false, false, false, false, true, nil, nil)
+	}))
+	if rc != cliutil.ExitInternal || !strings.Contains(output, "\nGuidance:\n") {
+		t.Fatalf("rc = %d, want ExitInternal with the guidance section:\n%s", rc, output)
+	}
+}
+
+// TestRun_HookSyncFailureStillReportsGuidance enables a Claude hook while
+// .claude/settings.json is malformed, so wiring the hook fails after guidance
+// ran: update exits with an internal error and still prints the guidance
+// section. Disabled maintenance keeps the run hermetic.
+func TestRun_HookSyncFailureStillReportsGuidance(t *testing.T) {
+	root := freshInitializedRepo(t)
+	hook := skills.ShippedHooks[0].Name
+	guidanceWrite(t, root, config.FileName, "hosts: [claude-code]\nguidance:\n  enabled: false\nhooks:\n  "+hook+":\n    enabled: true\n")
+	guidanceWrite(t, root, filepath.Join(".claude", "settings.json"), "{not json")
+	rc := cliutil.ExitOK
+	output := string(testutil.CaptureStdout(t, func() {
+		rc = update.Run(root, false, "", false, false, false, false, true, nil, skills.ShippedHooks)
+	}))
+	if rc != cliutil.ExitInternal || !strings.Contains(output, "\nGuidance:\n") {
+		t.Fatalf("rc = %d, want ExitInternal with the guidance section:\n%s", rc, output)
+	}
+}
+
+// TestRun_HookConsentFailureStillReportsGuidance gives aiwf.yaml a hooks block
+// the consent gate cannot decode: update exits with an internal error rather
+// than success and still prints the guidance section.
+func TestRun_HookConsentFailureStillReportsGuidance(t *testing.T) {
+	root := freshInitializedRepo(t)
+	guidanceWrite(t, root, config.FileName, "hosts: [claude-code]\nguidance:\n  enabled: false\nhooks:\n  bad-hook:\n    unknown_field: true\n")
+	rc := cliutil.ExitOK
+	output := string(testutil.CaptureStdout(t, func() {
+		rc = update.Run(root, false, "", false, false, false, false, true, nil, skills.ShippedHooks)
+	}))
+	if rc != cliutil.ExitInternal || !strings.Contains(output, "\nGuidance:\n") {
+		t.Fatalf("rc = %d, want ExitInternal with the guidance section:\n%s", rc, output)
 	}
 }

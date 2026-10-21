@@ -1,25 +1,30 @@
 ---
 id: M-0351
 title: Adopt applicable guidance packs automatically in init and update
-status: draft
+status: done
 parent: E-0095
 tdd: required
 acs:
     - id: AC-1
       title: Unset selection adopts every applicable pack without a terminal
-      status: open
+      status: met
+      tdd_phase: done
     - id: AC-2
       title: Update adds newly applicable packs and never removes one
-      status: open
+      status: met
+      tdd_phase: done
     - id: AC-3
       title: Ignored packs are never adopted
-      status: open
+      status: met
+      tdd_phase: done
     - id: AC-4
       title: Disabled maintenance performs no detection or adoption
-      status: open
+      status: met
+      tdd_phase: done
     - id: AC-5
       title: Init and update never prompt for guidance
-      status: open
+      status: met
+      tdd_phase: done
 ---
 ## Goal
 
@@ -41,19 +46,19 @@ Detection, retrieval, validation, installation, host routing and legacy handover
 
 ### AC-2 — Update adds newly applicable packs and never removes one
 
-**Pass criterion**: with `guidance.packs` already listing an installed pack, adding tracked files matching a further pack and running `aiwf update` appends that pack to `guidance.packs` and installs it, and a selected pack whose files no longer match stays selected and installed. **Edge cases**: an explicitly empty `guidance.packs: []` gains newly matching packs; order of existing entries is preserved; a second run with no new matches writes nothing. **Code references**: the adoption function beside `internal/initrepo/project_guidance.go`, with a table-driven unit test and a binary-level update test.
+**Pass criterion**: with `guidance.packs` already listing an installed pack, adding tracked files matching a further pack and running `aiwf update` appends that pack to `guidance.packs` and installs it, and a selected pack whose files no longer match stays selected and installed. **Edge cases**: an explicitly empty `guidance.packs: []` gains newly matching packs; order of existing entries is preserved; a second run with no new matches writes nothing; a matching pack removed from `guidance.packs` without being listed in `guidance.ignored` is adopted again on the next run. **Code references**: the adoption function `Adopt` in `internal/projectguidance/selection.go`, used by `internal/initrepo/project_guidance.go`, with a table-driven unit test and a binary-level update test.
 
 ### AC-3 — Ignored packs are never adopted
 
-**Pass criterion**: a pack listed in `guidance.ignored` is never added to `guidance.packs` or installed, however its detection matches, and moving an adopted pack's id from `guidance.packs` to `guidance.ignored` removes its unmodified output on the next update. **Edge cases**: an id present in both lists (ignored wins, as the existing removal path treats it); a locally edited owned file of the removed pack blocks removal and preserves the installed set. **Code references**: the adoption function's unit test; `internal/cli/update/guidance_reconsideration_test.go`.
+**Pass criterion**: a pack listed in `guidance.ignored` is never added to `guidance.packs` or installed, however its detection matches, and moving an adopted pack's id from `guidance.packs` to `guidance.ignored` removes its unmodified output on the next update. **Edge cases**: an id listed in both `guidance.packs` and `guidance.ignored` is refused when `aiwf.yaml` loads, so adoption never sees it; a locally edited owned file of the removed pack blocks removal and preserves the installed set. **Code references**: the adoption function's unit test; `internal/cli/update/guidance_reconsideration_test.go`.
 
 ### AC-4 — Disabled maintenance performs no detection or adoption
 
-**Pass criterion**: with `guidance.enabled: false`, `aiwf init` and `aiwf update` perform no catalogue retrieval, detection or adoption, and leave `aiwf.yaml`, `.guidance/` and host routing byte-identical. **Edge cases**: `guidance.packs` unset and set; a matching pack present in the catalogue. **Code references**: `internal/cli/update/project_guidance_failures_test.go` (`TestRun_ProjectGuidanceDisabledPreservesInstallationWithoutRetrieval`), extended to the unset selection and to `init`.
+**Pass criterion**: with `guidance.enabled: false`, `aiwf init` and `aiwf update` perform no catalogue retrieval, detection or adoption, and leave `aiwf.yaml`, `.guidance/` and host routing byte-identical. **Edge cases**: `guidance.packs` unset and set; a matching pack present in the catalogue. **Code references**: `internal/cli/update/project_guidance_failures_test.go` (`TestRun_ProjectGuidanceDisabledPreservesInstallationWithoutRetrieval`); the unset selection and `init` are covered by the disabled cases of `internal/cli/integration/guidance_noninteractive_test.go`.
 
 ### AC-5 — Init and update never prompt for guidance
 
-**Pass criterion**: `aiwf init` and `aiwf update` run on a real terminal adopt and install the same packs as a run without one and never read stdin for guidance, and neither verb's `--help` describes a guidance prompt. **Edge cases**: `init --no-prompt` on a terminal; a terminal whose stdin reaches EOF immediately. **Code references**: the pty test in `internal/cli/cliutil/guidance_terminal_linux_test.go`; the help-text drift is pinned against the verbs' registered flags rather than by phrase.
+**Pass criterion**: `aiwf init` and `aiwf update` run on a real terminal adopt and install the same packs as a run without one and never read stdin for guidance, and neither verb's `--help` describes a guidance prompt. **Edge cases**: `init --no-prompt` and `update --no-prompt` on a terminal; a terminal whose stdin reaches EOF immediately. **Code references**: the pty test in `internal/cli/cliutil/guidance_terminal_linux_test.go`; the help-text drift is pinned against the verbs' registered flags rather than by phrase.
 
 ## Constraints
 
@@ -66,19 +71,20 @@ Detection, retrieval, validation, installation, host routing and legacy handover
 
 - ADR-0054 settles adoption: add-only, on every enabled run, `guidance.ignored` as the only opt-out, no guidance prompt.
 - The adoption rule is one pure function over the detected matches, the current `guidance.packs` and `guidance.ignored`, returning the new selection; `init`, `update` and the report milestone consume it rather than re-deriving it.
-- `init --no-prompt` keeps its meaning for hook consent; its help text stops mentioning guidance selection.
+- `--no-prompt` on `init`, `update` and `upgrade` keeps its meaning for hook consent. Their help text, the README's guidance paragraph and the unreleased CHANGELOG entry for `--no-prompt` stop describing guidance selection, and the pty test's `update-no-prompt` guidance subtest goes with the prompt.
 
 ## Surfaces touched
 
 - `internal/initrepo/project_guidance.go`
 - `internal/cli/cliutil/guidance.go`
-- `internal/cli/update/update.go`, `internal/cli/initcmd/initcmd.go`
+- `internal/cli/update/update.go`, `internal/cli/initcmd/initcmd.go`, `internal/cli/upgrade/upgrade.go` (help text)
+- `README.md`, `CHANGELOG.md`
 - `internal/cli/cliutil/guidance_terminal_linux_test.go`
 
 ## Out of scope
 
 - The end-of-run guidance report, which the next milestone in this epic delivers; this milestone keeps the existing step-ledger line.
-- A `--no-prompt` flag for `update`'s hook-consent prompt.
+- Hook-consent and statusline prompts, and the repo lock held while any prompt waits (G-0709).
 
 ## Dependencies
 
@@ -92,16 +98,30 @@ Detection, retrieval, validation, installation, host routing and legacy handover
 
 ## Release note
 
+`aiwf init` — including the first run in a repository — and `aiwf update` now adopt applicable engineering guidance on their own, on a terminal or not. Every pack whose detection patterns match the project's files and that is not listed in `guidance.ignored` is installed with host routing and then added to `guidance.packs`; a project that later gains matching files gains the pack on the next `aiwf update`. Recording a pack keeps the rest of `aiwf.yaml` as written where the layout allows and otherwise re-encodes it with its fields and comments. Adoption is add-only: a selected pack is never removed automatically, `packs: []` is an empty selection that adoption fills rather than a way to opt out, and `guidance.ignored` is the per-pack opt-out — moving an id there retires the pack's unmodified files. A selected pack the catalogue no longer lists is reported with its fix; `init` and `update` delete its unmodified files from `.guidance/` and install the rest of the selection, while `aiwf worktree add` leaves installed guidance unchanged. The first adoption also performs the handover from legacy ai-dotfiles guidance in `CLAUDE.md`, as an explicit selection always has. The select / not now / ignore guidance prompt is gone, and `--no-prompt` on `init`, `update` and `upgrade` now governs hook consent only. `guidance.enabled: false` still performs no download or adoption. When `aiwf.yaml` cannot record a newly applicable pack — it is not a single UTF-8 YAML document, `guidance` holds anchors or aliases, or `guidance` is inherited through a merge key — the run leaves installed guidance, including already-selected packs, unrefreshed and reports why.
+
 ## Decisions made during implementation
 
-- (none)
+- D-0103 — a selected pack the catalogue no longer lists is skipped, kept in `guidance.packs`, reported with its fix, and its unmodified files retired.
+- D-0100, which governed how prompt answers were saved, is superseded now that the prompt is removed.
 
 ## Validation
 
+- `make ci` — exit 0 over the tree committed as `d7fe331fc`: build, `go vet` (default, `stress`, `testpins` tags), `golangci-lint` (0 issues), `go test -race -parallel 8` with coverage (91.8% total), the profile-driven gate step (diff-scoped coverage audit, firing-fixture meta-gate), and `aiwf doctor --self-check` (29 steps). Linux devcontainer, 2026-09-25.
+- `aiwf check` — 0 errors at `d7fe331fc`, Linux devcontainer, 2026-09-25.
+- AC-3 and AC-4 were already pinned when each AC was reached. Deleting the ignored-pack filter in `projectguidance.Adopt` fails `TestAdopt_UnsetSelection`, `TestAdopt_ExistingSelectionGainsNewMatchesAndKeepsItsOwn`, `TestBinary_GuidanceNoninteractiveAdoptsApplicablePacks/{init,update}/ignored` and `TestBinary_GuidanceConfigurationRemovalAndReconsideration/ignore_then_reconsider`; deleting the `GuidanceEnabled()` check in `ensureProjectGuidance` fails the noninteractive `{init,update}/disabled` cases, `TestRun_ProjectGuidanceDisabledPreservesInstallationWithoutRetrieval` and `TestProjectGuidanceRefresh_OptOutAndDryRun/disabled`. Measured with `go test -count=1` on the mutated tree, Linux devcontainer, 2026-09-25.
+- AC-5, help clause (observation): `aiwf init --help`, `aiwf update --help` and `aiwf upgrade --help` from a binary built at `069c66fc1` (the help text is unchanged at `d7fe331fc`), Linux devcontainer, 2026-09-25. Expected: no guidance prompt described. Observed: guidance is described only as adopted "without prompting"; every other mention of a prompt concerns hook consent or the statusline, and each `--no-prompt` flag reads "never prompt for hook consent; leave undecided hooks unchanged".
+
 ## Deferrals
 
-- (none)
+- G-0713 — `aiwf.yaml`'s `hooks:` and `contracts:` append writers break a flow-style or indented root; found in review, present before this milestone.
 
 ## Reviewer notes
 
-- (none)
+- Verdict: approve, after an independent code-quality and design review over the full change-set `619f04d03..` the wrap; its last pass found nothing unpinned, unrecorded or untracked.
+- `aiwf.yaml` is edited in place only when the result decodes to the same values as a re-encoding; otherwise it is re-encoded, which normalises indentation to four spaces and drops blank lines while keeping fields and comments. A NaN or a collection used as a key always takes the re-encoding path.
+- Declined: returning the adopted ids from `projectguidance.Adopt` and a structured step result. The end-of-run report in M-0352 is their first reader, and the design review found the current shape leaves that change local to this unit.
+- Declined: dropping `SetGuidanceSelection`'s `ignored` parameter, folding the append and in-place paths into one byte range, and replacing `loadStatusMdAutoUpdate`/`loadWireClaudeMd` with the loaded config — simplifications with no behaviour change, left for code that next touches them.
+- Declined: a phrase check over `--help` for M-0351 AC-5; the help clause is recorded as an observation under Validation.
+- Noted for M-0352: `aiwf doctor` lists a selected pack the catalogue no longer has as selected without saying it is not installed; its report scope (M-0352 AC-3) is where that belongs.
+- Noted, not filed: `aiwfyaml`'s `hooks:` replace path drops comments inside an existing `hooks:` block; G-0713 tracks the append writers only.

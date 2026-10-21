@@ -4,6 +4,8 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"slices"
+	"strings"
 	"testing"
 
 	"github.com/23min/aiwf/internal/cli/cliutil"
@@ -73,5 +75,101 @@ func TestRun_StatuslineDryRun(t *testing.T) {
 	rc := initcmd.Run(root, "", true, false, true, string(skills.StatuslineScopeUser), false, false, false, nil, nil)
 	if rc != cliutil.ExitOK {
 		t.Errorf("rc = %d, want ExitOK", rc)
+	}
+}
+
+// TestRun_StatuslineFailureSetsExitCode pins that a failed statusline
+// scaffold is init's exit code while the guidance report still ends the run.
+// An unknown scope fails before anything is written, and disabled guidance
+// maintenance keeps the run away from personal configuration.
+//
+// Serial: captures process stdout.
+func TestRun_StatuslineFailureSetsExitCode(t *testing.T) {
+	root := freshGitRepo(t)
+	if err := os.WriteFile(filepath.Join(root, "aiwf.yaml"), []byte("guidance:\n  enabled: false\n"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	rc := cliutil.ExitOK
+	output := string(testutil.CaptureStdout(t, func() {
+		rc = initcmd.Run(root, "", false, true, true, "no-such-scope", false, true, true, nil, nil)
+	}))
+	if rc != cliutil.ExitUsage {
+		t.Errorf("rc = %d, want ExitUsage", rc)
+	}
+	lines := strings.Split(strings.TrimRight(output, "\n"), "\n")
+	heading := slices.Index(lines, "Guidance:")
+	if heading < 0 || !strings.HasPrefix(lines[len(lines)-1], "  ") || slices.ContainsFunc(lines[heading+1:], func(line string) bool { return !strings.HasPrefix(line, "  ") }) {
+		t.Errorf("output does not end with the guidance section:\n%s", output)
+	}
+}
+
+// TestRun_LaterFailureStillReportsGuidance makes the hook step fail after
+// guidance ran: init exits with an internal error and still prints the
+// guidance section. Disabled maintenance keeps the run hermetic.
+//
+// Serial: captures process stdout.
+func TestRun_LaterFailureStillReportsGuidance(t *testing.T) {
+	root := freshGitRepo(t)
+	if err := os.WriteFile(filepath.Join(root, "aiwf.yaml"), []byte("hosts: [codex]\nguidance:\n  enabled: false\n"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	hooks := filepath.Join(root, ".git", "hooks")
+	if err := os.RemoveAll(hooks); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(hooks, []byte("not a directory"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	rc := cliutil.ExitOK
+	output := string(testutil.CaptureStdout(t, func() {
+		rc = initcmd.Run(root, "", false, false, false, "", false, false, true, nil, nil)
+	}))
+	if rc != cliutil.ExitInternal || !strings.Contains(output, "\nGuidance:\n") {
+		t.Fatalf("rc = %d, want ExitInternal with the guidance section:\n%s", rc, output)
+	}
+}
+
+// TestRun_HookSyncFailureStillReportsGuidance consents to a Claude hook while
+// .claude/settings.json is malformed, so wiring the hook fails after guidance
+// ran: init exits with an internal error and still prints the guidance
+// section. Disabled maintenance keeps the run hermetic.
+//
+// Serial: captures process stdout.
+func TestRun_HookSyncFailureStillReportsGuidance(t *testing.T) {
+	root := freshGitRepo(t)
+	if err := os.WriteFile(filepath.Join(root, "aiwf.yaml"), []byte("hosts: [claude-code]\nguidance:\n  enabled: false\n"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.MkdirAll(filepath.Join(root, ".claude"), 0o755); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(filepath.Join(root, ".claude", "settings.json"), []byte("{not json"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	rc := cliutil.ExitOK
+	output := string(testutil.CaptureStdout(t, func() {
+		rc = initcmd.Run(root, "", false, true, false, "", false, false, true, []string{skills.ShippedHooks[0].Name}, skills.ShippedHooks)
+	}))
+	if rc != cliutil.ExitInternal || !strings.Contains(output, "\nGuidance:\n") {
+		t.Fatalf("rc = %d, want ExitInternal with the guidance section:\n%s", rc, output)
+	}
+}
+
+// TestRun_HookConsentFailureStillReportsGuidance gives aiwf.yaml a hooks block
+// the consent gate cannot decode: init exits with an internal error rather than
+// success and still prints the guidance section.
+//
+// Serial: captures process stdout.
+func TestRun_HookConsentFailureStillReportsGuidance(t *testing.T) {
+	root := freshGitRepo(t)
+	if err := os.WriteFile(filepath.Join(root, "aiwf.yaml"), []byte("hosts: [claude-code]\nguidance:\n  enabled: false\nhooks:\n  bad-hook:\n    unknown_field: true\n"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	rc := cliutil.ExitOK
+	output := string(testutil.CaptureStdout(t, func() {
+		rc = initcmd.Run(root, "", false, true, false, "", false, false, true, nil, skills.ShippedHooks)
+	}))
+	if rc != cliutil.ExitInternal || !strings.Contains(output, "\nGuidance:\n") {
+		t.Fatalf("rc = %d, want ExitInternal with the guidance section:\n%s", rc, output)
 	}
 }

@@ -48,7 +48,7 @@ func NewCmd() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "upgrade",
 		Short: "Fetch a newer aiwf binary via go install and refresh artifacts",
-		Long:  "Install the requested aiwf binary, then re-execute its update command against the resolved consumer checkout. Refresh uses that checkout's host configuration and the inherited PATH. A failed refresh returns a failure even when installation succeeded. --no-prompt is passed to that update command, so the target release must support it." + cliutil.HostSetupHelp,
+		Long:  "Install the requested aiwf binary, then re-execute its update command against the resolved consumer checkout. Refresh uses that checkout's host configuration and the inherited PATH. A failed refresh returns a failure even when installation succeeded. The re-executed update ends the output with its guidance section. --no-prompt is passed to that update command, so the target release must support it." + cliutil.HostSetupHelp,
 		Example: `  # Upgrade to latest published release
   aiwf upgrade
 
@@ -67,7 +67,7 @@ func NewCmd() *cobra.Command {
 	cmd.Flags().StringVar(&root, "root", "", "consumer repo root for the post-install aiwf update step (default: cwd)")
 	cmd.Flags().StringVar(&target, "version", "latest", "version to install: a semver tag (e.g. v0.2.0) or 'latest'")
 	cmd.Flags().BoolVar(&checkOnly, "check", false, "print the current/target comparison and exit without installing")
-	cmd.Flags().BoolVar(&noPrompt, "no-prompt", false, "run the post-install aiwf update step with --no-prompt: never prompt for hook consent or guidance selection")
+	cmd.Flags().BoolVar(&noPrompt, "no-prompt", false, "run the post-install aiwf update step with --no-prompt: "+cliutil.NoPromptUsage)
 	return cmd
 }
 

@@ -758,8 +758,9 @@ func (c *Config) StatusMdAutoUpdate() bool {
 const DefaultStatusMdAutoUpdate = true
 
 // Guidance controls external project policy and host instruction wiring.
-// Boolean pointers default on when nil. A nil Packs leaves policy unadopted;
-// a non-nil empty list explicitly adopts no packs.
+// Boolean pointers default on when nil. A nil Packs means no pack has been
+// adopted, and a non-nil empty list selects none; enabled init and update add
+// applicable, unignored packs to either.
 type Guidance struct {
 	Enabled      *bool     `yaml:"enabled,omitempty"`
 	Source       string    `yaml:"source,omitempty"`

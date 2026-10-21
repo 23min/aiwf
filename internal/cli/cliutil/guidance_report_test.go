@@ -1,110 +1,120 @@
 package cliutil
 
 import (
-	"bytes"
-	"errors"
-	"os"
-	"path/filepath"
 	"strings"
 	"testing"
 
 	"github.com/google/go-cmp/cmp"
 
-	"github.com/23min/aiwf/internal/config"
+	"github.com/23min/aiwf/internal/initrepo"
+	"github.com/23min/aiwf/internal/projectguidance"
 )
 
-func TestReportGuidance_ExplainsSuggestionsAndRetainsUnmatchedSelection(t *testing.T) {
+func TestGuidanceReport(t *testing.T) {
 	t.Parallel()
-	root, cfg, catalogue := guidancePromptFixture(t)
-	catalogue.Packs[0].Detect = []string{"*.absent"}
-	before, err := os.ReadFile(filepath.Join(root, config.FileName))
-	if err != nil {
-		t.Fatal(err)
-	}
-	original := cfg.Guidance
-	var out bytes.Buffer
-	if err = reportGuidance(t.Context(), root, catalogue, cfg, &out); err != nil {
-		t.Fatal(err)
-	}
-	want := "Selected guidance existing has no current matching files; retained.\n" +
-		"Suggested guidance first — Policy for first; matches source.xyz (*.xyz).\n" +
-		"Suggested guidance second — Policy for second; matches source.xyz (*.xyz).\n" +
-		"Suggested guidance third — Policy for third; matches source.xyz (*.xyz).\n" +
-		"To select or ignore suggestions, edit guidance.packs or guidance.ignored in aiwf.yaml.\n"
-	if diff := cmp.Diff(want, out.String()); diff != "" {
-		t.Fatal(diff)
-	}
-	after, err := os.ReadFile(filepath.Join(root, config.FileName))
-	if err != nil || !bytes.Equal(before, after) {
-		t.Fatalf("configuration changed: %s, %v", after, err)
-	}
-	if diff := cmp.Diff(original, cfg.Guidance); diff != "" {
-		t.Fatal(diff)
-	}
-}
-
-func TestReportGuidance_NoMatchesOrDecidedMatchesStayQuiet(t *testing.T) {
-	t.Parallel()
-	for _, selected := range []bool{false, true} {
-		t.Run(map[bool]string{false: "no matches", true: "decided matches"}[selected], func(t *testing.T) {
+	selected := &[]string{"a/one", "gone/one", "gone/two"}
+	missing := projectguidance.NotInstalledStates(selected, true, projectguidance.Inspection{IndexIntact: true, Packs: []string{"a/one"}})
+	for _, tc := range []struct {
+		name    string
+		outcome *initrepo.GuidanceOutcome
+		want    []string
+	}{
+		{name: "no section when guidance was not considered"},
+		{
+			name: "explicit empty selection, installed packs, every list and a multi-line blocker",
+			outcome: &initrepo.GuidanceOutcome{
+				Selection: &[]string{}, Ignored: []string{"c/three"}, Blocker: "git clone: exit status 128\nfatal: not allowed\n",
+				Installed: projectguidance.Inspection{IndexIntact: true, Revision: "abc123", Packs: []string{"a/one", "b/two"}},
+			},
+			want: []string{
+				"", "Guidance:",
+				"  selected:  " + projectguidance.SelectionState(&[]string{}),
+				"  adopted:   none",
+				"  installed: a/one, b/two at abc123",
+				"  ignored:   c/three",
+				"  blocked:   git clone: exit status 128 fatal: not allowed",
+			},
+		},
+		{
+			name: "pending installation and selected packs not installed",
+			outcome: &initrepo.GuidanceOutcome{
+				Selection: selected, Adopted: []string{"a/one"},
+				Installed: projectguidance.Inspection{IndexIntact: true, Revision: "abc123", Packs: []string{"a/one"}, Pending: true},
+			},
+			want: []string{
+				"", "Guidance:",
+				"  selected:  a/one, gone/one, gone/two",
+				"  adopted:   a/one",
+				"  installed: a/one at abc123",
+				"  ignored:   none",
+				"  pending:   " + projectguidance.PendingState,
+				"  missing:   " + missing[0],
+				"  missing:   " + missing[1],
+			},
+		},
+		{
+			name:    "disabled maintenance reports no missing pack",
+			outcome: &initrepo.GuidanceOutcome{Selection: &[]string{"a/one"}, Disabled: true, Installed: projectguidance.Inspection{IndexIntact: true}},
+			want: []string{
+				"", "Guidance:",
+				"  selected:  a/one",
+				"  " + projectguidance.DisabledState,
+				"  adopted:   none",
+				"  installed: none",
+				"  ignored:   none",
+			},
+		},
+		{
+			name:    "unreadable installed guidance claims nothing about missing packs",
+			outcome: &initrepo.GuidanceOutcome{Selection: &[]string{"a/one"}, InspectError: "cannot inspect installed policy: invalid ownership digest", Installed: projectguidance.Inspection{IndexIntact: true}},
+			want: []string{
+				"", "Guidance:",
+				"  selected:  a/one",
+				"  adopted:   none",
+				"  installed: cannot inspect installed policy: invalid ownership digest",
+				"  ignored:   none",
+			},
+		},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
 			t.Parallel()
-			root, cfg, catalogue := guidancePromptFixture(t)
-			if selected {
-				catalogue.Packs = catalogue.Packs[:2]
-			} else {
-				cfg.Guidance.Packs = nil
-				if err := os.Remove(filepath.Join(root, "source.xyz")); err != nil {
-					t.Fatal(err)
-				}
-			}
-			var out bytes.Buffer
-			if err := reportGuidance(t.Context(), root, catalogue, cfg, &out); err != nil {
-				t.Fatal(err)
-			}
-			if out.Len() != 0 {
-				t.Fatalf("unexpected report: %s", &out)
+			if diff := cmp.Diff(tc.want, GuidanceReport(tc.outcome)); diff != "" {
+				t.Fatalf("report (-want +got):\n%s", diff)
 			}
 		})
 	}
 }
 
-func TestReportGuidance_ReportsReadAndWriteErrors(t *testing.T) {
+// TestGuidanceReportHelp_NamesEveryLabel derives the labels from reports that
+// between them carry every optional line, so a label added to the report
+// without help fails here.
+func TestGuidanceReportHelp_NamesEveryLabel(t *testing.T) {
 	t.Parallel()
-	for _, stage := range []string{"detect", "selected", "suggested", "hint"} {
-		t.Run(stage, func(t *testing.T) {
-			t.Parallel()
-			root, cfg, catalogue := guidancePromptFixture(t)
-			failure := errors.New("output failed")
-			var out bytes.Buffer
-			writer := &failAfterLines{remaining: 0, err: failure}
-			switch stage {
-			case "detect":
-				root = filepath.Join(root, "missing")
-			case "selected":
-				catalogue.Packs[0].Detect = nil
-			case "hint":
-				writer.remaining = 3
-			}
-			if stage == "detect" {
-				if err := reportGuidance(t.Context(), root, catalogue, cfg, &out); err == nil {
-					t.Fatal("missing detection error")
-				}
-			} else if err := reportGuidance(t.Context(), root, catalogue, cfg, writer); !errors.Is(err, failure) {
-				t.Fatalf("got %v", err)
-			}
-		})
+	report := GuidanceReport(&initrepo.GuidanceOutcome{Disabled: true})
+	report = append(report, GuidanceReport(&initrepo.GuidanceOutcome{
+		Selection: &[]string{"a/one"}, Blocker: "cause",
+		Installed: projectguidance.Inspection{IndexIntact: true, Pending: true},
+	})...)
+	labels := map[string]bool{}
+	for _, line := range report {
+		if !strings.HasPrefix(line, "  ") {
+			continue
+		}
+		clause := ""
+		if label, _, found := strings.Cut(strings.TrimSpace(line), ":"); found && !strings.Contains(label, " ") {
+			labels[label] = true
+			clause = label + " ("
+		} else if line == "  "+projectguidance.DisabledState {
+			labels["disabled"] = true
+			clause = "maintenance is disabled"
+		}
+		if clause == "" || !strings.Contains(GuidanceReportHelp, clause) {
+			t.Errorf("help does not describe report line %q", line)
+		}
 	}
-}
-
-type failAfterLines struct {
-	remaining int
-	err       error
-}
-
-func (w *failAfterLines) Write(p []byte) (int, error) {
-	if w.remaining == 0 {
-		return 0, w.err
+	for _, label := range []string{"selected", "adopted", "installed", "ignored", "disabled", "pending", "blocked", "missing"} {
+		if !labels[label] {
+			t.Errorf("fixture reports produce no %q line", label)
+		}
 	}
-	w.remaining -= strings.Count(string(p), "\n")
-	return len(p), nil
 }

@@ -6,6 +6,7 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"slices"
 	"strings"
 	"syscall"
 	"testing"
@@ -98,19 +99,20 @@ func TestRetrieve_EmptySelection(t *testing.T) {
 	}
 }
 
+// TestRetrieve_RefusalsCleanTemporaryData also pins that each refusal names
+// the action that clears it, which the update report prints.
 func TestRetrieve_RefusalsCleanTemporaryData(t *testing.T) {
 	t.Parallel()
 	for _, tc := range []struct {
-		name, catalogue, document string
-		selection                 []string
+		name, catalogue, document, fix string
+		selection                      []string
 	}{
-		{name: "unknown selection", selection: []string{"missing"}},
-		{name: "duplicate selection", selection: []string{"go/cobra", "go/cobra"}},
-		{name: "missing document", selection: []string{"explicit"}},
-		{name: "invalid catalogue", catalogue: `{"packs":true}`},
-		{name: "empty document", document: " \n", selection: []string{"go/cobra"}},
-		{name: "non text document", document: string([]byte{0xff}), selection: []string{"go/cobra"}},
-		{name: "nul document", document: "hello\x00world", selection: []string{"go/cobra"}},
+		{name: "duplicate selection", selection: []string{"go/cobra", "go/cobra"}, fix: "list each catalogue id once"},
+		{name: "missing document", selection: []string{"explicit"}, fix: "repair the source pack"},
+		{name: "invalid catalogue", catalogue: `{"packs":true}`, fix: "repair the source catalogue"},
+		{name: "empty document", document: " \n", selection: []string{"go/cobra"}, fix: "repair the source document"},
+		{name: "non text document", document: string([]byte{0xff}), selection: []string{"go/cobra"}, fix: "repair the source document"},
+		{name: "nul document", document: "hello\x00world", selection: []string{"go/cobra"}, fix: "repair the source document"},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
 			t.Parallel()
@@ -124,8 +126,8 @@ func TestRetrieve_RefusalsCleanTemporaryData(t *testing.T) {
 			git(t, root, "add", ".")
 			git(t, root, "commit", "--allow-empty", "-qm", "invalid source")
 			got, err := retrieve(t.Context(), root, tc.selection, temp)
-			if !errors.Is(err, ErrInvalidSource) {
-				t.Fatalf("got %+v, %v; want invalid source", got, err)
+			if !errors.Is(err, ErrInvalidSource) || !strings.Contains(err.Error(), tc.fix) {
+				t.Fatalf("got %+v, %v; want invalid source naming %q", got, err, tc.fix)
 			}
 			if got != nil {
 				t.Fatal("returned partially validated snapshot")
@@ -163,6 +165,7 @@ func TestRetrieve_UnavailableAndCancelled(t *testing.T) {
 
 func TestRetrieve_RejectsSymlinks(t *testing.T) {
 	t.Parallel()
+	fixes := map[string]string{"catalogue.json": "repair the source catalogue", "packs/go/cobra/guide.md": "repair the source pack", "packs/go": "repair the source pack"}
 	for _, name := range []string{"catalogue.json", "packs/go/cobra/guide.md", "packs/go"} {
 		t.Run(name, func(t *testing.T) {
 			t.Parallel()
@@ -177,8 +180,8 @@ func TestRetrieve_RejectsSymlinks(t *testing.T) {
 			git(t, root, "add", "-A")
 			git(t, root, "commit", "-qm", "symlink")
 			got, err := retrieve(t.Context(), root, []string{"go/cobra"}, temp)
-			if !errors.Is(err, ErrInvalidSource) || got != nil {
-				t.Fatalf("got %+v, %v", got, err)
+			if !errors.Is(err, ErrInvalidSource) || got != nil || !strings.Contains(err.Error(), fixes[name]) {
+				t.Fatalf("got %+v, %v; want a refusal naming %q", got, err, fixes[name])
 			}
 			assertEmpty(t, temp)
 		})
@@ -200,7 +203,7 @@ func TestRetrieve_EmptyRepository(t *testing.T) {
 	root, temp := t.TempDir(), t.TempDir()
 	git(t, root, "init", "-q", "-b", "empty-default")
 	got, err := retrieve(t.Context(), root, nil, temp)
-	if err == nil || got != nil {
+	if err == nil || got != nil || !strings.Contains(err.Error(), "check that the source has a commit") {
 		t.Fatalf("got %+v, %v", got, err)
 	}
 	assertEmpty(t, temp)
@@ -364,6 +367,25 @@ func TestRetrieveWithSelection_InterruptedChoiceCleansTemporarySource(t *testing
 	got, err := retrieveWithSelection(t.Context(), source, func(Catalogue) ([]string, error) { return nil, sentinel }, temp)
 	if got != nil || !errors.Is(err, sentinel) {
 		t.Fatalf("interruption: %+v, %v", got, err)
+	}
+	assertEmpty(t, temp)
+}
+
+// TestRetrieve_SkipsSelectedPacksMissingFromCatalogue pins that a selected id
+// the catalogue no longer lists is reported rather than refused, so the rest
+// of the selection is still retrieved.
+func TestRetrieve_SkipsSelectedPacksMissingFromCatalogue(t *testing.T) {
+	t.Parallel()
+	root, temp := sourceRepo(t), t.TempDir()
+	got, err := retrieve(t.Context(), root, []string{"retired/pack", "go/cobra"}, temp)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !slices.Equal(got.Missing, []string{"retired/pack"}) {
+		t.Fatalf("Missing = %v, want [retired/pack]", got.Missing)
+	}
+	if string(got.Documents["packs/go/cobra/guide.md"]) != "# Go\nUse Cobra.\n" {
+		t.Fatalf("present pack not retrieved: %v", got.Documents)
 	}
 	assertEmpty(t, temp)
 }

@@ -17,6 +17,9 @@ type Snapshot struct {
 	Commit    string
 	Catalogue Catalogue
 	Documents map[string][]byte
+	// Missing lists selected ids the catalogue no longer has, in selection
+	// order. Their documents are not retrieved.
+	Missing []string
 }
 
 // Retrieve downloads and validates the current source without retaining a cache.
@@ -56,11 +59,11 @@ func retrieveWithSelection(ctx context.Context, source string, selectPacks func(
 	}
 	commit, err := gitops.ResolveCommitSHA(ctx, repo, "HEAD")
 	if err != nil {
-		return nil, fmt.Errorf("resolving guidance source revision: %w", err)
+		return nil, fmt.Errorf("resolving guidance source revision; check that the source has a commit: %w", err)
 	}
 	raw, err := gitops.ReadRegularFromHEAD(ctx, repo, "catalogue.json")
 	if err != nil {
-		return nil, fmt.Errorf("%w: reading catalogue.json: %w", ErrInvalidSource, err)
+		return nil, fmt.Errorf("%w: reading catalogue.json; repair the source catalogue: %w", ErrInvalidSource, err)
 	}
 	catalogue, err := parseCatalogue(raw)
 	if err != nil {
@@ -76,16 +79,21 @@ func retrieveWithSelection(ctx context.Context, source string, selectPacks func(
 	}
 	documents := make(map[string][]byte)
 	seen := make(map[string]bool)
+	var missing []string
 	for _, id := range selected {
-		pack, ok := available[id]
-		if !ok || seen[id] {
-			return nil, fmt.Errorf("%w: selected pack %q is missing or repeated; choose each catalogue id once", ErrInvalidSource, id)
+		if seen[id] {
+			return nil, fmt.Errorf("%w: selected pack %q is repeated; list each catalogue id once", ErrInvalidSource, id)
 		}
 		seen[id] = true
+		pack, ok := available[id]
+		if !ok {
+			missing = append(missing, id)
+			continue
+		}
 		for _, name := range pack.Files {
 			content, err := gitops.ReadRegularFromHEAD(ctx, repo, name)
 			if err != nil {
-				return nil, fmt.Errorf("%w: reading pack %q document %q: %w", ErrInvalidSource, id, name, err)
+				return nil, fmt.Errorf("%w: reading pack %q document %q; repair the source pack: %w", ErrInvalidSource, id, name, err)
 			}
 			if len(bytes.TrimSpace(content)) == 0 || !utf8.Valid(content) || bytes.ContainsRune(content, 0) {
 				return nil, fmt.Errorf("%w: document %q must contain nonempty UTF-8 Markdown text; repair the source document", ErrInvalidSource, name)
@@ -93,5 +101,5 @@ func retrieveWithSelection(ctx context.Context, source string, selectPacks func(
 			documents[name] = content
 		}
 	}
-	return &Snapshot{Commit: commit, Catalogue: catalogue, Documents: documents}, nil
+	return &Snapshot{Commit: commit, Catalogue: catalogue, Documents: documents, Missing: missing}, nil
 }

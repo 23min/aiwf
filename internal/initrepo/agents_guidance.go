@@ -23,7 +23,7 @@ func ensureAgentsGuidance(ctx context.Context, root string, cfg *config.Config, 
 		return StepResult{}, fmt.Errorf("checking AGENTS.md guidance safety: %w", err)
 	}
 	if files.agents.refusal != "" {
-		return StepResult{What: what, Action: ActionSkipped, Detail: files.agents.refusal}, nil
+		return StepResult{What: what, Action: ActionSkipped, Detail: files.agents.incomplete()}, nil
 	}
 	path := filepath.Join(root, "AGENTS.md")
 	absent := files.agents.info == nil

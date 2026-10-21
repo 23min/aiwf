@@ -296,7 +296,7 @@ func runInstructionWriter(ctx context.Context, root, writer string, dryRun bool)
 
 func assertIncompleteGuidance(t *testing.T, step StepResult, names ...string) {
 	t.Helper()
-	if step.Action != ActionSkipped || !strings.Contains(step.Detail, "guidance incomplete") || !strings.Contains(step.Detail, "regular file") {
+	if step.Action != ActionSkipped || strings.Count(step.Detail, "guidance incomplete: ") != 1 || !strings.Contains(step.Detail, "regular file") {
 		t.Fatalf("not actionable incomplete guidance: %+v", step)
 	}
 	for _, name := range names {
