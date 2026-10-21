@@ -105,8 +105,8 @@ corrected where AI sessions build their diagnostic binary.
 
 ## Milestones
 
-Candidates, refined by `aiwfx-plan-milestones`; the two are independent:
+The two are independent and can run in either order.
 
-- Stop `aiwf update` silently downgrading installed artifacts · depends on: —
-- Warn when an aiwf-repository verb runs older than the worktree's source, and stop `make build` leaving a reachable `bin/aiwf` · depends on: —
+- `M-0362` — Stop `aiwf update` silently downgrading installed artifacts · depends on: —
+- `M-0363` — Warn when an aiwf-repository verb runs older than the worktree's source, and stop `make build` leaving a reachable `bin/aiwf` · depends on: —
 
