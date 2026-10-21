@@ -16,6 +16,8 @@ section in this file.
 
 ## [Unreleased]
 
+## [0.41.0] — 2026-10-21
+
 ### Changed (breaking) — E-0095: `aiwf init` and `aiwf update` adopt applicable guidance automatically
 
 `aiwf init`, including the first run in a repository, and `aiwf update` now adopt applicable
