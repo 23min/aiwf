@@ -97,4 +97,5 @@ Mutation probes against `TestBinary_UnattendedUpgradeAdoptsGuidance`, each appli
 - The milestone adds no module, abstraction or data model; there was nothing for a design review.
 - `hostUpgradeRun` sets `CODEX_HOME` and `CLAUDE_CONFIG_DIR` under its home, repeating two entries of `testsupport.GuidanceEnvironment`. That helper creates its own home and PATH, so it cannot serve here, and a shared helper for two lines is not worth its cost.
 - The unreachable case's failure message and the placement of its `os.Stat` calls stay as they are. `.guidance` is checked with `os.Stat`, so a dangling symbolic link there would pass; aiwf's production code creates no symbolic links.
+- Obligations on later changes: none. The milestone adds tests only, no lint rule, policy, check or required document.
 - Deciding review over the full change-set: approve, with no blocking findings.
