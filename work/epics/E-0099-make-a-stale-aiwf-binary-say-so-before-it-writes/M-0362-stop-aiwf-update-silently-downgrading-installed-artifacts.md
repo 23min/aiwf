@@ -7,7 +7,7 @@ tdd: required
 acs:
     - id: AC-1
       title: An older release leaves installed artifacts unchanged
-      status: open
+      status: cancelled
     - id: AC-2
       title: An unorderable pair refreshes and reports it could not compare
       status: open
