@@ -8,8 +8,8 @@ Releases ship as git tags on `main`. The Go module proxy resolves
 them when a consumer runs `aiwf upgrade` or
 `go install <pkg>@latest`.
 
-When cutting a release, see [`CLAUDE.md`](CLAUDE.md) § *Go conventions §
-Release process*. The tag-push CI check at
+When cutting a release, see [the release process](.guidance/project/release.md).
+The tag-push CI check at
 [`.github/workflows/changelog-check.yml`](.github/workflows/changelog-check.yml)
 fails any pushed `v*` tag that does not have a matching `## [X.Y.Z]`
 section in this file.
