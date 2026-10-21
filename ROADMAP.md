@@ -1400,5 +1400,8 @@ An aiwf command run by a binary older than the artifacts or source it acts on sa
 so before it writes, instead of silently rolling installed artifacts back or running
 older logic.
 
-_No milestones yet._
+| Milestone | Title | Status |
+|---|---|---|
+| M-0362 | Stop aiwf update silently downgrading installed artifacts | draft |
+| M-0363 | Warn when an aiwf-repository verb runs older than the worktree's source | draft |
 
