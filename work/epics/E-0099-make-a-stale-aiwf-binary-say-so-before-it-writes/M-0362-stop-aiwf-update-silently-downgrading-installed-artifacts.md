@@ -13,7 +13,7 @@ acs:
       status: cancelled
     - id: AC-3
       title: A newer release or an unstamped tree refreshes as before
-      status: open
+      status: cancelled
 ---
 
 ## Goal
