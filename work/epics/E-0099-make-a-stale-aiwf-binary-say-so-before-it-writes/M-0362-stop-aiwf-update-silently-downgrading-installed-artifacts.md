@@ -22,6 +22,11 @@ acs:
 artifacts leaves them unchanged and says so, instead of rolling them back and reporting
 `updated`.
 
+## Closes
+
+- G-0600 — `aiwf update` no longer rolls installed artifacts back when run by an older
+  release.
+
 ## Context
 
 `aiwf update` writes every materialized artifact from the running binary's embedded
@@ -74,9 +79,8 @@ existing update and init tests, unchanged.
 
 - The fragment's stamp stands for the whole refresh; no other artifact family gains a
   stamp.
-- Whether the skip covers only the embedded-snapshot artifacts or the whole
-  `RefreshArtifacts` run is settled at start, choosing the smaller change that meets
-  AC-1.
+- The skip covers the whole `aiwf update` run: it returns before `RefreshArtifacts`, so
+  an older binary leaves every artifact, hook and the health file untouched.
 
 ## Out of scope
 
