@@ -11,6 +11,9 @@ acs:
     - id: AC-2
       title: An unorderable pair refreshes and reports it could not compare
       status: open
+    - id: AC-3
+      title: A newer release or an unstamped tree refreshes as before
+      status: open
 ---
 
 ## Goal
@@ -20,4 +23,6 @@ acs:
 ### AC-1 — An older release leaves installed artifacts unchanged
 
 ### AC-2 — An unorderable pair refreshes and reports it could not compare
+
+### AC-3 — A newer release or an unstamped tree refreshes as before
 
