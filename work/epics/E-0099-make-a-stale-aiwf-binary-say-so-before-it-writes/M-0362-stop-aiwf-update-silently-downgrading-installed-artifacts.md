@@ -10,7 +10,7 @@ acs:
       status: cancelled
     - id: AC-2
       title: An unorderable pair refreshes and reports it could not compare
-      status: open
+      status: cancelled
     - id: AC-3
       title: A newer release or an unstamped tree refreshes as before
       status: open
