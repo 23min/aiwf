@@ -1,7 +1,7 @@
 ---
 id: M-0353
 title: Verify an unattended upgrade installs applicable guidance
-status: in_progress
+status: done
 parent: E-0095
 depends_on:
     - M-0351
