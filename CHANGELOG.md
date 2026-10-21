@@ -16,6 +16,52 @@ section in this file.
 
 ## [Unreleased]
 
+### Changed (breaking) — E-0095: `aiwf init` and `aiwf update` adopt applicable guidance automatically
+
+`aiwf init`, including the first run in a repository, and `aiwf update` now adopt applicable
+engineering guidance on their own, on a terminal or not, and so does `aiwf upgrade` through the
+update it runs. Every catalogue pack whose detection patterns match the project's files and that is
+not listed in `guidance.ignored` is installed with host routing and added to `guidance.packs`; a
+project that later gains matching files gains the pack on the next `aiwf update`.
+
+- Adoption is add-only: a selected pack is never removed from `guidance.packs` automatically.
+  `packs: []` is now an empty selection that adoption fills rather than a way to select none. To keep
+  a pack out, list it in `guidance.ignored`; moving an adopted pack's id from `guidance.packs` to
+  `guidance.ignored` retires its unmodified files. `guidance.enabled: false` still performs no
+  download or adoption.
+- The select / not now / ignore guidance prompt is gone, and `--no-prompt` on `init`, `update` and
+  `upgrade` now governs hook consent only.
+- A selected pack the catalogue no longer lists is reported with its fix; `init` and `update` delete
+  its unmodified files from `.guidance/` and install the rest of the selection, while
+  `aiwf worktree add` leaves installed guidance unchanged.
+- The first adoption performs the handover from legacy ai-dotfiles guidance in `CLAUDE.md`, as an
+  explicit selection always has.
+- Recording a pack keeps the rest of `aiwf.yaml` as written where the layout allows and otherwise
+  re-encodes it with its fields and comments. When `aiwf.yaml` cannot record a newly applicable
+  pack — it is not a single UTF-8 YAML document, `guidance` holds anchors or aliases, or `guidance`
+  is inherited through a merge key — the run leaves installed guidance, including already-selected
+  packs, unrefreshed and reports why.
+
+### Added — E-0095: a guidance report closes `aiwf init`, `aiwf update` and `aiwf upgrade`
+
+- `aiwf init` and `aiwf update` end with a `Guidance:` section, including runs that stop on a
+  hook-chain collision or a later error, and so does `aiwf upgrade` when it installs a release and
+  re-executes update; `aiwf init --dry-run` prints none. The section lists the selection (or that it
+  is unset or explicitly empty), the packs adopted in this run, the installed packs with their
+  source commit, and the ignored packs. When they apply, it adds that maintenance is disabled, a
+  `pending:` line for an interrupted installation, a `blocked:` line naming why guidance was not
+  fully installed and recorded and, where the installer names one, the action that clears it, and,
+  while maintenance is enabled, a `missing:` line with its fix for each selected pack an intact
+  installed index does not list. A blocked installation leaves the exit status and the other steps
+  unchanged.
+- While guidance maintenance is enabled, `aiwf doctor` warns about each selected pack an intact
+  installed index does not list, and words the selection, disabled maintenance, a pending
+  installation and missing packs as the report does.
+- Guidance refusals for an unreadable source catalogue or pack document, a source with no commit, and
+  unreadable personal-instruction paths name the action that clears them. A regular file on `PATH`,
+  or at `CODEX_HOME` or `CLAUDE_CONFIG_DIR`, no longer blocks guidance as a suspected legacy
+  delivery.
+
 ### Changed (internal) — the binary integration tests describe what they guard, not past bugs
 
 Comment-only. Nothing a consumer runs changed.
