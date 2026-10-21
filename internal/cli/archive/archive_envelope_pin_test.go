@@ -65,7 +65,7 @@ func TestArchive_TextDryRun_ExactMoveListing(t *testing.T) {
 		}
 	})
 	want := "aiwf archive: sweep 1 entity into archive/ (1 gap) (dry-run; re-run with --apply to commit)\n\n" +
-		"Per ADR-0004: sweep terminal-status entities into per-kind archive/.\n\n" +
+		"Sweep terminal-status entities into per-kind archive/.\n\n" +
 		"Per-kind counts:\n  gap       1 entity\n\n" +
 		"Affected ids:\n  G-0010\n\n" +
 		"Moves (1):\n" +

@@ -28,7 +28,7 @@ var updateGolden = flag.Bool("update", false, "regenerate the status golden file
 // activity), fixed Date so the header doesn't drift with wall clock,
 // no calls into the live tree.
 //
-// Synthetic content per CLAUDE.md test conventions — entity ids and
+// Synthetic content per .guidance/project/testing.md test conventions — entity ids and
 // titles read as obviously fictional, not anonymized copies.
 func canonicalStatusReport() status.StatusReport {
 	return status.StatusReport{
@@ -117,7 +117,7 @@ func canonicalStatusReport() status.StatusReport {
 // test locks down the *exact* rendered bytes so a future change to
 // any padding / wording / field order surfaces here too.
 //
-// CLAUDE.md §"Substring assertions are not structural assertions" —
+// .guidance/project/testing.md §"Substring assertions are not structural assertions" —
 // the substring tests prove "the literal exists somewhere"; the
 // goldens prove "the literal exists in the right place, in the right
 // order, with the right whitespace."

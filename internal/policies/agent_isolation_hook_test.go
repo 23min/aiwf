@@ -71,7 +71,7 @@ func TestAgentIsolationHook_DeniesWorktreeIsolation(t *testing.T) {
 		"G-0099",
 		"git worktree add",
 		"git worktree list",
-		"CLAUDE.md",
+		".guidance/project/environment.md",
 	} {
 		if !strings.Contains(reason, mustContain) {
 			t.Errorf("permissionDecisionReason should mention %q; got: %q", mustContain, reason)

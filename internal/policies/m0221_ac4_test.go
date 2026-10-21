@@ -16,7 +16,7 @@ import (
 // are environment-specific and not gated; this pins that the record
 // exists and is populated, not a threshold.
 //
-// Section-scoped per CLAUDE.md's "substring assertions are not structural
+// Section-scoped per .guidance/project/testing.md's "substring assertions are not structural
 // assertions" rule: the entity is resolved through the loader (never a
 // hardcoded work/ path), and every assertion is bounded to the
 // `## Validation` section via extractMarkdownSection.

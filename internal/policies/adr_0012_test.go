@@ -9,7 +9,7 @@ import (
 )
 
 // loadADR0012 reads ADR-0012 (Typed Coded error pattern) from disk by
-// resolving the id through the loader, per CLAUDE.md *Testing* §"Policy
+// resolving the id through the loader, per .guidance/project/go-conventions.md §"Policy
 // tests that read entity files must resolve via the loader" — never a
 // hardcoded path, so the test survives rename and archive sweeps.
 func loadADR0012(t *testing.T) string {
@@ -53,7 +53,7 @@ func TestADR0012_AC5_Allocation(t *testing.T) {
 // subsections, each with non-empty prose and the per-section literals
 // that pin the realized pattern's contract.
 //
-// Per CLAUDE.md *Testing* §"Substring assertions are not structural
+// Per .guidance/project/testing.md §"Substring assertions are not structural
 // assertions", every literal is asserted inside the relevant
 // subsection — a literal floating in another section would not satisfy
 // the AC. The level-3 count is the drift guard: a sixth subsection

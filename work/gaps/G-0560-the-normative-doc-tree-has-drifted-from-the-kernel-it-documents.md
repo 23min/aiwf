@@ -11,7 +11,7 @@ The Normative-tier docs — `docs/architecture.md`, `docs/overview.md`,
 the kernel no longer honors. A 2026-08-06 audit
 against a binary built from the working tree found five classes, inventoried
 with `file:line` citations and measured counter-evidence in
-[`docs/initiatives/normative-docs-drift-audit.md`](../../docs/initiatives/normative-docs-drift-audit.md):
+[`docs/audits/normative-docs-drift-audit.md`](../../docs/audits/normative-docs-drift-audit.md):
 
 - **Prose stating the opposite of current behavior.** `workflows.md` describes
   epic roll-up as a deliberate non-guarantee; the verb refuses and a standing

@@ -55,13 +55,13 @@ set, or --clear on an untagged entity, exits 0 reporting nothing to
 change and writes no commit. The change reverses totally via the same
 verb: a tag reverses with --clear, a retag with the prior member.`,
 		Example: `  # Tag an untagged entity (the areas.required remediation)
-  aiwf set-area E-0001 platform
+  aiwf set-area E-NNNN platform
 
   # Move it to another declared area
-  aiwf set-area E-0001 billing
+  aiwf set-area E-NNNN billing
 
   # Untag it back to the untagged state
-  aiwf set-area E-0001 --clear`,
+  aiwf set-area E-NNNN --clear`,
 		Args:          cobra.RangeArgs(1, 2),
 		SilenceErrors: true,
 		SilenceUsage:  true,

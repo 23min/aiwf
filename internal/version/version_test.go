@@ -17,7 +17,7 @@ func TestParse(t *testing.T) {
 	// https://go.dev/ref/mod#pseudo-versions for the three
 	// pseudo-version forms, https://semver.org for the base grammar,
 	// and https://go.dev/ref/mod#vcs-stamps for the +dirty VCS-
-	// stamping suffix. Per tools/CLAUDE.md "Spec-sourced inputs":
+	// stamping suffix. Per .guidance/project/testing.md "Spec-sourced inputs":
 	// the table covers the full enumerated space, not just examples.
 	cases := []struct {
 		in       string
@@ -51,6 +51,12 @@ func TestParse(t *testing.T) {
 		{"v0.1.0+dirty", "v0.1.0+dirty", false},
 		{"v0.0.0-20260503120000-abcdef123456+dirty", "v0.0.0-20260503120000-abcdef123456+dirty", false},
 
+		// Makefile stamp, `<branch>@<git describe --always --dirty>`
+		// (Makefile's AIWF_VERSION): never tagged, even when the branch
+		// name is itself semver-shaped. Semver allows no "@".
+		{"main@v0.40.0-677-g4ba3a6b2b", "main@v0.40.0-677-g4ba3a6b2b", false},
+		{"v0.41.0-rc@v0.40.0-5-gabcdef0", "v0.41.0-rc@v0.40.0-5-gabcdef0", false},
+
 		// debug.ReadBuildInfo's "no module info" sentinel.
 		{"(devel)", DevelVersion, false},
 		{"", DevelVersion, false},
@@ -69,6 +75,36 @@ func TestParse(t *testing.T) {
 			}
 			if got.Tagged != tc.wantTags {
 				t.Errorf("Tagged = %v, want %v", got.Tagged, tc.wantTags)
+			}
+		})
+	}
+}
+
+// TestLabel pins the parenthetical state each version shape is shown
+// with in `aiwf doctor` and `aiwf upgrade`.
+func TestLabel(t *testing.T) {
+	t.Parallel()
+	cases := []struct {
+		name string
+		ver  string
+		want string
+	}{
+		{"tagged", "v0.1.0", "v0.1.0 (tagged)"},
+		{"devel", "(devel)", "(devel) (working-tree build)"},
+		{"dirty tagged", "v0.1.0+dirty", "v0.1.0+dirty (working-tree build)"},
+		{"dirty pseudo", "v0.0.0-20060102150405-abcdef123456+dirty", "v0.0.0-20060102150405-abcdef123456+dirty (working-tree build)"},
+		{"plain pseudo", "v0.0.0-20060102150405-abcdef123456", "v0.0.0-20060102150405-abcdef123456 (pseudo-version)"},
+		{"make stamp", "main@v0.40.0-677-g4ba3a6b2b", "main@v0.40.0-677-g4ba3a6b2b (local build)"},
+		{"dirty make stamp", "main@v0.40.0-677-g4ba3a6b2b-dirty", "main@v0.40.0-677-g4ba3a6b2b-dirty (working-tree build)"},
+		{"make stamp from a version-named branch", "v0.41.0-prep@v0.40.0", "v0.41.0-prep@v0.40.0 (local build)"},
+		{"make stamp from a branch naming dirty", "fix-dirty-flag@v0.40.0-677-g4ba3a6b2b", "fix-dirty-flag@v0.40.0-677-g4ba3a6b2b (local build)"},
+		{"pre-release named dirty", "v0.1.0-dirty", "v0.1.0-dirty (tagged)"},
+	}
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			t.Parallel()
+			if got := Label(Parse(tc.ver)); got != tc.want {
+				t.Errorf("Label(Parse(%q)) = %q, want %q", tc.ver, got, tc.want)
 			}
 		})
 	}
@@ -117,7 +153,7 @@ func TestPseudoBase(t *testing.T) {
 	// Inputs sourced from the Go module spec — see
 	// https://go.dev/ref/mod#pseudo-versions for the three
 	// pseudo-version forms and the +dirty VCS-stamping suffix.
-	// Per CLAUDE.md "Spec-sourced inputs": the table covers the full
+	// Per .guidance/project/testing.md "Spec-sourced inputs": the table covers the full
 	// enumerated space, not just one example per form.
 	cases := []struct {
 		name     string
@@ -273,7 +309,7 @@ func TestParseTriple(t *testing.T) {
 
 func TestCurrent_DevelInTestBinary(t *testing.T) {
 	t.Parallel()
-	// `go test` builds the test binary as a working-tree build, so
+	// `go test` records no git state in the test binary, so
 	// runtime/debug.ReadBuildInfo reports Main.Version == "" or
 	// "(devel)" — either way Current() returns DevelVersion with
 	// Tagged=false. This pins the contract that the test binary
@@ -288,12 +324,11 @@ func TestCurrent_DevelInTestBinary(t *testing.T) {
 }
 
 // TestResolveVersion pins the stamp-precedence contract: a non-empty
-// ldflags stamp is authoritative over the buildinfo value (which is
-// "(devel)" for a stamped working-tree build — the `make install`
-// path). Exercising the pure helper covers both branches in-process;
-// the end-to-end stamped path is pinned by
-// TestBinary_VersionVerb_RespectsLdflags, but a subprocess build's
-// coverage does not reach this package's profile.
+// ldflags stamp is authoritative over the buildinfo value, which Go
+// records whether or not a stamp was injected. Exercising the pure
+// helper covers both branches in-process; the end-to-end stamped path
+// is pinned by TestBinary_VersionVerb_RespectsLdflags, but a
+// subprocess build's coverage does not reach this package's profile.
 func TestResolveVersion(t *testing.T) {
 	t.Parallel()
 	tests := []struct {
@@ -363,7 +398,7 @@ func TestModulePath_TestBinary(t *testing.T) {
 // https://go.dev/ref/mod#environment-variables (the canonical spec
 // for module-mode environment variables): comma-or-pipe-separated
 // list of entries, each being a URL, the literal `direct`, or the
-// literal `off`. Per tools/CLAUDE.md "Spec-sourced inputs": the
+// literal `off`. Per .guidance/project/testing.md "Spec-sourced inputs": the
 // cases cover every entry shape and chain-position the spec
 // distinguishes, not just examples we've personally hit.
 func TestProxyBase(t *testing.T) {

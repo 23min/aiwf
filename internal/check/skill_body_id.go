@@ -88,6 +88,15 @@ func ScanSkillBodyID(body []byte, path string) []Finding {
 	return scanMaskedForSkillIDs(proseAndCodeMask(body), path)
 }
 
+// ScanPlainTextIDs applies the same token classification as
+// ScanSkillBodyID to text that is not Markdown — a string compiled into
+// the binary and printed as written — so nothing in it is masked: with no
+// Markdown there is no link carrier to exempt. Finding.Line is 1-based
+// within text; path populates the finding locator only.
+func ScanPlainTextIDs(text, path string) []Finding {
+	return scanMaskedForSkillIDs(text, path)
+}
+
 // canonicalPlaceholderPattern matches the one placeholder shape a shipped
 // surface may carry: the canonical-width letter-N form. Anything id-shaped
 // that is neither a real id nor this is a placeholder defect — a narrow width

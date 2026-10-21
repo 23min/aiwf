@@ -71,7 +71,7 @@ func TestRun_ShowArchivedIndicatorJSON(t *testing.T) {
 // header line (first line of output) for an archived entity, and
 // emits the unchanged header for an active entity.
 //
-// Per CLAUDE.md "Substring assertions are not structural assertions":
+// Per .guidance/project/testing.md "Substring assertions are not structural assertions":
 // the substring match is scoped to the *first line* of the output,
 // not flat over the full text — the marker could appear later in
 // e.g. a referenced-by list or a history detail and trivially pass a
@@ -103,7 +103,7 @@ func TestRun_ShowArchivedIndicatorTextHeader(t *testing.T) {
 
 // firstLine returns text up to the first newline (or the entire
 // string if no newline). Used by header-line scoped substring
-// assertions in AC-5 — see CLAUDE.md "Substring assertions are not
+// assertions in AC-5 — see .guidance/project/testing.md "Substring assertions are not
 // structural assertions" for why a flat strings.Contains would be
 // the weaker assertion here.
 func firstLine(s string) string {

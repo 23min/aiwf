@@ -8,7 +8,7 @@ import (
 )
 
 // TestMain wires the uniform GIT-identity environment per the
-// CLAUDE.md *Test discipline* convention (M-0091 / M-0093/AC-2).
+// .guidance/project/go-conventions.md *Test discipline* convention (M-0091 / M-0093/AC-2).
 // branchtest carries the testpins tag, so this file is only
 // compiled-in for `go test -tags testpins`; the
 // test-setup-presence policy enforces presence under the same

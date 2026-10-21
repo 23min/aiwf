@@ -27,7 +27,7 @@ import (
 // policy asserts a curated anchor set (each a named rule plus the distinctive
 // fragments that mark its presence) is present in the shipped guidance; trimming
 // any of them out reddens CI. The forward direction — a brand-new rule authored
-// into the wrong home — is the judgment call the CLAUDE.md authoring rule
+// into the wrong home — is the judgment call the .guidance/project/shipped-content.md authoring rule
 // ("audience, not importance") plus review is the interim catch for, until the
 // rule is added to this curated set.
 //
@@ -43,7 +43,7 @@ func PolicyM0211GuidanceOperatingAnchors(root string) ([]Violation, error) {
 		return []Violation{{
 			Policy: "m0211-guidance-operating-anchors",
 			File:   rel,
-			Detail: fmt.Sprintf("shippable guidance source is unreadable — consumer-operating rules cannot ship from it: %v", err),
+			Detail: fmt.Sprintf("shippable guidance source is unreadable — consumer-operating rules cannot ship from it: %v; restore the file, or repoint this policy at the guidance source's new path", err),
 		}}, nil
 	}
 
@@ -62,14 +62,17 @@ func PolicyM0211GuidanceOperatingAnchors(root string) ([]Violation, error) {
 }
 
 // m0211Anchor names a consumer-operating rule and the distinctive lower-case
-// fragments that must all appear for the rule to count as present in the
-// shipped guidance. Fragments are matched against a lower-cased body, so a
-// sentence-position capitalization difference does not defeat the match.
+// fragments that must all appear for the rule to count as stated. Two policies
+// read it: the presence policy here, for which the rule must be in the shipped
+// guidance, and the copy check over development guidance, for which it must
+// not be (guidance_operating_copies.go). Fragments are matched against
+// lower-cased text, so a sentence-position capitalization difference does not
+// defeat the match.
 //
-// The body is hard-wrapped markdown and is matched verbatim, so a fragment must
-// sit within one source line: a phrase that reads as adjacent prose but straddles
-// a wrap never matches, and the anchor then reports a rule as absent while it is
-// present.
+// The presence policy matches the shipped guidance's hard-wrapped body verbatim, so a
+// fragment must sit within one source line there: a phrase that straddles a
+// wrap never matches, and the anchor then reports a rule as absent while it is
+// present. The copy check joins each paragraph's lines first.
 type m0211Anchor struct {
 	name      string
 	fragments []string
@@ -90,7 +93,7 @@ func (a m0211Anchor) present(lowerBody string) bool {
 // presence in the shipped guidance the chokepoint guarantees. Adding a new
 // consumer-operating rule to the guidance and to this slice extends the
 // guarantee; the set is deliberately hand-curated (the audience call is human
-// judgment, per the CLAUDE.md "audience, not importance" authoring rule).
+// judgment, per the .guidance/project/shipped-content.md "audience, not importance" authoring rule).
 //
 // The guarantee is presence, not meaning: a fragment reports that a rule's
 // distinctive words are still in the body, so deleting a rule fires while a
@@ -104,7 +107,7 @@ var m0211OperatingAnchors = []m0211Anchor{
 	{"ac-mechanical-evidence", []string{"mechanical evidence", "artefacts", "proxy"}},
 	{"one-decision-at-a-time", []string{"one thing at a time"}},
 	{"never-suggest-pause", []string{"never suggest", "pause"}},
-	{"body-prose-id", []string{"body-prose-id"}},
+	{"body-prose-id", []string{"body-prose-id", "canonical width"}},
 	{"cross-branch-allocation", []string{"--fetch", "push promptly"}},
 	{"bless-mode-body-edits", []string{"bless mode", "review-before-commit"}},
 	{"verb-template-managed-entities", []string{"template-managed", "hand-edit frontmatter"}},

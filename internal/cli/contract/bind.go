@@ -24,13 +24,13 @@ func newBindCmd(correlationID string) *cobra.Command {
 		out       *cliutil.OutputFormat
 	)
 	cmd := &cobra.Command{
-		Use:   "bind <C-id>",
+		Use:   "bind <contract-id>",
 		Short: "Add or replace a contract binding in aiwf.yaml",
 		Example: `  # Bind a validator, schema, and fixtures atomically
-  aiwf contract bind C-001 --validator render --schema schemas/render.cue --fixtures fixtures/render
+  aiwf contract bind C-NNNN --validator render --schema schemas/render.cue --fixtures fixtures/render
 
   # Replace an existing binding (different values)
-  aiwf contract bind C-001 --validator render --schema schemas/v2.cue --fixtures fixtures/render --force`,
+  aiwf contract bind C-NNNN --validator render --schema schemas/v2.cue --fixtures fixtures/render --force`,
 		Args:          cobra.ExactArgs(1),
 		SilenceErrors: true,
 		SilenceUsage:  true,

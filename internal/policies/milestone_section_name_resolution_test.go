@@ -49,16 +49,11 @@ func sectionFixtureRoot(t *testing.T, overrides map[string]string) string {
 	maps.Copy(base, overrides)
 
 	for rel, content := range base {
-		full := filepath.Join(root, filepath.FromSlash(sectionRitualsDir), filepath.FromSlash(rel))
 		if content == "" {
 			continue
 		}
-		if err := os.MkdirAll(filepath.Dir(full), 0o755); err != nil {
-			t.Fatalf("mkdir %s: %v", rel, err)
-		}
-		if err := os.WriteFile(full, []byte(content), 0o600); err != nil {
-			t.Fatalf("write %s: %v", rel, err)
-		}
+		full := filepath.Join(root, filepath.FromSlash(sectionRitualsDir), filepath.FromSlash(rel))
+		mustWrite(t, full, content)
 	}
 	return root
 }

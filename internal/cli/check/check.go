@@ -55,11 +55,11 @@ func NewCmd(correlationID string) *cobra.Command {
 	cmd.Flags().StringVar(&root, "root", "", "consumer repo root (default: discover via aiwf.yaml)")
 	cmd.Flags().StringVar(&format, "format", "text", "output format: text or json")
 	cmd.Flags().BoolVar(&pretty, "pretty", false, "indent JSON output (only with --format=json)")
-	cmd.Flags().StringVar(&since, "since", "", "explicit base ref for the provenance audit's commit range, including the untrailered-entity audit and the dropped-body-section gate (default: @{u} when set, else skipped)")
+	cmd.Flags().StringVar(&since, "since", "", "explicit base ref for the provenance audit's commit range, including the untrailered-entity audit, the dropped-body-section gate and the instruction-file fence (default: @{u} when set, else skipped)")
 	cmd.Flags().BoolVar(&shapeOnly, "shape-only", false, "run only the tree-discipline rule (skips trunk read, provenance audit, contract validation); used by the pre-commit hook for a fast LLM-loop check")
 	cmd.Flags().BoolVar(&fast, "fast", false, "run the in-memory content rules (refs, status, ids, cycles, body-prose, ACs) plus tree-discipline, skipping the trunk read / provenance / FSM-history / metrics / contract-validation layer")
 	cmd.Flags().BoolVar(&verbose, "verbose", false, "print one line per warning instance instead of the per-code summary; errors are always per-instance regardless")
-	cmd.Flags().StringVar(&commitMsg, "commit-msg", "", "validate aiwf-verb trailers in the named commit-message file and exit; refuses values outside the Cobra verb tree ∪ ritualVerbs (used by the .git/hooks/commit-msg hook installed by aiwf init/update — G-0218)")
+	cmd.Flags().StringVar(&commitMsg, "commit-msg", "", "validate aiwf-verb trailers in the named commit-message file and exit; refuses values outside the Cobra verb tree ∪ ritualVerbs (used by the .git/hooks/commit-msg hook installed by aiwf init/update)")
 	cliutil.RegisterFormatCompletion(cmd)
 	return cmd
 }
@@ -208,6 +208,17 @@ func Run(root, format string, pretty bool, since string, shapeOnly, fast, verbos
 		for _, m := range cfg.Areas.Members {
 			areaPaths = append(areaPaths, check.AreaPaths{Name: m.Name, Paths: m.Paths})
 		}
+	}
+	// The instruction-file fence judges the same range as the provenance
+	// audit, less the commits already on a remote-tracking trunk, unless
+	// aiwf.yaml turns it off (ADR-0053).
+	if cfg.FenceInstructionCommits() {
+		fenceFindings, fErr := RunInstructionFenceCheck(ctx, resolved, since, tr)
+		if fErr != nil { //coverage:ignore RunInstructionFenceCheck errs only when git log fails over a range and trunk ref already resolved this run; see its own ignore
+			cliutil.Errorf("aiwf check: %v\n", fErr) //coverage:ignore see above
+			return cliutil.ExitInternal              //coverage:ignore see above
+		}
+		findings = append(findings, fenceFindings...)
 	}
 	metricsFindings, mErr := RunTestsMetricsCheck(ctx, resolved, tr, requireMetrics)
 	if mErr != nil { //coverage:ignore RunTestsMetricsCheck's only error source is entityview.ReadHistory's `git log` call, which is unreachable once cliutil.HasCommits has already succeeded — the same class internal/entityview's own ReadHistoryChain guard documents (ids are regexp.QuoteMeta-escaped, so a malformed composite id cannot break the --grep pattern either)

@@ -274,20 +274,14 @@ func repoWithCoauthorCommitSubject(t *testing.T, cfg, subject, trailer string) (
 	}
 
 	if cfg != "" {
-		if err := os.WriteFile(filepath.Join(root, "aiwf.yaml"), []byte(cfg), 0o644); err != nil {
-			t.Fatalf("writing config: %v", err)
-		}
+		mustWrite(t, filepath.Join(root, "aiwf.yaml"), cfg)
 	}
-	if err := os.WriteFile(filepath.Join(root, "base.txt"), []byte("base\n"), 0o644); err != nil {
-		t.Fatalf("writing base file: %v", err)
-	}
+	mustWrite(t, filepath.Join(root, "base.txt"), "base\n")
 	run("add", "-A")
 	run("commit", "-q", "-m", "chore: base")
 	base = run("rev-parse", "HEAD")
 
-	if err := os.WriteFile(filepath.Join(root, "work.txt"), []byte("work\n"), 0o644); err != nil {
-		t.Fatalf("writing work file: %v", err)
-	}
+	mustWrite(t, filepath.Join(root, "work.txt"), "work\n")
 	run("add", "-A")
 	run("commit", "-q", "-m", subject, "-m", trailer)
 	return root, base

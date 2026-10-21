@@ -242,7 +242,7 @@ func ValidateTrailer(key, value string) error {
 		}
 	case TrailerBranchSHA:
 		if !shaFullPattern.MatchString(value) {
-			return fmt.Errorf("%s: %q must be canonical 40-char lowercase hex SHA-1 (per M-0161/AC-6)", key, value)
+			return fmt.Errorf("%s: %q must be canonical 40-char lowercase hex SHA-1", key, value)
 		}
 	case TrailerBranch:
 		if !branchRefPattern.MatchString(value) {

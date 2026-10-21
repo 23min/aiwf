@@ -24,13 +24,7 @@ func firingFixture(t *testing.T, policySrc string, dark map[string]bool) (root, 
 	root = t.TempDir()
 	write := func(rel, content string) {
 		t.Helper()
-		p := filepath.Join(root, filepath.FromSlash(rel))
-		if err := os.MkdirAll(filepath.Dir(p), 0o755); err != nil {
-			t.Fatal(err)
-		}
-		if err := os.WriteFile(p, []byte(content), 0o644); err != nil {
-			t.Fatal(err)
-		}
+		writeAt(t, root, rel, content)
 	}
 	write("go.mod", "module "+firingFixtureModule+"\n\ngo 1.24\n")
 	write("internal/policies/fake.go", policySrc)

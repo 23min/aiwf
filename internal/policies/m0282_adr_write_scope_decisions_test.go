@@ -1,7 +1,6 @@
 package policies
 
 import (
-	"os"
 	"path/filepath"
 	"strings"
 	"testing"
@@ -59,14 +58,8 @@ The guard fires during the review-before-commit window by design.
 func writeFixtureADR(t *testing.T, body, status string) string {
 	t.Helper()
 	root := t.TempDir()
-	dir := filepath.Join(root, "docs", "adr")
-	if err := os.MkdirAll(dir, 0o755); err != nil {
-		t.Fatalf("mkdir: %v", err)
-	}
 	content := "---\nid: " + adrWriteScopeID + "\ntitle: Fixture\nstatus: " + status + "\n---\n" + body
-	if err := os.WriteFile(filepath.Join(dir, adrWriteScopeID+"-fixture.md"), []byte(content), 0o644); err != nil {
-		t.Fatalf("write: %v", err)
-	}
+	mustWrite(t, filepath.Join(root, "docs", "adr", adrWriteScopeID+"-fixture.md"), content)
 	return root
 }
 

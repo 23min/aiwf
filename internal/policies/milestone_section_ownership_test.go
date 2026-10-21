@@ -85,12 +85,7 @@ func ownershipFixtureRoot(t *testing.T, overrides map[string]string) string {
 			continue
 		}
 		full := filepath.Join(root, filepath.FromSlash(sectionRitualsDir), filepath.FromSlash(rel))
-		if err := os.MkdirAll(filepath.Dir(full), 0o755); err != nil {
-			t.Fatalf("mkdir %s: %v", rel, err)
-		}
-		if err := os.WriteFile(full, []byte(content), 0o600); err != nil {
-			t.Fatalf("write %s: %v", rel, err)
-		}
+		mustWrite(t, full, content)
 	}
 	return root
 }

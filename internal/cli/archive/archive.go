@@ -44,16 +44,16 @@ func NewCmd(correlationID string) *cobra.Command {
 	)
 	cmd := &cobra.Command{
 		Use:   "archive [--apply | --dry-run] [--kind <kind>]",
-		Short: "Sweep terminal-status entities into per-kind archive/ subdirs (per ADR-0004)",
+		Short: "Sweep terminal-status entities into per-kind archive/ subdirs",
 		Long: `Sweep terminal-status entities into their per-kind archive/
-subdirectories per ADR-0004. Default is dry-run; --apply commits the
+subdirectories. Default is dry-run; --apply commits the
 sweep as a single commit with trailer aiwf-verb: archive. --dry-run is
 an explicit alias for the default behavior (mutually exclusive with
 --apply) so finding hints and ad-hoc invocations can name it directly.
 The verb sweeps by status, not by id — there is no positional id
 argument.
 
-Per-kind storage layout (per ADR-0004 §"Storage — per-kind layout"):
+Per-kind storage layout:
 
   Epic      work/epics/<epic>/                 -> work/epics/archive/<epic>/
   Milestone (rides with parent epic — does not archive independently)
@@ -63,9 +63,8 @@ Per-kind storage layout (per ADR-0004 §"Storage — per-kind layout"):
   ADR       docs/adr/ADR-NNNN-<slug>.md        -> docs/adr/archive/ADR-NNNN-<slug>.md
 
 Idempotent: re-runs on a clean tree produce zero commits and exit 0.
-The reverse path is intentionally not implemented (ADR-0004 §"Reversal");
-file a new entity that references the archived one if a closed entity
-needs revisiting.
+The reverse path is intentionally not implemented; file a new entity that
+references the archived one if a closed entity needs revisiting.
 
 Over a tree with uncommitted work, a sweep reports some entities as
 skipped and sweeps the rest — this is normal, and the exit code is
@@ -75,8 +74,8 @@ or whatever already sits at the destination. Commit or revert the named
 file and re-run. Skipping one candidate rather than refusing the whole
 sweep is what keeps one draft from stalling unrelated moves.
 
-The same verb covers both the bulk first-run sweep against a pre-
-ADR-0004 tree and the routine ongoing sweeps that follow.`,
+The same verb covers both the bulk first-run sweep against a tree that
+predates the archive layout and the routine ongoing sweeps that follow.`,
 		Example: `  # Preview the sweep (dry-run is the default)
   aiwf archive
 

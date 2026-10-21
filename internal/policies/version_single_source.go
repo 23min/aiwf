@@ -22,30 +22,28 @@ var versionGlobalNames = map[string]bool{
 	"appversion":   true,
 }
 
-// PolicyVersionSingleSource asserts that the running binary's version
-// has exactly one source of truth: the Stamp global in
-// internal/version, resolved everywhere through version.Current(). It
-// forbids any *other* production package from declaring a
-// package-level string var named like a version/stamp global.
+// PolicyVersionSingleSource keeps internal/version.Stamp the only
+// version global: it forbids any production file outside
+// internal/version (and internal/policies, which WalkGoFiles skips)
+// from declaring a package-level var named like a version/stamp
+// global and declared `string`, or declared without a type and
+// initialized with a string literal.
 //
 // This is the chokepoint behind G-0235 candidate B (the C1
-// version-source split). Before the fix, internal/cli carried a
-// parallel `var Version` ldflags target that the human-facing `aiwf
-// version` print read directly, while the JSON envelope read
-// version.Current() (buildinfo). A `make install` binary — stamped via
-// ldflags but built from a working tree — therefore reported two
-// different strings: the stamp on the human path, "(devel)" in JSON.
-// Relocating the stamp into internal/version.Stamp routed every
-// surface through version.Current(); this policy keeps it that way by
-// failing CI if a second version global reappears anywhere outside
-// internal/version.
+// version-source split). A `make install` binary carries two
+// versions: the ldflags stamp and the one Go records in its build
+// info. A second version global lets one surface print the first
+// while another prints the second, so the same binary reports two
+// strings. Every surface resolves through version.Current(), and this
+// policy fails CI if a second such global appears.
 //
 // The companion PolicyEnvelopeVersionSource pins the *read* side (the
-// JSON envelope's Version field must come from version.Current());
-// this policy pins the *declaration* side (no parallel source to read
-// in the first place). Together they make "one binary, one version
-// string on every surface" a mechanical guarantee rather than a
-// present-state fact.
+// JSON envelope's Version field must come from a function call's
+// `.Version`, in practice version.Current()); this policy pins the
+// *declaration* side (no parallel string var to read in the first
+// place). Neither catches a non-envelope surface that calls
+// runtime/debug.ReadBuildInfo itself or reads a const or a var
+// outside the shape above.
 //
 // Scope: package-level (file-scope) var declarations only. A local
 // variable named version inside a function body is not a version

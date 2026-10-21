@@ -304,15 +304,10 @@ func buildEntityFromEntry(pe *plannedEntry, t *tree.Tree, plannedByID map[string
 		if perr != nil {
 			return nil, perr
 		}
-		// Point `parent:` at the id the resolved epic actually carries,
-		// which is not always the spelling the manifest used. Workflow child
-		// predicates compare this field literally, so a child whose parent
-		// field disagrees with its parent's stored id is invisible to them.
-		//
-		// The resolved id is the right target rather than the canonical
-		// form of the declared one: a resident epic stored at legacy width
-		// keeps that width, and canonicalizing the child's pointer would
-		// desync it from the very entity it names.
+		// Point `parent:` at the epic the manifest names, resolved against
+		// the tree and the manifest; entity.Serialize writes it at canonical
+		// width, and every reader of the field compares canonically, so a
+		// resident epic stored at legacy width still owns the child.
 		ent.Parent = parentID
 		ent.Path = filepath.Join(parentDir, pe.id+"-"+slug+".md")
 	case entity.KindADR:

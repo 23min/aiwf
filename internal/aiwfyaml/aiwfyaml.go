@@ -389,7 +389,7 @@ func (c *Contracts) Validate() error {
 	}
 	for i, e := range c.Entries {
 		if !idPattern.MatchString(e.ID) {
-			return fmt.Errorf("entries[%d]: id %q does not match C-NNN format", i, e.ID)
+			return fmt.Errorf("entries[%d]: id %q does not match C-NNNN format", i, e.ID)
 		}
 		if e.Validator == "" {
 			return fmt.Errorf("entries[%d] (id=%s): validator is required", i, e.ID)

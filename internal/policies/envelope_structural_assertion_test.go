@@ -11,7 +11,7 @@ import (
 // to prevent: a future contributor renames an Envelope field (and
 // its json tag) without updating this policy's pinned required-key
 // set, silently breaking any downstream JSON consumer that reads the
-// old key name. Per CLAUDE.md's "test the seam" discipline, a
+// old key name. Per .guidance/project/testing.md's "test the seam" discipline, a
 // positive-only test against the live (clean) repo proves nothing
 // about whether the policy actually fires on drift — this drives it
 // against a synthetic fixture tree.

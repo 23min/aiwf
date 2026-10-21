@@ -19,10 +19,10 @@ func newUnbindCmd(correlationID string) *cobra.Command {
 		out   *cliutil.OutputFormat
 	)
 	cmd := &cobra.Command{
-		Use:   "unbind <C-id>",
+		Use:   "unbind <contract-id>",
 		Short: "Remove a contract binding from aiwf.yaml (entity status untouched)",
 		Example: `  # Drop the binding without changing the contract entity's status
-  aiwf contract unbind C-001`,
+  aiwf contract unbind C-NNNN`,
 		Args:          cobra.ExactArgs(1),
 		SilenceErrors: true,
 		SilenceUsage:  true,

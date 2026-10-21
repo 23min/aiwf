@@ -798,14 +798,20 @@ func joinKinds(ks []entity.Kind) string {
 // noCycles detects cycles in the milestone depends_on DAG and the ADR
 // supersedes/superseded_by DAG. Each detected cycle produces one
 // finding per node on the cycle (so every involved entity is locatable
-// in the output).
+// in the output). Nodes and edges are keyed at canonical width, since an
+// edge stored at a legacy width names the same entity as its canonical
+// spelling.
 func noCycles(t *tree.Tree) []Finding {
 	var findings []Finding
 
 	// Milestone DAG: edges follow depends_on (M -> M).
 	mEdges := make(map[string][]string)
 	for _, e := range t.ByKind(entity.KindMilestone) {
-		mEdges[e.ID] = append([]string(nil), e.DependsOn...)
+		deps := make([]string, len(e.DependsOn))
+		for i, d := range e.DependsOn {
+			deps[i] = entity.Canonicalize(d)
+		}
+		mEdges[entity.Canonicalize(e.ID)] = deps
 	}
 	for _, id := range cycleNodes(mEdges) {
 		e := t.ByID(id)
@@ -828,7 +834,7 @@ func noCycles(t *tree.Tree) []Finding {
 	aEdges := make(map[string][]string)
 	for _, e := range t.ByKind(entity.KindADR) {
 		if e.SupersededBy != "" {
-			aEdges[e.ID] = []string{e.SupersededBy}
+			aEdges[entity.Canonicalize(e.ID)] = []string{entity.Canonicalize(e.SupersededBy)}
 		}
 	}
 	for _, id := range cycleNodes(aEdges) {

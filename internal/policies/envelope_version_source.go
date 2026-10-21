@@ -4,43 +4,29 @@ import (
 	"go/ast"
 	"go/parser"
 	"go/token"
-	"path/filepath"
-	"strings"
 )
 
-// PolicyEnvelopeVersionSource asserts that every render.Envelope
-// initialization sources the `Version:` field from
-// version.Current().Version — the single canonical reader for the
+// PolicyEnvelopeVersionSource asserts that every keyed `Version:` in a
+// composite literal written as `Envelope` or `pkg.Envelope` takes its
+// value from a function call's `.Version` — in practice
+// version.Current().Version, the single canonical reader for the
 // running binary's version.
 //
-// Pre-M-0118 a regression class existed where some verbs (the
-// in-cmd/aiwf check verb up through AC-2) wrote `Version: Version`,
-// reading the cmd/aiwf-side package-global directly. Other verbs
-// (status, history, contract verify) had migrated to
-// `Version: version.Current().Version`. A consumer running two such
-// verbs in sequence could see two different version strings on
-// unstamped local builds — `"dev"` vs `"(devel)"`. M-0118 item 6
-// closed the divergence by routing every verb through
-// version.Current(); this policy is the chokepoint that prevents
-// regression.
+// A verb that sets its envelope's Version from another source can
+// report a different string from a verb that reads
+// version.Current(), so a consumer running the two in sequence can
+// see two versions for one binary.
 //
-// The rule scans every production .go file (excludes _test.go since
-// test fixtures legitimately set Version: "0.1.0" or "dev" as part
-// of envelope round-trip and golden tests) for CompositeLits
-// whose type ends in `Envelope` (matching render.Envelope, the
-// canonical JSON envelope type) and any other `*Envelope` aliases a
-// future verb might introduce. For each, it checks the `Version:`
-// key's value. The allowed shapes:
-//
-//   - `version.Current().Version` (the canonical reader)
-//   - any field-access on an Info value (e.g. `info.Version` when
-//     `info` is already resolved via version.Current somewhere else)
-//
-// The forbidden shape is a bare `Version` identifier or a
-// selector `*.Version` resolving to the cli-package global
-// (e.g. `cli.Version`). The chokepoint is intentionally narrow:
-// it pins the JSON-envelope construction site, not every
-// version-reading code path in the codebase.
+// The rule scans every production .go file outside internal/policies
+// (_test.go is excluded: test fixtures set literal versions) for
+// composite literals whose type is named `Envelope`, bare or
+// package-qualified; a literal whose type is left out (an element
+// written inside `[]Envelope{...}`) is not checked. It accepts only a
+// `.Version` selector on a function call, without checking that the
+// call is version.Current(), and rejects every other value,
+// `info.Version` included. The chokepoint is intentionally narrow: it pins
+// the envelope construction site, not every version-reading code
+// path in the codebase.
 func PolicyEnvelopeVersionSource(root string) ([]Violation, error) {
 	files, err := WalkGoFiles(root, true)
 	if err != nil {
@@ -49,11 +35,6 @@ func PolicyEnvelopeVersionSource(root string) ([]Violation, error) {
 	var out []Violation
 	fset := token.NewFileSet()
 	for _, f := range files {
-		// Skip the policy package itself (its source carries the rule
-		// description text, including the forbidden patterns as prose).
-		if strings.HasPrefix(filepath.ToSlash(f.Path), "internal/policies/") {
-			continue
-		}
 		astFile, perr := parser.ParseFile(fset, f.AbsPath, f.Contents, parser.AllErrors)
 		if perr != nil {
 			continue
@@ -82,7 +63,7 @@ func PolicyEnvelopeVersionSource(root string) ([]Violation, error) {
 					Policy: "envelope-version-source",
 					File:   f.Path,
 					Line:   fset.Position(kv.Pos()).Line,
-					Detail: "JSON envelope Version field must source from version.Current().Version (the canonical reader); a direct reference to a package-global Version produces divergence on unstamped local builds — see M-0118 item 6",
+					Detail: "JSON envelope Version must be a function call's .Version, in practice version.Current().Version; a source other than version.Current() can report a different version string from the verbs that use it",
 				})
 			}
 			return true
@@ -91,9 +72,9 @@ func PolicyEnvelopeVersionSource(root string) ([]Violation, error) {
 	return out, nil
 }
 
-// isEnvelopeType reports whether the composite-literal type ends in
-// `Envelope`. Matches both bare `Envelope` (same-package) and
-// `pkg.Envelope` selector forms.
+// isEnvelopeType reports whether the composite-literal type is named
+// `Envelope`, either bare (same-package) or as a `pkg.Envelope`
+// selector.
 func isEnvelopeType(expr ast.Expr) bool {
 	switch t := expr.(type) {
 	case *ast.Ident:

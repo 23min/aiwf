@@ -39,21 +39,20 @@ func newIllegalCmd(correlationID string) *cobra.Command {
 		Short: "Acknowledge a historical commit so kernel audit rules silence its findings",
 		Long: `Records an acknowledgment commit for a historical commit that one of the
 kernel's audit rules would otherwise flag. Every rule that consumes the
-acknowledged-SHA set (via the M-0159/AC-3 lift) is silenced through the same
-aiwf-force-for trailer:
+acknowledged-SHA set is silenced through the same aiwf-force-for trailer:
 
-    - fsm-history-consistent / illegal-transition     (M-0136/AC-2)
-    - fsm-history-consistent / forced-untrailered     (M-0159/AC-4)
-    - isolation-escape                                (M-0159/AC-4 via AC-3 lift)
-    - isolation-escape-orphaned-ai-commit             (M-0161/AC-5; G-0236)
-    - promote-on-wrong-branch                         (M-0161/AC-8)
-    - id-rename-untrailered                           (M-0160/AC-4)
-    - trailer-verb-unknown                            (G-0150 lift)
-    - every rule the provenance history audit raises (M-0292) — the
+    - fsm-history-consistent / illegal-transition
+    - fsm-history-consistent / forced-untrailered
+    - isolation-escape
+    - isolation-escape-orphaned-ai-commit
+    - promote-on-wrong-branch
+    - id-rename-untrailered
+    - trailer-verb-unknown
+    - every rule the provenance history audit raises — the
       trailer-shape, coherence and authorization rules alike, since an
       acknowledgment is a judgment about a commit rather than about one
       of the rules it happens to trip
-    - provenance-untrailered-entity-commit            (G-0231 item 3; --for-entity required)
+    - provenance-untrailered-entity-commit            (--for-entity required)
     - entity-body-section-dropped
 
 Because that audit's rules clear as a set, a reason written about one finding
@@ -75,32 +74,29 @@ The acknowledgment is a separate, current-day empty commit carrying:
     aiwf-reason: <text>
     aiwf-entity: <id>           (only when --for-entity is supplied)
 
-The CLI gather layer at internal/cli/check/check.go walks HEAD's reachable
-history for aiwf-force-for trailers once per check invocation (the M-0159/AC-3
-lift) and threads the resulting SHA set to every rule above; each rule
-exempts findings whose offending commit appears in the set. The acknowledgment
-lives in git; it does NOT pollute aiwf.yaml and does NOT rewrite the offending
-commit's history — the original author, trailers, and SHA are preserved per
-M-0136's no-history-rewrite principle. Read one back with git show <ack-sha> or
+aiwf check walks HEAD's reachable history for aiwf-force-for trailers once
+per invocation and threads the resulting SHA set to every rule above; each
+rule exempts findings whose offending commit appears in the set. The
+acknowledgment lives in git; it does NOT pollute aiwf.yaml and does NOT
+rewrite the offending commit's history — the original author, trailers, and
+SHA are preserved. Read one back with git show <ack-sha> or
 git log --grep; only the --for-entity shape carries an aiwf-entity trailer, so
 only that shape appears in aiwf history <id>.
 
-Target-SHA validity (M-0136/AC-4 + G-0236): the target must either be
-reachable from HEAD (the primary case — covers FSM-history rules and
-isolation-escape proper) OR present in the local object database as an
-orphan (the G-0236 fallback — covers isolation-escape-orphaned-ai-commit,
-whose offending SHAs are by construction unreachable since the reflog
-walker surfaces force-pushed-away tips). Typos and SHAs from unrelated
-repos fail both checks and are refused.
+Target-SHA validity: the target must either be reachable from HEAD (the
+primary case — covers FSM-history rules and isolation-escape proper) OR
+present in the local object database as an orphan (the fallback that covers
+isolation-escape-orphaned-ai-commit, whose offending SHAs are by construction
+unreachable since the reflog walker surfaces force-pushed-away tips). Typos
+and SHAs from unrelated repos fail both checks and are refused.
 
---for-entity verification (G-0231 item 3): when --for-entity <id> is supplied,
-the verb runs git diff-tree against <sha> and refuses the ack unless one of
-the diff's paths resolves to <id>. This is what makes the per-(SHA, entity)
-ack tamper-resistant against operator-attested bindings (LLM or human writing
-the wrong entity id with a real SHA): the kernel walks the actual git diff
-and refuses if <sha> doesn't touch <id>. Required for
-provenance-untrailered-entity-commit acks; optional for every other rule
-above (which use the per-SHA blanket shape).
+--for-entity verification: when --for-entity <id> is supplied, the verb runs
+git diff-tree against <sha> and refuses the ack unless one of the diff's paths
+resolves to <id>. This is what makes the per-(SHA, entity) ack tamper-resistant
+against operator-attested bindings (LLM or human writing the wrong entity id
+with a real SHA): the kernel walks the actual git diff and refuses if <sha>
+doesn't touch <id>. Required for provenance-untrailered-entity-commit acks;
+optional for every other rule above (which use the per-SHA blanket shape).
 
 Per-SHA closed-set scoping: an acknowledgment for one SHA exempts only that
 SHA. There is no "exempt everything" knob.
@@ -114,11 +110,11 @@ Both --reason (non-empty after trim) and a human/... actor are required
 — sovereign acts trace to a named human with written rationale.`,
 		Example: `  # Acknowledge a squash-merge commit whose intermediate FSM steps were lost
   aiwf acknowledge illegal f4ea7329 \
-    --reason "pre-AC-2 era squash; legal feature-branch progression existed but was collapsed"
+    --reason "squash merge; the feature branch's legal progression was collapsed"
 
   # Acknowledge an untrailered entity-edit commit (per-(SHA, entity) ack)
-  aiwf acknowledge illegal 6a1e70cc --for-entity ADR-0007 \
-    --reason "post-E-0038 terminology refresh landed inline; should have used aiwf edit-body"`,
+  aiwf acknowledge illegal 6a1e70cc --for-entity ADR-NNNN \
+    --reason "terminology refresh landed inline; should have used aiwf edit-body"`,
 		Args:          cobra.ExactArgs(1),
 		SilenceErrors: true,
 		SilenceUsage:  true,

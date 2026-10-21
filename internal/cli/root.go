@@ -245,19 +245,19 @@ Usage: aiwf <verb> [args]
 Verbs:
   check                          validate the consumer repo's planning state; with aiwf.yaml tdd.require_test_metrics=true (default false), warns on ACs at tdd_phase=done whose history carries no aiwf-tests trailer
   add <kind> --title "..."       create a new entity of the given kind
-  promote <id> <new-status>      advance an entity's status (optional --reason "..."; --force --reason "..." to skip the FSM); composite ids (M-NNN/AC-N) accepted; --phase <p> for AC tdd_phase (mutex with positional new-status); --tests "pass=N fail=N skip=N [total=N]" attaches an aiwf-tests trailer in phase mode (recognized keys only; non-negative integers)
+  promote <id> <new-status>      advance an entity's status (optional --reason "..."; --force --reason "..." to skip the FSM); composite ids (M-NNNN/AC-N) accepted; --phase <p> for AC tdd_phase (mutex with positional new-status); --tests "pass=N fail=N skip=N [total=N]" attaches an aiwf-tests trailer in phase mode (recognized keys only; non-negative integers)
   cancel <id>                    promote to the kind's terminal-cancel status (optional --reason "..."; --force --reason "..." records the cancellation as an audit event)
   rename <id> <new-slug>         rename the file/dir slug; id preserved
   retitle <id> <new-title>       fix an entity's title; re-derives the slug unless rename set one
   edit-body <id> [--body-file <p>] replace the entity's markdown body (frontmatter untouched); omit --body-file to bless current working-copy edits, or use --body-file - for stdin; --reason "..." optional
-  move <M-id> --epic <E-id>      move a milestone to a different epic; id preserved
-  milestone depends-on <M-id> --on <id,id,...> | --clear   declare or clear a milestone's depends_on edges after creation; --on is replace-not-append
-  milestone tdd <M-id> --policy <none|advisory|required>   set a milestone's TDD policy after creation; either direction, no --force (optional --reason "...")
+  move <milestone-id> --epic <epic-id>  move a milestone to a different epic; id preserved
+  milestone depends-on <milestone-id> --on <id,id,...> | --clear   declare or clear a milestone's depends_on edges after creation; --on is replace-not-append
+  milestone tdd <milestone-id> --policy <none|advisory|required>   set a milestone's TDD policy after creation; either direction, no --force (optional --reason "...")
   reallocate <id-or-path>        renumber the entity; rewrite refs in others
   set-area <id> <member>         tag one entity to a declared area (aiwf.yaml areas.members); --clear removes the tag
   set-priority <id> <level>      set a gap or decision's priority (urgent|high|medium|low); --clear removes it
   rename-area <old> <new>        rename a declared area (aiwf.yaml areas.members) and rewrite every entity tagged with it, in one commit
-  archive [--apply | --dry-run] [--kind <kind>]  sweep terminal-status entities into their per-kind archive/ subdir (ADR-0004); dry-run by default, --apply commits
+  archive [--apply | --dry-run] [--kind <kind>]  sweep terminal-status entities into their per-kind archive/ subdir; dry-run by default, --apply commits
   authorize <id> --to <agent>    open an autonomous-work scope on <id> for <agent>; --pause "<reason>" / --resume "<reason>" cycle the scope, --end retires one without touching the entity's status; human-only verb
   acknowledge illegal <sha> --reason "..."  record a sovereign exemption for a historical commit's audit finding; --for-entity <id> binds the ack to one entity; human actor required
   acknowledge mistag <id> --reason "..."    accept an area-mistag warning as legitimate cross-cutting work; human actor required
@@ -273,12 +273,12 @@ Verbs:
   whoami                         print the resolved actor and the source it came from
   status                         project snapshot: in-flight work, open decisions, gaps, recent activity
   list [flags]                   filter the planning tree by kind/status/parent/area/priority/archived (see 'Flags for list'); one row per match, or a per-kind count summary with no flags
-  show <id>                      aggregate view: frontmatter + acs + recent history + active findings + referenced_by (the ids of entities that name this one as a reference target); JSON also carries body (map of section-heading slug to prose: epic goal/scope/out_of_scope; milestone goal/acceptance_criteria; adr context/decision/consequences; gap what_s_missing/why_it_matters; decision question/decision/reasoning; contract purpose/stability) and per-AC description (the AC-N body section) on milestones; history events carry tests {pass,fail,skip,total} when the commit had an aiwf-tests trailer; composite ids (M-NNN/AC-N) accepted
+  show <id>                      aggregate view: frontmatter + acs + recent history + active findings + referenced_by (the ids of entities that name this one as a reference target); JSON also carries body (map of section-heading slug to prose: epic goal/scope/out_of_scope; milestone goal/acceptance_criteria; adr context/decision/consequences; gap what_s_missing/why_it_matters; decision question/decision/reasoning; contract purpose/stability) and per-AC description (the AC-N body section) on milestones; history events carry tests {pass,fail,skip,total} when the commit had an aiwf-tests trailer; composite ids (M-NNNN/AC-N) accepted
   schema [kind]                  print the frontmatter contract for one kind (or all six); read-only
   template [kind]                print the body-section template 'aiwf add' would scaffold for the kind; read-only
   contract verify                run the verify and evolve passes for every contract binding in aiwf.yaml
-  contract bind <C-id>           add or replace a binding in aiwf.yaml (--validator, --schema, --fixtures; --force to replace)
-  contract unbind <C-id>         remove a binding from aiwf.yaml (entity status untouched)
+  contract bind <contract-id>    add or replace a binding in aiwf.yaml (--validator, --schema, --fixtures; --force to replace)
+  contract unbind <contract-id>  remove a binding from aiwf.yaml (entity status untouched)
   contract recipes               list embedded validator recipes and currently declared validators
   contract recipe show <name>    print an embedded recipe's markdown
   contract recipe install <name|--from <path>> [--force]  install a validator from the embedded set or from a YAML file
@@ -293,7 +293,7 @@ Common flags:
   --principal human/<id>         the human accountable for the act; required when --actor is non-human (ai/..., bot/...), forbidden when --actor is human/...
 
 Provenance:
-  When the operator is non-human, --principal must be supplied; the kernel stamps aiwf-principal: on the commit. To delegate autonomous work, run 'aiwf authorize <id> --to <agent>' first; subsequent agent verbs match the active scope and the kernel adds aiwf-on-behalf-of: + aiwf-authorized-by: trailers automatically. See the aiwf-authorize skill or docs/design/provenance-model.md.
+  When the operator is non-human, --principal must be supplied; the kernel stamps aiwf-principal: on the commit. To delegate autonomous work, run 'aiwf authorize <id> --to <agent>' first; subsequent agent verbs match the active scope and the kernel adds aiwf-on-behalf-of: + aiwf-authorized-by: trailers automatically. See the aiwf-authorize skill.
 
 Flags for 'add':
   --epic <id>                    parent epic id (milestone)
@@ -313,7 +313,7 @@ Flags for 'add':
 Flags for 'list':
   --kind <kind>                  filter by entity kind (epic, milestone, adr, gap, decision, contract)
   --status <status>              filter by entity status (kind-aware)
-  --parent <id>                  filter to entities whose parent is this id (e.g., milestones under E-13)
+  --parent <id>                  filter to entities whose parent is this id (e.g., milestones under E-NNNN)
   --area <member>                filter to entities whose effective area equals this workstream tag
   --priority <level>             filter to gaps/decisions whose priority equals this level (urgent|high|medium|low)
 
@@ -328,7 +328,7 @@ Flags for 'promote' and 'cancel':
   --audit-only --reason "..."    backfill an audit trail when state was reached via a manual commit; verb writes an empty-diff commit carrying aiwf-audit-only:; entity must already be at the target state (no FSM transition); mutually exclusive with --force; human-only
   --by <id,id,...>                comma-separated resolver entity ids written to addressed_by (promote gap -> addressed only)
   --by-commit <sha,sha,...>       comma-separated commit SHAs written to addressed_by_commit (promote gap -> addressed only); must be reachable from HEAD
-  --superseded-by <ADR-id>        ADR id written to supersedes/superseded_by, recorded on both entities atomically (promote adr -> superseded only)
+  --superseded-by <adr-id>        ADR id written to supersedes/superseded_by, recorded on both entities atomically (promote adr -> superseded only)
 
 Flags for 'authorize':
   --to <agent>                   open scope (e.g. ai/claude); refused on terminal scope-entity unless --force --reason
@@ -354,5 +354,5 @@ Concurrency:
     repo-lock-busy             another aiwf process holds the lock (exit 2) — the verb waits a couple of seconds for it before refusing, so back off and retry
     repo-lock-acquire-failed   the lock could not be taken at all (exit 3) — the lockfile could not be located, opened or locked; retrying will not help
 
-Docs: docs/archive/pocv3/poc-plan-pre-migration.md and docs/design/design-decisions.md.`)
+Docs: the aiwf README, https://github.com/23min/aiwf`)
 }

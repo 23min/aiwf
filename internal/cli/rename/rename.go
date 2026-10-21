@@ -26,8 +26,8 @@ func NewCmd(correlationID string) *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "rename <id> <new-slug>",
 		Short: "Rename the file/dir slug; id preserved",
-		Example: `  # Rename M-007's slug to a clearer phrase
-  aiwf rename M-007 cobra-and-completion`,
+		Example: `  # Rename a milestone's slug to a clearer phrase
+  aiwf rename M-NNNN cobra-and-completion`,
 		Args:          cobra.ExactArgs(2),
 		SilenceErrors: true,
 		SilenceUsage:  true,

@@ -2,7 +2,6 @@ package policies
 
 import (
 	"context"
-	"os"
 	"os/exec"
 	"path/filepath"
 	"strings"
@@ -69,13 +68,7 @@ func (f *gateFixture) git(args ...string) string {
 // commit writes body at relPath and commits it, returning the new HEAD.
 func (f *gateFixture) commit(relPath, body, msg string) string {
 	f.t.Helper()
-	abs := filepath.Join(f.root, relPath)
-	if err := os.MkdirAll(filepath.Dir(abs), 0o755); err != nil {
-		f.t.Fatal(err)
-	}
-	if err := os.WriteFile(abs, []byte(body), 0o644); err != nil {
-		f.t.Fatal(err)
-	}
+	mustWrite(f.t, filepath.Join(f.root, relPath), body)
 	f.git("add", "-A")
 	f.git("commit", "-q", "-m", msg)
 	return f.git("rev-parse", "HEAD")

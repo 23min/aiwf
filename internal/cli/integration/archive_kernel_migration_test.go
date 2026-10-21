@@ -6,7 +6,7 @@ package integration
 // migration per ADR-0004 §"Migration") leaves `aiwf check` with 0
 // error-severity findings.
 //
-// Per CLAUDE.md "Test the seam, not just the layer": this test runs
+// Per .guidance/project/testing.md "Test the seam, not just the layer": this test runs
 // the actual built binary as a subprocess against a real fixture
 // (the kernel's own planning tree, copied into a temp dir so the
 // production tree is never mutated under test). Unit tests of

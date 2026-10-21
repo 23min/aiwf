@@ -1,0 +1,122 @@
+---
+id: E-0092
+title: Shrink the always-on guidance to one home per rule under a ceiling
+status: done
+---
+## Goal
+
+Give every guidance rule in this repository one home and one clear form. Rules that apply to nearly every task are primed in the root instructions under a ceiling for each host; everything else is read on demand through the project guidance router. Duplicates, near-duplicates and conflicts are resolved, verbose rules are tightened, and each rule keeps its effect.
+
+## Context
+
+E-0094 is done: selected language packs are delivered as tracked files under `.guidance/`, and both host entry points carry a managed routing block that sends a task to `.guidance/project.md`, then the index and the packs it needs. M-0348 observed both hosts following that route from a session started at the repository root, and observed Claude skipping it whenever `CLAUDE.md` already answered.
+
+The primed load at the epic's start, measured in whitespace-split words on `main` after E-0094:
+
+| Host | Loaded before any task | Words |
+|---|---|---|
+| Claude | `CLAUDE.md`, plus the imported aiwf fragment | 9,543 + 2,235 |
+| Codex | `AGENTS.md` with the fragment rendered inline, plus the required full read of `CLAUDE.md` its preamble demands | 2,503 + 9,543 |
+
+At the epic's start, `.guidance/project.md` said to read `CLAUDE.md` in full and that it took precedence over the packs. The largest `CLAUDE.md` sections were Go conventions (4,274 words, mostly aiwf-specific development rules), the stress-test harness (790), what aiwf commits to (543), working with the user (459) and AC promotion (445). The Go pack itself is 285 words.
+
+Repository development rules, aiwf operating guidance and project-adopted language conventions have different owners. A check-backed rule can become a short pointer once its diagnostic states the remedy. G-0676 identifies how root guidance grows during ordinary work; the fence addresses that growth before the reduction starts.
+
+## Scope
+
+- **The fence, M-0333.** Gate commits that change guidance, require a disposition for removed text, and fail CI when either host's primed load exceeds its ceiling.
+- **The shipped fence, M-0350.** Move the commit rules into `aiwf check`, so every aiwf repository fences its handwritten instruction files by default (ADR-0053).
+- **The inventory, M-0349.** Freeze the installed guidance. List every rule once — in this repository's guidance and in the shipped fragment — with its current homes and its audience, and give it a disposition. Decide every conflict with the maintainer. Name the on-demand documents and set the primed ceiling from the result.
+- **The baseline, M-0334.** Record both hosts' loading and rule-following on tasks aimed at the rules the inventory changes, before any decision is carried out, using M-0348's observation harness.
+- **Remove copies and move rules home, M-0336.** Delete text whose rule already lives in the aiwf fragment or a selected pack, and move each rule the inventory places in the other home, as the inventory records. From here on a test holds every removal to the inventory.
+- **Route and tighten, M-0335.** Make `.guidance/project.md` a short task router, move on-demand rules into the documents it names, and apply the inventory's merge and tighten dispositions. The root `CLAUDE.md` keeps only primed rules.
+- **Diagnostics, M-0337.** Audit diagnostics, correct messages that omit the remedy, check that the repository paths development guidance cites exist, and confirm the ceiling for each host. No check-backed rule is cut to a pointer, since the inventory decides none.
+- **After observation, M-0338.** Compare each host against its own frozen baseline, including guidance read during the task, and confirm every inventory decision was carried out.
+- **Go-specific and general development rules apart, M-0361.** Put general development rules in documents named by activity and Go-specific ones in this repository's overrides of the Go pack, read with it; name activities in the router's entries; observe whether each host reads what its task needs and only that.
+
+## Out of scope
+
+- External source selection, language detection, pack selection, upstream refresh and tracked-output delivery; E-0094 owns them.
+- Changing the content of external language packs; their wording belongs to the external source.
+- Personal collaboration preferences and machine/session configuration, which live outside this repository.
+- Entity templates and general changes to ritual or verb skill bodies, except references that must follow relocated guidance and operating rules the inventory moves into the skill for their task.
+- Changing existing check conditions while improving their messages.
+- New host adapters, including Copilot, or universal guarantees of model compliance.
+- A size ceiling or size report for consumer repositories; the ceiling and the guidance-reader list are internal to this repository (ADR-0053).
+- Fencing instruction files below a repository's root (ADR-0053).
+- Rewording or shortening the shipped fragment's rules; the inventory records any such tightening as a suggestion for a later epic. A clause the inventory moves into a fragment rule is an addition, not a rewording.
+
+## Constraints
+
+- **One instruction file per host, at the root.** Claude primes from the root `CLAUDE.md` and Codex from the root `AGENTS.md`. No instruction files in subdirectories; on-demand guidance is reached through `.guidance/project.md`.
+- **Primed versus on demand.** A rule is primed when it applies to nearly every task, or when missing it causes harm before the agent would think to look. Everything else is on demand.
+- **One home per rule, chosen by audience.** Rules for operating aiwf in any repository ship with aiwf: in the shipped fragment when primed, in the shipped skill for their task when on demand. Rules for developing aiwf live in this repository: in a host's root instruction file or the router when primed, under `.guidance/project/` when on demand. Generated copies in host entry points are delivery outputs, not independent homes. A rule in the wrong home moves in two commits: the first adds it to the right home, the second removes it from the wrong one as a copy of it, so it is briefly in both and never in neither.
+- **Effect is preserved, wording is not.** Rules may be merged, tightened or rewritten as the inventory records. The baseline and after-observations are the check that a changed rule kept its effect. No rule is dropped silently: each removed passage's disposition is recorded in its commit body with the inventory row it carries out, and a test holds every removal to the inventory. The epic's wrap deletes that test once the epic's last milestone records its last run, since the inventory is history from then on. It deletes the observation harness under `scripts/e0092-observe/` at the same point, since no run follows that milestone's.
+- **Two ceilings.** Each host has a ceiling on its handwritten primed words, set by M-0349 and enforced by M-0333's policy. The shipped fragment's size is tracked separately; this epic moves rules into and out of it but does not shorten its wording. A reference that requires a full read before any task counts as primed.
+- **Frozen guidance.** From M-0349's inventory until the epic's last milestone completes, `guidance.enabled` is `false` in `aiwf.yaml`, so no `aiwf update` or `aiwf worktree add` refreshes the installed packs. Re-enable it at the epic's wrap.
+- **The fence lands first.** Its commit scope allows related guidance sources and generated outputs together, but excludes unrelated implementation changes. Generated blocks change through their owner, never by hand.
+- **Pins retire with a recorded reason.** D-0102 bars evidencing a criterion with a sentence pinned in either host entry point, the project router or the on-demand documents; a pin retires with its passage and leaves the reader list with it.
+- A check-backed section becomes a pointer only after its diagnostic states the remedy.
+- **Observations are records.** Commit the rubric before its first run. Record command, expected result, observed result and environment, including host/model versions and the installed guidance revision. Judge reads on tool events, not on the assistant's own account. Runs that invoke `aiwf update` point `HOME` at a scratch directory.
+- Record a growth-report row at each reduction boundary and derive the removal manifest from commits at wrap.
+- Personal approval rules remain in effect: enumerated local reversible sequences may share approval; outward actions retain separate gates.
+
+## Success criteria
+
+- [x] E-0094 is named as the delivery prerequisite and its completion is verified before implementation.
+- [x] Every guidance rule, in this repository's guidance and the shipped fragment, has one home chosen by its audience and a recorded disposition; no conflicting rules remain.
+- [x] Both hosts' handwritten primed words meet their ceilings; the policy catches regrowth and required-read indirection.
+- [x] Every aiwf repository fences edits to its handwritten instruction files by default (ADR-0053).
+- [ ] No instruction file exists below the repository root; both hosts reach task-relevant guidance through `.guidance/project.md` from a root-started session, and no home-directory language import returns. Partly met: no instruction file sits below the root and no home-directory import returned, but Claude reaches the Go pack in fewer than half its Go tasks and some of its sessions open no guidance document (G-0738).
+- [ ] Development guidance duplicates neither operating rules nor the selected language packs. Not met for the Go pack: `go-conventions.md` and `testing.md` restate the Go pack rules this repository depends on (D-0105).
+- [x] Each moved pin is retired with its reason recorded.
+- [x] Guidance references and enforcement pointers resolve.
+- [x] Both hosts have before/after observations of the rules this epic changes, against the frozen baseline, with task-loaded text reported separately.
+- [x] Growth measurements are recorded, every inventory decision is carried out by a commit that names its row, and no removal falls outside the inventory.
+- [x] G-0676 and G-0436 are closed against evidence of their claims.
+
+## Open questions
+
+| Question | Blocking? | Resolution path |
+|---|---|---|
+| Which on-demand documents exist and where they live | resolved | M-0349 names the documents under `.guidance/project/`, with the router entries that reach them, in its On-demand documents section |
+| The handwritten primed ceiling for each host | resolved | M-0349 sets the targets from the inventory at 1,629 words for Claude and 1,758 for Codex, with tightened rules counted at their current size; M-0349's Validation records the command, and later step-downs record what tightening saves |
+| Which diagnostics already state the remedy | resolved | M-0337's Audit section records each check's verdict, and its AC-2 corrects every message that did not |
+
+## Risks
+
+| Risk | Impact | Mitigation |
+|---|---|---|
+| A thinned root no longer answers a task and the host does not follow the router | high | Observe root-started reads for both hosts in M-0335 and M-0338 |
+| Tightening a rule changes its effect | high | Rubric tasks for each rule the inventory changes, compared against the frozen baseline |
+| A rule is lost between its old and new home | high | Each removal names its inventory row; a test holds removals to the inventory from M-0336, and M-0338 requires every decision carried out |
+| Upstream pack changes confound the comparison | high | `guidance.enabled: false` for the comparison window |
+| A generated host copy is mistaken for a duplicate rule home | med | Judge ownership at the source, using the managed-block markers and `.guidance/.aiwf-owned` |
+| New enforcement machinery outweighs the reduction | med | Reuse existing scans and report policy/test growth alongside prose savings |
+
+## Milestones
+
+- M-0333 — Fence repository guidance and measure primed load for both hosts.
+- M-0350 — Ship the instruction-file fence in `aiwf check`; depends on M-0333.
+- M-0349 — Freeze the guidance, inventory every rule in this repository and the shipped fragment, and decide its home and form; depends on M-0333.
+- M-0334 — Record the baseline for both hosts on the rules the inventory changes; depends on M-0349 and M-0350.
+- M-0336 — Remove copies and move rules to their audience's home; depends on M-0349 and M-0334.
+- M-0335 — Route on-demand guidance through the project router and tighten what moves; depends on M-0336.
+- M-0337 — Improve diagnostics, check the paths guidance cites, and confirm the ceiling for both hosts; depends on M-0335.
+- M-0338 — Compare behaviour and load against the frozen baseline and confirm every inventory decision was carried out; depends on M-0337.
+- M-0361 — Separate Go-specific development rules from general ones and route by activity; depends on M-0338.
+- M-0339 — Cancelled: shortening the shipped fragment's wording is left to a later epic.
+
+## References
+
+- E-0093 — supported Claude and Codex workflows.
+- E-0094 — external guidance delivery and this repository's migration; M-0348 records the post-delivery measurements and host observations.
+- ADR-0052 — project guidance independent of personal bootstrap.
+- ADR-0053 — the instruction-file fence ships in `aiwf check`.
+- ADR-0054 — external language-content ownership and tracked project delivery; applicable packs are adopted on update.
+- D-0102 — the evidence rule over the development-guidance set, superseding D-0091.
+- D-0070 — limits on pins over shipped prose.
+- G-0676, G-0436 — the growth and stale-reference defects this epic addresses.
+- G-0668 — measurement records need reproducible commands.
+- `docs/design/growth.md`, `scripts/growth-report.py` — measurements and iteration log.
+- `internal/policies/skill_edit_provenance_backstop.go`, `internal/policies/m0211_guidance_operating_anchors.go` — existing enforcement seams.

@@ -219,7 +219,7 @@ the wrong selector when the existing ones have known depth gaps:
   escape hatch. A defensive branch whose untested arm never executes can
   still read as covered. The gate's name promises more than it delivers, and
   every AC promoted on the strength of it inherits that gap.
-- **[G-0110](../../work/gaps/G-0110-gremlins-diff-ref-filter-excludes-new-files-entirely-manual-mutation-review-needed-for-m-0094-95-96.md)**
+- **[G-0110](../../work/gaps/archive/G-0110-mutate-diff-mutates-every-line-of-each-changed-package-not-only-changed-lines.md)**
   — mutation testing's `--diff <ref>` filter excludes new files entirely. The
   blind spot is precisely on newly-written code, which is the code most
   likely to carry an untested mutant.
@@ -450,7 +450,7 @@ item 4 down is independently actionable.
    [`tdd-cycle-subagent-boundaries.md`](tdd-cycle-subagent-boundaries.md),
    pending its relative priority becoming judgeable — this document is that
    judgement: it is the highest-value item in Q2.
-6. [G-0110](../../work/gaps/G-0110-gremlins-diff-ref-filter-excludes-new-files-entirely-manual-mutation-review-needed-for-m-0094-95-96.md)
+6. [G-0110](../../work/gaps/archive/G-0110-mutate-diff-mutates-every-line-of-each-changed-package-not-only-changed-lines.md)
    — mutation testing's new-file blind spot.
 7. [G-0317](../../work/gaps/archive/G-0317-skill-edit-backstop-checks-test-references-path-not-asserts-changed-section.md)
    — assert-the-changed-section, not reference-the-path.

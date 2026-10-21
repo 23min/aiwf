@@ -232,17 +232,6 @@ func TestM080_AC5_CriticalPathRetired(t *testing.T) {
 func TestM080_AC6_NoUnexpectedTreeFileWarning(t *testing.T) {
 	t.Parallel()
 
-	mustWrite := func(t *testing.T, root, rel, body string) {
-		t.Helper()
-		full := filepath.Join(root, rel)
-		if err := os.MkdirAll(filepath.Dir(full), 0o755); err != nil {
-			t.Fatal(err)
-		}
-		if err := os.WriteFile(full, []byte(body), 0o644); err != nil {
-			t.Fatal(err)
-		}
-	}
-
 	// A real entity so the loader has a populated work/epics tree to
 	// walk — the same layout the holding doc sat alongside.
 	const realEpic = "---\nid: E-0001\nkind: epic\nstatus: proposed\ntitle: fixture epic\n---\nbody\n"
@@ -264,7 +253,7 @@ func TestM080_AC6_NoUnexpectedTreeFileWarning(t *testing.T) {
 	t.Run("retired doc absent yields no finding", func(t *testing.T) {
 		t.Parallel()
 		root := t.TempDir()
-		mustWrite(t, root, "work/epics/E-0001-fixture/epic.md", realEpic)
+		writeAt(t, root, "work/epics/E-0001-fixture/epic.md", realEpic)
 		// criticalPathMdPath deliberately NOT written — it is retired.
 		if flagsCriticalPath(t, root) {
 			t.Errorf("AC-6: unexpected-tree-file fired for retired %s", criticalPathMdPath)
@@ -274,8 +263,8 @@ func TestM080_AC6_NoUnexpectedTreeFileWarning(t *testing.T) {
 	t.Run("control: present doc is flagged (rule has teeth)", func(t *testing.T) {
 		t.Parallel()
 		root := t.TempDir()
-		mustWrite(t, root, "work/epics/E-0001-fixture/epic.md", realEpic)
-		mustWrite(t, root, criticalPathMdPath, "a holding doc that is not an entity\n")
+		writeAt(t, root, "work/epics/E-0001-fixture/epic.md", realEpic)
+		writeAt(t, root, criticalPathMdPath, "a holding doc that is not an entity\n")
 		if !flagsCriticalPath(t, root) {
 			t.Errorf("AC-6 control: rule must flag %s when present, else the retired-case assertion is vacuous", criticalPathMdPath)
 		}

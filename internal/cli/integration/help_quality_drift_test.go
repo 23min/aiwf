@@ -15,7 +15,7 @@ import (
 // M-069 AC-7 — Help-quality drift asserts Example present and no
 // migration prose.
 //
-// `aiwf <verb> --help` is the AI-discoverability surface (CLAUDE.md
+// `aiwf <verb> --help` is the AI-discoverability surface (.guidance/project/verb-design.md
 // §"Kernel functionality must be AI-discoverable"). Cobra renders
 // that output from each verb's Long / Short / Example fields, so
 // help quality reduces to those three strings being present, current,
@@ -90,7 +90,7 @@ func TestPolicy_ExamplePresent(t *testing.T) {
 		sort.Strings(failures)
 		t.Errorf("%d command(s) missing Example block (E-14 / M-069 AC-7):\n  %s\n\n"+
 			"Every Runnable verb must ship an Example block — that's the AI-discoverability surface "+
-			"per CLAUDE.md. Either add an Example to the cobra.Command literal, or extend "+
+			"per .guidance/project/verb-design.md. Either add an Example to the cobra.Command literal, or extend "+
 			"helpFieldOptOuts in help_quality_drift_test.go with a one-line rationale.",
 			len(failures), joinFailures(failures))
 	}

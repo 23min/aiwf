@@ -485,7 +485,7 @@ func pluralize(n int, singularSuffix, pluralSuffix string) string {
 //
 // Format:
 //
-//	Per ADR-0004: sweep terminal-status entities into per-kind archive/.
+//	Sweep terminal-status entities into per-kind archive/.
 //
 //	Per-kind counts:
 //	  epic       2 entities
@@ -497,7 +497,7 @@ func pluralize(n int, singularSuffix, pluralSuffix string) string {
 //	  E-0010, E-0017, C-0010, G-0010, G-0011, ..., D-0007, ADR-0001
 //
 //	Skipped:
-//	  E-0020: M-0030, M-0031
+//	  E-0020: non-terminal children: M-0030, M-0031
 //
 // rewriteCount is the number of entity-body link-destination rewrites
 // (M-0246) riding in the same commit; 0 renders no extra section.
@@ -519,7 +519,7 @@ func archiveCommitBody(moves []archiveMove, skipped []archiveSkip, rewriteCount 
 			sort.Strings(byKind[k])
 		}
 
-		sb.WriteString("Per ADR-0004: sweep terminal-status entities into per-kind archive/.\n\n")
+		sb.WriteString("Sweep terminal-status entities into per-kind archive/.\n\n")
 		sb.WriteString("Per-kind counts:\n")
 		for _, k := range entity.AllKinds() {
 			ids, ok := byKind[k]
@@ -547,7 +547,7 @@ func archiveCommitBody(moves []archiveMove, skipped []archiveSkip, rewriteCount 
 		sb.WriteString("Skipped:\n")
 		for _, s := range skipped {
 			if s.epic != "" {
-				fmt.Fprintf(&sb, "  %s: non-terminal children (G-0394): %s\n", s.epic, strings.Join(s.children, ", "))
+				fmt.Fprintf(&sb, "  %s: non-terminal children: %s\n", s.epic, strings.Join(s.children, ", "))
 				continue
 			}
 			fmt.Fprintf(&sb, "  %s: uncommitted changes in %s\n", s.id, strings.Join(s.blockedBy, ", "))

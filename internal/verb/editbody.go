@@ -49,7 +49,7 @@ import (
 // the projection are returned in Result.Findings.
 func EditBody(ctx context.Context, t *tree.Tree, id string, body []byte, actor, reason string) (*Result, error) {
 	if entity.IsCompositeID(id) {
-		return nil, fmt.Errorf("aiwf edit-body does not yet support composite ids (M-NNN/AC-N); edit the parent milestone's body instead")
+		return nil, fmt.Errorf("aiwf edit-body does not yet support composite ids (M-NNNN/AC-N); edit the parent milestone's body instead")
 	}
 	e := t.ByID(id)
 	if e == nil {

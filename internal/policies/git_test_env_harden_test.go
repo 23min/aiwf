@@ -1,8 +1,7 @@
 package policies
 
 import (
-	"os"
-	"path/filepath"
+	"strings"
 	"testing"
 )
 
@@ -13,19 +12,6 @@ import (
 func TestPolicy_GitTestEnvHardened(t *testing.T) {
 	t.Parallel()
 	runPolicy(t, PolicyGitTestEnvHardened)
-}
-
-// writeGoFixture writes a Go source file under root at the
-// forward-slash repo-relative path, creating parent dirs.
-func writeGoFixture(t *testing.T, root, rel, content string) {
-	t.Helper()
-	abs := filepath.Join(root, filepath.FromSlash(rel))
-	if err := os.MkdirAll(filepath.Dir(abs), 0o755); err != nil {
-		t.Fatalf("mkdir %s: %v", rel, err)
-	}
-	if err := os.WriteFile(abs, []byte(content), 0o644); err != nil {
-		t.Fatalf("write %s: %v", rel, err)
-	}
 }
 
 // TestPolicyGitTestEnvHardened_Branches drives the policy over synthetic
@@ -122,6 +108,7 @@ func {{{ this does not parse
 		files      map[string]string // rel path -> content
 		wantCount  int
 		wantPolicy string
+		wantDetail string // the remedy clause the violation states
 		wantErr    bool
 	}{
 		{
@@ -140,6 +127,7 @@ func {{{ this does not parse
 			},
 			wantCount:  1,
 			wantPolicy: "git-test-env-harden",
+			wantDetail: "call it after seeding the git identity and before os.Exit(m.Run())",
 		},
 		{
 			name: "CommandContext without harden violates",
@@ -165,6 +153,7 @@ func {{{ this does not parse
 			},
 			wantCount:  1,
 			wantPolicy: "git-test-env-harden",
+			wantDetail: "add a setup_test.go whose TestMain calls it before os.Exit(m.Run())",
 		},
 		{
 			name: "exec with setup lacking TestMain violates",
@@ -246,7 +235,7 @@ func {{{ this does not parse
 			t.Parallel()
 			root := t.TempDir()
 			for rel, content := range tc.files {
-				writeGoFixture(t, root, rel, content)
+				writeAt(t, root, rel, content)
 			}
 			vs, err := PolicyGitTestEnvHardened(root)
 			if tc.wantErr {
@@ -263,6 +252,9 @@ func {{{ this does not parse
 			}
 			if tc.wantCount > 0 && vs[0].Policy != tc.wantPolicy {
 				t.Errorf("violation Policy = %q, want %q", vs[0].Policy, tc.wantPolicy)
+			}
+			if tc.wantDetail != "" && !strings.Contains(vs[0].Detail, tc.wantDetail) {
+				t.Errorf("violation Detail = %q, want it to state %q", vs[0].Detail, tc.wantDetail)
 			}
 		})
 	}

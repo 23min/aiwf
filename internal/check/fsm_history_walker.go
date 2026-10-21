@@ -14,7 +14,7 @@ import (
 // rule turns each into a `fsm-history-consistent/history-walk-error`
 // finding so a transient subprocess error against one entity's blob
 // surfaces visibly rather than silently wiping the rule's output
-// (per CLAUDE.md §Engineering principles — "Errors are findings, not
+// (per .guidance/project/verb-design.md §Principles — "Errors are findings, not
 // parse failures.").
 //
 // Side is "commit" when the failure was reading the status at the

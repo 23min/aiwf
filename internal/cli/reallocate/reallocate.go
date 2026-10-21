@@ -26,7 +26,7 @@ func NewCmd(correlationID string) *cobra.Command {
 		Use:   "reallocate <id-or-path>",
 		Short: "Renumber the entity; rewrite refs in others",
 		Example: `  # Resolve an id collision detected by aiwf check
-  aiwf reallocate M-007`,
+  aiwf reallocate M-NNNN`,
 		Args:          cobra.ExactArgs(1),
 		SilenceErrors: true,
 		SilenceUsage:  true,

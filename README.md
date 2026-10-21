@@ -88,7 +88,7 @@ go install github.com/23min/aiwf/cmd/aiwf@<sha>
 
 ### Prerequisites
 
-- **Go 1.22+** in the environment running the install. Verify with `go version`.
+- **Go 1.24+** in the environment running the install. Verify with `go version`.
 - **`$HOME/go/bin` (or `$GOBIN`) on `$PATH`.** Verify with `command -v aiwf` after install.
 - **Network access to GitHub.** If you're offline or behind a proxy without GitHub access, fall back to the clone path below.
 
@@ -98,10 +98,10 @@ If you want a local checkout to read or modify the source:
 
 ```bash
 git clone https://github.com/23min/aiwf && cd aiwf
-make install                                                # embeds branch + short SHA in --version
+make install                                                # embeds branch + git describe in --version
 ```
 
-`make install` is preferred over `go install ./cmd/aiwf` because it embeds the current branch and short SHA into the binary via `-ldflags`, so `aiwf --version` later tells you exactly what's running. Plain `go install` works but leaves `--version` reporting `dev`.
+`make install` is preferred over `go install ./cmd/aiwf` because it embeds the current branch and `git describe` output into the binary via `-ldflags`, so `aiwf --version` later tells you which branch and commit you're running. Plain `go install` works too, but `--version` then reports the version Go reads from git, which names the commit and not the branch.
 
 Distribution via brew/apt/scoop/winget will come if and when the project warrants it.
 

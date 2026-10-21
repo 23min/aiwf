@@ -22,7 +22,7 @@ import (
 // The unit test on check.ApplyArchiveSweepThreshold covers the bumper
 // logic in isolation; this test exercises the seam where main.go's
 // runCheckCmd reads config.Config.ArchiveSweepThreshold() and applies
-// the bumper. CLAUDE.md §"Test the seam, not just the layer": a unit
+// the bumper. .guidance/project/testing.md §"Test the seam, not just the layer": a unit
 // test of the helper alone is necessary but not sufficient — the
 // seam test catches the case where the caller has a parallel source
 // of truth and never adopts the helper.

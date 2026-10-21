@@ -383,7 +383,7 @@ func runAC2RungPairCell(t *testing.T, bin, binDir, currentBranch, targetBranch s
 	// Stderr quality check: the refusal message should name BOTH
 	// rungs (the operator can see which pair is rejected) and the
 	// sovereign-override path (--force --reason). Substring scoped
-	// to the error context, per CLAUDE.md "Substring assertions"
+	// to the error context, per .guidance/project/testing.md "Substring assertions"
 	// — verb-time errors don't carry structured codes today.
 	stderr := out
 	if !strings.Contains(stderr, "--force") {

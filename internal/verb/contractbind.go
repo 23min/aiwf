@@ -102,9 +102,9 @@ func ContractBind(ctx context.Context, t *tree.Tree, doc *aiwfyaml.Doc, current 
 	}
 	switch {
 	case existingIdx >= 0 && entriesEquivalent(next.Entries[existingIdx], desired):
-		return &Result{NoOp: true, NoOpMessage: fmt.Sprintf("binding for %s unchanged", id)}, nil
+		return &Result{NoOp: true, NoOpMessage: fmt.Sprintf("binding for %s unchanged", canonID)}, nil
 	case existingIdx >= 0 && !opts.Force:
-		return nil, fmt.Errorf("binding for %s already exists with different values; pass --force to replace", id)
+		return nil, fmt.Errorf("binding for %s already exists with different values; pass --force to replace", canonID)
 	case existingIdx >= 0:
 		next.Entries[existingIdx] = desired
 	default:
@@ -118,12 +118,12 @@ func ContractBind(ctx context.Context, t *tree.Tree, doc *aiwfyaml.Doc, current 
 		return findings(introduced), nil
 	}
 
-	if err := doc.SetContracts(next); err != nil {
+	if err := setContracts(doc, next); err != nil { //coverage:ignore the block passed Validate when aiwf.yaml was read, the guards above admit only entries and validators that satisfy it, and a widened id still matches the contract grammar, so SetContracts cannot newly fail here
 		return nil, fmt.Errorf("updating aiwf.yaml: %w", err)
 	}
 
 	result := plan(&Plan{
-		Subject:  fmt.Sprintf("aiwf contract bind %s", id),
+		Subject:  fmt.Sprintf("aiwf contract bind %s", canonID),
 		Trailers: standardTrailers("contract-bind", id, actor),
 		Ops:      []FileOp{{Type: OpWrite, Path: config.FileName, Content: doc.Bytes()}},
 	})
@@ -147,7 +147,7 @@ func ContractUnbind(ctx context.Context, t *tree.Tree, doc *aiwfyaml.Doc, curren
 		return nil, fmt.Errorf("aiwf.yaml not found; run 'aiwf init' first")
 	}
 	if current == nil {
-		return nil, fmt.Errorf("no binding for %s in aiwf.yaml.contracts.entries", id)
+		return nil, fmt.Errorf("no binding for %s in aiwf.yaml.contracts.entries", entity.Canonicalize(id))
 	}
 
 	next := cloneContracts(current)
@@ -162,7 +162,7 @@ func ContractUnbind(ctx context.Context, t *tree.Tree, doc *aiwfyaml.Doc, curren
 		out = append(out, en)
 	}
 	if !found {
-		return nil, fmt.Errorf("no binding for %s in aiwf.yaml.contracts.entries", id)
+		return nil, fmt.Errorf("no binding for %s in aiwf.yaml.contracts.entries", entity.Canonicalize(id))
 	}
 	next.Entries = out
 
@@ -170,17 +170,28 @@ func ContractUnbind(ctx context.Context, t *tree.Tree, doc *aiwfyaml.Doc, curren
 		return findings(introduced), nil //coverage:ignore unbinding can only ever introduce a no-binding warning via contractcheck.Run's current rules, never an error — this branch is a safety net for a scenario no real input can construct today; see the doc comment above.
 	}
 
-	if err := doc.SetContracts(next); err != nil {
+	if err := setContracts(doc, next); err != nil { //coverage:ignore the block passed Validate when aiwf.yaml was read, the guards above admit only entries and validators that satisfy it, and a widened id still matches the contract grammar, so SetContracts cannot newly fail here
 		return nil, fmt.Errorf("updating aiwf.yaml: %w", err)
 	}
 
 	result := plan(&Plan{
-		Subject:  fmt.Sprintf("aiwf contract unbind %s", id),
+		Subject:  fmt.Sprintf("aiwf contract unbind %s", canonID),
 		Trailers: standardTrailers("contract-unbind", id, actor),
 		Ops:      []FileOp{{Type: OpWrite, Path: config.FileName, Content: doc.Bytes()}},
 	})
 	result.Metadata = map[string]any{"entity_id": canonID}
 	return result, nil
+}
+
+// setContracts writes next into doc with every binding id at canonical
+// width. It rewrites every entry, not only the one a verb touched, so a
+// write never carries a narrow id back — a legacy entry is widened the
+// next time any verb rewrites the block.
+func setContracts(doc *aiwfyaml.Doc, next *aiwfyaml.Contracts) error {
+	for i := range next.Entries {
+		next.Entries[i].ID = entity.Canonicalize(next.Entries[i].ID)
+	}
+	return doc.SetContracts(next)
 }
 
 // cloneContracts returns a deep-enough copy of c that callers can

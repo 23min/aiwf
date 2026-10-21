@@ -40,10 +40,13 @@ func selfCheckBody(k entity.Kind, subject string) string {
 // path the user would trip over.
 func runSelfCheck() int {
 	if Dispatcher == nil {
-		cliutil.Errorln("aiwf doctor --self-check: in-process Dispatcher unset (wiring bug in cmd/aiwf/main.go's init); cannot run")
+		cliutil.Errorln("aiwf doctor --self-check: in-process Dispatcher unset (a wiring bug in the aiwf binary); cannot run")
 		return cliutil.ExitInternal
 	}
 	const actor = "human/self-check"
+	// auditOnlyGap is the gap the audit-only fixture adds, spelled as
+	// check output names it.
+	const auditOnlyGap = "G-0002"
 
 	tmp, err := os.MkdirTemp("", "aiwf-self-check-")
 	if err != nil {
@@ -179,8 +182,8 @@ func runSelfCheck() int {
 				if _, err := os.Stat(preCommitHook); err != nil {
 					return fmt.Errorf("pre-commit hook should exist after default update: %w", err)
 				}
-				if _, err := os.Stat(postCommitHook); err != nil {
-					return fmt.Errorf("post-commit hook should exist after default update (G-0112): %w", err)
+				if _, err := os.Stat(postCommitHook); err != nil { //coverage:ignore fires only when a real step earlier in this sequence left the wrong artifact or output behind; reaching it needs that step to regress, as for the s.verify and s.verifyOutput call sites below
+					return fmt.Errorf("post-commit hook should exist after default update: %w", err)
 				}
 				return nil
 			},
@@ -193,17 +196,17 @@ func runSelfCheck() int {
 			},
 			verify: func() error {
 				body, err := os.ReadFile(preCommitHook)
-				if err != nil {
-					return fmt.Errorf("pre-commit hook should remain installed under G42 (gate is enforcement): %w", err)
+				if err != nil { //coverage:ignore fires only when a real step earlier in this sequence left the wrong artifact or output behind; reaching it needs that step to regress, as for the s.verify and s.verifyOutput call sites below
+					return fmt.Errorf("pre-commit hook should remain installed after opt-out (it carries the tree-discipline gate): %w", err)
 				}
 				if !strings.Contains(string(body), "check --shape-only") {
 					return fmt.Errorf("pre-commit hook lost the tree-discipline gate after opt-out:\n%s", body)
 				}
-				if strings.Contains(string(body), "status --root") {
-					return fmt.Errorf("pre-commit hook still includes STATUS.md regen (G-0112: regen lives in post-commit):\n%s", body)
+				if strings.Contains(string(body), "status --root") { //coverage:ignore fires only when a real step earlier in this sequence left the wrong artifact or output behind; reaching it needs that step to regress, as for the s.verify and s.verifyOutput call sites below
+					return fmt.Errorf("pre-commit hook still includes STATUS.md regen, which belongs in post-commit:\n%s", body)
 				}
-				if _, err := os.Stat(postCommitHook); !os.IsNotExist(err) {
-					return fmt.Errorf("post-commit hook should be removed under opt-out (G-0112) (stat err=%w)", err)
+				if _, err := os.Stat(postCommitHook); !os.IsNotExist(err) { //coverage:ignore fires only when a real step earlier in this sequence left the wrong artifact or output behind; reaching it needs that step to regress, as for the s.verify and s.verifyOutput call sites below
+					return fmt.Errorf("post-commit hook should be removed under opt-out (stat err=%w)", err)
 				}
 				return nil
 			},
@@ -215,8 +218,8 @@ func runSelfCheck() int {
 				return rewriteAiwfYAMLAutoUpdate(tmp, true)
 			},
 			verify: func() error {
-				if _, err := os.Stat(postCommitHook); err != nil {
-					return fmt.Errorf("post-commit hook missing after re-opt-in (G-0112): %w", err)
+				if _, err := os.Stat(postCommitHook); err != nil { //coverage:ignore fires only when a real step earlier in this sequence left the wrong artifact or output behind; reaching it needs that step to regress, as for the s.verify and s.verifyOutput call sites below
+					return fmt.Errorf("post-commit hook missing after re-opt-in: %w", err)
 				}
 				body, err := os.ReadFile(postCommitHook)
 				if err != nil {
@@ -248,8 +251,8 @@ func runSelfCheck() int {
 				if !strings.Contains(out, "provenance-untrailered-entity-commit") {
 					return fmt.Errorf("expected provenance-untrailered-entity-commit to fire after manual flip; got:\n%s", out)
 				}
-				if !strings.Contains(out, "G-0002") {
-					return fmt.Errorf("finding should name G-0002 as the affected entity; got:\n%s", out)
+				if !strings.Contains(out, auditOnlyGap) { //coverage:ignore fires only when a real step earlier in this sequence left the wrong artifact or output behind; reaching it needs that step to regress, as for the s.verify and s.verifyOutput call sites below
+					return fmt.Errorf("finding should name %s as the affected entity; got:\n%s", auditOnlyGap, out)
 				}
 				return nil
 			},
@@ -259,11 +262,11 @@ func runSelfCheck() int {
 			args:  []string{"cancel", "G-002", "--audit-only", "--reason", "self-check audit-only loop", "--actor", actor, "--root", tmp},
 		},
 		{
-			label: "audit-only fixture: check no longer fires for G-002",
+			label: "audit-only fixture: check no longer fires for the fixture gap",
 			args:  []string{"check", "--root", tmp, "--since", "HEAD~3"},
 			verifyOutput: func(out string) error {
-				if strings.Contains(out, "G-0002 with no aiwf-verb") {
-					return fmt.Errorf("audit-only failed to clear G-002 warning; got:\n%s", out)
+				if strings.Contains(out, auditOnlyGap+" with no aiwf-verb") { //coverage:ignore fires only when a real step earlier in this sequence left the wrong artifact or output behind; reaching it needs that step to regress, as for the s.verify and s.verifyOutput call sites below
+					return fmt.Errorf("audit-only failed to clear the %s warning; got:\n%s", auditOnlyGap, out)
 				}
 				return nil
 			},
@@ -278,7 +281,7 @@ func runSelfCheck() int {
 			args:  []string{"doctor", "--check-latest", "--root", tmp},
 		},
 		{
-			label: "doctor verifies rituals materialized (ADR-0014 §5)",
+			label: "doctor verifies rituals materialized",
 			args:  []string{"doctor", "--root", tmp},
 			verifyOutput: func(out string) error {
 				if !strings.Contains(out, "rituals:") {

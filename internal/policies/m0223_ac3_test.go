@@ -16,7 +16,7 @@ import (
 // names both verbs with actual before/after numbers — not an empty or
 // half-filled section.
 //
-// Section-scoped per CLAUDE.md's "substring assertions are not structural
+// Section-scoped per .guidance/project/testing.md's "substring assertions are not structural
 // assertions" rule: the entity is resolved through the loader (never a
 // hardcoded work/ path), and every assertion is bounded to the `## Validation`
 // section via extractMarkdownSection, not flat-grepped over the whole spec.

@@ -45,7 +45,7 @@ holds even under --force: there is no diff for a sovereign override to re-apply.
 happened, so it commits precisely in the state the other paths converge on, and
 requires the entity to be at the terminal-cancel target already.`,
 		Example: `  # Cancel an in-flight epic with a rationale
-  aiwf cancel E-01 --reason "scope absorbed into E-02"`,
+  aiwf cancel E-NNNN --reason "scope absorbed into another epic"`,
 		Args:          cobra.ExactArgs(1),
 		SilenceErrors: true,
 		SilenceUsage:  true,
@@ -67,7 +67,7 @@ requires the entity to be at the terminal-cancel target already.`,
 	cmd.Flags().StringVar(&root, "root", "", "consumer repo root")
 	cmd.Flags().StringVar(&reason, "reason", "", "free-form prose explaining why; lands in the commit body, surfaces in `aiwf history`")
 	cmd.Flags().BoolVar(&force, "force", false, "record an audit trailer even when the verb's existing checks would normally allow it (requires --reason); sovereign, so the actor must be human/... — a force trailer from a non-human actor is refused before anything is written")
-	cmd.Flags().BoolVar(&auditOnly, "audit-only", false, "record an audit-trail commit without mutating files; entity must already be at the kind's terminal-cancel target (requires --reason; mutex with --force; G24 recovery path)")
+	cmd.Flags().BoolVar(&auditOnly, "audit-only", false, "record an audit-trail commit without mutating files; entity must already be at the kind's terminal-cancel target (requires --reason; mutex with --force; the recovery path when a manual commit already reached the state)")
 	out = cliutil.AddFormatFlags(cmd)
 	out.CorrelationID = correlationID
 	cmd.ValidArgsFunction = cliutil.CompleteEntityIDArg("", 0)

@@ -286,7 +286,7 @@ func TestMilestoneDependsOn_SelfDependencyRejected(t *testing.T) {
 }
 
 // TestMilestoneDependsOn_DispatcherSeam_AddFlag is the seam test for
-// M-076/AC-7 per CLAUDE.md "Test the seam, not just the layer". It
+// M-076/AC-7 per .guidance/project/testing.md "Test the seam, not just the layer". It
 // drives `aiwf add milestone --depends-on …` end-to-end through the
 // dispatcher and asserts the on-disk milestone reflects the writer's
 // contract: the depends_on array landed atomically with the create
@@ -322,7 +322,7 @@ func TestMilestoneDependsOn_DispatcherSeam_AddFlag(t *testing.T) {
 		t.Fatalf("read M-004: %v", err)
 	}
 	content := string(body)
-	for _, want := range []string{"depends_on:", "- M-001", "- M-002"} {
+	for _, want := range []string{"depends_on:", "- M-0001", "- M-0002"} {
 		if !strings.Contains(content, want) {
 			t.Errorf("M-004 frontmatter missing %q (seam):\n%s", want, content)
 		}
@@ -360,7 +360,7 @@ func TestMilestoneDependsOn_DispatcherSeam_Verb(t *testing.T) {
 		t.Fatalf("read M-003: %v", err)
 	}
 	content := string(body)
-	for _, want := range []string{"depends_on:", "- M-001", "- M-002"} {
+	for _, want := range []string{"depends_on:", "- M-0001", "- M-0002"} {
 		if !strings.Contains(content, want) {
 			t.Errorf("M-003 frontmatter missing %q (seam):\n%s", want, content)
 		}

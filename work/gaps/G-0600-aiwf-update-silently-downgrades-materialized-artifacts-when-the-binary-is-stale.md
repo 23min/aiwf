@@ -43,6 +43,19 @@ comment stamps the version that wrote it, in the form
 `aiwf-version: <version>`. Nothing reads that stamp back. The verb skills carry no
 stamp at all — their frontmatter is name and description only.
 
+Observed again 2026-10-19, in this repo, through `aiwf worktree add` rather than
+`aiwf update`; both reach the same `initrepo.RefreshArtifacts`
+(`internal/cli/worktree/worktree.go`, `internal/cli/update/update.go`). With the
+`aiwf` on PATH at `v0.40.1-0.20260930102944-f13a6aa269f3+dirty`, built before
+E-0092 merged, `aiwf worktree add patch/G-0740-diag-aiwf-for-ai-sessions --base main`
+left the new worktree's tracked `AGENTS.md` modified: its aiwf-generated block had
+lost E-0092's additions to the shipped guidance, among them the clause that any
+deviation aborts a declared sequence and remote-branch delete in the list of
+outward actions. After `make install` from current source, the next worktree
+`aiwf worktree add` created left `AGENTS.md` unchanged. Because `AGENTS.md` is
+tracked, this downgrade surfaces as an uncommitted change rather than silently,
+and a commit of the worktree's state would carry it into history.
+
 ## Why it matters
 
 The guidance fragment is `@`-imported into the consumer's `CLAUDE.md`, so a reverted

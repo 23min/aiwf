@@ -9,7 +9,7 @@ import (
 
 // TestMain seeds the four GIT identity vars once at startup so test
 // functions can call t.Parallel safely (os.Setenv not t.Setenv, which
-// panics under parallel). See CLAUDE.md §"Test discipline".
+// panics under parallel). See .guidance/project/go-conventions.md §"Test discipline".
 //
 // Serial tests: TestResolvePrebuiltBinary, TestSharedBinaryHelpers_PrebuiltEnvVar
 // — both use t.Setenv, which panics under a parallel test. Under the

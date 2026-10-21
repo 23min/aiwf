@@ -18,9 +18,9 @@ import (
 // NewCmd builds `aiwf promote <id> <new-status>` and the I2 composite
 // / --phase variants:
 //
-//	aiwf promote E-01 active                       (top-level entity)
-//	aiwf promote M-007/AC-1 met                    (composite, status mode)
-//	aiwf promote M-007/AC-1 --phase green          (composite, phase mode)
+//	aiwf promote E-NNNN active                    (top-level entity)
+//	aiwf promote M-NNNN/AC-N met                  (composite, status mode)
+//	aiwf promote M-NNNN/AC-N --phase green        (composite, phase mode)
 //
 // --phase is mutex with the positional new-status: pass one or the
 // other, never both. --phase is only valid for composite ids; using
@@ -48,13 +48,13 @@ Repeating a recorded TDD phase without test metrics succeeds without a commit.
 A same-phase request carrying --tests is refused, including explicit zero counts;
 omit --tests to converge, or supply metrics with a real phase change.`,
 		Example: `  # Move an epic from proposed to active
-  aiwf promote E-01 active
+  aiwf promote E-NNNN active
 
   # Mark an acceptance criterion as met
-  aiwf promote M-007/AC-1 met
+  aiwf promote M-NNNN/AC-N met
 
   # Advance an AC's TDD phase
-  aiwf promote M-007/AC-1 --phase green --tests "pass=12 fail=0 skip=0"`,
+  aiwf promote M-NNNN/AC-N --phase green --tests "pass=12 fail=0 skip=0"`,
 		Args:          cobra.RangeArgs(1, 2),
 		SilenceErrors: true,
 		SilenceUsage:  true,
@@ -73,7 +73,7 @@ omit --tests to converge, or supply metrics with a real phase change.`,
 	cmd.Flags().StringVar(&byCommit, "by-commit", "", "comma-separated commit SHAs to write into addressed_by_commit (gap → addressed only); use when the gap was closed by a specific commit rather than a milestone")
 	cmd.Flags().StringVar(&supersededBy, "superseded-by", "", "ADR id to write into superseded_by (adr → superseded only); also records the reciprocal supersedes on that ADR, satisfying adr-supersession-mutual atomically with the status change")
 	cmd.Flags().BoolVar(&force, "force", false, "skip the FSM transition rule (requires --reason); sovereign, so the actor must be human/... — a force trailer from a non-human actor is refused before anything is written; coherence checks still run and the standing audit keeps reporting")
-	cmd.Flags().BoolVar(&auditOnly, "audit-only", false, "record an audit-trail commit without mutating files; entity must already be at <new-status> (requires --reason; mutex with --force; G24 recovery path)")
+	cmd.Flags().BoolVar(&auditOnly, "audit-only", false, "record an audit-trail commit without mutating files; entity must already be at <new-status> (requires --reason; mutex with --force; the recovery path when a manual commit already reached the state)")
 	out = cliutil.AddFormatFlags(cmd)
 	out.CorrelationID = correlationID
 	cmd.ValidArgsFunction = func(_ *cobra.Command, args []string, _ string) ([]string, cobra.ShellCompDirective) {
@@ -113,7 +113,7 @@ func Run(args []string, actor, principal, root, reason,
 		cliutil.Errorln("aiwf promote: --phase is mutex with the positional new-status; pass one or the other")
 		return cliutil.ExitUsage
 	case phaseMode && !entity.IsCompositeID(id):
-		cliutil.Errorf("aiwf promote: --phase is only valid for composite ids (M-NNN/AC-N); got %q\n", id)
+		cliutil.Errorf("aiwf promote: --phase is only valid for composite ids (M-NNNN/AC-N); got %q\n", id)
 		return cliutil.ExitUsage
 	case !phaseMode && len(args) != 2:
 		cliutil.Errorln("aiwf promote: missing new-status. Usage: aiwf promote <id> <new-status>")

@@ -183,7 +183,7 @@ func TestPrecommitPolicyHook_GateDecision(t *testing.T) {
 
 // TestPrecommitPolicyHook_DefaultCapsParallelism pins G-0388: the
 // policy_cmd default must run at this repo's own uniform -parallel 8
-// cap (Makefile, CI workflows, CLAUDE.md's Test discipline section),
+// cap (Makefile, CI workflows, .guidance/project/go-conventions.md's Test discipline section),
 // not Go's default GOMAXPROCS-based parallelism — encountered directly
 // during M-0240's wrap as a reproducible ETXTBSY flake in
 // TestWorktreeRitualsCheckHook_NotAWorktreeExitsZeroSilently under the

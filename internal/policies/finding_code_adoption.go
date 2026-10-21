@@ -61,11 +61,6 @@ func PolicyFindingCodeAdoption(root string) ([]Violation, error) {
 		if strings.HasPrefix(fileRel, "internal/check/") {
 			continue
 		}
-		// Skip the policies package: own fixtures + this file's
-		// docstring carry code literals as content.
-		if strings.HasPrefix(fileRel, "internal/policies/") {
-			continue
-		}
 		astFile, perr := parser.ParseFile(fset, f.AbsPath, f.Contents, parser.ParseComments)
 		if perr != nil {
 			continue

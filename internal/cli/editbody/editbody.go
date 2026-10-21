@@ -43,10 +43,10 @@ whichever route it takes. The rule is non-regression rather than completeness: a
 entity whose committed body already omits a section stays editable. There is no
 --force; record a deliberate removal with aiwf acknowledge illegal.`,
 		Example: `  # Bless current working-copy edits to the entity body
-  aiwf edit-body M-007
+  aiwf edit-body M-NNNN
 
   # Replace the body from a file
-  aiwf edit-body M-007 --body-file new-body.md --reason "refresh AC list"`,
+  aiwf edit-body M-NNNN --body-file new-body.md --reason "refresh AC list"`,
 		Args:          cobra.ExactArgs(1),
 		SilenceErrors: true,
 		SilenceUsage:  true,

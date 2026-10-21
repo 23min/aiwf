@@ -13,7 +13,7 @@ import (
 // next area-group container (or end of document). Scoping the assertion to
 // the container's bounds makes "epic X is INSIDE area Y" a structural
 // (containment) check, not a flat substring match — the DOM-structural
-// shape M-0175/AC-4 (and CLAUDE.md "substring assertions are not
+// shape M-0175/AC-4 (and .guidance/project/testing.md "substring assertions are not
 // structural assertions") requires. area-group sections are siblings, so
 // the next-open-tag boundary is exact.
 func areaGroupSlice(t *testing.T, html, area string) string {

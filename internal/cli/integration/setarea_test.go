@@ -152,7 +152,7 @@ func TestSetArea_AC2_TrailersAndHistory(t *testing.T) {
 	// than a substring of the text output — the commit subject already
 	// contains "set-area", so a substring match would pass even if
 	// history never parsed the aiwf-verb trailer into its own column
-	// (CLAUDE.md §"Substring assertions are not structural assertions").
+	// (.guidance/project/testing.md §"Substring assertions are not structural assertions").
 	for _, id := range []string{"E-0001", "E-0002"} {
 		_, stdout, _ := testutil.CaptureRun(t, func() int {
 			return cli.Execute([]string{"history", id, "--format", "json", "--root", root})

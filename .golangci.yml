@@ -1,5 +1,6 @@
 # Lint configuration for the aiwf Go module.
-# See CLAUDE.md § Go conventions for the full discipline.
+# The Go pack (.guidance/packs/go/cobra/guide.md) holds the generic Go
+# conventions; .guidance/project/go-conventions.md holds aiwf's own.
 version: "2"
 # build-tags brings tag-gated sources into the lint surface. Without
 # `stress`, the concurrency and observation-window scenario drivers under
@@ -53,9 +54,9 @@ linters:
         - fieldalignment
       enable-all: true
     forbidigo:
-      # Two project-specific rules from CLAUDE.md § Go conventions:
-      #   - "Library code never panics or os.Exits. Only cmd/<tool>/main.go
-      #      calls os.Exit." (§Error handling)
+      # Two rules:
+      #   - The Go pack's (.guidance/packs/go/cobra/guide.md) "Library code
+      #      never `panic`s or `os.Exit`s — only `main` exits."
       #   - The verb/apply.go re-panic in G2's atomic-rollback path is the
       #      single sanctioned panic site; exempted via exclusions below.
       # forbidigo v2 matches the bare qualified name (no trailing call
@@ -102,7 +103,7 @@ linters:
           - errcheck
           - gosec
         path: _test\.go
-      # dupl on _test.go: table-driven tests are idiomatic per CLAUDE.md §
+      # dupl on _test.go: table-driven tests are idiomatic per .guidance/packs/go/cobra/guide.md §
       # Testing and routinely produce near-identical subtest bodies by
       # design (varying only the fixture data) — that's expected structure,
       # not the duplicated-logic class G-0423 targets. testutil/ and
@@ -160,8 +161,8 @@ linters:
       - linters: [gosec]
         text: "G204|G702|G304|G301|G302|G306|G122|G703"
       # forbidigo: panic/os.Exit are forbidden in *library* (production)
-      # code, with sanctioned exceptions (per CLAUDE.md § Go conventions
-      # and G2's design):
+      # code, with sanctioned exceptions (per the Go pack,
+      # .guidance/packs/go/cobra/guide.md, and G2's design):
       #   - _test.go:         test code legitimately calls os.Exit(m.Run())
       #                       in every setup_test.go TestMain (and may panic
       #                       in helpers); the rule targets shipped library

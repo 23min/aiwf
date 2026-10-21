@@ -1288,7 +1288,7 @@ uniquely holds, and a release's notes rest on whoever cut it remembering.
 | M-0329 | An entity body that omits a required section is refused at the write | done |
 | M-0330 | Check Unreleased against what shipped before the release tag | done |
 
-## E-0092 — Shrink the always-on guidance to one home per rule under a ceiling (active)
+## E-0092 — Shrink the always-on guidance to one home per rule under a ceiling (done)
 
 ### Goal
 
@@ -1296,14 +1296,16 @@ Give every guidance rule in this repository one home and one clear form. Rules t
 
 | Milestone | Title | Status |
 |---|---|---|
-| M-0333 | Fence project guidance while preserving managed updates | draft |
-| M-0334 | Write the rubric, record the baseline, add guidance metrics to growth-report | draft |
-| M-0335 | Route on-demand guidance through the project router and tighten what moves | draft |
-| M-0336 | Remove duplicated project guidance for both hosts | draft |
-| M-0337 | Audit finding messages and cut chokepointed sections to pointers | draft |
-| M-0338 | Record the after observation and re-run the growth report | draft |
-| M-0339 | Rewrite the fragment and update the anchors policy | draft |
-| M-0349 | Inventory every guidance rule and decide its home and form | draft |
+| M-0333 | Fence project guidance while preserving managed updates | done |
+| M-0334 | Write the rubric and record the baseline | done |
+| M-0335 | Route on-demand guidance through the project router and tighten what moves | done |
+| M-0336 | Remove duplicated guidance and move each rule to its audience's home | done |
+| M-0337 | Audit finding messages and check that guidance paths resolve | done |
+| M-0338 | Record the after observation and re-run the growth report | done |
+| M-0339 | Rewrite the fragment and update the anchors policy | cancelled |
+| M-0349 | Inventory every guidance rule and decide its home and form | done |
+| M-0350 | Ship the instruction-file fence in aiwf check | done |
+| M-0361 | Separate Go-specific from general development rules and route by activity | done |
 
 ## E-0093 — Enable side-by-side Claude and Codex workflows (done)
 
@@ -1345,4 +1347,48 @@ An `aiwf upgrade` or `aiwf update` leaves a repository with the engineering guid
 | M-0351 | Adopt applicable guidance packs automatically in init and update | done |
 | M-0352 | Report guidance outcomes at the end of init, update and upgrade | done |
 | M-0353 | Verify an unattended upgrade installs applicable guidance | done |
+
+## E-0096 — One repo-only gate for everything aiwf ships to consumers (proposed)
+
+### Goal
+
+Nothing aiwf ships to a consumer names aiwf's own entity ids, source paths, design
+documents or development history, and one check that exists only in this repository
+proves it on every push. "Is shipped content clean?" becomes a gate result rather
+than a review.
+
+| Milestone | Title | Status |
+|---|---|---|
+| M-0354 | Gate everything the binary embeds and clear what it finds | draft |
+| M-0355 | Take aiwf-only rules and aiwf ids out of aiwf check | draft |
+
+## E-0097 — Ask what can be dropped at plan time and prove removals on demand (done)
+
+### Goal
+
+Put the subtraction question at the two moments it pays: before work is proposed,
+where cutting is free, and on demand over a change or a unit, where removing what
+exists has to be proved. The milestone sizing rule drops what no success criterion
+requires; a shipped skill gains the procedure for removing what already landed, and the wrap
+rituals call it instead of restating it.
+
+| Milestone | Title | Status |
+|---|---|---|
+| M-0356 | Ask for the smallest version at plan time | done |
+| M-0357 | Ship the on-demand subtraction skill | done |
+| M-0358 | Wire the subtraction lens into the wrap rituals | done |
+
+## E-0098 — Move aiwf's own devcontainer onto the house devcontainer kit (done)
+
+### Goal
+
+aiwf's development container is generated from the house devcontainer kit
+(`gh:23min/devcontainer-kit`) like the maintainer's other repositories, mounts only
+this repository plus any sibling it lists explicitly, and still builds and tests
+aiwf from its own source with tools that match CI.
+
+| Milestone | Title | Status |
+|---|---|---|
+| M-0359 | Generate aiwf's devcontainer from the kit with its own steps in project hooks | done |
+| M-0360 | Trial-build, then rebuild aiwf's container from the kit and record the result | done |
 

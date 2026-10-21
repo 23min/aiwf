@@ -21,8 +21,9 @@ import (
 // and what `ensurePreHook` writes weakens a stated guarantee rather
 // than merely changing text.
 //
-// Substring assertions are not structural assertions (CLAUDE.md
-// `Substring assertions are not structural assertions`): a `contains`
+// Substring assertions are not structural assertions
+// (.guidance/project/testing.md §"Substring assertions are not structural
+// assertions"): a `contains`
 // check passes through a dropped chain prelude, brownfield guard, or
 // exec line. Byte-for-byte is the right granularity for an artifact
 // whose every line carries semantic weight.
@@ -39,8 +40,8 @@ import (
 //     re-renders `preHookScript()`, and asserts byte-equality. This
 //     catches a regression where the install path took a different
 //     code branch than the template function (a parallel source of
-//     truth — the failure mode CLAUDE.md `Test the seam, not just the
-//     layer` warns about).
+//     truth — the failure mode .guidance/project/testing.md §"Test the
+//     seam, not just the layer" warns about).
 
 // TestHookScripts_ByteGolden pins every rendered hook template against
 // its golden file. A failure means that template's body changed; either

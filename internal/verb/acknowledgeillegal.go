@@ -238,7 +238,7 @@ func verifySHATouchesEntity(ctx context.Context, root, sha, forEntity string) er
 			return nil
 		}
 	}
-	return fmt.Errorf("SHA %s does not touch entity %s (its diff names no file resolving to %s; refusing operator-attested binding without mechanical evidence — G-0231 item 3)",
+	return fmt.Errorf("SHA %s does not touch entity %s (its diff names no file resolving to %s; refusing operator-attested binding without mechanical evidence)",
 		sha, want, want)
 }
 

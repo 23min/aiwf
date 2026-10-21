@@ -8,10 +8,17 @@ name: go
 # from the `go:embed` directives themselves and fails when a new embedded
 # tree is not represented here.
 #
+# `.devcontainer/**` and `gitleaks.yml` are read by the devcontainer and
+# gitleaks policy tests, which exist to catch a change to those files alone.
+#
 # `internal/skills/**` names the whole package rather than its five embedded
 # subtrees: nothing lives there but those trees and Go sources, which
 # `**/*.go` already selects, so the wider pattern costs no extra runs and
 # needs no edit when a tree is added.
+#
+# `CLAUDE.md`, `AGENTS.md` and `.guidance/**` are the development guidance
+# the guidance ceiling and its sibling policies judge, so a guidance-only
+# change runs them too.
 on:
   pull_request:
     paths:
@@ -20,10 +27,15 @@ on:
       - "go.sum"
       - ".golangci.yml"
       - ".github/workflows/go.yml"
+      - ".github/workflows/gitleaks.yml"
+      - ".devcontainer/**"
       - "Makefile"
       - "internal/skills/**"
       - "internal/recipe/embedded/**"
       - "internal/htmlrender/embedded/**"
+      - "CLAUDE.md"
+      - "AGENTS.md"
+      - ".guidance/**"
   push:
     branches: [main, "poc/**"]
     paths:
@@ -32,15 +44,21 @@ on:
       - "go.sum"
       - ".golangci.yml"
       - ".github/workflows/go.yml"
+      - ".github/workflows/gitleaks.yml"
+      - ".devcontainer/**"
       - "Makefile"
       - "internal/skills/**"
       - "internal/recipe/embedded/**"
       - "internal/htmlrender/embedded/**"
+      - "CLAUDE.md"
+      - "AGENTS.md"
+      - ".guidance/**"
 
 # GO_VERSION is the single source of truth for this workflow's toolchain
-# pin. A stdlib CVE that only a toolchain release can clear is remediated
-# by editing this one value; every job below reads it. The companion pin
-# in gitleaks.yml is that workflow's own.
+# pin; every job below reads it. The devcontainer runs the same Go through
+# containerEnv.GOTOOLCHAIN in .devcontainer/devcontainer.json, which a policy
+# test holds equal to this value, so a bump edits both. The companion pin in
+# gitleaks.yml is that workflow's own.
 env:
   GO_VERSION: "1.25.12"
 
@@ -147,6 +165,11 @@ jobs:
       #     internal/skills/embedded-rituals carrying no aiwf-entity
       #     trailer, or one naming an id that resolves to no entity.
       #     Diff-scoped on the base ref.
+      #   - Instruction-file fence (ADR-0053): aiwf check's rule, compiled
+      #     from this tree. Fail if a commit changing handwritten
+      #     instructions also carries unrelated files, names no entity
+      #     that resolves, or removes text without a disposition block.
+      #     Diff-scoped on the base ref.
       # The base is the merge-base with origin/main on a PR, or
       # github.event.before on a trunk push; an all-zero before-SHA (a
       # brand-new branch) makes the diff-scoped audits no-op.
@@ -163,7 +186,7 @@ jobs:
         env:
           AIWF_COVERAGE_PROFILE: ${{ github.workspace }}/coverage.out
           AIWF_COVERAGE_BASE: ${{ steps.covbase.outputs.base }}
-        run: go test -exec=$GITHUB_WORKSPACE/scripts/sign-and-run.sh -run '^TestPolicy_(BranchCoverageAudit|FiringFixturePresence|FiringFixtureNoStaleAllowlist|SkillEditProvenanceBackstop|CommentHistoryAttrition|TestExecutableWrite|CoauthorTrailerBan)$' -count=1 ./internal/policies/
+        run: go test -exec=$GITHUB_WORKSPACE/scripts/sign-and-run.sh -run '^TestPolicy_(BranchCoverageAudit|FiringFixturePresence|FiringFixtureNoStaleAllowlist|SkillEditProvenanceBackstop|CommentHistoryAttrition|TestExecutableWrite|CoauthorTrailerBan|InstructionFence)$' -count=1 ./internal/policies/
       - uses: actions/upload-artifact@v4
         with:
           name: coverage

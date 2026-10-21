@@ -63,5 +63,5 @@ func refuseEpicCreationOnRitualBranch(ctx context.Context, t *tree.Tree, kind en
 	default:
 		return nil
 	}
-	return fmt.Errorf("aiwf add epic: refusing to create on ritual branch %q — an epic is created on trunk so its activation can land there (ADR-0010 Tier 1); created here it exists only on this branch until it merges, and the activating promote would refuse. Create it from trunk, or use `--force --reason \"...\"` to create here anyway", current)
+	return fmt.Errorf("aiwf add epic: refusing to create on ritual branch %q — an epic is created on trunk so its activation can land there; created here it exists only on this branch until it merges, and the activating promote would refuse. Create it from trunk, or use `--force --reason \"...\"` to create here anyway", current)
 }

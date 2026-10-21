@@ -64,13 +64,14 @@ var fieldDescriptions = map[string]string{
 	"entities":                  "Policy for entity-shape constraints the kernel enforces when writing entity files.",
 	"entities.title_max_length": "Maximum length for an entity title and slug (default 80).",
 
-	"guidance":               "Project engineering guidance maintenance and host instruction wiring.",
-	"guidance.enabled":       "Maintain external project guidance (default true); false preserves installed files and routing without fetching.",
-	"guidance.source":        "Git source for the guidance catalogue; omitted or empty uses the default engineering-guidance repository.",
-	"guidance.packs":         "Selected pack ids; enabled init and update add every applicable pack not in guidance.ignored and never remove one. Omitted or null until a pack is adopted; [] is an empty selection that adoption adds to.",
-	"guidance.ignored":       "Pack ids never adopted; moving a selected pack here retires its files. Must not overlap selected packs.",
-	"guidance.wire_claudemd": "Whether aiwf wires and self-heals the guidance import in CLAUDE.md (default true).",
-	"guidance.wire_agentsmd": "Whether aiwf maintains native guidance in AGENTS.md when Codex is selected (default true).",
+	"guidance":                           "Project engineering guidance maintenance and host instruction wiring.",
+	"guidance.enabled":                   "Maintain external project guidance (default true); false preserves installed files and routing without fetching.",
+	"guidance.source":                    "Git source for the guidance catalogue; omitted or empty uses the default engineering-guidance repository.",
+	"guidance.packs":                     "Selected pack ids; enabled init and update add every applicable pack not in guidance.ignored and never remove one. Omitted or null until a pack is adopted; [] is an empty selection that adoption adds to.",
+	"guidance.ignored":                   "Pack ids never adopted; moving a selected pack here retires its files. Must not overlap selected packs.",
+	"guidance.wire_claudemd":             "Whether aiwf wires and self-heals the guidance import in CLAUDE.md (default true).",
+	"guidance.wire_agentsmd":             "Whether aiwf maintains native guidance in AGENTS.md when Codex is selected (default true).",
+	"guidance.fence_instruction_commits": "Whether aiwf check refuses a commit that changes handwritten instructions beside unrelated files, without a resolving aiwf-entity trailer, or removing text without a disposition block (default true).",
 
 	"areas":                 "Declares the closed set of workstream area tags entities may carry.",
 	"areas.members":         "Declared area members, each a name and optional source-path globs.",
@@ -83,7 +84,7 @@ var fieldDescriptions = map[string]string{
 	"worktree":     "Default placement for the git worktrees the start rituals create.",
 	"worktree.dir": "Repo-relative directory ritual worktrees are placed under (default .claude/worktrees).",
 
-	"logging":             "Opt-in diagnostic-logging configuration (ADR-0017); absent or empty leaves logging disabled unless AIWF_LOG is set.",
+	"logging":             "Opt-in diagnostic-logging configuration; absent or empty leaves logging disabled unless AIWF_LOG is set.",
 	"logging.level":       "Diagnostic log level: debug, info, warn, or error (unset here and via AIWF_LOG: logging stays disabled).",
 	"logging.format":      "Diagnostic log record format: text or json (default text).",
 	"logging.destination": "Diagnostic log destination: stderr, an absolute file path, or unset for the default XDG-state-home daily-rotated file.",
@@ -94,7 +95,7 @@ var fieldDescriptions = map[string]string{
 
 	"provenance":                  "Policy for what a commit message records about who produced it.",
 	"provenance.refuse_coauthors": "Addresses the commit-msg hook refuses in a Co-Authored-By trailer (empty: refuse none).",
-	"hooks":                       "Per-hook consent registry for materialized Claude Code hooks aiwf ships (ADR-0032).",
+	"hooks":                       "Per-hook consent registry for materialized Claude Code hooks aiwf ships.",
 	"hooks.<key>.enabled":         "Whether this hook is materialized and wired into .claude/settings.json (unset: undecided, gates via aiwf init/update).",
 }
 
@@ -161,6 +162,9 @@ var fieldDefaultResolvers = map[string]func() string{
 	},
 	"guidance.wire_agentsmd": func() string {
 		return fmt.Sprintf("%t", (&Config{}).WireAgentsMd())
+	},
+	"guidance.fence_instruction_commits": func() string {
+		return fmt.Sprintf("%t", (&Config{}).FenceInstructionCommits())
 	},
 }
 

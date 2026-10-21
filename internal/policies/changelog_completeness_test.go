@@ -826,7 +826,7 @@ func TestChangelogAuditFor_AutoResolvesTheBase(t *testing.T) {
 // releaseShapedChangelog renders the file as it stands *after* a release
 // commit: the entries that were under `[Unreleased]` now sit under the
 // version heading, and a fresh empty `[Unreleased]` opens the file. This
-// is the shape CLAUDE.md's release process produces, and the shape the
+// is the shape .guidance/project/release.md's release process produces, and the shape the
 // audit meets when it runs on a pushed tag.
 func releaseShapedChangelog(version string, cites ...string) string {
 	body := "# Changelog\n\n## [Unreleased]\n\n## [" + version + "] — 2026-02-02\n\n"

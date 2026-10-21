@@ -22,7 +22,7 @@ const aiwfxWhiteboardFixturePath = "internal/skills/embedded-rituals/plugins/aiw
 // root. The tests under this file are seam-tests against the
 // authored skill body — they assert the doctrinal content M-079's
 // ACs require, scoped to the relevant markdown section per
-// CLAUDE.md *Testing* §"Substring assertions are not structural
+// .guidance/project/testing.md §"Substring assertions are not structural
 // assertions".
 func loadAiwfxWhiteboardFixture(t *testing.T) string {
 	t.Helper()

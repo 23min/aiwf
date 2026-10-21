@@ -30,7 +30,7 @@ import (
 // The prior structural tests asserted "the section exists" and
 // "the table is inside it" but never asked "is this section
 // visible per the page's own CSS?" — exactly the failure mode
-// CLAUDE.md "Substring assertions are not structural assertions"
+// .guidance/project/testing.md "Substring assertions are not structural assertions"
 // and "Render output must be human-verified before the iteration
 // closes" exist to prevent.
 //

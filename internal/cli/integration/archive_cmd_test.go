@@ -3,7 +3,7 @@ package integration
 // archive_cmd_test.go — M-0085 AC-1..AC-7 dispatcher-level tests for
 // the `aiwf archive` verb (per ADR-0004).
 //
-// Per CLAUDE.md "Test the seam, not just the layer": these tests drive
+// Per .guidance/project/testing.md "Test the seam, not just the layer": these tests drive
 // the verb through `cli.Execute([]string{"archive", ...})` (the in-process
 // dispatcher) so the wiring from main.go through Cobra to the verb
 // body is exercised end-to-end. Pure unit tests of the verb body live
@@ -34,7 +34,7 @@ import (
 // holding a milestone. Each entity carries a terminal status so
 // `aiwf archive` has work to do.
 //
-// Per CLAUDE.md "Spec-sourced inputs for upstream-defined input
+// Per .guidance/project/testing.md "Spec-sourced inputs for upstream-defined input
 // spaces" — the storage table from ADR-0004 §"Storage — per-kind
 // layout" is the input space; this fixture enumerates every populated
 // row:
@@ -332,7 +332,7 @@ func TestArchive_EmptyTreeApply_NoOp(t *testing.T) {
 // milestones do not archive independently — they ride with the
 // parent epic.
 //
-// Per CLAUDE.md "Spec-sourced inputs for upstream-defined input
+// Per .guidance/project/testing.md "Spec-sourced inputs for upstream-defined input
 // spaces" — the storage table is the input space; this test
 // enumerates every row.
 func TestArchive_PerKindStorageLayout(t *testing.T) {

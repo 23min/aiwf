@@ -8,7 +8,7 @@ import (
 )
 
 // adrBody reads an ADR by resolving its id through the loader, per
-// CLAUDE.md §"Policy tests that read entity files resolve via the
+// .guidance/project/go-conventions.md §"Policy tests that read entity files resolve via the
 // loader" — a hardcoded path breaks on a retitle or an archive sweep.
 func adrBody(t *testing.T, id string) string {
 	t.Helper()
@@ -27,7 +27,7 @@ func adrBody(t *testing.T, id string) string {
 // TestM0291AC4_ADRRecordsTheTwoRouteStance is M-0291/AC-4.
 //
 // The claims are asserted inside the named section that must carry
-// them, not by a flat grep: per CLAUDE.md §"Substring assertions are
+// them, not by a flat grep: per .guidance/project/testing.md §"Substring assertions are
 // not structural assertions", these phrases are short enough to appear
 // incidentally elsewhere in the document, and a decision stated only in
 // the Context section has not been decided.

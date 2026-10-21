@@ -157,7 +157,7 @@ Before invoking `aiwfx-wrap-milestone`, confirm the change is *ready to be revie
 - Tidy the diff: remove debug output, unrelated changes, and stale comments so the reviewer's attention lands on substance, not lint. Reading your own code for correctness catches little — which is exactly why the review that follows is *independent*, not another pass by you.
 - If the project has its own end-to-end smoke procedure, run it.
 
-Fix anything you find before handing off. **The review itself runs at `aiwfx-wrap-milestone`: an independent, fresh-context two-lens pass — code-quality (`wf-review-code`) and design-quality (`wf-rethink`) — dispatched before the milestone closes. It is the authoritative check; this readiness pass never stands in for it.**
+Fix anything you find before handing off. **The review itself runs at `aiwfx-wrap-milestone`: an independent, fresh-context pass — code quality (`wf-review-code`), design quality (`wf-rethink`) and subtraction (`wf-trim`) — dispatched before the milestone closes. It is the authoritative check; this readiness pass never stands in for it.**
 
 ### 8. Hand off to wrap
 
@@ -165,7 +165,7 @@ When the readiness checks are clean, declare:
 
 > *"Implementation complete. <N> tests passing, build green, branch-coverage audit clean, diff tidied. Ready for `aiwfx-wrap-milestone` — which runs the independent review before closing."*
 
-The implementation is already committed, per-AC, from step 6 — there is nothing left to bundle. `aiwfx-wrap-milestone` brings the spec's evidence sections up to date, dispatches the independent two-lens review over them and the code, then commits the remaining wrap-side prose and closes the milestone via its own declared-sequence gate.
+The implementation is already committed, per-AC, from step 6 — there is nothing left to bundle. `aiwfx-wrap-milestone` brings the spec's evidence sections up to date, dispatches the independent review over them and the code, then commits the remaining wrap-side prose and closes the milestone via its own declared-sequence gate.
 
 ## Constraints
 

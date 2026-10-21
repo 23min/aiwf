@@ -211,10 +211,10 @@ func TestSerialize_RoundTrip(t *testing.T) {
 id: M-007
 title: Cache warmup
 status: in_progress
-parent: E-01
+parent: E-0001
 depends_on:
-    - M-002
-    - M-005
+    - M-0002
+    - M-0005
 ---
 
 ## Goal
@@ -254,7 +254,7 @@ func TestSerialize_ModifyAndWrite(t *testing.T) {
 id: M-007
 title: Cache warmup
 status: draft
-parent: E-01
+parent: E-0001
 ---
 
 body unchanged
@@ -281,7 +281,7 @@ body unchanged
 	if got.Status != "in_progress" {
 		t.Errorf("round-trip status = %q, want in_progress", got.Status)
 	}
-	if got.ID != "M-007" || got.Title != "Cache warmup" || got.Parent != "E-01" {
+	if got.ID != "M-007" || got.Title != "Cache warmup" || got.Parent != "E-0001" {
 		t.Errorf("modify-and-write dropped an untouched field: %+v", got)
 	}
 	_, gotBody, ok := Split(out)
@@ -304,7 +304,7 @@ func TestSerialize_RoundTripACsAndTDD(t *testing.T) {
 id: M-007
 title: Engine warning surface
 status: in_progress
-parent: E-03
+parent: E-0003
 tdd: required
 acs:
     - id: AC-1

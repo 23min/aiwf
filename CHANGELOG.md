@@ -16,14 +16,217 @@ section in this file.
 
 ## [Unreleased]
 
+### Changed (internal) — the binary integration tests describe what they guard, not past bugs
+
+Comment-only. Nothing a consumer runs changed.
+
+### Changed (internal) — the envelope-version-source policy explains the rule it enforces
+
+Its violation message names what the policy accepts and why another source matters. It and two sibling
+policies no longer repeat a skip the shared file walker already performs. Nothing a consumer runs changed.
+
+### Fixed — a `make install` binary from a branch named like a pre-release is not a tagged release
+
+A binary built with `make install` or `make build` on a branch named like a pre-release, such as
+`v0.41.0-rc`, was treated as a tagged release: labelled `(tagged)` and allowed to write `--statusline`
+without the untagged-build confirmation. It is now an untagged build like any other `make` build.
+
+### Fixed — `aiwf doctor` and `aiwf upgrade` label a `make install` binary correctly
+
+A binary built with `make install` or `make build` was labelled `(pseudo-version)`, even with uncommitted
+changes. It is now labelled `(local build)`, or `(working-tree build)` when its stamp ends in `-dirty`.
+When the two versions can't be compared, both now give the reason as one side not being a `vX.Y.Z` release.
+
+### Fixed — `make install` outside a git checkout no longer stamps the version `@`
+
+Built from a source tree with no git, such as an extracted archive, `make install` and `make build` stamped the
+binary's version as `@`, so `aiwf --version` printed `@`. They now leave the stamp empty, and the binary reports
+the version Go records, `(devel)`.
+
+### Fixed — the README gives Go 1.24 as the minimum version
+
+The README's install prerequisites said Go 1.22+; `go.mod` requires Go 1.24.
+
+### Changed (internal) — G-0740: AI sessions build their diagnostic binary with `make diag-aiwf`
+
+AI sessions in aiwf's own repository now build the binary they diagnose with through `make diag-aiwf`,
+so it reports the worktree's own branch and commit. Nothing a consumer runs changed.
+
+### Fixed — the README says what a plain `go install` from a clone reports
+
+The README's install-from-source note said a plain `go install ./cmd/aiwf` leaves `aiwf --version`
+reporting `dev`; it reports the version Go reads from git, which names the commit but not the branch.
+`make install` remains the way to get the branch as well.
+
+### Added — E-0092: `aiwf check` fences commits that change handwritten instructions
+
+`aiwf check` refuses, by default, a commit in the push range that changes handwritten instructions —
+the root `CLAUDE.md` or `AGENTS.md` outside aiwf's generated blocks, `.guidance/project.md`, or a
+handwritten document it links to — when the commit also carries unrelated files
+(`instruction-commit-unrelated-file`), names no entity in an `aiwf-entity` trailer
+(`instruction-commit-entity-missing`), or removes text without a disposition block
+(`instruction-commit-disposition-missing`). The findings are errors, so the pre-push hook blocks the
+push until the commit is split or amended. Set `guidance.fence_instruction_commits: false` in
+`aiwf.yaml` to turn the rule off. Commits already on the configured trunk are not judged when that
+ref is remote-tracking, as the default `refs/remotes/origin/main` is, and the rule runs only where
+the branch has an upstream or `--since <ref>` is passed.
+
+### Changed — E-0092: the shipped guidance states operating rules aiwf's own repository kept to itself
+
+The always-on guidance `aiwf init` and `aiwf update` install now says:
+
+- any deviation from a declared-sequence gate's list — a conflict, a finding, unexpected dirty
+  state, an action not on the list — aborts the sequence and re-gates;
+- a remote-branch delete is an outward action and never batches;
+- a one-at-a-time decision list ends with "something else", the pick is confirmed in one line,
+  and a human asking for "Q&A" or "interview me" asks for the same;
+- whether a closely related issue is fixed in place or filed, what you noticed is surfaced, not
+  silently deferred.
+
+The `aiwf-promote` skill adds that a milestone's `tdd:` setting never waives the evidence an AC
+needs and that the obligation binds at the promote, held at review. The `aiwf-reallocate` skill
+adds how to rule out a stale branch before reallocating on a trunk collision, and now says the
+new id is allocated against every local branch and remote-tracking ref as well as trunk and
+that the verb rewrites mentions of the old id in body prose rather than reporting them.
+
+The `id-rename-untrailered` finding and its hint point at that finding's entry in the
+`aiwf-check` skill.
+
+The `aiwf-check` skill documents the `commit-msg` hook's refusals and the
+`provenance.refuse_coauthors` setting. The rest of E-0092 reorganizes aiwf's own development
+guidance and changes nothing a consumer runs.
+
+### Changed (internal) — E-0098: aiwf's devcontainer is generated from the house devcontainer kit
+
+Nothing changes for repositories that use aiwf. aiwf's own development container:
+
+- is generated from the house devcontainer kit, on an Ubuntu 24.04 base in place of Debian 12;
+- opens only at `/workspaces/aiwf` on this checkout: the folder above it is no longer mounted,
+  so sibling repositories and any `CLAUDE.md` beside the clone are out of reach, and git does not
+  work in a container opened on a sibling worktree, whose `.git` points into the main checkout;
+  a sibling that is needed is added through the kit's `siblings` or `writable_siblings` answers;
+- runs Go at CI's `GO_VERSION`, builds `aiwf` from the checkout, and installs golangci-lint,
+  govulncheck and gitleaks at the versions CI runs, plus gofumpt and goimports; Node is the
+  kit's current LTS rather than a pinned 22;
+- takes git identity from the host's global git config;
+- keeps the Go module and build caches and the npm cache in named volumes shared by every kit
+  container, so a rebuild no longer clears them;
+- no longer preinstalls the Go extension's helper tools, the `dlv` debugger among them; install
+  them with **Go: Install/Update Tools**;
+- before each start, removes a `core.hooksPath` naming this repository's own hooks directory by
+  its full host path from `.git/config` when that changes nothing on the host, so git hooks run
+  in the container too;
+- checks Codex at each start and installs it with the kit's standalone installer when it is
+  missing or behind, instead of through npm.
+
+`.devcontainer/project/README.md` covers aiwf's additions, the Playwright opt-in and recovery
+from a failed container creation.
+
+### Changed (internal) — aiwf's devcontainer mounts personal guidance
+
+Nothing user-facing changed. aiwf's own devcontainer mounts the host's
+`~/.guidance` and, once its build has produced `AGENTS.md`, links the
+container-only Codex home's `AGENTS.md` to it, so personal assistant rules
+reach this container once they live there.
+
+## [0.40.0] — 2026-09-27
+
+### Added — E-0097: ask what a change can do without, at plan time and on demand
+
+- `aiwfx-plan-milestones` can now remove work, not only reshape it. A candidate no
+  success criterion requires is dropped, where before it could only be kept, split
+  or folded into a sibling, and the cuts are put in front of you, with a yes asked
+  for, before any id is allocated.
+- New `wf-trim` skill in the `wf-*` rituals: ask of one diff or one named
+  unit whether the change needs everything it adds. It looks for duplicated jobs,
+  logic that compresses, guards no caller reaches and tests no break needs, and
+  settles every removal it proposes by a command: breaking what the removed thing
+  protected turns something red, or a guard is shown unreachable; a cut that
+  changes no result must pass a differential test. It reports, and applies nothing
+  until approved. It needs no aiwf verb or configuration, and a per-stack table
+  names the mutation harness, coverage profile and clone detector for Go, Python,
+  JavaScript/TypeScript and the JVM.
+- `aiwfx-wrap-milestone` and `wf-patch` now call `wf-trim` as a review lens. In the
+  milestone wrap it replaces the shape questions the wrap asked inline — deletions,
+  same-outcome tests, compression and over-guarding — and the wrap keeps one
+  question of its own: what the change obliges later changes to do, each obligation
+  named with its owner and what retires it, recorded under the milestone spec's
+  `## Reviewer notes`. In `wf-patch`, which asked none of those questions (G-0662),
+  it is a new lens that runs on a
+  reviewed patch changing code, tests included; a patch that changes only prose or
+  configuration states the skip at the commit gate. In both rituals the lens applies
+  nothing: its proposals reach you once all reviews have returned.
+
+## [0.39.0] — 2026-09-27
+
+### Changed (internal) — dated audits get their own documentation tier
+
+Nothing user-facing changed. The dated audits move from `docs/initiatives/`
+to `docs/audits/`, which `CLAUDE.md`'s documentation hierarchy names as a new
+Observational tier, so `docs/initiatives/` holds only initiatives.
+
+### Changed (internal) — consolidate the internal/policies test file-writing helpers
+
+Nothing user-facing changed; several near-identical test-only helpers in
+`internal/policies` that wrote a fixture file to disk now route through the shared
+`mustWrite` and `writeAt` helpers.
+
+### Changed — G-0110: `make mutate-diff` mutates only the changed lines
+
+The `wf-vacuity` skill now describes a diff-scoped mutation target as one that
+mutates the lines you changed, where it said the packages you changed. This
+repository's `make mutate-diff` does that: it mutates only the `internal/` Go lines
+changed since the merge-base with `origin/main` — committed, staged or unstaged —
+rather than every line of every changed package. It names untracked files instead of
+mutating them, with `git add -N <path>` as the way to include one, and names packages
+whose only changed lines are in their tests instead of mutating them. A gremlins run
+that exits non-zero or leaves a report that cannot be read is named as failed, and no
+pass is reported while one stands.
+
+### Fixed — G-0712: verbs write entity ids at canonical width, whatever width they were given
+
+An id handed to a verb at a legacy narrow width — `E-01`, `M-001`, `C-001` — is
+still accepted, and is now written back at canonical width everywhere aiwf writes
+it: every frontmatter reference (`parent`, `depends_on`, `discovered_in`,
+`relates_to`, `addressed_by`, `supersedes`, `superseded_by`, `linked_adrs`), the
+contract bindings in `aiwf.yaml`, and the commit subjects of `promote`, `cancel`,
+`retitle`, `rename`, the `--audit-only` paths and `contract bind` / `unbind`.
+`aiwf import` writes the references a manifest declares canonical too, and
+`aiwf check --format=json` names a contract binding at canonical width, and its
+`no-cycles` rule finds a `depends_on` cycle whichever width an edge is stored at. A
+reference an earlier release stored narrow is widened the next time a verb writes
+that entity's frontmatter or the contracts block — so `aiwf edit-body --body-file`
+on such an entity commits the widened frontmatter alongside the body. An entity's
+own id and its `prior_ids` are written as they are, and `aiwf add contract` refuses
+when `aiwf.yaml` already binds the id it allocated.
+
+### Fixed — G-0538, G-0707: help, messages and `aiwf.yaml` comments no longer cite aiwf's own ids and paths
+
+Command help (`aiwf --help` and every subcommand's), the report lines `aiwf doctor`
+prints, the refusals and commit messages verbs write, configuration and trailer
+errors, and the comments `aiwf init` writes into `aiwf.yaml` no longer cite aiwf's
+own gaps, milestones, epics or ADRs, and no longer name paths in aiwf's source
+tree. In a consumer's repo those ids name nothing, or name the consumer's own
+unrelated entity with the same number. Finding hints and messages from
+`aiwf check` still carry some.
+
+Examples now illustrate ids with canonical placeholders (`E-NNNN`, `M-NNNN/AC-N`)
+instead of narrow ids such as `E-01` and `M-007`, and usage lines name
+`<milestone-id>`, `<epic-id>`, `<contract-id>` and `<adr-id>`. The
+`aiwf archive --apply` commit body no longer opens with an aiwf ADR citation,
+which it wrote into the consumer's history. `aiwf doctor`'s missing-binary advice
+now gives the installable `go install github.com/23min/aiwf/cmd/aiwf@latest`
+rather than a path into aiwf's source tree.
+
 ### Fixed — G-0708: `aiwf update` and `aiwf upgrade` accept `--no-prompt`
 
-`aiwf update --no-prompt` never prompts for hook consent, even on a terminal: it
-leaves undecided hooks undecided, as `aiwf init --no-prompt` already does.
-`aiwf upgrade --no-prompt` passes the flag to the update step it runs, so the target
-release must support it. Unattended runs on a pseudo-terminal, such as devcontainer
-lifecycle commands, can now say no human is present instead of blocking on a hook
-prompt while holding the repository lock.
+`aiwf update --no-prompt` never prompts for guidance selection or hook consent, even
+on a terminal: it reports guidance suggestions and leaves undecided hooks undecided,
+as `aiwf init --no-prompt` already does. `aiwf upgrade --no-prompt` passes the flag to
+the update step it runs, so the target release must support it. Unattended runs on a
+pseudo-terminal, such as devcontainer lifecycle commands, can now say no human is
+present instead of blocking on a guidance or hook prompt while holding the repository
+lock.
 
 ### Fixed — G-0674: `--principal` help names the rule instead of an internal label
 

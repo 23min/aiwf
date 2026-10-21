@@ -64,7 +64,7 @@ var noopExemptVerbs = []struct {
 //
 // The property it protects is the same-state convergence convention — a
 // mutating verb handed input that already equals current state returns a NoOp
-// at exit 0 rather than an error — stated in CLAUDE.md under "Designing a new
+// at exit 0 rather than an error — stated in .guidance/project/verb-design.md under "Designing a new
 // verb" as the resolve-then-converge rules. ADR-0036 is the narrower authority
 // cited there: it settles the FSM-transition case (promote / cancel) and
 // explicitly disclaims field-mutation verbs, which are most of the entry points

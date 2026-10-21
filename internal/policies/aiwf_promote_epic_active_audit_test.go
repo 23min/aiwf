@@ -75,7 +75,7 @@ func TestAuditUnforcedSovereignActPromote_MissingPathIsSilent(t *testing.T) {
 // reachable arm of `auditUnforcedSovereignActPromote` against
 // synthetic in-memory filesystem inputs. Together with the seam test above
 // (which exercises real-repo paths), this gives both layers of
-// coverage CLAUDE.md §"Test the seam, not just the layer" requires
+// coverage .guidance/project/testing.md §"Test the seam, not just the layer" requires
 // — the helper's logic is exercised with controlled inputs even on
 // a clean repo where the seam test produces zero findings.
 //

@@ -1,7 +1,6 @@
 package policies
 
 import (
-	"os"
 	"path/filepath"
 	"strings"
 	"testing"
@@ -20,13 +19,7 @@ func TestPolicy_VerbWriteGuardCoverage(t *testing.T) {
 func writeGuardFixture(t *testing.T, src string) string {
 	t.Helper()
 	root := t.TempDir()
-	dir := filepath.Join(root, "internal", "verb")
-	if err := os.MkdirAll(dir, 0o755); err != nil {
-		t.Fatalf("mkdir: %v", err)
-	}
-	if err := os.WriteFile(filepath.Join(dir, "fixture.go"), []byte(src), 0o644); err != nil {
-		t.Fatalf("write: %v", err)
-	}
+	mustWrite(t, filepath.Join(root, "internal", "verb", "fixture.go"), src)
 	return root
 }
 
@@ -197,19 +190,13 @@ func TestCheckAdoptsFlagOwnership_FiresOutsideTheOwningFile(t *testing.T) {
 	t.Parallel()
 
 	root := t.TempDir()
-	dir := filepath.Join(root, "internal", "verb")
-	if err := os.MkdirAll(dir, 0o755); err != nil {
-		t.Fatalf("mkdir: %v", err)
-	}
 	src := `package verb
 
 type FileOp struct{ AdoptsWorkingCopy bool }
 
 func newlyExemptVerb() FileOp { return FileOp{AdoptsWorkingCopy: true} }
 `
-	if err := os.WriteFile(filepath.Join(dir, "greedy.go"), []byte(src), 0o644); err != nil {
-		t.Fatalf("write: %v", err)
-	}
+	writeAt(t, root, "internal/verb/greedy.go", src)
 	files, err := WalkGoFiles(root, true)
 	if err != nil {
 		t.Fatalf("walk: %v", err)
@@ -231,19 +218,13 @@ func newlyExemptVerb() FileOp { return FileOp{AdoptsWorkingCopy: true} }
 func TestCheckAdoptsFlagOwnership_AllowsTheOwningFile(t *testing.T) {
 	t.Parallel()
 	root := t.TempDir()
-	dir := filepath.Join(root, "internal", "verb")
-	if err := os.MkdirAll(dir, 0o755); err != nil {
-		t.Fatalf("mkdir: %v", err)
-	}
 	src := `package verb
 
 type FileOp struct{ AdoptsWorkingCopy bool }
 
 func blessMode() FileOp { return FileOp{AdoptsWorkingCopy: true} }
 `
-	if err := os.WriteFile(filepath.Join(dir, "editbody.go"), []byte(src), 0o644); err != nil {
-		t.Fatalf("write: %v", err)
-	}
+	writeAt(t, root, "internal/verb/editbody.go", src)
 	files, err := WalkGoFiles(root, true)
 	if err != nil {
 		t.Fatalf("walk: %v", err)

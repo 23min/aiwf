@@ -81,12 +81,12 @@ func Run(root, target string, checkOnly, noPrompt bool) (code int) {
 	}
 
 	current := version.Current()
-	cliutil.Printf("current:  %s\n", RenderVersionLabel(current))
+	cliutil.Printf("current:  %s\n", version.Label(current))
 
 	resolved, latestErr := ResolveTarget(target)
 	switch {
 	case latestErr == nil:
-		cliutil.Printf("target:   %s\n", RenderVersionLabel(resolved))
+		cliutil.Printf("target:   %s\n", version.Label(resolved))
 	case errors.Is(latestErr, version.ErrProxyDisabled):
 		cliutil.Printf("target:   %s (proxy disabled — go install will resolve at install time)\n", target)
 	default:
@@ -104,7 +104,7 @@ func Run(root, target string, checkOnly, noPrompt bool) (code int) {
 		case version.SkewBehind:
 			cliutil.Println("status:   upgrade available")
 		default:
-			cliutil.Println("status:   skew unknown (devel or pre-release on either side)")
+			cliutil.Printf("status:   skew unknown (%s)\n", version.SkewUnknownReason)
 		}
 		if hint := proxyStaleHint(current, resolved); hint != "" {
 			cliutil.Print(hint)
@@ -257,24 +257,6 @@ func proxyLookupFailedHint(pkg string) string {
 			"          `go install %s@vX.Y.Z`, or bypass the proxy with\n"+
 			"          `GOPROXY=direct aiwf upgrade`.\n",
 		pkg)
-}
-
-// RenderVersionLabel formats an Info for human display: the version
-// itself plus a parenthetical state ("tagged", "working-tree build",
-// "pseudo-version"). The `+dirty` suffix that Go appends to working-
-// tree builds with uncommitted changes is always rendered as a
-// working-tree build, regardless of the base version shape.
-func RenderVersionLabel(info version.Info) string {
-	switch {
-	case info.Version == version.DevelVersion:
-		return info.Version + " (working-tree build)"
-	case strings.HasSuffix(info.Version, "+dirty"):
-		return info.Version + " (working-tree build)"
-	case info.Tagged:
-		return info.Version + " (tagged)"
-	default:
-		return info.Version + " (pseudo-version)"
-	}
 }
 
 // ResolveTarget turns the --version flag value into a concrete Info.

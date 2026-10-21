@@ -654,10 +654,10 @@ func TestArchiveCommitSubject_Determinism(t *testing.T) {
 }
 
 // TestArchiveCommitBody_DeterministicAndCompliant pins the body
-// shape: the body cites ADR-0004, lists per-kind counts in
-// entity.AllKinds() order, and lists affected ids alphabetically
-// within each kind. ADR-0004 §"`aiwf archive` verb": "the commit
-// message body lists affected ids and per-kind counts."
+// shape: the body lists per-kind counts in entity.AllKinds() order,
+// and lists affected ids alphabetically within each kind. ADR-0004
+// §"`aiwf archive` verb": "the commit message body lists affected ids
+// and per-kind counts."
 func TestArchiveCommitBody_DeterministicAndCompliant(t *testing.T) {
 	t.Parallel()
 	moves := []archiveMove{
@@ -668,9 +668,6 @@ func TestArchiveCommitBody_DeterministicAndCompliant(t *testing.T) {
 		{kind: entity.KindEpic, id: "E-0001"},
 	}
 	body := archiveCommitBody(moves, nil, 0)
-	if !strings.Contains(body, "ADR-0004") {
-		t.Errorf("commit body should cite ADR-0004:\n%s", body)
-	}
 	// Per-kind counts in AllKinds order: epic before gap.
 	idxEpic := strings.Index(body, "epic")
 	idxGap := strings.Index(body, "gap")

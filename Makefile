@@ -12,10 +12,12 @@
 
 .PHONY: help build install diag-aiwf test check-fast test-race test-pins lint fmt vet coverage test-cov coverage-gate coverage-gate-only comment-history-audit changelog-audit growth-report mutate-diff selfcheck ci clean install-hooks e2e e2e-install stress stress-tests
 
-# Version embedded into the binary via -ldflags. Format: <branch>@<short-sha>[-dirty].
-# Empty (so version.Current falls back to buildinfo) when not in a git checkout
-# (e.g. an extracted source tarball).
-AIWF_VERSION := $(shell git rev-parse --abbrev-ref HEAD 2>/dev/null)@$(shell git describe --always --dirty 2>/dev/null)
+# Version embedded into the binary via -ldflags:
+# <branch>@<git describe --always --dirty>, e.g. main@v0.40.0-677-g4ba3a6b2b.
+# Empty unless git names both the branch and the commit (not in a git checkout,
+# e.g. an extracted source tarball, or no git installed), so version.Current
+# falls back to buildinfo.
+AIWF_VERSION := $(shell b=$$(git rev-parse --abbrev-ref HEAD 2>/dev/null) && d=$$(git describe --always --dirty 2>/dev/null) && echo "$$b@$$d")
 LDFLAGS := -X github.com/23min/aiwf/internal/version.Stamp=$(AIWF_VERSION)
 
 # Test-binary wrapper that ad-hoc signs Darwin test binaries before exec'ing
@@ -49,7 +51,7 @@ help:
 	@echo "  comment-history-audit - whole-tree scan for comments narrating a superseded state"
 	@echo "  changelog-audit - check the release notes name everything shipped since the last release"
 	@echo "  growth-report - snapshot the growth metrics docs/design/growth.md tracks (read-only; GROWTH_BASELINE=<rev> for a delta)"
-	@echo "  mutate-diff - advisory diff-scoped mutation test: gremlins on internal/ packages changed vs origin/main (G-0267)"
+	@echo "  mutate-diff - advisory diff-scoped mutation test: gremlins on internal/ Go lines changed vs origin/main (G-0267)"
 	@echo "  selfcheck - build and run 'aiwf doctor --self-check' end-to-end"
 	@echo "  ci        - the pre-push/CI gate (vet + lint + test-cov + coverage-gate-only + selfcheck); run once before pushing, not per commit"
 	@echo "  install-hooks - symlink scripts/git-hooks/ into the .local hook chain (one-shot, idempotent)"
@@ -72,7 +74,7 @@ install:
 	fi
 
 # Build a worktree-scoped aiwf binary at ./bin/aiwf-diag and print its
-# absolute path. The convention (per CLAUDE.md *Worktree binary discipline*):
+# absolute path. The convention (per .guidance/project/environment.md *Worktree binary discipline*):
 # when diagnosing aiwf behavior against the current worktree source, run
 # `make diag-aiwf` and invoke the printed path. Avoids the silent-stale
 # PATH-binary trap that prompted G-0147.
@@ -154,12 +156,16 @@ test-cov:
 # policy has a test that covers its firing branch) plus its no-stale
 # allowlist check, and the skill-edit provenance backstop (G-0220 /
 # D-0071 — a ritual SKILL.md edit must ride a commit whose aiwf-entity
-# trailer names a real entity). It generates a fresh atomic-mode
-# profile, then delegates to coverage-gate-only. The diff-scoped gates
-# compare the base against the working tree, so uncommitted changes are
-# in scope and you need not commit first — except the skill-edit
-# provenance backstop, which judges commits, since an uncommitted edit
-# carries no provenance to judge. CI runs the same gates in the
+# trailer names a real entity), and the instruction-file fence (ADR-0053 —
+# aiwf check's rule, compiled from this tree: a commit changing handwritten
+# instructions carries only allowed companions, names a real entity, and
+# records a disposition for text it removes). It
+# generates a fresh atomic-mode profile, then delegates to
+# coverage-gate-only. The diff-scoped gates compare the base against the
+# working tree, so uncommitted changes are in scope and you need not
+# commit first — except the skill-edit provenance backstop, the co-author
+# ban and the instruction-file fence, which judge commits, since an uncommitted
+# edit carries no trailer or message to judge. CI runs the same gates in the
 # test job.
 coverage-gate:
 	go test -exec=$(TEST_EXEC) -covermode=atomic -coverprofile=coverage.out -coverpkg=./internal/... -parallel 8 ./...
@@ -213,7 +219,7 @@ coverage-gate-only:
 	fi; \
 	AIWF_COVERAGE_PROFILE="$(CURDIR)/coverage.out" \
 	AIWF_COVERAGE_BASE="$$base" \
-	go test -exec=$(TEST_EXEC) -run '^TestPolicy_(BranchCoverageAudit|FiringFixturePresence|FiringFixtureNoStaleAllowlist|SkillEditProvenanceBackstop|CommentHistoryAttrition|TestExecutableWrite|CoauthorTrailerBan)$$' -count=1 ./internal/policies/
+	go test -exec=$(TEST_EXEC) -run '^TestPolicy_(BranchCoverageAudit|FiringFixturePresence|FiringFixtureNoStaleAllowlist|SkillEditProvenanceBackstop|CommentHistoryAttrition|TestExecutableWrite|CoauthorTrailerBan|InstructionFence)$$' -count=1 ./internal/policies/
 
 # comment-history-audit is the focused whole-tree run of the comment
 # history-attrition scan — the surface the wf-codebase-health rubric's
@@ -264,7 +270,7 @@ growth-report:
 	@scripts/growth-report.py $(if $(GROWTH_BASELINE),--baseline $(GROWTH_BASELINE),)
 
 # mutate-diff runs diff-scoped mutation testing (G-0267): gremlins on
-# just the internal/ packages changed since the merge-base with
+# just the internal/ Go lines changed since the merge-base with
 # origin/main, the wf-vacuity / mutate-hunt companion scoped to your
 # diff instead of the whole kernel. Advisory — it prints surviving
 # mutants for triage and always exits 0; mutation is slow and
@@ -348,7 +354,7 @@ e2e:
 
 # stress runs cmd/stresstest's whole scenario catalog, STRESS_REPEAT
 # attempts per scenario, against a freshly built aiwf binary (see
-# CLAUDE.md "Stress-test harness"). Opt-in and dev-only: not part of
+# .guidance/project/stress-harness.md). Opt-in and dev-only: not part of
 # `make ci`. Override the per-scenario repeat count with STRESS_REPEAT=N.
 STRESS_REPEAT ?= 5
 

@@ -109,26 +109,90 @@ func TestGitleaksEnforcement_Gitleaksignore(t *testing.T) {
 	}
 }
 
+// gitleaksInstallRe matches the project hook installing gitleaks at its
+// GITLEAKS_VERSION pin, on a line with no # before it: a comment installs
+// nothing.
+var gitleaksInstallRe = regexp.MustCompile(`(?m)^[^#\n]*github\.com/zricethezav/gitleaks/v8@\$\{GITLEAKS_VERSION\}`)
+
+// gitleaksPinRe reads the project hook's GITLEAKS_VERSION pin from a line
+// with no # before it, so a commented-out pin cannot stand in for the live one.
+var gitleaksPinRe = regexp.MustCompile(`(?m)^[^#\n]*GITLEAKS_VERSION="(v8\.\d+\.\d+)"`)
+
+// gitleaksAtRe reads a gitleaks/v8@vX.Y.Z install pin as a whole value from a
+// line with no # before it, so neither a suffixed version such as v8.30.1-rc1
+// nor a pin in a comment is taken for the live one.
+var gitleaksAtRe = regexp.MustCompile(`(?m)^[^#\n]*gitleaks/v8@(v8\.\d+\.\d+)(?:["'\s]|$)`)
+
+func TestGitleaksEnforcement_AtPinReadsWholeLiveValue(t *testing.T) {
+	t.Parallel()
+	const live = "  run: go install github.com/zricethezav/gitleaks/v8@v8.30.1\n"
+	cases := []struct {
+		name, text, want string // want "" means no pin read
+	}{
+		{"suffixed-pin-not-read", strings.Replace(live, "v8.30.1", "v8.30.1-rc1", 1), ""},
+		{"comment-does-not-stand-in", "# gitleaks/v8@v8.29.0 is next\n" + live, "v8.30.1"},
+	}
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			t.Parallel()
+			got := ""
+			if m := gitleaksAtRe.FindStringSubmatch(tc.text); m != nil {
+				got = m[1]
+			}
+			if got != tc.want {
+				t.Errorf("pin read = %q, want %q", got, tc.want)
+			}
+		})
+	}
+}
+
+func TestGitleaksEnforcement_PinReadsOnlyCommands(t *testing.T) {
+	t.Parallel()
+	hook := "# GITLEAKS_VERSION=\"v8.30.1\"\nGITLEAKS_VERSION=\"v8.29.0\"\n"
+	if m := gitleaksPinRe.FindStringSubmatch(hook); len(m) < 2 || m[1] != "v8.29.0" {
+		t.Errorf("pin read = %v, want the live v8.29.0, not the commented v8.30.1", m)
+	}
+}
+
 func TestGitleaksEnforcement_DevcontainerInstallsGitleaks(t *testing.T) {
 	t.Parallel()
-	init := gitleaksFile(t, ".devcontainer/init.sh")
-	if !strings.Contains(init, "github.com/zricethezav/gitleaks/v8@") {
-		t.Error(".devcontainer/init.sh must install gitleaks so the local pre-push hook actually fires")
+	if !gitleaksInstallRe.MatchString(gitleaksFile(t, ".devcontainer/project/post-create.sh")) {
+		t.Error(".devcontainer/project/post-create.sh must install gitleaks at its GITLEAKS_VERSION pin so the local pre-push hook fires with CI's version")
+	}
+}
+
+func TestGitleaksEnforcement_InstallCountsOnlyCommands(t *testing.T) {
+	t.Parallel()
+	const install = `  go install "github.com/zricethezav/gitleaks/v8@${GITLEAKS_VERSION}"` + "\n"
+	cases := []struct {
+		name string
+		hook string
+		want bool
+	}{
+		{"installed-at-pin", install, true},
+		{"install-only-in-a-comment", "# " + install, false},
+		{"installed-at-latest", strings.Replace(install, "${GITLEAKS_VERSION}", "latest", 1), false},
+	}
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			t.Parallel()
+			if got := gitleaksInstallRe.MatchString(tc.hook); got != tc.want {
+				t.Errorf("install found = %v, want %v", got, tc.want)
+			}
+		})
 	}
 }
 
 func TestGitleaksEnforcement_PinnedVersionConsistent(t *testing.T) {
 	t.Parallel()
-	atRe := regexp.MustCompile(`gitleaks/v8@(v8\.\d+\.\d+)`)
-	devRe := regexp.MustCompile(`GITLEAKS_VERSION="(v8\.\d+\.\d+)"`)
-	ci := atRe.FindStringSubmatch(gitleaksFile(t, ".github/workflows/gitleaks.yml"))
-	dev := devRe.FindStringSubmatch(gitleaksFile(t, ".devcontainer/init.sh"))
-	hint := atRe.FindStringSubmatch(gitleaksFile(t, "scripts/git-hooks/pre-push"))
+	ci := gitleaksAtRe.FindStringSubmatch(gitleaksFile(t, ".github/workflows/gitleaks.yml"))
+	dev := gitleaksPinRe.FindStringSubmatch(gitleaksFile(t, ".devcontainer/project/post-create.sh"))
+	hint := gitleaksAtRe.FindStringSubmatch(gitleaksFile(t, "scripts/git-hooks/pre-push"))
 	if ci == nil {
 		t.Fatal("no pinned gitleaks version (gitleaks/v8@vX.Y.Z) in .github/workflows/gitleaks.yml")
 	}
 	if dev == nil {
-		t.Fatal(`no pinned GITLEAKS_VERSION="vX.Y.Z" in .devcontainer/init.sh`)
+		t.Fatal(`no pinned GITLEAKS_VERSION="vX.Y.Z" in .devcontainer/project/post-create.sh`)
 	}
 	if hint == nil {
 		t.Fatal("no pinned gitleaks version (gitleaks/v8@vX.Y.Z) in scripts/git-hooks/pre-push install hint")
@@ -136,6 +200,6 @@ func TestGitleaksEnforcement_PinnedVersionConsistent(t *testing.T) {
 	// CI, devcontainer, and the pre-push install hint must all agree so a
 	// version bump can't leave one site stale.
 	if ci[1] != dev[1] || ci[1] != hint[1] {
-		t.Errorf("pinned gitleaks version must agree: gitleaks.yml=%s, init.sh=%s, pre-push hint=%s", ci[1], dev[1], hint[1])
+		t.Errorf("pinned gitleaks version must agree: gitleaks.yml=%s, project/post-create.sh=%s, pre-push hint=%s", ci[1], dev[1], hint[1])
 	}
 }
