@@ -1,7 +1,7 @@
 ---
 id: M-0362
 title: Stop aiwf update silently downgrading installed artifacts
-status: in_progress
+status: cancelled
 parent: E-0099
 tdd: required
 acs:
