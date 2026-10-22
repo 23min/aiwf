@@ -34,7 +34,7 @@ TEST_EXEC := $(if $(filter Darwin,$(shell uname)),$(CURDIR)/scripts/sign-and-run
 
 help:
 	@echo "Targets:"
-	@echo "  build     - build the aiwf binary into ./bin/ (with embedded version)"
+	@echo "  build     - build the aiwf binary as ./bin/aiwf-diag (with embedded version)"
 	@echo "  install   - go install the aiwf binary into \$$GOBIN (with embedded version)"
 	@echo "  diag-aiwf - build a worktree-scoped binary at ./bin/aiwf-diag and print its absolute path (G-0147)"
 	@echo "  test      - run unit tests"
@@ -63,7 +63,7 @@ help:
 
 build:
 	mkdir -p bin
-	CGO_ENABLED=0 go build -ldflags "$(LDFLAGS)" -o bin/aiwf ./cmd/aiwf
+	CGO_ENABLED=0 go build -ldflags "$(LDFLAGS)" -o bin/aiwf-diag ./cmd/aiwf
 
 install:
 	CGO_ENABLED=0 go install -ldflags "$(LDFLAGS)" ./cmd/aiwf
@@ -286,7 +286,7 @@ mutate-diff:
 # (broken commit trailers, hook installer drift, missing skills,
 # `aiwf init` against a fresh git repo failing) that unit tests miss.
 selfcheck: build
-	./bin/aiwf doctor --self-check
+	./bin/aiwf-diag doctor --self-check
 
 # ci is the gate the wrap rituals run before a merge or a push. It covers
 # go.yml's build/vet/lint/test matrix and its profile-driven gate step;
