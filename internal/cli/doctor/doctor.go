@@ -185,7 +185,7 @@ func DoctorReport(rootDir string, opts DoctorOptions) (lines []string, problems 
 
 	current := version.Current()
 	binaryRow := label("binary:") + version.Label(current)
-	binaryRow += binaryStaleness(context.Background(), rootDir, trunkRef, current, version.ModulePath())
+	binaryRow += staleRowSuffix(binaryStaleness(context.Background(), rootDir, trunkRef, current, version.ModulePath()))
 	lines = append(lines, binaryRow)
 
 	if opts.CheckLatest {

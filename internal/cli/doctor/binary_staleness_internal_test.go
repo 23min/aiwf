@@ -163,8 +163,11 @@ func TestBinaryStaleness_StaleSuffix(t *testing.T) {
 	if !strings.Contains(got, "make install") {
 		t.Errorf("suffix %q missing remediation `make install`", got)
 	}
-	if !strings.HasPrefix(got, " ") {
-		t.Errorf("suffix %q must start with a space to append to existing row", got)
+	if row := staleRowSuffix(got); !strings.HasPrefix(row, " (stale: ") {
+		t.Errorf("row suffix %q must open with \" (stale: \" to append to the binary row", row)
+	}
+	if row := staleRowSuffix(""); row != "" {
+		t.Errorf("row suffix for a current binary = %q, want none", row)
 	}
 }
 
@@ -266,6 +269,45 @@ func TestBinaryStaleness_JudgesEveryBuildThatNamesACommit(t *testing.T) {
 			}
 			if tc.wantStale && !strings.Contains(got, refSHA) {
 				t.Errorf("suffix %q does not name the ref's commit %s", got, refSHA)
+			}
+		})
+	}
+}
+
+// TestStaleBinaryWarning pins the line every verb prints before it runs in
+// the aiwf repository (M-0363/AC-2): a binary whose commit differs from HEAD
+// warns, one at HEAD is silent, and inside a linked worktree a Go
+// pseudo-version is not judged, because Go stamps a build there with the
+// main checkout's commit rather than the worktree's.
+func TestStaleBinaryWarning(t *testing.T) {
+	t.Parallel()
+	root, headSHA := initRepoWithMain(t, "github.com/23min/aiwf")
+	ctx := context.Background()
+	linked := filepath.Join(t.TempDir(), "linked")
+	mustGit(t, ctx, root, "worktree", "add", "-q", "-b", "side", linked)
+	mustGit(t, ctx, linked, "commit", "-q", "--allow-empty", "-m", "past the main checkout")
+	cases := []struct {
+		name     string
+		dir      string
+		version  string
+		wantWarn bool
+	}{
+		{"stamp at HEAD", root, "main@v0.8.0-3-g" + headSHA[:9], false},
+		{"stamp elsewhere", root, "main@v0.8.0-3-gabcdef123", true},
+		{"pseudo-version elsewhere in the main checkout", root, "v0.0.0-20260503120000-abcdef123456", true},
+		{"pseudo-version in a linked worktree", linked, "v0.0.0-20260503120000-" + headSHA, false},
+		{"stamp elsewhere in a linked worktree", linked, "side@v0.8.0-3-g" + headSHA[:9], true},
+		{"pseudo-version outside any repository", t.TempDir(), "v0.0.0-20260503120000-abcdef123456", false},
+	}
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			t.Parallel()
+			got := StaleBinaryWarning(ctx, tc.dir, version.Parse(tc.version), "github.com/23min/aiwf")
+			if warned := got != ""; warned != tc.wantWarn {
+				t.Errorf("StaleBinaryWarning(%q in %s) = %q, want warn=%v", tc.version, tc.name, got, tc.wantWarn)
+			}
+			if tc.wantWarn && !strings.HasPrefix(got, "aiwf: warning: ") {
+				t.Errorf("warning %q does not open with the aiwf warning prefix", got)
 			}
 		})
 	}
