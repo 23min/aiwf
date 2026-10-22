@@ -8,6 +8,7 @@ acs:
     - id: AC-1
       title: Doctor judges every binary that carries a commit
       status: open
+      tdd_phase: red
     - id: AC-2
       title: Every verb in the aiwf repository warns on a stale binary
       status: open
