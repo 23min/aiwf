@@ -19,8 +19,14 @@ acs:
 ## Goal
 
 Working on aiwf with a binary built from different source than the worktree says so
-before a verb writes, `aiwf doctor` judges `make install` builds, and `make build` stops
+before a verb runs, `aiwf doctor` judges `make install` builds, and `make build` stops
 leaving a `bin/aiwf` that gets run instead of the release.
+
+## Closes
+
+- G-0471 — a verb run in the aiwf repository by a binary built from other source than
+  the worktree's `HEAD` says so before it runs.
+- G-0654 — `make build` no longer leaves a `bin/aiwf` to reach for.
 
 ## Context
 
@@ -36,26 +42,26 @@ and is silent outside the aiwf module. `aiwf doctor` calls it with the trunk ref
 
 ### AC-1 — Doctor judges every binary that carries a commit
 
-**Pass criterion**: `binaryStaleness` given a Makefile stamp whose commit differs from
-the ref reports it as stale, with the same message a pseudo-version gets, and is silent
-when the commit equals the ref; `aiwf doctor`'s `binary:` row shows it. **Edge cases**: a
-`-dirty` stamp is skipped as a `+dirty` version is; a stamp at an exact tag with no
-commit hash (`main@v0.40.0`) is skipped; describe's abbreviated hash is compared as a
-commit prefix. **Code references**: commit extraction beside `version.PseudoSHA` in
+**Pass criterion**: `binaryStaleness` reads the binary's commit from a pseudo-version,
+from a Makefile stamp's `g<sha>`, and from a tagged release or a stamp at an exact tag
+through that tag in the repository, reports a commit that differs from the ref as stale
+with one message, and is silent when it equals the ref; a `+dirty` or `-dirty` build is
+judged by the commit it was built from; `aiwf doctor`'s `binary:` row shows it.
+**Edge cases**: a tag the repository lacks, `(devel)`, and a directory that is not a
+Git repository are silent; describe's abbreviated hash is compared as a commit prefix.
+**Code references**: commit extraction beside `version.PseudoSHA` in
 `internal/version/version.go`; the shape table in
 `internal/cli/doctor/binary_staleness_test.go`.
 
 ### AC-2 — Every verb in the aiwf repository warns on a stale binary
 
-**Pass criterion**: inside the aiwf repository, a verb that writes the tree or commits,
-run by a binary whose commit differs from the worktree's `HEAD`, prints
-`binaryStaleness`'s warning (called with `HEAD`) to stderr before it writes, and its
-result and exit status are otherwise unchanged. **Edge cases**: a read-only verb prints
-nothing; a consumer repository prints nothing (the module-path check); a `+dirty` or
-`-dirty` binary, a directory that is not a Git repository, and a binary at `HEAD` print
-nothing. **Code references**: the warning is wired once for the mutating verbs, reusing
-an existing classification of them where one exists; `binaryStaleness` itself is
-unchanged apart from AC-1.
+**Pass criterion**: inside the aiwf repository, every verb run by a binary whose commit
+differs from the worktree's `HEAD` prints `binaryStaleness`'s warning (called with
+`HEAD`) to stderr before it runs, and its stdout, result and exit status are unchanged.
+**Edge cases**: a consumer repository prints nothing (the module-path check); a binary
+at `HEAD`, `(devel)`, and a directory that is not a Git repository print nothing.
+**Code references**: one hook on the root command; `binaryStaleness` unchanged apart
+from AC-1.
 
 ### AC-3 — make build leaves no bin/aiwf to reach for
 
@@ -75,8 +81,15 @@ cases**: `make diag-aiwf`'s `bin/aiwf-diag` is unchanged; `make install` is unch
 
 - Comparing for a different commit rather than an older one reuses `binaryStaleness`
   as it is; a binary built from different source runs different logic either way.
-- The cost of the check before each mutating verb is measured at start (E-0099's open
-  question).
+- The warning runs for every verb rather than only mutating ones: a stale read is acted
+  on as current too, and one hook on the root command needs no classification of verbs.
+- Measured 2026-10-22 in the devcontainer: two `git rev-parse` calls cost about 23 ms per
+  verb, against about 6 ms for `aiwf version` itself, paid only inside the aiwf
+  repository. `~/.claude/statusline.sh` never runs `aiwf`, so the warning cannot reach
+  the statusline.
+- `.guidance/project/environment.md` states that nothing mechanically blocks a
+  stale-PATH call; closing G-0471 corrects that sentence, under the instruction-file
+  fence.
 
 ## Out of scope
 
