@@ -314,6 +314,39 @@ func PseudoSHA(v string) (string, bool) {
 	return v[end-12 : end], true
 }
 
+// describeHashRE captures the abbreviated commit hash `git describe`
+// appends after a tag: `<tag>-<n>-g<hash>`.
+var describeHashRE = regexp.MustCompile(`-g([0-9a-f]{7,40})$`)
+
+// commitHashRE matches a bare abbreviated or full commit hash, which is
+// what `git describe --always` prints in a clone without tags.
+var commitHashRE = regexp.MustCompile(`^[0-9a-f]{7,40}$`)
+
+// BuildCommit names the commit the binary versioned v was built from: a
+// commit hash, possibly abbreviated (hash=true), or a tag to resolve
+// (hash=false). A dirty build names the commit it started from. ok=false
+// when v names no commit, as `(devel)` does.
+func BuildCommit(v string) (ref string, hash bool, ok bool) {
+	v = strings.TrimSuffix(v, "+dirty")
+	if isMakefileStamp(v) {
+		describe := strings.TrimSuffix(v[strings.LastIndex(v, "@")+1:], "-dirty")
+		if m := describeHashRE.FindStringSubmatch(describe); m != nil {
+			return m[1], true, true
+		}
+		if commitHashRE.MatchString(describe) {
+			return describe, true, true
+		}
+		return describe, false, describe != ""
+	}
+	if sha, ok := PseudoSHA(v); ok {
+		return sha, true, true
+	}
+	if taggedSemverRE.MatchString(v) {
+		return v, false, true
+	}
+	return "", false, false
+}
+
 // isTagged reports whether v is a clean tagged semver value rather
 // than a pseudo-version. Pseudo-versions match the timestamp+sha
 // suffix regardless of the base version they're attached to.

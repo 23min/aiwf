@@ -53,8 +53,8 @@ func mustGit(t *testing.T, ctx context.Context, dir string, args ...string) {
 }
 
 // TestBinaryStaleness_SkipsByShape covers the early returns that
-// silence the check before any git work: devel, dirty, tagged, and
-// non-pseudo strings should all return "".
+// silence the check before any git work: a version that names no commit
+// returns "".
 func TestBinaryStaleness_SkipsByShape(t *testing.T) {
 	t.Parallel()
 	root, _ := initRepoWithMain(t, "github.com/23min/aiwf")
@@ -64,8 +64,6 @@ func TestBinaryStaleness_SkipsByShape(t *testing.T) {
 		info version.Info
 	}{
 		{"devel", version.Info{Version: version.DevelVersion}},
-		{"dirty pseudo", version.Info{Version: "v0.0.0-20260503120000-abcdef123456+dirty"}},
-		{"tagged", version.Info{Version: "v0.1.0", Tagged: true}},
 		{"empty", version.Info{}},
 		{"non-version garbage", version.Info{Version: "main"}},
 	}
@@ -231,5 +229,44 @@ func TestBinaryStaleness_ComparesConfiguredTrunk(t *testing.T) {
 	got := binaryStaleness(ctx, root, trunkRef, info, "github.com/23min/aiwf")
 	if !strings.Contains(got, trunkRef+" "+trunkSHA) {
 		t.Errorf("suffix %q does not report the configured trunk %s at %s", got, trunkRef, trunkSHA)
+	}
+}
+
+// TestBinaryStaleness_JudgesEveryBuildThatNamesACommit pins M-0363/AC-1:
+// a Makefile stamp, a dirty build and a tagged release are each judged by
+// the commit they name — stale when it differs from the ref, silent when
+// it is the ref — and a tag the repository lacks is silent.
+func TestBinaryStaleness_JudgesEveryBuildThatNamesACommit(t *testing.T) {
+	t.Parallel()
+	root, refSHA := initRepoWithMain(t, "github.com/23min/aiwf")
+	ctx := context.Background()
+	mustGit(t, ctx, root, "tag", "-a", "v0.9.0", "-m", "at the ref")
+	mustGit(t, ctx, root, "commit", "-q", "--allow-empty", "-m", "past the ref")
+	mustGit(t, ctx, root, "tag", "v0.9.1")
+	cases := []struct {
+		name      string
+		version   string
+		wantStale bool
+	}{
+		{"stamp at the ref", "main@v0.8.0-3-g" + refSHA[:9], false},
+		{"stamp elsewhere", "main@v0.8.0-3-gabcdef123", true},
+		{"dirty stamp at the ref", "main@v0.8.0-3-g" + refSHA[:9] + "-dirty", false},
+		{"dirty pseudo-version elsewhere", "v0.0.0-20260503120000-abcdef123456+dirty", true},
+		{"tag at the ref", "v0.9.0", false},
+		{"tag elsewhere", "v0.9.1", true},
+		{"stamp at a tag elsewhere", "main@v0.9.1", true},
+		{"tag the repository lacks", "v0.1.0", false},
+	}
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			t.Parallel()
+			got := binaryStaleness(ctx, root, config.DefaultAllocateTrunk, version.Parse(tc.version), "github.com/23min/aiwf")
+			if stale := got != ""; stale != tc.wantStale {
+				t.Errorf("binaryStaleness(%q) = %q, want stale=%v", tc.version, got, tc.wantStale)
+			}
+			if tc.wantStale && !strings.Contains(got, refSHA) {
+				t.Errorf("suffix %q does not name the ref's commit %s", got, refSHA)
+			}
+		})
 	}
 }

@@ -12,66 +12,59 @@ import (
 )
 
 // binaryStaleness returns a suffix string for the doctor `binary:`
-// row when the running binary's source SHA differs from trunkRef (the
-// configured `allocate.trunk`, default refs/remotes/origin/main) in the
-// kernel checkout under rootDir.
-// Returns "" (no suffix) when the check should be silent — Lane B per
-// G-0176: kernel-developer-side only.
+// row when the commit the running binary was built from differs from
+// ref in the kernel checkout under rootDir. Returns "" (no suffix) when
+// the check should be silent — Lane B per G-0176: kernel-developer-side
+// only.
 //
-// Skip-by-shape conditions (binary):
-//   - DevelVersion (a build without git state, e.g. `go run`); not deployable
-//   - +dirty suffix (VCS-stamped working-tree build); same reason
-//   - Tagged release; covered by the latest: row instead
-//   - Not a pseudo-version (e.g. a Makefile stamp, `<branch>@<git describe>`)
+// The binary's commit comes from version.BuildCommit: a hash from a
+// pseudo-version or a Makefile stamp, or a tag for a release, resolved
+// in rootDir. A dirty build is judged by the commit it started from.
 //
-// Skip-by-environment conditions:
+// Silent when:
+//   - the version names no commit (`(devel)`, an empty string)
 //   - expectedModule == "" (binary lacks build info)
 //   - rootDir's go.mod module path != expectedModule (downstream
 //     consumer repo; the check is kernel-developer-only)
-//   - trunkRef is absent (fresh clone, no fetch yet,
-//     or detached state); degrade silently — mirrors how the latest:
-//     row handles GOPROXY unreachability.
+//   - ref or the binary's tag does not resolve in rootDir (fresh clone,
+//     no fetch yet, a tag not fetched); degrade silently — mirrors how
+//     the latest: row handles GOPROXY unreachability.
 //
-// The check is N=0 strict per design: any SHA mismatch triggers the
+// The check is N=0 strict per design: any commit mismatch triggers the
 // suffix. The suffix is advisory only; the row's problem count is
 // unaffected.
-func binaryStaleness(ctx context.Context, rootDir, trunkRef string, info version.Info, expectedModule string) string {
-	if info.Version == version.DevelVersion || info.Version == "" {
-		return ""
-	}
-	if strings.HasSuffix(info.Version, "+dirty") {
-		return ""
-	}
-	if info.Tagged {
-		return ""
-	}
-	pseudoSHA, ok := version.PseudoSHA(info.Version)
-	if !ok {
-		return ""
-	}
-	if expectedModule == "" {
+func binaryStaleness(ctx context.Context, rootDir, ref string, info version.Info, expectedModule string) string {
+	built, hash, ok := version.BuildCommit(info.Version)
+	if !ok || expectedModule == "" {
 		return ""
 	}
 	rootModule, err := readModulePath(rootDir)
 	if err != nil || rootModule != expectedModule {
 		return ""
 	}
-	exists, err := gitops.HasRef(ctx, rootDir, trunkRef)
-	if err != nil || !exists {
-		return ""
-	}
-	trunkSHA, err := gitops.ShortSHA(ctx, rootDir, trunkRef, 12)
+	refSHA, err := gitops.ResolveCommitSHA(ctx, rootDir, ref)
 	if err != nil {
-		//coverage:ignore environmental git failure between HasRef and
-		// ShortSHA — reachable only via TOCTOU on the ref between two
-		// git subprocesses; not exercisable without intrusive mocking.
 		return ""
 	}
-	if trunkSHA == pseudoSHA {
+	if !hash {
+		if built, err = gitops.ResolveCommitSHA(ctx, rootDir, built); err != nil {
+			return ""
+		}
+	}
+	if strings.HasPrefix(refSHA, built) {
 		return ""
 	}
-	return fmt.Sprintf(" (stale: pseudo-base SHA %s differs from %s %s; run `make install` to refresh)",
-		pseudoSHA, trunkRef, trunkSHA)
+	return fmt.Sprintf(" (stale: built from %s, which differs from %s %s; run `make install` to refresh)",
+		short(built), ref, short(refSHA))
+}
+
+// short abbreviates a commit hash to the 12 characters the staleness
+// suffix prints.
+func short(sha string) string {
+	if len(sha) > 12 {
+		return sha[:12]
+	}
+	return sha
 }
 
 // readModulePath parses the `module <path>` line from rootDir/go.mod.
