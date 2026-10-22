@@ -24,8 +24,8 @@ Every incident G-0600 records happened in this repository: `aiwf update` or
 `aiwf worktree add` run by such a binary rewrote materialized artifacts backwards. Each
 binary's version could not be ordered against the artifacts' stamp, so a version
 comparison in `aiwf update` would have refreshed anyway. Two of those binaries were a
-tagged release and a `+dirty` pseudo-version, both of which `binaryStaleness` skips
-today.
+tagged release and a `+dirty` pseudo-version, which is why the staleness check judges
+those by their commit as well.
 
 G-0147 closed an earlier version of this problem with a Makefile target and a
 documented discipline; G-0471 records why that left the hazard unguarded. G-0740
@@ -33,10 +33,10 @@ corrected where AI sessions build their diagnostic binary.
 
 ## Scope
 
-- `aiwf doctor`'s staleness check reads the commit from a Makefile stamp as well as from
-  a pseudo-version, and a verb that writes the tree inside the aiwf repository, run by a
-  binary whose commit differs from the worktree's, prints that check's warning before
-  it writes (G-0471).
+- `aiwf doctor`'s staleness check reads the commit from every binary that carries one —
+  a pseudo-version, a Makefile stamp, a tagged release, a dirty build — and every verb
+  run inside the aiwf repository by a binary whose commit differs from the worktree's
+  prints that check's warning before it runs (G-0471).
 - `make build` stops leaving an executable named like the installed `aiwf` where it is
   reached for instead of the release (G-0654).
 
@@ -65,25 +65,18 @@ corrected where AI sessions build their diagnostic binary.
 
 ## Success criteria
 
-- [ ] A verb that writes the tree inside the aiwf repository, run by a binary whose
-  commit differs from the worktree's, warns before it writes, and `aiwf doctor` judges
-  `make install` builds as it judges pseudo-versions.
+- [ ] Every verb run inside the aiwf repository by a binary whose commit differs from
+  the worktree's warns before it runs, and `aiwf doctor` judges `make install` builds,
+  tagged releases and dirty builds by their commit.
 - [ ] `make build` no longer leaves an executable named `aiwf` where it is reached for in
   place of the release.
 - [ ] Every gap named in *Scope* is addressed.
-
-## Open questions
-
-| Question | Blocking? | Resolution path |
-|---|---|---|
-| Does the pre-verb warning run before every mutating verb, or only those whose output depends on the code? | no | Measure its cost when the milestone starts |
-| Does the warning also judge a tagged binary by its tag's commit and a dirty build by the commit it was built from? | no | Settle when M-0363 starts; two of G-0600's incidents ran such binaries |
 
 ## Risks
 
 | Risk | Impact | Mitigation |
 |---|---|---|
-| The pre-verb staleness check slows every verb in the aiwf repository | med | It runs only in the aiwf repository and only before mutating verbs; measure it |
+| The pre-verb staleness check slows every verb in the aiwf repository | low | It runs only in the aiwf repository; M-0363 records its measured cost |
 
 ## Milestones
 
