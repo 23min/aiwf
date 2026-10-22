@@ -12,7 +12,7 @@ acs:
     - id: AC-2
       title: Every verb in the aiwf repository warns on a stale binary
       status: open
-      tdd_phase: red
+      tdd_phase: green
     - id: AC-3
       title: make build leaves no bin/aiwf to reach for
       status: open
