@@ -326,7 +326,7 @@ var commitHashRE = regexp.MustCompile(`^[0-9a-f]{7,40}$`)
 // commit hash, possibly abbreviated (hash=true), or a tag to resolve
 // (hash=false). A dirty build names the commit it started from. ok=false
 // when v names no commit, as `(devel)` does.
-func BuildCommit(v string) (ref string, hash bool, ok bool) {
+func BuildCommit(v string) (ref string, hash, ok bool) {
 	v = strings.TrimSuffix(v, "+dirty")
 	if isMakefileStamp(v) {
 		describe := strings.TrimSuffix(v[strings.LastIndex(v, "@")+1:], "-dirty")
