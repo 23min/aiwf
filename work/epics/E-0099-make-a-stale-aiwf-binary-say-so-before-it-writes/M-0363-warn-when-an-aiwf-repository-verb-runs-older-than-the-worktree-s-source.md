@@ -6,7 +6,7 @@ parent: E-0099
 tdd: required
 acs:
     - id: AC-1
-      title: Doctor judges a make install stamp by its commit
+      title: Doctor judges every binary that carries a commit
       status: open
     - id: AC-2
       title: A mutating verb on a stale aiwf-repository binary warns first
@@ -34,7 +34,7 @@ and is silent outside the aiwf module. `aiwf doctor` calls it with the trunk ref
 
 ## Acceptance criteria
 
-### AC-1 — Doctor judges a make install stamp by its commit
+### AC-1 — Doctor judges every binary that carries a commit
 
 **Pass criterion**: `binaryStaleness` given a Makefile stamp whose commit differs from
 the ref reports it as stale, with the same message a pseudo-version gets, and is silent
