@@ -9,7 +9,7 @@ acs:
       title: Doctor judges every binary that carries a commit
       status: open
     - id: AC-2
-      title: A mutating verb on a stale aiwf-repository binary warns first
+      title: Every verb in the aiwf repository warns on a stale binary
       status: open
     - id: AC-3
       title: make build leaves no bin/aiwf to reach for
@@ -45,7 +45,7 @@ commit prefix. **Code references**: commit extraction beside `version.PseudoSHA`
 `internal/version/version.go`; the shape table in
 `internal/cli/doctor/binary_staleness_test.go`.
 
-### AC-2 — A mutating verb on a stale aiwf-repository binary warns first
+### AC-2 — Every verb in the aiwf repository warns on a stale binary
 
 **Pass criterion**: inside the aiwf repository, a verb that writes the tree or commits,
 run by a binary whose commit differs from the worktree's `HEAD`, prints
