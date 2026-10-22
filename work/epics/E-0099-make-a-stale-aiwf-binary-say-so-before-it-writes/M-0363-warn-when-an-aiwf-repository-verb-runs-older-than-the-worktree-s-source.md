@@ -16,7 +16,7 @@ acs:
     - id: AC-3
       title: make build leaves no bin/aiwf to reach for
       status: open
-      tdd_phase: red
+      tdd_phase: green
 ---
 
 ## Goal
