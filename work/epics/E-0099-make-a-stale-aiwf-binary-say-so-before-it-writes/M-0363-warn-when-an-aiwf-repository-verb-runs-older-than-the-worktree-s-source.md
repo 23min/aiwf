@@ -86,13 +86,14 @@ cases**: `make diag-aiwf`'s `bin/aiwf-diag` is unchanged; `make install` is unch
   as it is; a binary built from different source runs different logic either way.
 - The warning runs for every verb rather than only mutating ones: a stale read is acted
   on as current too, and one hook on the root command needs no classification of verbs.
-- Measured 2026-10-22 in the devcontainer: two `git rev-parse` calls cost about 23 ms per
-  verb, against about 6 ms for `aiwf version` itself, paid only inside the aiwf
-  repository. `~/.claude/statusline.sh` never runs `aiwf`, so the warning cannot reach
-  the statusline.
-- `.guidance/project/environment.md` states that nothing mechanically blocks a
-  stale-PATH call; closing G-0471 corrects that sentence, under the instruction-file
-  fence.
+- Measured 2026-10-22 in the devcontainer, `aiwf version` run 30 times inside this
+  repository's worktree: a stamped build running the full check took 35–36 ms per call,
+  the same source without the hook 20–23 ms; outside the aiwf repository the two take
+  the same time. `~/.claude/statusline.sh` never runs `aiwf`, so the warning cannot
+  reach the statusline.
+- `.guidance/project/environment.md`'s worktree-binary section describes the warning;
+  it is instruction content, so its commit names this milestone for the
+  instruction-file fence.
 
 ## Out of scope
 
@@ -107,3 +108,40 @@ cases**: `make diag-aiwf`'s `bin/aiwf-diag` is unchanged; `make install` is unch
 - G-0471
 - G-0654
 - E-0099
+
+## Release note
+
+Inside the aiwf repository, every `aiwf` verb run by a binary built from another commit
+than the worktree's `HEAD` prints `aiwf: warning: stale binary — built from <commit>,
+which differs from HEAD <commit>; run `make install` to refresh` to stderr before it
+runs; its output and exit status are unchanged, and a consumer repository sees nothing.
+`aiwf doctor`'s `binary:` row judges `make install` builds, tagged releases and dirty
+builds by the commit they were built from instead of skipping them. `make build` writes
+`bin/aiwf-diag` rather than a `bin/aiwf` that shadows the installed release, and
+`make selfcheck` runs it.
+
+## Decisions made during implementation
+
+- A Go pseudo-version is not judged inside a linked worktree: Go stamps a build there
+  with the main checkout's commit. Measured 2026-10-22: a bare `go build` in the E-0099
+  worktree reported `e8987c72ca1f`, the main checkout's `HEAD`, while the worktree's
+  `HEAD` was `fb4074d7bb11`.
+- The warning blocks nothing; refusing a stale binary stays out of scope until an
+  ignored warning costs something.
+
+## Validation
+
+`make ci` on the milestone branch with the lint fix and the `environment.md` correction
+in the working tree, 2026-10-22, go1.25.12 linux/amd64 in the devcontainer: exit 0.
+`golangci-lint run` reported `0 issues`; every test package passed under `-race` with
+coverage, including the diff-scoped `TestPolicy_BranchCoverageAudit`; the self-check,
+run by the `bin/aiwf-diag` that `make build` produced, printed
+`self-check passed (29 steps).`
+
+## Deferrals
+
+- (none)
+
+## Reviewer notes
+
+- (none)
