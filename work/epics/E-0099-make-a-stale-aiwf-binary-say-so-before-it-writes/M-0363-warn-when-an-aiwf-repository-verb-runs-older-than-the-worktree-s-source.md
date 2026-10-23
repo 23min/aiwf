@@ -1,7 +1,7 @@
 ---
 id: M-0363
 title: Warn when an aiwf-repository verb runs older than the worktree's source
-status: in_progress
+status: done
 parent: E-0099
 tdd: required
 acs:
