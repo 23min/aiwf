@@ -6,9 +6,8 @@ status: active
 
 ## Goal
 
-An aiwf command that writes the aiwf repository, run by a binary built from other source
-than the worktree's, says so before it writes, and `make build` stops leaving such a
-binary where it is reached for.
+An aiwf command run in the aiwf repository by a binary built from other source than the
+worktree's says so before it runs.
 
 ## Context
 
@@ -33,12 +32,10 @@ corrected where AI sessions build their diagnostic binary.
 
 ## Scope
 
-- `aiwf doctor`'s staleness check reads the commit from every binary that carries one —
-  a pseudo-version, a Makefile stamp, a tagged release, a dirty build — and every verb
-  run inside the aiwf repository by a binary whose commit differs from the worktree's
-  prints that check's warning before it runs (G-0471).
-- `make build` stops leaving an executable named like the installed `aiwf` where it is
-  reached for instead of the release (G-0654).
+- `aiwf doctor`'s staleness check reads the revision from every binary that carries
+  one — a pseudo-version, a Makefile stamp, a tagged release, a dirty build — and every
+  verb run inside the aiwf repository by a binary whose source differs from the
+  worktree's `HEAD` prints that check's warning before it runs (G-0471).
 
 ## Out of scope
 
@@ -46,7 +43,9 @@ corrected where AI sessions build their diagnostic binary.
   older release (G-0600). Comparing the guidance fragment's `aiwf-version:` stamp in
   `aiwf update` stops only a downgrade between two tagged releases, which no recorded
   incident shows; it is built when one does.
-- A version ordering: a binary is judged by its commit against the worktree's.
+- A version ordering: a binary is judged by whether its source matches the worktree's.
+- Renaming the `bin/aiwf` that `make build` leaves (G-0654): `make selfcheck` depends on
+  the name, and a copy built from this repository warns once its source falls behind.
 - Upgrading the binary automatically, shipping prebuilt binaries, and bumping the Go
   toolchain past go1.25.12.
 - The planning rituals' reading of a present but stale template (G-0504), the guidance
@@ -65,11 +64,9 @@ corrected where AI sessions build their diagnostic binary.
 
 ## Success criteria
 
-- [ ] Every verb run inside the aiwf repository by a binary whose commit differs from
-  the worktree's warns before it runs, and `aiwf doctor` judges `make install` builds,
-  tagged releases and dirty builds by their commit.
-- [ ] `make build` no longer leaves an executable named `aiwf` where it is reached for in
-  place of the release.
+- [ ] Every verb run inside the aiwf repository by a binary whose source differs from
+  the worktree's `HEAD` warns before it runs, and `aiwf doctor` judges `make install`
+  builds, tagged releases and dirty builds by the source they were built from.
 - [ ] Every gap named in *Scope* is addressed.
 
 ## Risks
@@ -82,4 +79,4 @@ corrected where AI sessions build their diagnostic binary.
 
 - `M-0362` — Stop `aiwf update` silently downgrading installed artifacts · cancelled: it
   guards only a downgrade between two tagged releases, which no recorded incident shows
-- `M-0363` — Warn when an aiwf-repository verb runs older than the worktree's source, and stop `make build` leaving a reachable `bin/aiwf` · depends on: —
+- `M-0363` — Warn when an aiwf-repository verb runs older than the worktree's source · depends on: —
