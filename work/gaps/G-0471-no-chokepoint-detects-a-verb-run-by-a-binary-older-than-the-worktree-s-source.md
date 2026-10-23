@@ -1,9 +1,11 @@
 ---
 id: G-0471
 title: No chokepoint detects a verb run by a binary older than the worktree's source
-status: open
+status: addressed
 priority: high
 discovered_in: M-0281
+addressed_by_commit:
+    - 415d08636
 ---
 ## What's missing
 
