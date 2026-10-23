@@ -22,14 +22,12 @@ acs:
 ## Goal
 
 Working on aiwf with a binary built from different source than the worktree says so
-before a verb runs, `aiwf doctor` judges `make install` builds, and `make build` stops
-leaving a `bin/aiwf` that gets run instead of the release.
+before a verb runs, and `aiwf doctor` judges `make install` builds.
 
 ## Closes
 
 - G-0471 — a verb run in the aiwf repository by a binary built from other source than
   the worktree's `HEAD` says so before it runs.
-- G-0654 — `make build` no longer leaves a `bin/aiwf` to reach for.
 
 ## Context
 
@@ -45,20 +43,20 @@ and is silent outside the aiwf module. `aiwf doctor` calls it with the trunk ref
 
 ### AC-1 — Doctor judges every binary that carries a commit
 
-**Pass criterion**: `binaryStaleness` reads the binary's commit from a pseudo-version,
-from a Makefile stamp's `g<sha>`, and from a tagged release or a stamp at an exact tag
-through that tag in the repository, reports a commit that differs from the ref as stale
-with one message, and is silent when it equals the ref; a `+dirty` or `-dirty` build is
-judged by the commit it was built from; `aiwf doctor`'s `binary:` row shows it.
-**Edge cases**: a tag the repository lacks, `(devel)`, and a directory that is not a
-Git repository are silent; describe's abbreviated hash is compared as a commit prefix.
-**Code references**: commit extraction beside `version.PseudoSHA` in
-`internal/version/version.go`; the shape table in
-`internal/cli/doctor/binary_staleness_test.go`.
+**Pass criterion**: `binaryStaleness` reads the revision a binary was built from — a
+pseudo-version's hash, a Makefile stamp's `g<sha>`, a tagged release or a stamp at an
+exact tag — and reports the binary as stale, with one message, when the source it was
+built from differs from the ref's, and is silent when it matches; a `+dirty` or
+`-dirty` build is judged by the commit it started from; `aiwf doctor`'s `binary:` row
+shows it. **Edge cases**: a commit that changes only planning files or tests leaves the
+binary current; a revision the repository lacks, `(devel)`, and a directory that is not
+a Git repository are silent. **Code references**: revision extraction beside
+`version.PseudoSHA` in `internal/version/version.go`; the table in
+`internal/cli/doctor/binary_staleness_internal_test.go`.
 
 ### AC-2 — Every verb in the aiwf repository warns on a stale binary
 
-**Pass criterion**: inside the aiwf repository, every verb run by a binary whose commit
+**Pass criterion**: inside the aiwf repository, every verb run by a binary whose source
 differs from the worktree's `HEAD` prints `binaryStaleness`'s warning (called with
 `HEAD`) to stderr before it runs, and its stdout, result and exit status are unchanged.
 **Edge cases**: a consumer repository prints nothing (the module-path check); a binary
@@ -74,6 +72,11 @@ cases**: `make diag-aiwf`'s `bin/aiwf-diag` is unchanged; `make install` is unch
 **Code references**: `Makefile` (`build`, `selfcheck`); a recipe check through the
 `makeDryRun` helper in `internal/policies/`, as `makefile_version_stamp_test.go` does.
 
+Cancelled: `make selfcheck` depends on the binary being named `aiwf`, because
+`aiwf doctor --self-check` puts the binary's directory first on `PATH` for the hooks it
+installs (`internal/cli/doctor/selfcheck.go`), and a `bin/aiwf` built from this
+repository now warns once its source falls behind (AC-2). G-0654 stays open.
+
 ## Constraints
 
 - Reuse `binaryStaleness` for both `aiwf doctor` and the pre-verb warning; no second
@@ -82,8 +85,11 @@ cases**: `make diag-aiwf`'s `bin/aiwf-diag` is unchanged; `make install` is unch
 
 ## Design notes
 
-- Comparing for a different commit rather than an older one reuses `binaryStaleness`
-  as it is; a binary built from different source runs different logic either way.
+- The check compares the source a binary was built from — `cmd`, `internal`, `go.mod`
+  and `go.sum`, tests excluded — with `HEAD`'s, rather than its commit or its version: a
+  commit that changes only planning files or tests leaves the binary running the same
+  logic. Measured 2026-10-23: 255 of the last 300 first-parent commits on `main` changed
+  nothing under those paths.
 - The warning runs for every verb rather than only mutating ones: a stale read is acted
   on as current too, and one hook on the root command needs no classification of verbs.
 - Measured 2026-10-22 in the devcontainer, `aiwf version` run 30 times inside this
@@ -91,9 +97,6 @@ cases**: `make diag-aiwf`'s `bin/aiwf-diag` is unchanged; `make install` is unch
   the same source without the hook 20–23 ms; outside the aiwf repository the two take
   the same time. `~/.claude/statusline.sh` never runs `aiwf`, so the warning cannot
   reach the statusline.
-- `.guidance/project/environment.md`'s worktree-binary section describes the warning;
-  it is instruction content, so its commit names this milestone for the
-  instruction-file fence.
 
 ## Out of scope
 
@@ -111,32 +114,31 @@ cases**: `make diag-aiwf`'s `bin/aiwf-diag` is unchanged; `make install` is unch
 
 ## Release note
 
-Inside the aiwf repository, every `aiwf` verb run by a binary built from another commit
-than the worktree's `HEAD` prints `aiwf: warning: stale binary — built from <commit>,
-which differs from HEAD <commit>; run `make install` to refresh` to stderr before it
-runs; its output and exit status are unchanged, and a consumer repository sees nothing.
-`aiwf doctor`'s `binary:` row judges `make install` builds, tagged releases and dirty
-builds by the commit they were built from instead of skipping them. `make build` writes
-`bin/aiwf-diag` rather than a `bin/aiwf` that shadows the installed release, and
-`make selfcheck` runs it.
+Inside the aiwf repository, every `aiwf` verb run by a binary whose source differs from
+the worktree's `HEAD` prints ``aiwf: warning: stale binary — built from <revision>, whose
+source differs from HEAD; run `make install` to refresh`` to stderr before it runs. Its
+output and exit status are unchanged, a commit that touches only planning files or tests
+does not trigger it, and a consumer repository sees nothing. `aiwf doctor`'s `binary:`
+row judges `make install` builds, tagged releases and dirty builds by their source
+instead of skipping them.
 
 ## Decisions made during implementation
 
-- A Go pseudo-version is not judged inside a linked worktree: Go stamps a build there
-  with the main checkout's commit. Measured 2026-10-22: a bare `go build` in the E-0099
-  worktree reported `e8987c72ca1f`, the main checkout's `HEAD`, while the worktree's
-  `HEAD` was `fb4074d7bb11`.
-- The warning blocks nothing; refusing a stale binary stays out of scope until an
-  ignored warning costs something.
+- A Go pseudo-version is not judged inside a linked worktree: under go1.25.12, the
+  devcontainer's `GOTOOLCHAIN`, `go build` there stamps the main checkout's commit.
+  Measured 2026-10-22: a bare `go build` in the E-0099 worktree reported `e8987c72ca1f`,
+  the main checkout's `HEAD`, while the worktree's was `fb4074d7bb11`. Measured
+  2026-10-23: go1.27.1 stamps the same build with the worktree's own commit
+  (`1db49ffee37b`), so a toolchain that does so retires the skip.
 
 ## Validation
 
-`make ci` on the milestone branch with the lint fix and the `environment.md` correction
-in the working tree, 2026-10-22, go1.25.12 linux/amd64 in the devcontainer: exit 0.
+`make ci` on the milestone branch at `1db49ffee`, with only this spec's wrap sections
+uncommitted, 2026-10-23, go1.25.12 linux/amd64 in the devcontainer: exit 0.
 `golangci-lint run` reported `0 issues`; every test package passed under `-race` with
-coverage, including the diff-scoped `TestPolicy_BranchCoverageAudit`; the self-check,
-run by the `bin/aiwf-diag` that `make build` produced, printed
-`self-check passed (29 steps).`
+coverage, including the diff-scoped `TestPolicy_BranchCoverageAudit`; the self-check
+printed `self-check passed (29 steps).` `aiwf check --since` the epic branch, run by a
+binary built from this branch, reported no error, the instruction-file fence included.
 
 ## Deferrals
 
