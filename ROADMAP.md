@@ -1402,5 +1402,5 @@ worktree's says so before it runs.
 | Milestone | Title | Status |
 |---|---|---|
 | M-0362 | Stop aiwf update silently downgrading installed artifacts | cancelled |
-| M-0363 | Warn when an aiwf-repository verb runs older than the worktree's source | in_progress |
+| M-0363 | Warn when an aiwf-repository verb runs older than the worktree's source | done |
 
