@@ -1392,16 +1392,15 @@ aiwf from its own source with tools that match CI.
 | M-0359 | Generate aiwf's devcontainer from the kit with its own steps in project hooks | done |
 | M-0360 | Trial-build, then rebuild aiwf's container from the kit and record the result | done |
 
-## E-0099 — Make a stale aiwf binary say so before it writes (proposed)
+## E-0099 — Make a stale aiwf binary say so before it writes (done)
 
 ### Goal
 
-An aiwf command run by a binary older than the artifacts or source it acts on says
-so before it writes, instead of silently rolling installed artifacts back or running
-older logic.
+An aiwf command run in the aiwf repository by a binary built from other source than the
+worktree's says so before it runs.
 
 | Milestone | Title | Status |
 |---|---|---|
-| M-0362 | Stop aiwf update silently downgrading installed artifacts | draft |
-| M-0363 | Warn when an aiwf-repository verb runs older than the worktree's source | draft |
+| M-0362 | Stop aiwf update silently downgrading installed artifacts | cancelled |
+| M-0363 | Warn when an aiwf-repository verb runs older than the worktree's source | done |
 

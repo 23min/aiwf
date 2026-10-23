@@ -182,14 +182,30 @@ func IsAncestor(ctx context.Context, workdir, commit, ref string) (bool, error) 
 // ShortSHA returns the first n hex characters of the commit SHA that
 // ref resolves to, via `git rev-parse --short=n ref`. Returns ""
 // (and a wrapped error) when the ref does not resolve or git fails.
-// Used by the doctor binary-staleness check (G-0176) to compare a
-// pseudo-version's 12-char SHA prefix against the trunk-ref HEAD.
 func ShortSHA(ctx context.Context, workdir, ref string, n int) (string, error) {
 	out, err := output(ctx, workdir, "rev-parse", fmt.Sprintf("--short=%d", n), ref)
 	if err != nil {
 		return "", fmt.Errorf("git rev-parse --short=%d %s: %w", n, ref, err)
 	}
 	return strings.TrimSpace(out), nil
+}
+
+// SameContent reports whether revisions a and b hold identical content
+// under the given pathspecs, via `git diff --quiet`. An error means a
+// revision does not resolve or git failed.
+func SameContent(ctx context.Context, workdir, a, b string, pathspecs ...string) (bool, error) {
+	cmd := exec.CommandContext(ctx, "git", append([]string{"diff", "--quiet", a, b, "--"}, pathspecs...)...)
+	cmd.Dir = workdir
+	cmd.Env = gitEnv()
+	err := cmd.Run()
+	if err == nil {
+		return true, nil
+	}
+	var exitErr *exec.ExitError
+	if errors.As(err, &exitErr) && exitErr.ExitCode() == 1 {
+		return false, nil
+	}
+	return false, fmt.Errorf("git diff --quiet %s %s: %w", a, b, err)
 }
 
 // ResolveCommitSHA returns the canonical full (40-hex) SHA that ref's

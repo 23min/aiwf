@@ -250,6 +250,42 @@ func TestPseudoSHA(t *testing.T) {
 	}
 }
 
+// TestBuildCommit pins how each version shape names the revision its
+// binary was built from: a commit hash where the version carries one, a
+// tag where it names a release, and nothing where it carries neither. A
+// dirty build names the commit it started from.
+func TestBuildCommit(t *testing.T) {
+	t.Parallel()
+	cases := []struct {
+		name    string
+		in      string
+		wantRev string
+		wantOK  bool
+	}{
+		{"pseudo-version", "v0.8.1-0.20260516161658-02c349f629d7", "02c349f629d7", true},
+		{"dirty pseudo-version", "v0.40.1-0.20260930102944-f13a6aa269f3+dirty", "f13a6aa269f3", true},
+		{"stamp past a tag", "main@v0.41.0-18-ge8987c72c", "e8987c72c", true},
+		{"dirty stamp", "main@v0.41.0-18-ge8987c72c-dirty", "e8987c72c", true},
+		{"stamp at a tag", "main@v0.40.0", "v0.40.0", true},
+		{"stamp in a clone without tags", "epic/E-0099-x@e8987c72c", "e8987c72c", true},
+		{"stamp with nothing after the branch", "main@", "", false},
+		{"tagged release", "v0.32.0", "v0.32.0", true},
+		{"dirty tagged build", "v0.41.0+dirty", "v0.41.0", true},
+		{"devel", DevelVersion, "", false},
+		{"empty", "", "", false},
+		{"branch name", "main", "", false},
+	}
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			t.Parallel()
+			rev, ok := BuildCommit(tc.in)
+			if rev != tc.wantRev || ok != tc.wantOK {
+				t.Errorf("BuildCommit(%q) = (%q, %v), want (%q, %v)", tc.in, rev, ok, tc.wantRev, tc.wantOK)
+			}
+		})
+	}
+}
+
 func TestSkewString(t *testing.T) {
 	t.Parallel()
 	cases := []struct {

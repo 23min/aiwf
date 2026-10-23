@@ -11,67 +11,79 @@ import (
 	"github.com/23min/aiwf/internal/version"
 )
 
-// binaryStaleness returns a suffix string for the doctor `binary:`
-// row when the running binary's source SHA differs from trunkRef (the
-// configured `allocate.trunk`, default refs/remotes/origin/main) in the
-// kernel checkout under rootDir.
-// Returns "" (no suffix) when the check should be silent — Lane B per
+// binaryStaleness returns why the running binary is stale when the
+// source it was built from differs from ref's in the kernel checkout
+// under rootDir. Returns "" when the check should be silent — Lane B per
 // G-0176: kernel-developer-side only.
 //
-// Skip-by-shape conditions (binary):
-//   - DevelVersion (a build without git state, e.g. `go run`); not deployable
-//   - +dirty suffix (VCS-stamped working-tree build); same reason
-//   - Tagged release; covered by the latest: row instead
-//   - Not a pseudo-version (e.g. a Makefile stamp, `<branch>@<git describe>`)
+// The binary's revision comes from version.BuildCommit: a hash from a
+// pseudo-version or a Makefile stamp, or a tag for a release. A dirty
+// build is judged by the commit it started from.
 //
-// Skip-by-environment conditions:
+// Silent when:
+//   - the version names no revision (`(devel)`, an empty string)
 //   - expectedModule == "" (binary lacks build info)
 //   - rootDir's go.mod module path != expectedModule (downstream
 //     consumer repo; the check is kernel-developer-only)
-//   - trunkRef is absent (fresh clone, no fetch yet,
-//     or detached state); degrade silently — mirrors how the latest:
-//     row handles GOPROXY unreachability.
+//   - the binary's revision or ref does not resolve in rootDir (fresh
+//     clone, no fetch yet, a tag not fetched); degrade silently — mirrors
+//     how the latest: row handles GOPROXY unreachability.
 //
-// The check is N=0 strict per design: any SHA mismatch triggers the
-// suffix. The suffix is advisory only; the row's problem count is
-// unaffected.
-func binaryStaleness(ctx context.Context, rootDir, trunkRef string, info version.Info, expectedModule string) string {
-	if info.Version == version.DevelVersion || info.Version == "" {
-		return ""
-	}
-	if strings.HasSuffix(info.Version, "+dirty") {
-		return ""
-	}
-	if info.Tagged {
-		return ""
-	}
-	pseudoSHA, ok := version.PseudoSHA(info.Version)
-	if !ok {
-		return ""
-	}
-	if expectedModule == "" {
+// The result is advisory only: the doctor row's problem count is
+// unaffected, and the pre-verb warning blocks nothing.
+func binaryStaleness(ctx context.Context, rootDir, ref string, info version.Info, expectedModule string) string {
+	built, ok := version.BuildCommit(info.Version)
+	if !ok || expectedModule == "" {
 		return ""
 	}
 	rootModule, err := readModulePath(rootDir)
 	if err != nil || rootModule != expectedModule {
 		return ""
 	}
-	exists, err := gitops.HasRef(ctx, rootDir, trunkRef)
-	if err != nil || !exists {
+	same, err := gitops.SameContent(ctx, rootDir, built, ref, binarySource...)
+	if err != nil || same {
 		return ""
 	}
-	trunkSHA, err := gitops.ShortSHA(ctx, rootDir, trunkRef, 12)
-	if err != nil {
-		//coverage:ignore environmental git failure between HasRef and
-		// ShortSHA — reachable only via TOCTOU on the ref between two
-		// git subprocesses; not exercisable without intrusive mocking.
+	return fmt.Sprintf("built from %s, whose source differs from %s", built, ref)
+}
+
+// binarySource is what the aiwf binary is built from: the commands, the
+// packages and the module files, tests excluded. A commit that changes
+// none of it, such as a planning verb's, leaves a binary current.
+var binarySource = []string{"cmd", "internal", "go.mod", "go.sum", ":(exclude)*_test.go"}
+
+// staleRowSuffix renders binaryStaleness's reason as the suffix appended
+// to doctor's `binary:` row, or "" when there is none.
+func staleRowSuffix(why string) string {
+	if why == "" {
 		return ""
 	}
-	if trunkSHA == pseudoSHA {
+	return " (stale: " + why + ")"
+}
+
+// StaleBinaryWarning is the line every verb prints to stderr before it
+// runs when the binary's source differs from rootDir's HEAD in the aiwf
+// repository, or "" when it is current or the check is silent.
+// Inside a linked worktree a Go pseudo-version is not judged: the go1.25
+// toolchain stamps a build in a worktree nested inside the main checkout
+// with the main checkout's commit, so the version would name the wrong
+// source.
+func StaleBinaryWarning(ctx context.Context, rootDir string, info version.Info, expectedModule string) string {
+	if _, pseudo := version.PseudoSHA(strings.TrimSuffix(info.Version, "+dirty")); pseudo && inLinkedWorktree(rootDir) {
 		return ""
 	}
-	return fmt.Sprintf(" (stale: pseudo-base SHA %s differs from %s %s; run `make install` to refresh)",
-		pseudoSHA, trunkRef, trunkSHA)
+	if why := binaryStaleness(ctx, rootDir, "HEAD", info, expectedModule); why != "" {
+		return "aiwf: warning: stale binary — " + why
+	}
+	return ""
+}
+
+// inLinkedWorktree reports whether rootDir is a linked worktree, whose
+// `.git` is a file pointing at the main checkout's repository rather than
+// a directory.
+func inLinkedWorktree(rootDir string) bool {
+	fi, err := os.Stat(filepath.Join(rootDir, ".git"))
+	return err == nil && !fi.IsDir()
 }
 
 // readModulePath parses the `module <path>` line from rootDir/go.mod.

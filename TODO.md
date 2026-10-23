@@ -328,7 +328,6 @@ trailers.
 - **G-0168** — three set-at-create fields have no mutation verb; `tdd:`, the only one
   with a real friction report, got `aiwf milestone tdd` in 2026-07. D-0048 defers the
   rest as consistency gaps rather than friction
-- **G-0471** *(high)* — nothing catches a verb run by a binary older than the source
 - **G-0500** *(high)* — `edit-body` over a hand-moved file lands a duplicate id the local check misses
 - **G-0442** — `addressed_by` / `superseded_by` can be backfilled and force-re-pointed
   but never *cleared*, and a forced re-point leaves a stale reciprocal that

@@ -302,9 +302,7 @@ func PseudoBase(v string) (string, bool) {
 // characters as a string with ok=true. Returns ok=false when v does
 // not match the pseudo-version shape (tagged, devel, +dirty, etc.).
 //
-// Used by the doctor binary-staleness check (G-0176): the suffix is
-// what `git rev-parse --short=12 refs/remotes/origin/main` produces,
-// so the two values are directly comparable.
+// BuildCommit uses it to name the commit a pseudo-version was built from.
 func PseudoSHA(v string) (string, bool) {
 	loc := pseudoVersionRE.FindStringIndex(v)
 	if loc == nil {
@@ -312,6 +310,34 @@ func PseudoSHA(v string) (string, bool) {
 	}
 	end := loc[1]
 	return v[end-12 : end], true
+}
+
+// describeHashRE captures the abbreviated commit hash `git describe`
+// appends after a tag: `<tag>-<n>-g<hash>`.
+var describeHashRE = regexp.MustCompile(`-g([0-9a-f]{7,40})$`)
+
+// BuildCommit names the revision the binary versioned v was built from,
+// as git accepts it: a commit hash, possibly abbreviated, or a tag. A
+// dirty build names the commit it started from. ok=false when v names no
+// revision, as `(devel)` does.
+func BuildCommit(v string) (rev string, ok bool) {
+	v = strings.TrimSuffix(v, "+dirty")
+	if isMakefileStamp(v) {
+		// `git describe --always` prints <tag>-<n>-g<hash>, a bare tag, or,
+		// in a clone without tags, a bare hash.
+		describe := strings.TrimSuffix(v[strings.LastIndex(v, "@")+1:], "-dirty")
+		if m := describeHashRE.FindStringSubmatch(describe); m != nil {
+			return m[1], true
+		}
+		return describe, describe != ""
+	}
+	if sha, ok := PseudoSHA(v); ok {
+		return sha, true
+	}
+	if taggedSemverRE.MatchString(v) {
+		return v, true
+	}
+	return "", false
 }
 
 // isTagged reports whether v is a clean tagged semver value rather

@@ -1,19 +1,19 @@
 ---
 id: M-0362
 title: Stop aiwf update silently downgrading installed artifacts
-status: draft
+status: cancelled
 parent: E-0099
 tdd: required
 acs:
     - id: AC-1
       title: An older release leaves installed artifacts unchanged
-      status: open
+      status: cancelled
     - id: AC-2
       title: An unorderable pair refreshes and reports it could not compare
-      status: open
+      status: cancelled
     - id: AC-3
       title: A newer release or an unstamped tree refreshes as before
-      status: open
+      status: cancelled
 ---
 
 ## Goal
@@ -21,6 +21,11 @@ acs:
 `aiwf update` run by a release older than the one that last wrote a repository's
 artifacts leaves them unchanged and says so, instead of rolling them back and reporting
 `updated`.
+
+## Closes
+
+- G-0600 — `aiwf update` no longer rolls installed artifacts back when run by an older
+  release.
 
 ## Context
 
@@ -74,9 +79,8 @@ existing update and init tests, unchanged.
 
 - The fragment's stamp stands for the whole refresh; no other artifact family gains a
   stamp.
-- Whether the skip covers only the embedded-snapshot artifacts or the whole
-  `RefreshArtifacts` run is settled at start, choosing the smaller change that meets
-  AC-1.
+- The skip covers the whole `aiwf update` run: it returns before `RefreshArtifacts`, so
+  an older binary leaves every artifact, hook and the health file untouched.
 
 ## Out of scope
 

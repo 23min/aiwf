@@ -16,6 +16,19 @@ section in this file.
 
 ## [Unreleased]
 
+### Changed — E-0099: a stale aiwf binary in the aiwf repository says so before every verb
+
+- Inside the aiwf repository, every `aiwf` verb run by a binary whose source differs
+  from the worktree's `HEAD` prints `aiwf: warning: stale binary — built from
+  <revision>, whose source differs from HEAD` to stderr before it runs. Its output and
+  exit status are unchanged, a commit that touches only planning files or `_test.go`
+  files does not trigger it, and a consumer repository sees nothing. A plain `go build`
+  or `go install` binary run in a linked worktree is not judged, because the go1.25
+  toolchain stamps it with the main checkout's commit; build with `make diag-aiwf`
+  there.
+- `aiwf doctor`'s `binary:` row judges `make install` builds, tagged releases and dirty
+  builds by their source against the trunk instead of skipping them.
+
 ## [0.41.0] — 2026-10-21
 
 ### Changed (breaking) — E-0095: `aiwf init` and `aiwf update` adopt applicable guidance automatically
