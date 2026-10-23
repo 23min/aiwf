@@ -12,6 +12,7 @@
 package cli
 
 import (
+	"context"
 	"errors"
 	"fmt"
 	"runtime"
@@ -126,6 +127,9 @@ func NewRootCmd(correlationID string) *cobra.Command {
 		Short:         "ai-workflow framework CLI",
 		SilenceUsage:  true,
 		SilenceErrors: true,
+		PersistentPreRun: func(c *cobra.Command, _ []string) {
+			warnIfStale(c.Context(), version.Current(), version.ModulePath())
+		},
 		RunE: func(c *cobra.Command, args []string) error {
 			if v, _ := c.Flags().GetBool("version"); v {
 				cliutil.Println(version.Current().Version)
@@ -355,4 +359,15 @@ Concurrency:
     repo-lock-acquire-failed   the lock could not be taken at all (exit 3) — the lockfile could not be located, opened or locked; retrying will not help
 
 Docs: the aiwf README, https://github.com/23min/aiwf`)
+}
+
+// warnIfStale prints doctor.StaleBinaryWarning to stderr before any verb
+// runs: inside the aiwf repository, a binary built from another commit
+// than HEAD says so instead of running older logic silently. It never
+// blocks the verb, and it is silent in a consumer repository.
+func warnIfStale(ctx context.Context, info version.Info, expectedModule string) {
+	root, _ := cliutil.ResolveRoot("")
+	if w := doctor.StaleBinaryWarning(ctx, root, info, expectedModule); w != "" {
+		cliutil.Errorln(w)
+	}
 }

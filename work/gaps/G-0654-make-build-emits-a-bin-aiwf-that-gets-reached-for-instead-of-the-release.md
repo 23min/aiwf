@@ -6,8 +6,8 @@ priority: medium
 ---
 ## What's missing
 
-`make build` writes its binary to `bin/aiwf` (Makefile:56). Nothing consumes
-that path except `make selfcheck` (Makefile:252). The other apparent references
+`make build` writes its binary to `bin/aiwf` (Makefile:66). Nothing consumes
+that path except `make selfcheck` (Makefile:289). The other apparent references
 are not references: the `bin/aiwf` strings under `internal/` are fake path
 literals in table-driven tests, the e2e suite has none, and the test harness
 builds to its own temp directory and prepends *that* to PATH precisely so hooks
@@ -27,10 +27,9 @@ commits stale — `main@v0.33.0-72-gc308a3994` — and was used to regenerate
 staleness; it was noticed by chance while checking something else.
 
 The diagnostic route already avoids the problem by construction: `make
-diag-aiwf` writes `bin/aiwf-diag` (Makefile:71-75), a name that cannot be
+diag-aiwf` writes `bin/aiwf-diag` (Makefile:81-85), a name that cannot be
 confused with the release and that PATH will never resolve. `make build` is the
-one producer that emits the confusable name, and its sole consumer does not care
-what the file is called.
+one producer that emits the confusable name.
 
 ## Why it matters
 
@@ -42,14 +41,14 @@ is backstopped, because the git hooks resolve `command -v aiwf` to the installed
 release and re-validate at pre-commit and pre-push. Reads consumed
 conversationally have no such backstop.
 
-The staleness check that exists cannot cover this shape. `binaryStaleness`
-(`internal/cli/doctor/binary_staleness.go`, G-0176) returns early for any
-version string `version.PseudoSHA` fails to parse, and the Makefile stamp
-carries no pseudo-version timestamp, so it never reaches the comparison. The
-check is aimed at a binary installed with `go install <module>@<branch-or-sha>`;
-the shape `make build` produces is invisible to it.
+A `bin/aiwf` built from this repository says so once its source falls behind:
+every verb prints a stale-binary warning to stderr when the binary's source
+differs from the worktree's `HEAD` (`StaleBinaryWarning`,
+`internal/cli/doctor/binary_staleness.go`). A copy built before that warning
+existed, such as one left in a checkout, still answers silently, and the file is
+still named like the release and still reached for.
 
-That leaves the confusable artefact with no detector and no owner. The cost of
-removing it is two lines — `build:` emitting `bin/aiwf-diag` and `selfcheck:`
-following it — and no caller changes behaviour, because the only consumer is the
-one target that names the path directly.
+Renaming it is not free. `aiwf doctor --self-check` puts its own binary's
+directory first on `PATH` so the hooks it installs resolve `aiwf` to the binary
+under test (`internal/cli/doctor/selfcheck.go`); that works only while the binary
+is named `aiwf`, so `make selfcheck` depends on the name `make build` gives it.
