@@ -49,9 +49,9 @@ pseudo-version's hash, a Makefile stamp's `g<sha>`, a tagged release or a stamp 
 exact tag — and reports the binary as stale, with one message, when the source it was
 built from differs from the ref's, and is silent when it matches; a `+dirty` or
 `-dirty` build is judged by the commit it started from; `aiwf doctor`'s `binary:` row
-shows it. **Edge cases**: a commit that changes only planning files or tests leaves the
-binary current; a revision the repository lacks, `(devel)`, and a directory that is not
-a Git repository are silent. **Code references**: revision extraction beside
+shows it. **Edge cases**: a commit that changes only planning files or `_test.go` files
+leaves the binary current; a revision the repository lacks, `(devel)`, and a directory
+that is not a Git repository are silent. **Code references**: revision extraction beside
 `version.PseudoSHA` in `internal/version/version.go`; the table in
 `internal/cli/doctor/binary_staleness_internal_test.go`.
 
@@ -87,9 +87,10 @@ repository now warns once its source falls behind (AC-2). G-0654 stays open.
 ## Design notes
 
 - The check compares the source a binary was built from — `cmd`, `internal`, `go.mod`
-  and `go.sum`, tests excluded — with `HEAD`'s, rather than its commit or its version: a
-  commit that changes only planning files or tests leaves the binary running the same
-  logic. Measured 2026-10-23: 261 of the last 300 first-parent commits on `main` changed
+  and `go.sum`, `_test.go` files excluded — with `HEAD`'s, rather than its commit or its
+  version: a commit that changes only planning files or `_test.go` files leaves the
+  binary running the same logic; test fixtures under `testdata/` still count. Measured
+  2026-10-23: 261 of the last 300 first-parent commits on `main` changed
   nothing under those paths.
 - The warning runs for every verb rather than only mutating ones: a stale read is acted
   on as current too, and one hook on the root command needs no classification of verbs.
@@ -119,7 +120,8 @@ repository now warns once its source falls behind (AC-2). G-0654 stays open.
 Inside the aiwf repository, every `aiwf` verb run by a binary whose source differs from
 the worktree's `HEAD` prints `aiwf: warning: stale binary — built from <revision>, whose
 source differs from HEAD` to stderr before it runs. Its output and exit status are
-unchanged, a commit that touches only planning files or tests does not trigger it, and
+unchanged, a commit that touches only planning files or `_test.go` files does not
+trigger it, and
 a consumer repository sees nothing. A plain `go build` or `go install` binary run in a
 linked worktree is not judged, because the go1.25 toolchain stamps it with the main
 checkout's commit; build with `make diag-aiwf` there. `aiwf doctor`'s
