@@ -35,7 +35,8 @@ corrected where AI sessions build their diagnostic binary.
 - `aiwf doctor`'s staleness check reads the revision from every binary that carries
   one — a pseudo-version, a Makefile stamp, a tagged release, a dirty build — and every
   verb run inside the aiwf repository by a binary whose source differs from the
-  worktree's `HEAD` prints that check's warning before it runs (G-0471).
+  worktree's `HEAD` prints that check's warning before it runs, except a plain
+  `go build` or `go install` binary in a linked worktree (G-0471).
 
 ## Out of scope
 
@@ -65,7 +66,8 @@ corrected where AI sessions build their diagnostic binary.
 ## Success criteria
 
 - [ ] Every verb run inside the aiwf repository by a binary whose source differs from
-  the worktree's `HEAD` warns before it runs, and `aiwf doctor` judges `make install`
+  the worktree's `HEAD` warns before it runs, a plain `go build` or `go install` binary
+  in a linked worktree excepted, and `aiwf doctor` judges `make install`
   builds, tagged releases and dirty builds by the source they were built from.
 - [ ] Every gap named in *Scope* is addressed.
 
