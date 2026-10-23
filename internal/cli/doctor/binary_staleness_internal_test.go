@@ -132,39 +132,24 @@ func TestBinaryStaleness_OkWhenSHAsMatch(t *testing.T) {
 	}
 }
 
-// TestBinaryStaleness_StaleSuffix confirms the suffix names both the
-// binary SHA and the origin/main SHA when they differ, plus the
-// remediation hint.
+// TestBinaryStaleness_StaleSuffix pins the reason binaryStaleness gives
+// for a binary whose source differs from the ref, and the row suffix doctor
+// appends it with.
 func TestBinaryStaleness_StaleSuffix(t *testing.T) {
 	t.Parallel()
-	root, mainSHA := initRepoWithMain(t, "github.com/23min/aiwf")
+	root, _ := initRepoWithMain(t, "github.com/23min/aiwf")
 	ctx := context.Background()
-	binarySHA := "abcdef123456"
-	// Sanity: binarySHA must not equal mainSHA, else the test asserts
-	// the wrong branch. (Fixture authoring discipline — if this trips,
-	// pick a different fixture string.)
-	if binarySHA == mainSHA {
-		t.Fatalf("fixture collision: binarySHA == mainSHA %q", mainSHA)
-	}
-	info := version.Info{Version: "v0.0.0-20260503120000-" + binarySHA}
+	built := headSHA(t, ctx, root)
+	commitFile(t, ctx, root, "internal/x.go", "package x\n")
+	mustGit(t, ctx, root, "update-ref", config.DefaultAllocateTrunk, "HEAD")
+	info := version.Info{Version: "v0.0.0-20260503120000-" + built[:12]}
 	got := binaryStaleness(ctx, root, config.DefaultAllocateTrunk, info, "github.com/23min/aiwf")
-	if got == "" {
-		t.Fatal("binaryStaleness stale = \"\", want suffix")
+	want := "built from " + built[:12] + ", whose source differs from " + config.DefaultAllocateTrunk + "; run `make install` to refresh"
+	if got != want {
+		t.Errorf("binaryStaleness = %q, want %q", got, want)
 	}
-	// Structural assertion: both SHAs must appear in the suffix, plus
-	// the remediation hint. Substring is OK here because each value is
-	// distinct enough that an unrelated location would be a real bug.
-	if !strings.Contains(got, binarySHA) {
-		t.Errorf("suffix %q missing binary SHA %q", got, binarySHA)
-	}
-	if !strings.Contains(got, mainSHA) {
-		t.Errorf("suffix %q missing main SHA %q", got, mainSHA)
-	}
-	if !strings.Contains(got, "make install") {
-		t.Errorf("suffix %q missing remediation `make install`", got)
-	}
-	if row := staleRowSuffix(got); !strings.HasPrefix(row, " (stale: ") {
-		t.Errorf("row suffix %q must open with \" (stale: \" to append to the binary row", row)
+	if row := staleRowSuffix(got); row != " (stale: "+want+")" {
+		t.Errorf("row suffix = %q, want it to wrap the reason", row)
 	}
 	if row := staleRowSuffix(""); row != "" {
 		t.Errorf("row suffix for a current binary = %q, want none", row)
@@ -220,45 +205,53 @@ func TestBinaryStaleness_SkipsOnEmptyExpectedModule(t *testing.T) {
 
 // TestBinaryStaleness_ComparesConfiguredTrunk confirms the check reads
 // the trunk it is handed rather than assuming origin/main: with only a
-// non-default trunk ref present, a mismatch is reported against it.
+// non-default trunk ref present, a difference is reported against it.
 func TestBinaryStaleness_ComparesConfiguredTrunk(t *testing.T) {
 	t.Parallel()
-	root, trunkSHA := initRepoWithMain(t, "github.com/23min/aiwf")
+	root, _ := initRepoWithMain(t, "github.com/23min/aiwf")
 	ctx := context.Background()
+	built := headSHA(t, ctx, root)
+	commitFile(t, ctx, root, "internal/x.go", "package x\n")
 	const trunkRef = "refs/remotes/origin/trunk"
 	mustGit(t, ctx, root, "update-ref", trunkRef, "HEAD")
 	mustGit(t, ctx, root, "update-ref", "-d", "refs/remotes/origin/main")
-	info := version.Info{Version: "v0.0.0-20260503120000-abcdef123456"}
+	info := version.Info{Version: "v0.0.0-20260503120000-" + built[:12]}
 	got := binaryStaleness(ctx, root, trunkRef, info, "github.com/23min/aiwf")
-	if !strings.Contains(got, trunkRef+" "+trunkSHA) {
-		t.Errorf("suffix %q does not report the configured trunk %s at %s", got, trunkRef, trunkSHA)
+	if !strings.Contains(got, "differs from "+trunkRef) {
+		t.Errorf("suffix %q does not report the configured trunk %s", got, trunkRef)
 	}
 }
 
-// TestBinaryStaleness_JudgesEveryBuildThatNamesACommit pins M-0363/AC-1:
-// a Makefile stamp, a dirty build and a tagged release are each judged by
-// the commit they name — stale when it differs from the ref, silent when
-// it is the ref — and a tag the repository lacks is silent.
-func TestBinaryStaleness_JudgesEveryBuildThatNamesACommit(t *testing.T) {
+// TestBinaryStaleness_JudgesTheSourceABuildNames pins M-0363/AC-1: every
+// build that names a revision — a Makefile stamp, a dirty build, a tagged
+// release — is stale exactly when the binary's source differs from the
+// ref's; a commit that changes only planning files or tests leaves it
+// current, and a revision the repository lacks is silent.
+func TestBinaryStaleness_JudgesTheSourceABuildNames(t *testing.T) {
 	t.Parallel()
-	root, refSHA := initRepoWithMain(t, "github.com/23min/aiwf")
+	root, _ := initRepoWithMain(t, "github.com/23min/aiwf")
 	ctx := context.Background()
-	mustGit(t, ctx, root, "tag", "-a", "v0.9.0", "-m", "at the ref")
-	mustGit(t, ctx, root, "commit", "-q", "--allow-empty", "-m", "past the ref")
+	mustGit(t, ctx, root, "tag", "-a", "v0.9.0", "-m", "old source")
+	old := headSHA(t, ctx, root)
+	current := commitFile(t, ctx, root, "internal/x.go", "package x\n")
 	mustGit(t, ctx, root, "tag", "v0.9.1")
+	commitFile(t, ctx, root, "work/plan.md", "planning\n")
+	commitFile(t, ctx, root, "internal/x_test.go", "package x\n")
+	mustGit(t, ctx, root, "update-ref", config.DefaultAllocateTrunk, "HEAD")
 	cases := []struct {
 		name      string
 		version   string
 		wantStale bool
 	}{
-		{"stamp at the ref", "main@v0.8.0-3-g" + refSHA[:9], false},
-		{"stamp elsewhere", "main@v0.8.0-3-gabcdef123", true},
-		{"dirty stamp at the ref", "main@v0.8.0-3-g" + refSHA[:9] + "-dirty", false},
-		{"dirty pseudo-version elsewhere", "v0.0.0-20260503120000-abcdef123456+dirty", true},
-		{"tag at the ref", "v0.9.0", false},
-		{"tag elsewhere", "v0.9.1", true},
-		{"stamp at a tag elsewhere", "main@v0.9.1", true},
+		{"stamp at a planning- and test-only distance", "main@v0.9.1-1-g" + current[:9], false},
+		{"stamp at older source", "main@v0.9.0-1-g" + old[:9], true},
+		{"dirty stamp at current source", "main@v0.9.1-1-g" + current[:9] + "-dirty", false},
+		{"dirty pseudo-version at older source", "v0.0.0-20260503120000-" + old[:12] + "+dirty", true},
+		{"tag at current source", "v0.9.1", false},
+		{"tag at older source", "v0.9.0", true},
+		{"stamp at a tag at older source", "main@v0.9.0", true},
 		{"tag the repository lacks", "v0.1.0", false},
+		{"commit the repository lacks", "main@v0.9.1-1-gabcdef123", false},
 	}
 	for _, tc := range cases {
 		t.Run(tc.name, func(t *testing.T) {
@@ -267,37 +260,37 @@ func TestBinaryStaleness_JudgesEveryBuildThatNamesACommit(t *testing.T) {
 			if stale := got != ""; stale != tc.wantStale {
 				t.Errorf("binaryStaleness(%q) = %q, want stale=%v", tc.version, got, tc.wantStale)
 			}
-			if tc.wantStale && !strings.Contains(got, refSHA) {
-				t.Errorf("suffix %q does not name the ref's commit %s", got, refSHA)
-			}
 		})
 	}
 }
 
 // TestStaleBinaryWarning pins the line every verb prints before it runs in
-// the aiwf repository (M-0363/AC-2): a binary whose commit differs from HEAD
-// warns, one at HEAD is silent, and inside a linked worktree a Go
-// pseudo-version is not judged, because Go stamps a build there with the
-// main checkout's commit rather than the worktree's.
+// the aiwf repository (M-0363/AC-2): a binary whose source differs from HEAD
+// warns, one at HEAD's source is silent, and inside a linked worktree a Go
+// pseudo-version is not judged, dirty or not, because the go1.25 toolchain
+// stamps a build there with the main checkout's commit rather than the
+// worktree's.
 func TestStaleBinaryWarning(t *testing.T) {
 	t.Parallel()
-	root, headSHA := initRepoWithMain(t, "github.com/23min/aiwf")
+	root, _ := initRepoWithMain(t, "github.com/23min/aiwf")
 	ctx := context.Background()
+	old := headSHA(t, ctx, root)
+	current := commitFile(t, ctx, root, "internal/x.go", "package x\n")
 	linked := filepath.Join(t.TempDir(), "linked")
 	mustGit(t, ctx, root, "worktree", "add", "-q", "-b", "side", linked)
-	mustGit(t, ctx, linked, "commit", "-q", "--allow-empty", "-m", "past the main checkout")
 	cases := []struct {
 		name     string
 		dir      string
 		version  string
 		wantWarn bool
 	}{
-		{"stamp at HEAD", root, "main@v0.8.0-3-g" + headSHA[:9], false},
-		{"stamp elsewhere", root, "main@v0.8.0-3-gabcdef123", true},
-		{"pseudo-version elsewhere in the main checkout", root, "v0.0.0-20260503120000-abcdef123456", true},
-		{"pseudo-version in a linked worktree", linked, "v0.0.0-20260503120000-" + headSHA, false},
-		{"stamp elsewhere in a linked worktree", linked, "side@v0.8.0-3-g" + headSHA[:9], true},
-		{"pseudo-version outside any repository", t.TempDir(), "v0.0.0-20260503120000-abcdef123456", false},
+		{"stamp at HEAD", root, "main@v0.8.0-3-g" + current[:9], false},
+		{"stamp at older source", root, "main@v0.8.0-3-g" + old[:9], true},
+		{"pseudo-version at older source in the main checkout", root, "v0.0.0-20260503120000-" + old[:12], true},
+		{"pseudo-version in a linked worktree", linked, "v0.0.0-20260503120000-" + old[:12], false},
+		{"dirty pseudo-version in a linked worktree", linked, "v0.0.0-20260503120000-" + old[:12] + "+dirty", false},
+		{"stamp at older source in a linked worktree", linked, "side@v0.8.0-3-g" + old[:9], true},
+		{"pseudo-version outside any repository", t.TempDir(), "v0.0.0-20260503120000-" + old[:12], false},
 	}
 	for _, tc := range cases {
 		t.Run(tc.name, func(t *testing.T) {
@@ -306,9 +299,36 @@ func TestStaleBinaryWarning(t *testing.T) {
 			if warned := got != ""; warned != tc.wantWarn {
 				t.Errorf("StaleBinaryWarning(%q in %s) = %q, want warn=%v", tc.version, tc.name, got, tc.wantWarn)
 			}
-			if tc.wantWarn && !strings.HasPrefix(got, "aiwf: warning: ") {
-				t.Errorf("warning %q does not open with the aiwf warning prefix", got)
-			}
 		})
 	}
+	want := "aiwf: warning: stale binary — built from " + old[:9] + ", whose source differs from HEAD; run `make install` to refresh"
+	if got := StaleBinaryWarning(ctx, root, version.Parse("main@v0.8.0-3-g"+old[:9]), "github.com/23min/aiwf"); got != want {
+		t.Errorf("StaleBinaryWarning = %q, want %q", got, want)
+	}
+}
+
+// headSHA returns the full commit hash of dir's HEAD.
+func headSHA(t *testing.T, ctx context.Context, dir string) string {
+	t.Helper()
+	sha, err := gitops.ResolveCommitSHA(ctx, dir, "HEAD")
+	if err != nil {
+		t.Fatal(err)
+	}
+	return sha
+}
+
+// commitFile writes content to rel under dir, commits it, and returns the
+// new commit's full hash.
+func commitFile(t *testing.T, ctx context.Context, dir, rel, content string) string {
+	t.Helper()
+	path := filepath.Join(dir, filepath.FromSlash(rel))
+	if err := os.MkdirAll(filepath.Dir(path), 0o755); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(path, []byte(content), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	mustGit(t, ctx, dir, "add", "--", rel)
+	mustGit(t, ctx, dir, "commit", "-q", "-m", "change "+rel)
+	return headSHA(t, ctx, dir)
 }

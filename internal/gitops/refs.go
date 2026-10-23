@@ -192,6 +192,24 @@ func ShortSHA(ctx context.Context, workdir, ref string, n int) (string, error) {
 	return strings.TrimSpace(out), nil
 }
 
+// SameContent reports whether revisions a and b hold identical content
+// under the given pathspecs, via `git diff --quiet`. An error means a
+// revision does not resolve or git failed.
+func SameContent(ctx context.Context, workdir, a, b string, pathspecs ...string) (bool, error) {
+	cmd := exec.CommandContext(ctx, "git", append([]string{"diff", "--quiet", a, b, "--"}, pathspecs...)...)
+	cmd.Dir = workdir
+	cmd.Env = gitEnv()
+	err := cmd.Run()
+	if err == nil {
+		return true, nil
+	}
+	var exitErr *exec.ExitError
+	if errors.As(err, &exitErr) && exitErr.ExitCode() == 1 {
+		return false, nil
+	}
+	return false, fmt.Errorf("git diff --quiet %s %s: %w", a, b, err)
+}
+
 // ResolveCommitSHA returns the canonical full (40-hex) SHA that ref's
 // commit resolves to, via `git rev-parse --verify <ref>^{commit}`. The
 // `^{commit}` peel rejects non-commit objects (trees, blobs) and follows

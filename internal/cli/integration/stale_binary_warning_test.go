@@ -2,9 +2,9 @@ package integration
 
 import (
 	"bytes"
-	"os"
 	"os/exec"
 	"path/filepath"
+	"strings"
 	"testing"
 
 	"github.com/23min/aiwf/internal/cli/cliutil/testutil"
@@ -19,9 +19,6 @@ func TestBinary_StaleBinaryWarnsBeforeEveryVerb(t *testing.T) {
 	t.Parallel()
 	testutil.SkipIfShortOrUnsupported(t)
 
-	const stamp = "main@v0.8.0-3-gabcdef123"
-	bin := testutil.BuildBinary(t, t.TempDir(), "-ldflags=-X github.com/23min/aiwf/internal/version.Stamp="+stamp)
-
 	for _, tc := range []struct {
 		name     string
 		module   string
@@ -33,11 +30,23 @@ func TestBinary_StaleBinaryWarnsBeforeEveryVerb(t *testing.T) {
 		t.Run(tc.name, func(t *testing.T) {
 			t.Parallel()
 			repo := t.TempDir()
-			testutil.MustExec(t, repo, "git", "init", "-q", "-b", "main")
-			testutil.MustExec(t, repo, "git", "-c", "user.email=t@example.com", "-c", "user.name=t", "commit", "-q", "--allow-empty", "-m", "init")
-			if err := os.WriteFile(filepath.Join(repo, "go.mod"), []byte("module "+tc.module+"\n"), 0o644); err != nil {
+			git := func(args ...string) {
+				testutil.MustExec(t, repo, "git", append([]string{"-c", "user.email=t@example.com", "-c", "user.name=t"}, args...)...)
+			}
+			git("init", "-q", "-b", "main")
+			writeFile(t, filepath.Join(repo, "go.mod"), []byte("module "+tc.module+"\n"))
+			git("add", ".")
+			git("commit", "-q", "-m", "init")
+			built, err := testutil.RunGit(repo, "rev-parse", "--short=9", "HEAD")
+			if err != nil {
 				t.Fatal(err)
 			}
+			writeFile(t, filepath.Join(repo, "internal", "x.go"), []byte("package x\n"))
+			git("add", ".")
+			git("commit", "-q", "-m", "change the source")
+
+			stamp := "main@v0.8.0-3-g" + strings.TrimSpace(built)
+			bin := testutil.BuildBinary(t, t.TempDir(), "-ldflags=-X github.com/23min/aiwf/internal/version.Stamp="+stamp)
 			cmd := exec.Command(bin, "version")
 			cmd.Dir = repo
 			var stdout, stderr bytes.Buffer
