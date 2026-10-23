@@ -12,12 +12,11 @@ worktree's says so before it runs.
 ## Context
 
 In the aiwf repository the `aiwf` on `PATH`, or the `bin/aiwf` that `make build`
-leaves behind (G-0654), often predates the working tree, and every verb then runs older
-logic with no signal (G-0471). `aiwf doctor`'s staleness row
-(`internal/cli/doctor/binary_staleness.go`) already compares a binary's commit with the
-repository's trunk, but reads the commit only from a Go pseudo-version, so it skips every
-`make install` build, whose stamp (`<branch>@<git describe --always --dirty>`) carries
-the commit as `g<sha>`.
+leaves behind (G-0654), often predates the working tree, so a verb can run older logic
+than the source in front of it (G-0471). `aiwf doctor`'s staleness row
+(`internal/cli/doctor/binary_staleness.go`) is the check the warning reuses; a
+`make install` build's stamp (`<branch>@<git describe --always --dirty>`) carries its
+commit as `g<sha>`.
 
 Every incident G-0600 records happened in this repository: `aiwf update` or
 `aiwf worktree add` run by such a binary rewrote materialized artifacts backwards. Each
