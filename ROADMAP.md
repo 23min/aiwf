@@ -1392,7 +1392,7 @@ aiwf from its own source with tools that match CI.
 | M-0359 | Generate aiwf's devcontainer from the kit with its own steps in project hooks | done |
 | M-0360 | Trial-build, then rebuild aiwf's container from the kit and record the result | done |
 
-## E-0099 — Make a stale aiwf binary say so before it writes (active)
+## E-0099 — Make a stale aiwf binary say so before it writes (done)
 
 ### Goal
 
