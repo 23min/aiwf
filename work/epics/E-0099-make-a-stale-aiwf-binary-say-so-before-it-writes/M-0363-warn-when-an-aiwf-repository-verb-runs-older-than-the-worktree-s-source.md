@@ -137,8 +137,7 @@ source instead of skipping them.
 
 ## Validation
 
-`make ci` on the milestone branch at `f8d7dad4b` with the deciding review's fixes in the
-working tree, 2026-10-23, go1.25.12 linux/amd64 in the devcontainer: exit 0.
+`make ci` on the milestone branch with the code of `f1a1bac85`, 2026-10-23, go1.25.12 linux/amd64 in the devcontainer: exit 0.
 `golangci-lint run` reported `0 issues`; every test package passed under `-race` with
 coverage, including the diff-scoped `TestPolicy_BranchCoverageAudit`; the self-check
 printed `self-check passed (29 steps).` `aiwf check --since` the epic branch, run by a
@@ -159,6 +158,10 @@ binary built from this branch, reported no error, the instruction-file fence inc
   one — unowned, retired by `cobra.EnableTraverseRunHooks` if a subcommand ever needs
   one.
 - A revision the repository lacks is silent: its source cannot be compared.
+- Doctor's `binary:` row has no linked-worktree skip, so for a plain go1.25 build in a
+  nested worktree it judges the main checkout's commit against the trunk; it can then
+  report stale against the wrong source when the main checkout lags the trunk. The row
+  is opt-in and already judged clean bare builds that way; not measured.
 - The pre-existing `expectedModule == ""` guard is redundant with the module-path check
   except for a `go.mod` with no `module` line; it is kept.
 - Declined, each needing a case before code: honouring a verb's `--root` (the hook reads

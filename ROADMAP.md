@@ -1396,12 +1396,11 @@ aiwf from its own source with tools that match CI.
 
 ### Goal
 
-An aiwf command that writes the aiwf repository, run by a binary built from other source
-than the worktree's, says so before it writes, and `make build` stops leaving such a
-binary where it is reached for.
+An aiwf command run in the aiwf repository by a binary built from other source than the
+worktree's says so before it runs.
 
 | Milestone | Title | Status |
 |---|---|---|
 | M-0362 | Stop aiwf update silently downgrading installed artifacts | cancelled |
-| M-0363 | Warn when an aiwf-repository verb runs older than the worktree's source | draft |
+| M-0363 | Warn when an aiwf-repository verb runs older than the worktree's source | in_progress |
 
