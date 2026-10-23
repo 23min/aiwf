@@ -15,7 +15,7 @@ acs:
       tdd_phase: done
     - id: AC-3
       title: make build leaves no bin/aiwf to reach for
-      status: met
+      status: cancelled
       tdd_phase: done
 ---
 
