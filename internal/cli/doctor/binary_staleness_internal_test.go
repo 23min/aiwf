@@ -84,11 +84,8 @@ func TestBinaryStaleness_SkipsByShape(t *testing.T) {
 // returns "" silently regardless of binary version.
 func TestBinaryStaleness_SkipsOutOfTree(t *testing.T) {
 	t.Parallel()
-	root, _ := initRepoWithMain(t, "github.com/example/downstream")
-	ctx := context.Background()
-	pseudoVersion := "v0.0.0-20260503120000-abcdef123456"
-	info := version.Info{Version: pseudoVersion}
-	got := binaryStaleness(ctx, root, config.DefaultAllocateTrunk, info, "github.com/23min/aiwf")
+	root, info := staleFixture(t, "github.com/example/downstream")
+	got := binaryStaleness(context.Background(), root, config.DefaultAllocateTrunk, info, "github.com/23min/aiwf")
 	if got != "" {
 		t.Errorf("binaryStaleness out-of-tree = %q, want \"\"", got)
 	}
@@ -99,19 +96,9 @@ func TestBinaryStaleness_SkipsOutOfTree(t *testing.T) {
 // (fresh clone, detached state, no remote fetched).
 func TestBinaryStaleness_SkipsWhenOriginMainAbsent(t *testing.T) {
 	t.Parallel()
+	root, info := staleFixture(t, "github.com/23min/aiwf")
 	ctx := context.Background()
-	root := t.TempDir()
-	if err := gitops.Init(ctx, root); err != nil {
-		t.Fatalf("git init: %v", err)
-	}
-	if err := os.WriteFile(filepath.Join(root, "go.mod"),
-		[]byte("module github.com/23min/aiwf\n\ngo 1.24\n"), 0o644); err != nil {
-		t.Fatalf("write go.mod: %v", err)
-	}
-	mustGit(t, ctx, root, "add", "--", "go.mod")
-	mustGit(t, ctx, root, "commit", "-q", "-m", "initial")
-	// No update-ref — origin/main does not exist.
-	info := version.Info{Version: "v0.0.0-20260503120000-abcdef123456"}
+	mustGit(t, ctx, root, "update-ref", "-d", config.DefaultAllocateTrunk)
 	got := binaryStaleness(ctx, root, config.DefaultAllocateTrunk, info, "github.com/23min/aiwf")
 	if got != "" {
 		t.Errorf("binaryStaleness no-origin-main = %q, want \"\"", got)
@@ -144,7 +131,7 @@ func TestBinaryStaleness_StaleSuffix(t *testing.T) {
 	mustGit(t, ctx, root, "update-ref", config.DefaultAllocateTrunk, "HEAD")
 	info := version.Info{Version: "v0.0.0-20260503120000-" + built[:12]}
 	got := binaryStaleness(ctx, root, config.DefaultAllocateTrunk, info, "github.com/23min/aiwf")
-	want := "built from " + built[:12] + ", whose source differs from " + config.DefaultAllocateTrunk + "; run `make install` to refresh"
+	want := "built from " + built[:12] + ", whose source differs from " + config.DefaultAllocateTrunk
 	if got != want {
 		t.Errorf("binaryStaleness = %q, want %q", got, want)
 	}
@@ -194,10 +181,8 @@ func TestBinaryStaleness_SkipsOnMalformedGoMod(t *testing.T) {
 // when the binary lacks build info, the helper degrades silently.
 func TestBinaryStaleness_SkipsOnEmptyExpectedModule(t *testing.T) {
 	t.Parallel()
-	root, _ := initRepoWithMain(t, "github.com/23min/aiwf")
-	ctx := context.Background()
-	info := version.Info{Version: "v0.0.0-20260503120000-abcdef123456"}
-	got := binaryStaleness(ctx, root, config.DefaultAllocateTrunk, info, "")
+	root, info := staleFixture(t, "github.com/23min/aiwf")
+	got := binaryStaleness(context.Background(), root, config.DefaultAllocateTrunk, info, "")
 	if got != "" {
 		t.Errorf("binaryStaleness empty-expected-module = %q, want \"\"", got)
 	}
@@ -301,7 +286,7 @@ func TestStaleBinaryWarning(t *testing.T) {
 			}
 		})
 	}
-	want := "aiwf: warning: stale binary — built from " + old[:9] + ", whose source differs from HEAD; run `make install` to refresh"
+	want := "aiwf: warning: stale binary — built from " + old[:9] + ", whose source differs from HEAD"
 	if got := StaleBinaryWarning(ctx, root, version.Parse("main@v0.8.0-3-g"+old[:9]), "github.com/23min/aiwf"); got != want {
 		t.Errorf("StaleBinaryWarning = %q, want %q", got, want)
 	}
@@ -331,4 +316,18 @@ func commitFile(t *testing.T, ctx context.Context, dir, rel, content string) str
 	mustGit(t, ctx, dir, "add", "--", rel)
 	mustGit(t, ctx, dir, "commit", "-q", "-m", "change "+rel)
 	return headSHA(t, ctx, dir)
+}
+
+// staleFixture builds a repository with module modulePath whose trunk ref
+// is one source change past the commit the returned binary version names,
+// so binaryStaleness reports it stale unless the guard under test silences
+// it.
+func staleFixture(t *testing.T, modulePath string) (root string, info version.Info) {
+	t.Helper()
+	root, _ = initRepoWithMain(t, modulePath)
+	ctx := context.Background()
+	built := headSHA(t, ctx, root)
+	commitFile(t, ctx, root, "internal/x.go", "package x\n")
+	mustGit(t, ctx, root, "update-ref", config.DefaultAllocateTrunk, "HEAD")
+	return root, version.Info{Version: "v0.0.0-20260503120000-" + built[:12]}
 }

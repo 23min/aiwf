@@ -302,9 +302,7 @@ func PseudoBase(v string) (string, bool) {
 // characters as a string with ok=true. Returns ok=false when v does
 // not match the pseudo-version shape (tagged, devel, +dirty, etc.).
 //
-// Used by the doctor binary-staleness check (G-0176): the suffix is
-// what `git rev-parse --short=12 refs/remotes/origin/main` produces,
-// so the two values are directly comparable.
+// BuildCommit uses it to name the commit a pseudo-version was built from.
 func PseudoSHA(v string) (string, bool) {
 	loc := pseudoVersionRE.FindStringIndex(v)
 	if loc == nil {

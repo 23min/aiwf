@@ -44,7 +44,7 @@ func binaryStaleness(ctx context.Context, rootDir, ref string, info version.Info
 	if err != nil || same {
 		return ""
 	}
-	return fmt.Sprintf("built from %s, whose source differs from %s; run `make install` to refresh", built, ref)
+	return fmt.Sprintf("built from %s, whose source differs from %s", built, ref)
 }
 
 // binarySource is what the aiwf binary is built from: the commands, the
@@ -64,9 +64,10 @@ func staleRowSuffix(why string) string {
 // StaleBinaryWarning is the line every verb prints to stderr before it
 // runs when the binary's source differs from rootDir's HEAD in the aiwf
 // repository, or "" when it is current or the check is silent.
-// Inside a linked worktree a Go pseudo-version is not judged: Go stamps a
-// build there with the enclosing main checkout's commit, so the version
-// would name the wrong source.
+// Inside a linked worktree a Go pseudo-version is not judged: the go1.25
+// toolchain stamps a build in a worktree nested inside the main checkout
+// with the main checkout's commit, so the version would name the wrong
+// source.
 func StaleBinaryWarning(ctx context.Context, rootDir string, info version.Info, expectedModule string) string {
 	if _, pseudo := version.PseudoSHA(strings.TrimSuffix(info.Version, "+dirty")); pseudo && inLinkedWorktree(rootDir) {
 		return ""
