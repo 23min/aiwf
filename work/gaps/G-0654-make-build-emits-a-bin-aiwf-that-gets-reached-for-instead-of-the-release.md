@@ -6,8 +6,8 @@ priority: medium
 ---
 ## What's missing
 
-`make build` writes its binary to `bin/aiwf` (Makefile:56). Nothing consumes
-that path except `make selfcheck` (Makefile:252). The other apparent references
+`make build` writes its binary to `bin/aiwf` (Makefile:66). Nothing consumes
+that path except `make selfcheck` (Makefile:289). The other apparent references
 are not references: the `bin/aiwf` strings under `internal/` are fake path
 literals in table-driven tests, the e2e suite has none, and the test harness
 builds to its own temp directory and prepends *that* to PATH precisely so hooks
@@ -27,10 +27,9 @@ commits stale — `main@v0.33.0-72-gc308a3994` — and was used to regenerate
 staleness; it was noticed by chance while checking something else.
 
 The diagnostic route already avoids the problem by construction: `make
-diag-aiwf` writes `bin/aiwf-diag` (Makefile:71-75), a name that cannot be
+diag-aiwf` writes `bin/aiwf-diag` (Makefile:81-85), a name that cannot be
 confused with the release and that PATH will never resolve. `make build` is the
-one producer that emits the confusable name, and its sole consumer does not care
-what the file is called.
+one producer that emits the confusable name.
 
 ## Why it matters
 
