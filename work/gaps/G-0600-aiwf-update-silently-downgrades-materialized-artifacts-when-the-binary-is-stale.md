@@ -9,7 +9,9 @@ priority: high
 `aiwf update` materializes each artifact from the running binary's embedded
 snapshot without consulting what is already on disk. When the binary predates the
 artifacts, the write moves their content backwards, and the report calls it
-`updated`.
+`updated`. Inside the aiwf repository the run first prints a stale-binary warning when
+the binary's source differs from the worktree's (G-0471), and then writes all the same;
+in a consumer repository nothing warns.
 
 Measured on the date of filing, in this repo. The always-on guidance fragment had
 just been extended and the clause was present in `.claude/aiwf-guidance.md`. The
@@ -114,6 +116,7 @@ it reported healthy.
   binary direction as an observation; this one is about what `update` does when it
   writes. Detecting the drift would not have prevented the revert, and the doctor
   line quoted above is the surface where the two meet.
-- G-0471 — the binary-versus-source axis: no chokepoint detects a verb run by a
-  binary older than the worktree's source. That is the condition; this is one
-  consequence of it that carries data loss.
+- G-0471 — the binary-versus-source axis: inside the aiwf repository every verb
+  warns when the binary's source differs from the worktree's. That is the condition;
+  this is one consequence of it that carries data loss, and outside the aiwf
+  repository nothing warns.
