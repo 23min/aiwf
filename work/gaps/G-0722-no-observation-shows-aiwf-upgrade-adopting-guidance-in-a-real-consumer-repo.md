@@ -1,8 +1,10 @@
 ---
 id: G-0722
 title: No observation shows aiwf upgrade adopting guidance in a real consumer repo
-status: open
+status: addressed
 discovered_in: M-0353
+addressed_by_commit:
+    - b274457de
 ---
 ## What's missing
 
