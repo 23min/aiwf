@@ -16,6 +16,8 @@ section in this file.
 
 ## [Unreleased]
 
+## [0.42.0] — 2026-10-24
+
 ### Added — the statusline shows free disk space
 
 - The aiwf statusline ends with free disk space, in whole GiB: green, yellow below
