@@ -26,7 +26,7 @@ func appendProjectGuidanceReport(lines []string, problems []Problem, root string
 	}
 	revision := report.Revision
 	if revision == "" {
-		revision = projectguidance.UnknownRevision
+		revision = projectguidance.InstalledState(report)
 	}
 	lines = append(lines, prefix+"installed revision: "+revision+"; upstream freshness not checked")
 	for _, file := range report.Files {
