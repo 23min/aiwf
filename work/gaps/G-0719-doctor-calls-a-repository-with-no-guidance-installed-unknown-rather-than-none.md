@@ -1,8 +1,10 @@
 ---
 id: G-0719
 title: Doctor calls a repository with no guidance installed unknown rather than none
-status: open
+status: addressed
 discovered_in: M-0352
+addressed_by_commit:
+    - 414aa0bff
 ---
 ## What's missing
 
