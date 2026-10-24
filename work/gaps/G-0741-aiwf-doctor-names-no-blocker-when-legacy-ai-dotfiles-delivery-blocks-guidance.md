@@ -1,7 +1,7 @@
 ---
 id: G-0741
 title: aiwf doctor names no blocker when legacy ai-dotfiles delivery blocks guidance
-status: open
+status: wontfix
 discovered_in: M-0353
 ---
 ## What's missing
