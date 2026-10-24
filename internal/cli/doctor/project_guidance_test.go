@@ -40,7 +40,7 @@ func TestDoctor_ProjectGuidanceReportsInstalledRevisionLocally(t *testing.T) {
 
 func TestDoctor_ProjectGuidanceStateAndWarnings(t *testing.T) {
 	t.Parallel()
-	for _, kind := range []string{"unset", "empty", "disabled", "not installed", "selected pack not installed", "corrupt", "pending", "missing document", "selected claude", "selected codex", "unselected claude", "unselected codex", "opted out claude", "opted out codex"} {
+	for _, kind := range []string{"unset", "empty", "disabled", "not installed", "edited index", "selected pack not installed", "corrupt", "pending", "missing document", "selected claude", "selected codex", "unselected claude", "unselected codex", "opted out claude", "opted out codex"} {
 		t.Run(kind, func(t *testing.T) {
 			t.Parallel()
 			root := t.TempDir()
@@ -64,6 +64,10 @@ func TestDoctor_ProjectGuidanceStateAndWarnings(t *testing.T) {
 				packs = append(packs, "gone/pack")
 				want = "maintenance disabled"
 			case "not installed":
+				want = "installed revision: " + projectguidance.InstalledState(projectguidance.Inspection{}) + ";"
+				path = ".guidance/index.md"
+			case "edited index":
+				want = "installed revision: " + projectguidance.UnknownRevision + ";"
 				path = ".guidance/index.md"
 			case "selected pack not installed":
 				// The installed index routes sample/base but not the second pack.
@@ -108,6 +112,12 @@ func TestDoctor_ProjectGuidanceStateAndWarnings(t *testing.T) {
 			switch kind {
 			case "corrupt":
 				writeDoctorGuidance(t, root, ".guidance/.aiwf-owned", []byte("invalid"))
+			case "edited index":
+				data, err := os.ReadFile(filepath.Join(root, path))
+				if err != nil {
+					t.Fatal(err)
+				}
+				writeDoctorGuidance(t, root, path, append(data, "local edit\n"...))
 			case "pending":
 				writeDoctorGuidance(t, root, path, []byte("{}"))
 			case "missing document":

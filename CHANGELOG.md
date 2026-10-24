@@ -16,6 +16,13 @@ section in this file.
 
 ## [Unreleased]
 
+### Fixed — G-0719: `aiwf doctor` says `none` when no guidance is installed
+
+- `aiwf doctor`'s `project policy: installed revision:` row reads `none` for a
+  repository with no guidance installed, as the guidance section of `aiwf update` does.
+  `unknown (no intact owned index)` is kept for an installation whose recorded index is
+  not intact.
+
 ### Changed — E-0099: a stale aiwf binary in the aiwf repository says so before every verb
 
 - Inside the aiwf repository, every `aiwf` verb run by a binary whose source differs
