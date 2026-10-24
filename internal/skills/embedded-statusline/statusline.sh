@@ -3,13 +3,14 @@
 # Status line for Claude Code in the aiwf repo.
 # Reads JSON from stdin (Claude Code's session context), prints one line.
 #
-# Layout: <ball> <model> <effort?> ▸ <tokens> · <epic HUD> · <repo> · <branch…>[<dirty>][<sync>] · <ci-glyph> ci
+# Layout: <ball> <model> <effort?> ▸ <tokens> · <epic HUD> · <repo> · <branch…>[<dirty>][<sync>] · <ci-glyph> ci · <disk free>
 #
 # All segments fail soft: anything that errors collapses to "?" or is dropped.
 # The render spawns no kernel verb. The CI probe is the only subprocess that
-# can cost anything: it is cached in /tmp with a TTL, so the hot (cache-hit)
-# path stays fast and a miss pays one `gh run list`. The health glyph reads
-# the producer files under `.claude/` and spawns nothing at all.
+# reaches the network: it is cached in /tmp with a TTL, so the hot (cache-hit)
+# path stays fast and a miss pays one `gh run list`. The disk segment runs one
+# uncached `df` per render. The health glyph reads the producer files under
+# `.claude/` and spawns nothing at all.
 
 set -u
 
@@ -430,6 +431,47 @@ usage_dot() {  # $1 = raw used_percentage (float/int/empty), $2 = label
 usage_dot "$(jq_get '.rate_limits.seven_day.used_percentage')" "7d"
 usage_dot "$(jq_get '.rate_limits.five_hour.used_percentage')" "5h"
 
+# --- Disk free space -----------------------------------------------------------
+# Free space from one local `df` call, in whole GiB, each figure in its color.
+# Outside a container it is the disk holding the session's directory (💻).
+# Inside one (/.dockerenv or /run/.containerenv exists) it is the container's
+# own disk, the one holding `/` (📦), plus the session directory's disk (💻)
+# when that is a different mount — in a devcontainer, the host disk the
+# workspace is shared from. The marker list is overridable (hermetic tests
+# point it at temp files). A df failure, or a line without a numeric Available
+# figure, drops the segment.
+disk_fmt() {  # $1 = glyph, $2 = free KiB; prints "<glyph> <GiB>G" in its color
+  local gb=$(( $2 / 1048576 )) c="$green"
+  [ "$gb" -lt 30 ] && c="$yellow"
+  [ "$gb" -lt 10 ] && c="$red"
+  printf '%s%s %sG%s' "$c" "$1" "$gb" "$reset"
+}
+in_container=false
+for marker in ${AIWF_STATUSLINE_CONTAINER_MARKERS:-/.dockerenv /run/.containerenv}; do
+  [ -e "$marker" ] && in_container=true
+done
+disk_seg=""
+if disk_out="$(df -Pk / . 2>/dev/null)"; then
+  # -P prints a header, then one line per path. Fields are located from the
+  # Capacity column (the first NN% field), so a filesystem name containing
+  # spaces cannot shift them: Available sits just before it, the mount after.
+  # Only the mount's first word is kept; telling `/` from another mount needs
+  # no more.
+  disk_lines="$(printf '%s\n' "$disk_out" | awk 'NR > 1 {
+    for (i = 2; i <= NF; i++) if ($i ~ /^[0-9]+%$/) break
+    printf "%s\t%s\n", $(i - 1), $(i + 1)
+  }')"
+  { IFS=$'\t' read -r root_kb root_mnt; IFS=$'\t' read -r dir_kb dir_mnt; } <<<"$disk_lines"
+  if is_num "$root_kb" && is_num "$dir_kb"; then
+    if $in_container; then
+      disk_seg="$(disk_fmt 📦 "$root_kb")"
+      [ "$root_mnt" != "$dir_mnt" ] && disk_seg="${disk_seg} $(disk_fmt 💻 "$dir_kb")"
+    else
+      disk_seg="$(disk_fmt 💻 "$dir_kb")"
+    fi
+  fi
+fi
+
 # --- Compose ----------------------------------------------------------------
 
 head_seg="$ball $model_short"
@@ -442,6 +484,7 @@ parts+=("$repo")
 [ -n "$branch_seg" ]    && parts+=("$branch_seg")
 [ "$other_wt_count" -gt 0 ] && parts+=("+${other_wt_count}⎇")
 parts+=("$ci_fmt")
+[ -n "$disk_seg" ]      && parts+=("$disk_seg")
 
 # Join with " · ".
 out=""

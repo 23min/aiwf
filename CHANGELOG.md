@@ -16,6 +16,17 @@ section in this file.
 
 ## [Unreleased]
 
+### Added — the statusline shows free disk space
+
+- The aiwf statusline ends with free disk space, in whole GiB: green, yellow below
+  30G and red below 10G. Outside a container it shows the disk holding the session's
+  directory (💻). Inside one it shows the container's own disk (📦), plus 💻 when the
+  session's directory is on another mount, as in a devcontainer whose workspace is
+  shared from the host: `📦 96G 💻 115G`. A container is recognised by `/.dockerenv`
+  or `/run/.containerenv`. It runs one `df` per render and calls no web service;
+  when `df` gives no usable figure the segment is left out. Run `aiwf update` to
+  refresh an installed statusline.
+
 ### Fixed — G-0719: `aiwf doctor` says `none` when no guidance is installed
 
 - `aiwf doctor`'s `project policy: installed revision:` row reads `none` for a
