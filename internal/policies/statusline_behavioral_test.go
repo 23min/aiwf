@@ -128,10 +128,11 @@ func statuslineStdin(repoDir string) string {
 		`"effort":{"level":"xhigh"}}`
 }
 
-// runStatuslineCache runs the script in repoDir with the given stdin, the given
-// CI cache dir, and extra env (e.g. STUB_GH_JSON=...), returning ANSI-stripped
-// stdout. A fresh `gh` stub is placed on PATH for each call.
-func runStatuslineCache(t *testing.T, repoDir, cacheDir, stdinJSON string, extraEnv ...string) string {
+// execStatusline runs the script in repoDir with the given stdin, the given CI
+// cache dir, and extra env (e.g. STUB_GH_JSON=...), returning RAW stdout. A
+// fresh `gh` stub is placed on PATH for each call, after any stubDirs, so a
+// test can stub further tools without the render reaching the real `gh`.
+func execStatusline(t *testing.T, repoDir, cacheDir, stdinJSON string, stubDirs []string, extraEnv ...string) string {
 	t.Helper()
 	ghDir := writeGhStub(t)
 	cmd := exec.Command("bash", statuslineScript(t))
@@ -145,9 +146,10 @@ func runStatuslineCache(t *testing.T, repoDir, cacheDir, stdinJSON string, extra
 		}
 		env = append(env, e)
 	}
+	path := append(append([]string{}, stubDirs...), ghDir, os.Getenv("PATH"))
 	env = append(
 		env,
-		"PATH="+ghDir+string(os.PathListSeparator)+os.Getenv("PATH"),
+		"PATH="+strings.Join(path, string(os.PathListSeparator)),
 		"AIWF_STATUSLINE_CACHE_DIR="+cacheDir,
 	)
 	env = append(env, extraEnv...)
@@ -159,7 +161,13 @@ func runStatuslineCache(t *testing.T, repoDir, cacheDir, stdinJSON string, extra
 	if err := cmd.Run(); err != nil {
 		t.Fatalf("statusline.sh: %v\nstderr: %s", err, stderr.String())
 	}
-	return statuslineANSI.ReplaceAllString(stdout.String(), "")
+	return stdout.String()
+}
+
+// runStatuslineCache is execStatusline with ANSI stripped and no extra stubs.
+func runStatuslineCache(t *testing.T, repoDir, cacheDir, stdinJSON string, extraEnv ...string) string {
+	t.Helper()
+	return statuslineANSI.ReplaceAllString(execStatusline(t, repoDir, cacheDir, stdinJSON, nil, extraEnv...), "")
 }
 
 // runStatusline runs the script with a fresh per-call CI cache dir.
@@ -959,34 +967,10 @@ func statuslineStdinRates(repoDir string, sevenDay, fiveHour float64) string {
 }
 
 // runStatuslineUsageRaw runs the script and returns RAW (non-ANSI-stripped)
-// stdout — the usage-dot color is the behavioral signal under test. Mirrors
-// runStatuslineCache's env setup (fresh gh stub, isolated cache dir).
+// stdout — the usage-dot color is the behavioral signal under test.
 func runStatuslineUsageRaw(t *testing.T, repoDir, stdinJSON string) string {
 	t.Helper()
-	ghDir := writeGhStub(t)
-	cmd := exec.Command("bash", statuslineScript(t))
-	cmd.Dir = repoDir
-	cmd.Stdin = strings.NewReader(stdinJSON)
-	var env []string
-	for _, e := range os.Environ() {
-		if strings.HasPrefix(e, "PATH=") || strings.HasPrefix(e, "AIWF_STATUSLINE_CACHE_DIR=") {
-			continue
-		}
-		env = append(env, e)
-	}
-	env = append(
-		env,
-		"PATH="+ghDir+string(os.PathListSeparator)+os.Getenv("PATH"),
-		"AIWF_STATUSLINE_CACHE_DIR="+t.TempDir(),
-	)
-	cmd.Env = env
-	var stdout, stderr bytes.Buffer
-	cmd.Stdout = &stdout
-	cmd.Stderr = &stderr
-	if err := cmd.Run(); err != nil {
-		t.Fatalf("statusline.sh: %v\nstderr: %s", err, stderr.String())
-	}
-	return stdout.String()
+	return execStatusline(t, repoDir, t.TempDir(), stdinJSON, nil)
 }
 
 func TestStatusline_G0310_UsageDotsRenderWhenPresent(t *testing.T) {
@@ -1067,5 +1051,226 @@ func TestStatusline_G0310_NonNumericUsageRendersNothing(t *testing.T) {
 	out := runStatusline(t, repo, stdin)
 	if strings.Contains(out, "7d") || strings.Contains(out, "5h") {
 		t.Errorf("non-numeric used_percentage -> no usage dots, got\n out: %q", out)
+	}
+}
+
+// --- Disk free-space segment ---------------------------------------------------
+//
+// The last segment reports free space from one `df -Pk / .`: outside a
+// container the session directory's disk (💻); inside one the container's disk
+// holding `/` (📦), plus 💻 when the session directory is a different mount.
+// These tests put a stub `df` on PATH that answers only for those two paths, so
+// a render asking about any other directory gets no figure and drops the
+// segment, and point the container-marker list at a temp file that exists (in a
+// container) or one that does not.
+
+// writeDfStub writes a fake `df` printing POSIX `-P` output: a header, then one
+// line per path argument. `/` reports $STUB_DF_ROOT_KB free on mount
+// $STUB_DF_ROOT_MNT, `.` reports $STUB_DF_DIR_KB on $STUB_DF_DIR_MNT, with
+// filesystem name $STUB_DF_DIR_FS (default dirfs). With $STUB_DF_FAIL set it
+// prints its lines and then exits 1, as a real df does when one path fails.
+func writeDfStub(t *testing.T) string {
+	t.Helper()
+	dir := t.TempDir()
+	stub := "#!/usr/bin/env bash\n" +
+		"echo 'Filesystem 1024-blocks Used Available Capacity Mounted on'\n" +
+		"for a in \"$@\"; do\n" +
+		"  case \"$a\" in\n" +
+		"    /) echo \"rootfs 1 0 $STUB_DF_ROOT_KB 0% $STUB_DF_ROOT_MNT\" ;;\n" +
+		"    .) echo \"${STUB_DF_DIR_FS:-dirfs} 1 0 $STUB_DF_DIR_KB 0% $STUB_DF_DIR_MNT\" ;;\n" +
+		"  esac\n" +
+		"done\n" +
+		"[ -z \"$STUB_DF_FAIL\" ]\n"
+	if err := testsupport.WriteExecutable(filepath.Join(dir, "df"), []byte(stub)); err != nil {
+		t.Fatal(err)
+	}
+	return dir
+}
+
+// gibKB is n GiB in the KiB units `df -Pk` reports.
+func gibKB(n int) int { return n * 1024 * 1024 }
+
+// containerMarkers returns an AIWF_STATUSLINE_CONTAINER_MARKERS entry naming
+// one temp path, created when inContainer and left absent otherwise.
+func containerMarkers(t *testing.T, inContainer bool) string {
+	t.Helper()
+	marker := filepath.Join(t.TempDir(), "containerenv")
+	if inContainer {
+		mustWrite(t, marker, "")
+	}
+	return "AIWF_STATUSLINE_CONTAINER_MARKERS=" + marker
+}
+
+// runStatuslineDisk renders with the df stub on PATH, the given df answers and
+// the given container state, returning RAW stdout so color assertions can see
+// the escapes. Later extraEnv entries override the figures.
+func runStatuslineDisk(t *testing.T, repo string, inContainer bool, rootKB int, rootMnt string, dirKB int, dirMnt string, extraEnv ...string) string {
+	t.Helper()
+	env := append([]string{
+		containerMarkers(t, inContainer),
+		"STUB_DF_ROOT_KB=" + strconv.Itoa(rootKB), "STUB_DF_ROOT_MNT=" + rootMnt,
+		"STUB_DF_DIR_KB=" + strconv.Itoa(dirKB), "STUB_DF_DIR_MNT=" + dirMnt,
+	}, extraEnv...)
+	return execStatusline(t, repo, t.TempDir(), statuslineStdin(repo), []string{writeDfStub(t)}, env...)
+}
+
+// lastSegment returns the final " · "-delimited segment of a rendered line.
+func lastSegment(out string) string {
+	segs := strings.Split(out, " · ")
+	return strings.TrimSpace(segs[len(segs)-1])
+}
+
+// In a container with the session directory on another mount: 📦 reports `/`,
+// 💻 the session directory, in that order, as the line's last segment — each in
+// whole GiB rounded down and colored by its own figure.
+func TestStatusline_DiskFree_ContainerWithSharedWorkspaceReportsBoth(t *testing.T) {
+	t.Parallel()
+	repo := newStatuslineRepo(t)
+	const red, green, reset = "\x1b[31m", "\x1b[32m", "\x1b[0m"
+	raw := runStatuslineDisk(t, repo, true, gibKB(10)-1, "/", gibKB(123), "/workspaces/aiwf")
+
+	if seg := lastSegment(statuslineANSI.ReplaceAllString(raw, "")); seg != "📦 9G 💻 123G" {
+		t.Errorf("disk segment: want %q as the last segment, got %q\n raw: %q", "📦 9G 💻 123G", seg, raw)
+	}
+	for _, want := range []string{red + "📦 9G" + reset, green + "💻 123G" + reset} {
+		if !strings.Contains(raw, want) {
+			t.Errorf("want %q in raw output (each disk colored by its own free space)\n raw: %q", want, raw)
+		}
+	}
+}
+
+// In a container with the session directory on the container's own mount (a
+// session started in /tmp, say), only 📦 renders: there is no host disk in view.
+func TestStatusline_DiskFree_ContainerSessionOnRootMountShowsOnlyContainer(t *testing.T) {
+	t.Parallel()
+	repo := newStatuslineRepo(t)
+	raw := runStatuslineDisk(t, repo, true, gibKB(96), "/", gibKB(96), "/")
+	if seg := lastSegment(statuslineANSI.ReplaceAllString(raw, "")); seg != "📦 96G" {
+		t.Errorf("container, same mount: want %q as the last segment, got %q", "📦 96G", seg)
+	}
+}
+
+// Any one marker on the list is enough, whichever position it holds: Docker's
+// /.dockerenv comes first in the defaults, Podman's /run/.containerenv second.
+func TestStatusline_DiskFree_AnyMarkerMeansContainer(t *testing.T) {
+	t.Parallel()
+	repo := newStatuslineRepo(t)
+	cases := []struct {
+		name                      string
+		firstExists, secondExists bool
+	}{
+		{"first present, second absent", true, false},
+		{"first absent, second present", false, true},
+	}
+	for _, c := range cases {
+		t.Run(c.name, func(t *testing.T) {
+			t.Parallel()
+			dir := t.TempDir()
+			first, second := filepath.Join(dir, "first"), filepath.Join(dir, "second")
+			if c.firstExists {
+				mustWrite(t, first, "")
+			}
+			if c.secondExists {
+				mustWrite(t, second, "")
+			}
+			markers := "AIWF_STATUSLINE_CONTAINER_MARKERS=" + first + " " + second
+			raw := runStatuslineDisk(t, repo, false, gibKB(96), "/", gibKB(96), "/", markers)
+			if seg := lastSegment(statuslineANSI.ReplaceAllString(raw, "")); seg != "📦 96G" {
+				t.Errorf("want %q as the last segment, got %q", "📦 96G", seg)
+			}
+		})
+	}
+}
+
+// In a container, the mount point — not the free figure — decides whether the
+// session directory is a second disk: a bind mount from the disk that holds
+// the container's data reports the same free space as `/` and still shows 💻.
+func TestStatusline_DiskFree_ContainerMountNotFigureAddsHost(t *testing.T) {
+	t.Parallel()
+	repo := newStatuslineRepo(t)
+	raw := runStatuslineDisk(t, repo, true, gibKB(50), "/", gibKB(50), "/workspaces/aiwf")
+	if seg := lastSegment(statuslineANSI.ReplaceAllString(raw, "")); seg != "📦 50G 💻 50G" {
+		t.Errorf("want %q as the last segment, got %q", "📦 50G 💻 50G", seg)
+	}
+}
+
+// Outside a container only 💻 renders, for the session directory's disk, even
+// when `/` is a different mount (a Mac's system volume, say).
+func TestStatusline_DiskFree_OutsideContainerShowsOnlyHost(t *testing.T) {
+	t.Parallel()
+	repo := newStatuslineRepo(t)
+	raw := runStatuslineDisk(t, repo, false, gibKB(5), "/", gibKB(115), "/System/Volumes/Data")
+	if seg := lastSegment(statuslineANSI.ReplaceAllString(raw, "")); seg != "💻 115G" {
+		t.Errorf("no container: want %q as the last segment, got %q", "💻 115G", seg)
+	}
+}
+
+// Thresholds: green at 30G free and above, yellow below 30G, red below 10G.
+// Figures are whole GiB rounded down, so a disk just short of a threshold
+// already takes the lower color.
+func TestStatusline_DiskFree_ColorThresholds(t *testing.T) {
+	t.Parallel()
+	repo := newStatuslineRepo(t)
+	const red, green, yellow = "\x1b[31m", "\x1b[32m", "\x1b[33m"
+	cases := []struct {
+		name  string
+		kb    int
+		label string
+		color string
+	}{
+		{"30G is green", gibKB(30), "💻 30G", green},
+		{"just under 30G is yellow", gibKB(30) - 1, "💻 29G", yellow},
+		{"10G is yellow", gibKB(10), "💻 10G", yellow},
+		{"just under 10G is red", gibKB(10) - 1, "💻 9G", red},
+	}
+	for _, c := range cases {
+		t.Run(c.name, func(t *testing.T) {
+			t.Parallel()
+			raw := runStatuslineDisk(t, repo, false, c.kb, "/", c.kb, "/")
+			if !strings.Contains(raw, c.color+c.label) {
+				t.Errorf("want %q in raw output\n raw: %q", c.color+c.label, raw)
+			}
+		})
+	}
+}
+
+// A filesystem name containing spaces (an SMB share, say) does not shift the
+// columns: the figure is still Available, and the mount still differs from `/`.
+func TestStatusline_DiskFree_SpacesInFilesystemNameKeepTheFigure(t *testing.T) {
+	t.Parallel()
+	repo := newStatuslineRepo(t)
+	out := statuslineANSI.ReplaceAllString(runStatuslineDisk(t, repo, true,
+		gibKB(123), "/", gibKB(19), "/Volumes/My Share", "STUB_DF_DIR_FS=//me@nas/My Share"), "")
+	if seg := lastSegment(out); seg != "📦 123G 💻 19G" {
+		t.Errorf("want %q as the last segment, got %q", "📦 123G 💻 19G", seg)
+	}
+}
+
+// Fail soft: when df yields no usable figure — it exits non-zero, or either
+// line carries a non-number where Available belongs — the segment is dropped
+// and the line still ends with the CI segment, with no dangling separator.
+func TestStatusline_DiskFree_NoUsableFigureDropsTheSegment(t *testing.T) {
+	t.Parallel()
+	repo := newStatuslineRepo(t)
+	cases := []struct {
+		name string
+		env  []string
+	}{
+		{"df exits non-zero", []string{"STUB_DF_FAIL=1"}},
+		{"root figure is not a number", []string{"STUB_DF_ROOT_KB=n/a"}},
+		{"dir figure is not a number", []string{"STUB_DF_DIR_KB=n/a"}},
+	}
+	for _, c := range cases {
+		t.Run(c.name, func(t *testing.T) {
+			t.Parallel()
+			out := statuslineANSI.ReplaceAllString(
+				runStatuslineDisk(t, repo, true, gibKB(50), "/", gibKB(50), "/workspaces/aiwf", c.env...), "")
+			if strings.Contains(out, "📦") || strings.Contains(out, "💻") {
+				t.Errorf("no usable df figure must drop the disk segment\n out: %q", out)
+			}
+			if seg := lastSegment(out); seg == "" || seg != ciSegment(out) {
+				t.Errorf("the line must still end with the CI segment\n out: %q", out)
+			}
+		})
 	}
 }
