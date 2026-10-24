@@ -33,7 +33,7 @@ line saying what it is.
   production — reachable only through conditions no BulkRevwalk flag produces.
   Annotated rather than deleted, deliberately; nothing tracks the choice
 
-## Next, in order (2026-09-26)
+## Next, in order (2026-10-24)
 
 Clusters 1–9 and 11 cover the *defect* surface; cluster 12 covers the machine the
 gates run on. Cluster 10 is the exception: absences in what the kernel can
@@ -42,16 +42,13 @@ Feature and enhancement gaps fit none and are not listed, at any priority — th
 filter is what the gap is, not how urgent it is. Each gap sits in exactly one
 cluster.
 
-In flight: **E-0092** — shrink the always-on guidance to one home per rule under a
-ceiling, the only work that addresses the restate-and-drift class rather than an
-instance of it. **E-0095** — adopt applicable guidance automatically on upgrade and
-update.
+In flight: nothing.
 
 Planned, not started: **E-0096** — one repo-only gate for everything aiwf ships to
 consumers.
 
 Cluster 1 is split three ways below, by the three shapes its own thesis already
-named. At 43 members it had stopped being one worklist.
+named.
 
 ### 1. Lying gates
 
@@ -115,6 +112,10 @@ The gate exists and runs; what it looks at stops short of where the defect is.
   git, so both refusal layers miss it
 - **G-0705** *(low)* — `BulkRevwalk` ends the walk silently at a `git log` line of
   1 MiB or more and returns the records before it as the whole history
+- **G-0710** — the shipped-prose ban counts a call as an assertion only in an `if`
+  condition, so a statement helper, a `switch` case or an `if` init passes it
+- **G-0726** — the `go` workflow's path filters omit files the policy suite reads, so
+  a push changing only such a file runs no policy that judges it
 
 #### 1b. A gate that fires on the wrong thing
 
@@ -143,6 +144,8 @@ The gate runs and returns a verdict about a subject that is not the one claimed.
   pending. Promote `addressed --by-commit 29eb2a94c`
 - **G-0644** — the orphan walk reports a commit already reachable from trunk
 - **G-0679** — a branch started from a local ref is never judged at its first push
+- **G-0731** — in a shallow clone, a commit whose parent is past the boundary reads as
+  adding every file it carries, to both the instruction fence and the untrailered audit
 
 #### 1c. No gate where one would still be cheap
 
@@ -161,7 +164,6 @@ Nothing fires at the point the defect is cheapest to catch.
   index
 - **G-0661** — no check caps an in-function comment at the length D-0084 sets
 - **G-0663** — the confirmation round after a review finding has no chokepoint
-- **G-0676** — a CLAUDE.md edit rides inside any commit and no gate is specific to it
 - **G-0683** — no automated gate catches a deleted CHANGELOG entry before the release
   tag
 
@@ -219,6 +221,15 @@ neither reads what it says.
   required; the loader accepts a config without it
 - **G-0706** — the provenance docs and skills give two rules for an unscoped
   non-human actor carrying a principal; the kernel refuses the combination
+- **G-0689** — `aiwf --help`, the `init`-written `CLAUDE.md` and check text spell
+  `aiwf add <kind> --title` alone, which `add` refuses for every kind but an epic
+- **G-0729** — `design-decisions.md` and ANTI-0008 describe a `doctor.recommended_plugins`
+  setting no code reads
+- **G-0732 / G-0733 / G-0734** — the `aiwf-add` skill and the design docs state a
+  narrower allocation and `body-prose-id` scope than the code runs. One claim in three
+  places
+- **G-0736** — the PR and task templates ask for checklists, files and commands the
+  repository does not hold
 
 
 ### 3. Oracles — what tells the builder it is wrong *(design first)*
@@ -234,6 +245,9 @@ in is any good. Vocabulary in `docs/design/oracles.md`; initiative context in
   every commit-based test in `internal/verb` and `internal/gitops` fail, saying
   nothing about their change; the count grows with the suite. The fix is per-key, not
   one blanket cut-off — actor resolution depends on inheriting global identity
+- **G-0720** — the `initcmd` and `update` in-process tests run against the real HOME and
+  PATH, so an installed `dotfiles-guidance-check` or personal instruction file decides
+  their verdict. G-0375's shape, for guidance
 - **G-0282** *(high)* — "what verb undoes this?" has no chokepoint; code review is
   the whole enforcement, and it never audits verbs that already shipped. The
   filed form of the agent-performed audit two entries below
@@ -304,6 +318,8 @@ begin.
 - **G-0502** — an *uninitialized* submodule under a moved directory is stranded; a
   checked-out one refuses at exit 3 instead
 - **G-0513** — the archive sweep reports "converged" when a candidate won't parse
+- **G-0711** — `BlobReader` reports a missing path containing whitespace as a parse
+  error rather than `ErrBlobMissing`
 - **G-0477** *(low)* — a boundary guard that can never be false, under a comment
   describing the rejection the guard above it already performs
 - **G-0497** *(low)* — the sites the `test-executable-write` detector reports
@@ -358,6 +374,11 @@ trailers.
 - **G-0434** — `resolveViaPriorIDs` prefers a stale `prior_ids` match over a reused live id
 - **G-0212** — the systematic data-loss audit across verb composition; the scope
   crosses the entity surface rather than sitting under one verb
+- **G-0739** — `retitle`, `rename` and `add ac` rewrite every same-numbered
+  `### AC-N` heading in the body, so a per-criterion `## Validation` subsection changes
+  silently
+- **G-0713** — the `aiwf.yaml` append writers break a flow-style or indented root;
+  `add` and the contract verbs commit the result
 
 ### 6. E-0074 — same-state convergence *(parallel any time)*
 
@@ -399,8 +420,9 @@ silently goes stale, or it cannot be enforced at all.
   already fixed
 - **G-0600** *(high)* — `update` materializes guidance and skills from the running
   binary without consulting disk, so a stale binary moves them backwards and reports
-  success. The statusline already implements the guard this asks for, and refuses to
-  downgrade — copy it rather than design it
+  success. E-0099 cancelled a tagged-release guard, since no recorded incident was
+  between two tags; inside this repo the pre-verb stale warning now fires, a consumer
+  sees nothing
 - **G-0588** — `import` ships as a live verb with no consumer and its spec archived
 - **G-0586** — the handoff block carries settled conclusions and has no slot for an
   open question
@@ -427,6 +449,19 @@ silently goes stale, or it cannot be enforced at all.
   through a ritual branch and merge, contrary to D-0073
 - **G-0709** — `init`, `update` and `add --body-file -` wait on stdin for a person
   while holding the repo lock; G-0708 fixed only the unattended-update case
+- **G-0727** — `doctor --self-check` runs `init` and `update` without `--no-prompt`, so
+  at a terminal it waits on a question it never shows and `make ci` hangs. G-0709's
+  root
+- **G-0738** — in Go tasks Claude reads `go-conventions.md` and rarely the Go pack, so
+  a rule only the pack states goes unread. Measures E-0092's routing here
+- **G-0737** — the builder's Sonnet tier has no observation under the reduced guidance
+- **G-0724** — aiwf's managed `.gitignore` block omits `.claude/health.aiwf.json`, which
+  aiwf writes
+- **G-0723** — `wf-trim` step 2 leaves step 6 unstated for a change with neither logic
+  nor tests
+- **G-0714 / G-0718 / G-0721** — guidance recovery advice that names no fix, a rerun
+  that cannot finish, or permissions for a non-permission fault. Each reproduced only
+  by injecting the fault; left until one is met in use
 
 
 ### 8. Error contract *(parallel any time)*
@@ -524,11 +559,10 @@ G-0548 are missing chokepoints rather than stale text.
 
 - **G-0412** — coverage-ignore rationale text is inaccurate across several files
 - **G-0414** — stale test naming in a real-binary test
-- **G-0436** — `CLAUDE.md` cites two dead `cmd/aiwf/` things; the id-allocation half
-  was repointed in 2026-07 when G-0443 closed
 - **G-0439** — relocation and archive sweeps skip references outside their own scope.
   Its leading resolution is what ADR-0033 declines
-- **G-0444** — the id-allocation doc cites renamed functions
+- **G-0444** — comments and test messages name history-verb code that no longer
+  exists: `readHistory`, `runHistory`, `readHistoryChain`, `admin_cmd.go`
 - **G-0517** — narrow ids remain in the design docs, overview and architecture — but
   none is a *citation*; they are worked-example fiction, so the fix is to
   placeholder them, not widen them. Opposite polarity to G-0518, so not one sweep.
@@ -550,6 +584,8 @@ G-0548 are missing chokepoints rather than stale text.
   G-0110 now records as false
 - **G-0717** — the same initiative credits `oracles.md` with *depth*, *reach* and
   *specificity*, which that file has never defined
+- **G-0735** — comments, a test message and an ADR cite `CLAUDE.md` rules by names it
+  does not carry
 
 
 ### 12. Development environment — the machine the gates run on
@@ -573,5 +609,8 @@ review cycles, and a green run on a nearly-full disk is not evidence either way.
   scratch on every push
 - **G-0645** — shared test-binary temp dirs are never removed, leaking ~23G to /tmp
 - **G-0654** — `make build` emits a `bin/aiwf` that gets reached for instead of the
-  release
+  release. E-0099 reverted renaming it: `doctor --self-check` needs the name `aiwf`
+- **G-0730** — `aiwf check` runs a whole-repository `git fsck` once per hinted history
+  finding. Same family as G-0372
+- **G-0725** — `make install-hooks` reports success when it cannot create the links
 
