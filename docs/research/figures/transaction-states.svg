@@ -90,7 +90,7 @@
   <!-- Environment note -->
   <rect class="note" x="40" y="404" width="980" height="56" rx="6"/>
   <text class="tnote" x="56" y="427">In every state the environment can also act: a hand edit, git add -A, a rebase, squash or fixup, a crash, a lost push reply.</text>
-  <text class="tnote" x="56" y="445">The model includes these as actions. Drawn for the merge-request mode; the direct-to-default-branch mode is undecided (§10, question 10).</text>
+  <text class="tnote" x="56" y="445">Drawn for the merge-request mode; the direct-to-default-branch mode is undecided (§10, question 10).</text>
 
   <!-- Legend -->
   <path class="e acc" d="M40,488 H80"/>

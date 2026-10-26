@@ -1,0 +1,46 @@
+# Real-git checks for the transaction model
+# git 2.51.1, Linux 7.0.14-linuxkit, run 2026-10-26T18:59Z
+
+$ bash g1_trailers.sh
+== G7: trailers parse only from the last paragraph
+two trailer paragraphs -> aiwf-verb values parsed: 1 (promote)
+trailers then a co-author paragraph -> aiwf-verb values parsed: 0
+one paragraph, two groups of repeated keys -> aiwf-verb values parsed: 2
+== G8: git merge --squash default message
+squash default message, last 3 lines:
+   |    aiwf-verb: add
+   |    aiwf-entity: G-0002
+   |
+aiwf-verb values parsed from it: 0
+== G9: cherry-pick keeps the trailer block parseable?
+cherry-pick -x: message tail:
+   |aiwf-entity: G-0002
+   |(cherry picked from commit 5d8881141fb9127651e0520173f99decbe037ab2)
+   |
+aiwf-verb values parsed: 1
+cherry-pick without -x: aiwf-verb values parsed: 1; same SHA as source? no
+== G10: revert message
+revert: aiwf-verb values parsed: 0; message: Revert "s1"  This reverts commit eb79bb584524f76b6f7f70063380160021b09158.  
+
+$ bash g2_push.sh
+== G11a: lease-checked force push, remote already equals what we push, lease names the old SHA
+   remote tx now = new? yes
+   retry with the same stale lease: exit 0; Everything up-to-date 
+== G11b: lease-checked force push when another operator pushed meanwhile
+   lease names the SHA a last pushed: exit 1; rejected]        tx -> tx (stale info)
+   after a fetch, --force-with-lease with no explicit SHA: exit 0; bob's commit still on remote? no
+== G12: git rebase keeps SHAs when the branch is already on the upstream tip
+   up to date: SHA kept? yes
+   --force-rebase: SHA kept? no
+
+$ bash g3_merge.sh
+G3a status line vs body paragraph of one file: clean merge; result status=status: in_progress body=Show what a planning commit keeps, rewritten.
+G3b two different status values on one line: CONFLICT
+G3c two different edits of one body line: CONFLICT
+
+$ bash g4_rebase_empty.sh
+   rebase: dropping b6e6d076554a303c90789189f8966216f3693bd3 plan: Q -- patch contents already upstream
+   rebase: dropping d2eadafd2aaf07aa4349e8ac5d595fa9337af8aa feat: code -- patch contents already upstream
+G13 commits left on tx after rebasing onto the squash: plan: verb after the merge|
+== G14: does git rebase keep a commit that started empty (an aiwf authorize commit)?
+G14 empty authorize commit after rebase: present=yes same SHA=no trailers parsed=1

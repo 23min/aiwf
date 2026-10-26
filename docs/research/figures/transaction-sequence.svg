@@ -96,5 +96,5 @@
   <!-- failure path -->
   <text class="tn" x="16" y="528">✕</text>
   <path class="e dash" d="M650,524 H132" marker-end="url(#s-arrow)"/>
-  <text class="te" x="391" y="515" text-anchor="middle">check fails: revise on the branch, submit again</text>
+  <text class="te" x="520" y="515" text-anchor="middle">check fails: revise on the branch</text>
 </svg>
