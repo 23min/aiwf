@@ -1,0 +1,101 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 70 1060 450" width="1060" height="450">
+  <title>A transaction's states</title>
+  <style>
+    :root {
+      --surface: #ffffff; --ink: #15202b; --ink-2: #3b4755; --muted: #5a6676;
+      --line: #c6ced8; --line-2: #8a96a5;
+      --zone-b: #f5eae8;
+      --accent: #0a6d89;
+      --font-body: -apple-system, BlinkMacSystemFont, "Segoe UI", "Helvetica Neue", Arial, sans-serif;
+      --font-mono: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+    }
+    @media (prefers-color-scheme: dark) {
+      :root {
+        --surface: #151d26; --ink: #e2e8ee; --ink-2: #b6c1cd; --muted: #95a3b2;
+        --line: #33404f; --line-2: #627082;
+        --zone-b: #2a1c1e;
+        --accent: #52c3e0;
+      }
+    }
+    .bg { fill: var(--surface); stroke: var(--line); }
+    .n { fill: var(--surface); stroke: var(--line-2); stroke-width: 1.2; }
+    .term { fill: none; stroke: var(--line-2); stroke-width: 1.2; }
+    .note { fill: var(--zone-b); stroke: var(--line); }
+    .e { fill: none; stroke: var(--ink-2); stroke-width: 1.4; }
+    .e.acc { stroke: var(--accent); stroke-width: 2.2; }
+    .mk { fill: var(--ink-2); }
+    .mk-acc { fill: var(--accent); }
+    .tt { font: 600 12.5px var(--font-body); fill: var(--ink); }
+    .ts { font: 400 11px var(--font-body); fill: var(--muted); }
+    .te { font: 400 11px var(--font-body); fill: var(--ink-2); paint-order: stroke; stroke: var(--surface); stroke-width: 4px; stroke-linejoin: round; }
+    .te.acc-t { fill: var(--accent); }
+    .tnote { font: 400 11px var(--font-body); fill: var(--ink-2); }
+  </style>
+  <defs>
+    <marker id="t-arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+      <path class="mk" d="M0,0 L10,5 L0,10 z"/>
+    </marker>
+    <marker id="t-arrow-acc" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+      <path class="mk-acc" d="M0,0 L10,5 L0,10 z"/>
+    </marker>
+  </defs>
+  <rect class="bg" x="0.5" y="70.5" width="1059" height="449" rx="10"/>
+
+  <!-- States: open 125, prepared 415, in review 705, merged 960 -->
+  <rect class="n" x="40" y="170" width="170" height="64" rx="8"/>
+  <text class="tt" x="125" y="198" text-anchor="middle">open</text>
+  <text class="ts" x="125" y="216" text-anchor="middle">writes on the branch</text>
+
+  <rect class="n" x="330" y="170" width="170" height="64" rx="8"/>
+  <text class="tt" x="415" y="198" text-anchor="middle">prepared</text>
+  <text class="ts" x="415" y="216" text-anchor="middle">planning commits folded</text>
+
+  <rect class="n" x="620" y="170" width="170" height="64" rx="8"/>
+  <text class="tt" x="705" y="198" text-anchor="middle">in review</text>
+  <text class="ts" x="705" y="216" text-anchor="middle">pushed, merge request open</text>
+
+  <rect class="n" x="874" y="170" width="160" height="64" rx="8"/>
+  <rect class="term" x="879" y="175" width="150" height="54" rx="6"/>
+  <text class="tt" x="954" y="198" text-anchor="middle">merged</text>
+  <text class="ts" x="954" y="216" text-anchor="middle">on the default branch</text>
+
+  <rect class="n" x="330" y="318" width="170" height="56" rx="8"/>
+  <rect class="term" x="335" y="323" width="160" height="46" rx="6"/>
+  <text class="tt" x="415" y="343" text-anchor="middle">abandoned</text>
+  <text class="ts" x="415" y="360" text-anchor="middle">default branch untouched</text>
+
+  <!-- Forward edges -->
+  <path class="e acc" d="M210,202 H328" marker-end="url(#t-arrow-acc)"/>
+  <text class="te acc-t" x="269" y="193" text-anchor="middle">submit</text>
+  <path class="e" d="M500,202 H618" marker-end="url(#t-arrow)"/>
+  <text class="te" x="559" y="193" text-anchor="middle">push, open MR</text>
+  <path class="e" d="M790,202 H872" marker-end="url(#t-arrow)"/>
+  <text class="te" x="831" y="193" text-anchor="middle">host merges</text>
+
+  <!-- Back edge: revise -->
+  <path class="e" d="M650,170 V116 H125 V168" marker-end="url(#t-arrow)"/>
+  <text class="te" x="388" y="108" text-anchor="middle">check fails or changes requested: revise on the branch</text>
+
+  <!-- Self loop: base moved -->
+  <path class="e" d="M735,170 C735,128 775,128 775,168" marker-end="url(#t-arrow)"/>
+  <text class="te" x="784" y="138">base moved:</text>
+  <text class="te" x="784" y="152">re-run aiwf check</text>
+
+  <!-- Abandon from any open state -->
+  <path class="e" d="M125,234 V252 H705 V234"/>
+  <path class="e" d="M415,234 V252"/>
+  <path class="e" d="M415,252 V316" marker-end="url(#t-arrow)"/>
+  <text class="te" x="425" y="290">abandon: delete the branch</text>
+
+  <!-- Environment note -->
+  <rect class="note" x="40" y="404" width="980" height="56" rx="6"/>
+  <text class="tnote" x="56" y="427">In every state the environment can also act: a hand edit, git add -A, a rebase, squash or fixup, a crash, a lost push reply.</text>
+  <text class="tnote" x="56" y="445">The model includes these as actions. Drawn for the merge-request mode; the direct-to-default-branch mode is undecided (§10, question 10).</text>
+
+  <!-- Legend -->
+  <path class="e acc" d="M40,488 H80"/>
+  <text class="ts" x="88" y="492">folds the planning commits</text>
+  <rect class="n" x="260" y="480" width="22" height="16" rx="3"/>
+  <rect class="term" x="263" y="483" width="16" height="10" rx="2"/>
+  <text class="ts" x="290" y="492">terminal state</text>
+</svg>

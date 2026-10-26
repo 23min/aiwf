@@ -1,0 +1,100 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1060 580" width="1060" height="580">
+  <title>From planning verbs to merge</title>
+  <style>
+    :root {
+      --surface: #ffffff; --ink: #15202b; --ink-2: #3b4755; --muted: #5a6676;
+      --line: #c6ced8; --line-2: #8a96a5;
+      --accent: #0a6d89;
+      --c-2: #ddefe3; --c-2-s: #2f7a4c;
+      --font-body: -apple-system, BlinkMacSystemFont, "Segoe UI", "Helvetica Neue", Arial, sans-serif;
+      --font-mono: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+    }
+    @media (prefers-color-scheme: dark) {
+      :root {
+        --surface: #151d26; --ink: #e2e8ee; --ink-2: #b6c1cd; --muted: #95a3b2;
+        --line: #33404f; --line-2: #627082;
+        --accent: #52c3e0;
+        --c-2: #14291d; --c-2-s: #6fc593;
+      }
+    }
+    .bg { fill: var(--surface); stroke: var(--line); }
+    .n { fill: var(--surface); stroke: var(--line-2); stroke-width: 1.2; }
+    .n.c2 { fill: var(--c-2); stroke: var(--c-2-s); }
+    .life { fill: none; stroke: var(--line-2); stroke-width: 1; stroke-dasharray: 3 5; }
+    .e { fill: none; stroke: var(--ink-2); stroke-width: 1.4; }
+    .e.dash { stroke-dasharray: 6 5; }
+    .e.acc { stroke: var(--accent); stroke-width: 2.2; }
+    .mk { fill: var(--ink-2); }
+    .mk-acc { fill: var(--accent); }
+    .tt { font: 600 12.5px var(--font-body); fill: var(--ink); }
+    .ts { font: 400 11px var(--font-body); fill: var(--muted); }
+    .tn { font: 600 11px var(--font-mono); fill: var(--muted); }
+    .te { font: 400 11px var(--font-body); fill: var(--ink-2); paint-order: stroke; stroke: var(--surface); stroke-width: 4px; stroke-linejoin: round; }
+    .te.acc-t { fill: var(--accent); }
+  </style>
+  <defs>
+    <marker id="s-arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+      <path class="mk" d="M0,0 L10,5 L0,10 z"/>
+    </marker>
+    <marker id="s-arrow-acc" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+      <path class="mk-acc" d="M0,0 L10,5 L0,10 z"/>
+    </marker>
+  </defs>
+  <rect class="bg" x="0.5" y="0.5" width="1059" height="579" rx="10"/>
+
+  <!-- Lanes: agent 130, transaction branch 390, host 650, default branch 910 -->
+  <rect class="n" x="40" y="20" width="180" height="52" rx="6"/>
+  <text class="tt" x="130" y="42" text-anchor="middle">agent or person</text>
+  <text class="ts" x="130" y="60" text-anchor="middle">in the transaction's worktree</text>
+  <rect class="n c2" x="300" y="20" width="180" height="52" rx="6"/>
+  <text class="tt" x="390" y="42" text-anchor="middle">transaction's branch</text>
+  <text class="ts" x="390" y="60" text-anchor="middle">named the team's way</text>
+  <rect class="n" x="560" y="20" width="180" height="52" rx="6"/>
+  <text class="tt" x="650" y="42" text-anchor="middle">host</text>
+  <text class="ts" x="650" y="60" text-anchor="middle">merge request and CI</text>
+  <rect class="n" x="820" y="20" width="180" height="52" rx="6"/>
+  <text class="tt" x="910" y="42" text-anchor="middle">default branch</text>
+  <text class="ts" x="910" y="60" text-anchor="middle">the published plan</text>
+
+  <path class="life" d="M130,72 V552"/>
+  <path class="life" d="M390,72 V552"/>
+  <path class="life" d="M650,72 V552"/>
+  <path class="life" d="M910,72 V552"/>
+
+  <!-- 1 -->
+  <text class="tn" x="16" y="124">1</text>
+  <path class="e" d="M130,120 H388" marker-end="url(#s-arrow)"/>
+  <text class="te" x="260" y="111" text-anchor="middle">aiwf verbs, one commit each</text>
+  <!-- 2 -->
+  <text class="tn" x="16" y="172">2</text>
+  <path class="e" d="M130,168 H388" marker-end="url(#s-arrow)"/>
+  <text class="te" x="260" y="159" text-anchor="middle">code commits</text>
+  <!-- 3 -->
+  <text class="tn" x="16" y="228">3</text>
+  <path class="e acc" d="M130,224 H388" marker-end="url(#s-arrow-acc)"/>
+  <text class="te acc-t" x="260" y="215" text-anchor="middle">submit</text>
+  <path class="e acc" d="M390,236 H430 V268 H392" marker-end="url(#s-arrow-acc)"/>
+  <text class="te acc-t" x="440" y="248">folded into one planning commit,</text>
+  <text class="te acc-t" x="440" y="262">one trailer group per operation</text>
+  <!-- 4 -->
+  <text class="tn" x="16" y="312">4</text>
+  <path class="e" d="M390,308 H648" marker-end="url(#s-arrow)"/>
+  <text class="te" x="520" y="299" text-anchor="middle">push; open a merge request</text>
+  <!-- 5 -->
+  <text class="tn" x="16" y="358">5</text>
+  <rect class="n" x="830" y="338" width="160" height="34" rx="5"/>
+  <text class="ts" x="910" y="359" text-anchor="middle">another merge lands first</text>
+  <!-- 6 -->
+  <text class="tn" x="16" y="410">6</text>
+  <path class="e" d="M650,398 H686 V430 H652" marker-end="url(#s-arrow)"/>
+  <text class="te" x="696" y="404">CI re-checks against the moved base,</text>
+  <text class="te" x="696" y="418">where the host requires it</text>
+  <!-- 7 -->
+  <text class="tn" x="16" y="474">7</text>
+  <path class="e" d="M650,470 H908" marker-end="url(#s-arrow)"/>
+  <text class="te" x="779" y="461" text-anchor="middle">merge: code and planning land together</text>
+  <!-- failure path -->
+  <text class="tn" x="16" y="528">✕</text>
+  <path class="e dash" d="M650,524 H132" marker-end="url(#s-arrow)"/>
+  <text class="te" x="391" y="515" text-anchor="middle">check fails: revise on the branch, submit again</text>
+</svg>
