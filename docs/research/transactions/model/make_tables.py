@@ -393,95 +393,109 @@ def fill(res, rows, probes, by, best, runs, trunc, tot, peak, out):
 
 
 def rule_block(rows):
-    """What-if W2 across the matrix, from rule_w2.json."""
+    """The push rules for submit across the matrix, from rule_w2.json."""
     p = os.path.join(HERE, 'rule_w2.json')
     if not os.path.exists(p):
         return '`rule_w2.json` is absent; run `python3 -I rule_w2.py`.'
     w = json.load(open(p))
 
     def fails(viol, stuck):
-        # the matrices' tokens without their reporting marks: T4a only where T4
-        # otherwise holds (as cell_short shows it), x and m marks kept, L✗ when stuck
-        f = set(viol)
-        if 'T4a' in f and ({'T4', 'T4d'} & f):
-            f.discard('T4a')
-        return f | ({'L✗'} if stuck else set())
+        # the matrices' tokens without their reporting marks and without T4's 'a',
+        # which holds; x and m marks kept, L✗ when stuck
+        return (set(viol) - {'T4a'}) | ({'L✗'} if stuck else set())
+
+    def show(f):
+        return ' '.join(sorted(f)) or '—'
 
     hosts = list(dict.fromkeys(r['host'] for r in rows if r['kind'] == 'matrix'))
-    got = {(r['design'], r['host'], r['cond'], r['rule']): r for r in w['rows']}
+    got = {(r['design'], r['host'], r['cond'], r['variant']): r for r in w['rows']}
     designs = list(dict.fromkeys(r['design'] for r in w['rows']))
+    variants = [v for v in w['variants'] if v != 'none']
     today = {(r['host'], r['cond']): fails(r['viol'], r.get('stuck'))
              for r in rows if r['kind'] == 'matrix' and r['design_id'] == 'perverb.parent'}
-    out = [f"Run {w['when']}: {len(w['rows'])} runs, {sum(not r['complete'] for r in w['rows'])} hit the state cap, "
-           f"{sum(not r['acyclic'] for r in w['rows'])} state graphs have a cycle. Each cell below lists what fails, "
-           f"with the matrices' tokens but without their `!`/`✗` reporting marks; cells the rule leaves unchanged "
-           f"are not listed.", '',
-           '| design | condition | without the rule | with it | host settings |', '|---|---|---|---|---|']
-    for d in designs:
-        groups = {}
+
+    def cells(d, v):
         for c in M.CONDS:
             for h in hosts:
-                a, b = got.get((d, h, c, False)), got.get((d, h, c, True))
-                if a is None or b is None:
-                    continue
+                if (d, h, c, v) in got:
+                    yield h, c, got[(d, h, c, v)]
+
+    out = [f"Run {w['when']}: {len(w['rows'])} runs, {sum(not r['complete'] for r in w['rows'])} hit the state cap, "
+           f"{sum(not r['acyclic'] for r in w['rows'])} state graphs have a cycle.", '',
+           'Cells each rule changes against no rule. Each lists what fails, with the matrices\' tokens but without '
+           'their `!`/`✗` reporting marks and without T4\'s `a`, which holds; a cell no rule changes is not listed.', '',
+           '| rule | design | condition | without a rule | with it | host settings |', '|---|---|---|---|---|---|']
+    for v in variants:
+        for d in designs:
+            groups = {}
+            for h, c, b in cells(d, v):
+                a = got[(d, h, c, 'none')]
                 fa, fb = fails(a['viol'], a['stuck']), fails(b['viol'], b['stuck'])
                 if fa != fb:
-                    groups.setdefault((c, ' '.join(sorted(fa)) or '—', ' '.join(sorted(fb)) or '—'), []).append(h)
-        for (c, fa, fb), hs in groups.items():
-            out.append(f"| `{d}` | {c} | {fa} | {fb} | {', '.join(f'`{h}`' for h in hs)} |")
+                    groups.setdefault((c, show(fa), show(fb)), []).append(h)
+            for (c, fa, fb), hs in groups.items():
+                out.append(f"| {v} | `{d}` | {c} | {fa} | {fb} | {', '.join(f'`{h}`' for h in hs)} |")
     out.append('')
     if len(designs) == 2:
-        diff = []
-        for c in M.CONDS:
-            for h in hosts:
-                a, b = got.get((designs[0], h, c, True)), got.get((designs[1], h, c, True))
-                if a is None or b is None:
-                    continue
+        for v in variants:
+            diff = []
+            for h, c, a in cells(designs[0], v):
+                b = got[(designs[1], h, c, v)]
                 fa, fb = fails(a['viol'], a['stuck']), fails(b['viol'], b['stuck'])
                 if fa != fb:
-                    diff.append(f"`{h}` {c}: `{designs[0]}` fails {' '.join(sorted(fa)) or 'nothing'}, "
-                                f"`{designs[1]}` fails {' '.join(sorted(fb)) or 'nothing'}")
-        out.append('With the rule, the two designs differ in: ' + ('; '.join(diff) if diff else 'no cell') + '.')
+                    diff.append(f"`{h}` {c}: `{designs[0]}` fails {show(fa)}, `{designs[1]}` fails {show(fb)}")
+            out.append(f"Under {v}, the two designs differ in: " + ('; '.join(diff) if diff else 'no cell') + '.')
+            out.append('')
+    same = []
+    for i, v in enumerate(variants):
+        for u in variants[i + 1:]:
+            if all((sorted(got[(d, h, c, v)]['viol']), got[(d, h, c, v)]['stuck']) ==
+                   (sorted(got[(d, h, c, u)]['viol']), got[(d, h, c, u)]['stuck'])
+                   for d in designs for h, c, _ in cells(d, v)):
+                same.append(f"{v} and {u}")
+    if same:
+        out.append('Rules that agree on every invariant and on liveness in every cell, for both designs: '
+                   + '; '.join(same) + '.')
         out.append('')
-    out.append('Refusals the rule adds (the model counts each as actionable, so no table above shows them):')
+    out.append('Refusals each rule adds against no rule (the model counts each as actionable, so no table above '
+               'shows them): the number of cells where the refusal ends some run under the rule, and how many of '
+               'those also have it without a rule.')
     out.append('')
-    out.append('| design | refusal | cells with the rule | of them also without it |')
-    out.append('|---|---|---|---|')
-    for d in designs:
-        cnt = {}
-        for (dd, h, c, rule), r in got.items():
-            if dd != d or not rule:
-                continue
-            before = set(got[(dd, h, c, False)].get('refusals', ()))
-            for why in r.get('refusals', ()):
-                n = cnt.setdefault(why, [0, 0])
-                n[0] += 1
-                n[1] += why in before
-        for why, (n, m) in sorted(cnt.items()):
-            if n != m:
-                out.append(f"| `{d}` | {why} | {n} | {m} |")
+    out.append('| rule | design | refusal | cells with the rule | of them also without it |')
+    out.append('|---|---|---|---|---|')
+    for v in variants:
+        for d in designs:
+            cnt = {}
+            for h, c, r in cells(d, v):
+                before = set(got[(d, h, c, 'none')]['refusals'])
+                for why in r['refusals']:
+                    n = cnt.setdefault(why, [0, 0])
+                    n[0] += 1
+                    n[1] += why in before
+            for why, (n, m) in sorted(cnt.items()):
+                if n != m:
+                    out.append(f"| {v} | `{d}` | {why} | {n} | {m} |")
     out.append('')
     force = {}
     for r in w['rows']:
-        force[(r['design'], r['rule'])] = force.get((r['design'], r['rule']), 0) + r['force_after_submit']
+        force[(r['design'], r['variant'])] = force.get((r['design'], r['variant']), 0) + r['force_after_submit']
     out.append('Explored submits that make the next push need force on a branch that did not need it (the remote '
                'branch was an ancestor of the tip before the submit and is not after it), summed over every run: ' +
-               '; '.join(f"`{d}` {force[(d, False)]:,} without the rule, {force[(d, True)]:,} with it" for d in designs)
+               '; '.join(f"`{d}` " + ', '.join(f"{force[(d, v)]:,} under {v}" for v in w['variants']) for d in designs)
                + '.')
     out.append('')
-    worse = []
-    for d in designs:
-        for c in M.CONDS:
-            for h in hosts:
-                b = got.get((d, h, c, True))
-                if b is None or (h, c) not in today:
-                    continue
-                extra = fails(b['viol'], b['stuck']) - today[(h, c)]
-                if extra:
-                    worse.append(f"`{d}`, `{h}` {c}: {' '.join(sorted(extra))}")
-    out.append('Cells where a design with the rule fails something today\'s per-verb commits (`perverb.parent`) keep: '
-               + ('; '.join(worse) if worse else 'none') + '.')
-    return '\n'.join(out)
+    for v in variants:
+        worse = []
+        for d in designs:
+            for h, c, b in cells(d, v):
+                if (h, c) in today:
+                    extra = fails(b['viol'], b['stuck']) - today[(h, c)]
+                    if extra:
+                        worse.append(f"`{d}`, `{h}` {c}: {show(extra)}")
+        out.append(f"Under {v}, cells where a design fails something today's per-verb commits (`perverb.parent`) "
+                   f"keep: " + ('; '.join(worse) if worse else 'none') + '.')
+        out.append('')
+    return '\n'.join(out).rstrip()
 
 
 def fidelity_block(by, probes):

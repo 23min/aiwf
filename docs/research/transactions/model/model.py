@@ -635,6 +635,16 @@ class Model:
             fold_idx = planning
         if not fold_idx:
             return None
+        if 'fold-unpushed' in self.p and tx.rtb is not None:
+            # fold only the operations not yet on the remote branch; the pushed ones
+            # stay as they are, so they must all come before the first one folded
+            pushed = recs(tx.rtb)
+            held = [k for k in fold_idx if any(g.op in pushed for g in parsed(chain[k]))]
+            fold_idx = [k for k in fold_idx if k not in held]
+            if not fold_idx:
+                return None
+            if held and max(held) > fold_idx[0]:
+                return ('refused', 'pushed')
         if len(fold_idx) == 1 and C(chain[fold_idx[0]]).kind == 'plan' and fold_idx[0] == len(chain) - 1:
             return None                                  # the planning commit is already at the tip
         if 'mixed' in cls:
@@ -811,9 +821,24 @@ class Model:
         if pc < len(self.sc[X]) and not (X == 'A' and pc in STAGES.get(self.cond, ()) and st.nmerge[i] == 0):
             return False
         if (self.fold_design() and self.cond != 'after' and self.unfolded_at(st.rb[i], st.main)
-                and not self.fold_refused_ptr(i, st)):
+                and not self.fold_refused_ptr(i, st) and not self.lands_unfolded(i, st)):
             return False
         return True
+
+    def lands_unfolded(self, i, st):
+        """What-ifs for W2's cost. With 'w2-merge-unsubmitted', a transaction whose
+        submit W2 refuses is merged as its per-verb commits. With 'fold-unpushed',
+        pushed verbs stay per-verb and the operator merges once nothing is left to
+        fold. Both first push the local tip."""
+        tx = st.tx[i]
+        if st.rb[i] != tx.loc:
+            return False
+        if 'w2-merge-unsubmitted' in self.p:
+            r = self.fold(i, st)
+            return r is not None and r[0] == 'refused' and r[1] == 'pushed'
+        if 'fold-unpushed' in self.p:
+            return self.fold(i, st) is None
+        return False
 
     def fold_refused_ptr(self, i, st):
         """Under ptr=refuse a transaction whose fold is refused lands per-verb."""

@@ -10,7 +10,7 @@ Run <!-- WHEN -->, Python 3.12.3, git 2.51.1, Linux, 16 CPUs, 12 workers. <!-- N
    - **`revert`.** A host revert lands entity changes with no trailers and moves M from `done` back to `draft` (T3, T7). `aiwf check` on main reports both after the revert lands; under the up-to-date rule, every later transaction's pre-push hook then fails on that commit until someone acknowledges it (L = `M`).
    - **`resolve`.** A conflict resolved by hand inside a merge commit can drop the resolver's own operation (T1), revert the other transaction's (T2), and move M `draft → done` (T7x). Nothing reports any of it, because both audits skip merge commits (A8, A9). This is R4, plus the T2 case §8 did not show.
    - **`cherry`.** A cherry-picked planning commit lands A's operations on main through B before A merges (T1). No `aiwf check` rule looks for it.
-   - **`after`, `bob`.** A pushes a per-verb commit, then folds it into a planning commit. The older push survives somewhere, and the operation lands twice: once in the per-verb commit, once in the planning commit (T4d). In `after`, the host merges the older push first; in `bob`, a second operator builds on it and A's `git pull --rebase` brings it back. Today's per-verb commits do not do this: it is the one place folding is worse than today on merge-commit, semi-linear and fast-forward hosts. What-ifs W2 (`bob`) and W3 (`after`) close it: submit refuses to fold an operation whose record is already on the remote branch, judged by operation identity. Refusing once the commits are pushed, judged by SHA (W1), does not close it, because the operator's own rebase gives pushed commits new SHAs. Run across the whole matrix for both re-submit values (§3, "The refusal rule W2 across the matrix"), W2 removes the duplicate in `after` and `bob` on every non-squash host and adds no invariant failure, and no submit then makes the next push need force on a branch that did not need it. It adds a refusal instead: a transaction that pushed a verb before submitting cannot be submitted, and the model counts that refusal as actionable (§3, the rule table).
+   - **`after`, `bob`.** A pushes a per-verb commit, then folds it into a planning commit. The older push survives somewhere, and the operation lands twice: once in the per-verb commit, once in the planning commit (T4d). In `after`, the host merges the older push first; in `bob`, a second operator builds on it and A's `git pull --rebase` brings it back. Today's per-verb commits do not do this: it is the one place folding is worse than today on merge-commit, semi-linear and fast-forward hosts. What-ifs W2 (`bob`) and W3 (`after`) close it: submit refuses to fold an operation whose record is already on the remote branch, judged by operation identity. Refusing once the commits are pushed, judged by SHA (W1), does not close it, because the operator's own rebase gives pushed commits new SHAs. Run across the whole matrix for both re-submit values (§3, "The push rules across the matrix"), W2 removes the duplicate in `after` and `bob` on every non-squash host and adds no invariant failure, and no submit then makes the next push need force on a branch that did not need it. It adds a refusal instead: a transaction that pushed a verb before submitting cannot be submitted, which the model counts as actionable. Two remedies close that: merging such a transaction as its per-verb commits, or a partial fold that folds only the operations not yet pushed. They agree on every invariant and on liveness in every cell; what was pushed before submitting lands per-verb and keeps today's weaknesses, and nothing is worse than today except under an all-messages squash of a cherry-picked planning commit. The proposal takes the partial fold.
    - **`ack`, `abc`.** A record that names a commit which is not an aiwf operation breaks whenever that commit is re-created, and four things re-create it: the fold (the commit follows a planning commit), the operator's `git rebase`, a semi-linear or fast-forward host, and any squash. These records are `aiwf acknowledge illegal <sha>` of a hand edit and `addressed_by_commit` naming a code commit. Under `abc`, `addressed_by_commit` dangles on main and nothing reports it (T6). Under `ack`, the finding the acknowledgement covered comes back on the new SHA, and the pre-push hook refuses the transaction (L✗).
 2. **The squash message setting decides more than any of the six choices.**
    - With a title-only squash or git's own `--squash` message, no design keeps the record (T4), the attestation (T3) or the audit (T7). That is §8 E4's result, reproduced; `aiwf check` on main reports T3 and T7 after landing, and nothing reports the lost record.
@@ -29,6 +29,7 @@ Run <!-- WHEN -->, Python 3.12.3, git 2.51.1, Linux, 16 CPUs, 12 workers. <!-- N
      - `append` leaves two planning commits, and an all-messages squash keeps only the last one's record (T7 in `reuse`, `squash/all`).
      - Elsewhere they behave the same. `append` needs no force push to re-submit verbs run after a pushed planning commit, as long as those verbs are not yet pushed themselves.
      - With W2 the order reverses. `replace` then refuses to re-fold a planning commit once it is pushed, so its re-submit never makes a push need force, and it keeps the `after` cell above. The two differ only where §3's rule table says, and there `append` is the one that fails.
+     - Under the partial fold the two behave identically in every cell (§3, the rule table). `replace` then re-folds every planning commit not yet pushed, so what is left between them is whether a re-submit before pushing makes one planning commit or two.
 4. **Direct mode (§10, open question 10): folding before each push works** with the same choices. The best design keeps every invariant there except the shared failures (`revert`, `resolve`, `ack`, `abc`). Today's per-verb commits fail `auth` in direct mode as well.
 5. **Three of these failures are in today's aiwf, without any fold.** All three appear in the per-verb rows (`perverb.parent`), under every host.
    - A `git rebase` of a branch that carries an `authorize` commit re-creates that commit under a new SHA (G14). Every later `aiwf-authorized-by` on the branch then names a commit that no longer exists, and the pipeline refuses with `provenance-authorization-missing` (L✗ in `auth`).
@@ -39,7 +40,7 @@ Run <!-- WHEN -->, Python 3.12.3, git 2.51.1, Linux, 16 CPUs, 12 workers. <!-- N
 **Checks of the model itself.**
 
 - **Fidelity.** R1, R2, R4 (the resolution and the revert), E3 and E5's probe-drop are reproduced. All ten E4 cells match the spike's counts, and E1's tree, patch-ids and record order match (§4).
-- **Probes.** Eleven mutation probes cover T1 to T7, T4's duplicate rule and L, and each fails its invariant while its control run keeps it. Three what-if runs (W1 to W3) test candidate rules for folding operations that were already pushed, and `rule_w2.py` runs W2 across the whole matrix (§3).
+- **Probes.** Eleven mutation probes cover T1 to T7, T4's duplicate rule and L, and each fails its invariant while its control run keeps it. Three what-if runs (W1 to W3) test candidate rules for folding operations that were already pushed, and `rule_w2.py` runs W2 and two remedies for its refusal across the whole matrix (§3).
 - **Bounds.** Every run explored its whole bound: none hit the state cap and no state graph has a cycle.
 
 ## 1. What was modelled
@@ -102,9 +103,14 @@ Cells list the invariants that fail; `—` means all hold. `L✗` is a liveness 
 
 <!-- TABLES -->
 
-#### The refusal rule W2 across the matrix
+#### The push rules across the matrix
 
-`rule_w2.py` runs the design `replay.<resub>.record.opid.record`, for both re-submit values, in every host setting and condition, with and without W2: submit refuses to fold an operation whose record is already on the transaction's remote branch, judged by operation identity.
+`rule_w2.py` runs the design `replay.<resub>.record.opid.record`, for both re-submit values, in every host setting and condition, under four push rules:
+
+- **none**, the matrix's own behaviour;
+- **W2**: submit refuses when an operation it would fold already has its record on the transaction's remote branch, judged by operation identity;
+- **W2+merge**: W2, and a transaction whose submit W2 refuses is merged as its per-verb commits once its local tip is pushed;
+- **partial**: submit folds only the operations not yet on the remote branch and leaves the pushed ones as they are, refusing if a pushed one comes after an unpushed one; the operator merges once everything is pushed and nothing is left to fold. This is the rule the proposal's §4.2 states.
 
 <!-- RULE -->
 
@@ -136,6 +142,7 @@ The tables in §3 ("One choice at a time") vary one dimension of a reference des
 - The one cell where replace fails is `squash_title@after@replay.replace…__L-stuck.txt`. A pushes a per-verb `promote M in_progress`, submits locally, and the host squash-merges the older push. A re-submits, and replace re-folds the `in_progress` step into a planning commit whose parent already has M `in_progress`, so the audit reads `in_progress → in_progress`.
 - Outside squash hosts the two never differ.
 - *With W2*, `replace` refuses once its planning commit is pushed, because the re-fold would include operations recorded on the remote branch; verbs run after that cannot be folded. No submit then makes the next push need force on a branch that did not need it, under either value (§3, the rule table).
+- *Under the partial fold*, a pushed planning commit stays as it is under either value, so both add a second planning commit for verbs run after it; before it is pushed, `replace` re-folds it and `append` adds a second. The two behave identically in every cell.
 
 **txid: branch name or record.**
 
@@ -201,7 +208,7 @@ Each line: the assumption, then its source (a measurement, a code reading, or no
 - **A12.** The record is today's trailer keys repeated, one group per operation, in one paragraph (E5 format f1: git parses every group and the commit-msg hook accepts it), and every reader is taught to read all groups in order (open question 2). Today's readers do not (E5).
 - **A13.** Each modelled verb changes only the file of the entity its `aiwf-entity` names (an AC's verbs change its milestone's file). This stands in for the missing record of which entities each verb may touch (§9.2, limit 3; open question 4). Verbs that touch more (reallocate, rename's reference rewrites, archive, the wrap rituals) are outside the model.
 - **A14.** Submit as modelled. It fetches the default branch first. It treats a commit as planning when it carries an `aiwf-verb` trailer. It refuses a commit that mixes planning and code, and refuses when the commits it would fold or rewrite include anyone else's. It keeps every commit whose parent is unchanged, re-creates the others in order, and re-merges merge commits with their original second parent (as `git rebase --rebase-merges` does). It writes the record in operation order. It updates the branch ref once. The proposal states the refusals; the rest are implementation choices the model fixes.
-- **A15.** The operator asks for a merge only once the pushed branch is submitted (except in `after`). Under `ptr=refuse` a refused fold lands per-verb. Under `txid=record` the identity is in every planning commit, `aiwf check` refuses an operation recorded in two planning commits, and submit refuses to fold records already on main until the branch contains main (then it drops them). Under `ptr=opid`, verbs write an aiwf operation's identity in `aiwf-authorized-by`; pointers to commits that are not aiwf operations (a hand edit's acknowledgement, a code commit's `addressed_by_commit`) remain SHAs.
+- **A15.** The operator asks for a merge only once the pushed branch is submitted (except in `after`); under W2+merge and the partial fold, also once the local tip is pushed and submit has nothing left to fold. Under `ptr=refuse` a refused fold lands per-verb. Under `txid=record` the identity is in every planning commit, `aiwf check` refuses an operation recorded in two planning commits, and submit refuses to fold records already on main until the branch contains main (then it drops them). Under `ptr=opid`, verbs write an aiwf operation's identity in `aiwf-authorized-by`; pointers to commits that are not aiwf operations (a hand edit's acknowledgement, a code commit's `addressed_by_commit`) remain SHAs.
 
 ## 7. Findings for the proposal
 
@@ -211,7 +218,7 @@ Each item states what the model shows and the trace or table that shows it; the 
 
 - **Replay, not copy.** Copying `work/` from a snapshot reverts planning another transaction merged meanwhile: copy fails T2 in every host setting (§5, fold). [§4.2]
 - **The fold carries every path the verbs wrote,** not only `work/`. Probe P3 drops `docs/adr/` from the fold, and the `add adr` operation never lands (T1). [§4.2]
-- **A rewrite of a pushed branch needs a lease naming the SHA last pushed.** P2 (plain `--force`) overwrites bob's operation (T1), and G11 measured the lease semantics. With W2, no submit makes a push need force; a push after the operator's own rebase of a pushed branch still does (§3, the rule table). [§4.2]
+- **A rewrite of a pushed branch needs a lease naming the SHA last pushed.** P2 (plain `--force`) overwrites bob's operation (T1), and G11 measured the lease semantics. Under W2 or the partial fold, no submit makes a push need force; a push after the operator's own rebase of a pushed branch still does (§3, the rule table). [§4.2]
 - **Collapsed transitions.** The commit-to-parent audit refuses a milestone started and finished in one transaction; reading the record fixes it (§5, audit). [§4.2]
 - **Records naming SHAs break when the fold changes SHAs.** R2 is reproduced (`ptr=leave`). [§4.2]
 - **A stable identity is needed once branch names vanish.** With the branch name only, duplicates land under semi-linear, fast-forward and up-to-date hosts (§5, txid). [§4.2]
@@ -222,7 +229,7 @@ Each item states what the model shows and the trace or table that shows it; the 
 **Findings the proposal states**
 
 - **The spike's E1 re-created every code commit.** Its script cherry-picked each code commit onto `base`, so `feat: c1`, which precedes the first planning commit, changed SHA too (00e2045 → e43bf11 in the spike's output). The model's fold keeps `c1` (E1 replay, §4), and probe P7, which re-creates every commit as the script did, breaks T5. [§8, E1]
-- **Folding operations that were already pushed records them twice** whenever the older push survives: the host merges it first (`after`), or another operator builds on it (`bob`). Refusing once the commits are pushed, judged by SHA, is not enough, because the operator's own `git rebase` gives pushed commits new SHAs (W1 still fails). Judging it by operation identity closes both routes (W2, W3, and §3's rule table). [§4.2]
+- **Folding operations that were already pushed records them twice** whenever the older push survives: the host merges it first (`after`), or another operator builds on it (`bob`). Refusing once the commits are pushed, judged by SHA, is not enough, because the operator's own `git rebase` gives pushed commits new SHAs (W1 still fails). Judging it by operation identity closes both routes (W2, W3, and §3's rule table), and so does the partial fold, without W2's refusal. [§4.2]
 - **The refusal of other people's commits applies to the commits the fold would fold or re-create,** identified by author (merge commits exempt), not by having been pushed: a test limited to the pushed SHAs lets bob's commit be folded into A's planning commit after A's own rebase. The model applies the rule as A14 states it. [§4.2]
 - **A cherry-pick moves pending work.** A cherry-pick of A's planning commit onto B lands A's operations on main through B's merge (T1), under every design, and nothing reports it (`merge@cherry@replay.append.record…__T1.txt`). [§4.1]
 - **The operator's own `git rebase` and `git pull --rebase` change code SHAs too.** The model counts both as permitted (T5); a pointer to such a commit still breaks (T6). [§9.2]
@@ -244,7 +251,7 @@ From this directory, standard library only:
 python3 -I run.py --jobs 12          # whole matrix, probes; writes results.json and traces/
 python3 -I run.py --only "merge@base,ff@reuse" --jobs 4   # a subset by host@condition substring
 python3 -I fidelity.py               # E1/E4 replay; writes fidelity.json
-python3 -I rule_w2.py --jobs 12      # W2 across the matrix; writes rule_w2.json
+python3 -I rule_w2.py --jobs 12      # the push rules across the matrix; writes rule_w2.json
 python3 -I make_tables.py            # tables.md and RESULTS.md from the template and the three JSON files
 bash gitchecks/run_all.sh            # the real-git checks; writes gitchecks/OUTPUT.txt
 ```
@@ -260,6 +267,6 @@ Each trace file named in this document is `traces/<host>@<condition>@<design>__<
 - **The fold is the model's own implementation (A14).** A real submit may differ in ways that matter: for example, the spike's E1 script re-created every code commit, which probe P7 shows breaks T5.
 - **The `record` audit, `opid` pointers, the duplicate-record check and submit itself do not exist in aiwf.** The model states the behaviour a candidate would have; it checks the design, not code.
 - **Hosts are emulated** as in §8, with the assumptions H7–H11.
-- **T4's reporting and the duplicate check.** Every T4 violation is recorded as unreported, although the model's own check would report a duplicate on main after the merge. The duplicate check counts planning commits only, so a per-verb commit and a planning commit recording one operation are not flagged; W2 is what keeps that case off main.
-- **W2's view of the remote.** W2 reads the remote branch as last pushed or fetched. A lost reply could leave that stale, but lost replies are modelled only for force pushes; in direct mode W2 has no effect.
+- **T4's reporting and the duplicate check.** Every T4 violation is recorded as unreported, although the model's own check would report a duplicate on main after the merge. The duplicate check counts planning commits only, so a per-verb commit and a planning commit recording one operation are not flagged; the push rules are what keep that case off main.
+- **The push rules' view of the remote.** W2 and the partial fold read the remote branch as last pushed or fetched. A lost reply could leave that stale, but lost replies are modelled only for force pushes; in direct mode the rules have no effect.
 - **Not modelled:** signing; each operation's time; a co-author paragraph appended by a host (G-0657); a host that rewrites commits that need no rebase; merge queues and merged-results pipelines; abandoning a branch; three or more transactions.

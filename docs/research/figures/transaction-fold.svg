@@ -76,7 +76,7 @@
   <!-- Submit -->
   <path class="e acc" d="M380,160 V226" marker-end="url(#f-arrow-acc)"/>
   <text class="te acc-t" x="396" y="184">submit: replays the planning commits as one at the tip, by three-way merge</text>
-  <text class="te" x="396" y="202">refuses if anything it folds is pushed · signs as the operator · refuses others’ commits or ones mixing code and work/</text>
+  <text class="te" x="396" y="202">folds only what is not yet pushed · signs as the operator · refuses others’ commits or ones mixing code and work/</text>
 
   <!-- Row 2: after submit -->
   <text class="tz" x="24" y="226">AFTER SUBMIT</text>
@@ -111,5 +111,5 @@
   <text class="ts" x="176" y="441">per-verb planning commit</text>
   <rect class="n pc" x="340" y="430" width="18" height="14" rx="3"/>
   <text class="ts" x="366" y="441">the planning commit</text>
-  <text class="ts" x="24" y="470">Code commits after the first per-verb commit get new SHAs; submit folds nothing pushed, so nobody has seen the old ones.</text>
+  <text class="ts" x="24" y="470">Code commits after the first folded verb get new SHAs; submit folds nothing pushed, so nobody has seen the old ones.</text>
 </svg>
