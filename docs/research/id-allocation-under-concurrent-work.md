@@ -209,7 +209,7 @@ The choice follows from two of the main document's open choices: which integrati
   - D cannot serve planning pushed straight to the default branch, and its ids collide with ordinary allocation.
   - E needs a bot with bypass rights and a new verb, and leaves id-less entities on the default branch.
 
-The requirements in the main document ask for both modes with neither preferred (R6), and for no guarantee resting on a host setting aiwf cannot detect (R9). Kernel commitment 2 asks for stable ids. By those requirements B, with lazy claims at submit, is the candidate. It is the only design that kept every property in both modes without changing the id shape.
+The requirements in the main document ask for both modes with neither preferred (R6), and for no guarantee resting on a host setting aiwf cannot detect (R9). Kernel commitment 2 asks for stable ids. By those requirements B, with lazy claims at submit, is the candidate. It is the only design that kept every property in both modes without changing the id shape. That holds for one design serving every project. Where the strategy is a per-project setting instead, as the main document's §6 proposes, B is the value for merge requests across clones, and A+ serves a single clone or direct pushes.
 
 ## Provenance
 
