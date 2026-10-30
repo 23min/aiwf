@@ -571,7 +571,7 @@ class Model:
                 return None, 'precondition'
         ptrs = []
         for key, target in op.ptrs:
-            if target in OPS and self.d('submit') == 'fold' and self.d('ptr') == 'opid':
+            if target in OPS and self.d('ptr') == 'opid':
                 ptrs.append((key, ('op', target), target))
             else:
                 c = self.find_hid(loc, target)

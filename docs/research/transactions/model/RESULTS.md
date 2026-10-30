@@ -2,7 +2,7 @@
 
 An explicit-state model checker (`model.py`, Python 3, standard library) for the transaction fold proposed in [Transactions and planning commits](../../collaborative-state-and-commit-granularity.md) (§4, §9.2). Every entity value records the hidden identity of the operation that wrote it, and every operation's trailer group carries the operation's hidden identity, so "this operation landed", "this record survived" and "this record names the commit its author meant" are checked properties, not inferences. Breadth-first search, so every trace is a shortest one.
 
-Run 2026-10-26 18:59 UTC, Python 3.12.3, git 2.51.1, Linux, 16 CPUs, 12 workers. 12,672 (host setting, condition, design) results came from 2132 distinct explorations with 35,802,889 states in total. 0 runs hit the state cap and 0 state graphs have a cycle, so every run explored its whole bound and every terminal state was classified. Peak memory of one worker 202 MB; wall time 571.4 s.
+Run 2026-10-30 07:21 UTC, Python 3.12.3, git 2.51.1, Linux, 16 CPUs, 12 workers. 13,056 (host setting, condition, design) results came from 2145 distinct explorations with 35,803,900 states in total. 0 runs hit the state cap and 0 state graphs have a cycle, so every run explored its whole bound and every terminal state was classified. Peak memory of one worker 199 MB; wall time 567.1 s.
 
 ## Headline
 
@@ -32,7 +32,7 @@ Run 2026-10-26 18:59 UTC, Python 3.12.3, git 2.51.1, Linux, 16 CPUs, 12 workers.
      - Under the partial fold the two behave identically in every cell (§3, the rule table). `replace` then re-folds every planning commit not yet pushed, so what is left between them is whether a re-submit before pushing makes one planning commit or two.
 4. **Direct mode (§10, open question 10): folding before each push works** with the same choices. The best design keeps every invariant there except the shared failures (`revert`, `resolve`, `ack`, `abc`). Today's per-verb commits fail `auth` in direct mode as well.
 5. **Three of these failures are in today's aiwf, without any fold.** All three appear in the per-verb rows (`perverb.parent`), under every host.
-   - A `git rebase` of a branch that carries an `authorize` commit re-creates that commit under a new SHA (G14). Every later `aiwf-authorized-by` on the branch then names a commit that no longer exists, and the pipeline refuses with `provenance-authorization-missing` (L✗ in `auth`).
+   - A `git rebase` of a branch that carries an `authorize` commit re-creates that commit under a new SHA (G14). Every later `aiwf-authorized-by` on the branch then names a commit that no longer exists, and the pipeline refuses with `provenance-authorization-missing` (L✗ in `auth`). With `aiwf-authorized-by` written as the `authorize` operation's identity in the same per-verb commits (`perverb.opid.parent`), no host setting refuses the transaction, and under merge-commit and semi-linear hosts every invariant holds in `auth` (§3, "Today's per-verb commits with operation-id pointers"). Under squash what remains is what every design loses there: the record, and under an all-messages squash the `authorize` operation's group with it, so the pointer names an operation not recorded on main (T6). The model never ends a scope, so it says nothing about `aiwf-scope-ends`.
    - `addressed_by_commit` naming a branch commit dangles after a rebase, a semi-linear or fast-forward merge, or a squash, and `aiwf check` does not re-verify it (A11).
    - `acknowledge illegal` of a branch commit is lost the same way.
    The first two are measured against aiwf ([the proposal](../../collaborative-state-and-commit-granularity.md)'s §8, E6): after `git rebase origin/main`, `aiwf check` reports `provenance-authorization-missing` and the hooked push is refused, and it reports nothing about the gap whose `addressed_by_commit` the rebased branch no longer contains (G-0396 tracks the latter). The third is an inference from measured git facts and a reading of aiwf's code.
@@ -55,10 +55,10 @@ Run 2026-10-26 18:59 UTC, Python 3.12.3, git 2.51.1, Linux, 16 CPUs, 12 workers.
 | fold | `replay`, `copy` | replay: the folded commits' net change applied three-way onto the branch as it stands; copy: every planning path taken from the tree of the last folded commit |
 | resub | `replace`, `append` | a second submit re-folds the existing planning commit too (one planning commit, force push when pushed), or folds only verbs run after it (a second planning commit) |
 | txid | `branch`, `record` | transaction identity: the branch name only, or carried in each planning commit's record (then `aiwf check` flags an operation recorded in two planning commits, and submit refuses to fold records already on main until the branch contains main) |
-| ptr | `leave`, `rewrite`, `opid`, `refuse` | records naming a SHA: left as they are; rewritten during the fold with an old→new map; written by verbs as the target operation's identity instead of a SHA (aiwf operations only); or the fold is refused and the transaction lands per-verb |
+| ptr | `leave`, `rewrite`, `opid`, `refuse` | records naming a SHA: left as they are; rewritten during the fold with an old→new map; written by verbs as the target operation's identity instead of a SHA (aiwf operations only); or the fold is refused and the transaction lands per-verb. Per-verb commits take `leave` or `opid` |
 | audit | `parent`, `record` | how the transition audit reads a commit: commit-to-parent diff, or the record's ordered operations |
 
-A design id is `fold.resub.txid.ptr.audit`, for example `replay.replace.record.opid.record`; `perverb.<audit>` is today's shape. The proposal's text fixes `replay` and says a stable identity is needed; `replay.replace.record.opid.record` is called the default design below.
+A design id is `fold.resub.txid.ptr.audit`, for example `replay.replace.record.opid.record`; `perverb.<audit>` is today's shape, and `perverb.opid.<audit>` is today's shape with operation-identity pointers. The proposal's text fixes `replay` and says a stable identity is needed; `replay.replace.record.opid.record` is called the default design below.
 
 **Host settings:** merge method `merge` (merge commit), `semi` (semi-linear), `ff` (fast-forward after the host rebases), `squash/title`, `squash/all` (every commit's message appended), `squash/git` (`git merge --squash`'s own message), each with and without `+utd` (branch must be up to date). `direct` is the direct-to-default-branch mode: non-force pushes to main with the pre-push hook; under the fold design, submit runs before each push.
 
@@ -141,6 +141,20 @@ Cells list the invariants that fail; `—` means all hold. `L✗` is a liveness 
 | abc | T6 | T6 | T6 | T6 | T4a T6 | T4a T6 | T3! T4 T6 | T3! T4 T6 | T3 T4 T6 | T3 T4 T6 | T3! T4 T6 | T3! T4 T6 | T4a T6 |
 | adr | — | — | — | — | T4a | T4a | T3! T4 | T3! T4 | T3 T4 | T3 T4 | T3! T4 | T3! T4 | T4a |
 
+#### Today's per-verb commits with operation-id pointers (`perverb.opid.parent`)
+
+`perverb.parent` with `aiwf-authorized-by` written as the `authorize` operation's identity instead of its SHA. Only the cells that differ from `perverb.parent` are listed.
+
+| condition | host settings | `perverb.parent` | `perverb.opid.parent` |
+|---|---|---|---|
+| auth | `merge`, `merge+utd`, `semi+utd` | L✗ | — |
+| auth | `semi` | T6! L✗ | — |
+| auth | `ff` | T4a T6! L✗ | T4a |
+| auth | `ff+utd`, `direct` | T4a L✗ | T4a |
+| auth | `squash/title`, `squash/title+utd`, `squash/git`, `squash/git+utd` | T3! T4 L✗ | T3! T4 |
+| auth | `squash/all` | T3! T4 T6 L✗ | T3! T4 T6 |
+| auth | `squash/all+utd` | T3! T4 T6! L✗ | T3! T4 T6! |
+
 #### The fold design failing the fewest cells overall (`replay.append.record.opid.record`, 406 cells; no other design ties)
 
 | condition | `merge` | `merge+utd` | `semi` | `semi+utd` | `ff` | `ff+utd` | `squash/title` | `squash/title+utd` | `squash/all` | `squash/all+utd` | `squash/git` | `squash/git+utd` | `direct` |
@@ -161,7 +175,7 @@ Cells list the invariants that fail; `—` means all hold. `L✗` is a liveness 
 | abc | T6 | T6 | T6 | T6 | T6 | T6 | T3! T4 T6 | T3! T4 T6 | T3! T4 T6 | T3! T4 T6 | T3! T4 T6 | T3! T4 T6 | T6 |
 | adr | — | — | — | — | — | — | T3! T4 | T3! T4 | T3! T4 | T3! T4 | T3! T4 | T3! T4 | — |
 
-Failing cells over all host settings and conditions, counting a safety cell as failing also where the run is not live: default design 435, best 406 (`replay.append.record.opid.record`), per-verb today 496.
+Failing cells over all host settings and conditions, counting a safety cell as failing also where the run is not live: default design 435, best 406 (`replay.append.record.opid.record`), per-verb today 496, per-verb with operation-id pointers 406.
 
 
 #### Which fold designs keep each invariant
@@ -846,24 +860,24 @@ Each trace file named in this document is `traces/<host>@<condition>@<design>__<
 
 #### Run statistics
 
-2132 distinct explorations (matrix and probes) produced the 12,672 (host setting, condition, design) results; a result whose design agrees with an explored one on every dimension that run read is taken from it. 35,802,889 states in total; 0 runs hit the state cap; 0 state graphs had a cycle. Largest runs:
+2145 distinct explorations (matrix and probes) produced the 13,056 (host setting, condition, design) results; a result whose design agrees with an explored one on every dimension that run read is taken from it. 35,803,900 states in total; 0 runs hit the state cap; 0 state graphs had a cycle. Largest runs:
 
 | run | states | BFS depth | complete | secs |
 |---|---|---|---|---|
-| `merge+utd@bob@copy.replace.branch.leave.record` | 193,974 | 28 | yes | 37.3 |
-| `semi+utd@bob@copy.replace.branch.leave.record` | 193,974 | 28 | yes | 37.42 |
-| `merge+utd@bob@replay.replace.branch.leave.record` | 193,465 | 28 | yes | 37.87 |
-| `semi+utd@bob@replay.replace.branch.leave.record` | 193,465 | 28 | yes | 38.04 |
-| `merge+utd@bob@replay.replace.record.leave.record` | 189,480 | 28 | yes | 35.17 |
-| `semi+utd@bob@replay.replace.record.leave.record` | 189,480 | 28 | yes | 35.01 |
-| `merge+utd@bob@copy.replace.record.leave.record` | 188,747 | 28 | yes | 34.95 |
-| `semi+utd@bob@copy.replace.record.leave.record` | 188,747 | 28 | yes | 34.65 |
-| `merge+utd@bob@replay.replace.branch.leave.parent` | 172,418 | 28 | yes | 34.61 |
-| `semi+utd@bob@replay.replace.branch.leave.parent` | 172,418 | 28 | yes | 35.38 |
-| `merge+utd@bob@copy.replace.branch.leave.parent` | 171,919 | 28 | yes | 32.15 |
-| `semi+utd@bob@copy.replace.branch.leave.parent` | 171,919 | 28 | yes | 32.5 |
+| `merge+utd@bob@copy.replace.branch.leave.record` | 193,974 | 28 | yes | 34.58 |
+| `semi+utd@bob@copy.replace.branch.leave.record` | 193,974 | 28 | yes | 34.62 |
+| `merge+utd@bob@replay.replace.branch.leave.record` | 193,465 | 28 | yes | 39.74 |
+| `semi+utd@bob@replay.replace.branch.leave.record` | 193,465 | 28 | yes | 39.66 |
+| `merge+utd@bob@replay.replace.record.leave.record` | 189,480 | 28 | yes | 36.99 |
+| `semi+utd@bob@replay.replace.record.leave.record` | 189,480 | 28 | yes | 36.7 |
+| `merge+utd@bob@copy.replace.record.leave.record` | 188,747 | 28 | yes | 33.59 |
+| `semi+utd@bob@copy.replace.record.leave.record` | 188,747 | 28 | yes | 33.43 |
+| `merge+utd@bob@replay.replace.branch.leave.parent` | 172,418 | 28 | yes | 35.37 |
+| `semi+utd@bob@replay.replace.branch.leave.parent` | 172,418 | 28 | yes | 35.45 |
+| `merge+utd@bob@copy.replace.branch.leave.parent` | 171,919 | 28 | yes | 32.02 |
+| `semi+utd@bob@copy.replace.branch.leave.parent` | 171,919 | 28 | yes | 32.21 |
 
-Peak resident memory of one worker: 202 MB; wall time 571.4 s with the worker count given on the command line; Python 3.12.3, 16 CPUs, run 2026-10-26 18:59 UTC.
+Peak resident memory of one worker: 199 MB; wall time 567.1 s with the worker count given on the command line; Python 3.12.3, 16 CPUs, run 2026-10-30 07:21 UTC.
 
 **Limits.**
 

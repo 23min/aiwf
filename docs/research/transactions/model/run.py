@@ -42,13 +42,17 @@ def host_id(mode, h):
 def designs():
     out = []
     for vals in itertools.product(*(M.DIMS[k] for k in DIM_ORDER)):
-        out.append(dict(zip(DIM_ORDER, vals)))
+        d = dict(zip(DIM_ORDER, vals))
+        # rewrite and refuse act only in a fold, so per-verb commits take leave or opid
+        if d['submit'] == 'none' and d['ptr'] in ('rewrite', 'refuse'):
+            continue
+        out.append(d)
     return out
 
 
 def design_id(d, used=None):
     if d['submit'] == 'none':
-        return f"perverb.{d['audit']}"
+        return f"perverb.{'opid.' if d['ptr'] == 'opid' else ''}{d['audit']}"
     return '.'.join(d[k] for k in DIM_ORDER[1:])
 
 

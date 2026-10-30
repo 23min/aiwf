@@ -97,7 +97,7 @@ def load():
 
 
 def design_ids():
-    out = ['perverb.parent', 'perverb.record']
+    out = ['perverb.parent', 'perverb.record', 'perverb.opid.parent', 'perverb.opid.record']
     for vals in itertools.product(*(M.DIMS[k] for k in DIM_ORDER[1:])):
         out.append('.'.join(vals))
     return out
@@ -109,7 +109,7 @@ def conds_for(host):
 
 def parse(did):
     if did.startswith('perverb'):
-        return dict(submit='none', audit=did.split('.')[1])
+        return dict(submit='none', audit=did.split('.')[-1])
     return dict(zip(DIM_ORDER[1:], did.split('.')), submit='fold')
 
 
@@ -171,6 +171,26 @@ def main():
             out.append(f"| {c} | " + " | ".join(cells) + " |")
     matrix(DEFAULT_ID, f"The proposal's default design (`{DEFAULT_ID}`)")
     matrix('perverb.parent', "Today: per-verb commits, parent-diff audit (`perverb.parent`)")
+    # -------------------------------------------------- per-verb commits with operation-id pointers, against today
+    out.append("\n#### Today's per-verb commits with operation-id pointers (`perverb.opid.parent`)\n")
+    out.append("`perverb.parent` with `aiwf-authorized-by` written as the `authorize` operation's identity instead "
+               "of its SHA. Only the cells that differ from `perverb.parent` are listed.\n")
+    per = {}
+    for c in M.CONDS:
+        for h in HOSTS:
+            if c not in conds_for(h):
+                continue
+            a, b = by[(h, c, 'perverb.parent')], by[(h, c, 'perverb.opid.parent')]
+            sa, sb = cell_short(marks(a), a['complete']), cell_short(marks(b), b['complete'])
+            if sa != sb:
+                per.setdefault((c, sa, sb), []).append(h)
+    if per:
+        out.append("| condition | host settings | `perverb.parent` | `perverb.opid.parent` |")
+        out.append("|---|---|---|---|")
+        for (c, sa, sb), hs in per.items():
+            out.append(f"| {c} | {', '.join(f'`{h}`' for h in hs)} | {sa} | {sb} |")
+    else:
+        out.append("No cell differs.")
     # the fold design with the fewest failing cells over every host and condition
     allf = [d for d in ids if not d.startswith('perverb')]
     def nfail(d):
@@ -185,7 +205,8 @@ def main():
                       + ("no other design ties)" if len(tops) == 1 else f"{len(tops)} designs tie)"))
     out.append(f"\nFailing cells over all host settings and conditions, counting a safety cell as failing "
                f"also where the run is not live: default design {tot[DEFAULT_ID]}, best {lo} "
-               f"({', '.join(f'`{t}`' for t in tops)}), per-verb today {nfail('perverb.parent')}.\n")
+               f"({', '.join(f'`{t}`' for t in tops)}), per-verb today {nfail('perverb.parent')}, "
+               f"per-verb with operation-id pointers {nfail('perverb.opid.parent')}.\n")
     # -------------------------------------------------- which designs keep each invariant, per condition x host
     out.append("\n#### Which fold designs keep each invariant\n")
     out.append("Each row names the fold designs under which the invariant holds in every host setting listed; "
