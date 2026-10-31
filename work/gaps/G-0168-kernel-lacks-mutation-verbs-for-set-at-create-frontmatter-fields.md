@@ -173,14 +173,12 @@ them:
 - `aiwf promote <adr> superseded --superseded-by <id>` sets
   `superseded_by` at the `accepted → superseded` step.
 
-No verb **amends, adds to, or clears** either field after the
-transition — the same missing verb this gap is about, on fields the
-table marked "covered." `aiwf import --on-collision update` rewrites them
-as it rewrites the fields above: on 2026-10-31 it changed an `addressed`
-gap's `addressed_by` with the status unchanged, and `aiwf check` reported
-no error. So the real split is set-at-create (this gap's fields) vs
-set-at-transition (`addressed_by`, `superseded_by` — written
-once at the FSM step, no amend afterward). Both want an editor; the
+After the transition, `aiwf promote` re-points either field, or adds to
+`addressed_by`, only with `--force --reason`, and no verb clears one;
+`aiwf import --on-collision update` rewrites them as it rewrites the fields
+above (G-0442 holds the measurement). So the real split is set-at-create
+(this gap's fields) vs set-at-transition (`addressed_by`, `superseded_by` —
+written at the FSM step). Both want an editor; the
 FSM-coupled pair needs one that does **not** let the relation field be
 written independently of its transition.
 
