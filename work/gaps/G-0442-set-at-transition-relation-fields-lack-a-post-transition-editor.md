@@ -77,9 +77,13 @@ G-0168's fields are **set-at-create**.
 These two are **set-at-transition**: written at an FSM step, and the
 amend verb must **not** let the field be written *independently of that
 transition*. Setting `superseded_by` without the `accepted → superseded`
-step would re-introduce exactly the inconsistent state the FSM back-edge
-prevents. So whatever verb G-0168 lands for its set-at-create relation
-fields deliberately excludes these two; their editor is a separate problem
+step leaves an accepted ADR naming a successor. The status state machine
+says nothing about the field; only `aiwf promote`'s flag validation keeps it
+off an ADR that has not taken the step (`--superseded-by is only valid when
+promoting to "superseded"`), and `aiwf check` reported nothing when an import
+update wrote it onto an accepted ADR on 2026-10-31. So whatever verb
+G-0168 lands for its set-at-create relation fields deliberately excludes
+these two; their editor is a separate problem
 that must require the entity already be in the terminal state owning the
 field — amend or clear only, never an independent set.
 
