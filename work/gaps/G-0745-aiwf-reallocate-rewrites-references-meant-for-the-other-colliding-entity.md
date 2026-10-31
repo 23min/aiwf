@@ -39,6 +39,22 @@ $ aiwf check
 4 findings (0 errors, 4 warnings)
 ```
 
+Suppose two branches have each lost a collision to the same winner, and each reallocates after merging the default branch in. Each rewrites the winner's referrers to point at its own renumbered entity, so the two rewrites differ. Reproduced 2026-10-26 by `docs/research/id-allocation/experiments/scripts/a_run.sh wrong seq all`, in the same environment. Three clones collide on a gap, an epic and a milestone, and a simulated host merges a branch only when it is up to date with the default branch and `aiwf check` passes on it. Both losers reallocated in the first round, before either loser's rewrite had reached the default branch:
+
+```
+round 1: MR mr/alpha -> MERGED
+round 1: MR mr/beta -> REFUSED-not-up-to-date
+  beta updated: 3 reallocate(s); now G-0003 / E-0003
+round 1: MR mr/gamma -> REFUSED-not-up-to-date
+  gamma updated: 3 reallocate(s); now G-0004 / E-0004
+round 2: MR mr/beta -> MERGED
+round 2: MR mr/gamma -> REFUSED-not-up-to-date
+CONFLICT (content): Merge conflict in work/epics/E-0002-alpha-epic/M-0002-alpha-ms-parent-means-alpha-epic.md
+CONFLICT (content): Merge conflict in work/gaps/G-0001-seed-gap.md
+```
+
+The conflicting hunks in the third clone are the winner's two referrers, each rewritten to a different loser: `parent: E-0004` against `parent: E-0003`, and `See G-0004` against `See G-0003`. Keeping either side leaves the winner's referrer pointing at a losing entity. On the default branch, those two referrers already point at the second clone's entities.
+
 Within one clone and its linked worktrees the collision does not arise: a branch cut after another branch allocated an id is handed the next number.
 
 ## Why it matters
@@ -48,6 +64,8 @@ The verb that resolves a collision corrupts the references it rewrites, and the 
 A milestone can end up filed under another epic, a `depends_on` or `discovered_in` can name the wrong entity, `aiwf show` lists the wrong referrers, and a sentence citing one gap names another. Every later reader, person or agent, follows those references to the wrong entity.
 
 The branch path above is the repair aiwf itself points to when a collision between machines is caught at push, which is the class of collision `aiwf reallocate` exists for.
+
+When more than one branch loses, the hint's route also leaves the later losers with content conflicts in the winner's referrers, and neither side of the conflict is right.
 
 ## Relates to
 
