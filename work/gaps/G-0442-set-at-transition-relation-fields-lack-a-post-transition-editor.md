@@ -11,28 +11,70 @@ transition**, never by a standalone editor:
 
 | Kind | Field | Set by | Amend / clear afterward? |
 |------|-------|--------|--------------------------|
-| gap | `addressed_by` | `aiwf promote <gap> addressed --by <id>` | **none** |
-| adr | `superseded_by` | `aiwf promote <adr> superseded --superseded-by <id>` | **none** |
+| gap | `addressed_by` | `aiwf promote <gap> addressed --by <id>` | re-point or add only with `--force --reason`; **no clear** |
+| adr | `superseded_by` | `aiwf promote <adr> superseded --superseded-by <id>` | re-point only with `--force --reason`; **no clear** |
 
-Each is written once, at the `open → addressed` / `accepted → superseded`
-step. There is no verb to **amend, add to, or clear** either field
-afterward — to credit a second resolver on an already-addressed gap, or
-correct a `superseded_by` pointer, an operator must hand-edit the YAML and
-commit manually.
+Each is written at the `open → addressed` / `accepted → superseded` step.
+After it, `aiwf promote` writes the field again without `--force` only to
+fill it while it is empty. To re-point it, or to credit a second resolver on
+an already-addressed gap, the verb refuses (exit 1) unless given
+`--force --reason`, and no verb clears either field.
+
+Reproduced 2026-10-31 with aiwf built from `c06ffdaf9` (`vcs.modified=false`),
+git 2.51.1, Linux, in a fresh `aiwf init` repository holding `ADR-0001`,
+`ADR-0002`, `ADR-0003`, `E-0001`, `E-0002` and a gap `G-0001`:
+
+```
+$ aiwf promote G-0001 addressed --by E-0001
+aiwf promote G-0001 open -> addressed
+$ aiwf promote G-0001 addressed --by E-0002
+aiwf promote: G-0001 is already addressed and already carries a resolver; this verb backfills an empty resolver, it does not re-point one — pass --force --reason to override
+$ aiwf promote G-0001 addressed --by E-0002 --force --reason 're-point the resolver'
+aiwf promote G-0001 addressed -> addressed
+$ aiwf promote G-0001 addressed --by E-0001,E-0002 --force --reason 'credit a second resolver'
+aiwf promote G-0001 addressed -> addressed
+$ aiwf promote G-0001 addressed --by ''
+G-0001 is already addressed; nothing to change
+$ aiwf promote G-0001 addressed --clear
+aiwf: unknown flag: --clear
+$ aiwf promote ADR-0001 accepted
+aiwf promote ADR-0001 proposed -> accepted
+$ aiwf promote ADR-0001 superseded --superseded-by ADR-0002
+aiwf promote ADR-0001 accepted -> superseded
+$ aiwf promote ADR-0001 superseded --superseded-by ADR-0003
+aiwf promote: ADR-0001 is already superseded and already carries a resolver; this verb backfills an empty resolver, it does not re-point one — pass --force --reason to override
+$ aiwf promote ADR-0001 superseded --superseded-by ADR-0003 --force --reason 'correct the pointer'
+aiwf promote ADR-0001 superseded -> superseded
+$ aiwf promote ADR-0001 superseded --superseded-by ''
+ADR-0001 is already superseded; nothing to change
+```
+
+The run also printed the field after several steps, cut above: after the forced
+re-point `addressed_by` held `E-0002`, after the forced add `E-0001` and
+`E-0002`, and the forced re-point left `superseded_by: ADR-0003`. A second gap,
+promoted to `addressed` with `--force` and no resolver, took one from a later
+`aiwf promote … addressed --by E-0001` without `--force`.
+
+`aiwf import --on-collision update`, which replaces an entity whole (G-0168),
+does without `--force` what the verb refuses. In the same repository, an update
+restating `ADR-0001` with `superseded_by: ADR-0002` re-pointed it, and one
+restating `ADR-0001` and `G-0001` without either field dropped both, the status
+unchanged each time. After each, `aiwf check --since` the commit before it
+reported no error; after the second, a `gap-addressed-has-resolver` warning.
 
 ## Why it matters
 
-This is the same chokepoint violation G-0168 is about, on fields G-0168's
-table marked "covered." They have a *set* path but no *amend* path, so the
-"covered" marking is misleading. A hand-edit trips
-`provenance-untrailered-entity-commit`, records a fictional `aiwf-verb:`
-trailer, and leaves `aiwf history` naming a verb that resolves to nothing
-— the three failures G-0168 enumerates.
+Correcting a resolver or supersession pointer that names the wrong entity is an
+ordinary fix, but `aiwf promote` takes it only as an override, with
+`--force --reason`, and removing a pointer that should not be there has no verb.
+The one route that needs no `--force`, an import update, re-points or drops
+either field with no error from `aiwf check`, so the override the verb asks for
+is skipped by the route an operator is left with.
 
 ## Why this is distinct from G-0168 — the FSM-coupling constraint
 
-G-0168's four fields are **set-at-create** (no mutation path at all).
-These two are **set-at-transition**: written once at an FSM step, and the
+G-0168's fields are **set-at-create**.
+These two are **set-at-transition**: written at an FSM step, and the
 amend verb must **not** let the field be written *independently of that
 transition*. Setting `superseded_by` without the `accepted → superseded`
 step would re-introduce exactly the inconsistent state the FSM back-edge
