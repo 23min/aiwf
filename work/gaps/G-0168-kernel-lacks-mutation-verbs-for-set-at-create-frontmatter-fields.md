@@ -92,11 +92,11 @@ when it carries none.
 
 ## Symptom that surfaced this
 
-During the M-0125 wrap diligence audit (this session), M-0120's
+During the M-0125 wrap diligence audit, M-0120's
 `tdd: advisory` needed changing to `tdd: none` (rationale: M-0120
 ratifies the legal-workflow spec methodology in an ADR; its ACs predate
 the very phase-tracking discipline they would be audited under — the
-methodology M-0120 ratifies). With no `aiwf milestone tdd` verb, the
+methodology M-0120 ratifies). With no `aiwf milestone tdd` verb then, the
 operator (Claude Code agent) hand-edited the frontmatter and committed
 with `aiwf-verb: edit-frontmatter` — a fictional verb name (no such
 verb exists in source).
@@ -104,56 +104,19 @@ verb exists in source).
 Commit: `0a782be7 chore(plan): set M-0120 tdd: advisory → none` on
 `epic/E-0033-pin-legal-kernel-verb-workflows-mechanically`.
 
-## Proposed verb shapes
-
-The kernel already establishes the **subcommand-per-kind pattern** via
-`aiwf milestone depends-on`. Following that idiom:
-
-| Kind | Verb shape |
-|------|------------|
-| gap | `aiwf gap discovered-in <G-id> --on M-NNNN` (or `--clear`) |
-| decision | `aiwf decision relates-to <D-id> --on <ids>` (or `--clear`) |
-| contract | `aiwf contract linked-adrs <C-id> --on ADR-NNNN[,ADR-NNNN…]` (or `--clear`) |
-
-Each:
-- Validates that referenced ids resolve (where applicable —
-  `discovered_in:`, `relates_to:`, `linked_adrs:`).
-- Emits standard kernel trailers (`aiwf-verb: <kind>-<field>`,
-  `aiwf-entity: <id>`, `aiwf-actor: <actor>`).
-- Requires `--reason "..."` for trail clarity (consistent with
-  `aiwf milestone depends-on --reason`).
-- Optional `--force` for sovereign override (rarely needed; the
-  fields are all data-shape changes, not FSM transitions).
-
-## Closing this gap
-
-When the verbs land:
-1. Each verb's `--help` documents the field, the closed set (if any),
-   and the validation rules.
-2. The verbs participate in shell auto-completion (per
-   [`.guidance/project/verb-design.md`](../../.guidance/project/verb-design.md),
-   "CLI surfaces must be auto-completion-friendly").
-3. Skills cover each verb per ADR-0006 (per-verb skill default, OR
-   topical skill if multiple verbs cluster — `aiwf-milestone-*` and
-   `aiwf-contract-*` are natural topical bundles).
-4. The drift policy (`internal/policies/skill_coverage.go`) catches
-   any verb landing without skill coverage.
-5. Promote G-0168 to `addressed` with `--by M-NNNN` (whichever
-   milestone(s) land the verbs).
-
 ## Discovered in
 
-M-0125/AC-2 wrap diligence audit (this session). The M-0120
+M-0125/AC-2 wrap diligence audit. The M-0120
 `tdd: advisory → none` need was the trigger; the audit of "what
 frontmatter fields lack mutation verbs" surfaced the broader pattern.
 
 ## Related
 
-- M-0136 (`aiwf acknowledge-illegal` — established the pattern for
+- M-0136 (`aiwf acknowledge illegal` — established the pattern for
   "verb that addresses a historical-violation acknowledgment;" useful
   reference for the verb-design conventions).
 - `aiwf milestone depends-on` — the closest existing precedent for
-  the subcommand pattern this gap proposes for other fields.
+  the per-kind subverbs [D-0048](../decisions/D-0048-frontmatter-field-mutation-verbs-milestone-tdd-now-others-per-kind-deferred.md) chose for these fields.
 
 ## Downstream report (2026-06-12): FSM-coupled amend + the generic-verb fork
 
@@ -192,23 +155,9 @@ amend/clear on an already-transitioned entity (never an independent set).
 
 The report proposed a single generic verb —
 `aiwf relate <id> --field <name> --add/--set/--clear` — as an
-alternative to the per-kind subverbs this gap proposes
-(`aiwf decision relates-to`, `aiwf gap discovered-in`, …). The fork is
-genuine and should be settled before any verb lands:
-
-- **Per-kind subverbs** (this gap's shape) mirror the established
-  `aiwf milestone depends-on` idiom and can stay FSM-aware — the
-  gap/adr verbs can refuse to set the coupled field out of band and
-  only `--add`/`--clear` an already-transitioned entity.
-- **Generic `aiwf relate`** is more uniform but risks becoming a
-  blessed "edit any relation field" escape hatch. Critically, it would
-  let an operator set `superseded_by` *without* the
-  `accepted → superseded` transition — re-introducing exactly the
-  inconsistent state the FSM back-edge was designed to prevent.
-
-Lean: per-kind subverbs (or a field-aware generic verb that hard-refuses
-FSM-coupled fields out of band). The decision is worth an
-`aiwfx-record-decision` before the implementing milestone, and it pairs
-with the ADR `relates_to` schema question filed as its sibling gap.
+alternative to per-kind subverbs (`aiwf decision relates-to`,
+`aiwf gap discovered-in`, …). [D-0048](../decisions/D-0048-frontmatter-field-mutation-verbs-milestone-tdd-now-others-per-kind-deferred.md) settles the fork:
+per-kind subverbs, not a `--field` multiplexer. G-0246 shares the
+question for an ADR `relates_to` field.
 
 Source: downstream consumer feedback, 2026-06-12.
