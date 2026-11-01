@@ -346,7 +346,8 @@ trailers.
   rest as consistency gaps rather than friction
 - **G-0500** *(high)* — `edit-body` over a hand-moved file lands a duplicate id the local check misses
 - **G-0442** — `addressed_by` / `superseded_by` can be backfilled and force-re-pointed
-  but never *cleared*, and a forced re-point leaves a stale reciprocal that
+  but never *cleared*
+- **G-0756** — a forced re-point of `superseded_by` leaves a stale reciprocal that
   `adr-supersession-mutual` structurally cannot see
 - **G-0486** — a directory move drops the exec bit, and `rename-area` drops it on
   `aiwf.yaml` with no move at all and no permanent-`M` signal. The symlink half now
