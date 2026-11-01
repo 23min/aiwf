@@ -1,7 +1,7 @@
 ---
 id: ADR-0056
 title: Name an authorize scope by a random id, not its commit SHA
-status: proposed
+status: accepted
 ---
 > **Date:** 2026-11-01 · **Decided by:** Peter Bruinsma
 
