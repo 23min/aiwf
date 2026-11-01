@@ -142,7 +142,7 @@ The gate runs and returns a verdict about a subject that is not the one claimed.
 - **G-0573** — **already addressed.** `29eb2a94c` composed all four severity passes
   into the guard, and ADR-0042 rules the behavioural residue moot rather than
   pending. Promote `addressed --by-commit 29eb2a94c`
-- **G-0644** — the orphan walk reports a commit already reachable from trunk
+- **G-0644** — the orphan walk reports a commit still on trunk or back on its own branch
 - **G-0679** — a branch started from a local ref is never judged at its first push
 - **G-0731** — in a shallow clone, a commit whose parent is past the boundary reads as
   adding every file it carries, to both the instruction fence and the untrailered audit
