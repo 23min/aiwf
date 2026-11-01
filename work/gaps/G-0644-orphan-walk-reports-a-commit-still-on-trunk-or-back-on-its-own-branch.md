@@ -1,6 +1,6 @@
 ---
 id: G-0644
-title: Orphan walk reports a commit already reachable from trunk
+title: Orphan walk reports a commit still on trunk or back on its own branch
 status: open
 priority: medium
 ---
