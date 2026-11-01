@@ -126,30 +126,11 @@ Two refinements to record.
 ### The set-at-transition fields also lack an editor
 
 The report flagged `gap.addressed_by` and `adr.superseded_by` as
-"no post-creation editor" alongside `decision.relates_to`. The first
-two are not in the "missing" table above because they *do* have a set
-path — but only as a **side effect of the FSM transition** that writes
-them:
-
-- `aiwf promote <gap> addressed --by <id>` sets `addressed_by` at the
-  `open → addressed` step.
-- `aiwf promote <adr> superseded --superseded-by <id>` sets
-  `superseded_by` at the `accepted → superseded` step.
-
-After the transition, `aiwf promote` re-points either field, or adds to
-`addressed_by`, only with `--force --reason`, and no verb clears one;
-`aiwf import --on-collision update` rewrites them as it rewrites the fields
-above (G-0442 holds the measurement). So the real split is set-at-create
-(this gap's fields) vs set-at-transition (`addressed_by`, `superseded_by` —
-written at the FSM step). Both want an editor; the
-FSM-coupled pair needs one that does **not** let the relation field be
-written independently of its transition.
-
-The set-at-transition pair is now tracked as its own gap, G-0442 —
-G-0168's scope is bounded to the set-at-create fields. Whatever verb
-lands for the set-at-create relation fields excludes `addressed_by` /
-`superseded_by`; their editor is a distinct problem, constrained to
-amend/clear on an already-transitioned entity (never an independent set).
+"no post-creation editor" alongside `decision.relates_to`. Those two, and
+the other fields an FSM transition writes, are tracked in G-0442, with the
+measurements and the constraint on their editor. G-0168's scope is the
+set-at-create fields: whatever verb lands for them leaves out the fields a
+transition writes.
 
 ### Design fork: generic `aiwf relate` vs per-kind subverbs
 
