@@ -45,9 +45,9 @@ about the shape of test source, not about types or the values flowing through
 it. It recognizes the spellings this repo writes — a literal or a phrase list
 against content from a shipped read, reached through a table's struct field, a
 rebound path, a package-level declaration, a case-folding wrapper, or an
-assertion helper where the document is not the first argument. It does not
-recognize a comparison against a literal with no call in it, a `cmp.Diff`, or a
-regexp match.
+assertion helper where the document is not the first argument, called in an
+`if` condition. It does not recognize a comparison against a literal with no
+call in it, a `cmp.Diff`, or a regexp match.
 
 So a green suite means *the common spellings are blocked and the retrofit was
 done by hand* — not *no such assertion can exist*. The retrofit removed the
@@ -84,13 +84,10 @@ rather than from this one motivating case.
 - A green policy suite means less than the phrase "the corpus is gone" would
   suggest, and the acceptance criterion says so explicitly. Overstating it was
   the defect review caught before this milestone closed.
-- Three escapes are known and tracked rather than closed: a prose assertion
-  written as a production policy (G-0606), a regexp match (G-0607), and the
-  negative regression pin, which is a shape D-0070 does not name at all
-  (G-0608).
+- Known escapes are tracked rather than closed: a prose assertion written as
+  a production policy (G-0606), a regexp match (G-0607), the negative
+  regression pin, which is a shape D-0070 does not name at all (G-0608), and
+  an assertion outside an `if` condition (G-0710).
 - Adding an exemption now requires choosing a class. A case fitting neither is a
   signal that the class set needs a decision, not that the allowlist needs an
   entry.
-- The exemption maps are load-bearing and small. If either grows, that is
-  evidence the predicate is mis-drawn rather than that the exceptions are
-  multiplying.
