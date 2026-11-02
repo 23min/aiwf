@@ -1,7 +1,7 @@
 ---
 id: D-0058
 title: The pocv3 reference rule's archive skip and allowlist are its shape
-status: proposed
+status: accepted
 ---
 ## Question
 
