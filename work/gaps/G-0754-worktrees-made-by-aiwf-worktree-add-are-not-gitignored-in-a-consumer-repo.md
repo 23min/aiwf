@@ -2,6 +2,7 @@
 id: G-0754
 title: Worktrees made by aiwf worktree add are not gitignored in a consumer repo
 status: open
+priority: high
 ---
 ## What's missing
 
