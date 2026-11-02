@@ -2,6 +2,7 @@
 id: G-0758
 title: edit-body --help says any dropped section is refused; only required ones are
 status: open
+priority: low
 ---
 ## What's missing
 
