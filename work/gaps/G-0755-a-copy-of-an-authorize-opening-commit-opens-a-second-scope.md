@@ -2,6 +2,7 @@
 id: G-0755
 title: A copy of an authorize opening commit opens a second scope
 status: open
+priority: high
 ---
 ## What's missing
 
