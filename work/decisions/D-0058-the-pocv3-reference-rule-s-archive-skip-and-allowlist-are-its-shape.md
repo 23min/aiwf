@@ -7,7 +7,7 @@ status: proposed
 
 A policy test forbids references to the retired `pocv3` documentation tree, so that a
 path nothing resolves to cannot keep being cited as though it did. It carries two
-escapes: any directory named `archive` is skipped during the walk, and a small
+escapes: any directory named `archive` is skipped during the walk, and an
 allowlist names individual files with a per-entry reason.
 
 Escapes on a rule that exists to stop drift invite the obvious suspicion — that
@@ -48,19 +48,13 @@ remain enforceable.
 An allowlist is not free, and its cost is the one named as cost-per-subject in
 the decision on what earns a gap entity: every future legitimate mention has to
 be added by hand, and an allowlist that grows stops being an exception list. That
-cost is affordable at the current size and is what the trigger below watches.
+cost is accepted.
 
 ## Consequences
 
-**Revisit when a second file legitimately needs the literal path.** Not a second
-allowlist entry — entries have been added for reasons that did not survive
-scrutiny — but a second *legitimate* need, which is evidence the predicate is
-mis-drawn rather than that one file is unusual.
-
 **Each entry states its reason, and that is load-bearing.** An allowlist of bare
 paths cannot be audited: nobody can tell later which entries were legitimate
-mentions and which were somebody silencing a finding. The reason is what makes the
-trigger above evaluable.
+mentions and which were somebody silencing a finding.
 
 **The archive skip is not this rule's own convention.** It follows the archival
 tier's forget-by-default treatment, so it moves if that convention moves, and it
