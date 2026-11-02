@@ -1,7 +1,7 @@
 ---
 id: D-0056
 title: What earns a gap entity, and the grounds for declining one
-status: proposed
+status: accepted
 ---
 ## Question
 
