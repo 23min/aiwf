@@ -2,6 +2,7 @@
 id: G-0750
 title: aiwf list reports the checked-out branch as a cross-branch ref
 status: open
+priority: low
 ---
 ## What's missing
 
