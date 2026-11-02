@@ -36,7 +36,7 @@ The "stable ids" principle in `docs/design/design-decisions.md` is reworded:
 
 ### Configurable trunk
 
-A new `aiwf.yaml.trunk:` field declares the integration branch. Default `main`. Accepts any branch name including `develop`, `release/v2.x`, `poc/aiwf-v3`. This repo sets `trunk: poc/aiwf-v3`.
+A new `aiwf.yaml.trunk:` field declares the integration branch. Default `main`. Accepts any branch name including `develop`, `release/v2.x`, `poc/aiwf-v3`.
 
 The pattern is well-established: GitFlow's `develop`, GitHub's per-repo default-branch setting, fork workflows, long-lived development branches. Single trunk per repo for v1; multi-trunk deferred until a real consumer needs it. `aiwf check` validates that the configured trunk branch exists.
 
@@ -140,3 +140,7 @@ Allowed via the existing `aiwf rename` verb. Pre-mint, the verb edits the `id:` 
 **PR-open minting bot.** A CI bot mints canonical ids when a PR is opened, amending the branch. Stable ids during review. Rejected as kernel default because solo+agents and offline workflows have no CI bot. Folded back in as an *optional* adapter on top of the inbox model: teams that value stable ids during review can wrap `aiwf assign-pending` with a PR-open mint hook. The kernel ships with merge-time mint as the universal mechanism; PR-open-mint is downstream.
 
 **Inbox-only (no trunk-mint escape hatch).** Forces every entity-filing through PR ceremony, which is friction for "file a bug now without ceremony" cases. The escape hatch exists specifically to preserve that path; eliminating it would over-correct.
+
+## References
+
+- [Id allocation under concurrent work](../research/id-allocation-under-concurrent-work.md), where this design is design E: §3 has the model's results for it with the title-slug handles this ADR specifies and with unique handles, and §10 the recommendation across designs.
