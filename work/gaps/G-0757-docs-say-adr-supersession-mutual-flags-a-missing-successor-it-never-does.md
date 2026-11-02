@@ -2,6 +2,7 @@
 id: G-0757
 title: Docs say adr-supersession-mutual flags a missing successor; it never does
 status: open
+priority: low
 ---
 ## What's missing
 
