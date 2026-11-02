@@ -2,6 +2,7 @@
 id: G-0751
 title: aiwf check cannot tell a rebased authorize commit from a missing one
 status: open
+priority: high
 ---
 ## What's missing
 
