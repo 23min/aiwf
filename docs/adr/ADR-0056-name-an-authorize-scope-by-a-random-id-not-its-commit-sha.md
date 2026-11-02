@@ -77,7 +77,7 @@ The decision holds while the G-0751 and G-0752 reproductions, re-run on a scope 
 - G-0751, G-0752 and G-0755, the defects this decision closes for the scopes it opens.
 - [ADR-0047](ADR-0047-gate-every-terminal-epic-edge-end-a-scope-by-naming-it.md), whose `--end --scope` and end commit use the address this ADR changes.
 - [The provenance model](../design/provenance-model.md), §"Scope id" and §"Scope states".
-- The research on branch `patch/research-collaborative-state`, not merged into `main`:
-  - `docs/research/collaborative-state-and-commit-granularity.md`: the fold (§4.2), this step (§9.3) and the open questions (§10, question 2);
-  - `docs/research/transactions/model/RESULTS.md`, headline item 5: the model of today's per-verb commits with the pointer written as an identity;
-  - `docs/research/id-allocation-under-concurrent-work.md`, design C: collision-free ids, which need no network.
+- The research this decision draws on:
+  - [`docs/research/collaborative-state-and-commit-granularity.md`](../research/collaborative-state-and-commit-granularity.md): the fold (§4.2), this step (§9.3) and the open questions (§10, question 2);
+  - [`docs/research/transactions/model/RESULTS.md`](../research/transactions/model/RESULTS.md), headline item 5: the model of today's per-verb commits with the pointer written as an identity;
+  - [`docs/research/id-allocation-under-concurrent-work.md`](../research/id-allocation-under-concurrent-work.md), design C: collision-free ids, which need no network.
