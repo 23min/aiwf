@@ -2,6 +2,7 @@
 id: G-0753
 title: aiwf reallocate does not rewrite a contract's linked_adrs
 status: open
+priority: medium
 ---
 ## What's missing
 
