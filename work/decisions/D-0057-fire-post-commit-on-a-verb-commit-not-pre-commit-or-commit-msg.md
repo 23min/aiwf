@@ -1,7 +1,7 @@
 ---
 id: D-0057
 title: Fire post-commit on a verb commit, not pre-commit or commit-msg
-status: proposed
+status: accepted
 ---
 ## Question
 
