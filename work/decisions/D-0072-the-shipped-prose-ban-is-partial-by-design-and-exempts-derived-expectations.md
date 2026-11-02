@@ -1,7 +1,7 @@
 ---
 id: D-0072
 title: The shipped-prose ban is partial by design and exempts derived expectations
-status: proposed
+status: accepted
 ---
 ## Question
 
