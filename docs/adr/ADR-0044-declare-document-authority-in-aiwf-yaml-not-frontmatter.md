@@ -1,7 +1,7 @@
 ---
 id: ADR-0044
 title: Declare document authority in aiwf.yaml, not frontmatter
-status: proposed
+status: rejected
 ---
 > **Date:** 2026-08-16 · **Decided by:** human/peter
 
