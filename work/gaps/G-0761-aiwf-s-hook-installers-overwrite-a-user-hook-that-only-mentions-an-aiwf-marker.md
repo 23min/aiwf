@@ -2,6 +2,7 @@
 id: G-0761
 title: aiwf's hook installers overwrite a user hook that only mentions an aiwf marker
 status: open
+priority: high
 ---
 ## What's missing
 
