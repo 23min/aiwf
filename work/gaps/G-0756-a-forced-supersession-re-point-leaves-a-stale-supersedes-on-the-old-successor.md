@@ -2,6 +2,7 @@
 id: G-0756
 title: A forced supersession re-point leaves a stale supersedes on the old successor
 status: open
+priority: medium
 ---
 ## What's missing
 
