@@ -2,6 +2,7 @@
 id: G-0759
 title: Verb-time body-prose-id findings give a body line against the file's path
 status: open
+priority: medium
 ---
 ## What's missing
 
