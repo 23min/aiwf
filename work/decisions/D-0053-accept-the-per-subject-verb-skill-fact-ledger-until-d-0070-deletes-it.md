@@ -1,7 +1,7 @@
 ---
 id: D-0053
 title: Accept the per-subject verb-skill fact ledger until D-0070 deletes it
-status: accepted
+status: superseded
 relates_to:
     - G-0520
     - G-0523
