@@ -10,11 +10,11 @@ status: proposed
 The commit-msg hook's shipped-surface guard runs `git diff --cached --name-only`
 on every commit in every repo that installs it, to see whether the staged change
 touches the ritual authoring tree. That tree exists only in the aiwf repo, so in
-a consumer repo the subprocess runs, finds nothing, and can never find anything.
+a consumer repo the guard runs, finds nothing, and can never find anything.
 
 The same property already has a chokepoint: the CI-tier skill-edit provenance
 backstop, which judges commits after the fact and is a Go policy test that never
-ships. So the question is whether the earlier catch is worth a subprocess every
+ships. So the question is whether the earlier catch is worth git calls every
 consumer pays for and no consumer can benefit from.
 
 ## Decision
@@ -23,8 +23,9 @@ Keep the guard in the shipped hook, unscoped.
 
 ## Reasoning
 
-The cost is one `git diff --cached --name-only` per commit — the same call git
-itself makes constantly, against an index already warm in the page cache. What
+The cost is two git calls per commit — `git rev-parse -q --verify MERGE_HEAD`,
+which exempts a merge, then `git diff --cached --name-only` — the kind of call
+git itself makes constantly, against an index already warm in the page cache. What
 it buys, where it can fire, is the difference between a one-second refusal at
 composition and an amend or an interactive rebase once the commit exists and
 others sit on top of it. On a branch the CI backstop resolves its base to the
@@ -39,9 +40,12 @@ be a new inference, and the path predicate already yields the same answer
 without one — a consumer repo has no such path, so nothing it stages matches.
 
 Dropping the composition-time catch entirely was the other alternative. It loses
-the property this milestone set out to add, leaving only the backstop whose
+the property M-0327 set out to add, leaving only the backstop whose
 lateness is the defect being fixed.
 
 What would reopen this: a measurement showing the hook's latency is felt. The
-decision rests on the cost being negligible, not on it being zero, and that is
-an empirical claim nobody has yet had reason to test.
+decision rests on the cost being negligible, not on it being zero. Measured on
+2026-11-05 in a fresh `aiwf init` repository (aiwf `c06ffdaf9`, git 2.51.1,
+Linux 7.0.14-linuxkit devcontainer), each call took about as long as
+`git --version`, around 10 ms median over 60 runs, and a whole commit through
+aiwf's hooks about 215 ms.
