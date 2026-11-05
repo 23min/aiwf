@@ -441,8 +441,7 @@ Acceptance outline:
 - Introduce the typed host bindings and named fragments. Claude rendering is
   byte-equivalent; unknown placeholders and missing bindings fail before writes.
 - Compare independent materializations and repeated refreshes. Assert observable
-  files and outputs, respecting accepted D-0070; do not add prose-presence tests
-  or treat proposed D-0072 as an accepted exception.
+  files and outputs, respecting accepted D-0070; do not add prose-presence tests.
 
 Exit property: the rendering boundary is working and tested while the public
 host-selection behavior remains unchanged. No Codex support is advertised yet.
