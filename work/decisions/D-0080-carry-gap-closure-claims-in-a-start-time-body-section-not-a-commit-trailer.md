@@ -1,7 +1,7 @@
 ---
 id: D-0080
 title: Carry gap-closure claims in a start-time body section, not a commit trailer
-status: proposed
+status: accepted
 ---
 > **Date:** 2026-08-28 · **Decided by:** Peter Bruinsma
 
