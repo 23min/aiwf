@@ -42,8 +42,8 @@ What this does not buy: nothing enforces that the epic wrap actually reads the
 notes. The chain from note to changelog is ritual instruction with one
 non-blocking warning at its first link, `milestone-done-empty-release-note`,
 which reports a milestone reaching `done` with an unwritten note. The guarantee
-that a shipped change cannot reach a release undescribed is not established here
-and is tracked in G-0529.
+that a shipped change cannot reach a release undescribed is not established here.
+G-0529 tracked it, and M-0330 addressed it.
 
 ## Consequences
 
