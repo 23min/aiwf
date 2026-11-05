@@ -15,8 +15,6 @@ The answer was non-obvious because the obvious one — a commit trailer, `Fixes 
 
 Carry the claim in a fixed body section, `## Closes`, written at the *start* of the work. The wrap rituals read that section instead of walking prose. Ship it as ritual content only: no verb, no trailer key, no schema change, no check rule.
 
-Status stays `proposed`. The choice is being tried, not committed to.
-
 ## Reasoning
 
 The failure was the moment, not the mechanism. Declaring at wrap means reconstructing intent at the point of least context; declaring at start costs nothing, because the gap is usually why the work was started.
