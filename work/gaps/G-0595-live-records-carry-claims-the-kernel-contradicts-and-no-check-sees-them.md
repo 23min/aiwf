@@ -34,7 +34,7 @@ renamed, and premises a later decision overtook. Four gaps whose defects had
 actually shipped are already promoted, so what remains is editing bodies rather
 than closing them.
 
-Six causes account for most of the findings, and each is worth fixing at the
+The causes below account for most of the findings, and each is worth fixing at the
 source rather than one record at a time:
 
 - **A retired verb is still cited as live**, across gaps, decisions, ADRs and
@@ -56,8 +56,6 @@ source rather than one record at a time:
   preconditions the kernel now enforces; `docs/skill-author-guide.md` teaches
   consumers to author skills in the `aiwfx-` namespace that `aiwf init` writes
   into their `.gitignore`.
-- **Records at `proposed` while already load-bearing** — D-0053, D-0056,
-  D-0057 — against this repo's own "decision is decision" rule.
 
 Two mechanical follow-ons are cheap and would have caught real findings here:
 widening the retirement-surface scan to `docs/adr/`, and a citation checker for
