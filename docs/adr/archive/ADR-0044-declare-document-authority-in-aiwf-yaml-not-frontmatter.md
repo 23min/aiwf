@@ -22,8 +22,8 @@ of them disagree about the same file.
   because the hierarchy could not supply it.
 
 Each states a fact about the same subject, and nothing derives one from another,
-which is the duplication [D-0054](../../work/decisions/D-0054-keep-the-reasoning-derive-the-facts-record-obligations-not-events.md)
-bans. [G-0589](../../work/gaps/G-0589-the-doc-authority-tiering-leaves-root-and-derived-documents-unclassified.md)
+which is the duplication [D-0054](../../../work/decisions/D-0054-keep-the-reasoning-derive-the-facts-record-obligations-not-events.md)
+bans. [G-0589](../../../work/gaps/G-0589-the-doc-authority-tiering-leaves-root-and-derived-documents-unclassified.md)
 records the fork and names where the next one lands: a shipped review pass has to
 tell a reviewer what to read, and its only options are a hierarchy that omits the
 root files, or a fourth copy of the classification.
@@ -31,7 +31,7 @@ root files, or a fourth copy of the classification.
 A path-based tier is also wrong about files inside the subtrees it names, not
 merely silent about the ones outside them. `docs/design/legal-workflows-audit.md`
 and `docs/design/legal-workflows-first-principles.md` are the Pass A and Pass B
-working artifacts of [ADR-0011](ADR-0011-legal-workflow-spec-methodology.md)'s
+working artifacts of [ADR-0011](../ADR-0011-legal-workflow-spec-methodology.md)'s
 three-pass methodology, kept so the reconciliation they fed stays auditable. The
 audit catalog says in its own header that it is not the spec and not the source of
 truth for what aiwf permits. Both sit under `docs/design/`, which the hierarchy
@@ -46,7 +46,7 @@ expresses the exclusion a subtree cannot â€” the two files are simply not on it.
 The question is now load-bearing rather than editorial. A review pass that audits
 a specification against what the project has committed to must decide which
 documents bind; `wf-doc-lint` reports drift against documents nothing designates;
-and [G-0560](../../work/gaps/G-0560-the-normative-doc-tree-has-drifted-from-the-kernel-it-documents.md)
+and [G-0560](../../../work/gaps/G-0560-the-normative-doc-tree-has-drifted-from-the-kernel-it-documents.md)
 tracks normative documents having drifted from the kernel, which presumes a
 settled answer to what is normative. No ADR or decision supplies one.
 
@@ -86,7 +86,7 @@ maintains as current truth, excluding generated output and archived snapshots â€
 and proceeds. Configuration sharpens that default; it is not a precondition for
 using any surface that needs the answer.
 
-The [doc-writing guidance](../../.guidance/project/writing-docs.md)'s
+The [doc-writing guidance](../../../.guidance/project/writing-docs.md)'s
 `## Documentation hierarchy` becomes prose that explains the classification rather
 than a second registry of it.
 
@@ -106,7 +106,7 @@ rather than a migration.
 
 The cost is two config keys with their unknown-key guard and defaults, and a
 guidance section that shrinks to explanation. The drift risk that
-[G-0092](../../work/gaps/archive/G-0092-no-documented-doc-authority-hierarchy.md)
+[G-0092](../../../work/gaps/archive/G-0092-no-documented-doc-authority-hierarchy.md)
 closed without addressing moves onto a surface a check can reach, though building
 that check is not part of this decision.
 
