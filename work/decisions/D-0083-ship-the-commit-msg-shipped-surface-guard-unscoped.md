@@ -1,7 +1,7 @@
 ---
 id: D-0083
 title: Ship the commit-msg shipped-surface guard unscoped
-status: proposed
+status: accepted
 ---
 > **Date:** 2026-08-31 · **Decided by:** human/peter
 
