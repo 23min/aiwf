@@ -1,0 +1,321 @@
+## environment
+date: 2026-11-07T11:14:01Z
+git: git version 2.51.1
+aiwf binary: /tmp/claude-1000/-workspaces-aiwf/eb2423dd-a702-4bd8-a308-1404db3d3991/scratchpad/amend-proto/bin/aiwf sha256=08d249b2f404d4a1
+built from: /workspaces/aiwf/.claude/worktrees/patch/research-commit-noise at 4343f2bd1 + uncommitted diff sha256=2bc752b6c459eb67
+AIWF_EXPERIMENT_AMEND=1 HOME=/tmp/claude-1000/-workspaces-aiwf/eb2423dd-a702-4bd8-a308-1404db3d3991/scratchpad/amend-proto/runs/s07.pgUo/home
+
+ok — no findings
+
+## a: NoOp inside a run
+$ aiwf add decision --title decision a --body ## Question
+
+q?
+
+## Decision
+
+d.
+
+## Reasoning
+
+r.
+aiwf-amend: new commit: HEAD has 0 parents (merge or root commit)
+aiwf add decision D-0001 "decision a"
+$ aiwf promote D-0001 accepted
+aiwf-amend: amended 579ad9d -> 4ac8b8e (2 operations, rule corrected)
+aiwf promote D-0001 proposed -> accepted
+$ aiwf promote D-0001 accepted
+D-0001 is already accepted; nothing to change
+HEAD unchanged by the NoOp: yes
+$ aiwf promote D-0001 accepted --format=json
+{"tool":"aiwf","version":"v0.42.1-0.20261105192620-4343f2bd1323+dirty","status":"ok","findings":[],"result":{"subject":"D-0001 is already accepted; nothing to change"},"metadata":{"correlation_id":"15be0da153afa022"}}
+
+## b: a verb that fails validation mid-run, then the run continues
+$ aiwf add epic --title epic b
+aiwf-amend: amended 4ac8b8e -> 65f2bb9 (3 operations, rule corrected)
+aiwf add epic E-0001 "epic b"
+$ aiwf promote E-0001 done
+aiwf promote: epic status "proposed" cannot transition to "done" (allowed: [active cancelled])
+[exit 1]
+$ aiwf set-priority D-0001 high
+aiwf-amend: amended 65f2bb9 -> f458cb2 (4 operations, rule corrected)
+aiwf set-priority D-0001 high
+$ git status --short
+f458cb2 ca48703    aiwf: 4 operations (add D-0001, promote D-0001, add E-0001, set-priority D-0001)  {verbs: add,promote,add,set-priority}
+
+## c1: reallocate inside a run (add, reallocate, then a verb on the new id)
+$ git push -q origin main
+entity-body-empty (warning) × 3 — E-0001 body section `## Goal` is empty
+
+3 findings (0 errors, 3 warnings)
+run `aiwf check --verbose` for each warning's location and remediation hint
+$ aiwf add gap --title gap c1 --body ## What's missing
+
+x.
+
+## Why it matters
+
+y.
+aiwf-amend: new commit: HEAD is contained in refs/remotes/origin/main
+aiwf add gap G-0001 "gap c1"
+$ aiwf reallocate G-0001
+aiwf-amend: amended 350b4dd -> feb2431 (2 operations, rule corrected)
+aiwf reallocate G-0001 -> G-0002
+new id: G-0002
+$ aiwf set-priority G-0002 high
+aiwf-amend: amended feb2431 -> 64287e8 (3 operations, rule corrected)
+aiwf set-priority G-0002 high
+64287e8 f458cb2    aiwf: 3 operations (add G-0001, reallocate G-0002, set-priority G-0002)  {verbs: add,reallocate,set-priority}
+aiwf-verb: add
+aiwf-entity: G-0001
+aiwf-actor: human/peter
+aiwf-op-time: 2026-11-07T11:14:05Z
+aiwf-verb: reallocate
+aiwf-entity: G-0002
+aiwf-prior-entity: G-0001
+aiwf-actor: human/peter
+aiwf-op-time: 2026-11-07T11:14:05Z
+aiwf-verb: set-priority
+aiwf-entity: G-0002
+aiwf-actor: human/peter
+aiwf-op-time: 2026-11-07T11:14:05Z
+
+$ aiwf history G-0002
+2026-11-07T11:14:05Z  human/peter
+human/peter
+human/peter  add
+reallocate
+set-priority  -             aiwf: 3 operations (add G-0001, reallocate G-0002, set-priority G-0002)  64287e8
+    [1] aiwf add gap G-0001 "gap c1"
+    
+    [2] aiwf reallocate G-0001 -> G-0002
+    
+    [3] aiwf set-priority G-0002 high
+$ aiwf history G-0001
+2026-11-07T11:14:05Z  human/peter
+human/peter
+human/peter  add
+reallocate
+set-priority  -             aiwf: 3 operations (add G-0001, reallocate G-0002, set-priority G-0002)  64287e8
+    [1] aiwf add gap G-0001 "gap c1"
+    
+    [2] aiwf reallocate G-0001 -> G-0002
+    
+    [3] aiwf set-priority G-0002 high
+$ aiwf show G-0002
+G-0002 · gap c1 · status: open · priority: high
+
+  Recent history (1):
+    2026-11-07  add
+reallocate
+set-priority  -             aiwf: 3 operations (add G-0001, reallocate G-0002, set-priority G-0002)
+
+  Findings: (none)
+
+## c2: reallocate after a merge collision
+$ git push -q origin main
+entity-body-empty (warning) × 3 — E-0001 body section `## Goal` is empty
+
+3 findings (0 errors, 3 warnings)
+run `aiwf check --verbose` for each warning's location and remediation hint
+$ git switch -q -c other
+$ aiwf add gap --title gap on other --body ## What's missing
+
+x.
+
+## Why it matters
+
+y.
+aiwf-amend: new commit: HEAD is contained in refs/heads/main
+aiwf add gap G-0003 "gap on other"
+$ git switch -q main
+$ aiwf add gap --title gap on main --body ## What's missing
+
+x.
+
+## Why it matters
+
+y.
+aiwf-amend: new commit: HEAD is contained in refs/heads/other
+aiwf add gap G-0004 "gap on main"
+$ git merge -q --no-ff -m merge other other
+$ aiwf check
+entity-body-empty (warning) × 3 — E-0001 body section `## Goal` is empty
+
+3 findings (0 errors, 3 warnings)
+run `aiwf check --verbose` for each warning's location and remediation hint
+$ aiwf reallocate work/gaps/G-0003-gap-on-other.md
+aiwf-amend: new commit: HEAD has 2 parents (merge or root commit)
+aiwf reallocate G-0003 -> G-0005
+$ aiwf set-priority G-0005 low
+aiwf-amend: amended 3987513 -> 327f4f8 (2 operations, rule corrected)
+aiwf set-priority G-0005 low
+327f4f8 3ca435d    aiwf: 2 operations (reallocate G-0005, set-priority G-0005)  {verbs: reallocate,set-priority}
+3ca435d 2555e7b .. merge other  {verbs: }
+2555e7b 64287e8    aiwf add gap G-0004 "gap on main"  {verbs: add}
+$ aiwf history G-0005
+2026-11-07T11:14:06Z  human/peter       add         -             aiwf add gap G-0003 "gap on other"  643db22
+2026-11-07T11:14:07Z  human/peter
+human/peter  reallocate
+set-priority  -             aiwf: 2 operations (reallocate G-0005, set-priority G-0005)  327f4f8
+    [1] aiwf reallocate G-0003 -> G-0005
+    
+    [2] aiwf set-priority G-0005 low
+$ aiwf check
+entity-body-empty (warning) × 3 — E-0001 body section `## Goal` is empty
+
+3 findings (0 errors, 3 warnings)
+run `aiwf check --verbose` for each warning's location and remediation hint
+
+## d: cancel then archive in one run
+$ git push -q origin main
+entity-body-empty (warning) × 3 — E-0001 body section `## Goal` is empty
+
+3 findings (0 errors, 3 warnings)
+run `aiwf check --verbose` for each warning's location and remediation hint
+$ aiwf add gap --title gap d --body ## What's missing
+
+x.
+
+## Why it matters
+
+y.
+aiwf-amend: new commit: HEAD is contained in refs/remotes/origin/main
+aiwf add gap G-0006 "gap d"
+$ git push -q origin main
+entity-body-empty (warning) × 3 — E-0001 body section `## Goal` is empty
+
+3 findings (0 errors, 3 warnings)
+run `aiwf check --verbose` for each warning's location and remediation hint
+$ aiwf cancel G-0006 --reason not needed
+aiwf-amend: new commit: HEAD is contained in refs/remotes/origin/main
+aiwf cancel G-0006 -> wontfix
+$ aiwf archive --apply
+aiwf-amend: amended f435d1b -> 806e8a9 (2 operations, rule corrected)
+aiwf archive: sweep 1 entity into archive/ (1 gap)
+806e8a9 1a69d19    aiwf: 2 operations (cancel G-0006, archive)  {verbs: cancel,archive}
+aiwf: 2 operations (cancel G-0006, archive)
+
+[1] aiwf cancel G-0006 -> wontfix
+not needed
+
+[2] aiwf archive: sweep 1 entity into archive/ (1 gap)
+Sweep terminal-status entities into per-kind archive/.
+
+Per-kind counts:
+  gap       1 entity
+
+Affected ids:
+  G-0006
+
+aiwf-verb: cancel
+aiwf-entity: G-0006
+aiwf-actor: human/peter
+aiwf-op-time: 2026-11-07T11:14:09Z
+aiwf-verb: archive
+aiwf-actor: human/peter
+aiwf-op-time: 2026-11-07T11:14:09Z
+
+$ aiwf history G-0006
+2026-11-07T11:14:08Z  human/peter       add         -             aiwf add gap G-0006 "gap d"  1a69d19
+2026-11-07T11:14:09Z  human/peter
+human/peter  cancel
+archive  -             aiwf: 2 operations (cancel G-0006, archive)  806e8a9
+    [1] aiwf cancel G-0006 -> wontfix
+    not needed
+    
+    [2] aiwf archive: sweep 1 entity into archive/ (1 gap)
+    Sweep terminal-status entities into per-kind archive/.
+    
+    Per-kind counts:
+      gap       1 entity
+    
+    Affected ids:
+      G-0006
+$ aiwf show G-0006
+G-0006 · gap d · status: wontfix · archived
+
+  Recent history (2):
+    2026-11-07  add         -             aiwf add gap G-0006 "gap d"
+    2026-11-07  cancel
+archive  -             aiwf: 2 operations (cancel G-0006, archive)
+
+  Findings: (none)
+$ aiwf check
+entity-body-empty (warning) × 3 — E-0001 body section `## Goal` is empty
+
+3 findings (0 errors, 3 warnings)
+run `aiwf check --verbose` for each warning's location and remediation hint
+
+## e: post-commit hook and STATUS.md after amends
+$ git push -q origin main
+entity-body-empty (warning) × 3 — E-0001 body section `## Goal` is empty
+
+3 findings (0 errors, 3 warnings)
+run `aiwf check --verbose` for each warning's location and remediation hint
+$ aiwf add gap --title gap e1 --body ## What's missing
+
+x.
+
+## Why it matters
+
+y.
+aiwf-amend: new commit: HEAD is contained in refs/remotes/origin/main
+aiwf add gap G-0007 "gap e1"
+$ aiwf set-priority G-0007 urgent
+aiwf-amend: amended 32c3038 -> eb906ed (2 operations, rule corrected)
+aiwf set-priority G-0007 urgent
+--- STATUS.md diff (new commit -> after amend):
+9d8
+< - G-0007 — gap e1
+26d24
+< - G-0007 — gap e1
+74c72,74
+< | 2026-11-07 | human/peter | add | aiwf add gap G-0007 'gap e1' |
+---
+> | 2026-11-07 | human/peter
+> human/peter | add
+> set-priority | aiwf: 2 operations (add G-0007, set-priority G-0007) |
+--- STATUS.md recent activity after amend:
+## Recent activity
+
+$ git status --short
+$ aiwf status
+aiwf status — 2026-11-07
+
+In flight
+  (no active epics)
+
+Roadmap
+  E-0001 — epic b    [proposed]
+       (no milestones)
+
+Open decisions
+  (none)
+
+Open gaps
+  G-0002 — gap c1
+  G-0004 — gap on main
+  G-0005 — gap on other
+  G-0007 — gap e1
+
+Warnings
+  entity-body-empty  [E-0001]  E-0001 body section `## Goal` is empty
+  entity-body-empty  [E-0001]  E-0001 body section `## Scope` is empty
+  entity-body-empty  [E-0001]  E-0001 body section `## Out of scope` is empty
+
+Recent activity
+  2026-11-07  human/peter
+human/peter  add
+set-priority  aiwf: 2 operations (add G-0007, set-priority G-0007)
+  2026-11-07  human/peter
+human/peter  cancel
+archive  aiwf: 2 operations (cancel G-0006, archive)
+  2026-11-07  human/peter       add         aiwf add gap G-0006 "gap d"
+  2026-11-07  human/peter
+human/peter  reallocate
+set-priority  aiwf: 2 operations (reallocate G-0005, set-priority G-0005)
+  2026-11-07  human/peter       add         aiwf add gap G-0004 "gap on main"
+
+Health
+  7 entities · 0 errors · 3 warnings · run `aiwf check` for details

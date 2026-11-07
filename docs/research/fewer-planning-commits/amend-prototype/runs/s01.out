@@ -1,0 +1,165 @@
+## environment
+date: 2026-11-07T11:18:33Z
+git: git version 2.51.1
+aiwf binary: /tmp/claude-1000/-workspaces-aiwf/eb2423dd-a702-4bd8-a308-1404db3d3991/scratchpad/amend-proto/bin/aiwf sha256=08d249b2f404d4a1
+built from: /workspaces/aiwf/.claude/worktrees/patch/research-commit-noise at 4343f2bd1 + uncommitted diff sha256=2bc752b6c459eb67
+AIWF_EXPERIMENT_AMEND=1 HOME=/tmp/claude-1000/-workspaces-aiwf/eb2423dd-a702-4bd8-a308-1404db3d3991/scratchpad/amend-proto/runs/s01.Lywn/home
+
+ok — no findings
+
+## run 1: five verbs on main (unpushed)
+$ aiwf add epic --title Epic one
+aiwf-amend: new commit: HEAD has 0 parents (merge or root commit)
+aiwf add epic E-0001 "Epic one"
+$ aiwf add gap --title A gap found --body ## What's missing
+
+something.
+
+## Why it matters
+
+because.
+aiwf-amend: amended 1ab1ed2 -> 594d1ee (2 operations, rule corrected)
+aiwf add gap G-0001 "A gap found"
+$ aiwf set-priority G-0001 high
+aiwf-amend: amended 594d1ee -> 350ce80 (3 operations, rule corrected)
+aiwf set-priority G-0001 high
+$ aiwf add decision --title Use plain files --body ## Question
+
+q?
+
+## Decision
+
+d.
+
+## Reasoning
+
+r.
+aiwf-amend: amended 350ce80 -> 1ef626b (4 operations, rule corrected)
+aiwf add decision D-0001 "Use plain files"
+$ aiwf promote D-0001 accepted
+aiwf-amend: amended 1ef626b -> 01c5e79 (5 operations, rule corrected)
+aiwf promote D-0001 proposed -> accepted
+01c5e79 29e0d95    aiwf: 5 operations (add E-0001, add G-0001, set-priority G-0001, add D-0001, ...)  {verbs: add,add,set-priority,add,promote}
+29e0d95            chore: init aiwf  {verbs: }
+
+## push 1 (pre-push hook runs aiwf check)
+$ git push origin main
+entity-body-empty (warning) × 3 — E-0001 body section `## Goal` is empty
+
+3 findings (0 errors, 3 warnings)
+run `aiwf check --verbose` for each warning's location and remediation hint
+To /tmp/claude-1000/-workspaces-aiwf/eb2423dd-a702-4bd8-a308-1404db3d3991/scratchpad/amend-proto/runs/s01.Lywn/repo-remote.git
+   29e0d95..01c5e79  main -> main
+$ git log --format=%h %s origin/main
+01c5e79 aiwf: 5 operations (add E-0001, add G-0001, set-priority G-0001, add D-0001, ...)
+29e0d95 chore: init aiwf
+
+## run 2 after push: first verb must start a new commit, second amends it
+$ aiwf retitle G-0001 A gap found, retitled
+aiwf-amend: new commit: HEAD is contained in refs/remotes/origin/main
+aiwf retitle G-0001 -> "A gap found, retitled"
+$ aiwf promote E-0001 active
+aiwf-amend: amended ff1711a -> 19ff343 (2 operations, rule corrected)
+aiwf promote E-0001 proposed -> active
+19ff343 01c5e79    aiwf: 2 operations (retitle G-0001, promote E-0001)  {verbs: retitle,promote}
+01c5e79 29e0d95    aiwf: 5 operations (add E-0001, add G-0001, set-priority G-0001, add D-0001, ...)  {verbs: add,add,set-priority,add,promote}
+29e0d95            chore: init aiwf  {verbs: }
+
+## code commit, then run 3
+$ git commit -m 'feat: code'
+ok — no findings
+$ aiwf promote G-0001 addressed --by D-0001
+aiwf-amend: new commit: HEAD is not a planning commit (no leading aiwf-verb trailer)
+aiwf promote G-0001 open -> addressed
+$ aiwf add gap --title Second gap --body ## What's missing
+
+something.
+
+## Why it matters
+
+because.
+aiwf-amend: amended ddb7d6b -> aa1388d (2 operations, rule corrected)
+aiwf add gap G-0002 "Second gap"
+aa1388d 88064df    aiwf: 2 operations (promote G-0001, add G-0002)  {verbs: promote,add}
+88064df 19ff343    feat: code  {verbs: }
+19ff343 01c5e79    aiwf: 2 operations (retitle G-0001, promote E-0001)  {verbs: retitle,promote}
+01c5e79 29e0d95    aiwf: 5 operations (add E-0001, add G-0001, set-priority G-0001, add D-0001, ...)  {verbs: add,add,set-priority,add,promote}
+
+## push 2
+$ git push origin main
+entity-body-empty (warning) × 3 — E-0001 body section `## Goal` is empty
+archive-sweep-pending (warning) × 1 — 1 terminal entities awaiting `aiwf archive --apply`. Set `archive.sweep_threshold` in aiwf.yaml to escalate to blocking past N
+epic-active-no-drafted-milestones (warning) × 1 — epic E-0001 is active but has no milestones at status draft
+terminal-entity-not-archived (warning) × 1 — entity G-0001 has terminal status "addressed" but file is still in the active tree; awaiting `aiwf archive --apply` sweep
+
+6 findings (0 errors, 6 warnings)
+run `aiwf check --verbose` for each warning's location and remediation hint
+To /tmp/claude-1000/-workspaces-aiwf/eb2423dd-a702-4bd8-a308-1404db3d3991/scratchpad/amend-proto/runs/s01.Lywn/repo-remote.git
+   01c5e79..aa1388d  main -> main
+
+## remote history
+aa1388d aiwf: 2 operations (promote G-0001, add G-0002)
+88064df feat: code
+19ff343 aiwf: 2 operations (retitle G-0001, promote E-0001)
+01c5e79 aiwf: 5 operations (add E-0001, add G-0001, set-priority G-0001, add D-0001, ...)
+29e0d95 chore: init aiwf
+commits carrying aiwf-verb on remote: 3; operations recorded: 9
+
+## aiwf check (full)
+$ aiwf check
+entity-body-empty (warning) × 3 — E-0001 body section `## Goal` is empty
+archive-sweep-pending (warning) × 1 — 1 terminal entities awaiting `aiwf archive --apply`. Set `archive.sweep_threshold` in aiwf.yaml to escalate to blocking past N
+epic-active-no-drafted-milestones (warning) × 1 — epic E-0001 is active but has no milestones at status draft
+terminal-entity-not-archived (warning) × 1 — entity G-0001 has terminal status "addressed" but file is still in the active tree; awaiting `aiwf archive --apply` sweep
+
+6 findings (0 errors, 6 warnings)
+run `aiwf check --verbose` for each warning's location and remediation hint
+
+## message of the run-1 commit
+aiwf: 5 operations (add E-0001, add G-0001, set-priority G-0001, add D-0001, ...)
+
+[1] aiwf add epic E-0001 "Epic one"
+
+[2] aiwf add gap G-0001 "A gap found"
+
+[3] aiwf set-priority G-0001 high
+
+[4] aiwf add decision D-0001 "Use plain files"
+
+[5] aiwf promote D-0001 proposed -> accepted
+
+aiwf-verb: add
+aiwf-entity: E-0001
+aiwf-actor: human/peter
+aiwf-op-time: 2026-11-07T11:18:35Z
+aiwf-verb: add
+aiwf-entity: G-0001
+aiwf-actor: human/peter
+aiwf-op-time: 2026-11-07T11:18:35Z
+aiwf-verb: set-priority
+aiwf-entity: G-0001
+aiwf-actor: human/peter
+aiwf-op-time: 2026-11-07T11:18:35Z
+aiwf-verb: add
+aiwf-entity: D-0001
+aiwf-actor: human/peter
+aiwf-op-time: 2026-11-07T11:18:35Z
+aiwf-verb: promote
+aiwf-entity: D-0001
+aiwf-actor: human/peter
+aiwf-to: accepted
+aiwf-op-time: 2026-11-07T11:18:36Z
+
+
+## reflog
+aa1388d aiwf amend: aiwf add gap G-0002 "Second gap"
+ddb7d6b 
+88064df commit: feat: code
+19ff343 aiwf amend: aiwf promote E-0001 proposed -> active
+ff1711a 
+01c5e79 aiwf amend: aiwf promote D-0001 proposed -> accepted
+1ef626b aiwf amend: aiwf add decision D-0001 "Use plain files"
+350ce80 aiwf amend: aiwf set-priority G-0001 high
+594d1ee aiwf amend: aiwf add gap G-0001 "A gap found"
+1ab1ed2 
+29e0d95 commit (initial): chore: init aiwf
