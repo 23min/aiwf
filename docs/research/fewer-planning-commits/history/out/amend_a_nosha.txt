@@ -1,0 +1,30 @@
+variant: as-is  | cut-unknown does not block  | NO sha check
+dropped commits: 0
+kernel verb commits: 1769  amended: 1197  new commits (run starts): 572
+ritual commits kept: 114
+PLANNING COMMITS REMAINING: 686 {'branch-lines': 518, 'main-line': 168}
+primary reason a verb could not amend its HEAD (= what ended the run before it):
+      1  window start   {'branch-lines': 1}
+    108  merge   {'main-line': 50, 'branch-lines': 58}
+    290  code commit   {'main-line': 18, 'branch-lines': 272}
+     63  ritual commit   {'main-line': 19, 'branch-lines': 44}
+     14  cherry-pick (git, not a verb run)   {'main-line': 14}
+     39  push boundary   {'main-line': 37, 'branch-lines': 2}
+     45  first commit on a branch (HEAD also on the parent branch)   {'branch-lines': 45}
+      8  branch cut from HEAD (branch-cut, before V)   {'main-line': 7, 'branch-lines': 1}
+      4  branch cut from HEAD (merge-2nd-parent, before V)   {'main-line': 4}
+any-reason counts among run starts (a start can have several):
+      1  window start  (sole reason: 1)
+    108  merge  (sole reason: 108)
+    290  code commit  (sole reason: 290)
+     63  ritual commit  (sole reason: 63)
+     14  cherry-pick (git, not a verb run)  (sole reason: 12)
+     40  push boundary  (sole reason: 27)
+     47  first commit on a branch (HEAD also on the parent branch)  (sole reason: 42)
+      2  main contains HEAD  (sole reason: 0)
+     11  branch cut from HEAD (branch-cut, before V)  (sole reason: 7)
+     10  branch cut from HEAD (merge-2nd-parent, before V)  (sole reason: 4)
+      3  operation names HEAD's SHA  (sole reason: 0)
+      4  branch cut from HEAD (branch-cut, time unknown)  (sole reason: 0)
+      3  branch cut from HEAD (merge-2nd-parent, time unknown)  (sole reason: 0)
+amends that carried a non-blocking 'time unknown' cut flag: 50

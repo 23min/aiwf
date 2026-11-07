@@ -85,6 +85,18 @@ OPS = {o.opid: o for o in [
     # the spike's E4 fixture (fidelity only): add an AC, start M, bob edits G, mark the AC met
     Op('E_ac', 'A', 'add', 'M/AC-1', 'human/peter', (('M.ac', 'open'),), (), None, None, None),
     Op('E_met', 'A', 'promote', 'M/AC-1', 'human/peter', (('M.ac', 'met'),), (), ('M.ac', 'open'), 'met', None),
+    # amend conditions only (AMEND_CONDS): A's edit-body G by A's own actor, so that it and the
+    # promote after it are consecutive verbs by one actor
+    Op('A_gbp', 'A', 'edit-body', 'G', 'human/peter', (('G.body', 'A_gbp'),), (), None, None, None),
+    # `aiwf authorize M --end`: an empty commit whose aiwf-scope-ends names the authorize operation
+    Op('A_end', 'A', 'authorize', 'M', 'human/peter', (), (('scope-ends', 'A_auth'),), None, None, None),
+    # the human's promote of M to done, which ends the scope on M (aiwf-scope-ends)
+    Op('A_donee', 'A', 'promote', 'M', 'human/peter', (('M.st', 'done'),), (('scope-ends', 'A_auth'),),
+       ('M.st', 'in_progress'), 'done', None),
+    # `promote G addressed --by-commit <the commit of promote M in_progress>`: addressed_by_commit
+    # naming a verb's commit rather than a code commit
+    Op('A_gaddrv', 'A', 'promote', 'G', 'human/peter', (('G.st', 'addressed'),), (), ('G.st', 'open'), 'addressed',
+       'A_ip'),
 ]}
 RECORD_ONLY = {o for o, v in OPS.items() if not v.writes}
 OWNER = {o: v.tx for o, v in OPS.items()}
@@ -290,6 +302,8 @@ def classify(c):
 
 def fmt_c(c):
     cc = C(c)
+    if isinstance(cc.hid, tuple) and cc.hid[0] == 'amend':
+        return f"{cc.kind}:{'+'.join(cc.hid[1:])}#{c}"
     h = cc.hid if not isinstance(cc.hid, tuple) else ''.join(map(str, cc.hid))
     return f"{cc.kind}:{h or ''}#{c}"
 
@@ -302,6 +316,7 @@ class Tx(NamedTuple):
     pc: int           # next script step
     subs: int         # submits run
     unk: bool         # a push reply was lost and not yet reconciled
+    side: object = None  # condition 'fork' only: the local branch the checked-out branch was cut from
 
 
 class St(NamedTuple):
@@ -338,14 +353,43 @@ DIMS = {
     'ptr': ('leave', 'rewrite', 'opid', 'refuse'),
     'audit': ('parent', 'record'),
 }
+# submit=amend: a verb amends HEAD when HEAD is eligible, else commits per-verb; no submit step.
+# Its eligibility test is the 'amend' dimension, read only when submit=amend:
+#   naive  HEAD is a non-merge verb commit, by the same author and aiwf-actor as the new
+#          operation, and no remote-tracking ref (origin/main, origin/<branch>) contains it
+#   safe   naive, and no other local branch contains HEAD, and the new operation names no SHA of
+#          HEAD in a trailer or in the bytes it writes
+AMEND_DIMS = {'submit': ('amend',), 'amend': ('naive', 'safe'), 'ptr': ('leave', 'opid'), 'audit': ('parent', 'record')}
 
 CONDS = ('base', 'after', 'bob', 'mixed', 'crash', 'lost', 'revert', 'cherry', 'resolve', 'nocheck',
          'reuse', 'auth', 'ack', 'abc', 'adr')
+# Conditions that exercise amend. 'sa-<c>' is condition c with A's edit-body G run by A's own actor
+# (A_gbp for A_gb), so that it and A's last promote are consecutive verbs by one actor.
+SA_BASE = ('base', 'after', 'bob', 'mixed', 'crash', 'lost', 'revert', 'cherry', 'resolve', 'nocheck', 'reuse')
+AMEND_CONDS = (tuple('sa-' + c for c in SA_BASE)
+               + ('fork', 'reuse4', 'untracked', 'scope', 'actor', 'byc', 'twostep')
+               + ('nr-fork', 'nr-scope', 'nr-byc'))
 EARLY = {'after', 'bob'}          # A may submit and push before its script is complete
-STAGES = {'reuse': (2,)}         # A may also stop, submit, push and merge after this many steps
+STAGES = {'reuse': (2,), 'reuse4': (4,), 'untracked': (4,)}   # A may also stop, submit, push and merge after this many steps
 
 
 def scripts(cond):
+    if cond.startswith('nr-'):
+        return scripts(cond[3:])
+    if cond.startswith('sa-'):
+        s = scripts(cond[3:])
+        s['A'] = [('op', 'A_gbp') if stp == ('op', 'A_gb') else stp for stp in s['A']]
+        return s
+    if cond in ('reuse4', 'untracked'):
+        return {'A': [('code', 'a1'), ('op', 'A_ip'), ('code', 'a2'), ('op', 'A_gbp'), ('op', 'A_done')],
+                'B': [('code', 'b1'), ('op', 'B_add')]}
+    if cond in ('fork', 'scope', 'actor', 'byc', 'twostep'):
+        A = {'fork': [('op', 'A_ip'), ('branch', 'm'), ('op', 'A_gbp'), ('code', 'a1'), ('merge', 'm')],
+             'scope': [('code', 'a1'), ('op', 'A_auth'), ('op', 'A_end')],
+             'actor': [('op', 'A_auth'), ('op', 'A_ipa'), ('op', 'A_donee')],
+             'byc': [('code', 'a1'), ('op', 'A_ip'), ('op', 'A_gaddrv')],
+             'twostep': [('code', 'a1'), ('op', 'A_ip'), ('op', 'A_done')]}[cond]
+        return {'A': A, 'B': [('code', 'b1'), ('op', 'B_add')]}
     A = [('code', 'a1'), ('op', 'A_ip'), ('code', 'a2'), ('op', 'A_gb'), ('op', 'A_done')]
     B = [('code', 'b1'), ('op', 'B_add')]
     if cond == 'mixed':
@@ -374,7 +418,13 @@ class Model:
         self.dv = dict(cfg.design)
         self.used = set()
         self.p = cfg.probes
-        self.cond = cfg.cond
+        # an 'sa-' condition behaves as the condition it names; only A's script differs. In an
+        # 'nr-' condition the operators never run git rebase: they take in main by merging it
+        cond = cfg.cond
+        if cond.startswith('nr-'):
+            cond, self.p = cond[3:], self.p | {'norebase'}
+        cond = cond[3:] if cond.startswith('sa-') else cond
+        self.cond = cond
         self.direct = cfg.mode == 'direct'
         self.sc = scripts(cfg.cond)
         SEQ.clear()
@@ -383,13 +433,17 @@ class Model:
                 if st[0] == 'op':
                     SEQ[st[1]] = k
         SEQ['X_mb'] = 99
-        self.early = cfg.cond in EARLY
+        self.early = cond in EARLY
         # A may merge twice where its work can outlive one merge: 'reuse' by design, 'after' because
-        # the host may merge an early push while A's later verbs are still to come
-        self.maxmerge = {'A': 2 if cfg.cond in ('reuse', 'after') else 1, 'B': 1}
+        # the host may merge an early push while A's later verbs are still to come; 'reuse4' and
+        # 'untracked' merge at the stage and again at the end
+        self.maxmerge = {'A': 2 if cond in ('reuse', 'after', 'reuse4', 'untracked') else 1, 'B': 1}
+        # before its first merge, A takes in main only where it must (as B does); in direct mode a
+        # push needs main, so there A may always take it in
+        self.holdoff = cond == 'reuse' or (cond in ('reuse4', 'untracked') and not self.direct)
         # liveness is conditional on legal transactions: the one whose branch carries the fault is not
         # (in 'resolve', whichever transaction resolved the conflict by hand; see is_legal)
-        self.legal = {'A': cfg.cond != 'mixed', 'B': cfg.cond != 'cherry'}
+        self.legal = {'A': cond != 'mixed', 'B': cond != 'cherry'}
         base_tree = tid({'M.st': ('draft', 'init', ()), 'M.body': ('m0', 'init', ()),
                          'G.st': ('open', 'init', ()), 'G.body': ('g0', 'init', ())})
         self.base = mk((), base_tree, (('s', 'initial'),), 'base', None, 'init')
@@ -402,6 +456,29 @@ class Model:
 
     def fold_design(self):
         return self.d('submit') == 'fold'
+
+    def amend_design(self):
+        return self.d('submit') == 'amend'
+
+    def amendable(self, tx, op, author, ptrs, treeptr):
+        """The amend eligibility test (AMEND_DIMS) for running op at tx.loc. ptrs are the
+        new operation's pointers as it would write them; treeptr the commit its file bytes name."""
+        h = tx.loc
+        hc = C(h)
+        if hc.kind != 'verb' or len(hc.parents) != 1 or hc.author != author:
+            return False
+        if 'amend-any-actor' not in self.p and any(g.actor != op.actor for g in parsed(h)):
+            return False
+        # remote-tracking refs: origin/main always; origin/<branch> unless the clone tracks only main
+        tracked = [tx.rtm] + ([tx.rtb] if tx.rtb is not None and self.cond != 'untracked' else [])
+        if any(h in anc(r) for r in tracked):
+            return False
+        if self.d('amend') == 'safe':
+            if tx.side is not None and h in anc(tx.side):
+                return False
+            if any(t == h for (_, t, _) in ptrs) or treeptr == h:
+                return False
+        return True
 
     # ------------------------------------------------------------ setup
     def initial(self):
@@ -542,7 +619,8 @@ class Model:
     # ------------------------------------------------------------ verbs and commits
     def find_hid(self, tip, hid):
         for c in sorted(anc(tip), reverse=True):
-            if C(c).hid == hid:
+            h = C(c).hid
+            if h == hid or (isinstance(h, tuple) and h[0] == 'amend' and hid in h[1:]):
                 return c
         return None
 
@@ -576,12 +654,22 @@ class Model:
             else:
                 c = self.find_hid(loc, target)
                 ptrs.append((key, c, target))
+        tp = None
         for p, lab in op.writes:
             if op.treeptr:
-                lab = (lab, ('abc', self.find_hid(loc, op.treeptr), op.treeptr))
+                tp = self.find_hid(loc, op.treeptr)
+                lab = (lab, ('abc', tp, op.treeptr))
             T[p] = (lab, name, (T.get(p),))
         g = Grp(name, op.verb, op.ent, op.actor, op.to, tuple(ptrs), op.tx, SEQ[name])
         author = 'bob' if name == 'X_mb' else me
+        if self.amend_design() and self.amendable(tx, op, author, ptrs, tp):
+            # HEAD re-created on its parent with the new operation's change, and the new group
+            # appended to HEAD's: one trailer paragraph, one group per operation, in operation
+            # order, as the fold's planning commit records them (A12)
+            h = C(loc)
+            groups = parsed(loc) + (g,)
+            return mk(h.parents, tid(T), (h.msg[0], ('t', groups)), 'verb',
+                      ('amend',) + tuple(x.op for x in groups), author), None
         msg = (('s', f'aiwf {op.verb} {op.ent}'), ('t', (g,)))
         return mk((loc,), tid(T), msg, 'verb', name, author), None
 
@@ -873,14 +961,21 @@ class Model:
         allpc = tx.pc >= len(scr) or (X == 'A' and tx.pc in STAGES.get(self.cond, ()))
         early = self.early and X == 'A'
         # 1. the next script step
-        if tx.pc < len(scr):
+        if tx.pc < len(scr) and scr[tx.pc][0] in ('branch', 'merge'):
+            self.fork_step(i, st, out)
+        elif tx.pc < len(scr):
             nl, why = self.run_step(X, tx, scr[tx.pc])
             if why:
                 self.refuse(X, why)
             else:
                 ok = st.ok | {(scr[tx.pc][1], nl)} if scr[tx.pc][0] != 'op' else st.ok
-                out.append((f"{X}: {scr[tx.pc][0]} {scr[tx.pc][1]}",
-                            self.settx(st, i, tx._replace(loc=nl, pc=tx.pc + 1))._replace(ok=ok), []))
+                lab, evs = f"{X}: {scr[tx.pc][0]} {scr[tx.pc][1]}", []
+                if scr[tx.pc][0] == 'op' and C(nl).parents != (tx.loc,):
+                    lab += ' [amends HEAD]'
+                    evs = self.drop_events(X, tx.loc, nl, 'amend', st.main)
+                out.append((lab, self.settx(st, i, tx._replace(loc=nl, pc=tx.pc + 1))._replace(ok=ok), evs))
+        if self.direct and tx.side is not None:
+            self.push_side(i, st, out)
         # 2. submit
         if self.fold_design() and tx.subs >= 2 and (allpc or early) and self.unfolded(tx._replace(rtm=st.main)):
             self.refuse(X, 'bound: submits')
@@ -927,7 +1022,7 @@ class Model:
                 out.append((f"{X}: pull --rebase its own remote branch", ns, []))
         # 6. update from the default branch: A at any time (an environment move);
         #    B only where it must (direct mode, the up-to-date rule, or a conflict)
-        if not (self.cond == 'reuse' and X == 'A' and st.nmerge[i] == 0
+        if not (self.holdoff and X == 'A' and st.nmerge[i] == 0
                 and not (st.rb[i] is not None and self.cfg.utd)):
             if st.main not in anc(tx.loc) and 'noupdate' not in self.p:
                 if X == 'A' or self.direct or (st.rb[i] is not None and (self.cfg.utd or self.conflicted(i, st))):
@@ -941,6 +1036,40 @@ class Model:
                     nl, m = r
                     ns = self.settx(st, i, tx._replace(loc=nl, rtm=st.main))._replace(ok=self.okadd(st.ok, m))
                     out.append((f"{X}: rebase onto main", ns, []))
+
+    def fork_step(self, i, st, out):
+        """Condition 'fork': cut a branch from the checked-out tip (the tip stays on the
+        branch it was cut from, side), or merge that branch back into side with --no-ff,
+        as the wrap rituals merge, and check side out again."""
+        X = TXS[i]
+        tx = st.tx[i]
+        kind, name = self.sc[X][tx.pc]
+        if kind == 'branch':
+            out.append((f"{X}: cut branch {name} from its unpushed tip and check it out",
+                        self.settx(st, i, tx._replace(side=tx.loc, pc=tx.pc + 1)), []))
+            return
+        t, bad = merge3(tree_of(merge_base(tx.side, tx.loc)), tree_of(tx.side), tree_of(tx.loc))
+        if bad:
+            self.refuse(X, 'conflict')
+            return
+        m = mk((tx.side, tx.loc), tid(t), (('s', f"Merge branch '{name}'"),), 'merge', None, OPER[X])
+        out.append((f"{X}: merge branch {name} into the branch it was cut from (--no-ff)",
+                    self.settx(st, i, tx._replace(loc=m, side=None, pc=tx.pc + 1)), []))
+
+    def push_side(self, i, st, out):
+        """Direct mode, condition 'fork': while the cut branch is checked out, the operator may
+        push local main (side), with the pre-push hook."""
+        X = TXS[i]
+        tx = st.tx[i]
+        side = tx.side
+        if side in anc(st.main) or st.main not in anc(side):
+            return
+        F = self.check(side, tx.rtm)
+        if F:
+            self.refuse(X, 'pre-push hook: ' + self.where(F, st.main))
+            return
+        ns, evs = self.land(st, i, side, f"{X}'s push of main")
+        out.append((f"{X}: push main (the branch it cut from)", self.settx(ns, i, tx._replace(rtm=side)), evs))
 
     def conflicted(self, i, st):
         rb = st.rb[i]
@@ -1054,7 +1183,8 @@ class Model:
             ns, evs = st, []
             if applied:
                 ns, evs = self.land(st, i, tx.loc, f"{X}'s push")
-            ntx = tx._replace(rtm=tx.loc if reply else tx.rtm, unk=not reply)
+            # 'untracked': the push names the remote by URL, so origin/main moves only on a fetch
+            ntx = tx._replace(rtm=tx.loc if reply and self.cond != 'untracked' else tx.rtm, unk=not reply)
             ns = self.settx(ns, i, ntx)
             lab = f"{X}: push main"
             if tag != 'ok':
@@ -1480,6 +1610,8 @@ def summarize(r, st):
                  f"{' (reverted)' if st.rev[i] else ''}")
         for k in show_log(tx.loc, st.main):
             L.append(f"         {k}")
+        if tx.side is not None:
+            L.append(f"       {X} branch it was cut from #{tx.side}")
     return '\n'.join(L)
 
 

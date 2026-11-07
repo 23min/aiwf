@@ -1,0 +1,36 @@
+package integration
+
+import (
+	"encoding/json"
+	"os"
+	"sort"
+	"testing"
+
+	"github.com/23min/aiwf/internal/cli"
+	"github.com/23min/aiwf/internal/cli/check"
+	"github.com/23min/aiwf/internal/skills"
+)
+
+func TestZZHistMeasureDumpVerbSets(t *testing.T) {
+	out := os.Getenv("HISTMEASURE_OUT")
+	if out == "" {
+		t.Skip("HISTMEASURE_OUT unset")
+	}
+	reg := check.EnumerateRegisteredVerbs(cli.NewRootCmd(""))
+	rit, err := skills.RitualTrailerVerbs()
+	if err != nil {
+		t.Fatal(err)
+	}
+	keys := func(m map[string]struct{}) []string {
+		var s []string
+		for k := range m {
+			s = append(s, k)
+		}
+		sort.Strings(s)
+		return s
+	}
+	b, _ := json.MarshalIndent(map[string][]string{"registered": keys(reg), "ritual": keys(rit)}, "", " ")
+	if err := os.WriteFile(out, b, 0o644); err != nil {
+		t.Fatal(err)
+	}
+}

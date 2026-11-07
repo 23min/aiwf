@@ -1,0 +1,53 @@
+== 1. Why runs start (baseline, without ROADMAP), first reason the replay records
+   290  code commit
+   108  merge
+    45  first commit on a branch (HEAD also on the parent branch)
+    40  operation names HEAD's SHA
+    34  push boundary
+    13  ritual commit
+    12  cherry-pick (git, not a verb run)
+    11  branch cut from HEAD (branch-cut, before V)
+     8  branch cut from HEAD (merge-2nd-parent, before V)
+     4  branch cut from HEAD (branch-cut, time unknown)
+     3  branch cut from HEAD (merge-2nd-parent, time unknown)
+     2  main contains HEAD
+     1  window start
+   571  total
+
+== 2. Runs started because HEAD is a code commit (baseline)
+  290 runs; only edit-body: 108; containing a TDD --phase step: 72
+
+== 3. Runs started because HEAD is a merge (baseline): first operation
+    48  aiwf promote X open -> addressed
+    27  aiwf promote X in_progress -> done
+    18  aiwf edit-body X
+     3  aiwf archive: sweep 2 entities into archive/
+     1  aiwf retitle X -> "Milestone-spec section ru
+  gap closures right after a merge: 48 {'patch merge': 28, 'milestone wrap merge': 13, 'other': 7}
+  runs opening with a milestone's promote to done: 27; of which also start the next milestone: 14
+
+== 4. Spec bookkeeping deferred (variant: both ritual changes)
+  edit-body-only runs after a code commit: 92; could join the next run on their line: 73
+  planning commits left if every one of those joins: 528 - 73 = 455 (fewest possible under this variant)
+
+== 5. Code commits made while a verb's write would be pending under batch (pending clears at a merge)
+  branches: 420; main, per push: 17
+
+== 6. Operations recorded twice: verb commits with the same patch-id
+  pairs of verb commits with the same patch-id and subject: 16
+    1b30d61a5 = 395c56308 | aiwf add milestone M-0327 "See entity-trailered commits in h
+    d4f510f30 = 41bb5a31d | aiwf add ac M-0327/AC-1 "aiwf history lists a commit whose o
+    dce67cec8 = 89c04feae | aiwf add ac M-0327/AC-2 "An AC's implementation commit is re
+    16526bc09 = 4347d1474 | aiwf add ac M-0327/AC-3 "A staged shipped-surface edit witho
+    0f80a18c9 = 1e7cef4c6 | aiwf add gap G-0657 "aiwf history drops commits whose traile
+    5f4c55346 = f0cd53337 | aiwf add gap G-0658 "Nothing pins that --root reaches the co
+    1c8c46e95 = 9882850ac | aiwf edit-body G-0530
+    4917d82ed = e579b6edc | aiwf add decision D-0083 "Ship the commit-msg shipped-surfac
+    30768508b = 67eb18b7c | aiwf edit-body G-0530
+    89a8d1b37 = 9866fbaa7 | aiwf edit-body G-0530
+    7ea068c1b = e1474d517 | aiwf add gap G-0659 "A review finding is recorded twice, and
+    17c555948 = 1b9ab311d | aiwf edit-body G-0530
+    08a70ccb0 = dace2885e | aiwf add decision D-0084 "Record a review finding where it r
+    71d8b9325 = 2e887fed6 | aiwf edit-body G-0659
+    43d10161c = 6685f42bd | aiwf edit-body E-0093
+    89c9445cb = cab4fe195 | aiwf edit-body M-0343

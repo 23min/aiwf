@@ -1,0 +1,117 @@
+## fork 1: branch side from pre-fold commit 9318ac0 fix: c3, follow-up to d2e5a74c4288a0dd1508519eb74bfb77ecb6a9db
+## fork 2: worktree wt (branch wt) from pre-fold commit c3832bb aiwf promote G-0001 open -> addressed
+ok — no findings
+wt head: 1e55888 aiwf add gap G-0002 "Found in worktree"
+ok — no findings
+## fork 3: stash on the pre-fold tip
+stash base: 13d1154 feat: c5
+## fold
+fold: 4 planning commits folded, 6 commits re-created
+fold: final tree identical
+## operation records on HEAD after fold
+  1x acknowledge-illegal E-0001 
+  1x promote G-0001 addressed
+  1x promote M-0001 in_progress
+  1x promote M-0001/AC-1 met
+## git merge side
+Auto-merging code.txt
+CONFLICT (content): Merge conflict in code.txt
+Auto-merging work/epics/E-0001-spike-epic/M-0001-spike-milestone.md
+Automatic merge failed; fix conflicts and then commit the result.
+merge exit 1
+conflicted: code.txt 
+diff --cc code.txt
+index b2f931a,4cb29ea..0000000
+--- a/code.txt
++++ b/code.txt
+@@@ -1,5 -1,3 +1,8 @@@
+  one
+  two
+  three
+++<<<<<<< HEAD
+ +four
+ +five
+++=======
+++>>>>>>> side
+-- resolve by taking ours for each conflicted file, then commit
+ok — no findings
+merge committed: 20311ba Merge branch 'side' into epic/E-0001-spike-epic
+## operation records after merging side
+  1x acknowledge-illegal E-0001 
+  1x promote G-0001 addressed
+  2x promote M-0001 in_progress
+  1x promote M-0001/AC-1 met
+## aiwf check (full)
+7 findings (0 errors, 7 warnings)
+## aiwf check --since base
+error provenance-untrailered-entity-commit: commit 0e37ef1 touched E-0001 with no aiwf-verb: trailer — hint: the commit modified this entity via plain `git commit`; two recovery paths: (1) `aiwf acknowledge illegal <sha> --for-entity <id> --reason "..."` — SHA-verified per-(commit, entity) ack, the kernel walks `git diff-tree` to confirm the binding (G-0231 item 3); (2) `aiwf promote <id> <state> --audit-only --reason "..."` or `aiwf cancel <id> --audit-only --reason "..."` — per-entity blanket, no SHA binding. Use (1) for body-edit acks where the SHA is real and the kernel should verify; use (2) for status flips where the per-entity blanket fits. Either clears the matching finding on the next push.
+7 findings (1 errors, 6 warnings)
+## aiwf history M-0001
+2026-11-07T11:03:04+00:00  human/peter       add         -             aiwf add milestone M-0001 "Spike milestone"  8f66aa5
+2026-11-07T11:03:04+00:00  human/peter       add         -             aiwf add ac M-0001/AC-1 "Something holds"  f6179bd
+2026-11-07T11:03:05+00:00  human/peter       promote     → in_progress  aiwf promote M-0001 draft -> in_progress  11c76d8
+2026-11-07T11:05:08+00:00  human/peter
+human/peter
+human/peter
+human/peter  promote
+promote
+promote
+acknowledge-illegal  → in_progress
+met
+addressed  chore(plan): fold 4 planning operations  0dd468f
+## git merge wt
+ wt.txt                                |  1 +
+ 2 files changed, 13 insertions(+)
+ create mode 100644 work/gaps/G-0002-found-in-worktree.md
+ create mode 100644 wt.txt
+merge exit 0
+## operation records after merging wt
+  1x acknowledge-illegal E-0001 
+  1x add G-0002 
+  2x promote G-0001 addressed
+  2x promote M-0001 in_progress
+  2x promote M-0001/AC-1 met
+## aiwf check --since base
+error provenance-untrailered-entity-commit: commit 0e37ef1 touched E-0001 with no aiwf-verb: trailer — hint: the commit modified this entity via plain `git commit`; two recovery paths: (1) `aiwf acknowledge illegal <sha> --for-entity <id> --reason "..."` — SHA-verified per-(commit, entity) ack, the kernel walks `git diff-tree` to confirm the binding (G-0231 item 3); (2) `aiwf promote <id> <state> --audit-only --reason "..."` or `aiwf cancel <id> --audit-only --reason "..."` — per-entity blanket, no SHA binding. Use (1) for body-edit acks where the SHA is real and the kernel should verify; use (2) for status flips where the per-entity blanket fits. Either clears the matching finding on the next push.
+7 findings (1 errors, 6 warnings)
+## aiwf history G-0001
+2026-11-07T11:03:04+00:00  human/peter       add         -             aiwf add gap G-0001 "Something is wrong"  8615207
+2026-11-07T11:03:05+00:00  human/peter       promote     → addressed   aiwf promote G-0001 open -> addressed  c3832bb
+2026-11-07T11:05:08+00:00  human/peter
+human/peter
+human/peter
+human/peter  promote
+promote
+promote
+acknowledge-illegal  → in_progress
+met
+addressed  chore(plan): fold 4 planning operations  0dd468f
+## git stash apply
+	modified:   code.txt
+
+no changes added to commit (use "git add" and/or "git commit -a")
+apply exit 0
+ M code.txt
+## git stash branch sb (branch at the stash base, a pre-fold commit), commit, merge
+Dropped refs/stash@{0} (8290816e3137812cf7061f7ab4ec797cb9dd1b6f)
+ok — no findings
+Auto-merging code.txt
+CONFLICT (content): Merge conflict in code.txt
+Automatic merge failed; fix conflicts and then commit the result.
+merge exit 1
+conflicted: code.txt 
+ok — no findings
+merge committed
+## operation records after merging sb
+  2x acknowledge-illegal E-0001 
+  1x add G-0002 
+  2x promote G-0001 addressed
+  2x promote M-0001 in_progress
+  2x promote M-0001/AC-1 met
+## aiwf check --since base
+error provenance-untrailered-entity-commit: commit 0e37ef1 touched E-0001 with no aiwf-verb: trailer — hint: the commit modified this entity via plain `git commit`; two recovery paths: (1) `aiwf acknowledge illegal <sha> --for-entity <id> --reason "..."` — SHA-verified per-(commit, entity) ack, the kernel walks `git diff-tree` to confirm the binding (G-0231 item 3); (2) `aiwf promote <id> <state> --audit-only --reason "..."` or `aiwf cancel <id> --audit-only --reason "..."` — per-entity blanket, no SHA binding. Use (1) for body-edit acks where the SHA is real and the kernel should verify; use (2) for status flips where the per-entity blanket fits. Either clears the matching finding on the next push.
+7 findings (1 errors, 6 warnings)
+## hooked push
+7 findings (0 errors, 7 warnings)
+ * [new branch]      epic/E-0001-spike-epic -> epic/E-0001-spike-epic
+push exit 0

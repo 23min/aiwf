@@ -9,7 +9,7 @@ import sys
 HERE = os.path.dirname(os.path.abspath(__file__))
 sys.path.insert(0, HERE)
 import model as M  # noqa: E402
-from run import CONDS_DIRECT, DIM_ORDER, HOSTS_MR, host_id  # noqa: E402
+from run import CONDS_DIRECT, DIM_ORDER, HOSTS_MR, PROBES, host_id  # noqa: E402
 
 INVS = ('T1', 'T2', 'T3', 'T4', 'T5', 'T6', 'T7', 'L')
 HOSTS = [host_id('mr', h) for h in HOSTS_MR] + ['direct']
@@ -88,8 +88,13 @@ def cell_short(m, complete=True):
 
 def load():
     res = json.load(open(os.path.join(HERE, 'results.json')))
-    rows = [r for r in res['rows'] if r['kind'] == 'matrix']
-    probes = [r for r in res['rows'] if r['kind'] == 'probe']
+    # only what this document reports: a results file from `run.py --amend` also holds the amend
+    # designs, conditions and probes, which make_amend.py renders
+    ids = set(design_ids())
+    rows = [r for r in res['rows'] if r['kind'] == 'matrix' and r['design_id'] in ids
+            and r['cond'] in conds_for(r['host'])]
+    pids = {p[0] for p in PROBES}
+    probes = [r for r in res['rows'] if r['kind'] == 'probe' and r['pid'] in pids]
     by = {}
     for r in rows:
         by[(r['host'], r['cond'], r['design_id'])] = r

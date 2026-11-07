@@ -1,0 +1,141 @@
+cuts: 114
+     1  all | pushed (X predates the window)
+    35  all | unpushed at cut, possible
+    78  all | unpushed at cut, verified
+     1  pushed (X predates the window) | parent pre-window
+     1  pushed (X predates the window) | pre-window
+     1  pushed (X predates the window) | pre-window | tip, verified
+     4  unpushed at cut, possible | code
+     4  unpushed at cut, possible | code | tip, verified
+    18  unpushed at cut, possible | kernel
+     8  unpushed at cut, possible | kernel | tip, possible
+    10  unpushed at cut, possible | kernel | tip, verified
+    13  unpushed at cut, possible | merge
+    13  unpushed at cut, possible | merge | tip, verified
+    35  unpushed at cut, possible | parent main
+     2  unpushed at cut, verified | code
+     1  unpushed at cut, verified | code | tip, possible
+     1  unpushed at cut, verified | code | tip, verified
+    74  unpushed at cut, verified | kernel
+     2  unpushed at cut, verified | kernel | tip, possible
+    72  unpushed at cut, verified | kernel | tip, verified
+     1  unpushed at cut, verified | merge
+     1  unpushed at cut, verified | merge | tip, verified
+    44  unpushed at cut, verified | parent branch line
+    34  unpushed at cut, verified | parent main
+     1  unpushed at cut, verified | ritual
+     1  unpushed at cut, verified | ritual | tip, verified
+22ec9c5b5^2 | main | f25650e83 | kernel | unpushed at cut, verified | tip, possible | aiwf add gap G-0745 "aiwf reallocate rewrites references mea | 2026-10-26 07:56
+905cec139^2 | main | 89166dcc9 | kernel | unpushed at cut, verified | tip, verified | aiwf add gap G-0742 "Statusline re-fetches a cached CI pass  | 2026-10-24 16:07
+414aa0bff^2 | main | c341a556d | kernel | unpushed at cut, verified | tip, verified | aiwf promote G-0741 open -> wontfix | 2026-10-24 09:35
+8126cc19f^2 | main | e8987c72c | kernel | unpushed at cut, verified | tip, verified | aiwf promote E-0099 proposed -> active | 2026-10-21 16:32
+5a7cf1ce9^2 | main | 65c0bec91 | kernel | unpushed at cut, possible | tip, possible | aiwf promote E-0095 proposed -> active | 2026-09-24 21:38
+e36d12e07^2 | main | 6a4a7ae96 | merge | unpushed at cut, possible | tip, verified | Merge patch/envelope-policy-message: state envelope-version- | 2026-10-20 18:45
+6a4a7ae96^2 | main | 5e9658ce8 | merge | unpushed at cut, possible | tip, verified | Merge patch/version-label-for-make-stamp: label make-built b | 2026-10-20 18:05
+5e9658ce8^2 | main | 9b5d0ad08 | merge | unpushed at cut, possible | tip, verified | Merge patch/makefile-stamp-outside-git: leave the version st | 2026-10-20 04:29
+9b5d0ad08^2 | main | 391d9a713 | merge | unpushed at cut, possible | tip, verified | Merge patch/version-doc-comments: state what each build repo | 2026-10-19 20:11
+391d9a713^2 | main | 108282795 | kernel | unpushed at cut, verified | tip, verified | aiwf archive: sweep 1 entity into archive/ (1 gap) | 2026-10-19 19:27
+323680edb^2 | main | 78728b5b2 | code | unpushed at cut, possible | tip, verified | docs(growth): escape the pipe in E-0092's baseline row so th | 2026-10-19 15:31
+14185cd09^2 | main | a61f3d8de | kernel | unpushed at cut, verified | tip, verified | aiwf promote E-0092 proposed -> active | 2026-09-24 13:22
+f13a6aa26^2 | main | 9c262dc53 | kernel | unpushed at cut, verified | tip, verified | aiwf promote E-0098 proposed -> active | 2026-09-29 12:16
+71e62cda6^2 | main | 24b262f1b | code | unpushed at cut, possible | tip, verified | release(aiwf): v0.40.0 | 2026-09-28 20:56
+29d4ad3f5^2 | main | 4794d393c | kernel | unpushed at cut, verified | tip, verified | aiwf promote E-0097 proposed -> active | 2026-09-26 13:00
+5aae9db41^2 | main | 466946496 | kernel | unpushed at cut, verified | tip, possible | aiwf edit-body M-0357 | 2026-09-26 13:27
+fde32ce8a^2 | main | 47a10f9ce | kernel | unpushed at cut, possible | tip, possible | aiwf archive: sweep 9 entities into archive/ (8 gap, 1 decis | 2026-09-25 18:03
+1b31cf471^2 | main | 47a10f9ce | kernel | unpushed at cut, possible | tip, verified | aiwf archive: sweep 9 entities into archive/ (8 gap, 1 decis | 2026-09-25 11:37
+99394265a^2 | main | ddc53abd7 | kernel | unpushed at cut, possible | tip, verified | aiwf promote G-0707 open -> addressed | 2026-09-25 04:44
+2e4e1e1dd^2 | main | 0d1472a76 | kernel | unpushed at cut, possible | tip, possible | aiwf edit-body E-0095 | 2026-09-24 21:24
+b2d7388da^2 | main | ac10312a0 | kernel | unpushed at cut, verified | tip, verified | aiwf edit-body E-0095 | 2026-09-24 20:59
+3fdae4b96^2 | main | 98db67eba | kernel | unpushed at cut, possible | tip, verified | aiwf promote G-0695 open -> addressed | 2026-09-24 17:42
+09b3256d4^2 | main | d4b4edf27 | kernel | unpushed at cut, verified | tip, verified | aiwf promote G-0685 open -> addressed | 2026-09-24 17:14
+fb0a398c0^2 | main | 5ffd4b656 | kernel | unpushed at cut, verified | tip, verified | aiwf add gap G-0705 "BulkRevwalk silently ends the walk at a | 2026-09-24 16:30
+48f898b09^2 | main | 9850cb63b | code | unpushed at cut, possible | tip, verified | chore(guidance): ignore the JavaScript pack suggestion | 2026-09-24 11:59
+760ef9401^2 | main | 2358a024d | kernel | unpushed at cut, verified | tip, verified | aiwf promote E-0094 proposed -> active | 2026-09-20 13:06
+23ca8cb1b^2 | main | aacd335a0 | kernel | unpushed at cut, verified | tip, verified | aiwf promote E-0089 proposed -> active | 2026-09-22 07:18
+c0e24433b^2 | main | 5b5343885 | kernel | unpushed at cut, verified | tip, verified | aiwf retitle M-0339/AC-1 -> "Operating anchors have one auth | 2026-09-20 12:18
+104e60be6^2 | main | 590c64f86 | code | unpushed at cut, possible | tip, verified | release(aiwf): v0.37.0 | 2026-09-20 10:52
+d10488696^2 | main | c5d2c1fce | kernel | unpushed at cut, verified | tip, verified | aiwf promote E-0093 proposed -> active | 2026-09-18 21:43
+a9559e3bd^2 | main | 75521dfdc | merge | unpushed at cut, possible | tip, verified | fix(stresstest): merge recorded-seed replay | 2026-09-19 18:33
+75521dfdc^2 | main | 514b1bcbd | merge | unpushed at cut, possible | tip, verified | fix(cli): merge target-repository actor identity | 2026-09-19 17:52
+514b1bcbd^2 | main | cac68a792 | merge | unpushed at cut, possible | tip, verified | fix: merge FSM terminal status checks | 2026-09-19 16:38
+cac68a792^2 | main | 3c103a020 | merge | unpushed at cut, possible | tip, verified | fix(stresstest): merge preserved failure messages | 2026-09-19 16:20
+3c103a020^2 | main | 38e7b0861 | merge | unpushed at cut, possible | tip, verified | fix(verb): merge canonical contract binding IDs | 2026-09-19 16:01
+38e7b0861^2 | main | 1fb8ac0ab | merge | unpushed at cut, possible | tip, verified | fix(verb): merge legacy parent ID lifecycle guards | 2026-09-19 15:33
+1fb8ac0ab^2 | main | 1dfe1e810 | merge | unpushed at cut, possible | tip, verified | fix(check): merge BOM-aware history validation | 2026-09-19 14:18
+1dfe1e810^2 | main | b57454607 | merge | unpushed at cut, verified | tip, verified | fix(status): merge protection against unsafe worktree cleanu | 2026-09-19 13:16
+b57454607^2 | main | cab4fe195 | kernel | unpushed at cut, verified | tip, verified | aiwf edit-body M-0343 | 2026-09-19 12:53
+b9dd0ea91^2 | main | 0c51ca688 | kernel | unpushed at cut, possible | tip, verified | aiwf promote G-0690 open -> addressed | 2026-09-19 10:05
+fa59ea6d4^2 | main | 8fdfcfc09 | kernel | unpushed at cut, possible | tip, verified | aiwf archive: sweep 1 entity into archive/ (1 gap) | 2026-09-19 09:11
+8979d24d9^2 | main | b4a9dbea5 | kernel | unpushed at cut, verified | tip, verified | aiwf archive: sweep 3 entities into archive/ (3 gap) | 2026-09-19 08:15
+22122a3c4^2 | main | 23b3820bb | kernel | unpushed at cut, possible | tip, possible | aiwf add gap G-0694 "wf-patch step 6 runs its lenses seriall | 2026-09-18 23:08
+e5108aab0^2 | main | 23b3820bb | kernel | unpushed at cut, verified | tip, verified | aiwf add gap G-0694 "wf-patch step 6 runs its lenses seriall | 2026-09-18 12:33
+65992426c^2 | main | 23ba4b5d8 | code | unpushed at cut, verified | tip, possible | build(devcontainer): pin gofumpt, goimports, govulncheck ver | 2026-09-18 10:07
+2415376ad^2 | main | 13bdf846f | kernel | unpushed at cut, possible | tip, possible | aiwf edit-body D-0093 | 2026-09-17 14:55
+c6ba0c03e^2 | main | 13bdf846f | kernel | unpushed at cut, verified | tip, verified | aiwf edit-body D-0093 | 2026-09-17 12:42
+6906da5df^2 | main | 0bc29c3cc | kernel | unpushed at cut, possible | tip, possible | aiwf promote G-0652 open -> addressed | 2026-09-17 11:50
+b10eb2676^2 | main | bf99b9e6e | kernel | unpushed at cut, possible | tip, verified | aiwf promote E-0084 proposed -> active | 2026-09-13 10:06
+031f973ab^2 | main | d5c243d41 | kernel | unpushed at cut, verified | tip, verified | aiwf promote G-0673 open -> addressed | 2026-09-17 09:01
+423288f4b^2 | main | e0416be5a | kernel | unpushed at cut, possible | tip, verified | aiwf retitle G-0652 -> "No review lens asks whether prose re | 2026-09-17 07:12
+4bd05ac13^2 | main | a31ea6671 | kernel | unpushed at cut, possible | tip, verified | aiwf edit-body G-0668 | 2026-09-16 16:12
+6e8412ebf^2 | main | 48a5e4046 | kernel | unpushed at cut, possible | tip, possible | aiwf promote D-0094 proposed -> accepted | 2026-09-16 14:13
+860470218^2 | main | 48a5e4046 | kernel | unpushed at cut, verified | tip, verified | aiwf promote D-0094 proposed -> accepted | 2026-09-16 13:06
+8dbeeca0a^2 | main | 00b7b2f8c | kernel | unpushed at cut, verified | tip, verified | aiwf add gap G-0680 "Templates restate body rules the aiwf-a | 2026-09-14 17:13
+3b7262939^2 | main | e7c1d3604 | kernel | unpushed at cut, verified | tip, verified | aiwf add ac M-0335/AC-4 "The ceiling constant steps down to  | 2026-09-14 12:36
+9b5817e6f^2 | main | f33bf2949 | kernel | unpushed at cut, verified | tip, verified | aiwf add ac M-0339/AC-3 "The operating-anchors policy passes | 2026-09-14 12:28
+6555fffd6^2 | main | 747711684 | kernel | unpushed at cut, possible | tip, verified | aiwf promote G-0669 open -> addressed | 2026-09-12 15:05
+6a6dd8c8e^2 | main | b1d174758 | merge | unpushed at cut, possible | tip, verified | chore(epic): wrap E-0091 — Hold each spec section to what it | 2026-09-12 10:28
+b1d174758^2 | main | 00119a519 | kernel | unpushed at cut, verified | tip, verified | aiwf edit-body G-0571 | 2026-08-30 16:21
+056e03c49^2 | main | 34dc1389a | kernel | unpushed at cut, verified | tip, verified | aiwf promote D-0084 proposed -> accepted | 2026-09-02 11:23
+86e81b568^2 | main | 232b5df12 | kernel | unpushed at cut, possible | tip, possible | aiwf edit-body G-0636 | 2026-09-01 11:55
+03178a49f^2 | main | f4d799a9e | kernel | unpushed at cut, possible | tip, verified | aiwf add gap G-0653 "Nothing verifies a release's CHANGELOG  | 2026-08-30 13:24
+2d7eabc8c^2 | main | fceb895e0 | kernel | unpushed at cut, verified | tip, verified | aiwf promote E-0090 proposed -> active | 2026-08-28 23:40
+58f8ed525^2 | main | 426dd4bdf | kernel | unpushed at cut, verified | tip, verified | aiwf add gap G-0652 "Every review lens asks what prose is mi | 2026-08-30 01:38
+f95405161^2 | main | 74bff3b0b | kernel | unpushed at cut, verified | tip, verified | aiwf edit-body G-0650 | 2026-08-29 22:29
+9831d2a2b^2 | main | 2f3d07b2d | kernel | unpushed at cut, verified | tip, verified | aiwf add gap G-0647 "Wrap reconstructs gap-closure claims fr | 2026-08-28 21:04
+940bddd7d^2 | main | fce20e31b | kernel | unpushed at cut, verified | tip, verified | aiwf promote G-0518 open -> addressed | 2026-08-26 20:08
+2eacb2638^2 | pre-window | 4076bbeee | pre-window | pushed (X predates the window) | tip, verified |  | 2026-08-26 18:36
+33989ef35^2 | branch line | b12a8a153 | kernel | unpushed at cut, verified | tip, verified | aiwf edit-body E-0099 | 2026-10-22 04:22
+7743ac3cb^2 | branch line | ff270f169 | kernel | unpushed at cut, verified | tip, verified | aiwf promote M-0353 draft -> in_progress | 2026-09-26 22:05
+d24b8fad4^2 | branch line | a6645bb41 | kernel | unpushed at cut, verified | tip, verified | aiwf promote M-0352 draft -> in_progress | 2026-09-25 17:35
+62665e72f^2 | branch line | 619f04d03 | kernel | unpushed at cut, verified | tip, verified | aiwf promote M-0351 draft -> in_progress | 2026-09-24 21:44
+3622cf82e^2 | branch line | b7ada45ee | kernel | unpushed at cut, verified | tip, verified | aiwf promote M-0361 draft -> in_progress | 2026-10-17 10:16
+8962b74de^2 | branch line | 4218e1cbc | kernel | unpushed at cut, verified | tip, verified | aiwf promote M-0338 draft -> in_progress | 2026-10-14 01:40
+4fe81f2c7^2 | branch line | d890496bf | kernel | unpushed at cut, verified | tip, verified | aiwf retitle M-0337 -> "Audit finding messages and check tha | 2026-10-12 16:05
+5ef304323^2 | branch line | d753e5447 | kernel | unpushed at cut, verified | tip, verified | aiwf promote M-0335 draft -> in_progress | 2026-10-11 11:31
+a9a90f7df^2 | branch line | aba8c2732 | kernel | unpushed at cut, verified | tip, verified | aiwf promote M-0336 draft -> in_progress | 2026-10-10 08:57
+542b6be9a^2 | branch line | 874256aa3 | kernel | unpushed at cut, verified | tip, verified | aiwf promote M-0334 draft -> in_progress | 2026-10-05 20:52
+1c0f85113^2 | branch line | 34a03de6e | kernel | unpushed at cut, verified | tip, verified | aiwf promote M-0349 draft -> in_progress | 2026-10-04 16:43
+7f7bb2bae^2 | branch line | 1b83e7830 | kernel | unpushed at cut, verified | tip, verified | aiwf promote M-0350 draft -> in_progress | 2026-10-03 20:09
+342ba668a^2 | branch line | 29a73ee62 | kernel | unpushed at cut, verified | tip, verified | aiwf promote M-0333 draft -> in_progress | 2026-09-24 13:52
+9c7fdcd42^2 | branch line | 5347e7237 | kernel | unpushed at cut, verified | tip, verified | aiwf promote M-0359 draft -> in_progress | 2026-09-29 12:28
+a9e437542^2 | branch line | cd48c204e | kernel | unpushed at cut, verified | tip, verified | aiwf promote M-0358 draft -> in_progress | 2026-09-27 09:58
+7e1e3b6df^2 | branch line | 66816f8c6 | kernel | unpushed at cut, verified | tip, verified | aiwf promote M-0357 draft -> in_progress | 2026-09-27 00:51
+fe919c833^2 | branch line | 2721c11ec | kernel | unpushed at cut, verified | tip, verified | aiwf promote M-0356 draft -> in_progress | 2026-09-26 13:39
+f05a7eb63^2 | branch line | d99646175 | kernel | unpushed at cut, verified | tip, verified | aiwf promote M-0348 draft -> in_progress | 2026-09-22 20:48
+ae2947598^2 | branch line | a52e6b4bc | kernel | unpushed at cut, verified | tip, verified | aiwf promote M-0347 draft -> in_progress | 2026-09-22 11:41
+63ad2fe27^2 | branch line | eb9136ce0 | kernel | unpushed at cut, verified | tip, verified | aiwf promote M-0346 draft -> in_progress | 2026-09-21 22:31
+a4d4e8379^2 | branch line | 679a04a74 | kernel | unpushed at cut, verified | tip, verified | aiwf promote M-0345 draft -> in_progress | 2026-09-20 18:05
+d7af3838a^2 | branch line | 4eb61ce26 | kernel | unpushed at cut, verified | tip, verified | aiwf promote M-0344 draft -> in_progress | 2026-09-20 17:34
+b0b81b491^2 | branch line | 3b7dd30b4 | kernel | unpushed at cut, verified | tip, verified | aiwf promote M-0322 draft -> in_progress | 2026-09-22 15:38
+51b461c64^2 | branch line | a1f974207 | kernel | unpushed at cut, verified | tip, verified | aiwf promote M-0321 draft -> in_progress | 2026-09-22 12:44
+618a78d81^2 | branch line | a7afe949c | kernel | unpushed at cut, verified | tip, verified | aiwf promote M-0320 draft -> in_progress | 2026-09-22 12:10
+433e16372^2 | branch line | 5c82754c2 | kernel | unpushed at cut, verified | tip, verified | aiwf promote M-0319 draft -> in_progress | 2026-09-22 09:37
+0a2a8af87^2 | branch line | c94e5f315 | kernel | unpushed at cut, verified | tip, verified | aiwf promote M-0318 draft -> in_progress | 2026-09-22 07:20
+26ea9b383^2 | branch line | 28f7e1230 | kernel | unpushed at cut, verified | tip, verified | aiwf promote M-0343 draft -> in_progress | 2026-09-19 13:43
+282257db3^2 | branch line | f4bf07366 | kernel | unpushed at cut, verified | tip, verified | aiwf promote M-0342 draft -> in_progress | 2026-09-19 08:11
+e3a0b0bd1^2 | branch line | 7f9adf0c0 | kernel | unpushed at cut, verified | tip, verified | aiwf promote M-0341 draft -> in_progress | 2026-09-18 23:49
+ae04041e3^2 | branch line | 177fe0542 | kernel | unpushed at cut, verified | tip, verified | aiwf promote M-0340 draft -> in_progress | 2026-09-18 21:50
+26d6dc980^2 | branch line | 09d2058cc | kernel | unpushed at cut, verified | tip, verified | aiwf promote M-0331 draft -> in_progress | 2026-09-14 11:15
+de38696f3^2 | branch line | 9d3a1db00 | kernel | unpushed at cut, verified | tip, verified | aiwf promote M-0332 draft -> in_progress | 2026-09-13 10:08
+913cf0fa8^2 | branch line | 61a54f55a | ritual | unpushed at cut, verified | tip, verified | docs(roadmap): regenerate after M-0330 wrap | 2026-09-11 12:08
+b3be35c77^2 | branch line | 396ad5165 | kernel | unpushed at cut, verified | tip, verified | aiwf promote M-0330 draft -> in_progress | 2026-09-09 21:09
+db514ab28^2 | branch line | 59dcfecf3 | kernel | unpushed at cut, verified | tip, verified | aiwf edit-body E-0091 | 2026-09-08 15:43
+c6ecab7d8^2 | branch line | e68dea222 | kernel | unpushed at cut, verified | tip, verified | aiwf edit-body E-0091 | 2026-09-08 10:21
+94a97fa86^2 | branch line | 8856c5f89 | code | unpushed at cut, verified | tip, verified | chore(plan): regenerate roadmap after M-0329 done | 2026-09-07 22:22
+092f72418^2 | branch line | edb280b52 | kernel | unpushed at cut, verified | tip, verified | aiwf promote M-0329 draft -> in_progress | 2026-09-03 20:38
+c9a889d4c^2 | branch line | 69d070118 | kernel | unpushed at cut, verified | tip, verified | aiwf promote M-0327 draft -> in_progress | 2026-08-31 05:15
+1ecbe7661^2 | branch line | 407bc29a7 | kernel | unpushed at cut, verified | tip, verified | aiwf promote M-0326 draft -> in_progress | 2026-08-30 17:13
+93ef0e4b9^2 | branch line | d8f4c1fbc | kernel | unpushed at cut, verified | tip, verified | aiwf promote M-0325 draft -> in_progress | 2026-08-29 22:19
+b707f6e69^2 | branch line | ddaa1c381 | kernel | unpushed at cut, verified | tip, verified | aiwf promote M-0324 draft -> in_progress | 2026-08-29 15:09
+d9e5bf812^2 | branch line | c4cb53b56 | kernel | unpushed at cut, verified | tip, verified | aiwf promote M-0323 draft -> in_progress | 2026-08-29 02:24
+ff:a100c7c64c51643acbd69dded061cde7ea4b50db | main | 9db877527 | merge | unpushed at cut, possible | tip, verified | chore(epic): wrap E-0098 — Move aiwf's own devcontainer onto | 2026-10-04 16:56

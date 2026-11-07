@@ -1,0 +1,109 @@
+### first-parent line over base (sha, %G?, subject)
+dd0b1ac N chore(plan): fold 5 planning operations
+8f540e9 N feat: c5
+520f01a N Merge remote-tracking branch 'origin/main' into epic/E-0001-spike-epic
+3630498 N feat: c4
+8876fbb N docs: tweak epic wording by hand
+ae2e194 N fix: c3, follow-up to 67b63f363a7104f91bec975323792500cf1d70ce
+3912c41 N feat: c2
+de1290d N feat: c1 add code
+### aiwf check (full)
+error provenance-authorization-missing: commit dd0b1ac: aiwf-authorized-by: afdbd64 does not resolve to an authorize/opened commit — hint: the SHA does not name an `aiwf-verb: authorize / aiwf-scope: opened` commit; find it with `aiwf history <scope-entity>` and use the full SHA. A commit already in history cannot be re-run or corrected in place — ratify it with `aiwf acknowledge illegal <sha> --reason "..."`, which clears every provenance finding against that one commit (and nothing on any other).
+error provenance-trailer-incoherent: commit dd0b1ac: aiwf-principal: is forbidden when aiwf-actor: is human/... (humans act directly) — hint: amend the offending commit via `git commit --amend` so its trailer set obeys the required-together / mutually-exclusive rules in `docs/design/provenance-model.md`. A commit already in history cannot be re-run or corrected in place — ratify it with `aiwf acknowledge illegal <sha> --reason "..."`, which clears every provenance finding against that one commit (and nothing on any other).
+error provenance-trailer-incoherent: commit dd0b1ac: aiwf-on-behalf-of: is forbidden when aiwf-actor: is human/... (humans act directly) — hint: amend the offending commit via `git commit --amend` so its trailer set obeys the required-together / mutually-exclusive rules in `docs/design/provenance-model.md`. A commit already in history cannot be re-run or corrected in place — ratify it with `aiwf acknowledge illegal <sha> --reason "..."`, which clears every provenance finding against that one commit (and nothing on any other).
+entity-body-empty (warning) × 3 — M-0001 body section `## Goal` is empty
+archive-sweep-pending (warning) × 1 — 1 terminal entities awaiting `aiwf archive --apply`. Set `archive.sweep_threshold` in aiwf.yaml to escalate to blocking past N
+epic-active-no-drafted-milestones (warning) × 1 — epic E-0001 is active but has no milestones at status draft
+provenance-untrailered-scope-undefined (warning) × 1 — no upstream configured and no --since <ref>; provenance audit, body-section gate and instruction-file fence skipped
+terminal-entity-not-archived (warning) × 1 — entity G-0001 has terminal status "addressed" but file is still in the active tree; awaiting `aiwf archive --apply` sweep
+
+10 findings (3 errors, 7 warnings)
+run `aiwf check --verbose` for each warning's location and remediation hint
+### aiwf check --since c59a198
+error provenance-authorization-missing: commit dd0b1ac: aiwf-authorized-by: afdbd64 does not resolve to an authorize/opened commit — hint: the SHA does not name an `aiwf-verb: authorize / aiwf-scope: opened` commit; find it with `aiwf history <scope-entity>` and use the full SHA. A commit already in history cannot be re-run or corrected in place — ratify it with `aiwf acknowledge illegal <sha> --reason "..."`, which clears every provenance finding against that one commit (and nothing on any other).
+error provenance-trailer-incoherent: commit dd0b1ac: aiwf-principal: is forbidden when aiwf-actor: is human/... (humans act directly) — hint: amend the offending commit via `git commit --amend` so its trailer set obeys the required-together / mutually-exclusive rules in `docs/design/provenance-model.md`. A commit already in history cannot be re-run or corrected in place — ratify it with `aiwf acknowledge illegal <sha> --reason "..."`, which clears every provenance finding against that one commit (and nothing on any other).
+error provenance-trailer-incoherent: commit dd0b1ac: aiwf-on-behalf-of: is forbidden when aiwf-actor: is human/... (humans act directly) — hint: amend the offending commit via `git commit --amend` so its trailer set obeys the required-together / mutually-exclusive rules in `docs/design/provenance-model.md`. A commit already in history cannot be re-run or corrected in place — ratify it with `aiwf acknowledge illegal <sha> --reason "..."`, which clears every provenance finding against that one commit (and nothing on any other).
+error provenance-untrailered-entity-commit: commit 8876fbb touched E-0001 with no aiwf-verb: trailer — hint: the commit modified this entity via plain `git commit`; two recovery paths: (1) `aiwf acknowledge illegal <sha> --for-entity <id> --reason "..."` — SHA-verified per-(commit, entity) ack, the kernel walks `git diff-tree` to confirm the binding (G-0231 item 3); (2) `aiwf promote <id> <state> --audit-only --reason "..."` or `aiwf cancel <id> --audit-only --reason "..."` — per-entity blanket, no SHA binding. Use (1) for body-edit acks where the SHA is real and the kernel should verify; use (2) for status flips where the per-entity blanket fits. Either clears the matching finding on the next push.
+entity-body-empty (warning) × 3 — M-0001 body section `## Goal` is empty
+archive-sweep-pending (warning) × 1 — 1 terminal entities awaiting `aiwf archive --apply`. Set `archive.sweep_threshold` in aiwf.yaml to escalate to blocking past N
+epic-active-no-drafted-milestones (warning) × 1 — epic E-0001 is active but has no milestones at status draft
+terminal-entity-not-archived (warning) × 1 — entity G-0001 has terminal status "addressed" but file is still in the active tree; awaiting `aiwf archive --apply` sweep
+
+10 findings (4 errors, 6 warnings)
+run `aiwf check --verbose` for each warning's location and remediation hint
+### addressed_by_commit in G-0001 and whether HEAD contains it
+addressed_by_commit: 67b63f363a7104f91bec975323792500cf1d70ce
+  contained in HEAD: NO
+### aiwf-force-for target of the acknowledgment and whether HEAD contains it
+d595d4cdfc54b9448b6470cd311ad45cd0dfb986 contained: NO
+### aiwf-authorized-by targets and whether HEAD contains them
+afdbd64f833100e96b019bcc48d9f50bdcbdcae5 contained: NO
+### SHAs named in commit subjects/bodies on the line, and whether HEAD contains them
+67b63f363a71 contained: NO
+afdbd64f8331 contained: NO
+d595d4cdfc54 contained: NO
+### aiwf history G-0001
+2026-11-07T11:01:37+00:00  human/peter       add         -             aiwf add gap G-0001 "Something is wrong"  5dd117e
+2026-11-07T11:02:24+00:00  human/peter via human/peter
+human/peter
+ai/claude
+human/peter
+human/peter  promote
+authorize
+promote
+promote
+acknowledge-illegal  → in_progress
+ai/claude
+met
+addressed  chore(plan): fold 5 planning operations  dd0b1ac  [? afdbd64]
+    [reason: spike delegation
+hand edit of wording, reviewed]
+    - aiwf promote M-0001 draft -> in_progress
+    - aiwf authorize M-0001 --to ai/claude
+    - aiwf promote M-0001/AC-1 open -> met
+    - aiwf promote G-0001 open -> addressed
+    - aiwf acknowledge illegal d595d4cd
+### aiwf history M-0001
+2026-11-07T11:01:36+00:00  human/peter       add         -             aiwf add milestone M-0001 "Spike milestone"  2b3b821
+2026-11-07T11:01:37+00:00  human/peter       add         -             aiwf add ac M-0001/AC-1 "Something holds"  cb3c3cd
+2026-11-07T11:02:24+00:00  human/peter via human/peter
+human/peter
+ai/claude
+human/peter
+human/peter  promote
+authorize
+promote
+promote
+acknowledge-illegal  → in_progress
+ai/claude
+met
+addressed  chore(plan): fold 5 planning operations  dd0b1ac  [? afdbd64]
+    [reason: spike delegation
+hand edit of wording, reviewed]
+    - aiwf promote M-0001 draft -> in_progress
+    - aiwf authorize M-0001 --to ai/claude
+    - aiwf promote M-0001/AC-1 open -> met
+    - aiwf promote G-0001 open -> addressed
+    - aiwf acknowledge illegal d595d4cd
+### aiwf history E-0001
+2026-11-07T11:01:36+00:00  human/peter       add         -             aiwf add epic E-0001 "Spike epic"  6c5d6c9
+2026-11-07T11:01:37+00:00  human/peter       promote     → active      aiwf promote E-0001 proposed -> active  c59a198
+2026-11-07T11:02:24+00:00  human/peter via human/peter
+human/peter
+ai/claude
+human/peter
+human/peter  promote
+authorize
+promote
+promote
+acknowledge-illegal  → in_progress
+ai/claude
+met
+addressed  chore(plan): fold 5 planning operations  dd0b1ac  [? afdbd64]
+    [reason: spike delegation
+hand edit of wording, reviewed]
+    - aiwf promote M-0001 draft -> in_progress
+    - aiwf authorize M-0001 --to ai/claude
+    - aiwf promote M-0001/AC-1 open -> met
+    - aiwf promote G-0001 open -> addressed
+    - aiwf acknowledge illegal d595d4cd

@@ -1,0 +1,50 @@
+before fold: describe HEAD = v0.1-9-g13d1154
+fold: 4 planning commits folded, 6 commits re-created
+fold: final tree identical
+## tags
+rc1 -> 9318ac0 (old C3), contained in HEAD: NO
+v0.1 -> 8a20ff2 (old C4), contained in HEAD: NO
+git tag --contains <re-created C3>: []
+git describe --tags HEAD: fatal: No tags can describe '1d653996619bca6db090d6eab7bc16862f958de5'.
+Try --always, or create some tags.
+planning per-verb commits reachable from v0.1: 4
+## push the folded branch (hooked), then push tag v0.1 (hooked)
+7 findings (0 errors, 7 warnings)
+## SHAs in messages, from a fresh clone of the remote
+C3's message names d2e5a74c4288a0dd1508519eb74bfb77ecb6a9db: cat-file -> fatal: git cat-file: could not get object info
+G-0001 addressed_by_commit d2e5a74c4288a0dd1508519eb74bfb77ecb6a9db: cat-file -> fatal: git cat-file: could not get object info
+aiwf show G-0001 (lines naming the commit):
+G-0001 · Something is wrong · status: addressed
+
+  Recent history (2):
+    2026-11-07  add         -             aiwf add gap G-0001 "Something is wrong"
+    2026-11-07  promote
+promote
+promote
+acknowledge-illegal  → in_progress
+met
+addressed  chore(plan): fold 4 planning operations
+
+  Findings (1):
+    terminal-entity-not-archived [warning]: entity G-0001 has terminal status "addressed" but file is still in the active tree; awaiting `aiwf archive --apply` sweep
+aiwf pre-push: refusing to push refs/tags/v0.1: not the checked-out commit.
+error: failed to push some refs to '/tmp/claude-1000/-workspaces-aiwf/eb2423dd-a702-4bd8-a308-1404db3d3991/scratchpad/fold-cost/runs/e1n-misc/remote.git'
+tag push exit 1
+-- same tag push with --no-verify, to see what the remote then holds (scratch bare remote only)
+per-verb planning commits now on the remote, reachable from the tag: 4
+## notes
+note on old C2: reviewed by carol
+note on re-created C2: error: no note found for object be1f030f2dcab553bfe93376fca0bf7ad7dacc70.
+## post-rewrite hook log: []
+## reflog of epic/E-0001-spike-epic (newest 2)
+1d65399 epic/E-0001-spike-epic@{0}: fold onto 297a352
+13d1154 epic/E-0001-spike-epic@{1}: commit: feat: c5
+ORIG_HEAD: 1d653996619bca6db090d6eab7bc16862f958de5
+## bisect with SHAs recorded before the fold: good=old C2, bad=HEAD
+Bisecting: a merge base must be tested
+[0d9faff46606129eeb18574e039c7387127c5906] feat: c1 add code
+commits in epic/E-0001-spike-epic ^oldC2: 8
+## same, with the re-created C2 as good
+Bisecting: 3 revisions left to test after this (roughly 2 steps)
+[2f9668c0a8a9f8978af24804f0501fd9fb22defa] feat: c4
+commits in epic/E-0001-spike-epic ^newC2: 7

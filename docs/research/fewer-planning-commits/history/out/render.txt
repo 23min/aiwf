@@ -1,0 +1,108 @@
+
+===== ACTUAL: main (newest pushes, oldest first) =====
+  -- push --
+  220b9b640 plan  aiwf set-priority G-0761 high
+  2166b6ad4 plan  aiwf set-priority G-0751 high
+  cdcfeeb52 plan  aiwf set-priority G-0752 high
+  12f7f015b plan  aiwf set-priority G-0755 high
+  b01f0982b plan  aiwf set-priority G-0754 high
+  b2c4efd13 plan  aiwf set-priority G-0753 medium
+  862bad270 plan  aiwf set-priority G-0750 low
+  d0d9b4598 plan  aiwf set-priority G-0756 medium
+  006399c04 plan  aiwf set-priority G-0757 low
+  5d9bfbcad plan  aiwf set-priority G-0759 medium
+  b0cb2c39f plan  aiwf set-priority G-0762 low
+  a10bbe782 plan  aiwf set-priority G-0758 low
+  a3761874d plan  aiwf set-priority G-0760 low
+  -- push --
+  22ec9c5b5 merge docs(research): land the collaborative-state research so ADR-0056's citat…
+  ae050330b plan  aiwf edit-body ADR-0056
+  -- push --
+  a833a6a19 plan  aiwf edit-body ADR-0001
+  4ee7090b9 plan  aiwf promote D-0056 proposed -> accepted
+  71e322049 plan  aiwf promote D-0057 proposed -> accepted
+  37e42ed52 plan  aiwf edit-body D-0058
+  90aadcee0 plan  aiwf promote D-0058 proposed -> accepted
+  cf04e9ade plan  aiwf cancel ADR-0044 -> rejected
+  1723f1648 plan  aiwf promote D-0053 proposed -> accepted
+  9b0742f59 plan  aiwf promote D-0053 accepted -> superseded
+  5aa7776a3 plan  aiwf edit-body D-0072
+  5059a1ef1 plan  aiwf promote D-0072 proposed -> accepted
+  f6ab94ded plan  aiwf edit-body D-0080
+  3a413d7bb plan  aiwf promote D-0080 proposed -> accepted
+  afc25d2d7 plan  aiwf edit-body D-0082
+  df7ae2be1 plan  aiwf promote D-0082 proposed -> accepted
+  225574ed0 plan  aiwf edit-body D-0083
+  c63656167 plan  aiwf promote D-0083 proposed -> accepted
+  ae1a37968 plan  aiwf archive: sweep 2 entities into archive/ (1 adr, 1 decision)
+  a2aaf4e3d plan  aiwf edit-body G-0595
+  4343f2bd1 code  docs(initiatives): drop the claim that D-0072 is proposed, now that it is…
+
+===== ACTUAL: milestone branch M-0349 (merged by 1c0f85113) =====
+  3fcc69611 code  chore(guidance): freeze the installed guidance while E-0092 measures and …
+  abb8f0987 plan  aiwf edit-body M-0349
+  751cffbcd plan  aiwf edit-body E-0092
+  4bdda1355 plan  aiwf edit-body M-0336
+  23a8d5530 code  test(policies): hold M-0349's inventory to its rules
+  9b18d4819 code  test(policies): derive each host's primed ceiling target from the invento…
+  905f971c8 plan  aiwf edit-body M-0349
+  6a9a1ad3b plan  aiwf edit-body E-0092
+  0905f4873 plan  aiwf promote M-0349/AC-1 open -> met
+  5b791c3c4 plan  aiwf promote M-0349/AC-2 open -> met
+  79dcd7662 plan  aiwf promote M-0349/AC-3 open -> met
+  fc13db567 plan  aiwf promote M-0349/AC-4 open -> met
+  ff809c26d plan  aiwf promote M-0349/AC-5 open -> met
+  6b207cd53 plan  aiwf edit-body M-0349
+  55992338f code  test(policies): require direct cites, exact homes and matching words in t…
+  73b16cf64 plan  aiwf edit-body M-0349
+  0a3da66d2 plan  aiwf edit-body E-0092
+  fb8154ecf code  test(policies): pin the inventory test's home, cite and classification gu…
+  9b77acfef plan  aiwf edit-body M-0349
+  ade160da4 plan  aiwf edit-body E-0092
+  7952e45f2 code  test(policies): pin the empty-home rule in the inventory test's fixtures
+  73ec88972 plan  aiwf edit-body M-0335
+  c13e55c8a rit   docs(plan): record M-0349's review and wrap notes
+
+===== AMEND: main (newest pushes, oldest first) =====
+  -- push --
+  220b9b640 plan  aiwf: 13 operations (set-priority G-0761, set-priority G-0751, set-priority G-0752, set-priority G-0755, …)
+  -- push --
+  22ec9c5b5 merge docs(research): land the collaborative-state research so ADR-0056's citat…
+  ae050330b plan  aiwf edit-body ADR-0056
+  -- push --
+  a833a6a19 plan  aiwf: 18 operations (edit-body ADR-0001, promote D-0056, promote D-0057, edit-body D-0058, …)
+  4343f2bd1 code  docs(initiatives): drop the claim that D-0072 is proposed, now that it is…
+
+===== AMEND: milestone branch M-0349 (merged by 1c0f85113) =====
+  3fcc69611 code  chore(guidance): freeze the installed guidance while E-0092 measures and …
+  abb8f0987 plan  aiwf: 3 operations (edit-body M-0349, edit-body E-0092, edit-body M-0336)
+  23a8d5530 code  test(policies): hold M-0349's inventory to its rules
+  9b18d4819 code  test(policies): derive each host's primed ceiling target from the invento…
+  905f971c8 plan  aiwf: 8 operations (edit-body M-0349, edit-body E-0092, promote M-0349/AC-1, promote M-0349/AC-2, …)
+  55992338f code  test(policies): require direct cites, exact homes and matching words in t…
+  73b16cf64 plan  aiwf: 2 operations (edit-body M-0349, edit-body E-0092)
+  fb8154ecf code  test(policies): pin the inventory test's home, cite and classification gu…
+  9b77acfef plan  aiwf: 2 operations (edit-body M-0349, edit-body E-0092)
+  7952e45f2 code  test(policies): pin the empty-home rule in the inventory test's fixtures
+  73ec88972 plan  aiwf edit-body M-0335
+  c13e55c8a rit   docs(plan): record M-0349's review and wrap notes
+
+===== FOLD: main (newest pushes, oldest first) =====
+  -- push --
+  (new)     plan  aiwf: 13 operations (set-priority G-0761, set-priority G-0751, set-priority G-0752, set-priority G-0755, …)
+  -- push --
+  22ec9c5b5 merge docs(research): land the collaborative-state research so ADR-0056's citat…
+  ae050330b plan  aiwf edit-body ADR-0056
+  -- push --
+ *4343f2bd1 code  docs(initiatives): drop the claim that D-0072 is proposed, now that it is…
+  (new)     plan  aiwf: 18 operations (edit-body ADR-0001, promote D-0056, promote D-0057, edit-body D-0058, …)
+
+===== FOLD: milestone branch M-0349 (merged by 1c0f85113) =====
+  3fcc69611 code  chore(guidance): freeze the installed guidance while E-0092 measures and …
+ *23a8d5530 code  test(policies): hold M-0349's inventory to its rules
+ *9b18d4819 code  test(policies): derive each host's primed ceiling target from the invento…
+ *55992338f code  test(policies): require direct cites, exact homes and matching words in t…
+ *fb8154ecf code  test(policies): pin the inventory test's home, cite and classification gu…
+ *7952e45f2 code  test(policies): pin the empty-home rule in the inventory test's fixtures
+ *c13e55c8a rit   docs(plan): record M-0349's review and wrap notes
+  (new)     plan  aiwf: 16 operations (edit-body M-0349, edit-body E-0092, edit-body M-0336, edit-body M-0349, …)

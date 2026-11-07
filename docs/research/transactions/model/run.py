@@ -6,6 +6,12 @@ fidelity checks.
 
 Writes results.json, fidelity.json and traces/ next to this file.
 
+  python3 -I run.py --amend [...]
+
+also runs the amend designs (model.AMEND_DIMS) in every group, the amend
+conditions (model.AMEND_CONDS) for the per-verb, amend and two fold designs
+(AMEND_COMPARE), and the amend probes; make_amend.py renders the result.
+
 Within one (mode, host, condition) group, a design whose values agree with an
 already explored design on every dimension that run *read* is not explored
 again: the model is deterministic and reads its design only through
@@ -39,7 +45,7 @@ def host_id(mode, h):
     return m + (f"/{q}" if m == 'squash' else '') + ('+utd' if u else '')
 
 
-def designs():
+def designs(amend=False):
     out = []
     for vals in itertools.product(*(M.DIMS[k] for k in DIM_ORDER)):
         d = dict(zip(DIM_ORDER, vals))
@@ -47,22 +53,43 @@ def designs():
         if d['submit'] == 'none' and d['ptr'] in ('rewrite', 'refuse'):
             continue
         out.append(d)
+    if amend:
+        # after every other design, so their runs and run ids are the ones the matrix without
+        # amend has; an amend design carries only the dimensions an amend run reads
+        for vals in itertools.product(*M.AMEND_DIMS.values()):
+            out.append(dict(zip(M.AMEND_DIMS, vals)))
     return out
 
 
 def design_id(d, used=None):
     if d['submit'] == 'none':
         return f"perverb.{'opid.' if d['ptr'] == 'opid' else ''}{d['audit']}"
+    if d['submit'] == 'amend':
+        return f"amend.{d['amend']}.{'opid.' if d['ptr'] == 'opid' else ''}{d['audit']}"
     return '.'.join(d[k] for k in DIM_ORDER[1:])
 
 
-def groups():
+# the amend conditions run for these designs and the amend designs only
+AMEND_COMPARE = ('perverb.parent', 'perverb.record', 'perverb.opid.parent', 'perverb.opid.record',
+                 'replay.append.record.opid.record', 'replay.replace.record.opid.record')
+CONDS_DIRECT_AMEND = tuple('sa-' + c for c in M.SA_BASE if c in CONDS_DIRECT) + (
+    'fork', 'reuse4', 'untracked', 'scope', 'actor', 'byc', 'twostep', 'nr-fork', 'nr-scope', 'nr-byc')
+
+
+def groups(amend=False):
     jobs = []
     for h in HOSTS_MR:
         for c in M.CONDS:
-            jobs.append(dict(mode='mr', host=h, cond=c))
+            jobs.append(dict(mode='mr', host=h, cond=c, amend=amend))
     for c in CONDS_DIRECT:
-        jobs.append(dict(mode='direct', host=('merge', '-', False), cond=c))
+        jobs.append(dict(mode='direct', host=('merge', '-', False), cond=c, amend=amend))
+    if amend:
+        only = AMEND_COMPARE + tuple(design_id(d) for d in designs(True) if d['submit'] == 'amend')
+        for h in HOSTS_MR:
+            for c in M.AMEND_CONDS:
+                jobs.append(dict(mode='mr', host=h, cond=c, amend=True, designs=only))
+        for c in CONDS_DIRECT_AMEND:
+            jobs.append(dict(mode='direct', host=('merge', '-', False), cond=c, amend=True, designs=only))
     return jobs
 
 
@@ -112,12 +139,14 @@ def run_group(args):
     explored = []          # (used keys, design, result)
     rows = []
     t0 = time.time()
-    for d in designs():
+    for d in designs(g.get('amend', False)):
         if only_designs and design_id(d) not in only_designs:
+            continue
+        if g.get('designs') and design_id(d) not in g['designs']:
             continue
         hit = None
         for used, d0, res0 in explored:
-            if all(d[k] == d0[k] for k in used):
+            if all(d.get(k) == d0.get(k) for k in used):
                 hit = res0
                 break
         if hit is None:
@@ -174,22 +203,35 @@ PROBES = [
 ]
 
 
+AMEND_DEFAULT = dict(submit='amend', amend='naive', ptr='leave', audit='record')
+
+AMEND_PROBES = [
+    ('AP1', 'L', 'amend.naive without the actor test: the agent\'s verb may amend the human\'s authorize commit, '
+                 'naming it by the SHA the amend replaces (both runs: operators merge main, never rebase)',
+     'mr', ('merge', '-', False), 'actor', {}, {'amend-any-actor', 'norebase'}),
+    ('AW1', 'L', 'what-if, not a mutation: amend.safe without the actor test, so only its SHA clause stands '
+                 'between the two (both runs: operators merge main, never rebase)',
+     'mr', ('merge', '-', False), 'actor', {'amend': 'safe'}, {'amend-any-actor', 'norebase'}),
+]
+
+
 def run_probe(args):
     p, max_states, time_limit = args
     pid, inv, what, mode, h, cond, over, probes = p
+    base = AMEND_DEFAULT if pid.startswith('A') else DEFAULT
     tdir = os.path.join(HERE, 'traces')
     os.makedirs(tdir, exist_ok=True)
     out = {}
     keep = {'resolve-both', 'norebase'}          # scenario restrictions, kept in the control run
     for tag, pr in (('probe', frozenset(probes)), ('control', frozenset(x for x in probes if x in keep))):
-        d = dict(DEFAULT, **over)
+        d = dict(base, **over)
         cfg = M.Cfg(mode=mode, method=h[0], sqmsg=h[1], utd=h[2], cond=cond, design=tuple(sorted(d.items())),
                     probes=pr, max_states=max_states)
         r = M.explore(cfg, time_limit=time_limit)
         rid = f"{pid}-{tag}_{host_id(mode, h)}@{cond}@{design_id(d)}"
         out[tag] = summarise_run(r, rid, tdir)
     return dict(kind='probe', pid=pid, inv=inv, what=what, mode=mode, host=host_id(mode, h), cond=cond,
-                design=dict(DEFAULT, **over), probes=sorted(probes), **out)
+                design=dict(base, **over), probes=sorted(probes), **out)
 
 
 def main():
@@ -203,9 +245,10 @@ def main():
     ap.add_argument('--probes-only', action='store_true', help='rerun the probes into an existing results file')
     ap.add_argument('--merge', action='store_true', help='replace the rerun groups (and probes) in an existing results file')
     ap.add_argument('--out', default=os.path.join(HERE, 'results.json'))
+    ap.add_argument('--amend', action='store_true', help='also the amend designs, conditions and probes')
     a = ap.parse_args()
     pats = [x for x in a.only.split(',')]
-    gs = [g for g in groups() if any(p in f"{host_id(g['mode'], g['host'])}@{g['cond']}" for p in pats)]
+    gs = [g for g in groups(a.amend) if any(p in f"{host_id(g['mode'], g['host'])}@{g['cond']}" for p in pats)]
     if a.probes_only:
         gs = []
     only_designs = set(x for x in a.designs.split(',') if x)
@@ -223,7 +266,8 @@ def main():
             print(f"{st['group']:28s} {st['runs']:3d} runs {st['secs']:7.1f}s peak {st['peak_mb']:6d} MB "
                   f"[{time.time() - t0:6.0f}s]", flush=True)
         if not a.no_probes:
-            for res in pool.imap_unordered(run_probe, [(p, a.max_states, a.time_limit) for p in PROBES]):
+            probes = PROBES + (AMEND_PROBES if a.amend else [])
+            for res in pool.imap_unordered(run_probe, [(p, a.max_states, a.time_limit) for p in probes]):
                 rows.append(res)
                 inv = res['inv']
                 failed = sorted(set(res['probe']['viol']) | ({'L'} if res['probe']['stuck'] else set()))

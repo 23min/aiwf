@@ -1,0 +1,85 @@
+### first-parent line over base (sha, %G?, subject)
+1d65479 N chore(plan): fold 4 planning operations
+aedf1b1 N feat: c5
+5b51b1b N Merge remote-tracking branch 'origin/main' into epic/E-0001-spike-epic
+eb7321f N feat: c4
+0d7f93a N docs: tweak epic wording by hand
+3575b9f N fix: c3, follow-up to 6595478d541b47bba5af5efca5938226195ed4a3
+6595478 N feat: c2
+0d9faff N feat: c1 add code
+### aiwf check (full)
+entity-body-empty (warning) × 3 — M-0001 body section `## Goal` is empty
+archive-sweep-pending (warning) × 1 — 1 terminal entities awaiting `aiwf archive --apply`. Set `archive.sweep_threshold` in aiwf.yaml to escalate to blocking past N
+epic-active-no-drafted-milestones (warning) × 1 — epic E-0001 is active but has no milestones at status draft
+provenance-untrailered-scope-undefined (warning) × 1 — no upstream configured and no --since <ref>; provenance audit, body-section gate and instruction-file fence skipped
+terminal-entity-not-archived (warning) × 1 — entity G-0001 has terminal status "addressed" but file is still in the active tree; awaiting `aiwf archive --apply` sweep
+
+7 findings (0 errors, 7 warnings)
+run `aiwf check --verbose` for each warning's location and remediation hint
+### aiwf check --since 297a352
+entity-body-empty (warning) × 3 — M-0001 body section `## Goal` is empty
+archive-sweep-pending (warning) × 1 — 1 terminal entities awaiting `aiwf archive --apply`. Set `archive.sweep_threshold` in aiwf.yaml to escalate to blocking past N
+epic-active-no-drafted-milestones (warning) × 1 — epic E-0001 is active but has no milestones at status draft
+terminal-entity-not-archived (warning) × 1 — entity G-0001 has terminal status "addressed" but file is still in the active tree; awaiting `aiwf archive --apply` sweep
+
+6 findings (0 errors, 6 warnings)
+run `aiwf check --verbose` for each warning's location and remediation hint
+### addressed_by_commit in G-0001 and whether HEAD contains it
+addressed_by_commit: 6595478d541b47bba5af5efca5938226195ed4a3
+  contained in HEAD: yes
+### aiwf-force-for target of the acknowledgment and whether HEAD contains it
+0d7f93a773f24b67c782c2ac176239d290b5982c contained: yes
+### aiwf-authorized-by targets and whether HEAD contains them
+### SHAs named in commit subjects/bodies on the line, and whether HEAD contains them
+0d7f93a773f2 contained: yes
+6595478d541b contained: yes
+### aiwf history G-0001
+2026-11-07T11:03:04+00:00  human/peter       add         -             aiwf add gap G-0001 "Something is wrong"  8615207
+2026-11-07T11:07:31+00:00  human/peter
+human/peter
+human/peter
+human/peter  promote
+promote
+promote
+acknowledge-illegal  → in_progress
+met
+addressed  chore(plan): fold 4 planning operations  1d65479
+    [reason: hand edit of wording, reviewed]
+    - aiwf promote M-0001 draft -> in_progress
+    - aiwf promote M-0001/AC-1 open -> met
+    - aiwf promote G-0001 open -> addressed
+    - aiwf acknowledge illegal 6f21ec85
+### aiwf history M-0001
+2026-11-07T11:03:04+00:00  human/peter       add         -             aiwf add milestone M-0001 "Spike milestone"  8f66aa5
+2026-11-07T11:03:04+00:00  human/peter       add         -             aiwf add ac M-0001/AC-1 "Something holds"  f6179bd
+2026-11-07T11:07:31+00:00  human/peter
+human/peter
+human/peter
+human/peter  promote
+promote
+promote
+acknowledge-illegal  → in_progress
+met
+addressed  chore(plan): fold 4 planning operations  1d65479
+    [reason: hand edit of wording, reviewed]
+    - aiwf promote M-0001 draft -> in_progress
+    - aiwf promote M-0001/AC-1 open -> met
+    - aiwf promote G-0001 open -> addressed
+    - aiwf acknowledge illegal 6f21ec85
+### aiwf history E-0001
+2026-11-07T11:03:04+00:00  human/peter       add         -             aiwf add epic E-0001 "Spike epic"  a2cad94
+2026-11-07T11:03:04+00:00  human/peter       promote     → active      aiwf promote E-0001 proposed -> active  297a352
+2026-11-07T11:07:31+00:00  human/peter
+human/peter
+human/peter
+human/peter  promote
+promote
+promote
+acknowledge-illegal  → in_progress
+met
+addressed  chore(plan): fold 4 planning operations  1d65479
+    [reason: hand edit of wording, reviewed]
+    - aiwf promote M-0001 draft -> in_progress
+    - aiwf promote M-0001/AC-1 open -> met
+    - aiwf promote G-0001 open -> addressed
+    - aiwf acknowledge illegal 6f21ec85
