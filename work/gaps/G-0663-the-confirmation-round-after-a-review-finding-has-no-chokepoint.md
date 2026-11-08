@@ -11,7 +11,7 @@ confirmation is stated as an obligation and gated nowhere.
 
 In `wf-patch`, "then confirm the fixes" is the second-to-last clause of a single
 long paragraph in step 6, and step 8's commit gate enumerates what must be shown to
-the human without naming it. In `aiwfx-wrap-milestone`, step 7's commit gate states
+the human without naming it. In `aiwfx-wrap-milestone`, the commit gate states
 neither the review outcome nor the confirmation outcome; both live in step 2's prose.
 
 ## Why it matters
