@@ -302,3 +302,30 @@ declined scenarios supply their own `aiwf.yaml`, so only their
 | `aiwf.example.yaml` | `20e2db732aa35b100db23a31d5d9558480217f4e7040b29b4310b38a98ff1b1a` | `885e41949c43f1004b9d5477c1ec2e3686d3923783303c3fccc5e68883de8d27` |
 | Scaffolded `aiwf.yaml` | `947270abfc9c753e39d98147748bcfa20e27538d43cfea83f19cea3c05f0f0e8` | `f44603add5322372af4f3fcd806b84024ddd925968e6ca01446834f7285746b1` |
 | Scaffolded `aiwf.yaml` with hook consent | `f22c3b0d0249644483493c5dac208e6c76effbd8cfee137df325ee2101d37d18` | `5988b136ce0cb533c48931e231cb69f8e073370c0b81608f7d59f501465df5ea` |
+
+## Roadmap-commit removal exception
+
+D-0106 stops the planning and wrap rituals regenerating and committing
+`ROADMAP.md`, and the `planner` and `reviewer` agents stop treating it as a
+committed file. The six inventories change only the records of
+`.claude/skills/aiwfx-plan-epic/SKILL.md`, `aiwfx-plan-milestones/SKILL.md`,
+`aiwfx-wrap-milestone/SKILL.md`, `aiwfx-wrap-epic/SKILL.md`,
+`.claude/agents/planner.md` and `.claude/agents/reviewer.md`; all other records
+stay frozen.
+
+Provenance: derived in the Linux development container on 2026-11-08 without the
+renderer. Each artifact's embedded source on `main` at `bded23079`, with any
+`{{aiwf:templates_dir}}` token replaced by `.claude/templates` and any
+`{{aiwf:host_label}}` token by `Claude Code`, reproduces its frozen record; the
+same replacement over the changed source gives the updated record, and the
+candidate binary's materialized files matched them. The inventories were sorted
+again.
+
+| Artifact | Original SHA-256 | Updated SHA-256 |
+| --- | --- | --- |
+| `aiwfx-plan-epic/SKILL.md` | `5a4cb52538cfa56e60c7ebdc78f7a542075e3dd14217454c9f1a2096d6d4378d` | `4390ec8948f29992de58e63bc501698b2561c6e5492e5779789d95735d520338` |
+| `aiwfx-plan-milestones/SKILL.md` | `f66250263707e1b1c34863394b42d5e0ef962750ff74ee0b2ab5ae3399523ab2` | `7e869280f9e4d30d0c09ff9486381a9f359ab6c0d588d5b3293ae16ccb4ca2c1` |
+| `aiwfx-wrap-milestone/SKILL.md` | `20969c17e4605fb808f499e6c41c30802d5a5ee4731b88306032c16683cf28b9` | `63d3b774e56052759c678480af61171a48f70f6033e01806c567cfa24baec637` |
+| `aiwfx-wrap-epic/SKILL.md` | `bc579921e510ca8733b599e3eaae35bd91d3b3f3d856a328fe5f7649dbd3e85a` | `33ab41727141318e1243aaf29b283574eb878e852203cf04c32d3f7b0cdf88e7` |
+| `agents/planner.md` | `f92594261b78dc7ecaee59facf41f65d810b1a9140c5c08e234be29ed04c203d` | `abac99f217f926687f0e5d08a210c839fbe0709a6d1ddaabf3e9b73c11436001` |
+| `agents/reviewer.md` | `e3f65c3d27b41240fb381ffecc76b84cc72262618273f7b8eb4339c7467218c6` | `50ac9f2b15ac2144ae276d436b4a88e9c22beaec86ebfd5734375c2130721ea4` |

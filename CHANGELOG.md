@@ -16,6 +16,22 @@ section in this file.
 
 ## [Unreleased]
 
+### Changed — D-0106: the rituals no longer commit `ROADMAP.md`
+
+- `aiwfx-plan-epic`, `aiwfx-plan-milestones`, `aiwfx-wrap-milestone` and
+  `aiwfx-wrap-epic` no longer regenerate `ROADMAP.md` or commit it, and the
+  `planner` and `reviewer` agents no longer update it or check against it, so
+  planning and wrapping make fewer commits. `aiwfx-plan-epic` reads the output
+  of `aiwf render roadmap` instead of the file. A project that keeps
+  `ROADMAP.md` in git, for instance for a hand-maintained `## Candidates` block,
+  which regeneration preserves, refreshes it with `aiwf render roadmap --write`
+  and commits it itself. Run `aiwf update` to refresh installed rituals.
+- `aiwf-verb: plan-epic` and `aiwf-verb: plan-milestones` are no longer accepted,
+  since no ritual writes them: the `commit-msg` hook refuses them. Copies of
+  `aiwfx-plan-epic` and `aiwfx-plan-milestones` installed before this release
+  still attempt that roadmap commit, and the hook refuses it; `aiwf update`
+  installs copies that no longer attempt it.
+
 ## [0.42.0] — 2026-10-24
 
 ### Added — the statusline shows free disk space

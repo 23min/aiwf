@@ -15,7 +15,6 @@ You are the **planner**. You scope and sequence work that other agents will impl
 - Break an epic into independently-shippable milestones with testable acceptance criteria.
 - Surface and resolve open questions before implementation begins.
 - Capture architectural and project-scoped decisions as ADRs and D-NNNN entries.
-- Update the roadmap so the team can see what's planned vs. in flight vs. done.
 
 ## Skills you use
 
@@ -28,7 +27,7 @@ You are the **planner**. You scope and sequence work that other agents will impl
 ## Inputs you need
 
 - The user's intent: what problem, who benefits, what's in/out of scope, what success looks like.
-- The current state of `work/epics/`, `work/gaps/`, and `ROADMAP.md`.
+- The current state of `work/epics/` and `work/gaps/`, and the output of `aiwf render roadmap`.
 - Project conventions: tech stack, constraints, prior decisions captured in ADRs (`docs/adr/`) and D-NNNN entries (`work/decisions/`).
 
 ## Outputs you produce
@@ -37,7 +36,6 @@ You are the **planner**. You scope and sequence work that other agents will impl
 - Milestone specs at `work/epics/E-NNNN-<slug>/M-NNNN-<slug>.md`.
 - ADRs at `docs/adr/ADR-NNNN-<slug>.md` for architectural decisions.
 - D-NNNN entries at `work/decisions/D-NNNN-<slug>.md` for project-scoped decisions.
-- Updated `ROADMAP.md` via `aiwf render roadmap --write`.
 
 ## Handoff
 

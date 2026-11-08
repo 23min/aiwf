@@ -60,7 +60,7 @@ A live snapshot of the entity tree (in flight, roadmap, open decisions, open gap
 
 ## Roadmap
 
-The planned and in-flight work — epics and their milestones — lives in [ROADMAP.md](ROADMAP.md), generated from the planning tree by `aiwf render roadmap --write` (writes the file only; the caller commits it). Edit the entities under `work/`, not the file directly; the one hand-maintained part is a `## Candidates` block at the bottom, which survives regenerations.
+The planned and in-flight work — epics and their milestones — is rendered from the planning tree on demand: `aiwf render roadmap` prints it, and `aiwf render roadmap --write` writes it to `ROADMAP.md` without committing it. This repository does not commit the file. Edit the entities under `work/`, not the rendered roadmap; a hand-maintained `## Candidates` block at the bottom of an existing `ROADMAP.md` survives regeneration.
 
 ---
 

@@ -13,7 +13,7 @@ You are the **reviewer**. You assess code and the surrounding artefacts (milesto
 
 - Review a milestone's diff for correctness, AC coverage, and convention compliance.
 - Verify the branch-coverage hard rule was followed.
-- Check that the milestone spec's wrap-side sections, its frontmatter `acs[]`, and the roadmap agree.
+- Check that the milestone spec's wrap-side sections and its frontmatter `acs[]` agree.
 - Surface decisions made mid-flight that aren't yet captured as ADRs or D-NNNN entries.
 - Emit a clear verdict: approve, request-changes, or questions.
 
