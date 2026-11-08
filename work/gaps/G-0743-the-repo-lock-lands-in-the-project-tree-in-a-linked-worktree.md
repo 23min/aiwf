@@ -32,7 +32,7 @@ M-0241/AC-4 records that the lock is scoped per worktree on purpose. This gap co
 
 ## Why it matters
 
-`git worktree remove` refuses a worktree once any mutating verb has run in it. The shipped rituals close a worktree with that command (`wf-patch/SKILL.md:221` and `aiwfx-wrap-milestone/SKILL.md:294` under `internal/skills/embedded-rituals/`), so in a consumer repository cleanup at the end of a patch or a milestone wrap fails, and the way past it is `--force`, which also discards anything else left untracked.
+`git worktree remove` refuses a worktree once any mutating verb has run in it. The shipped rituals close a worktree with that command (`wf-patch/SKILL.md` under Cleanup and `aiwfx-wrap-milestone/SKILL.md` under Local cleanup, both under `internal/skills/embedded-rituals/`), so in a consumer repository cleanup at the end of a patch or a milestone wrap fails, and the way past it is `--force`, which also discards anything else left untracked.
 
 `git add -A` in such a worktree stages the lock, and nothing between that commit and a merge refuses it.
 
