@@ -51,7 +51,7 @@ go build -o /tmp/aiwf ./cmd/aiwf # binary builds
 
 **Trunk-based on `main`, code on branches.** Planning-state verbs, release commits and doc edits may commit directly to `main`. Every code change goes on a branch in a worktree — `wf-patch` for a small fix, a ritual branch otherwise — and merges into `main` locally, without a PR. Outside contributors use GitHub PRs ([`CONTRIBUTING.md`](CONTRIBUTING.md)). Conventional Commits subjects on both paths. `aiwf check` runs shape-only at pre-commit and in full at pre-push.
 
-**Regenerate derived artifacts; never hand-edit them.** `ROADMAP.md`, which is tracked, by `aiwf render roadmap`; `STATUS.md` by the post-commit hook; `site/` by `aiwf render --format=html`; materialized host artifacts by `aiwf update`. The embedded ritual snapshot under `internal/skills/embedded-rituals/` is not derived: it is the hand-edited source (`.guidance/project/shipped-content.md`).
+**Regenerate derived artifacts; never hand-edit them.** `ROADMAP.md` by `aiwf render roadmap`; `STATUS.md` by the post-commit hook; `site/` by `aiwf render --format=html`; materialized host artifacts by `aiwf update`. The embedded ritual snapshot under `internal/skills/embedded-rituals/` is not derived: it is the hand-edited source (`.guidance/project/shipped-content.md`).
 
 ---
 
