@@ -74,5 +74,5 @@ The 589 assumes the wrap prose always amends; naming the reviewed commit makes s
 - **`aiwfx-wrap-epic` keeps hand-typed trailers on its wrap-artefact commit,** so the silent mistakes above remain possible there. [G-0744](../gaps/G-0744-the-untrailered-entity-audit-trusts-any-commit-carrying-an-aiwf-verb-trailer.md) records the audit that lets a wrong or missing `aiwf-entity` through.
 - **What changes:**
   - `aiwfx-wrap-milestone` under `internal/skills/embedded-rituals/`, which is shipped content and so changes on a branch;
-  - the policy tests that pin that ritual's text;
+  - the Claude baseline's record of that ritual's bytes;
   - the CHANGELOG.
