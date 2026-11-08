@@ -23,7 +23,7 @@ If the work fits in one milestone, skip this skill and use `aiwfx-plan-milestone
    - What does success look like at epic close?
 
 2. **Check existing context.**
-   - Read `ROADMAP.md` (if present) for current epics and priorities.
+   - Run `aiwf render roadmap` for current epics and priorities.
    - Walk `work/epics/` for related or overlapping epics.
    - Walk `work/gaps/` for previously deferred work that fits the new epic's scope.
 
@@ -58,25 +58,7 @@ If the work fits in one milestone, skip this skill and use `aiwfx-plan-milestone
 
    `aiwf edit-body <id>` commits the working-copy body bytes with provenance trailers in one atomic operation; a plain `git commit` against the spec would trip the kernel's `provenance-untrailered-entity-commit` finding. See the `aiwf-edit-body` skill for the `--body-file` and `--reason` variants.
 
-6. **Update `ROADMAP.md`** by running:
-
-   ```bash
-   aiwf render roadmap --write
-   ```
-
-   `--write` only rewrites the file on disk — it does not commit. If the content changed, stage and commit it:
-
-   ```bash
-   git add ROADMAP.md
-   git commit -m "docs(roadmap): regenerate after planning E-NNNN" \
-     --trailer "aiwf-verb: plan-epic" \
-     --trailer "aiwf-entity: E-NNNN" \
-     --trailer "aiwf-actor: human/<id>"
-   ```
-
-   The trailer keys are exact — variant casings (e.g. `Aiwf-Verb`) fail the kernel's trailer-keys policy. Skip the `git add`/`git commit` if the render reported the file already up to date. This regenerates the markdown table of epics + milestones from the current tree. Don't hand-edit the roadmap.
-
-7. **Optional tracker linkage.** If the project mirrors planning into an external issue tracker, create or link the epic record according to the project's convention.
+6. **Optional tracker linkage.** If the project mirrors planning into an external issue tracker, create or link the epic record according to the project's convention.
 
 ## What this skill does NOT do
 

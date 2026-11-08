@@ -25,8 +25,7 @@ var (
 // that embedded ritual skills stamp via `--trailer "aiwf-verb: <verb>"`.
 // The set is derived once at first call from the embedded skill
 // snapshot under `embedded-rituals/` and cached for the binary's
-// lifetime — it changes only when the embedded snapshot changes (i.e.
-// when `make sync-rituals` lands a new upstream pin).
+// lifetime — it changes only when the embedded snapshot changes.
 //
 // G-0190 introduced this derivation to eliminate the drift class where
 // the upstream stamp set changes and a kernel allowlist silently goes

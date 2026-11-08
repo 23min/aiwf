@@ -89,27 +89,9 @@ If the epic doesn't exist yet, use `aiwfx-plan-epic` first.
 
 7. **Update the epic's Milestones list.** Edit the epic spec to list all milestones in execution order, in the format its template shows.
 
-8. **Update `ROADMAP.md`** by running:
+8. **Confirm the sequence with the user.** Walk through the milestone list together. Identify any scope adjustments before drafting begins.
 
-   ```bash
-   aiwf render roadmap --write
-   ```
-
-   `--write` only rewrites the file on disk — it does not commit. If the content changed, stage and commit it:
-
-   ```bash
-   git add ROADMAP.md
-   git commit -m "docs(roadmap): regenerate after planning E-NNNN milestones" \
-     --trailer "aiwf-verb: plan-milestones" \
-     --trailer "aiwf-entity: E-NNNN" \
-     --trailer "aiwf-actor: human/<id>"
-   ```
-
-   The trailer keys are exact — variant casings (e.g. `Aiwf-Verb`) fail the kernel's trailer-keys policy. Skip the `git add`/`git commit` if the render reported the file already up to date.
-
-9. **Confirm the sequence with the user.** Walk through the milestone list together. Identify any scope adjustments before drafting begins.
-
-10. **Merge planning to main.** Planning is closed; the entity tree on this ritual branch now diverges from main. Default behavior is to merge to main now so the freshly-allocated `M-NNNN` ids, the epic's updated Milestones list, and any `depends_on` edges are visible to other worktrees, machines, or operators. Held on a long-lived branch, planning data is hostage: other {{aiwf:host_label}} sessions see only main's view, parallel epics walk separate filesystem-only `next-free-id` views (id collisions surface only at eventual merge), and milestone branches stack on a long-lived parent — making the epic-wrap diff balloon.
+9. **Merge planning to main.** Planning is closed; the entity tree on this ritual branch now diverges from main. Default behavior is to merge to main now so the freshly-allocated `M-NNNN` ids, the epic's updated Milestones list, and any `depends_on` edges are visible to other worktrees, machines, or operators. Held on a long-lived branch, planning data is hostage: other {{aiwf:host_label}} sessions see only main's view, parallel epics walk separate filesystem-only `next-free-id` views (id collisions surface only at eventual merge), and milestone branches stack on a long-lived parent — making the epic-wrap diff balloon.
 
     Prompt the user as a strong recommendation with explicit decline:
 
@@ -145,4 +127,4 @@ Status-aware — the right next skill depends on the parent epic's status:
 - **Epic still `proposed`** (the first-time `plan-epic` → `plan-milestones` flow): → `aiwfx-start-epic E-NNNN`. It performs the sovereign `proposed → active` promote and cuts the `epic/E-NNNN-<slug>` branch that milestone branches fork from — the step `aiwfx-start-milestone` requires to have run first.
 - **Epic already `active`** (re-planning or adding milestones mid-epic): → `aiwfx-start-milestone <M-NNNN>` for the first drafted milestone.
 
-Either way, run this only after the planning commits have landed on main (per step 10) so implementation branches fork cleanly from main rather than stacking on the ritual branch.
+Either way, run this only after the planning commits have landed on main (per step 9) so implementation branches fork cleanly from main rather than stacking on the ritual branch.

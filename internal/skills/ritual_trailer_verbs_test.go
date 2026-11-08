@@ -5,12 +5,11 @@ import "testing"
 // TestRitualTrailerVerbs_DerivedFromEmbedded is the G-0190 drift guard:
 // the auto-derived ritual-verb set must contain exactly the verbs
 // literally stamped by `--trailer "aiwf-verb: <verb>"` patterns in the
-// embedded snapshot under embedded-rituals. If a new ritual stamp
-// lands in upstream rituals (refreshed via `make sync-rituals`), this
-// test surfaces the addition — the allowlist used by
-// `check.RunTrailerVerbUnknown` updates by construction, but the test
-// fixes the expected baseline so a sweep that *accidentally* adds or
-// drops a stamp is caught.
+// embedded snapshot under embedded-rituals. If an edit to the embedded
+// rituals adds or drops a stamp, this test surfaces the change — the
+// allowlist used by `check.RunTrailerVerbUnknown` updates by
+// construction, but the test fixes the expected baseline so a sweep
+// that *accidentally* adds or drops a stamp is caught.
 //
 // Update the expected set when an intentional ritual-stamp change
 // lands. Pre-G-0190 the kernel held a hand-maintained map containing
@@ -19,11 +18,6 @@ import "testing"
 // G-0193 retired the upstream authoring channel and landed the
 // wrap-milestone trailer stamp on the embedded snapshot in the same
 // patch, so `wrap-milestone` joins `wrap-epic` in the expected set.
-// G-0350 decoupled `aiwf render roadmap --write` from committing, so
-// the roadmap-regen step in each ritual that calls it now hand-composes
-// its own commit — `aiwfx-plan-epic` and `aiwfx-plan-milestones` stamp
-// `--trailer "aiwf-verb: plan-epic"` / `plan-milestones` for the first
-// time, joining the two wrap verbs already in the expected set.
 func TestRitualTrailerVerbs_DerivedFromEmbedded(t *testing.T) {
 	t.Parallel()
 	got, err := RitualTrailerVerbs()
@@ -31,10 +25,8 @@ func TestRitualTrailerVerbs_DerivedFromEmbedded(t *testing.T) {
 		t.Fatalf("RitualTrailerVerbs(): %v", err)
 	}
 	want := map[string]struct{}{
-		"wrap-epic":       {},
-		"wrap-milestone":  {},
-		"plan-epic":       {},
-		"plan-milestones": {},
+		"wrap-epic":      {},
+		"wrap-milestone": {},
 	}
 	if len(got) != len(want) {
 		t.Errorf("RitualTrailerVerbs set size = %d, want %d (got=%v want=%v)", len(got), len(want), sortedKeys(got), sortedKeys(want))

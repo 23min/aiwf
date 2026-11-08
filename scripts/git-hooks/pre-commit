@@ -22,7 +22,7 @@ repo_root="$(git rev-parse --show-toplevel)"
 
 # G-0280: skip the (~70s) policy suite on commits whose staged paths are
 # very unlikely to change its verdict — planning-only commits (entity
-# markdown, ROADMAP.md) pay zero. The pattern is a pragmatic PROXY for the
+# markdown) pay zero. The pattern is a pragmatic PROXY for the
 # highest-value / highest-frequency verdict-changing inputs: Go source, the
 # root build files (go.mod / go.sum / Makefile — single-module repo, so
 # root-anchored), the embedded ritual skills (frequent edits, policed by
@@ -30,12 +30,10 @@ repo_root="$(git rev-parse --show-toplevel)"
 # its own test). It is deliberately NOT a complete map of every file a policy
 # reads — other policy inputs are CI-delegated: CLAUDE.md, .guidance/, docs/,
 # .devcontainer/, .golangci.yml, .gitleaks.toml, the other *_hook-tested
-# scripts (scripts/mutate-diff.sh, .claude/hooks/*, .claude/statusline.sh),
-# and notably ROADMAP.md (read by the dangling-ref rule yet skipped here,
-# since it is renderer-generated and re-rendered often). Editing any of those
-# forgoes local fast feedback and falls through to CI's unconditional run:
-# fast feedback lost, never the gate — the pre-commit suite is convenience,
-# CI on push is the authoritative chokepoint.
+# scripts (scripts/mutate-diff.sh, .claude/hooks/*, .claude/statusline.sh).
+# Editing any of those forgoes local fast feedback and falls through to CI's
+# unconditional run: fast feedback lost, never the gate — the pre-commit suite
+# is convenience, CI on push is the authoritative chokepoint.
 #
 # Test override: AIWF_PRECOMMIT_POLICY_CMD replaces the policy command
 # (default below). The policy tests in

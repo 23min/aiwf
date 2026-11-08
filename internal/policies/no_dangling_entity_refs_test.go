@@ -11,7 +11,7 @@ import (
 
 // TestPolicy_NoDanglingEntityRefsInNarrativeDocs pins G-0091's
 // chokepoint claim: path-form markdown links to entity files in
-// narrative docs (the development guidance, ROADMAP.md) must resolve to an existing
+// narrative docs (the development guidance) must resolve to an existing
 // file. A reference whose path no longer points at the entity (slug
 // renamed, id-width canonicalized, file archive-swept, or entity
 // deleted) fires here, at PR time, instead of waiting for the
@@ -27,10 +27,9 @@ func TestPolicy_NoDanglingEntityRefsInNarrativeDocs(t *testing.T) {
 	fsys := os.DirFS(root)
 
 	// The development guidance — both host instruction files, the project
-	// router and the documents it routes to — and ROADMAP.md embed
-	// path-form entity refs. If another narrative doc enters the same
-	// pattern, add its path here.
-	paths := append(slices.Sorted(maps.Keys(developmentGuidance(repoGuidanceReader(root)))), "ROADMAP.md")
+	// router and the documents it routes to — embeds path-form entity refs.
+	// If another narrative doc enters the same pattern, add its path here.
+	paths := slices.Sorted(maps.Keys(developmentGuidance(repoGuidanceReader(root))))
 
 	findings := auditDanglingEntityRefs(fsys, paths)
 	for _, f := range findings {

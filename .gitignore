@@ -80,6 +80,10 @@ WHITEBOARD.md
 # aiwf: post-commit-regenerated STATUS.md (G-0112)
 STATUS.md
 
+# aiwf: the roadmap, rendered on demand by `aiwf render roadmap` and not
+# committed (D-0106)
+ROADMAP.md
+
 # lychee link-checker cache (cache = true in .lychee.toml); a local
 # run artifact, regenerated each invocation, never committed.
 .lycheecache
