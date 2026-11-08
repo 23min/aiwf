@@ -13,11 +13,10 @@ Whether `ROADMAP.md` stays a committed file. `aiwf render roadmap --write` rewri
 
 ## Decision
 
-- **The rituals stop regenerating and committing `ROADMAP.md`:**
-  - `aiwfx-plan-epic` step 6;
-  - `aiwfx-plan-milestones` step 8;
-  - `aiwfx-wrap-milestone` steps 5 and 14;
-  - `aiwfx-wrap-epic` step 8;
+- **The rituals stop regenerating and committing `ROADMAP.md`,** dropping these steps:
+  - "Update `ROADMAP.md`" in `aiwfx-plan-epic` and `aiwfx-plan-milestones`;
+  - "Update the roadmap" and "Regenerate the roadmap" in `aiwfx-wrap-milestone`;
+  - "Regenerate the roadmap" in `aiwfx-wrap-epic`;
   - the roadmap regen listed in the wrap rituals' closing sequences.
 - **This repository untracks `ROADMAP.md` and ignores it,** as it does `STATUS.md`.
 - **The roadmap is rendered on demand.** `aiwf render roadmap` prints it, and `--write` still writes the file for a repository that keeps one.
@@ -53,8 +52,10 @@ No rendered site is published, and this repository's copy has no hand-written `#
 - **Every consumer's rituals stop committing their roadmap.** A consumer that keeps `ROADMAP.md` tracked keeps it current with `aiwf render roadmap --write` and a commit of its own; that includes one with a `## Candidates` block, which render preserves. The CHANGELOG entry says so.
 - **GitHub visitors lose the one-page view.** README's Roadmap section points to `aiwf render roadmap` instead.
 - **`aiwfx-plan-epic` reads the output of `aiwf render roadmap`,** not the file, so it never reads a stale local copy.
+- **`aiwf-verb: plan-epic` and `aiwf-verb: plan-milestones` are refused.** The ritual-verb allowlist is derived from the trailers the embedded rituals write, and only the roadmap commits wrote these two, so the `commit-msg` hook refuses them. A copy of either ritual installed before `aiwf update` still attempts its roadmap commit, and the hook refuses it. `trailer-verb-unknown` reads only the unpushed range, so history already pushed with these trailers raises no finding.
 - **What changes:**
   - the four rituals under `internal/skills/embedded-rituals/`, which are shipped content and so change on a branch;
+  - the `planner` and `reviewer` agents beside them, which drop their roadmap duties;
   - `.gitignore`, and `ROADMAP.md` removed from the index in this repository;
   - README's Roadmap section;
   - `CLAUDE.md`'s "Regenerate derived artifacts" line, which calls `ROADMAP.md` tracked;
