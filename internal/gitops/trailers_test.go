@@ -129,7 +129,7 @@ func TestSortedTrailers_CanonicalOrder(t *testing.T) {
 
 // TestSortedTrailers_BranchPositionBetweenScopeAndScopeEnds (M-0102/AC-4):
 // aiwf-branch sorts immediately after aiwf-scope and immediately before
-// aiwf-scope-ends in the canonical write order. Both fixed positions
+// aiwf-scope-ends in the canonical order. Both fixed positions
 // matter: aiwf-branch is metadata about the scope opening (so it follows
 // aiwf-scope), and aiwf-scope-ends references a different commit so it
 // belongs after the opening metadata.
