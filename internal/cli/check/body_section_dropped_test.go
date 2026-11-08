@@ -16,12 +16,13 @@ import (
 // a body that reached a commit without passing a body-supplying verb, carrying
 // one required section fewer than it had, is refused.
 //
-// The history shape is the wrap-milestone ritual's. The spec is edited on a
-// milestone branch by a plain `git commit` carrying the ritual's three trailers,
-// that branch is merged into the epic branch with `--no-ff`, and the epic branch
-// is what gets pushed against its upstream. The milestone branch's own first
-// push has no upstream and judges nothing, so the push that carries the merge is
-// the one that must refuse. The trailers are why the rule cannot filter on them:
+// The history shape is the one copies of the wrap-milestone ritual from earlier
+// releases write. The spec is edited on a milestone branch by a plain
+// `git commit` carrying the ritual's three trailers, that branch is merged into
+// the epic branch with `--no-ff`, and the epic branch is what gets pushed
+// against its upstream. The milestone branch's own first push has no upstream
+// and judges nothing, so the push that carries the merge is the one that must
+// refuse. The trailers are why the rule cannot filter on them:
 // the untrailered audit beside it passes the commit, and it still went through
 // no verb.
 
@@ -83,8 +84,8 @@ Ship the seed, with feeling.
 `
 )
 
-// wrapRitualTrailers is the trailer set aiwfx-wrap-milestone stamps on its plain
-// `git commit` of the milestone spec.
+// wrapRitualTrailers is the trailer set copies of aiwfx-wrap-milestone from
+// earlier releases stamp on their plain `git commit` of the milestone spec.
 func wrapRitualTrailers() []gitops.Trailer {
 	return []gitops.Trailer{
 		{Key: gitops.TrailerVerb, Value: "wrap-milestone"},

@@ -16,10 +16,11 @@ import (
 // push-seam membership gate.
 //
 // The write seams hold `aiwf add` and `aiwf edit-body` to the declared section
-// set, but a body can reach a commit without passing either: the wrap-milestone
-// ritual commits a milestone spec with plain `git commit`. That commit carries
-// aiwf trailers, so the untrailered audit beside this rule passes it — which is
-// why membership is judged from the committed bytes rather than inferred from
+// set, but a body can reach a commit without passing either: a plain
+// `git commit` carrying aiwf trailers typed by hand, the shape copies of the
+// wrap-milestone ritual from earlier releases write for a milestone spec. The
+// untrailered audit beside this rule passes such a commit — which is why
+// membership is judged from the committed bytes rather than inferred from
 // trailers.
 //
 // A finding is a required section the entity carried at its starting point and
