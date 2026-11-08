@@ -6,7 +6,7 @@ discovered_in: M-0341
 ---
 ## What's missing
 
-The embedded `aiwfx-plan-epic` and `aiwfx-plan-milestones` skills instruct the operator to merge planning from a ritual branch and switch to main. Accepted D-0073 requires planning on main with no ritual branch or merge step. The contradiction is in `internal/skills/embedded-rituals/plugins/aiwf-extensions/skills/aiwfx-plan-epic/SKILL.md` under Closing the planning session and `aiwfx-plan-milestones/SKILL.md` step 10.
+The embedded `aiwfx-plan-epic` and `aiwfx-plan-milestones` skills instruct the operator to merge planning from a ritual branch and switch to main. Accepted D-0073 requires planning on main with no ritual branch or merge step. The contradiction is in `internal/skills/embedded-rituals/plugins/aiwf-extensions/skills/aiwfx-plan-epic/SKILL.md` under Closing the planning session and `aiwfx-plan-milestones/SKILL.md` under Merge planning to main.
 
 Measured at commit `d1f03bc04` from the repository root. The expected instructions agree with the accepted decision; the following read-only commands show the conflicting text:
 
