@@ -1,7 +1,7 @@
 # Evidence for "Fewer planning commits"
 
 The scripts, outputs and reports behind [../fewer-planning-commits.md](../fewer-planning-commits.md).
-Everything ran on 2026-11-07 (git 2.51.1, Go 1.25.12, Python 3.12.3, Linux
+Everything ran on 2026-11-07, `reflog-rule/` on 2026-11-08 (git 2.51.1, Go 1.25.12, Python 3.12.3, Linux
 devcontainer) against this repository at `4343f2bd1`. Scripts hold the absolute
 paths they ran with (`/workspaces/aiwf` and a scratch directory); adjust them to
 re-run.
@@ -21,6 +21,7 @@ re-run.
 | `amend-prototype/gotest-*.log` | `go test ./internal/gitops/... ./internal/verb/...` with the experiment off and on |
 | `fold-cost/scripts/`, `fold-cost/out/` | The plumbing fold, the fork, signing and intermediate-state probes, the side-ref simulation, the pre-push test (`prepush-cannot-fold.sh`), and their transcripts (`signing.txt` re-reads the signing runs' signature status) |
 | `review/` | The first review's replay scripts |
+| `reflog-rule/scripts/`, `reflog-rule/out/` | The reflog clause, run 2026-11-08: which git commands write HEAD's reflog and the rebase hole in a scratch repository (`reflog-probe.sh`), a patch-id test's cost against the reflog read (`patchid-cost.sh`), and the runs the clause would split in this clone's main checkout (`reflog-splits.sh`, `checkouts.sh`); each takes the repository or scratch directory as its argument |
 
 Re-running, from a copy of `history/`:
 

@@ -1,0 +1,29 @@
+# 2026-11-08 11:54 UTC, Linux 7.0.14-linuxkit, git version 2.51.1
+git version 2.51.1
+core.logAllRefUpdates in a new repo: true
+git commit                                   HEAD@{0}: commit (initial): init
+verb, update-ref without -m (aiwf today)     HEAD@{0}: 
+verb, update-ref -m 'aiwf: v1'               HEAD@{0}: aiwf: v1
+git branch side (no switch)                  HEAD@{0}: aiwf: v1
+git push                                     HEAD@{0}: aiwf: v1
+git fetch                                    HEAD@{0}: aiwf: v1
+git switch side                              HEAD@{0}: checkout: moving from main to side
+git switch main                              HEAD@{0}: checkout: moving from side to main
+git stash                                    HEAD@{0}: reset: moving to HEAD
+git stash pop (HEAD unchanged)               HEAD@{0}: reset: moving to HEAD
+git commit                                   HEAD@{0}: commit: c1
+git commit --amend                           HEAD@{0}: commit (amend): c2
+git reset --soft HEAD~1                      HEAD@{0}: reset: moving to HEAD~1
+git merge side (up to date; HEAD unchanged)  HEAD@{0}: reset: moving to HEAD~1
+
+== the rebase hole ==
+verb m1, pushed on branch milestone          HEAD@{0}: aiwf: m1
+git rebase origin/main                       HEAD@{0}: rebase (finish): returning to refs/heads/milestone
+pushed m1: ffbce2d   HEAD: 7e989bb
+refs containing HEAD: refs/heads/milestone 
+git cherry origin/milestone HEAD ('-' = the same change is upstream): + 6397d1c - 7e989bb 
+next verb (the reflog rule commits anew)     HEAD@{0}: aiwf: m2
+git pull (fast-forward)                      HEAD@{0}: pull -q: Fast-forward
+git pull (merge)                             HEAD@{0}: pull -q --no-edit: Merge made by the 'ort' strategy.
+git cherry-pick                              HEAD@{0}: cherry-pick: aiwf m2
+git pull --rebase                            HEAD@{0}: pull -q --rebase origin main (finish): returning to refs/heads/milestone

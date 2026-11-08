@@ -16,7 +16,7 @@ from make_tables import BEST_ID, DEFAULT_ID, HOSTS, INVS, cell_short, holds, hol
 
 AMEND_IDS = [design_id(d) for d in designs(True) if d['submit'] == 'amend']
 PERVERB_IDS = ['perverb.parent', 'perverb.record', 'perverb.opid.parent', 'perverb.opid.record']
-REF = 'amend.safe.opid.record'
+REF = 'amend.reflog.opid.record'
 NAIVE_TODAY = 'amend.naive.parent'
 
 

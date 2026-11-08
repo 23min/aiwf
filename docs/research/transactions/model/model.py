@@ -317,6 +317,7 @@ class Tx(NamedTuple):
     subs: int         # submits run
     unk: bool         # a push reply was lost and not yet reconciled
     side: object = None  # condition 'fork' only: the local branch the checked-out branch was cut from
+    verbhead: bool = False  # amend rule 'reflog' only: an aiwf verb moved loc last (the top line of HEAD's reflog)
 
 
 class St(NamedTuple):
@@ -359,7 +360,10 @@ DIMS = {
 #          operation, and no remote-tracking ref (origin/main, origin/<branch>) contains it
 #   safe   naive, and no other local branch contains HEAD, and the new operation names no SHA of
 #          HEAD in a trailer or in the bytes it writes
-AMEND_DIMS = {'submit': ('amend',), 'amend': ('naive', 'safe'), 'ptr': ('leave', 'opid'), 'audit': ('parent', 'record')}
+#   reflog safe, and an aiwf verb was the last to move HEAD: the top line of HEAD's reflog is the
+#          verb's, so no rebase, pull, merge, cherry-pick, checkout or git commit has moved it since
+AMEND_DIMS = {'submit': ('amend',), 'amend': ('naive', 'safe', 'reflog'), 'ptr': ('leave', 'opid'),
+              'audit': ('parent', 'record')}
 
 CONDS = ('base', 'after', 'bob', 'mixed', 'crash', 'lost', 'revert', 'cherry', 'resolve', 'nocheck',
          'reuse', 'auth', 'ack', 'abc', 'adr')
@@ -449,6 +453,9 @@ class Model:
         self.base = mk((), base_tree, (('s', 'initial'),), 'base', None, 'init')
         self.chk = {}
         self.refusals = {}
+        # read here, so that every amend run reads the rule: a reflog run's states differ from a
+        # naive or safe run's even where no verb reaches the eligibility test
+        self.reflog = self.amend_design() and self.d('amend') == 'reflog'
 
     def d(self, key):
         self.used.add(key)
@@ -459,6 +466,11 @@ class Model:
 
     def amend_design(self):
         return self.d('submit') == 'amend'
+
+    def head_moved(self, tx, by_verb, **kw):
+        """tx with HEAD moved as kw says; under the reflog rule it records whether an aiwf
+        verb moved it, as the top line of HEAD's reflog would."""
+        return tx._replace(verbhead=by_verb and self.reflog, **kw)
 
     def amendable(self, tx, op, author, ptrs, treeptr):
         """The amend eligibility test (AMEND_DIMS) for running op at tx.loc. ptrs are the
@@ -473,11 +485,14 @@ class Model:
         tracked = [tx.rtm] + ([tx.rtb] if tx.rtb is not None and self.cond != 'untracked' else [])
         if any(h in anc(r) for r in tracked):
             return False
-        if self.d('amend') == 'safe':
+        rule = self.d('amend')
+        if rule in ('safe', 'reflog'):
             if tx.side is not None and h in anc(tx.side):
                 return False
             if any(t == h for (_, t, _) in ptrs) or treeptr == h:
                 return False
+        if rule == 'reflog' and not tx.verbhead:
+            return False
         return True
 
     # ------------------------------------------------------------ setup
@@ -973,7 +988,8 @@ class Model:
                 if scr[tx.pc][0] == 'op' and C(nl).parents != (tx.loc,):
                     lab += ' [amends HEAD]'
                     evs = self.drop_events(X, tx.loc, nl, 'amend', st.main)
-                out.append((lab, self.settx(st, i, tx._replace(loc=nl, pc=tx.pc + 1))._replace(ok=ok), evs))
+                ns = self.settx(st, i, self.head_moved(tx, scr[tx.pc][0] == 'op', loc=nl, pc=tx.pc + 1))
+                out.append((lab, ns._replace(ok=ok), evs))
         if self.direct and tx.side is not None:
             self.push_side(i, st, out)
         # 2. submit
@@ -1018,7 +1034,7 @@ class Model:
                 else:
                     nl, m = r
             if nl is not None:
-                ns = self.settx(st, i, tx._replace(loc=nl))._replace(ok=self.okadd(st.ok, m))
+                ns = self.settx(st, i, self.head_moved(tx, False, loc=nl))._replace(ok=self.okadd(st.ok, m))
                 out.append((f"{X}: pull --rebase its own remote branch", ns, []))
         # 6. update from the default branch: A at any time (an environment move);
         #    B only where it must (direct mode, the up-to-date rule, or a conflict)
@@ -1034,7 +1050,8 @@ class Model:
                 r = self.rebase(tx.loc, st.main)
                 if r is not None and r[0] != tx.loc:
                     nl, m = r
-                    ns = self.settx(st, i, tx._replace(loc=nl, rtm=st.main))._replace(ok=self.okadd(st.ok, m))
+                    ns = self.settx(st, i, self.head_moved(tx, False, loc=nl, rtm=st.main))._replace(
+                        ok=self.okadd(st.ok, m))
                     out.append((f"{X}: rebase onto main", ns, []))
 
     def fork_step(self, i, st, out):
@@ -1046,7 +1063,7 @@ class Model:
         kind, name = self.sc[X][tx.pc]
         if kind == 'branch':
             out.append((f"{X}: cut branch {name} from its unpushed tip and check it out",
-                        self.settx(st, i, tx._replace(side=tx.loc, pc=tx.pc + 1)), []))
+                        self.settx(st, i, self.head_moved(tx, False, side=tx.loc, pc=tx.pc + 1)), []))
             return
         t, bad = merge3(tree_of(merge_base(tx.side, tx.loc)), tree_of(tx.side), tree_of(tx.loc))
         if bad:
@@ -1054,7 +1071,7 @@ class Model:
             return
         m = mk((tx.side, tx.loc), tid(t), (('s', f"Merge branch '{name}'"),), 'merge', None, OPER[X])
         out.append((f"{X}: merge branch {name} into the branch it was cut from (--no-ff)",
-                    self.settx(st, i, tx._replace(loc=m, side=None, pc=tx.pc + 1)), []))
+                    self.settx(st, i, self.head_moved(tx, False, loc=m, side=None, pc=tx.pc + 1)), []))
 
     def push_side(self, i, st, out):
         """Direct mode, condition 'fork': while the cut branch is checked out, the operator may
@@ -1098,7 +1115,8 @@ class Model:
         msg = (('s', f"Merge branch 'main' into {X}"),)
         if not bad:
             m = mk((tx.loc, st.main), tid(t), msg, 'merge', None, me)
-            out.append((f"{X}: merge main into the branch", self.settx(st, i, tx._replace(loc=m, rtm=st.main)), []))
+            out.append((f"{X}: merge main into the branch",
+                        self.settx(st, i, self.head_moved(tx, False, loc=m, rtm=st.main)), []))
         elif self.cond == 'resolve' and st.flt == 0:
             for how in (('both',) if 'resolve-both' in self.p else ('ours', 'theirs', 'both', 'both+M.st=done')):
                 T = dict(t)
@@ -1111,7 +1129,8 @@ class Model:
                 evs = self.drop_events(X, tx.loc, m, 'conflict resolution', st.main)
                 evs = [(k + 'm' if k == 'T2' else k, d, det) for (k, d, det) in evs]
                 out.append((f"{X}: merge main, conflict on {bad} [FAULT: resolved by hand: {how}]",
-                            self.settx(st, i, tx._replace(loc=m, rtm=st.main))._replace(flt=2 + i), evs))
+                            self.settx(st, i, self.head_moved(tx, False, loc=m, rtm=st.main))._replace(flt=2 + i),
+                            evs))
         else:
             self.refuse(X, 'conflict')
         if 'norebase' in self.p:
@@ -1121,7 +1140,7 @@ class Model:
             self.refuse(X, 'conflict')
         else:
             nl, m = r
-            ns = self.settx(st, i, tx._replace(loc=nl, rtm=st.main))._replace(ok=self.okadd(st.ok, m))
+            ns = self.settx(st, i, self.head_moved(tx, False, loc=nl, rtm=st.main))._replace(ok=self.okadd(st.ok, m))
             out.append((f"{X}: rebase onto main", ns, []))
 
     def push_mr(self, i, st, out):
@@ -1411,7 +1430,7 @@ class Model:
                     if bad:
                         continue
                     nc = mk((tb.loc,), tid(t), cc.msg, cc.kind, cc.hid, cc.author, ('cherry', 'carol'))
-                    ns = self.settx(st, 1, tb._replace(loc=nc))._replace(flt=1)
+                    ns = self.settx(st, 1, self.head_moved(tb, False, loc=nc))._replace(flt=1)
                     out.append((f"B: cherry-pick {fmt_c(c)} from A's branch [FAULT]", ns, []))
 
     # ------------------------------------------------------------ terminal states
