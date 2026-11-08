@@ -16,7 +16,7 @@ The label and the prose conflate **two distinct states** that have different ope
 
 1. **Wrap-ritual pending** — the milestone is `in_progress` and the operator has work to do: finish ACs, run `aiwfx-wrap-milestone`, fill wrap-side sections, `aiwf promote done`. The operator's action is "do the wrap."
 
-2. **Trunk-merge pending** — the milestone is `done`, the wrap ritual is complete, the milestone branch is merged into its epic-integration branch (per `aiwfx-wrap-milestone` step 11), but trunk has not yet received the work because the epic itself is still in flight. The operator's action is **none** — the epic catches up to trunk via `aiwfx-wrap-epic` when its last milestone wraps.
+2. **Trunk-merge pending** — the milestone is `done`, the wrap ritual is complete, the milestone branch is merged into its epic-integration branch (per `aiwfx-wrap-milestone`'s merge step), but trunk has not yet received the work because the epic itself is still in flight. The operator's action is **none** — the epic catches up to trunk via `aiwfx-wrap-epic` when its last milestone wraps.
 
 The current message fires in BOTH cases with identical wording, and the phrase "WRAP PENDING" strongly suggests case 1 (operator forgot to wrap). For case 2 the label is misleading; the milestone IS wrapped.
 
