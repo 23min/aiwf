@@ -1,0 +1,65 @@
+################ H13 stash -u, merge other (retitled M-0001), stash pop, submit
+merge exit 0
+CONFLICT (content): Merge conflict in work/epics/E-0001-spike-epic/M-0001-spike-milestone-renamed-elsewhere.md
+pop exit 1
+pending on side ref: 2 ops; status: [UU work/epics/E-0001-spike-epic/M-0001-spike-milestone-renamed-elsewhere.md;?? work/gaps/G-0002-found-while-coding.md;]
+kept the pending side of the conflict in the working tree
+pending on side ref: 2 ops; status: [ M work/epics/E-0001-spike-epic/M-0001-spike-milestone-renamed-elsewhere.md;?? work/gaps/G-0002-found-while-coding.md;]
+-- submit
+100644 9f8f87538a6f8e73b2ae80e801841e1bee9672ba 1	work/epics/E-0001-spike-epic/M-0001-spike-milestone-renamed-elsewhere.md
+100644 4ea4f51affca11edd9339ffd52a1c84ec6fe209b 2	work/epics/E-0001-spike-epic/M-0001-spike-milestone-renamed-elsewhere.md
+100644 cd9a0400dbb258b53a17fcb44705084ab4036870 3	work/epics/E-0001-spike-epic/M-0001-spike-milestone-renamed-elsewhere.md
+
+Auto-merging work/epics/E-0001-spike-epic/M-0001-spike-milestone-renamed-elsewhere.md
+CONFLICT (content): Merge conflict in work/epics/E-0001-spike-epic/M-0001-spike-milestone-renamed-elsewhere.md
+submit exit 1
+################ H10c recover pending files from the side ref after git reset --hard + git clean -fd
+pending on side ref: 2 ops; status: []
+Applied patch to 'work/epics/E-0001-spike-epic/M-0001-spike-milestone.md' cleanly.
+Falling back to direct application...
+apply exit 0
+pending on side ref: 2 ops; status: [ M work/epics/E-0001-spike-epic/M-0001-spike-milestone.md;?? work/gaps/G-0002-found-while-coding.md;]
+aiwf show M-0001: M-0001 · Spike milestone · status: in_progress · tdd: none
+################ H15 git branch -m (side ref keyed by branch name)
+side refs: refs/aiwf/pending-base/epic/E-0001-spike-epic refs/aiwf/pending/epic/E-0001-spike-epic 
+submit: nothing pending
+pending on side ref: 0 ops; status: [ M work/epics/E-0001-spike-epic/M-0001-spike-milestone.md;?? work/gaps/G-0002-found-while-coding.md;]
+################ H14 skip-worktree on pending tracked files + info/exclude for new ones
+-- git status
+lines: 0
+-- git add -A; git commit (code change)
+files in the code commit: code.txt 
+-- git commit -a (code change)
+files: code.txt 
+pending M-0001 still on disk: 1
+-- git stash (pending file not stashed?)
+after stash, M-0001 on disk in_progress: 1
+-- git merge other (other retitled M-0001)
+Please commit your changes or stash them before you merge.
+Aborting
+Merge with strategy ort failed.
+merge exit 2
+after merge: M-0001 on disk: title: Spike milestone status: in_progress 
+skip-worktree bit still set: S
+-- git checkout other (other changed M-0001)
+	work/epics/E-0001-spike-epic/M-0001-spike-milestone.md
+Please commit your changes or stash them before you switch branches.
+Aborting
+checkout exit 1
+on epic/E-0001-spike-epic: M-0001 on disk: title: Spike milestone status: in_progress 
+back on epic/E-0001-spike-epic: M-0001 on disk: title: Spike milestone status: in_progress 
+-- git reset --hard
+M-0001 on disk after reset --hard: status: in_progress
+-- git pull --rebase / git rebase main
+Current branch epic/E-0001-spike-epic is up to date.
+rebase exit 0
+M-0001 on disk: status: in_progress
+-- unmodified aiwf promote M-0001/AC-1 met
+aiwf promote: M-0001/AC-1: uncommitted changes at work/epics/E-0001-spike-epic/M-0001-spike-milestone.md
+  this verb reads that file to decide what to do and commits what it finds
+exit 2
+-- sideverb promote M-0001/AC-1 met
+sideverb: recorded on refs/aiwf/pending/epic/E-0001-spike-epic (9efc278); branch stays at 92f427d
+skip-worktree bit after sideverb: H
+-- git worktree add
+in wt2: M-0001 · Spike milestone · status: draft · tdd: none

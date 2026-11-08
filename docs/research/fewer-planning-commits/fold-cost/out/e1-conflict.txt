@@ -1,0 +1,20 @@
+entity-body-empty (warning) × 4 — M-0001 body section `## Goal` is empty
+provenance-untrailered-scope-undefined (warning) × 1 — no upstream configured and no --since <ref>; provenance audit, body-section gate and instruction-file fence skipped
+
+5 findings (0 errors, 5 warnings)
+run `aiwf check --verbose` for each warning's location and remediation hint
+86e0933 feat: c2
+7cf3348 docs: clarify AC-2 by hand
+0027428 aiwf add ac M-0001/AC-2 "Another holds"
+f2604ce feat: c1
+$ fold.sh $BASE
+fold: conflict re-creating 7cf3348 docs: clarify AC-2 by hand; nothing changed
+  a500c15add1c9ff5c9e45c1a62f8367223a88b3a
+  100644 1cb456dab6d6d1cfffe9904fc9fcf4792713d76b 1	work/epics/E-0001-spike-epic/M-0001-spike-milestone.md
+  100644 9f8f87538a6f8e73b2ae80e801841e1bee9672ba 2	work/epics/E-0001-spike-epic/M-0001-spike-milestone.md
+  100644 cae99031380670f1066be66f0ad04ea174b178bb 3	work/epics/E-0001-spike-epic/M-0001-spike-milestone.md
+  
+  Auto-merging work/epics/E-0001-spike-epic/M-0001-spike-milestone.md
+  CONFLICT (content): Merge conflict in work/epics/E-0001-spike-epic/M-0001-spike-milestone.md
+fold exit 1
+branch unchanged: yes

@@ -1,0 +1,181 @@
+################ H1 git status noise
+ M work/epics/E-0001-spike-epic/M-0001-spike-milestone.md
+?? work/gaps/G-0002-found-while-coding.md
+lines: 2
+-- git diff --stat
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+################ H2 git add -A && git commit (a code change)
+ok — no findings
+[epic/E-0001-spike-epic 9a8af4e] feat: c3
+ 3 files changed, 14 insertions(+), 1 deletion(-)
+ create mode 100644 work/gaps/G-0002-found-while-coding.md
+commit exit 0
+files in the code commit: code.txt work/epics/E-0001-spike-epic/M-0001-spike-milestone.md work/gaps/G-0002-found-while-coding.md 
+pending on side ref: 2 ops; status: []
+-- aiwf check --since base
+error provenance-untrailered-entity-commit: commit 9a8af4e touched M-0001 with no aiwf-verb: trailer — hint: the commit modified this entity via plain `git commit`; two recovery paths: (1) `aiwf ack
+error provenance-untrailered-entity-commit: commit 9a8af4e touched G-0002 with no aiwf-verb: trailer — hint: the commit modified this entity via plain `git commit`; two recovery paths: (1) `aiwf ack
+8 findings (2 errors, 6 warnings)
+-- submit
+submit: 2 operations -> 504cd13; changed vs tip: 
+planning commit touches: []
+-- aiwf check --since base after submit
+error provenance-untrailered-entity-commit: commit 9a8af4e touched M-0001 with no aiwf-verb: trailer — hint: the commit modified this entity via plain `git commit`; two recovery paths: (1) `aiwf ack
+error provenance-untrailered-entity-commit: commit 9a8af4e touched G-0002 with no aiwf-verb: trailer — hint: the commit modified this entity via plain `git commit`; two recovery paths: (1) `aiwf ack
+8 findings (2 errors, 6 warnings)
+-- hooked push (first push, no upstream)
+7 findings (0 errors, 7 warnings)
+ * [new branch]      epic/E-0001-spike-epic -> epic/E-0001-spike-epic
+################ H3 git commit -a (a code change)
+files in the code commit: code.txt work/epics/E-0001-spike-epic/M-0001-spike-milestone.md 
+pending on side ref: 2 ops; status: [?? work/gaps/G-0002-found-while-coding.md;]
+################ H3b plain git commit after git add of a code path only
+files in the code commit: code.txt 
+pending on side ref: 2 ops; status: [ M work/epics/E-0001-spike-epic/M-0001-spike-milestone.md;?? work/gaps/G-0002-found-while-coding.md;]
+################ H4 git merge other (other retitled M-0001, the pending file)
+	work/epics/E-0001-spike-epic/M-0001-spike-milestone.md
+Please commit your changes or stash them before you merge.
+Aborting
+Merge with strategy ort failed.
+merge exit 2
+pending on side ref: 2 ops; status: [ M work/epics/E-0001-spike-epic/M-0001-spike-milestone.md;?? work/gaps/G-0002-found-while-coding.md;]
+-- git merge unrelated (code only)
+ 1 file changed, 1 insertion(+)
+ create mode 100644 unrelated.txt
+merge exit 0
+pending on side ref: 2 ops; status: [ M work/epics/E-0001-spike-epic/M-0001-spike-milestone.md;?? work/gaps/G-0002-found-while-coding.md;]
+-- git pull --rebase origin main
+error: cannot pull with rebase: You have unstaged changes.
+error: Please commit or stash them.
+exit 128
+-- git rebase main
+error: cannot rebase: You have unstaged changes.
+error: Please commit or stash them.
+exit 1
+################ H5 git stash, then a side verb, then stash pop
+Saved working directory and index state WIP on epic/E-0001-spike-epic: 92f427d feat: c2
+pending on side ref: 2 ops; status: [?? work/gaps/G-0002-found-while-coding.md;]
+-- aiwf show M-0001 after stash: M-0001 · Spike milestone · status: draft · tdd: none
+-- sideverb promote M-0001/AC-1 met (pending file stashed away)
+aiwf promote: M-0001/AC-1: uncommitted changes at work/epics/E-0001-spike-epic/M-0001-spike-milestone.md
+  this verb reads that file to decide what to do and commits what it finds
+  there, so both the decision and the record would rest on bytes no verb wrote
+  commit a body edit on its own with `aiwf edit-body <id>`, or set it aside with
+  `git stash -u` (`git restore work/epics/E-0001-spike-epic/M-0001-spike-milestone.md` discards it outright)
+  then re-run the verb
+exit 2
+pending on side ref: 2 ops; status: [?? work/gaps/G-0002-found-while-coding.md;]
+-- git stash pop
+
+no changes added to commit (use "git add" and/or "git commit -a")
+Dropped refs/stash@{0} (628f023d201aa6aa10e70e919e93c2636b72c705)
+exit 0
+pending on side ref: 2 ops; status: [ M work/epics/E-0001-spike-epic/M-0001-spike-milestone.md;?? work/gaps/G-0002-found-while-coding.md;]
+-- git stash -u then git stash pop
+Saved working directory and index state WIP on epic/E-0001-spike-epic: 92f427d feat: c2
+pending on side ref: 2 ops; status: []
+pending on side ref: 2 ops; status: [ M work/epics/E-0001-spike-epic/M-0001-spike-milestone.md;?? work/gaps/G-0002-found-while-coding.md;]
+################ H6 git checkout unrelated (pending files carried along)
+Switched to branch 'unrelated'
+M	work/epics/E-0001-spike-epic/M-0001-spike-milestone.md
+checkout exit 0
+on unrelated: aiwf show M-0001: M-0001 · Spike milestone · status: in_progress · tdd: none
+aiwf show G-0002: G-0002 · Found while coding · status: open
+pending on side ref: 2 ops; status: [ M work/epics/E-0001-spike-epic/M-0001-spike-milestone.md;?? work/gaps/G-0002-found-while-coding.md;]
+-- sideverb on unrelated: promote G-0001 addressed --by-commit HEAD
+aiwf promote G-0001 open -> addressed
+sideverb: recorded on refs/aiwf/pending/unrelated (5695881); branch stays at e5bde7f
+exit 0
+side refs now: refs/aiwf/pending-base/epic/E-0001-spike-epic refs/aiwf/pending-base/unrelated refs/aiwf/pending/epic/E-0001-spike-epic refs/aiwf/pending/unrelated 
+-- git checkout other (other changed the pending file)
+error: Your local changes to the following files would be overwritten by checkout:
+	work/epics/E-0001-spike-epic/M-0001-spike-milestone.md
+Please commit your changes or stash them before you switch branches.
+Aborting
+checkout exit 1
+################ H7 git worktree add (new branch from the epic branch tip)
+in wt: aiwf show M-0001: M-0001 · Spike milestone · status: draft · tdd: none
+in wt: aiwf show G-0002: aiwf show: G-0002 not found
+################ H8 unmodified aiwf verbs against pending files
+-- aiwf promote M-0001/AC-1 met (pending file M-0001)
+aiwf promote: M-0001/AC-1: uncommitted changes at work/epics/E-0001-spike-epic/M-0001-spike-milestone.md
+  this verb reads that file to decide what to do and commits what it finds
+  there, so both the decision and the record would rest on bytes no verb wrote
+  commit a body edit on its own with `aiwf edit-body <id>`, or set it aside with
+  `git stash -u` (`git restore work/epics/E-0001-spike-epic/M-0001-spike-milestone.md` discards it outright)
+  then re-run the verb
+exit 2
+-- aiwf edit-body G-0002 (pending, untracked)
+aiwf edit-body: G-0002 has no committed version yet — bless mode applies to existing entities only; use `aiwf add` for new entities, or supply `--body-file <path>` to set the body explicitly
+exit 2
+-- aiwf promote G-0001 addressed --by-commit HEAD (no pending change on G-0001)
+aiwf promote G-0001 open -> addressed
+exit 0
+branch now: 14e356c aiwf promote G-0001 open -> addressed
+pending on side ref: 2 ops; status: [ M work/epics/E-0001-spike-epic/M-0001-spike-milestone.md;?? work/gaps/G-0002-found-while-coding.md;]
+-- aiwf add gap (allocator vs untracked pending G-0002)
+aiwf add gap G-0003 "Another"
+exit 0
+c72cb59 aiwf add gap G-0003 "Another"
+################ H9 aiwf check / history / status between verbs
+-- aiwf check (full)
+6 findings (0 errors, 6 warnings)
+-- aiwf check --since base
+5 findings (0 errors, 5 warnings)
+-- aiwf history M-0001
+2026-11-07T11:09:18+00:00  human/peter       add         -             aiwf add milestone M-0001 "Spike milestone"  3de7
+2026-11-07T11:09:18+00:00  human/peter       add         -             aiwf add ac M-0001/AC-1 "Something holds"  bb222f
+-- aiwf status (in flight)
+aiwf status — 2026-11-07
+
+In flight
+  E-0001 — Spike epic    [active]
+     → M-0001 — Spike milestone    [in_progress]    · ACs 0/1 met (1 open)    · tdd: none
+
+Roadmap
+  (nothing planned)
+
+Open decisions
+  (none)
+
+################ H10 git reset --hard, git clean -fd
+pending on side ref: 2 ops; status: [?? work/gaps/G-0002-found-while-coding.md;]
+aiwf show M-0001: M-0001 · Spike milestone · status: draft · tdd: none
+-- next sideverb (promote M-0001/AC-1 met)
+  there, so both the decision and the record would rest on bytes no verb wrote
+  commit a body edit on its own with `aiwf edit-body <id>`, or set it aside with
+  `git stash -u` (`git restore work/epics/E-0001-spike-epic/M-0001-spike-milestone.md` discards it outright)
+  then re-run the verb
+exit 2
+pending on side ref: 2 ops; status: [?? work/gaps/G-0002-found-while-coding.md;]
+pending on side ref: 2 ops; status: [ M work/epics/E-0001-spike-epic/M-0001-spike-milestone.md;]
+################ H11 push between verbs
+6 findings (0 errors, 6 warnings)
+ * [new branch]      epic/E-0001-spike-epic -> epic/E-0001-spike-epic
+remote side refs: [0]
+################ H12 clean run: code commit with explicit paths, more side verbs, merge main, submit
+sideverb: recorded on refs/aiwf/pending/epic/E-0001-spike-epic (6fe1e80); branch stays at 92f427d
+merged unrelated: exit 0
+ok — no findings
+submit: 3 operations -> c1eb163; changed vs tip: work/epics/E-0001-spike-epic/M-0001-spike-milestone.md work/gaps/G-0002-found-while-coding.md 
+c1eb163 chore(plan): submit 3 planning operations
+f34d00a feat: c3
+06da13d Merge branch 'unrelated' into epic/E-0001-spike-epic
+92f427d feat: c2
+da99379 feat: c1
+e5bde7f feat: unrelated
+status after submit: []
+-- aiwf check --since base
+5 findings (0 errors, 5 warnings)
+-- aiwf history M-0001
+2026-11-07T11:09:18+00:00  human/peter       add         -             aiwf add milestone M-0001 "Spike milestone"  3de7
+2026-11-07T11:09:18+00:00  human/peter       add         -             aiwf add ac M-0001/AC-1 "Something holds"  bb222f
+2026-11-07T11:09:59+00:00  human/peter
+human/peter
+human/peter  promote
+add
+promote  → in_progress
+met  chore(plan): submit 3 planning operations  c1eb163
+-- hooked push
+6 findings (0 errors, 6 warnings)
+ * [new branch]      epic/E-0001-spike-epic -> epic/E-0001-spike-epic

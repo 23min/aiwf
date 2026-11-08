@@ -1,0 +1,432 @@
+diff --git a/internal/gitops/committree.go b/internal/gitops/committree.go
+index 5f4dd949b..493c335bb 100644
+--- a/internal/gitops/committree.go
++++ b/internal/gitops/committree.go
+@@ -58,6 +58,11 @@ func CommitTree(ctx context.Context, workdir string, removes []string, writes []
+ 		return commitTreeFromParent(ctx, workdir, "", removes, writes, subject, body, trailers)
+ 	}
+ 	parent = strings.TrimSpace(parent)
++	if amendEnabled() { // EXPERIMENT: see amend_experiment.go
++		if sha, handled, amendErr := tryAmend(ctx, workdir, parent, removes, writes, subject, body, trailers); handled {
++			return sha, amendErr
++		}
++	}
+ 	return commitTreeFromParent(ctx, workdir, parent, removes, writes, subject, body, trailers)
+ }
+ 
+@@ -141,6 +146,10 @@ func commitTreeFromParent(ctx context.Context, workdir, parent string, removes [
+ 	}
+ 	commitSHA = strings.TrimSpace(commitSHA)
+ 
++	if err = experimentInject(); err != nil { // EXPERIMENT: inert unless AIWF_EXPERIMENT_AMEND_{FAIL,DELAY} set
++		return "", err
++	}
++
+ 	err = run(ctx, workdir, "update-ref", "HEAD", commitSHA, parent)
+ 	if err != nil {
+ 		return "", fmt.Errorf("update-ref HEAD: %w", err)
+diff --git a/internal/gitops/amend_experiment.go b/internal/gitops/amend_experiment.go
+new file mode 100644
+index 000000000..7cb2ccf7f
+--- /dev/null
++++ b/internal/gitops/amend_experiment.go
+@@ -0,0 +1,399 @@
++package gitops
++
++// EXPERIMENT — throwaway prototype of "coalesce into the unpushed tip"
++// (amend). Inert unless AIWF_EXPERIMENT_AMEND=1. Not a product.
++//
++// When enabled, a verb amends HEAD instead of adding a commit when HEAD
++// is eligible (amendEligibility); otherwise it commits as today.
++//
++// Record format of an amended (multi-operation) commit:
++//
++//	aiwf: <n> operations (<verb> <entity>, <verb> <entity>, ...)
++//
++//	[1] <operation 1's original subject>
++//	<operation 1's original body, if any>
++//
++//	[2] <operation 2's original subject>
++//	<operation 2's original body, if any>
++//
++//	aiwf-verb: <op 1 verb>
++//	aiwf-entity: <op 1 entity>          (as op 1 emitted it)
++//	aiwf-actor: <op 1 actor>
++//	...every other trailer op 1 emitted, in emitted order...
++//	aiwf-op-time: <op 1 time, RFC 3339>
++//	aiwf-verb: <op 2 verb>
++//	...
++//	aiwf-op-time: <op 2 time>
++//
++// One trailer paragraph (git parses only the last paragraph as
++// trailers); operation groups are delimited by each aiwf-verb line, and
++// every group ends with aiwf-op-time. The first operation's time is the
++// amended commit's original author date; the commit keeps that author
++// date (as `git commit --amend` does) and gets a fresh committer date.
++//
++// AIWF_EXPERIMENT_AMEND_RULE=naive swaps in the original candidate-3
++// rule for comparison: same actor and principal, and no remote-tracking
++// ref contains HEAD. It skips the ritual-verb, other-branch, other-
++// worktree and names-HEAD checks.
++//
++// Failure injection (independent of AIWF_EXPERIMENT_AMEND, applies to
++// both the amend and the new-commit path, inert when unset):
++//
++//	AIWF_EXPERIMENT_AMEND_DELAY=<duration>  sleep after commit-tree, before update-ref
++//	AIWF_EXPERIMENT_AMEND_FAIL=before-update-ref  fail after commit-tree, before update-ref
++
++import (
++	"context"
++	"errors"
++	"fmt"
++	"os"
++	"os/exec"
++	"path/filepath"
++	"strings"
++	"time"
++
++	"github.com/23min/aiwf/internal/skills"
++)
++
++const (
++	amendEnv      = "AIWF_EXPERIMENT_AMEND"
++	amendFailEnv  = "AIWF_EXPERIMENT_AMEND_FAIL"
++	amendDelayEnv = "AIWF_EXPERIMENT_AMEND_DELAY"
++	trailerOpTime = "aiwf-op-time"
++)
++
++func amendEnabled() bool { return os.Getenv(amendEnv) == "1" }
++
++func amendTrace(format string, args ...any) {
++	fmt.Fprintf(os.Stderr, "aiwf-amend: "+format+"\n", args...)
++}
++
++// experimentInject runs between commit-tree and update-ref on both
++// paths. Inert unless one of the injection variables is set.
++func experimentInject() error {
++	if d := os.Getenv(amendDelayEnv); d != "" {
++		dur, err := time.ParseDuration(d)
++		if err == nil {
++			time.Sleep(dur)
++		}
++	}
++	if os.Getenv(amendFailEnv) == "before-update-ref" {
++		return errors.New("injected failure between commit-tree and update-ref")
++	}
++	return nil
++}
++
++type headCommit struct {
++	sha        string
++	parents    []string
++	branchRef  string
++	subject    string
++	body       string // message minus subject and trailer paragraph
++	trailers   []Trailer
++	authorName string
++	authorMail string
++	authorDate string
++}
++
++func loadHead(ctx context.Context, workdir, sha string) (*headCommit, error) {
++	h := &headCommit{sha: sha}
++	ref, err := output(ctx, workdir, "symbolic-ref", "-q", "HEAD")
++	if err == nil {
++		h.branchRef = strings.TrimSpace(ref)
++	}
++	meta, err := output(ctx, workdir, "log", "-1", "--format=%P%x00%an%x00%ae%x00%aI", sha)
++	if err != nil {
++		return nil, err
++	}
++	f := strings.SplitN(strings.TrimRight(meta, "\n"), "\x00", 4)
++	if len(f) != 4 {
++		return nil, fmt.Errorf("unexpected log output %q", meta)
++	}
++	h.parents = strings.Fields(f[0])
++	h.authorName, h.authorMail, h.authorDate = f[1], f[2], f[3]
++	raw, err := output(ctx, workdir, "log", "-1", "--format=%B", sha)
++	if err != nil {
++		return nil, err
++	}
++	tr, err := output(ctx, workdir, "log", "-1", "--format=%(trailers:only=true,unfold=true)", sha)
++	if err != nil {
++		return nil, err
++	}
++	h.trailers = ParseTrailers(tr)
++	msg := strings.TrimSpace(raw)
++	subject, rest, _ := strings.Cut(msg, "\n")
++	h.subject = subject
++	rest = strings.TrimSpace(rest)
++	if len(h.trailers) > 0 {
++		if i := strings.LastIndex(rest, "\n\n"); i >= 0 {
++			rest = strings.TrimSpace(rest[:i])
++		} else {
++			rest = ""
++		}
++	}
++	h.body = rest
++	return h, nil
++}
++
++// splitGroups splits a trailer list into operation groups, one per
++// aiwf-verb line.
++func splitGroups(trailers []Trailer) [][]Trailer {
++	var groups [][]Trailer
++	for _, t := range trailers {
++		if t.Key == TrailerVerb || len(groups) == 0 {
++			groups = append(groups, nil)
++		}
++		groups[len(groups)-1] = append(groups[len(groups)-1], t)
++	}
++	return groups
++}
++
++func trailerValues(group []Trailer, key string) []string {
++	var out []string
++	for _, t := range group {
++		if t.Key == key {
++			out = append(out, t.Value)
++		}
++	}
++	return out
++}
++
++func oneValue(group []Trailer, key string) string {
++	v := trailerValues(group, key)
++	if len(v) == 0 {
++		return ""
++	}
++	return v[0]
++}
++
++// amendEligibility applies the corrected rule. Returns "" when HEAD may
++// be amended, otherwise the reason it may not.
++func amendEligibility(ctx context.Context, workdir string, h *headCommit, writes []PathWrite, subject, body string, trailers []Trailer) string {
++	if h.branchRef == "" {
++		return "detached HEAD"
++	}
++	if len(h.parents) != 1 {
++		return fmt.Sprintf("HEAD has %d parents (merge or root commit)", len(h.parents))
++	}
++	newGroups := splitGroups(trailers)
++	if len(newGroups) != 1 || len(trailers) == 0 || trailers[0].Key != TrailerVerb {
++		return "new operation's trailers are not one group led by aiwf-verb"
++	}
++	if len(h.trailers) == 0 || h.trailers[0].Key != TrailerVerb {
++		return "HEAD is not a planning commit (no leading aiwf-verb trailer)"
++	}
++	naive := os.Getenv("AIWF_EXPERIMENT_AMEND_RULE") == "naive"
++	ritual, err := skills.RitualTrailerVerbs()
++	if err != nil {
++		return "cannot load ritual verb set: " + err.Error()
++	}
++	newActor := oneValue(trailers, TrailerActor)
++	newPrincipal := oneValue(trailers, TrailerPrincipal)
++	for _, g := range splitGroups(h.trailers) {
++		verbs := trailerValues(g, TrailerVerb)
++		if len(verbs) != 1 {
++			return "HEAD trailer group without exactly one aiwf-verb"
++		}
++		if _, isRitual := ritual[verbs[0]]; isRitual && !naive {
++			return "HEAD carries ritual verb " + verbs[0]
++		}
++		if a := trailerValues(g, TrailerActor); len(a) != 1 || a[0] != newActor {
++			return fmt.Sprintf("HEAD actor %v differs from %q", a, newActor)
++		}
++		if p := oneValue(g, TrailerPrincipal); p != newPrincipal {
++			return fmt.Sprintf("HEAD principal %q differs from %q", p, newPrincipal)
++		}
++	}
++	// No ref other than the current branch contains HEAD (covers other
++	// branches, tags, remote-tracking refs, refs/stash).
++	refs, err := output(ctx, workdir, "for-each-ref", "--contains", h.sha, "--format=%(refname)")
++	if err != nil {
++		return "for-each-ref failed: " + err.Error()
++	}
++	for _, r := range strings.Fields(refs) {
++		if naive && !strings.HasPrefix(r, "refs/remotes/") {
++			continue
++		}
++		if r != h.branchRef {
++			return "HEAD is contained in " + r
++		}
++	}
++	if naive {
++		return ""
++	}
++	// No other worktree's HEAD contains HEAD.
++	top, err := output(ctx, workdir, "rev-parse", "--show-toplevel")
++	if err != nil {
++		return "rev-parse --show-toplevel failed"
++	}
++	top = filepath.Clean(strings.TrimSpace(top))
++	wl, err := output(ctx, workdir, "worktree", "list", "--porcelain")
++	if err != nil {
++		return "worktree list failed"
++	}
++	var wtPath string
++	for _, line := range strings.Split(wl, "\n") {
++		if p, ok := strings.CutPrefix(line, "worktree "); ok {
++			wtPath = filepath.Clean(p)
++			continue
++		}
++		other, ok := strings.CutPrefix(line, "HEAD ")
++		if !ok || wtPath == top {
++			continue
++		}
++		if run(ctx, workdir, "merge-base", "--is-ancestor", h.sha, other) == nil {
++			return "HEAD is contained in worktree " + wtPath
++		}
++	}
++	// Nothing the new operation writes names HEAD's SHA.
++	needle := h.sha[:7]
++	if strings.Contains(subject, needle) || strings.Contains(body, needle) {
++		return "new operation's message names HEAD"
++	}
++	for _, t := range trailers {
++		if strings.Contains(t.Value, needle) {
++			return "new operation's trailer " + t.Key + " names HEAD"
++		}
++	}
++	for _, w := range writes {
++		if strings.Contains(string(w.Content), needle) {
++			return "new operation's write to " + w.Path + " names HEAD"
++		}
++	}
++	return ""
++}
++
++func groupLabel(g []Trailer) string {
++	label := oneValue(g, TrailerVerb)
++	if e := oneValue(g, TrailerEntity); e != "" {
++		label += " " + e
++	}
++	return label
++}
++
++// amendMessage builds the multi-operation message for HEAD plus the new
++// operation.
++func amendMessage(h *headCommit, subject, body string, trailers []Trailer, now time.Time) string {
++	var sections []string
++	var all []Trailer
++	if oneValue(h.trailers, trailerOpTime) != "" {
++		// Already multi-operation: keep its sections and trailers.
++		sections = append(sections, h.body)
++		all = append(all, h.trailers...)
++	} else {
++		s := "[1] " + h.subject
++		if h.body != "" {
++			s += "\n" + h.body
++		}
++		sections = append(sections, s)
++		all = append(all, h.trailers...)
++		all = append(all, Trailer{Key: trailerOpTime, Value: h.authorDate})
++	}
++	n := len(splitGroups(all)) + 1
++	s := fmt.Sprintf("[%d] %s", n, strings.TrimRight(subject, "\n"))
++	if b := strings.TrimSpace(body); b != "" {
++		s += "\n" + b
++	}
++	sections = append(sections, s)
++	all = append(all, trailers...)
++	all = append(all, Trailer{Key: trailerOpTime, Value: now.Format(time.RFC3339)})
++
++	var labels []string
++	for _, g := range splitGroups(all) {
++		labels = append(labels, groupLabel(g))
++	}
++	summary := strings.Join(labels, ", ")
++	if len(labels) > 4 {
++		summary = strings.Join(labels[:4], ", ") + ", ..."
++	}
++	return CommitMessage(fmt.Sprintf("aiwf: %d operations (%s)", n, summary), strings.Join(sections, "\n\n"), all)
++}
++
++// tryAmend amends HEAD with the operation when eligible. handled is
++// false when HEAD is not eligible (the caller commits as today).
++func tryAmend(ctx context.Context, workdir, headSHA string, removes []string, writes []PathWrite, subject, body string, trailers []Trailer) (sha string, handled bool, err error) {
++	h, err := loadHead(ctx, workdir, headSHA)
++	if err != nil {
++		amendTrace("new commit: cannot read HEAD: %v", err)
++		return "", false, nil
++	}
++	if reason := amendEligibility(ctx, workdir, h, writes, subject, body, trailers); reason != "" {
++		amendTrace("new commit: %s", reason)
++		return "", false, nil
++	}
++
++	gitDir, err := GitDir(ctx, workdir)
++	if err != nil {
++		return "", true, fmt.Errorf("resolving git dir: %w", err)
++	}
++	tmpDir, err := os.MkdirTemp(gitDir, "aiwf-amend-tree-*")
++	if err != nil {
++		return "", true, fmt.Errorf("creating temp index dir: %w", err)
++	}
++	defer func() { _ = os.RemoveAll(tmpDir) }()
++	indexPath := filepath.Join(tmpDir, "index")
++	if err = runIndexed(ctx, workdir, indexPath, "read-tree", headSHA); err != nil {
++		return "", true, err
++	}
++	for _, path := range removes {
++		if err = runIndexed(ctx, workdir, indexPath, "update-index", "--force-remove", path); err != nil {
++			return "", true, err
++		}
++	}
++	for _, w := range writes {
++		blob, hErr := hashObject(ctx, workdir, w.Content)
++		if hErr != nil {
++			return "", true, hErr
++		}
++		if err = runIndexed(ctx, workdir, indexPath, "update-index", "--add", "--cacheinfo", "100644,"+blob+","+w.Path); err != nil {
++			return "", true, err
++		}
++	}
++	treeSHA, err := outputIndexed(ctx, workdir, indexPath, "write-tree")
++	if err != nil {
++		return "", true, err
++	}
++	msg := amendMessage(h, subject, body, trailers, time.Now())
++	args := []string{"commit-tree", strings.TrimSpace(treeSHA), "-p", h.parents[0]}
++	sign, err := gpgSignEnabled(ctx, workdir)
++	if err != nil {
++		return "", true, err
++	}
++	if sign {
++		args = append(args, "-S")
++	}
++	args = append(args, "-m", msg)
++	cmd := exec.CommandContext(ctx, "git", args...)
++	cmd.Dir = workdir
++	cmd.Env = append(os.Environ(),
++		"GIT_AUTHOR_NAME="+h.authorName,
++		"GIT_AUTHOR_EMAIL="+h.authorMail,
++		"GIT_AUTHOR_DATE="+h.authorDate)
++	var stderr strings.Builder
++	cmd.Stderr = &stderr
++	out, err := cmd.Output()
++	if err != nil {
++		return "", true, fmt.Errorf("commit-tree: %w\n%s", err, stderr.String())
++	}
++	newSHA := strings.TrimSpace(string(out))
++	if err = experimentInject(); err != nil {
++		return "", true, err
++	}
++	if err = run(ctx, workdir, "update-ref", "-m", "aiwf amend: "+subject, "HEAD", newSHA, headSHA); err != nil {
++		return "", true, fmt.Errorf("update-ref HEAD: %w", err)
++	}
++	rule := "corrected"
++	if os.Getenv("AIWF_EXPERIMENT_AMEND_RULE") == "naive" {
++		rule = "naive"
++	}
++	amendTrace("amended %s -> %s (%d operations, rule %s)", headSHA[:7], newSHA[:7], len(splitGroups(ParseTrailers(trailerBlock(msg)))), rule)
++	return newSHA, true, nil
++}
++
++func trailerBlock(msg string) string {
++	msg = strings.TrimSpace(msg)
++	if i := strings.LastIndex(msg, "\n\n"); i >= 0 {
++		return msg[i+2:]
++	}
++	return ""
++}

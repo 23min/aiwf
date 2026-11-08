@@ -1,0 +1,66 @@
+=== feat: c2
+  original:
+    test=pass
+    full=3 warning entity-body-empty E-0001;1 warning entity-body-empty M-0001;1 warning epic-active-no-drafted-milestones E-0001;1 warning provenance-untrailered-scope-undefined ;
+    since=3 warning entity-body-empty E-0001;1 warning entity-body-empty M-0001;1 warning epic-active-no-drafted-milestones E-0001;
+    status: M-0001=in_progress G-0001=open
+  re-created:
+    test=pass
+    full=3 warning entity-body-empty E-0001;1 warning entity-body-empty M-0001;1 warning provenance-untrailered-scope-undefined ;
+    since=3 warning entity-body-empty E-0001;1 warning entity-body-empty M-0001;
+    status: M-0001=draft G-0001=open
+=== fix: c3, follow-up to d2e5a74c4288a0dd1508519eb74bfb77ecb6a9db
+  original:
+    test=pass
+    full=3 warning entity-body-empty E-0001;1 warning entity-body-empty M-0001;1 warning epic-active-no-drafted-milestones E-0001;1 warning provenance-untrailered-scope-undefined ;
+    since=3 warning entity-body-empty E-0001;1 warning entity-body-empty M-0001;1 warning epic-active-no-drafted-milestones E-0001;
+    status: M-0001=in_progress G-0001=open
+  re-created:
+    test=pass
+    full=3 warning entity-body-empty E-0001;1 warning entity-body-empty M-0001;1 warning provenance-untrailered-scope-undefined ;
+    since=3 warning entity-body-empty E-0001;1 warning entity-body-empty M-0001;
+    status: M-0001=draft G-0001=open
+=== docs: tweak epic wording by hand
+  original:
+    test=pass
+    full=1 warning archive-sweep-pending ;2 warning entity-body-empty E-0001;1 warning entity-body-empty M-0001;1 warning epic-active-no-drafted-milestones E-0001;1 warning provenance-untrailered-scope-undefined ;1 warning terminal-entity-not-archived G-0001;
+    since=1 error provenance-untrailered-entity-commit E-0001;1 warning archive-sweep-pending ;2 warning entity-body-empty E-0001;1 warning entity-body-empty M-0001;1 warning epic-active-no-drafted-milestones E-0001;1 warning terminal-entity-not-archived G-0001;
+    status: M-0001=in_progress G-0001=addressed
+  re-created:
+    test=pass
+    full=2 warning entity-body-empty E-0001;1 warning entity-body-empty M-0001;1 warning provenance-untrailered-scope-undefined ;
+    since=1 error provenance-untrailered-entity-commit E-0001;2 warning entity-body-empty E-0001;1 warning entity-body-empty M-0001;
+    status: M-0001=draft G-0001=open
+=== feat: c4
+  original:
+    test=pass
+    full=1 warning archive-sweep-pending ;2 warning entity-body-empty E-0001;1 warning entity-body-empty M-0001;1 warning epic-active-no-drafted-milestones E-0001;1 warning provenance-untrailered-scope-undefined ;1 warning terminal-entity-not-archived G-0001;
+    since=1 warning archive-sweep-pending ;2 warning entity-body-empty E-0001;1 warning entity-body-empty M-0001;1 warning epic-active-no-drafted-milestones E-0001;1 warning terminal-entity-not-archived G-0001;
+    status: M-0001=in_progress G-0001=addressed
+  re-created:
+    test=pass
+    full=2 warning entity-body-empty E-0001;1 warning entity-body-empty M-0001;1 warning provenance-untrailered-scope-undefined ;
+    since=1 error provenance-untrailered-entity-commit E-0001;2 warning entity-body-empty E-0001;1 warning entity-body-empty M-0001;
+    status: M-0001=draft G-0001=open
+=== Merge remote-tracking branch 'origin/main' into epic/E-0001-spike-epic
+  original:
+    test=pass
+    full=1 warning archive-sweep-pending ;2 warning entity-body-empty E-0001;1 warning entity-body-empty M-0001;1 warning epic-active-no-drafted-milestones E-0001;1 warning provenance-untrailered-scope-undefined ;1 warning terminal-entity-not-archived G-0001;
+    since=1 warning archive-sweep-pending ;2 warning entity-body-empty E-0001;1 warning entity-body-empty M-0001;1 warning epic-active-no-drafted-milestones E-0001;1 warning terminal-entity-not-archived G-0001;
+    status: M-0001=in_progress G-0001=addressed
+  re-created:
+    test=pass
+    full=2 warning entity-body-empty E-0001;1 warning entity-body-empty M-0001;1 warning provenance-untrailered-scope-undefined ;
+    since=1 error provenance-untrailered-entity-commit E-0001;2 warning entity-body-empty E-0001;1 warning entity-body-empty M-0001;
+    status: M-0001=draft G-0001=open
+=== feat: c5
+  original:
+    test=pass
+    full=1 warning archive-sweep-pending ;2 warning entity-body-empty E-0001;1 warning entity-body-empty M-0001;1 warning epic-active-no-drafted-milestones E-0001;1 warning provenance-untrailered-scope-undefined ;1 warning terminal-entity-not-archived G-0001;
+    since=1 warning archive-sweep-pending ;2 warning entity-body-empty E-0001;1 warning entity-body-empty M-0001;1 warning epic-active-no-drafted-milestones E-0001;1 warning terminal-entity-not-archived G-0001;
+    status: M-0001=in_progress G-0001=addressed
+  re-created:
+    test=pass
+    full=2 warning entity-body-empty E-0001;1 warning entity-body-empty M-0001;1 warning provenance-untrailered-scope-undefined ;
+    since=1 error provenance-untrailered-entity-commit E-0001;2 warning entity-body-empty E-0001;1 warning entity-body-empty M-0001;
+    status: M-0001=draft G-0001=open

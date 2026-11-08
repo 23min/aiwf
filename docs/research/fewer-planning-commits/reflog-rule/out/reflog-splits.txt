@@ -1,0 +1,22 @@
+# 2026-11-08 11:55 UTC, Linux 7.0.14-linuxkit, git version 2.51.1
+  551feac7a (plan-epic) after 'commit', then verb d57a70eb8: aiwf add milestone M-0323 "Settle what closing an epic is"
+  bf352d084 (plan-milestones) after 'commit', then verb fceb895e0: aiwf promote E-0090 proposed -> active
+  8a94919cd (plan-epic) after 'commit', then verb 34a56d2e8: aiwf archive: sweep 2 entities into archive/ (2 gap)
+  6d3ed567c (plan-milestones) after 'commit', then verb e8331bb1e: aiwf promote E-0091 proposed -> active
+  1b9ab311d (edit-body) after 'cherry-pick', then verb 821bfc767: aiwf add gap G-0660 "The compression lens's gate run cannot go red for the deletions it proposes"
+  0540a7048 (plan-milestones) after 'commit', then verb bf99b9e6e: aiwf promote E-0084 proposed -> active
+  8b2a0d7c6 (plan-epic) after 'commit', then verb e89e9b8c8: aiwf add gap G-0676 "A CLAUDE.md edit rides inside any commit and no gate is specific to it"
+  107b3eefe (plan-milestones) after 'commit', then verb 7ffcc3ea3: aiwf milestone tdd M-0336 -> advisory
+  488d09bfd (plan-epic) after 'commit', then verb c5d2c1fce: aiwf promote E-0093 proposed -> active
+  80225c6cc (plan-milestones) after 'commit', then verb 2358a024d: aiwf promote E-0094 proposed -> active
+  1e062953e (plan-epic) after 'commit', then verb a3db6fcdf: aiwf add milestone M-0351 "Adopt applicable guidance packs automatically in init and update"
+  0ff4f6404 (plan-milestones) after 'commit', then verb 0d1472a76: aiwf edit-body E-0095
+  c4ac35bd6 (plan-epic) after 'commit', then verb cd8c07bda: aiwf add milestone M-0354 "Gate everything the binary embeds and clear what it finds"
+  3f6250abb (plan-milestones) after 'commit', then verb 91b7d8921: aiwf add epic E-0097 "Ask what can be dropped at plan time and prove removals on demand"
+  15d4faac1 (plan-epic) after 'commit', then verb b7e2ab8bc: aiwf promote ADR-0055 proposed -> accepted
+  a3bf73d3d (plan-milestones) after 'commit', then verb 202363618: aiwf edit-body M-0357
+  f57c8c1b2 (plan-epic) after 'commit', then verb 0ac56c2ab: aiwf add milestone M-0359 "Generate aiwf's devcontainer from the kit with its own steps in project hooks"
+  a9baa00f8 (plan-milestones) after 'commit', then verb 9c262dc53: aiwf promote E-0098 proposed -> active
+  2d0382724 (plan-epic) after 'commit', then verb 0ffe01a7a: aiwf edit-body E-0099
+  736018f9b (plan-milestones) after 'commit', then verb e8987c72c: aiwf promote E-0099 proposed -> active
+runs the reflog rule splits in this checkout: 20

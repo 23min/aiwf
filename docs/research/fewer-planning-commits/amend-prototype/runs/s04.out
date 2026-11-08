@@ -1,0 +1,378 @@
+## environment
+date: 2026-11-07T11:10:34Z
+git: git version 2.51.1
+aiwf binary: /tmp/claude-1000/-workspaces-aiwf/eb2423dd-a702-4bd8-a308-1404db3d3991/scratchpad/amend-proto/bin/aiwf sha256=08d249b2f404d4a1
+built from: /workspaces/aiwf/.claude/worktrees/patch/research-commit-noise at 4343f2bd1 + uncommitted diff sha256=2bc752b6c459eb67
+AIWF_EXPERIMENT_AMEND=1 HOME=/tmp/claude-1000/-workspaces-aiwf/eb2423dd-a702-4bd8-a308-1404db3d3991/scratchpad/amend-proto/runs/s04.2fk5/home
+
+ok — no findings
+
+## a1: second worktree on a new branch cut from HEAD
+$ aiwf add gap --title gap a1 --body ## What's missing
+
+x.
+
+## Why it matters
+
+y.
+aiwf-amend: new commit: HEAD has 0 parents (merge or root commit)
+aiwf add gap G-0001 "gap a1"
+$ git worktree add -q -b side /tmp/claude-1000/-workspaces-aiwf/eb2423dd-a702-4bd8-a308-1404db3d3991/scratchpad/amend-proto/runs/s04.2fk5/wt-side
+$ aiwf add gap --title gap a1 second --body ## What's missing
+
+x.
+
+## Why it matters
+
+y.
+aiwf-amend: new commit: HEAD is contained in refs/heads/side
+aiwf add gap G-0002 "gap a1 second"
+47389f5 f34f6c1    aiwf add gap G-0002 "gap a1 second"  {verbs: add}
+f34f6c1 e16cbac    aiwf add gap G-0001 "gap a1"  {verbs: add}
+
+## a1: verbs inside the side worktree
+$ aiwf add decision --title side decision --body ## Question
+
+q?
+
+## Decision
+
+d.
+
+## Reasoning
+
+r.
+aiwf-amend: new commit: HEAD is contained in refs/heads/main
+aiwf add decision D-0001 "side decision"
+$ aiwf set-priority D-0001 high
+aiwf-amend: amended 839d69f -> 4db3f1b (2 operations, rule corrected)
+aiwf set-priority D-0001 high
+4db3f1b f34f6c1    aiwf: 2 operations (add D-0001, set-priority D-0001)  {verbs: add,set-priority}
+f34f6c1 e16cbac    aiwf add gap G-0001 "gap a1"  {verbs: add}
+e16cbac            chore: init aiwf  {verbs: }
+.aiwf.lock
+?? .aiwf.lock
+
+## a2: detached worktree at HEAD (no ref names it)
+$ git worktree add -q --detach /tmp/claude-1000/-workspaces-aiwf/eb2423dd-a702-4bd8-a308-1404db3d3991/scratchpad/amend-proto/runs/s04.2fk5/wt-detached HEAD
+$ aiwf add gap --title gap a2 --body ## What's missing
+
+x.
+
+## Why it matters
+
+y.
+aiwf-amend: new commit: HEAD is contained in worktree /tmp/claude-1000/-workspaces-aiwf/eb2423dd-a702-4bd8-a308-1404db3d3991/scratchpad/amend-proto/runs/s04.2fk5/wt-detached
+aiwf add gap G-0003 "gap a2"
+$ git worktree remove /tmp/claude-1000/-workspaces-aiwf/eb2423dd-a702-4bd8-a308-1404db3d3991/scratchpad/amend-proto/runs/s04.2fk5/wt-detached
+$ aiwf add gap --title gap a2 after remove --body ## What's missing
+
+x.
+
+## Why it matters
+
+y.
+aiwf-amend: amended add704a -> 11de1f7 (2 operations, rule corrected)
+aiwf add gap G-0004 "gap a2 after remove"
+11de1f7 47389f5    aiwf: 2 operations (add G-0003, add G-0004)  {verbs: add,add}
+47389f5 f34f6c1    aiwf add gap G-0002 "gap a1 second"  {verbs: add}
+f34f6c1 e16cbac    aiwf add gap G-0001 "gap a1"  {verbs: add}
+
+## b: stash between verbs
+$ git push -q origin main
+ok — no findings
+$ aiwf add gap --title gap b1 --body ## What's missing
+
+x.
+
+## Why it matters
+
+y.
+aiwf-amend: new commit: HEAD is not a planning commit (no leading aiwf-verb trailer)
+aiwf add gap G-0005 "gap b1"
+$ git stash
+Saved working directory and index state WIP on main: 10fca84 aiwf add gap G-0005 "gap b1"
+refs containing HEAD: refs/heads/main refs/stash 
+$ aiwf add gap --title gap b2 (stash holds HEAD) --body ## What's missing
+
+x.
+
+## Why it matters
+
+y.
+aiwf-amend: new commit: HEAD is contained in refs/stash
+aiwf add gap G-0006 "gap b2 (stash holds HEAD)"
+$ git stash pop
+On branch main
+Your branch is ahead of 'origin/main' by 2 commits.
+  (use "git push" to publish your local commits)
+
+Changes not staged for commit:
+  (use "git add <file>..." to update what will be committed)
+  (use "git restore <file>..." to discard changes in working directory)
+	modified:   notes.txt
+
+no changes added to commit (use "git add" and/or "git commit -a")
+Dropped refs/stash@{0} (ec51a66ba2d695514ebc526f4093f39192ffa8a8)
+$ aiwf add gap --title gap b3 (after pop) --body ## What's missing
+
+x.
+
+## Why it matters
+
+y.
+aiwf-amend: amended 5b37cdf -> 1cadbac (2 operations, rule corrected)
+aiwf add gap G-0007 "gap b3 (after pop)"
+1cadbac 10fca84    aiwf: 2 operations (add G-0006, add G-0007)  {verbs: add,add}
+10fca84 7ba6ab5    aiwf add gap G-0005 "gap b1"  {verbs: add}
+7ba6ab5 11de1f7    chore: tracked notes  {verbs: }
+
+## c: reset --soft HEAD~ after a run
+$ git push -q origin main
+ok — no findings
+$ aiwf add gap --title gap c1 --body ## What's missing
+
+x.
+
+## Why it matters
+
+y.
+aiwf-amend: new commit: HEAD is contained in refs/remotes/origin/main
+aiwf add gap G-0008 "gap c1"
+$ aiwf set-priority G-0008 low
+aiwf-amend: amended 5eeef09 -> f6207de (2 operations, rule corrected)
+aiwf set-priority G-0008 low
+$ aiwf retitle G-0008 gap c1 retitled
+aiwf-amend: amended f6207de -> 8d56995 (3 operations, rule corrected)
+aiwf retitle G-0008 -> "gap c1 retitled"
+8d56995 1cadbac    aiwf: 3 operations (add G-0008, set-priority G-0008, retitle G-0008)  {verbs: add,set-priority,retitle}
+1cadbac 10fca84    aiwf: 2 operations (add G-0006, add G-0007)  {verbs: add,add}
+$ git reset --soft HEAD~
+$ git status --short
+A  work/gaps/G-0008-gap-c1-retitled.md
+$ aiwf add gap --title gap c2 after soft reset --body ## What's missing
+
+x.
+
+## Why it matters
+
+y.
+aiwf-amend: new commit: HEAD is contained in refs/remotes/origin/main
+aiwf add gap G-0009 "gap c2 after soft reset"
+$ aiwf set-priority G-0009 high
+aiwf-amend: amended 7b6d38f -> 9640024 (2 operations, rule corrected)
+aiwf set-priority G-0009 high
+$ git status --short
+A  work/gaps/G-0008-gap-c1-retitled.md
+9640024 1cadbac    aiwf: 2 operations (add G-0009, set-priority G-0009)  {verbs: add,set-priority}
+1cadbac 10fca84    aiwf: 2 operations (add G-0006, add G-0007)  {verbs: add,add}
+
+## c: user commits the staged leftovers with plain git commit
+$ git commit -qm chore: leftovers
+ok — no findings
+$ aiwf check
+error provenance-untrailered-entity-commit: commit cba0f85 touched G-0008 with no aiwf-verb: trailer — hint: the commit modified this entity via plain `git commit`; two recovery paths: (1) `aiwf acknowledge illegal <sha> --for-entity <id> --reason "..."` — SHA-verified per-(commit, entity) ack, the kernel walks `git diff-tree` to confirm the binding (G-0231 item 3); (2) `aiwf promote <id> <state> --audit-only --reason "..."` or `aiwf cancel <id> --audit-only --reason "..."` — per-entity blanket, no SHA binding. Use (1) for body-edit acks where the SHA is real and the kernel should verify; use (2) for status flips where the per-entity blanket fits. Either clears the matching finding on the next push.
+
+1 findings (1 errors, 0 warnings)
+[exit 1]
+$ git reset -q --hard origin/main
+
+## d: reset --mixed HEAD~ after a run
+$ aiwf add gap --title gap d1 --body ## What's missing
+
+x.
+
+## Why it matters
+
+y.
+aiwf-amend: new commit: HEAD is contained in refs/remotes/origin/main
+aiwf add gap G-0008 "gap d1"
+$ aiwf set-priority G-0008 low
+aiwf-amend: amended cfc0339 -> f428720 (2 operations, rule corrected)
+aiwf set-priority G-0008 low
+$ git reset --mixed HEAD~
+$ git status --short
+?? work/gaps/G-0008-gap-d1.md
+$ aiwf set-priority G-0008 high
+aiwf set-priority: G-0008: the record holds no version of work/gaps/G-0008-gap-d1.md
+  this verb reads that file to decide what to do and commits what it finds
+  there, so both the decision and the record would rest on bytes no verb wrote
+  work/gaps/G-0008-gap-d1.md is at a path the record does not hold. If the file was moved without a
+  verb, its committed copy is still at the old path — `git status` shows that
+  path as deleted; restore it and remove this one, or the same id lands at two
+  paths. If the entity has never been committed, commit it first with
+  `aiwf edit-body <id> --body-file <path>`
+  then re-run the verb
+[exit 2]
+$ aiwf retitle G-0008 gap d1 retitled
+aiwf retitle: G-0008: the record holds no version of work/gaps/G-0008-gap-d1.md
+  this verb reads that file to decide what to do and commits what it finds
+  there, so both the decision and the record would rest on bytes no verb wrote
+  work/gaps/G-0008-gap-d1.md is at a path the record does not hold. If the file was moved without a
+  verb, its committed copy is still at the old path — `git status` shows that
+  path as deleted; restore it and remove this one, or the same id lands at two
+  paths. If the entity has never been committed, commit it first with
+  `aiwf edit-body <id> --body-file <path>`
+  then re-run the verb
+[exit 2]
+1cadbac 10fca84    aiwf: 2 operations (add G-0006, add G-0007)  {verbs: add,add}
+10fca84 7ba6ab5    aiwf add gap G-0005 "gap b1"  {verbs: add}
+$ git reset -q --hard origin/main
+
+## e: reset --hard HEAD~ after a run, then recovery from the reflog
+$ aiwf add gap --title gap e1 --body ## What's missing
+
+x.
+
+## Why it matters
+
+y.
+aiwf-amend: new commit: HEAD is contained in refs/remotes/origin/main
+aiwf add gap G-0008 "gap e1"
+$ aiwf set-priority G-0008 urgent
+aiwf-amend: amended 5838d9f -> 7776abe (2 operations, rule corrected)
+aiwf set-priority G-0008 urgent
+$ aiwf retitle G-0008 gap e1 retitled
+aiwf-amend: amended 7776abe -> 94d8903 (3 operations, rule corrected)
+aiwf retitle G-0008 -> "gap e1 retitled"
+$ git reset --hard HEAD~
+HEAD is now at 1cadbac aiwf: 2 operations (add G-0006, add G-0007)
+1cadbac reset: moving to HEAD~
+94d8903 aiwf amend: aiwf retitle G-0008 -> "gap e1 retitled"
+7776abe aiwf amend: aiwf set-priority G-0008 urgent
+5838d9f 
+1cadbac reset: moving to origin/main
+1cadbac reset: moving to HEAD~
+$ git reset --hard HEAD@{1}
+HEAD is now at 94d8903 aiwf: 3 operations (add G-0008, set-priority G-0008, retitle G-0008)
+94d8903 1cadbac    aiwf: 3 operations (add G-0008, set-priority G-0008, retitle G-0008)  {verbs: add,set-priority,retitle}
+
+## f: pull --rebase with an unpushed amended run
+$ git push -q origin main
+ok — no findings
+$ aiwf add gap --title gap f1 --body ## What's missing
+
+x.
+
+## Why it matters
+
+y.
+aiwf-amend: new commit: HEAD is contained in refs/remotes/origin/main
+aiwf add gap G-0009 "gap f1"
+$ aiwf set-priority G-0009 low
+aiwf-amend: amended fafb7e1 -> 3e93c07 (2 operations, rule corrected)
+aiwf set-priority G-0009 low
+peer pushed: 3035b48 feat: peer-f
+$ git pull -q --rebase origin main
+7eb6596 3035b48    aiwf: 2 operations (add G-0009, set-priority G-0009)  {verbs: add,set-priority}
+3035b48 94d8903    feat: peer-f  {verbs: }
+94d8903 1cadbac    aiwf: 3 operations (add G-0008, set-priority G-0008, retitle G-0008)  {verbs: add,set-priority,retitle}
+$ aiwf set-priority G-0009 high
+aiwf-amend: amended 7eb6596 -> 3711e52 (3 operations, rule corrected)
+aiwf set-priority G-0009 high
+3711e52 3035b48    aiwf: 3 operations (add G-0009, set-priority G-0009, set-priority G-0009)  {verbs: add,set-priority,set-priority}
+3035b48 94d8903    feat: peer-f  {verbs: }
+94d8903 1cadbac    aiwf: 3 operations (add G-0008, set-priority G-0008, retitle G-0008)  {verbs: add,set-priority,retitle}
+operations reachable: 13  distinct: 12
+DUPLICATE ('set-priority', 'G-0009', '-', '-', 'human/peter', '2026-11-07T11:10:43Z') in commits ['3711e52', '3711e52']
+
+## g: pull (merge) with an unpushed amended run
+$ git push -q origin main
+ok — no findings
+$ aiwf add gap --title gap g1 --body ## What's missing
+
+x.
+
+## Why it matters
+
+y.
+aiwf-amend: new commit: HEAD is contained in refs/remotes/origin/main
+aiwf add gap G-0010 "gap g1"
+peer pushed: 5c1b3d5 feat: peer-g
+$ git pull -q --no-rebase origin main
+$ aiwf set-priority G-0010 low
+aiwf-amend: new commit: HEAD has 2 parents (merge or root commit)
+aiwf set-priority G-0010 low
+801e853 21e1411    aiwf set-priority G-0010 low  {verbs: set-priority}
+21e1411 69d66d1 .. Merge branch 'main' of /tmp/claude-1000/-workspaces-aiwf/eb2423dd-a702-4bd8-a308-1404db3d3991/scratchpad/amend-proto/runs/s04.2fk5/repo-remote  {verbs: }
+69d66d1 3711e52    aiwf add gap G-0010 "gap g1"  {verbs: add}
+5c1b3d5 3711e52    feat: peer-g  {verbs: }
+
+## h: rebase of a branch whose tip is a planning commit
+$ git push -q origin main
+ok — no findings
+$ git switch -q -c feat
+ok — no findings
+$ aiwf add gap --title gap h1 on feat --body ## What's missing
+
+x.
+
+## Why it matters
+
+y.
+aiwf-amend: new commit: HEAD is not a planning commit (no leading aiwf-verb trailer)
+aiwf add gap G-0011 "gap h1 on feat"
+$ git switch -q main
+peer pushed: 8cf415b feat: peer-h
+$ git pull -q --no-rebase origin main
+$ git switch -q feat
+$ git rebase -q main
+fed3b7f dbe104d    aiwf add gap G-0011 "gap h1 on feat"  {verbs: add}
+dbe104d 8cf415b    feat: f  {verbs: }
+8cf415b 801e853    feat: peer-h  {verbs: }
+$ aiwf set-priority G-0011 low
+aiwf-amend: amended fed3b7f -> b70848f (2 operations, rule corrected)
+aiwf set-priority G-0011 low
+b70848f dbe104d    aiwf: 2 operations (add G-0011, set-priority G-0011)  {verbs: add,set-priority}
+dbe104d 8cf415b    feat: f  {verbs: }
+$ git switch -q main
+
+## i: cherry-pick -x of a planning commit, then a verb
+$ git push -q origin main
+ok — no findings
+$ git switch -q -c pick-src
+$ aiwf add gap --title gap i1 on pick-src --body ## What's missing
+
+x.
+
+## Why it matters
+
+y.
+aiwf-amend: new commit: HEAD is not a planning commit (no leading aiwf-verb trailer)
+aiwf add gap G-0012 "gap i1 on pick-src"
+$ git switch -q main
+$ git cherry-pick -x ae6d7c204dcf1ca3381cb714a09f545346cafb85
+[main afd5c3c] aiwf add gap G-0012 "gap i1 on pick-src"
+ Date: Sat Nov 7 11:10:46 2026 +0000
+ 1 file changed, 12 insertions(+)
+ create mode 100644 work/gaps/G-0012-gap-i1-on-pick-src.md
+--- cherry-picked message:
+aiwf add gap G-0012 "gap i1 on pick-src"
+
+aiwf-verb: add
+aiwf-entity: G-0012
+aiwf-actor: human/peter
+(cherry picked from commit ae6d7c204dcf1ca3381cb714a09f545346cafb85)
+
+$ aiwf set-priority G-0012 low
+aiwf-amend: amended afd5c3c -> 0006241 (2 operations, rule corrected)
+aiwf set-priority G-0012 low
+--- after amend:
+aiwf: 2 operations (add G-0012, set-priority G-0012)
+
+[1] aiwf add gap G-0012 "gap i1 on pick-src"
+
+[2] aiwf set-priority G-0012 low
+
+aiwf-verb: add
+aiwf-entity: G-0012
+aiwf-actor: human/peter
+aiwf-op-time: 2026-11-07T11:10:46Z
+aiwf-verb: set-priority
+aiwf-entity: G-0012
+aiwf-actor: human/peter
+aiwf-op-time: 2026-11-07T11:10:47Z
+
+cherry-pick marker still present after amend: 0
+$ aiwf check
+ok — no findings

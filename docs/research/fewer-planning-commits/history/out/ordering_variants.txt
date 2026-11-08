@@ -1,0 +1,4 @@
+baseline                           dropped commits: 77 | PLANNING COMMITS REMAINING: 608 {'branch-lines': 465, 'main-line': 143}  (dump variant_baseline.json)
+evidence cites the code commit     dropped commits: 77 | PLANNING COMMITS REMAINING: 567 {'branch-lines': 430, 'main-line': 137}  (dump variant_evidence.json)
+rituals commit through verbs       dropped commits: 77 | PLANNING COMMITS REMAINING: 574 {'branch-lines': 431, 'main-line': 143}  (dump variant_rituals.json)
+both                               dropped commits: 77 | PLANNING COMMITS REMAINING: 528 {'branch-lines': 391, 'main-line': 137}  (dump variant_both.json)

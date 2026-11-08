@@ -1,0 +1,9 @@
+variant: as-is | forks: verified only
+fork timing: {'verified (a child on another line predates the fold)': 101, 'unknown (every such child postdates the fold)': 41}
+segments: Counter({'main:push': 115, 'branch': 115, 'main:ff': 4})  forks: 142
+kernel verb commits: 1769  ritual commits kept: 114
+F1    : kernel groups main=120 branch=114  + ritual 114  => PLANNING COMMITS REMAINING 348
+F2    : kernel groups main=296 branch=274  + ritual 114  => PLANNING COMMITS REMAINING 684
+batch : kernel groups main=121 branch=139  + ritual 114  => PLANNING COMMITS REMAINING 374
+F1 if ritual commits could fold too: 234
+commits re-created by the fold: F1 Counter({'kernel': 1708, 'code': 447, 'ritual': 114, 'merge': 33})  F2 Counter({'kernel': 1304, 'code': 430, 'ritual': 82, 'merge': 28})

@@ -1,0 +1,148 @@
+## environment
+date: 2026-11-07T11:16:02Z
+git: git version 2.51.1
+aiwf binary: /tmp/claude-1000/-workspaces-aiwf/eb2423dd-a702-4bd8-a308-1404db3d3991/scratchpad/amend-proto/bin/aiwf sha256=08d249b2f404d4a1
+built from: /workspaces/aiwf/.claude/worktrees/patch/research-commit-noise at 4343f2bd1 + uncommitted diff sha256=2bc752b6c459eb67
+AIWF_EXPERIMENT_AMEND=1 HOME=/tmp/claude-1000/-workspaces-aiwf/eb2423dd-a702-4bd8-a308-1404db3d3991/scratchpad/amend-proto/runs/s09.lefd/home
+
+ok — no findings
+
+## a: --by-commit naming HEAD
+$ aiwf add gap --title gap a --body ## What's missing
+
+x.
+
+## Why it matters
+
+y.
+aiwf-amend: new commit: HEAD has 0 parents (merge or root commit)
+aiwf add gap G-0001 "gap a"
+$ aiwf add gap --title gap a2 --body ## What's missing
+
+x.
+
+## Why it matters
+
+y.
+aiwf-amend: amended fdabd37 -> 9825240 (2 operations, rule corrected)
+aiwf add gap G-0002 "gap a2"
+$ aiwf promote G-0001 addressed --by-commit 9825240ed6cea86ec422d2f7919c3f4869b4a58d
+aiwf-amend: new commit: new operation's write to work/gaps/G-0001-gap-a.md names HEAD
+aiwf promote G-0001 open -> addressed
+4441b9c 9825240    aiwf promote G-0001 open -> addressed  {verbs: promote}
+9825240 3c46a28    aiwf: 2 operations (add G-0001, add G-0002)  {verbs: add,add}
+$ aiwf add gap --title gap a3 --body ## What's missing
+
+x.
+
+## Why it matters
+
+y.
+aiwf-amend: amended 4441b9c -> a6fd97e (2 operations, rule corrected)
+aiwf add gap G-0003 "gap a3"
+$ aiwf promote G-0003 addressed --by-commit a6fd97ededf300c427932ea610e977f544583f1a
+aiwf-amend: amended a6fd97e -> 9e4d18b (3 operations, rule naive)
+aiwf promote G-0003 open -> addressed
+9e4d18b 9825240    aiwf: 3 operations (promote G-0001, add G-0003, promote G-0003)  {verbs: promote,add,promote}
+addressed_by_commit of G-0003: a6fd97ededf300c427932ea610e977f544583f1a; reachable from HEAD: NO
+$ aiwf check
+terminal-entity-not-archived (warning) × 2 — entity G-0001 has terminal status "addressed" but file is still in the active tree; awaiting `aiwf archive --apply` sweep
+archive-sweep-pending (warning) × 1 — 2 terminal entities awaiting `aiwf archive --apply`. Set `archive.sweep_threshold` in aiwf.yaml to escalate to blocking past N
+
+3 findings (0 errors, 3 warnings)
+run `aiwf check --verbose` for each warning's location and remediation hint
+
+## b: an earlier op's commit_sha, made unreachable by a later amend, used as --by-commit
+$ git push -q origin main
+terminal-entity-not-archived (warning) × 2 — entity G-0001 has terminal status "addressed" but file is still in the active tree; awaiting `aiwf archive --apply` sweep
+archive-sweep-pending (warning) × 1 — 2 terminal entities awaiting `aiwf archive --apply`. Set `archive.sweep_threshold` in aiwf.yaml to escalate to blocking past N
+
+3 findings (0 errors, 3 warnings)
+run `aiwf check --verbose` for each warning's location and remediation hint
+add printed commit_sha: a237a1471134c6dfddfb26a3236abae0d7cfb83a
+$ aiwf add gap --title gap b2 --body ## What's missing
+
+x.
+
+## Why it matters
+
+y.
+aiwf-amend: amended a237a14 -> 6a21da7 (2 operations, rule corrected)
+aiwf add gap G-0005 "gap b2"
+is a237a1471134c6dfddfb26a3236abae0d7cfb83a an ancestor of HEAD now? NO
+$ aiwf promote G-0004 addressed --by-commit a237a1471134c6dfddfb26a3236abae0d7cfb83a
+aiwf promote: --by-commit "a237a1471134c6dfddfb26a3236abae0d7cfb83a" resolves to a commit not reachable from HEAD; the closure would record a commit this branch does not contain (did a merge fail to land?). Reconcile and merge first, or pass --force to record it anyway (sovereign override)
+[exit 2]
+6a21da7 9e4d18b    aiwf: 2 operations (add G-0004, add G-0005)  {verbs: add,add}
+9e4d18b 9825240    aiwf: 3 operations (promote G-0001, add G-0003, promote G-0003)  {verbs: promote,add,promote}
+$ aiwf check
+terminal-entity-not-archived (warning) × 2 — entity G-0001 has terminal status "addressed" but file is still in the active tree; awaiting `aiwf archive --apply` sweep
+archive-sweep-pending (warning) × 1 — 2 terminal entities awaiting `aiwf archive --apply`. Set `archive.sweep_threshold` in aiwf.yaml to escalate to blocking past N
+
+3 findings (0 errors, 3 warnings)
+run `aiwf check --verbose` for each warning's location and remediation hint
+$ git push origin main
+terminal-entity-not-archived (warning) × 2 — entity G-0001 has terminal status "addressed" but file is still in the active tree; awaiting `aiwf archive --apply` sweep
+archive-sweep-pending (warning) × 1 — 2 terminal entities awaiting `aiwf archive --apply`. Set `archive.sweep_threshold` in aiwf.yaml to escalate to blocking past N
+
+3 findings (0 errors, 3 warnings)
+run `aiwf check --verbose` for each warning's location and remediation hint
+To /tmp/claude-1000/-workspaces-aiwf/eb2423dd-a702-4bd8-a308-1404db3d3991/scratchpad/amend-proto/runs/s09.lefd/repo-remote.git
+   9e4d18b..6a21da7  main -> main
+$ git gc -q --prune=now
+object a237a1471134c6dfddfb26a3236abae0d7cfb83a after gc: commit
+$ aiwf show G-0004
+G-0004 · gap b1 · status: open
+
+  Recent history (1):
+    2026-11-07  add
+add     -             aiwf: 2 operations (add G-0004, add G-0005)
+
+  Findings: (none)
+
+## c: hand-made commit with kernel-verb trailers and a code change, then a verb
+$ git push -q origin main
+terminal-entity-not-archived (warning) × 2 — entity G-0001 has terminal status "addressed" but file is still in the active tree; awaiting `aiwf archive --apply` sweep
+archive-sweep-pending (warning) × 1 — 2 terminal entities awaiting `aiwf archive --apply`. Set `archive.sweep_threshold` in aiwf.yaml to escalate to blocking past N
+
+3 findings (0 errors, 3 warnings)
+run `aiwf check --verbose` for each warning's location and remediation hint
+$ git commit -q -m fix: code change --trailer aiwf-verb: promote --trailer aiwf-actor: human/peter
+ok — no findings
+902a054 6a21da7    fix: code change  {verbs: promote}
+$ aiwf add gap --title gap c --body ## What's missing
+
+x.
+
+## Why it matters
+
+y.
+aiwf-amend: amended 902a054 -> d0873cb (2 operations, rule corrected)
+aiwf add gap G-0006 "gap c"
+d0873cb 6a21da7    aiwf: 2 operations (promote, add G-0006)  {verbs: promote,add}
+6a21da7 9e4d18b    aiwf: 2 operations (add G-0004, add G-0005)  {verbs: add,add}
+--- files in HEAD's diff:
+ code.txt                  |  1 +
+ work/gaps/G-0006-gap-c.md | 12 ++++++++++++
+ 2 files changed, 13 insertions(+)
+
+## d: ritual-stamped commit, then a verb
+$ git push -q origin main
+terminal-entity-not-archived (warning) × 2 — entity G-0001 has terminal status "addressed" but file is still in the active tree; awaiting `aiwf archive --apply` sweep
+archive-sweep-pending (warning) × 1 — 2 terminal entities awaiting `aiwf archive --apply`. Set `archive.sweep_threshold` in aiwf.yaml to escalate to blocking past N
+
+3 findings (0 errors, 3 warnings)
+run `aiwf check --verbose` for each warning's location and remediation hint
+$ git commit -q -m chore: wrap --trailer aiwf-verb: wrap-milestone --trailer aiwf-actor: human/peter
+ok — no findings
+$ aiwf add gap --title gap d --body ## What's missing
+
+x.
+
+## Why it matters
+
+y.
+aiwf-amend: new commit: HEAD carries ritual verb wrap-milestone
+aiwf add gap G-0007 "gap d"
+2954a85 f5743d9    aiwf add gap G-0007 "gap d"  {verbs: add}
+f5743d9 d0873cb    chore: wrap  {verbs: wrap-milestone}

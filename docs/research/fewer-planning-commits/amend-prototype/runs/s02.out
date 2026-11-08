@@ -1,0 +1,223 @@
+## environment
+date: 2026-11-07T11:18:38Z
+git: git version 2.51.1
+aiwf binary: /tmp/claude-1000/-workspaces-aiwf/eb2423dd-a702-4bd8-a308-1404db3d3991/scratchpad/amend-proto/bin/aiwf sha256=08d249b2f404d4a1
+built from: /workspaces/aiwf/.claude/worktrees/patch/research-commit-noise at 4343f2bd1 + uncommitted diff sha256=2bc752b6c459eb67
+AIWF_EXPERIMENT_AMEND=1 HOME=/tmp/claude-1000/-workspaces-aiwf/eb2423dd-a702-4bd8-a308-1404db3d3991/scratchpad/amend-proto/runs/s02.cJcz/home
+
+ok — no findings
+
+## plan on main, push
+$ aiwf add epic --title Epic one
+aiwf-amend: new commit: HEAD has 0 parents (merge or root commit)
+aiwf add epic E-0001 "Epic one"
+$ aiwf add milestone --epic E-0001 --tdd none --title First milestone
+aiwf-amend: amended c0facbc -> 4b8522e (2 operations, rule corrected)
+aiwf add milestone M-0001 "First milestone"
+$ aiwf add milestone --epic E-0001 --tdd none --title Second milestone
+aiwf-amend: amended 4b8522e -> 97a5648 (3 operations, rule corrected)
+aiwf add milestone M-0002 "Second milestone"
+$ git push -q origin main
+entity-body-empty (warning) × 7 — M-0001 body section `## Goal` is empty
+milestone-draft-incomplete-acs (warning) × 2 — draft milestone M-0001 has zero acceptance criteria; add them at plan time (aiwf add ac) so the contract is visible before the milestone lands on main
+
+9 findings (0 errors, 9 warnings)
+run `aiwf check --verbose` for each warning's location and remediation hint
+97a5648 f55c0e4    aiwf: 3 operations (add E-0001, add M-0001, add M-0002)  {verbs: add,add,add}
+f55c0e4            chore: init aiwf  {verbs: }
+
+## (a) start-epic shape: promote + authorize on main, unpushed
+$ aiwf promote E-0001 active
+aiwf-amend: new commit: HEAD is contained in refs/remotes/origin/main
+aiwf promote E-0001 proposed -> active
+$ aiwf authorize E-0001 --to ai/claude --branch epic/E-0001-epic-one --reason delegate the epic
+aiwf-amend: amended 4edf55e -> 9aec153 (2 operations, rule corrected)
+aiwf authorize E-0001 --to ai/claude
+9aec153 97a5648    aiwf: 2 operations (promote E-0001, authorize E-0001)  {verbs: promote,authorize}
+97a5648 f55c0e4    aiwf: 3 operations (add E-0001, add M-0001, add M-0002)  {verbs: add,add,add}
+$ git switch -c epic/E-0001-epic-one
+Switched to a new branch 'epic/E-0001-epic-one'
+
+## (a) on the epic branch: first verb (human) — HEAD is also on main
+$ aiwf retitle M-0002 Second milestone, retitled
+aiwf-amend: new commit: HEAD is contained in refs/heads/main
+aiwf retitle M-0002 -> "Second milestone, retitled"
+
+## (a) agent verb on the epic branch
+$ aiwf retitle M-0002 Second milestone, retitled by agent --actor ai/claude --principal human/peter
+aiwf retitle: provenance refused: actor "ai/claude" has no active scope authorizing this act (provenance-no-active-scope)
+[exit 1]
+a2010e6 9aec153    aiwf retitle M-0002 -> "Second milestone, retitled"  {verbs: retitle}
+9aec153 97a5648    aiwf: 2 operations (promote E-0001, authorize E-0001)  {verbs: promote,authorize}
+97a5648 f55c0e4    aiwf: 3 operations (add E-0001, add M-0001, add M-0002)  {verbs: add,add,add}
+f55c0e4            chore: init aiwf  {verbs: }
+
+## (a) back on main: a verb there while the epic branch contains main's HEAD
+$ git switch main
+Switched to branch 'main'
+Your branch is ahead of 'origin/main' by 1 commit.
+  (use "git push" to publish your local commits)
+$ aiwf add gap --title Main-side gap --body ## What's missing
+
+x.
+
+## Why it matters
+
+y.
+aiwf-amend: new commit: HEAD is contained in refs/heads/epic/E-0001-epic-one
+aiwf add gap G-0001 "Main-side gap"
+4262250 9aec153    aiwf add gap G-0001 "Main-side gap"  {verbs: add}
+9aec153 97a5648    aiwf: 2 operations (promote E-0001, authorize E-0001)  {verbs: promote,authorize}
+97a5648 f55c0e4    aiwf: 3 operations (add E-0001, add M-0001, add M-0002)  {verbs: add,add,add}
+
+## (b) start-milestone shape on the epic branch
+$ git switch epic/E-0001-epic-one
+Switched to branch 'epic/E-0001-epic-one'
+$ aiwf promote M-0001 in_progress
+aiwf promote: cannot promote M-0001 to "in_progress": milestone has no acceptance criteria; add one with `aiwf add ac M-0001 --title "..."` first, or pass --force to override
+[exit 2]
+$ aiwf authorize M-0001 --to ai/claude --branch milestone/M-0001-first-milestone --reason delegate the milestone
+aiwf-amend: amended a2010e6 -> fdfe137 (2 operations, rule corrected)
+aiwf authorize M-0001 --to ai/claude
+fdfe137 9aec153    aiwf: 2 operations (retitle M-0002, authorize M-0001)  {verbs: retitle,authorize}
+9aec153 97a5648    aiwf: 2 operations (promote E-0001, authorize E-0001)  {verbs: promote,authorize}
+97a5648 f55c0e4    aiwf: 3 operations (add E-0001, add M-0001, add M-0002)  {verbs: add,add,add}
+$ git switch -c milestone/M-0001-first-milestone
+Switched to a new branch 'milestone/M-0001-first-milestone'
+$ aiwf add ac M-0001 --title first criterion --actor ai/claude --principal human/peter
+aiwf-amend: new commit: HEAD actor [human/peter] differs from "ai/claude"
+aiwf add ac M-0001/AC-1 "first criterion"
+$ aiwf add ac M-0001 --title second criterion --actor ai/claude --principal human/peter
+aiwf-amend: amended 9777c90 -> 4c707cc (2 operations, rule corrected)
+aiwf add ac M-0001/AC-2 "second criterion"
+$ aiwf promote M-0001/AC-1 met --actor ai/claude --principal human/peter
+aiwf-amend: amended 4c707cc -> b44c4bd (3 operations, rule corrected)
+aiwf promote M-0001/AC-1 open -> met
+b44c4bd fdfe137    aiwf: 3 operations (add M-0001/AC-1, add M-0001/AC-2, promote M-0001/AC-1)  {verbs: add,add,promote}
+fdfe137 9aec153    aiwf: 2 operations (retitle M-0002, authorize M-0001)  {verbs: retitle,authorize}
+9aec153 97a5648    aiwf: 2 operations (promote E-0001, authorize E-0001)  {verbs: promote,authorize}
+97a5648 f55c0e4    aiwf: 3 operations (add E-0001, add M-0001, add M-0002)  {verbs: add,add,add}
+
+## (b) human verb on the epic branch while the milestone branch contains its HEAD
+$ git switch epic/E-0001-epic-one
+Switched to branch 'epic/E-0001-epic-one'
+$ aiwf retitle M-0002 Second milestone, retitled on epic
+aiwf-amend: new commit: HEAD is contained in refs/heads/milestone/M-0001-first-milestone
+aiwf retitle M-0002 -> "Second milestone, retitled on epic"
+8dfbefe fdfe137    aiwf retitle M-0002 -> "Second milestone, retitled on epic"  {verbs: retitle}
+fdfe137 9aec153    aiwf: 2 operations (retitle M-0002, authorize M-0001)  {verbs: retitle,authorize}
+9aec153 97a5648    aiwf: 2 operations (promote E-0001, authorize E-0001)  {verbs: promote,authorize}
+
+## merge milestone -> epic, epic -> main
+$ git merge --no-ff -q -m merge milestone/M-0001 milestone/M-0001-first-milestone
+$ git switch main
+Switched to branch 'main'
+Your branch is ahead of 'origin/main' by 2 commits.
+  (use "git push" to publish your local commits)
+$ git merge --no-ff -q -m merge epic/E-0001 epic/E-0001-epic-one
+*   b589b74 4262250 .. merge epic/E-0001  {verbs: }
+|\  
+| *   b8caba0 8dfbefe .. merge milestone/M-0001  {verbs: }
+| |\  
+| | * b44c4bd fdfe137    aiwf: 3 operations (add M-0001/AC-1, add M-0001/AC-2, promote M-0001/AC-1)  {verbs: add,add,promote}
+| * | 8dfbefe fdfe137    aiwf retitle M-0002 -> "Second milestone, retitled on epic"  {verbs: retitle}
+| |/  
+| * fdfe137 9aec153    aiwf: 2 operations (retitle M-0002, authorize M-0001)  {verbs: retitle,authorize}
+* | 4262250 9aec153    aiwf add gap G-0001 "Main-side gap"  {verbs: add}
+|/  
+* 9aec153 97a5648    aiwf: 2 operations (promote E-0001, authorize E-0001)  {verbs: promote,authorize}
+* 97a5648 f55c0e4    aiwf: 3 operations (add E-0001, add M-0001, add M-0002)  {verbs: add,add,add}
+* f55c0e4            chore: init aiwf  {verbs: }
+
+## every operation recorded once? (ops.py over main)
+operations reachable: 12  distinct: 12
+no duplicate operations
+
+## aiwf check on main
+$ aiwf check
+entity-body-empty (warning) × 6 — M-0001 body section `## Goal` is empty
+milestone-draft-incomplete-acs (warning) × 3 — draft milestone M-0001/AC-1 has no body content under its `### AC-1` heading; fill the acceptance criterion at plan time (aiwf edit-body) so the contract is visible before the milestone lands on main
+isolation-escape-orphaned-ai-commit (warning) × 2 — AI-actor commit 4c707ccd was orphaned by a non-fast-forward update on "milestone/M-0001-first-milestone" at 2026-11-07 11:18:42 +0000; entity M-0001/AC-2, actor "ai/claude"
+
+11 findings (0 errors, 11 warnings)
+run `aiwf check --verbose` for each warning's location and remediation hint
+
+## push (pre-push hook)
+$ git push origin main
+entity-body-empty (warning) × 6 — M-0001 body section `## Goal` is empty
+milestone-draft-incomplete-acs (warning) × 3 — draft milestone M-0001/AC-1 has no body content under its `### AC-1` heading; fill the acceptance criterion at plan time (aiwf edit-body) so the contract is visible before the milestone lands on main
+isolation-escape-orphaned-ai-commit (warning) × 2 — AI-actor commit 4c707ccd was orphaned by a non-fast-forward update on "milestone/M-0001-first-milestone" at 2026-11-07 11:18:42 +0000; entity M-0001/AC-2, actor "ai/claude"
+
+11 findings (0 errors, 11 warnings)
+run `aiwf check --verbose` for each warning's location and remediation hint
+To /tmp/claude-1000/-workspaces-aiwf/eb2423dd-a702-4bd8-a308-1404db3d3991/scratchpad/amend-proto/runs/s02.cJcz/repo-remote.git
+   97a5648..b589b74  main -> main
+
+## (c) hole: a clone of the working repo holds the unpushed commit
+$ aiwf add gap --title Gap before clone --body ## What's missing
+
+x.
+
+## Why it matters
+
+y.
+aiwf-amend: new commit: HEAD has 2 parents (merge or root commit)
+aiwf add gap G-0002 "Gap before clone"
+$ git clone -q /tmp/claude-1000/-workspaces-aiwf/eb2423dd-a702-4bd8-a308-1404db3d3991/scratchpad/amend-proto/runs/s02.cJcz/repo /tmp/claude-1000/-workspaces-aiwf/eb2423dd-a702-4bd8-a308-1404db3d3991/scratchpad/amend-proto/runs/s02.cJcz/peer
+refs in repo that contain HEAD: refs/heads/main 
+
+## (c1) next op touches a different file (silent case)
+$ aiwf add decision --title Decision after clone --body ## Question
+
+q?
+
+## Decision
+
+d.
+
+## Reasoning
+
+r.
+aiwf-amend: amended 530de57 -> b556980 (2 operations, rule corrected)
+aiwf add decision D-0001 "Decision after clone"
+b556980 b589b74    aiwf: 2 operations (add G-0002, add D-0001)  {verbs: add,add}
+b589b74 4262250 .. merge epic/E-0001  {verbs: }
+
+## (c1) the peer pushes its copy of the pre-amend commit; repo pulls (merge)
+peer pushed 530de57
+$ git pull -q --no-rebase origin main
+*   16e61c0 b556980 .. Merge branch 'main' of /tmp/claude-1000/-workspaces-aiwf/eb2423dd-a702-4bd8-a308-1404db3d3991/scratchpad/amend-proto/runs/s02.cJcz/repo-remote  {verbs: }
+|\  
+| * 530de57 b589b74    aiwf add gap G-0002 "Gap before clone"  {verbs: add}
+* | b556980 b589b74    aiwf: 2 operations (add G-0002, add D-0001)  {verbs: add,add}
+|/  
+*   b589b74 4262250 .. merge epic/E-0001  {verbs: }
+|\  
+| *   b8caba0 8dfbefe .. merge milestone/M-0001  {verbs: }
+| |\  
+operations reachable: 15  distinct: 14
+DUPLICATE ('add', 'G-0002', '-', '-', 'human/peter', '2026-11-07T11:18:43Z') in commits ['b556980', '530de57']
+$ aiwf history G-0002
+2026-11-07T11:18:43Z  human/peter       add         -             aiwf add gap G-0002 "Gap before clone"  530de57
+2026-11-07T11:18:43Z  human/peter
+human/peter  add
+add     -             aiwf: 2 operations (add G-0002, add D-0001)  b556980
+    [1] aiwf add gap G-0002 "Gap before clone"
+    
+    [2] aiwf add decision D-0001 "Decision after clone"
+$ aiwf check
+entity-body-empty (warning) × 6 — M-0001 body section `## Goal` is empty
+milestone-draft-incomplete-acs (warning) × 3 — draft milestone M-0001/AC-1 has no body content under its `### AC-1` heading; fill the acceptance criterion at plan time (aiwf edit-body) so the contract is visible before the milestone lands on main
+isolation-escape-orphaned-ai-commit (warning) × 2 — AI-actor commit 4c707ccd was orphaned by a non-fast-forward update on "milestone/M-0001-first-milestone" at 2026-11-07 11:18:42 +0000; entity M-0001/AC-2, actor "ai/claude"
+
+11 findings (0 errors, 11 warnings)
+run `aiwf check --verbose` for each warning's location and remediation hint
+$ git push origin main
+entity-body-empty (warning) × 6 — M-0001 body section `## Goal` is empty
+milestone-draft-incomplete-acs (warning) × 3 — draft milestone M-0001/AC-1 has no body content under its `### AC-1` heading; fill the acceptance criterion at plan time (aiwf edit-body) so the contract is visible before the milestone lands on main
+isolation-escape-orphaned-ai-commit (warning) × 2 — AI-actor commit 4c707ccd was orphaned by a non-fast-forward update on "milestone/M-0001-first-milestone" at 2026-11-07 11:18:42 +0000; entity M-0001/AC-2, actor "ai/claude"
+
+11 findings (0 errors, 11 warnings)
+run `aiwf check --verbose` for each warning's location and remediation hint
+To /tmp/claude-1000/-workspaces-aiwf/eb2423dd-a702-4bd8-a308-1404db3d3991/scratchpad/amend-proto/runs/s02.cJcz/repo-remote.git
+   530de57..16e61c0  main -> main

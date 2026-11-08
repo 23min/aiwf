@@ -1,0 +1,9 @@
+window commits 2603 fp 591 lines 116 unassigned 0
+FF events on main: [('merge a100c7c64c51643acbd69dded061cde7ea4b50db: Fast-forward', 1), ('merge epic/E-0092-shrink-the-always-on-guidance-to-one-home-per-rule-u', 3), ('merge epic/E-0092-shrink-the-always-on-guidance-to-one-home-per-rule-u', 1), ('merge epic/E-0092-shrink-the-always-on-guidance-to-one-home-per-rule-u', 1)]
+fp commits neither made on main nor FF'd: 0 []
+made on main but not on fp: 0 []
+line bases (base line kind, continuation of an earlier merged tip): Counter({('main', False): 59, ('branch', False): 44, ('main', True): 9, ('branch', True): 2, ('pre-window', False): 1})
+klass counts Counter({'kernel': 1769, 'code': 563, 'merge': 157, 'ritual': 114})
+non-merge planning 1883
+by line kind: Counter({('branch', 'kernel'): 1304, ('branch', 'code'): 526, ('main', 'kernel'): 465, ('branch', 'ritual'): 95, ('branch', 'merge'): 87, ('main', 'merge'): 70, ('main', 'code'): 37, ('main', 'ritual'): 19})
+pushes 118 first update by push fetch --quiet: fast-forward

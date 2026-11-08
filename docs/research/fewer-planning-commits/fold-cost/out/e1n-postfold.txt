@@ -1,0 +1,86 @@
+### first-parent line over base (sha, %G?, subject)
+88615f8 N chore(plan): fold 4 planning operations
+4b6b29b N feat: c5
+3cef685 N Merge remote-tracking branch 'origin/main' into epic/E-0001-spike-epic
+988b775 N feat: c4
+f64b443 N docs: tweak epic wording by hand
+ef9f6d3 N fix: c3, follow-up to d2e5a74c4288a0dd1508519eb74bfb77ecb6a9db
+8d95079 N feat: c2
+0d9faff N feat: c1 add code
+### aiwf check (full)
+entity-body-empty (warning) × 3 — M-0001 body section `## Goal` is empty
+archive-sweep-pending (warning) × 1 — 1 terminal entities awaiting `aiwf archive --apply`. Set `archive.sweep_threshold` in aiwf.yaml to escalate to blocking past N
+epic-active-no-drafted-milestones (warning) × 1 — epic E-0001 is active but has no milestones at status draft
+provenance-untrailered-scope-undefined (warning) × 1 — no upstream configured and no --since <ref>; provenance audit, body-section gate and instruction-file fence skipped
+terminal-entity-not-archived (warning) × 1 — entity G-0001 has terminal status "addressed" but file is still in the active tree; awaiting `aiwf archive --apply` sweep
+
+7 findings (0 errors, 7 warnings)
+run `aiwf check --verbose` for each warning's location and remediation hint
+### aiwf check --since 297a352
+error provenance-untrailered-entity-commit: commit f64b443 touched E-0001 with no aiwf-verb: trailer — hint: the commit modified this entity via plain `git commit`; two recovery paths: (1) `aiwf acknowledge illegal <sha> --for-entity <id> --reason "..."` — SHA-verified per-(commit, entity) ack, the kernel walks `git diff-tree` to confirm the binding (G-0231 item 3); (2) `aiwf promote <id> <state> --audit-only --reason "..."` or `aiwf cancel <id> --audit-only --reason "..."` — per-entity blanket, no SHA binding. Use (1) for body-edit acks where the SHA is real and the kernel should verify; use (2) for status flips where the per-entity blanket fits. Either clears the matching finding on the next push.
+entity-body-empty (warning) × 3 — M-0001 body section `## Goal` is empty
+archive-sweep-pending (warning) × 1 — 1 terminal entities awaiting `aiwf archive --apply`. Set `archive.sweep_threshold` in aiwf.yaml to escalate to blocking past N
+epic-active-no-drafted-milestones (warning) × 1 — epic E-0001 is active but has no milestones at status draft
+terminal-entity-not-archived (warning) × 1 — entity G-0001 has terminal status "addressed" but file is still in the active tree; awaiting `aiwf archive --apply` sweep
+
+7 findings (1 errors, 6 warnings)
+run `aiwf check --verbose` for each warning's location and remediation hint
+### addressed_by_commit in G-0001 and whether HEAD contains it
+addressed_by_commit: d2e5a74c4288a0dd1508519eb74bfb77ecb6a9db
+  contained in HEAD: NO
+### aiwf-force-for target of the acknowledgment and whether HEAD contains it
+6f21ec85bc67e5184c1ec30b1be6519f94dbbad5 contained: NO
+### aiwf-authorized-by targets and whether HEAD contains them
+### SHAs named in commit subjects/bodies on the line, and whether HEAD contains them
+6f21ec85bc67 contained: NO
+d2e5a74c4288 contained: NO
+### aiwf history G-0001
+2026-11-07T11:03:04+00:00  human/peter       add         -             aiwf add gap G-0001 "Something is wrong"  8615207
+2026-11-07T11:03:06+00:00  human/peter
+human/peter
+human/peter
+human/peter  promote
+promote
+promote
+acknowledge-illegal  → in_progress
+met
+addressed  chore(plan): fold 4 planning operations  88615f8
+    [reason: hand edit of wording, reviewed]
+    - aiwf promote M-0001 draft -> in_progress
+    - aiwf promote M-0001/AC-1 open -> met
+    - aiwf promote G-0001 open -> addressed
+    - aiwf acknowledge illegal 6f21ec85
+### aiwf history M-0001
+2026-11-07T11:03:04+00:00  human/peter       add         -             aiwf add milestone M-0001 "Spike milestone"  8f66aa5
+2026-11-07T11:03:04+00:00  human/peter       add         -             aiwf add ac M-0001/AC-1 "Something holds"  f6179bd
+2026-11-07T11:03:06+00:00  human/peter
+human/peter
+human/peter
+human/peter  promote
+promote
+promote
+acknowledge-illegal  → in_progress
+met
+addressed  chore(plan): fold 4 planning operations  88615f8
+    [reason: hand edit of wording, reviewed]
+    - aiwf promote M-0001 draft -> in_progress
+    - aiwf promote M-0001/AC-1 open -> met
+    - aiwf promote G-0001 open -> addressed
+    - aiwf acknowledge illegal 6f21ec85
+### aiwf history E-0001
+2026-11-07T11:03:04+00:00  human/peter       add         -             aiwf add epic E-0001 "Spike epic"  a2cad94
+2026-11-07T11:03:04+00:00  human/peter       promote     → active      aiwf promote E-0001 proposed -> active  297a352
+2026-11-07T11:03:06+00:00  human/peter
+human/peter
+human/peter
+human/peter  promote
+promote
+promote
+acknowledge-illegal  → in_progress
+met
+addressed  chore(plan): fold 4 planning operations  88615f8
+    [reason: hand edit of wording, reviewed]
+    - aiwf promote M-0001 draft -> in_progress
+    - aiwf promote M-0001/AC-1 open -> met
+    - aiwf promote G-0001 open -> addressed
+    - aiwf acknowledge illegal 6f21ec85

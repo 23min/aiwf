@@ -1,0 +1,134 @@
+## environment
+date: 2026-11-07T11:18:55Z
+git: git version 2.51.1
+aiwf binary: /tmp/claude-1000/-workspaces-aiwf/eb2423dd-a702-4bd8-a308-1404db3d3991/scratchpad/amend-proto/bin/aiwf sha256=08d249b2f404d4a1
+built from: /workspaces/aiwf/.claude/worktrees/patch/research-commit-noise at 4343f2bd1 + uncommitted diff sha256=2bc752b6c459eb67
+AIWF_EXPERIMENT_AMEND=1 HOME=/tmp/claude-1000/-workspaces-aiwf/eb2423dd-a702-4bd8-a308-1404db3d3991/scratchpad/amend-proto/runs/s10.fPaT/home
+
+
+## naive rule
+ok — no findings
+$ aiwf add epic --title Epic one
+aiwf-amend: new commit: HEAD has 0 parents (merge or root commit)
+aiwf add epic E-0001 "Epic one"
+$ git push -q origin main
+entity-body-empty (warning) × 3 — E-0001 body section `## Goal` is empty
+
+3 findings (0 errors, 3 warnings)
+run `aiwf check --verbose` for each warning's location and remediation hint
+$ aiwf promote E-0001 active
+aiwf-amend: new commit: HEAD is contained in refs/remotes/origin/main
+aiwf promote E-0001 proposed -> active
+$ git switch -q -c epic/E-0001-epic-one
+$ aiwf add gap --title on epic branch --body ## What's missing
+
+x.
+
+## Why it matters
+
+y.
+aiwf-amend: amended 8a403ec -> 25a8d76 (2 operations, rule naive)
+aiwf add gap G-0001 "on epic branch"
+$ git switch -q main
+$ aiwf add gap --title on main after the cut --body ## What's missing
+
+x.
+
+## Why it matters
+
+y.
+aiwf-amend: amended 8a403ec -> e05b83b (2 operations, rule naive)
+aiwf add gap G-0002 "on main after the cut"
+25a8d76 4602893    aiwf: 2 operations (promote E-0001, add G-0001)  {verbs: promote,add}
+e05b83b 4602893    aiwf: 2 operations (promote E-0001, add G-0002)  {verbs: promote,add}
+4602893 712e48d    aiwf add epic E-0001 "Epic one"  {verbs: add}
+712e48d            chore: init aiwf  {verbs: }
+$ git merge -q --no-ff -m merge epic epic/E-0001-epic-one
+operations reachable: 5  distinct: 4
+DUPLICATE ('promote', 'E-0001', 'active', '-', 'human/peter', '2026-11-07T11:18:57Z') in commits ['e05b83b', '25a8d76']
+$ aiwf history E-0001
+2026-11-07T11:18:57Z  human/peter       add         -             aiwf add epic E-0001 "Epic one"  4602893
+2026-11-07T11:18:57Z  human/peter
+human/peter  promote
+add  → active      aiwf: 2 operations (promote E-0001, add G-0001)  25a8d76
+    [1] aiwf promote E-0001 proposed -> active
+    
+    [2] aiwf add gap G-0001 "on epic branch"
+2026-11-07T11:18:57Z  human/peter
+human/peter  promote
+add  → active      aiwf: 2 operations (promote E-0001, add G-0002)  e05b83b
+    [1] aiwf promote E-0001 proposed -> active
+    
+    [2] aiwf add gap G-0002 "on main after the cut"
+$ aiwf check
+entity-body-empty (warning) × 3 — E-0001 body section `## Goal` is empty
+epic-active-no-drafted-milestones (warning) × 1 — epic E-0001 is active but has no milestones at status draft
+
+4 findings (0 errors, 4 warnings)
+run `aiwf check --verbose` for each warning's location and remediation hint
+$ git push origin main
+entity-body-empty (warning) × 3 — E-0001 body section `## Goal` is empty
+epic-active-no-drafted-milestones (warning) × 1 — epic E-0001 is active but has no milestones at status draft
+
+4 findings (0 errors, 4 warnings)
+run `aiwf check --verbose` for each warning's location and remediation hint
+To /tmp/claude-1000/-workspaces-aiwf/eb2423dd-a702-4bd8-a308-1404db3d3991/scratchpad/amend-proto/runs/s10.fPaT/naive-remote.git
+   4602893..00104ef  main -> main
+
+## corrected rule
+ok — no findings
+$ aiwf add epic --title Epic one
+aiwf-amend: new commit: HEAD has 0 parents (merge or root commit)
+aiwf add epic E-0001 "Epic one"
+$ git push -q origin main
+entity-body-empty (warning) × 3 — E-0001 body section `## Goal` is empty
+
+3 findings (0 errors, 3 warnings)
+run `aiwf check --verbose` for each warning's location and remediation hint
+$ aiwf promote E-0001 active
+aiwf-amend: new commit: HEAD is contained in refs/remotes/origin/main
+aiwf promote E-0001 proposed -> active
+$ git switch -q -c epic/E-0001-epic-one
+$ aiwf add gap --title on epic branch --body ## What's missing
+
+x.
+
+## Why it matters
+
+y.
+aiwf-amend: new commit: HEAD is contained in refs/heads/main
+aiwf add gap G-0001 "on epic branch"
+$ git switch -q main
+$ aiwf add gap --title on main after the cut --body ## What's missing
+
+x.
+
+## Why it matters
+
+y.
+aiwf-amend: new commit: HEAD is contained in refs/heads/epic/E-0001-epic-one
+aiwf add gap G-0002 "on main after the cut"
+18ea36d 325a8c4    aiwf add gap G-0001 "on epic branch"  {verbs: add}
+1389281 325a8c4    aiwf add gap G-0002 "on main after the cut"  {verbs: add}
+325a8c4 651bfbb    aiwf promote E-0001 proposed -> active  {verbs: promote}
+651bfbb eaa6d28    aiwf add epic E-0001 "Epic one"  {verbs: add}
+$ git merge -q --no-ff -m merge epic epic/E-0001-epic-one
+operations reachable: 4  distinct: 4
+no duplicate operations
+$ aiwf history E-0001
+2026-11-07T11:19:03Z  human/peter       add         -             aiwf add epic E-0001 "Epic one"  651bfbb
+2026-11-07T11:19:04Z  human/peter       promote     → active      aiwf promote E-0001 proposed -> active  325a8c4
+$ aiwf check
+entity-body-empty (warning) × 3 — E-0001 body section `## Goal` is empty
+epic-active-no-drafted-milestones (warning) × 1 — epic E-0001 is active but has no milestones at status draft
+
+4 findings (0 errors, 4 warnings)
+run `aiwf check --verbose` for each warning's location and remediation hint
+$ git push origin main
+entity-body-empty (warning) × 3 — E-0001 body section `## Goal` is empty
+epic-active-no-drafted-milestones (warning) × 1 — epic E-0001 is active but has no milestones at status draft
+
+4 findings (0 errors, 4 warnings)
+run `aiwf check --verbose` for each warning's location and remediation hint
+To /tmp/claude-1000/-workspaces-aiwf/eb2423dd-a702-4bd8-a308-1404db3d3991/scratchpad/amend-proto/runs/s10.fPaT/corrected-remote.git
+   651bfbb..feab191  main -> main

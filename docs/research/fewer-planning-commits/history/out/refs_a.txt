@@ -1,0 +1,78 @@
+gap addressed_by_commit (--by-commit)
+      56  records
+      56  S window
+      56  written while S unpushed
+       2    S class kernel
+      27    S class code
+      27    S class merge
+      30    S same line as R
+      26    S on another line than R
+       4    fold F1 breaks
+       3    fold F2 breaks
+commit message text
+      18  records
+      15  S window
+       3  S pre-window (pushed)
+      13  written while S unpushed
+       6    S class kernel
+       7    S class code
+      12    S same line as R
+       1    S on another line than R
+      12    fold F1 breaks
+      11    fold F2 breaks
+entity body under work/
+     469  records
+     452  S window
+      16  S pre-window (pushed)
+       1  S not reachable from HEAD
+     336  written while S unpushed
+     104    S class kernel
+     175    S class code
+       7    S class ritual
+      50    S class merge
+     283    S same line as R
+      53    S on another line than R
+     226    fold F1 breaks
+     216    fold F2 breaks
+docs and other files
+     191  records
+      33  S window
+     158  S pre-window (pushed)
+      20  written while S unpushed
+      11    S class kernel
+       9    S class code
+      13    S same line as R
+       7    S on another line than R
+      14    fold F1 breaks
+      12    fold F2 breaks
+acknowledge illegal (aiwf-force-for)
+      14  records
+      13  S window
+       1  S pre-window (pushed)
+      13  written while S unpushed
+      13    S class code
+      13    S same line as R
+      13    fold F1 breaks
+      13    fold F2 breaks
+.gitleaksignore fingerprint
+       8  records
+       8  S window
+       8  written while S unpushed
+       3    S class kernel
+       5    S class code
+       7    S same line as R
+       1    S on another line than R
+       7    fold F1 breaks
+       7    fold F2 breaks
+code / test source
+      20  records
+      16  S window
+       4  S pre-window (pushed)
+      12  written while S unpushed
+       7    S class kernel
+       4    S class code
+       1    S class ritual
+       6    S same line as R
+       6    S on another line than R
+       5    fold F1 breaks
+       5    fold F2 breaks

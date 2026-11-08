@@ -1,0 +1,429 @@
+## environment
+date: 2026-11-07T11:08:40Z
+git: git version 2.51.1
+aiwf binary: /tmp/claude-1000/-workspaces-aiwf/eb2423dd-a702-4bd8-a308-1404db3d3991/scratchpad/amend-proto/bin/aiwf sha256=08d249b2f404d4a1
+built from: /workspaces/aiwf/.claude/worktrees/patch/research-commit-noise at 4343f2bd1 + uncommitted diff sha256=2bc752b6c459eb67
+AIWF_EXPERIMENT_AMEND=1 HOME=/tmp/claude-1000/-workspaces-aiwf/eb2423dd-a702-4bd8-a308-1404db3d3991/scratchpad/amend-proto/runs/s03.7M8c/home
+
+
+## CONTROL: AIWF_EXPERIMENT_AMEND unset
+ok — no findings
+setup done: 94379d4 73ec8bc    aiwf promote E-0001 proposed -> active  {verbs: promote}
+
+## [control] part 1: start-milestone ritual
+$ aiwf promote M-0001 in_progress
+aiwf promote M-0001 draft -> in_progress
+$ aiwf authorize M-0001 --to ai/claude --branch milestone/M-0001-milestone-1 --reason delegate M-0001
+aiwf authorize M-0001 --to ai/claude
+6158fc2 c42eea3    aiwf authorize M-0001 --to ai/claude  {verbs: authorize}
+c42eea3 94379d4    aiwf promote M-0001 draft -> in_progress  {verbs: promote}
+94379d4 73ec8bc    aiwf promote E-0001 proposed -> active  {verbs: promote}
+$ git switch -q -c milestone/M-0001-milestone-1
+$ aiwf promote M-0001/AC-1 met --actor ai/claude --principal human/peter
+aiwf promote M-0001/AC-1 open -> met
+--- aiwf show M-0001 (scopes section):
+  Scopes (1):
+    6158fc2  human/peter → ai/claude  state: active   opened 2026-11-07  events: 1
+
+--- aiwf history M-0001 (last 2 events):
+2026-11-07T11:08:41Z  human/peter       add         -             aiwf add ac M-0001/AC-1 "crit 1"  dbfe9a5
+2026-11-07T11:08:44Z  human/peter       promote     → in_progress  aiwf promote M-0001 draft -> in_progress  c42eea3
+2026-11-07T11:08:44Z  human/peter       authorize   → ai/claude   aiwf authorize M-0001 --to ai/claude  6158fc2  [scope: opened]
+    [reason: delegate M-0001]
+    delegate M-0001
+2026-11-07T11:08:44Z  human/peter via ai/claude  promote     → met         aiwf promote M-0001/AC-1 open -> met  99eb9c6  [M-0001 6158fc2]
+$ git switch -q epic/E-0001-epic-one
+
+## [control] part 2: authorize alone, then alternation
+$ git commit (code): chore: part2
+$ aiwf authorize M-0002 --to ai/claude --branch milestone/M-0002-milestone-2 --reason delegate M-0002
+aiwf authorize M-0002 --to ai/claude
+$ git switch -q -c milestone/M-0002-milestone-2
+$ aiwf add ac M-0002 --title agent crit a --actor ai/claude --principal human/peter
+aiwf add ac M-0002/AC-2 "agent crit a"
+$ aiwf add ac M-0002 --title agent crit b --actor ai/claude --principal human/peter
+aiwf add ac M-0002/AC-3 "agent crit b"
+$ aiwf authorize M-0002 --pause waiting on review
+aiwf authorize M-0002 --pause
+$ aiwf add ac M-0002 --title agent crit while paused --actor ai/claude --principal human/peter
+aiwf add ac: provenance refused: actor "ai/claude": target M-0002 is outside the reach of every active scope (provenance-authorization-out-of-scope)
+[exit 1]
+$ aiwf authorize M-0002 --resume review done
+aiwf authorize M-0002 --resume
+--- HEAD message after resume:
+aiwf authorize M-0002 --resume
+
+review done
+
+aiwf-verb: authorize
+aiwf-entity: M-0002
+aiwf-actor: human/peter
+aiwf-scope: resumed
+aiwf-reason: review done
+
+$ aiwf add ac M-0002 --title agent crit after resume --actor ai/claude --principal human/peter
+aiwf add ac M-0002/AC-4 "agent crit after resume"
+$ aiwf authorize M-0002 --end --reason taking it back
+aiwf authorize M-0002 --end --scope 622efd0 (ai/claude)
+$ aiwf add ac M-0002 --title agent crit after end --actor ai/claude --principal human/peter
+aiwf add ac: provenance refused: actor "ai/claude": target M-0002 is outside the reach of every active scope (provenance-authorization-out-of-scope)
+[exit 1]
+6183765 8e8b4e8    aiwf authorize M-0002 --end --scope 622efd0 (ai/claude)  {verbs: authorize}
+8e8b4e8 1618e67    aiwf add ac M-0002/AC-4 "agent crit after resume"  {verbs: add}
+1618e67 2072765    aiwf authorize M-0002 --resume  {verbs: authorize}
+2072765 b1acb33    aiwf authorize M-0002 --pause  {verbs: authorize}
+b1acb33 951809e    aiwf add ac M-0002/AC-3 "agent crit b"  {verbs: add}
+951809e 622efd0    aiwf add ac M-0002/AC-2 "agent crit a"  {verbs: add}
+--- aiwf show M-0002 (scopes section):
+  Scopes (1):
+    622efd0  human/peter → ai/claude  state: ended    opened 2026-11-07  ended 2026-11-07  events: 4
+
+--- aiwf history M-0002 (last 2 events):
+    [reason: review done]
+    review done
+2026-11-07T11:08:45Z  human/peter via ai/claude  add         -             aiwf add ac M-0002/AC-4 "agent crit after resume"  8e8b4e8  [M-0002 622efd0]
+2026-11-07T11:08:45Z  human/peter       authorize   -             aiwf authorize M-0002 --end --scope 622efd0 (ai/claude)  6183765  [scope: 622efd0 ended]
+    [reason: taking it back]
+    taking it back
+$ git switch -q epic/E-0001-epic-one
+
+## [control] part 3a: authorize then --end in the same run
+$ git commit (code): chore: part3a
+$ aiwf authorize M-0003 --to ai/claude --branch milestone/M-0003-milestone-3 --reason delegate M-0003
+aiwf authorize M-0003 --to ai/claude
+$ aiwf authorize M-0003 --end --reason changed my mind
+aiwf authorize M-0003 --end --scope eae4140 (ai/claude)
+141d41d eae4140    aiwf authorize M-0003 --end --scope eae4140 (ai/claude)  {verbs: authorize}
+eae4140 c7d6063    aiwf authorize M-0003 --to ai/claude  {verbs: authorize}
+c7d6063 622efd0    chore: part3a  {verbs: }
+--- aiwf show M-0003 (scopes section):
+  Scopes (1):
+    eae4140  human/peter → ai/claude  state: ended    opened 2026-11-07  ended 2026-11-07  events: 2
+
+--- aiwf history M-0003 (last 2 events):
+2026-11-07T11:08:45Z  human/peter       authorize   → ai/claude   aiwf authorize M-0003 --to ai/claude  eae4140  [scope: opened]
+    [reason: delegate M-0003]
+    delegate M-0003
+2026-11-07T11:08:45Z  human/peter       authorize   -             aiwf authorize M-0003 --end --scope eae4140 (ai/claude)  141d41d  [scope: eae4140 ended]
+    [reason: changed my mind]
+    changed my mind
+$ git switch -q -c milestone/M-0003-milestone-3
+$ aiwf promote M-0003/AC-1 met --actor ai/claude --principal human/peter
+aiwf promote: provenance refused: actor "ai/claude": target M-0003/AC-1 is outside the reach of every active scope (provenance-authorization-out-of-scope)
+[exit 1]
+$ git switch -q epic/E-0001-epic-one
+
+## [control] part 3b: authorize then terminal cancel in the same run
+$ git commit (code): chore: part3b
+$ aiwf authorize M-0005 --to ai/claude --branch milestone/M-0005-milestone-5 --reason delegate M-0005
+aiwf authorize M-0005 --to ai/claude
+$ aiwf cancel M-0005 --reason dropped
+aiwf cancel M-0005 -> cancelled
+37fb94a bae7d3c    aiwf cancel M-0005 -> cancelled  {verbs: cancel}
+bae7d3c 5604953    aiwf authorize M-0005 --to ai/claude  {verbs: authorize}
+5604953 141d41d    chore: part3b  {verbs: }
+--- aiwf show M-0005 (scopes section):
+  Scopes (1):
+    bae7d3c  human/peter → ai/claude  state: ended    opened 2026-11-07  ended 2026-11-07  events: 2
+
+--- aiwf history M-0005 (last 2 events):
+2026-11-07T11:08:43Z  human/peter       promote     → cancelled   aiwf promote M-0005/AC-1 open -> cancelled  d5e6be2
+2026-11-07T11:08:46Z  human/peter       authorize   → ai/claude   aiwf authorize M-0005 --to ai/claude  bae7d3c  [scope: opened]
+    [reason: delegate M-0005]
+    delegate M-0005
+2026-11-07T11:08:46Z  human/peter       cancel      -             aiwf cancel M-0005 -> cancelled  37fb94a  [M-0005 ended]
+    dropped
+
+## [control] part 4: authorize, then another human op after it
+$ git commit (code): chore: part4
+$ aiwf authorize M-0007 --to ai/claude --branch milestone/M-0007-milestone-7 --reason delegate M-0007
+aiwf authorize M-0007 --to ai/claude
+$ aiwf retitle M-0007 Milestone 7, retitled
+aiwf retitle M-0007 -> "Milestone 7, retitled"
+ac6e5e5 32c707b    aiwf retitle M-0007 -> "Milestone 7, retitled"  {verbs: retitle}
+32c707b 0f94f06    aiwf authorize M-0007 --to ai/claude  {verbs: authorize}
+$ git switch -q -c milestone/M-0007-milestone-7
+$ aiwf promote M-0007/AC-1 met --actor ai/claude --principal human/peter
+aiwf promote M-0007/AC-1 open -> met
+--- aiwf show M-0007 (scopes section):
+  Scopes (1):
+    32c707b  human/peter → ai/claude  state: active   opened 2026-11-07  events: 1
+
+--- aiwf history M-0007 (last 2 events):
+2026-11-07T11:08:43Z  human/peter       add         -             aiwf add ac M-0007/AC-1 "crit 7"  96c7c88
+2026-11-07T11:08:46Z  human/peter       authorize   → ai/claude   aiwf authorize M-0007 --to ai/claude  32c707b  [scope: opened]
+    [reason: delegate M-0007]
+    delegate M-0007
+2026-11-07T11:08:46Z  human/peter       retitle     -             aiwf retitle M-0007 -> "Milestone 7, retitled"  ac6e5e5
+2026-11-07T11:08:46Z  human/peter via ai/claude  promote     → met         aiwf promote M-0007/AC-1 open -> met  3c909ea  [M-0007 32c707b]
+$ git switch -q epic/E-0001-epic-one
+
+## [control] aiwf check, push of the epic branch
+$ aiwf check
+entity-body-empty (warning) × 9 — M-0001 body section `## Goal` is empty
+
+9 findings (0 errors, 9 warnings)
+run `aiwf check --verbose` for each warning's location and remediation hint
+9 findings (0 errors, 9 warnings)
+$ git push origin epic/E-0001-epic-one
+entity-body-empty (warning) × 9 — M-0001 body section `## Goal` is empty
+
+9 findings (0 errors, 9 warnings)
+run `aiwf check --verbose` for each warning's location and remediation hint
+To /tmp/claude-1000/-workspaces-aiwf/eb2423dd-a702-4bd8-a308-1404db3d3991/scratchpad/amend-proto/runs/s03.7M8c/control-remote.git
+   94379d4..ac6e5e5  epic/E-0001-epic-one -> epic/E-0001-epic-one
+operations reachable: 27  distinct: 27
+no duplicate operations
+
+## AMEND: AIWF_EXPERIMENT_AMEND=1, corrected rule
+ok — no findings
+setup done: b3b0bf9 b308c8c    aiwf promote E-0001 proposed -> active  {verbs: promote}
+
+## [amend] part 1: start-milestone ritual
+$ aiwf promote M-0001 in_progress
+aiwf-amend: new commit: HEAD is contained in refs/heads/main
+aiwf promote M-0001 draft -> in_progress
+$ aiwf authorize M-0001 --to ai/claude --branch milestone/M-0001-milestone-1 --reason delegate M-0001
+aiwf-amend: amended 944f7dc -> e57fdb1 (2 operations, rule corrected)
+aiwf authorize M-0001 --to ai/claude
+e57fdb1 b3b0bf9    aiwf: 2 operations (promote M-0001, authorize M-0001)  {verbs: promote,authorize}
+b3b0bf9 b308c8c    aiwf promote E-0001 proposed -> active  {verbs: promote}
+b308c8c c89df40    aiwf: 17 operations (add E-0001, add M-0001, add M-0001/AC-1, add M-0002, ...)  {verbs: add,add,add,add,add,add,add,add,add,add,add,add,add,add,add,promote,promote}
+$ git switch -q -c milestone/M-0001-milestone-1
+$ aiwf promote M-0001/AC-1 met --actor ai/claude --principal human/peter
+aiwf promote: provenance refused: actor "ai/claude" has no active scope authorizing this act (provenance-no-active-scope)
+[exit 1]
+--- aiwf show M-0001 (scopes section):
+--- aiwf history M-0001 (last 2 events):
+ai/claude  aiwf: 2 operations (promote M-0001, authorize M-0001)  e57fdb1
+    [reason: delegate M-0001]
+    [1] aiwf promote M-0001 draft -> in_progress
+    
+    [2] aiwf authorize M-0001 --to ai/claude
+    delegate M-0001
+$ git switch -q epic/E-0001-epic-one
+
+## [amend] part 2: authorize alone, then alternation
+$ git commit (code): chore: part2
+$ aiwf authorize M-0002 --to ai/claude --branch milestone/M-0002-milestone-2 --reason delegate M-0002
+aiwf-amend: new commit: HEAD is not a planning commit (no leading aiwf-verb trailer)
+aiwf authorize M-0002 --to ai/claude
+$ git switch -q -c milestone/M-0002-milestone-2
+$ aiwf add ac M-0002 --title agent crit a --actor ai/claude --principal human/peter
+aiwf-amend: new commit: HEAD actor [human/peter] differs from "ai/claude"
+aiwf add ac M-0002/AC-2 "agent crit a"
+$ aiwf add ac M-0002 --title agent crit b --actor ai/claude --principal human/peter
+aiwf-amend: amended bc6f695 -> 07b6b2a (2 operations, rule corrected)
+aiwf add ac M-0002/AC-3 "agent crit b"
+$ aiwf authorize M-0002 --pause waiting on review
+aiwf-amend: new commit: HEAD actor [ai/claude] differs from "human/peter"
+aiwf authorize M-0002 --pause
+$ aiwf add ac M-0002 --title agent crit while paused --actor ai/claude --principal human/peter
+aiwf add ac: provenance refused: actor "ai/claude" has no active scope authorizing this act (provenance-no-active-scope)
+[exit 1]
+$ aiwf authorize M-0002 --resume review done
+aiwf-amend: amended 4a5799a -> d3dd73c (2 operations, rule corrected)
+aiwf authorize M-0002 --resume
+--- HEAD message after resume:
+aiwf: 2 operations (authorize M-0002, authorize M-0002)
+
+[1] aiwf authorize M-0002 --pause
+waiting on review
+
+[2] aiwf authorize M-0002 --resume
+review done
+
+aiwf-verb: authorize
+aiwf-entity: M-0002
+aiwf-actor: human/peter
+aiwf-scope: paused
+aiwf-reason: waiting on review
+aiwf-op-time: 2026-11-07T11:08:51Z
+aiwf-verb: authorize
+aiwf-entity: M-0002
+aiwf-actor: human/peter
+aiwf-scope: resumed
+aiwf-reason: review done
+aiwf-op-time: 2026-11-07T11:08:52Z
+
+$ aiwf add ac M-0002 --title agent crit after resume --actor ai/claude --principal human/peter
+aiwf-amend: new commit: HEAD actor [human/peter] differs from "ai/claude"
+aiwf add ac M-0002/AC-4 "agent crit after resume"
+$ aiwf authorize M-0002 --end --reason taking it back
+aiwf-amend: new commit: HEAD actor [ai/claude] differs from "human/peter"
+aiwf authorize M-0002 --end --scope ec7fc1a (ai/claude)
+$ aiwf add ac M-0002 --title agent crit after end --actor ai/claude --principal human/peter
+aiwf add ac: provenance refused: actor "ai/claude" has no active scope authorizing this act (provenance-no-active-scope)
+[exit 1]
+eb6f2fc eccf6ab    aiwf authorize M-0002 --end --scope ec7fc1a (ai/claude)  {verbs: authorize}
+eccf6ab d3dd73c    aiwf add ac M-0002/AC-4 "agent crit after resume"  {verbs: add}
+d3dd73c 07b6b2a    aiwf: 2 operations (authorize M-0002, authorize M-0002)  {verbs: authorize,authorize}
+07b6b2a ec7fc1a    aiwf: 2 operations (add M-0002/AC-2, add M-0002/AC-3)  {verbs: add,add}
+ec7fc1a 2e0e581    aiwf authorize M-0002 --to ai/claude  {verbs: authorize}
+2e0e581 e57fdb1    chore: part2  {verbs: }
+--- aiwf show M-0002 (scopes section):
+  Scopes (1):
+    ec7fc1a  human/peter → ai/claude  state: ended    opened 2026-11-07  ended 2026-11-07  events: 2
+
+--- aiwf history M-0002 (last 2 events):
+    [2] aiwf authorize M-0002 --resume
+    review done
+2026-11-07T11:08:52Z  human/peter via ai/claude  add         -             aiwf add ac M-0002/AC-4 "agent crit after resume"  eccf6ab  [M-0002 ec7fc1a]
+2026-11-07T11:08:52Z  human/peter       authorize   -             aiwf authorize M-0002 --end --scope ec7fc1a (ai/claude)  eb6f2fc  [scope: ec7fc1a ended]
+    [reason: taking it back]
+    taking it back
+$ git switch -q epic/E-0001-epic-one
+
+## [amend] part 3a: authorize then --end in the same run
+$ git commit (code): chore: part3a
+$ aiwf authorize M-0003 --to ai/claude --branch milestone/M-0003-milestone-3 --reason delegate M-0003
+aiwf-amend: new commit: HEAD is not a planning commit (no leading aiwf-verb trailer)
+aiwf authorize M-0003 --to ai/claude
+$ aiwf authorize M-0003 --end --reason changed my mind
+aiwf-amend: new commit: new operation's message names HEAD
+aiwf authorize M-0003 --end --scope 4eb2d80 (ai/claude)
+99365ae 4eb2d80    aiwf authorize M-0003 --end --scope 4eb2d80 (ai/claude)  {verbs: authorize}
+4eb2d80 6b1d838    aiwf authorize M-0003 --to ai/claude  {verbs: authorize}
+6b1d838 ec7fc1a    chore: part3a  {verbs: }
+--- aiwf show M-0003 (scopes section):
+  Scopes (1):
+    4eb2d80  human/peter → ai/claude  state: ended    opened 2026-11-07  ended 2026-11-07  events: 2
+
+--- aiwf history M-0003 (last 2 events):
+2026-11-07T11:08:52Z  human/peter       authorize   → ai/claude   aiwf authorize M-0003 --to ai/claude  4eb2d80  [scope: opened]
+    [reason: delegate M-0003]
+    delegate M-0003
+2026-11-07T11:08:52Z  human/peter       authorize   -             aiwf authorize M-0003 --end --scope 4eb2d80 (ai/claude)  99365ae  [scope: 4eb2d80 ended]
+    [reason: changed my mind]
+    changed my mind
+$ git switch -q -c milestone/M-0003-milestone-3
+$ aiwf promote M-0003/AC-1 met --actor ai/claude --principal human/peter
+aiwf promote: provenance refused: actor "ai/claude": target M-0003/AC-1 is outside the reach of every active scope (provenance-authorization-out-of-scope)
+[exit 1]
+$ git switch -q epic/E-0001-epic-one
+
+## [amend] part 3b: authorize then terminal cancel in the same run
+$ git commit (code): chore: part3b
+$ aiwf authorize M-0005 --to ai/claude --branch milestone/M-0005-milestone-5 --reason delegate M-0005
+aiwf-amend: new commit: HEAD is not a planning commit (no leading aiwf-verb trailer)
+aiwf authorize M-0005 --to ai/claude
+$ aiwf cancel M-0005 --reason dropped
+aiwf-amend: new commit: new operation's trailer aiwf-scope-ends names HEAD
+aiwf cancel M-0005 -> cancelled
+84d7b49 256aa66    aiwf cancel M-0005 -> cancelled  {verbs: cancel}
+256aa66 0beefe0    aiwf authorize M-0005 --to ai/claude  {verbs: authorize}
+0beefe0 99365ae    chore: part3b  {verbs: }
+--- aiwf show M-0005 (scopes section):
+  Scopes (1):
+    256aa66  human/peter → ai/claude  state: ended    opened 2026-11-07  ended 2026-11-07  events: 2
+
+--- aiwf history M-0005 (last 2 events):
+    [17] aiwf promote M-0006/AC-1 open -> cancelled
+2026-11-07T11:08:52Z  human/peter       authorize   → ai/claude   aiwf authorize M-0005 --to ai/claude  256aa66  [scope: opened]
+    [reason: delegate M-0005]
+    delegate M-0005
+2026-11-07T11:08:53Z  human/peter       cancel      -             aiwf cancel M-0005 -> cancelled  84d7b49  [M-0005 ended]
+    dropped
+
+## [naive rule] part 3a: authorize then --end in the same run
+$ git commit (code): chore: part3a-naive
+$ aiwf authorize M-0004 --to ai/claude --branch milestone/M-0004-milestone-4 --reason delegate M-0004
+aiwf-amend: new commit: HEAD is not a planning commit (no leading aiwf-verb trailer)
+aiwf authorize M-0004 --to ai/claude
+$ aiwf authorize M-0004 --end --reason changed my mind
+aiwf-amend: amended f7b76ab -> c009fc1 (2 operations, rule naive)
+aiwf authorize M-0004 --end --scope f7b76ab (ai/claude)
+c009fc1 b948bf4    aiwf: 2 operations (authorize M-0004, authorize M-0004)  {verbs: authorize,authorize}
+b948bf4 84d7b49    chore: part3a-naive  {verbs: }
+aiwf-verb: authorize
+aiwf-entity: M-0004
+aiwf-actor: human/peter
+aiwf-to: ai/claude
+aiwf-scope: opened
+aiwf-branch: milestone/M-0004-milestone-4
+aiwf-reason: delegate M-0004
+aiwf-op-time: 2026-11-07T11:08:53Z
+aiwf-verb: authorize
+aiwf-entity: M-0004
+aiwf-actor: human/peter
+aiwf-scope-ends: f7b76abf966c58669e198f71afc7575efbf77f2b
+aiwf-reason: changed my mind
+aiwf-op-time: 2026-11-07T11:08:53Z
+
+HEAD is c009fc1c6338af38a917e631e0c32e39bb1ed031
+--- aiwf show M-0004 (scopes section):
+--- aiwf history M-0004 (last 2 events):
+changed my mind]
+    [1] aiwf authorize M-0004 --to ai/claude
+    delegate M-0004
+    
+    [2] aiwf authorize M-0004 --end --scope f7b76ab (ai/claude)
+    changed my mind
+$ git switch -q -c milestone/M-0004-milestone-4
+$ aiwf promote M-0004/AC-1 met --actor ai/claude --principal human/peter
+aiwf-amend: new commit: HEAD actor [human/peter] differs from "ai/claude"
+aiwf promote M-0004/AC-1 open -> met
+$ git switch -q epic/E-0001-epic-one
+
+## [naive rule] part 3b: authorize then terminal cancel in the same run
+$ git commit (code): chore: part3b-naive
+$ aiwf authorize M-0006 --to ai/claude --branch milestone/M-0006-milestone-6 --reason delegate M-0006
+aiwf-amend: new commit: HEAD is not a planning commit (no leading aiwf-verb trailer)
+aiwf authorize M-0006 --to ai/claude
+$ aiwf cancel M-0006 --reason dropped
+aiwf-amend: amended 0702626 -> 34d6a43 (2 operations, rule naive)
+aiwf cancel M-0006 -> cancelled
+34d6a43 053cd33    aiwf: 2 operations (authorize M-0006, cancel M-0006)  {verbs: authorize,cancel}
+053cd33 c009fc1    chore: part3b-naive  {verbs: }
+--- aiwf show M-0006 (scopes section):
+--- aiwf history M-0006 (last 2 events):
+    [reason: delegate M-0006]
+    [1] aiwf authorize M-0006 --to ai/claude
+    delegate M-0006
+    
+    [2] aiwf cancel M-0006 -> cancelled
+    dropped
+
+## [amend] part 4: authorize, then another human op after it
+$ git commit (code): chore: part4
+$ aiwf authorize M-0007 --to ai/claude --branch milestone/M-0007-milestone-7 --reason delegate M-0007
+aiwf-amend: new commit: HEAD is not a planning commit (no leading aiwf-verb trailer)
+aiwf authorize M-0007 --to ai/claude
+$ aiwf retitle M-0007 Milestone 7, retitled
+aiwf-amend: amended d64d656 -> a3b5deb (2 operations, rule corrected)
+aiwf retitle M-0007 -> "Milestone 7, retitled"
+a3b5deb ca710a9    aiwf: 2 operations (authorize M-0007, retitle M-0007)  {verbs: authorize,retitle}
+ca710a9 34d6a43    chore: part4  {verbs: }
+$ git switch -q -c milestone/M-0007-milestone-7
+$ aiwf promote M-0007/AC-1 met --actor ai/claude --principal human/peter
+aiwf promote: provenance refused: actor "ai/claude": target M-0007/AC-1 is outside the reach of every active scope (provenance-authorization-out-of-scope)
+[exit 1]
+--- aiwf show M-0007 (scopes section):
+--- aiwf history M-0007 (last 2 events):
+retitle  → ai/claude   aiwf: 2 operations (authorize M-0007, retitle M-0007)  a3b5deb
+    [reason: delegate M-0007]
+    [1] aiwf authorize M-0007 --to ai/claude
+    delegate M-0007
+    
+    [2] aiwf retitle M-0007 -> "Milestone 7, retitled"
+$ git switch -q epic/E-0001-epic-one
+
+## [amend] aiwf check, push of the epic branch
+$ aiwf check
+entity-body-empty (warning) × 8 — M-0001 body section `## Goal` is empty
+isolation-escape-orphaned-ai-commit (warning) × 1 — AI-actor commit bc6f695c was orphaned by a non-fast-forward update on "milestone/M-0002-milestone-2" at 2026-11-07 11:08:51 +0000; entity M-0002/AC-2, actor "ai/claude"
+
+9 findings (0 errors, 9 warnings)
+run `aiwf check --verbose` for each warning's location and remediation hint
+warning isolation-escape-orphaned-ai-commit: AI-actor commit bc6f695c was orphaned by a non-fast-forward update on "milestone/M-0002-milestone-2" at 2026-11-07 11:08:51 +0000; entity M-0002/AC-2, actor "ai/claude" — hint: inspect with `git reflog show milestone/M-0002-milestone-2 | grep bc6f695c` and either restore the commit (`git update-ref refs/heads/milestone/M-0002-milestone-2 <pre-push-sha>` or cherry-pick onto the correct branch) or, if the force-push was deliberate sovereign cleanup, document with `aiwf acknowledge illegal bc6f695c --reason "..."`
+9 findings (0 errors, 9 warnings)
+$ git push origin epic/E-0001-epic-one
+entity-body-empty (warning) × 8 — M-0001 body section `## Goal` is empty
+isolation-escape-orphaned-ai-commit (warning) × 1 — AI-actor commit bc6f695c was orphaned by a non-fast-forward update on "milestone/M-0002-milestone-2" at 2026-11-07 11:08:51 +0000; entity M-0002/AC-2, actor "ai/claude"
+
+9 findings (0 errors, 9 warnings)
+run `aiwf check --verbose` for each warning's location and remediation hint
+To /tmp/claude-1000/-workspaces-aiwf/eb2423dd-a702-4bd8-a308-1404db3d3991/scratchpad/amend-proto/runs/s03.7M8c/repo-remote.git
+   b3b0bf9..a3b5deb  epic/E-0001-epic-one -> epic/E-0001-epic-one
+operations reachable: 31  distinct: 31
+no duplicate operations

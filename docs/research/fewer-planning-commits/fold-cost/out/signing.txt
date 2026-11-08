@@ -1,0 +1,47 @@
+git 2.51.1, ssh signing; %G? per commit (G good signature, N none), newest first
+== e1s-base
+8c42be5 G feat: c5
+84adbca G Merge remote-tracking branch 'origin/main' into epic/E-0001-spike-epic
+76f0be1 G feat: c4
+9dbff34 N feat: other on main
+c3a7d20 G aiwf acknowledge illegal 1e12c8dd
+1e12c8d G docs: tweak epic wording by hand
+61e1be3 G aiwf promote G-0001 open -> addressed
+5bc7ed5 G aiwf promote M-0001/AC-1 open -> met
+eea8f5f G fix: c3, follow-up to 7433b17a14bba6c26b774a1689e45a9a2bae5b3e
+7433b17 G feat: c2
+c879dea G aiwf promote E-0001 proposed -> active
+b8f3c59 G aiwf promote M-0001 draft -> in_progress
+== e1s-sign
+8062eb5 G chore(plan): fold 4 planning operations
+331af96 G feat: c5
+17b304f G Merge remote-tracking branch 'origin/main' into epic/E-0001-spike-epic
+917b34e G feat: c4
+43066d9 G docs: tweak epic wording by hand
+5ec47fb G fix: c3, follow-up to 7433b17a14bba6c26b774a1689e45a9a2bae5b3e
+d51caed G feat: c2
+9dbff34 N feat: other on main
+8e9f8d2 G feat: c1 add code
+c879dea G aiwf promote E-0001 proposed -> active
+fd82372 G aiwf add gap G-0001 "Something is wrong"
+41ba515 G aiwf add ac M-0001/AC-1 "Something holds"
+== e1s-inherit
+34e5636 N chore(plan): fold 4 planning operations
+67e6a6f N feat: c5
+e732c09 N Merge remote-tracking branch 'origin/main' into epic/E-0001-spike-epic
+8e65785 N feat: c4
+723224d N docs: tweak epic wording by hand
+b52ee62 N fix: c3, follow-up to 7433b17a14bba6c26b774a1689e45a9a2bae5b3e
+ba1316b N feat: c2
+9dbff34 N feat: other on main
+8e9f8d2 G feat: c1 add code
+c879dea G aiwf promote E-0001 proposed -> active
+fd82372 G aiwf add gap G-0001 "Something is wrong"
+41ba515 G aiwf add ac M-0001/AC-1 "Something holds"
+== e1s-nokey2 (fold with -S, private key absent)
+ok — no findings
+error: No private key found for public key "/tmp/claude-1000/-workspaces-aiwf/eb2423dd-a702-4bd8-a308-1404db3d3991/scratchpad/fold-cost/runs/e1s-nokey2/home/.ssh/id_ed25519.pub"?
+
+fatal: failed to write commit object
+aiwf promote: commit-tree: commit-tree: git commit-tree: exit status 1
+error: No private key found for public key "/tmp/claude-1000/-workspaces-aiwf/eb2423dd-a702-4bd8-a308-1404db3d3991/scratchpad/fold-cost/runs/e1s-nokey2/home/.ssh/id_ed25519.pub"?

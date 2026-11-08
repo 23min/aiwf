@@ -1,0 +1,58 @@
+### first-parent line over base (sha, %G?, subject)
+dd82629 N feat: c5
+b85c6fa N Merge remote-tracking branch 'origin/main' into epic/E-0001-spike-epic
+5b95f6f N feat: c4
+bd36ae2 N aiwf acknowledge illegal d595d4cd
+d595d4c N docs: tweak epic wording by hand
+79c61e6 N aiwf promote G-0001 open -> addressed
+446da90 N aiwf promote M-0001/AC-1 open -> met
+e1e18d6 N fix: c3, follow-up to 67b63f363a7104f91bec975323792500cf1d70ce
+afdbd64 N aiwf authorize M-0001 --to ai/claude
+67b63f3 N feat: c2
+9c2b03d N aiwf promote M-0001 draft -> in_progress
+de1290d N feat: c1 add code
+### aiwf check (full)
+entity-body-empty (warning) × 3 — M-0001 body section `## Goal` is empty
+archive-sweep-pending (warning) × 1 — 1 terminal entities awaiting `aiwf archive --apply`. Set `archive.sweep_threshold` in aiwf.yaml to escalate to blocking past N
+epic-active-no-drafted-milestones (warning) × 1 — epic E-0001 is active but has no milestones at status draft
+provenance-untrailered-scope-undefined (warning) × 1 — no upstream configured and no --since <ref>; provenance audit, body-section gate and instruction-file fence skipped
+terminal-entity-not-archived (warning) × 1 — entity G-0001 has terminal status "addressed" but file is still in the active tree; awaiting `aiwf archive --apply` sweep
+
+7 findings (0 errors, 7 warnings)
+run `aiwf check --verbose` for each warning's location and remediation hint
+### aiwf check --since c59a198
+entity-body-empty (warning) × 3 — M-0001 body section `## Goal` is empty
+archive-sweep-pending (warning) × 1 — 1 terminal entities awaiting `aiwf archive --apply`. Set `archive.sweep_threshold` in aiwf.yaml to escalate to blocking past N
+epic-active-no-drafted-milestones (warning) × 1 — epic E-0001 is active but has no milestones at status draft
+terminal-entity-not-archived (warning) × 1 — entity G-0001 has terminal status "addressed" but file is still in the active tree; awaiting `aiwf archive --apply` sweep
+
+6 findings (0 errors, 6 warnings)
+run `aiwf check --verbose` for each warning's location and remediation hint
+### addressed_by_commit in G-0001 and whether HEAD contains it
+addressed_by_commit: 67b63f363a7104f91bec975323792500cf1d70ce
+  contained in HEAD: yes
+### aiwf-force-for target of the acknowledgment and whether HEAD contains it
+d595d4cdfc54b9448b6470cd311ad45cd0dfb986 contained: yes
+### aiwf-authorized-by targets and whether HEAD contains them
+afdbd64f833100e96b019bcc48d9f50bdcbdcae5 contained: yes
+### SHAs named in commit subjects/bodies on the line, and whether HEAD contains them
+67b63f363a71 contained: yes
+afdbd64f8331 contained: yes
+d595d4cdfc54 contained: yes
+### aiwf history G-0001
+2026-11-07T11:01:37+00:00  human/peter       add         -             aiwf add gap G-0001 "Something is wrong"  5dd117e
+2026-11-07T11:01:37+00:00  human/peter       promote     → addressed   aiwf promote G-0001 open -> addressed  79c61e6
+### aiwf history M-0001
+2026-11-07T11:01:36+00:00  human/peter       add         -             aiwf add milestone M-0001 "Spike milestone"  2b3b821
+2026-11-07T11:01:37+00:00  human/peter       promote     → in_progress  aiwf promote M-0001 draft -> in_progress  9c2b03d
+2026-11-07T11:01:37+00:00  human/peter       authorize   → ai/claude   aiwf authorize M-0001 --to ai/claude  afdbd64  [scope: opened]
+    [reason: spike delegation]
+    spike delegation
+2026-11-07T11:01:37+00:00  human/peter       add         -             aiwf add ac M-0001/AC-1 "Something holds"  cb3c3cd
+2026-11-07T11:01:37+00:00  human/peter via ai/claude  promote     → met         aiwf promote M-0001/AC-1 open -> met  446da90  [M-0001 afdbd64]
+### aiwf history E-0001
+2026-11-07T11:01:36+00:00  human/peter       add         -             aiwf add epic E-0001 "Spike epic"  6c5d6c9
+2026-11-07T11:01:37+00:00  human/peter       promote     → active      aiwf promote E-0001 proposed -> active  c59a198
+2026-11-07T11:01:38+00:00  human/peter       acknowledge-illegal  -             aiwf acknowledge illegal d595d4cd  bd36ae2
+    [reason: hand edit of wording, reviewed]
+    hand edit of wording, reviewed

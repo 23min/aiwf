@@ -1,0 +1,8 @@
+   1  branch line | unpushed at merge | kernel
+   2  main | pushed at merge | code
+   8  main | pushed at merge | kernel
+   4  main | pushed at merge | merge
+   3  main | unpushed at merge | code
+  20  main | unpushed at merge | kernel
+   4  main | unpushed at merge | merge
+total sync merges: 42

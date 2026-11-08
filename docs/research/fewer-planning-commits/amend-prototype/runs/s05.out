@@ -1,0 +1,307 @@
+## environment
+date: 2026-11-07T11:16:38Z
+git: git version 2.51.1
+aiwf binary: /tmp/claude-1000/-workspaces-aiwf/eb2423dd-a702-4bd8-a308-1404db3d3991/scratchpad/amend-proto/bin/aiwf sha256=08d249b2f404d4a1
+built from: /workspaces/aiwf/.claude/worktrees/patch/research-commit-noise at 4343f2bd1 + uncommitted diff sha256=2bc752b6c459eb67
+AIWF_EXPERIMENT_AMEND=1 HOME=/tmp/claude-1000/-workspaces-aiwf/eb2423dd-a702-4bd8-a308-1404db3d3991/scratchpad/amend-proto/runs/s05.OaXZ/home
+
+ok — no findings
+
+## a: --single-branch clone
+$ git clone -q --single-branch --branch main /tmp/claude-1000/-workspaces-aiwf/eb2423dd-a702-4bd8-a308-1404db3d3991/scratchpad/amend-proto/runs/s05.OaXZ/repo-remote.git /tmp/claude-1000/-workspaces-aiwf/eb2423dd-a702-4bd8-a308-1404db3d3991/scratchpad/amend-proto/runs/s05.OaXZ/single
+$ git config remote.origin.fetch
++refs/heads/main:refs/remotes/origin/main
+$ aiwf add gap --title single main 1 --body ## What's missing
+
+x.
+
+## Why it matters
+
+y.
+aiwf-amend: new commit: HEAD has 0 parents (merge or root commit)
+aiwf add gap G-0001 "single main 1"
+$ git push -q origin main
+refs containing HEAD after push: refs/heads/main refs/remotes/origin/main 
+$ aiwf add gap --title single main 2 --body ## What's missing
+
+x.
+
+## Why it matters
+
+y.
+aiwf-amend: new commit: HEAD is contained in refs/remotes/origin/main
+aiwf add gap G-0002 "single main 2"
+0531e34 984a865    aiwf add gap G-0002 "single main 2"  {verbs: add}
+984a865 df5e5c9    aiwf add gap G-0001 "single main 1"  {verbs: add}
+
+## a: second branch pushed from the single-branch clone
+$ git switch -q -c epic/E-0009-x
+$ aiwf add gap --title single branch 1 --body ## What's missing
+
+x.
+
+## Why it matters
+
+y.
+aiwf-amend: new commit: HEAD is contained in refs/heads/main
+aiwf add gap G-0003 "single branch 1"
+$ git push -q -u origin epic/E-0009-x
+refs containing HEAD after push: refs/heads/epic/E-0009-x 
+remote has: 1a4e8b4 aiwf add gap G-0003 "single branch 1"
+$ aiwf set-priority G-0003 high
+aiwf-amend: amended 1a4e8b4 -> 8e4e40e (2 operations, rule corrected)
+aiwf set-priority G-0003 high
+8e4e40e 0531e34    aiwf: 2 operations (add G-0003, set-priority G-0003)  {verbs: add,set-priority}
+0531e34 984a865    aiwf add gap G-0002 "single main 2"  {verbs: add}
+$ git push origin epic/E-0009-x
+To /tmp/claude-1000/-workspaces-aiwf/eb2423dd-a702-4bd8-a308-1404db3d3991/scratchpad/amend-proto/runs/s05.OaXZ/repo-remote.git
+ ! [rejected]        epic/E-0009-x -> epic/E-0009-x (non-fast-forward)
+error: failed to push some refs to '/tmp/claude-1000/-workspaces-aiwf/eb2423dd-a702-4bd8-a308-1404db3d3991/scratchpad/amend-proto/runs/s05.OaXZ/repo-remote.git'
+hint: Updates were rejected because the tip of your current branch is behind
+hint: its remote counterpart. If you want to integrate the remote changes,
+hint: use 'git pull' before pushing again.
+hint: See the 'Note about fast-forwards' in 'git push --help' for details.
+[exit 1]
+$ git switch -q main
+
+## b: git push <url>
+$ git pull -q --no-rebase origin main
+$ aiwf add gap --title url push 1 --body ## What's missing
+
+x.
+
+## Why it matters
+
+y.
+aiwf-amend: new commit: HEAD is contained in refs/remotes/origin/main
+aiwf add gap G-0002 "url push 1"
+$ git push -q /tmp/claude-1000/-workspaces-aiwf/eb2423dd-a702-4bd8-a308-1404db3d3991/scratchpad/amend-proto/runs/s05.OaXZ/repo-remote.git main
+ok — no findings
+refs containing HEAD after push: refs/heads/main 
+$ aiwf add decision --title url push decision --body ## Question
+
+q?
+
+## Decision
+
+d.
+
+## Reasoning
+
+r.
+aiwf-amend: amended 6004f5d -> 83cf6a3 (2 operations, rule corrected)
+aiwf add decision D-0001 "url push decision"
+83cf6a3 984a865    aiwf: 2 operations (add G-0002, add D-0001)  {verbs: add,add}
+984a865 df5e5c9    aiwf add gap G-0001 "single main 1"  {verbs: add}
+$ git push origin main
+ok — no findings
+To /tmp/claude-1000/-workspaces-aiwf/eb2423dd-a702-4bd8-a308-1404db3d3991/scratchpad/amend-proto/runs/s05.OaXZ/repo-remote.git
+ ! [rejected]        main -> main (non-fast-forward)
+error: failed to push some refs to '/tmp/claude-1000/-workspaces-aiwf/eb2423dd-a702-4bd8-a308-1404db3d3991/scratchpad/amend-proto/runs/s05.OaXZ/repo-remote.git'
+hint: Updates were rejected because the tip of your current branch is behind
+hint: its remote counterpart. If you want to integrate the remote changes,
+hint: use 'git pull' before pushing again.
+hint: See the 'Note about fast-forwards' in 'git push --help' for details.
+[exit 1]
+
+## b: pull (merge) to get past the rejection
+$ git pull --no-rebase origin main
+From /tmp/claude-1000/-workspaces-aiwf/eb2423dd-a702-4bd8-a308-1404db3d3991/scratchpad/amend-proto/runs/s05.OaXZ/repo-remote
+ * branch            main       -> FETCH_HEAD
+   984a865..6004f5d  main       -> origin/main
+Merge made by the 'ort' strategy.
+*   867c698 83cf6a3 .. Merge branch 'main' of /tmp/claude-1000/-workspaces-aiwf/eb2423dd-a702-4bd8-a308-1404db3d3991/scratchpad/amend-proto/runs/s05.OaXZ/repo-remote  {verbs: }
+|\  
+| * 6004f5d 984a865    aiwf add gap G-0002 "url push 1"  {verbs: add}
+* | 83cf6a3 984a865    aiwf: 2 operations (add G-0002, add D-0001)  {verbs: add,add}
+|/  
+* 984a865 df5e5c9    aiwf add gap G-0001 "single main 1"  {verbs: add}
+operations reachable: 4  distinct: 3
+DUPLICATE ('add', 'G-0002', '-', '-', 'human/peter', '2026-11-07T11:16:44Z') in commits ['83cf6a3', '6004f5d']
+$ aiwf history G-0002
+2026-11-07T11:16:44Z  human/peter       add         -             aiwf add gap G-0002 "url push 1"  6004f5d
+2026-11-07T11:16:44Z  human/peter
+human/peter  add
+add     -             aiwf: 2 operations (add G-0002, add D-0001)  83cf6a3
+    [1] aiwf add gap G-0002 "url push 1"
+    
+    [2] aiwf add decision D-0001 "url push decision"
+$ aiwf check
+ok — no findings
+$ git push origin main
+ok — no findings
+To /tmp/claude-1000/-workspaces-aiwf/eb2423dd-a702-4bd8-a308-1404db3d3991/scratchpad/amend-proto/runs/s05.OaXZ/repo-remote.git
+   6004f5d..867c698  main -> main
+remote main has: 5 commits
+
+## c1: lost push reply, then pull --no-rebase
+$ aiwf add gap --title lost reply 1 --body ## What's missing
+
+x.
+
+## Why it matters
+
+y.
+aiwf-amend: new commit: HEAD has 2 parents (merge or root commit)
+aiwf add gap G-0003 "lost reply 1"
+$ git push -q origin main
+ok — no findings
+$ git update-ref refs/remotes/origin/main 867c6981e4489d3a0a1123d498f5eff2ce795887
+remote main: 4f5774f; local tracking: 867c698; HEAD: 4f5774f
+$ aiwf add decision --title lost reply decision --body ## Question
+
+q?
+
+## Decision
+
+d.
+
+## Reasoning
+
+r.
+aiwf-amend: amended 4f5774f -> feec69a (2 operations, rule corrected)
+aiwf add decision D-0002 "lost reply decision"
+feec69a 867c698    aiwf: 2 operations (add G-0003, add D-0002)  {verbs: add,add}
+867c698 83cf6a3 .. Merge branch 'main' of /tmp/claude-1000/-workspaces-aiwf/eb2423dd-a702-4bd8-a308-1404db3d3991/scratchpad/amend-proto/runs/s05.OaXZ/repo-remote  {verbs: }
+$ git push origin main
+ok — no findings
+To /tmp/claude-1000/-workspaces-aiwf/eb2423dd-a702-4bd8-a308-1404db3d3991/scratchpad/amend-proto/runs/s05.OaXZ/repo-remote.git
+ ! [rejected]        main -> main (non-fast-forward)
+error: failed to push some refs to '/tmp/claude-1000/-workspaces-aiwf/eb2423dd-a702-4bd8-a308-1404db3d3991/scratchpad/amend-proto/runs/s05.OaXZ/repo-remote.git'
+hint: Updates were rejected because the tip of your current branch is behind
+hint: its remote counterpart. If you want to integrate the remote changes,
+hint: use 'git pull' before pushing again.
+hint: See the 'Note about fast-forwards' in 'git push --help' for details.
+[exit 1]
+$ git pull --no-rebase origin main
+From /tmp/claude-1000/-workspaces-aiwf/eb2423dd-a702-4bd8-a308-1404db3d3991/scratchpad/amend-proto/runs/s05.OaXZ/repo-remote
+ * branch            main       -> FETCH_HEAD
+   867c698..4f5774f  main       -> origin/main
+Merge made by the 'ort' strategy.
+*   78cd81f feec69a .. Merge branch 'main' of /tmp/claude-1000/-workspaces-aiwf/eb2423dd-a702-4bd8-a308-1404db3d3991/scratchpad/amend-proto/runs/s05.OaXZ/repo-remote  {verbs: }
+|\  
+| * 4f5774f 867c698    aiwf add gap G-0003 "lost reply 1"  {verbs: add}
+* | feec69a 867c698    aiwf: 2 operations (add G-0003, add D-0002)  {verbs: add,add}
+|/  
+*   867c698 83cf6a3 .. Merge branch 'main' of /tmp/claude-1000/-workspaces-aiwf/eb2423dd-a702-4bd8-a308-1404db3d3991/scratchpad/amend-proto/runs/s05.OaXZ/repo-remote  {verbs: }
+|\  
+operations reachable: 7  distinct: 5
+DUPLICATE ('add', 'G-0003', '-', '-', 'human/peter', '2026-11-07T11:16:46Z') in commits ['feec69a', '4f5774f']
+DUPLICATE ('add', 'G-0002', '-', '-', 'human/peter', '2026-11-07T11:16:44Z') in commits ['83cf6a3', '6004f5d']
+$ aiwf check
+ok — no findings
+$ git push origin main
+ok — no findings
+To /tmp/claude-1000/-workspaces-aiwf/eb2423dd-a702-4bd8-a308-1404db3d3991/scratchpad/amend-proto/runs/s05.OaXZ/repo-remote.git
+   4f5774f..78cd81f  main -> main
+
+## c2: lost push reply, then pull --rebase
+$ aiwf add gap --title lost reply 2 --body ## What's missing
+
+x.
+
+## Why it matters
+
+y.
+aiwf-amend: new commit: HEAD has 2 parents (merge or root commit)
+aiwf add gap G-0004 "lost reply 2"
+$ git push -q origin main
+ok — no findings
+$ git update-ref refs/remotes/origin/main 78cd81f69f67bea55999d8e47aa693bcb00ee67e
+$ aiwf add decision --title lost reply decision 2 --body ## Question
+
+q?
+
+## Decision
+
+d.
+
+## Reasoning
+
+r.
+aiwf-amend: amended 9a317ab -> c5cd9bc (2 operations, rule corrected)
+aiwf add decision D-0003 "lost reply decision 2"
+c5cd9bc 78cd81f    aiwf: 2 operations (add G-0004, add D-0003)  {verbs: add,add}
+78cd81f feec69a .. Merge branch 'main' of /tmp/claude-1000/-workspaces-aiwf/eb2423dd-a702-4bd8-a308-1404db3d3991/scratchpad/amend-proto/runs/s05.OaXZ/repo-remote  {verbs: }
+$ git push origin main
+ok — no findings
+To /tmp/claude-1000/-workspaces-aiwf/eb2423dd-a702-4bd8-a308-1404db3d3991/scratchpad/amend-proto/runs/s05.OaXZ/repo-remote.git
+ ! [rejected]        main -> main (non-fast-forward)
+error: failed to push some refs to '/tmp/claude-1000/-workspaces-aiwf/eb2423dd-a702-4bd8-a308-1404db3d3991/scratchpad/amend-proto/runs/s05.OaXZ/repo-remote.git'
+hint: Updates were rejected because the tip of your current branch is behind
+hint: its remote counterpart. If you want to integrate the remote changes,
+hint: use 'git pull' before pushing again.
+hint: See the 'Note about fast-forwards' in 'git push --help' for details.
+[exit 1]
+$ git pull --rebase origin main
+From /tmp/claude-1000/-workspaces-aiwf/eb2423dd-a702-4bd8-a308-1404db3d3991/scratchpad/amend-proto/runs/s05.OaXZ/repo-remote
+ * branch            main       -> FETCH_HEAD
+   78cd81f..9a317ab  main       -> origin/main
+Rebasing (1/1)Successfully rebased and updated refs/heads/main.
+84a1050 9a317ab    aiwf: 2 operations (add G-0004, add D-0003)  {verbs: add,add}
+9a317ab 78cd81f    aiwf add gap G-0004 "lost reply 2"  {verbs: add}
+78cd81f feec69a .. Merge branch 'main' of /tmp/claude-1000/-workspaces-aiwf/eb2423dd-a702-4bd8-a308-1404db3d3991/scratchpad/amend-proto/runs/s05.OaXZ/repo-remote  {verbs: }
+--- files changed by HEAD:
+aiwf: 2 operations (add G-0004, add D-0003)
+
+ work/decisions/D-0003-lost-reply-decision-2.md | 16 ++++++++++++++++
+ 1 file changed, 16 insertions(+)
+operations reachable: 10  distinct: 7
+DUPLICATE ('add', 'G-0004', '-', '-', 'human/peter', '2026-11-07T11:16:48Z') in commits ['84a1050', '9a317ab']
+DUPLICATE ('add', 'G-0003', '-', '-', 'human/peter', '2026-11-07T11:16:46Z') in commits ['feec69a', '4f5774f']
+DUPLICATE ('add', 'G-0002', '-', '-', 'human/peter', '2026-11-07T11:16:44Z') in commits ['83cf6a3', '6004f5d']
+$ aiwf history G-0004
+2026-11-07T11:16:48Z  human/peter       add         -             aiwf add gap G-0004 "lost reply 2"  9a317ab
+2026-11-07T11:16:48Z  human/peter
+human/peter  add
+add     -             aiwf: 2 operations (add G-0004, add D-0003)  84a1050
+    [1] aiwf add gap G-0004 "lost reply 2"
+    
+    [2] aiwf add decision D-0003 "lost reply decision 2"
+$ aiwf check
+ok — no findings
+$ git push origin main
+ok — no findings
+To /tmp/claude-1000/-workspaces-aiwf/eb2423dd-a702-4bd8-a308-1404db3d3991/scratchpad/amend-proto/runs/s05.OaXZ/repo-remote.git
+   9a317ab..84a1050  main -> main
+
+## c3: remote-tracking ref deleted after a push (e.g. a bad prune), then the next verb
+$ aiwf add gap --title deleted ref 1 --body ## What's missing
+
+x.
+
+## Why it matters
+
+y.
+aiwf-amend: new commit: HEAD is contained in refs/remotes/origin/main
+aiwf add gap G-0005 "deleted ref 1"
+$ git push -q origin main
+ok — no findings
+$ git update-ref -d refs/remotes/origin/main
+refs containing HEAD: refs/heads/main 
+$ aiwf add decision --title deleted ref decision --body ## Question
+
+q?
+
+## Decision
+
+d.
+
+## Reasoning
+
+r.
+aiwf-amend: amended f6836cd -> a2079a6 (2 operations, rule corrected)
+aiwf add decision D-0004 "deleted ref decision"
+$ git push origin main
+provenance-untrailered-scope-undefined (warning) × 1 — no upstream configured and no --since <ref>; provenance audit, body-section gate and instruction-file fence skipped
+
+1 findings (0 errors, 1 warnings)
+run `aiwf check --verbose` for each warning's location and remediation hint
+To /tmp/claude-1000/-workspaces-aiwf/eb2423dd-a702-4bd8-a308-1404db3d3991/scratchpad/amend-proto/runs/s05.OaXZ/repo-remote.git
+ ! [rejected]        main -> main (non-fast-forward)
+error: failed to push some refs to '/tmp/claude-1000/-workspaces-aiwf/eb2423dd-a702-4bd8-a308-1404db3d3991/scratchpad/amend-proto/runs/s05.OaXZ/repo-remote.git'
+hint: Updates were rejected because the tip of your current branch is behind
+hint: its remote counterpart. If you want to integrate the remote changes,
+hint: use 'git pull' before pushing again.
+hint: See the 'Note about fast-forwards' in 'git push --help' for details.
+[exit 1]
