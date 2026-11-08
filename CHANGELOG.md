@@ -16,6 +16,10 @@ section in this file.
 
 ## [Unreleased]
 
+### Changed (internal) — trailer-order comments state that commits keep their trailers in append order
+
+The code comments on trailer order no longer say a commit's trailers are re-sorted when written; nothing user-facing changed.
+
 ### Changed — D-0107: the milestone wrap commits its prose through `aiwf edit-body`
 
 `aiwfx-wrap-milestone` commits the milestone spec's wrap-side prose with

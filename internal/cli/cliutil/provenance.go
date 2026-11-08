@@ -100,9 +100,10 @@ func gateAndDecorate(ctx context.Context, root string, t *tree.Tree, plan *verb.
 		return fmt.Errorf("provenance refused: %w", allow.Err)
 	}
 
-	// Decorate trailers. Order is irrelevant — gitops.SortedTrailers
-	// re-sorts on emit — but we append in the order the design doc
-	// reads: principal, on-behalf-of, authorized-by, scope-ends.
+	// Decorate trailers. Commit writing keeps them in the order
+	// appended (gitops.CommitMessage does not sort), so append in the
+	// order the design doc reads: principal, on-behalf-of,
+	// authorized-by, scope-ends.
 	if !actorIsHuman {
 		plan.Trailers = append(plan.Trailers, gitops.Trailer{
 			Key:   gitops.TrailerPrincipal,

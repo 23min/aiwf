@@ -62,7 +62,10 @@ const (
 	TrailerForceFor = "aiwf-force-for"
 )
 
-// trailerOrder is the canonical write order for known trailers. The
+// trailerOrder is the canonical order for known trailers: the
+// kernel's canonical key set (CanonicalTrailerKeys) and the order
+// SortedTrailers produces. Commit writing does not sort, so a commit
+// carries its trailers in the order its verb appended them. The
 // existing pre-I2.5 trailers come first (matching what verbs already
 // emit by hand), followed by the I2.5 keys in the order documented in
 // provenance-model.md §"Trailer set". Unknown keys sort to the end
@@ -89,7 +92,7 @@ var trailerOrder = []string{
 }
 
 // trailerOrderIndex maps each known key to its position in the
-// canonical write order. Built once at package init for O(1) lookup.
+// canonical order. Built once at package init for O(1) lookup.
 var trailerOrderIndex = func() map[string]int {
 	m := make(map[string]int, len(trailerOrder))
 	for i, k := range trailerOrder {
@@ -114,7 +117,7 @@ var canonicalTrailerKeysSet = func() map[string]bool {
 // notably TestTrailerShapePerMutatingVerb in internal/cli/integration
 // — assert that every trailer key on a verb's commit is a member.
 //
-// Why an accessor rather than exporting trailerOrder: the write-order
+// Why an accessor rather than exporting trailerOrder: the ordered
 // slice is an implementation detail of SortedTrailers; the membership
 // view is the public contract. G-0195 named the drift class — a
 // hand-maintained mirror of trailerOrder in the test package — and
@@ -133,7 +136,7 @@ func CanonicalTrailerKeys() map[string]bool {
 	return canonicalTrailerKeysSet
 }
 
-// SortedTrailers returns a copy of trailers in canonical write order.
+// SortedTrailers returns a copy of trailers in canonical order.
 // Known keys come first in trailerOrder sequence; unknown keys come
 // last in lexicographic order. Repeated keys (e.g. multiple
 // aiwf-scope-ends entries on one commit) preserve their input order
