@@ -329,3 +329,20 @@ again.
 | `aiwfx-wrap-epic/SKILL.md` | `bc579921e510ca8733b599e3eaae35bd91d3b3f3d856a328fe5f7649dbd3e85a` | `33ab41727141318e1243aaf29b283574eb878e852203cf04c32d3f7b0cdf88e7` |
 | `agents/planner.md` | `f92594261b78dc7ecaee59facf41f65d810b1a9140c5c08e234be29ed04c203d` | `abac99f217f926687f0e5d08a210c839fbe0709a6d1ddaabf3e9b73c11436001` |
 | `agents/reviewer.md` | `e3f65c3d27b41240fb381ffecc76b84cc72262618273f7b8eb4339c7467218c6` | `50ac9f2b15ac2144ae276d436b4a88e9c22beaec86ebfd5734375c2130721ea4` |
+
+## Milestone wrap through edit-body exception
+
+D-0107 commits the milestone wrap's prose with `aiwf edit-body` instead of a
+hand-trailered `git commit`, and has `## Reviewer notes` name the commit the
+deciding review read. The six inventories change only the record of
+`.claude/skills/aiwfx-wrap-milestone/SKILL.md`; all other records stay frozen.
+
+Provenance: derived in the Linux development container on 2026-11-08 without the
+renderer. The artifact's embedded source on `main` at `a9268b684`, which carries no
+`{{aiwf:…}}` token, reproduces its frozen record; the changed source gives the
+updated record, and the candidate binary's materialized file matched it. The
+inventories were sorted again.
+
+| Artifact | Original SHA-256 | Updated SHA-256 |
+| --- | --- | --- |
+| `aiwfx-wrap-milestone/SKILL.md` | `63d3b774e56052759c678480af61171a48f70f6033e01806c567cfa24baec637` | `f13607c591b8440bdc37127f85252748d146308ec6bd7484edba824860aaa6d6` |

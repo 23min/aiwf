@@ -24,13 +24,13 @@ If the milestone isn't actually done — failing tests, unmet ACs, broken build 
 - Run the project's build. **Green.**
 - Run the project's full lint gate — the same linter set CI runs on push (e.g. a `make ci` target), not a subset like `go vet` alone. **Clean.** Unpushed branches accumulate lint debt invisibly; the wrap is the cheap moment to catch it.
 - **Read the spec's `## Closes` section first.** It lists the gaps this milestone recorded at start as the ones it sets out to resolve, and it is the worklist. Being a named heading, it is addressable rather than only readable — `aiwf show M-NNNN --format json` carries body sections keyed by heading slug.
-- Then sweep the body (Goal/Context prose, AC descriptions, `## References`) for a gap this work fixed that never reached that list — an opportunistic fix, or a milestone started before the section existed. The sweep is the residue, not the primary source; anything it turns up is added to `## Closes` so the record matches what happened. Distinguish both from a gap this work merely touched, which `aiwfx-start-milestone` step 1 keeps out of the section in the first place. For each gap to close, confirm the implementing AC and its commit SHA from `aiwf history M-NNNN/AC-<N>`. These become the `aiwf promote G-NNNN addressed --by-commit <sha>` calls in step 12. A gap this work advanced without finishing is not among them: correct its claim to say what landed and what remains, rather than closing it to clear the list — the `aiwf-promote` skill states how to close against what the resolver actually satisfied.
+- Then sweep the body (Goal/Context prose, AC descriptions, `## References`) for a gap this work fixed that never reached that list — an opportunistic fix, or a milestone started before the section existed. The sweep is the residue, not the primary source; anything it turns up is added to `## Closes` so the record matches what happened. Distinguish both from a gap this work merely touched, which `aiwfx-start-milestone` step 1 keeps out of the section in the first place. For each gap to close, confirm the implementing AC and its commit SHA from `aiwf history M-NNNN/AC-<N>`. These become the `aiwf promote G-NNNN addressed --by-commit <sha>` calls in step 10. A gap this work advanced without finishing is not among them: correct its claim to say what landed and what remains, rather than closing it to clear the list — the `aiwf-promote` skill states how to close against what the resolver actually satisfied.
 
 If anything is red, stop and report. Wrap does not paper over failure.
 
 ### 2. Independent review — before the wrap
 
-This gates milestone *closure*, not the per-commit work: the implementation commits are already in, but the milestone is not yet wrapped, so there is still a chance to fix things *inside* the milestone. Findings become corrective commits on the milestone branch — before any AC flips to `met` and before the commit gate (step 6). The review feeds the human gate; it does not replace it.
+This gates milestone *closure*, not the per-commit work: the implementation commits are already in, but the milestone is not yet wrapped, so there is still a chance to fix things *inside* the milestone. Findings become corrective commits on the milestone branch — before any AC flips to `met` and before the commit gate (step 5). The review feeds the human gate; it does not replace it.
 
 **Point the review at the spec's evidence, not only at the code.** Before dispatching, bring `## Release note`, `## Validation` and `## Deferrals` up to date and commit them with `aiwf edit-body M-NNNN`, so the reviewer reads them from the tree and the spec is not left dirty across step 2's corrective commits. Then name all three in the brief: a section met as part of a diff gets skimmed as source, and these are claims — the archived spec is what a later reader consults for what this milestone established, and no gate checks prose. Brief the reviewer to judge whether each claim belongs as well as whether it holds, by the question `wf-review-code` §"Documentation" asks: would a reader who never saw the earlier version need this sentence? An account of how the text was drafted or the work was carried out fails it, however true it is. A release note's before-and-after passes it, and so does a measurement record — step 1's gate output, or its record of an observation.
 
@@ -82,48 +82,32 @@ Anything you add or change in the spec from here lands after the deciding review
 - `## Release note` — this milestone's user-visible delta, written for someone reading release notes who will never see this spec: what a consumer can now do, or what changed under them. One short paragraph, or one line per user-facing change. Not the account of how it was built, and not the epic's summary, which the epic wrap writes. Confirm it still describes what a consumer will observe after any corrective commits from step 2. A milestone that changed nothing user-facing writes that in those words; the section is never left blank. `aiwf check` reports a blank one once the milestone is `done`, which is a report rather than a gate — nothing downstream refuses it.
 - `## Decisions made during implementation` — confirm every mid-flight decision is captured (each should already have an `ADR-NNNN` or `D-NNNN` from `aiwfx-record-decision` invocations during work).
 - `## Validation` — the step 1 gate results, pasted at wrap: test-suite output, the build, and any project-specific lint or type-check. Nothing during implementation writes it. Confirm the results you committed at step 2 still hold; re-paste them if a corrective commit changed the answer.
-- `## Deferrals` — confirm the list covers every piece of work this milestone deliberately punted. Apply `aiwfx-start-milestone`'s **cheap-fix test** before opening a gap for one, as during implementation; what differs at wrap is where the fix lands: **make it now as a corrective commit on the milestone branch** — the same route step 2's review fixes take, so it lands before the wrap commit rather than dirtying it. If it touched source or tests, re-run step 1's gates. Re-enter step 2's scoped confirmation whenever the fix touched source, tests, or one of the evidence sections that review read, committing a changed section with `aiwf edit-body M-NNNN` first as step 2 did, so the re-dispatched reviewer's diff carries it and the spec is not left dirty for the verbs that follow. What lands after the deciding review is unread, whether it is code or a claim about it. A gap is for work that needs its own branch, its own review, or a decision you are not ready to make. For the deferrals that survive the test, **open a gap entity** so each survives — invoke `aiwfx-record-gap` once over the set, naming this milestone as where each was discovered.
+- `## Deferrals` — confirm the list covers every piece of work this milestone deliberately punted. Apply `aiwfx-start-milestone`'s **cheap-fix test** before opening a gap for one, as during implementation; what differs at wrap is where the fix lands: **make it now as a corrective commit on the milestone branch** — the same route step 2's review fixes take, so it lands before the wrap commit. If it touched source or tests, re-run step 1's gates. Re-enter step 2's scoped confirmation whenever the fix touched source, tests, or one of the evidence sections that review read, committing a changed section with `aiwf edit-body M-NNNN` first as step 2 did, so the re-dispatched reviewer's diff carries it and the spec is not left dirty for the verbs that follow. What lands after the deciding review is unread, whether it is code or a claim about it. A gap is for work that needs its own branch, its own review, or a decision you are not ready to make. For the deferrals that survive the test, **open a gap entity** so each survives — invoke `aiwfx-record-gap` once over the set, naming this milestone as where each was discovered.
 
   Then mirror the resulting `G-NNNN` id here. Deferred ACs (status `deferred`) get a one-line note pointing at the receiving milestone or gap.
-- `## Reviewer notes` — the obligation answer from step 2, trade-offs, deliberate omissions, places where the obvious approach was rejected, each finding declined and why, and the deciding round's verdict. The result, not an account of how the review went: no round counts, no what-each-round-found, no who-argued-what, no list of attacks that failed to break the change, no fix committed during the loop or at wrap. A later reviewer reads it first; the review whose result it records cannot.
+- `## Reviewer notes` — the commit the deciding review read, by its SHA (the `HEAD` of its `git diff <base>..HEAD`), which tells a later reader where the review's reach ends: it did not read what was committed after it, this prose included. Then the obligation answer from step 2, trade-offs, deliberate omissions, places where the obvious approach was rejected, each finding declined and why, and the deciding round's verdict. The result, not an account of how the review went: no round counts, no what-each-round-found, no who-argued-what, no list of attacks that failed to break the change, no fix committed during the loop or at wrap. A later reviewer reads it first; the review whose result it records cannot.
 
 For ACs that were `cancelled` mid-implementation, link to the `D-NNNN` decision (or the conversation context) explaining why under the cancelled AC's body section. The kernel only guards the structural state (`status: cancelled`, position-stable in `acs[]`); the why is the human's narrative.
 
-### 5. Stage all changes and prepare the wrap commit
+### 5. 🛑 Commit gate
 
-The implementation is already committed, per-AC, from `aiwfx-start-milestone` step 6 — this step does not bundle any source or test files. The milestone spec carries whatever wrap-side prose step 4 finished; that is what's left to stage:
-
-```bash
-git add work/epics/E-NNNN-<slug>/M-NNNN-<slug>.md
-git status
-git diff --staged --stat
-```
-
-Draft a conventional commit message: `feat(<scope>): <one-line summary> (M-NNNN)`.
-
-### 6. 🛑 Commit gate
+The implementation is already committed, per-AC, from `aiwfx-start-milestone` step 6, so this commit adds no source or test files. It commits the wrap-side prose step 4 finished, which is still uncommitted in the milestone spec. Leave the spec unstaged: `aiwf edit-body` refuses a staged copy of the file it writes. If `git diff HEAD` shows no change to the spec, there is nothing to commit and the verb would refuse: confirm step 4's sections are in the committed spec, then go on to the push gate (step 6).
 
 Show the user:
-- `git diff --staged --stat`
-- The proposed commit message.
-- A summary of what landed: AC count green, doc-lint summary, deferrals opened (with gap ids), and a pointer to the per-AC implementation commits already on the branch (`aiwf history M-NNNN/AC-<N>` lists each — this commit adds no source or test files, only the wrap-side spec prose).
+- `git diff HEAD -- work/epics/E-NNNN-<slug>/M-NNNN-<slug>.md` — exactly what the commit will hold.
+- `git status --short` — anything else still uncommitted. The commit leaves it out, and the merge into the epic branch does not carry it either.
+- The proposed reason: one line on what the wrap prose records.
+- A summary of what landed: AC count green, doc-lint summary, deferrals opened (with gap ids), and a pointer to the per-AC implementation commits already on the branch (`aiwf history M-NNNN/AC-<N>` lists each).
 
-**Stop and wait for explicit "commit" approval.**
-
-### 7. After commit approval
-
-The wrap commit touches a milestone entity file (`work/epics/E-NNNN-<slug>/M-NNNN-<slug>.md`), so it carries the three required trailers — `aiwf-verb: wrap-milestone`, `aiwf-entity: M-NNNN`, `aiwf-actor: human/<id>`. Skipping any one of them trips the kernel's `provenance-untrailered-entity-commit` finding on the file touch. Parallel shape to `aiwfx-wrap-epic`'s trailered merge + wrap-artefact commits:
+**Stop and wait for explicit "commit" approval.** Then:
 
 ```bash
-git commit -m "<approved-message>" \
-  --trailer "aiwf-verb: wrap-milestone" \
-  --trailer "aiwf-entity: M-NNNN" \
-  --trailer "aiwf-actor: human/<id>"
+aiwf edit-body M-NNNN --reason "<approved reason>"
 ```
 
-The trailer keys are exact — variant casings (e.g. `Aiwf-Verb`) fail the kernel's trailer-keys policy.
+The verb commits the milestone spec and nothing else, and writes the trailers itself, taking the actor from the git user's email, so none is typed by hand.
 
-### 8. 🛑 Push gate
+### 6. 🛑 Push gate
 
 Push is an outward, irreversible action — it stands as its own gate, never folded into the declared-sequence gate below. Confirm with the user before pushing. Then:
 
@@ -133,19 +117,19 @@ git push -u origin milestone/M-NNNN-<slug>
 
 Open the PR if the project's flow is PR-driven. Reference the milestone id in the PR title.
 
-### 9. 🛑 Declared-sequence gate — close the milestone (terminal local sequence)
+### 7. 🛑 Declared-sequence gate — close the milestone (terminal local sequence)
 
-This is the milestone's terminal sequence of *local, reversible* mutations. Present it as a single **declared-sequence gate** that enumerates every action verbatim; the user may approve a subset ("all except the promote"), and any deviation (a merge conflict, a check finding, unexpected dirty state) aborts the sequence and re-gates from the point of deviation. **Excluded from this gate:** the push (step 8, outward) and any origin-branch delete (outward) — those stand as their own gates and are never batched here.
+This is the milestone's terminal sequence of *local, reversible* mutations. Present it as a single **declared-sequence gate** that enumerates every action verbatim; the user may approve a subset ("all except the promote"), and any deviation (a merge conflict, a check finding, unexpected dirty state) aborts the sequence and re-gates from the point of deviation. **Excluded from this gate:** the push (step 6, outward) and any origin-branch delete (outward) — those stand as their own gates and are never batched here.
 
 The enumerated local sequence is **merge → promote-done → local cleanup**:
 
-1. **Merge** the milestone branch into the epic branch, with a trailered merge commit (step 11).
-2. **Promote** the milestone to `done` — closing any gaps step 1 identified this milestone fixes first (step 12).
-3. **Local cleanup** — delete the local milestone branch and its worktree, if one was used (step 13).
+1. **Merge** the milestone branch into the epic branch, with a trailered merge commit (step 9).
+2. **Promote** the milestone to `done` — closing any gaps step 1 identified this milestone fixes first (step 10).
+3. **Local cleanup** — delete the local milestone branch and its worktree, if one was used (step 11).
 
 Once the sequence is approved, execute it in order:
 
-### 10. Reconcile the milestone branch with the epic branch
+### 8. Reconcile the milestone branch with the epic branch
 
 Run this immediately before the merge — not as an earlier precondition. The epic branch is this merge's integration target.
 
@@ -157,9 +141,9 @@ Run this immediately before the merge — not as an earlier precondition. The ep
 
 2. If that check fails: the epic branch carries commits the milestone branch doesn't. Integrate the epic branch into the milestone branch, resolve any conflicts there, and re-run the full local CI gate (step 1) on the reconciled milestone branch.
 
-3. Only once the check passes does the merge (step 11) run.
+3. Only once the check passes does the merge (step 9) run.
 
-### 11. Merge the milestone branch into the epic branch with a trailered merge commit
+### 9. Merge the milestone branch into the epic branch with a trailered merge commit
 
 If the project uses an epic-integration branch, follow the same pattern as `aiwfx-wrap-epic`'s epic-into-trunk merge: stage the merge **without committing** so the merge commit's trailer set can be attached explicitly.
 
@@ -168,7 +152,7 @@ can be checked out in one worktree at a time. Where the milestone was cut into i
 own worktree — which `aiwfx-start-milestone` step 5 offers — the epic branch is held
 elsewhere and `git checkout epic/E-NNNN-<slug>` fails with *"fatal: … is already used
 by worktree at …"*. Changing directory into the worktree that already holds it moves
-no branch and cannot fail that way. Do it once, here — steps 11 through 13 then run
+no branch and cannot fail that way. Do it once, here — steps 9 through 11 then run
 there as plain commands carrying no path.
 
 Find the line containing the epic branch's name in brackets:
@@ -187,7 +171,7 @@ git rev-parse --abbrev-ref HEAD          # prints the epic branch; stop if it do
 If no line matches, the epic branch is checked out nowhere. Check it out here and stay
 put — you are then already in the right directory. That is safe in this ritual
 specifically: nothing after this step needs the milestone branch checked out, and
-step 13 deletes it, which requires that it is not.
+step 11 deletes it, which requires that it is not.
 
 ```bash
 git checkout epic/E-NNNN-<slug>
@@ -220,7 +204,7 @@ The trailer keys are exact — `aiwf-verb`, `aiwf-entity`, `aiwf-actor`. Variant
 
 **Why an `aiwf-verb` trailer on a `git merge` commit.** The merge IS a kernel-meaningful structural transition (the milestone's work joins the epic's history); `aiwf-verb: wrap-milestone` records the *ritual* that produced it, not the underlying git operation. **Do NOT** write `aiwf-verb: merge` — `merge` is neither a Cobra verb nor an allowlisted ritual value; the `commit-msg` git hook materialized by `aiwf init` / `aiwf update` (the primary chokepoint) refuses the commit at message-composition time with a named-value error pointing at the canonical `aiwf-verb: wrap-milestone` shape. Historical commits authored before the hook landed are still surfaced by the `trailer-verb-unknown` rule at pre-push, with two cleanup paths (`aiwf acknowledge illegal <sha>` or push the warning forward, since amend is blocked by the trunk-aware push model).
 
-### 12. Promote the milestone to `done`
+### 10. Promote the milestone to `done`
 
 If step 1 identified any gap this milestone's own body explicitly claims to fix, close each one first — before the milestone's own promote-to-`done` step below, which ends a delegated milestone's authorize scope. A verb-driven commit produced after that point risks an ended-scope `aiwf-authorized-by:` trailer on push (the same hazard `aiwfx-wrap-epic`'s promote-last ordering exists to avoid, applied here to the reverse ordering problem: gap closure must come *before* the scope-ending act, not after it):
 
@@ -228,7 +212,7 @@ If step 1 identified any gap this milestone's own body explicitly claims to fix,
 aiwf promote G-NNNN addressed --by-commit <sha>
 ```
 
-Cite the AC's own implementation commit, not the merge commit — `--by-commit` is mechanically guarded (`aiwf` refuses a SHA unreachable from `HEAD`), so this only works after the merge (step 11) has landed. Skip entirely if the milestone claims no gap.
+Cite the AC's own implementation commit, not the merge commit — `--by-commit` is mechanically guarded (`aiwf` refuses a SHA unreachable from `HEAD`), so this only works after the merge (step 9) has landed. Skip entirely if the milestone claims no gap.
 
 Then promote the milestone itself:
 
@@ -236,23 +220,23 @@ Then promote the milestone itself:
 aiwf promote M-NNNN done
 ```
 
-No `--root`: the promote's commit belongs on the epic branch, and step 11 put this
+No `--root`: the promote's commit belongs on the epic branch, and step 9 put this
 session in the worktree holding it.
 
 aiwf validates `in_progress → done`, rewrites frontmatter, and commits with `aiwf-verb: promote` trailers. This is the moment of closure — the last status-flip commit in the sequence, landing after the merge (and after any gap closures) so a delegated milestone's authorize scope is still live for both.
 
 Both promotes list — the gap closures above and the milestone's own — the live records whose bodies still name what each one closed; where none do, nothing prints. Read what each one prints before moving on: this is the one moment anyone holds both the closure and its consequences. Open each record named and look for a sentence that *depends* on that entity being live: work sequenced on it, a premise resting on it, something deferred to it. A record that merely mentions it in passing needs nothing. A record whose claim the closure just falsified needs `aiwf edit-body`, and the correction states what is so now — it does not add a paragraph saying the old claim was wrong.
 
-Those edits are not on the declared sequence's list. Finish the enumerated cleanup (step 13), then present the edits as their own gate. `aiwf edit-body` needs an active scope that reaches the record, and a citing record can sit anywhere in the tree, so a delegated actor may be refused; where it is, the human runs the correction. If nothing needs an edit, say so — an unremarked notice reads as unread.
+Those edits are not on the declared sequence's list. Finish the enumerated cleanup (step 11), then present the edits as their own gate. `aiwf edit-body` needs an active scope that reaches the record, and a citing record can sit anywhere in the tree, so a delegated actor may be refused; where it is, the human runs the correction. If nothing needs an edit, say so — an unremarked notice reads as unread.
 
-### 13. Local cleanup
+### 11. Local cleanup
 
 Delete the local milestone branch and, if one was used, its worktree.
 
 Order matters and the branch cannot go first: git refuses to delete a branch a
 worktree still holds — *"error: cannot delete branch … used by worktree at …"* —
 and you cannot remove the worktree you are standing in. Leave it, then remove it,
-then delete the branch. Step 11 already moved this session out of the milestone's
+then delete the branch. Step 9 already moved this session out of the milestone's
 worktree, if it had one, so find it by its branch:
 
 ```bash
@@ -269,20 +253,20 @@ worktree to remove, and the branch delete is the whole of this step.
 
 These are local and reversible, so they belong inside the gate above.
 
-### 14. Origin cleanup
+### 12. Origin cleanup
 
-After the declared-sequence gate, finish up. The origin-branch delete is an **outward action — its own gate**, never batched into step 9:
+After the declared-sequence gate, finish up. The origin-branch delete is an **outward action — its own gate**, never batched into step 7:
 
 - Delete the milestone branch on origin (`git push origin --delete milestone/M-NNNN-<slug>`) if the branch/PR flow created one — outward, its own gate.
 
 ## Constraints
 
-- 🛑 **Never commit or push without explicit human approval** — the commit gate (step 6) and the push gate (step 8) are separate human gates.
-- 🛑 **The terminal local sequence — local merge, promote-done (including any gap tracker closure it triggers), local cleanup — runs under one declared-sequence gate (step 9)**, enumerated verbatim and subset-approvable. Push and any origin-branch delete are outward and excluded; they keep their own gates.
+- 🛑 **Never commit or push without explicit human approval** — the commit gate (step 5) and the push gate (step 6) are separate human gates.
+- 🛑 **The terminal local sequence — local merge, promote-done (including any gap tracker closure it triggers), local cleanup — runs under one declared-sequence gate (step 7)**, enumerated verbatim and subset-approvable. Push and any origin-branch delete are outward and excluded; they keep their own gates.
 - All ACs must be green before wrap proceeds. Wrap does not bury failure.
 - Branch-coverage hard rule applies — re-run the audit if any code changed since `aiwfx-start-milestone`'s readiness check.
 - Deferrals are captured as `aiwfx-start-milestone` step 6 requires — the cheap-fix test decides, and what survives it becomes a gap entity.
-- A gap this milestone's own body claims to fix is settled at wrap (step 12) — closed with `aiwf promote G-NNNN addressed --by-commit <sha>` before the milestone's own promote-done, or, where the work advanced it without finishing it, its claim corrected to say what landed. Don't leave the tracker silently overstating what's still open, and don't close a partly-addressed gap to clear the list.
+- A gap this milestone's own body claims to fix is settled at wrap (step 10) — closed with `aiwf promote G-NNNN addressed --by-commit <sha>` before the milestone's own promote-done, or, where the work advanced it without finishing it, its claim corrected to say what landed. Don't leave the tracker silently overstating what's still open, and don't close a partly-addressed gap to clear the list.
 
 ## Anti-patterns
 
@@ -291,9 +275,9 @@ After the declared-sequence gate, finish up. The origin-branch delete is an **ou
 - *Silent deferrals.* Every "we'll do that later" that survives the cheap-fix test gets a gap entity.
 - *Ledger padding.* A gap opened and closed inside the same wrap is a fix that should have been made inline. Filing it costs a title, a body, and a reader's attention that the fix itself would not have.
 - *Skipping doc-lint.* Doc drift compounds; the milestone wrap is the cheap moment to catch it.
-- *Slipping unrelated code into the wrap commit.* If the change isn't part of this milestone, it's a separate `wf-patch`.
+- *Slipping unrelated code into the milestone branch.* If the change isn't part of this milestone, it's a separate `wf-patch`.
 - *Wrapping without reading `## Closes`.* A milestone that recorded a gap as the thing it resolves, wrapped without closing that gap, leaves the tracker silently overstating what's still open. Reconstructing the list from prose at wrap instead of reading the section is the same failure one step earlier: it is the search that gets skipped.
-- *Promoting a claimed-fixed gap after the milestone's own promote-done.* Ordering matters (step 12) — closing gaps after `aiwf promote M-NNNN done` risks an ended-scope `aiwf-authorized-by:` trailer on the gap-promote commit.
+- *Promoting a claimed-fixed gap after the milestone's own promote-done.* Ordering matters (step 10) — closing gaps after `aiwf promote M-NNNN done` risks an ended-scope `aiwf-authorized-by:` trailer on the gap-promote commit.
 
 ## Next step
 

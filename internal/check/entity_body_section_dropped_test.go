@@ -27,8 +27,9 @@ const (
 	whyItMatters = "Why it matters"
 )
 
-// wrapTrailers is the trailer set the wrap-milestone ritual stamps on the plain
-// `git commit` that writes a spec without passing a body-supplying verb.
+// wrapTrailers is the trailer set copies of the wrap-milestone ritual from
+// earlier releases stamp on the plain `git commit` that writes a spec without
+// passing a body-supplying verb.
 var wrapTrailers = []string{"aiwf-verb: wrap-milestone", "aiwf-entity: G-0001", "aiwf-actor: human/test"}
 
 // gapFile renders a gap carrying the named top-level sections, each with prose,

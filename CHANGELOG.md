@@ -16,6 +16,18 @@ section in this file.
 
 ## [Unreleased]
 
+### Changed — D-0107: the milestone wrap commits its prose through `aiwf edit-body`
+
+`aiwfx-wrap-milestone` commits the milestone spec's wrap-side prose with
+`aiwf edit-body` instead of a `git commit` carrying hand-typed `aiwf-verb`,
+`aiwf-entity` and `aiwf-actor` trailers, so the verb writes the trailers and takes
+the actor from `git config user.email`. Its stage, commit-gate and commit steps
+become one commit gate, and the steps after it are renumbered. The milestone's
+history shows the wrap prose as an `edit-body` event; the merge into the epic
+branch keeps its `wrap-milestone` trailers. `## Reviewer notes` now names the
+commit the deciding review read, so a later reader can tell what came after the
+review. Run `aiwf update` to refresh installed rituals.
+
 ### Changed — D-0106: the rituals no longer commit `ROADMAP.md`
 
 - `aiwfx-plan-epic`, `aiwfx-plan-milestones`, `aiwfx-wrap-milestone` and
