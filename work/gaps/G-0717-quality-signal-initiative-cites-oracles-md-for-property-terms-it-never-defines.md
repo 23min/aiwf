@@ -2,6 +2,7 @@
 id: G-0717
 title: quality-signal initiative cites oracles.md for property terms it never defines
 status: open
+priority: low
 ---
 ## What's missing
 
