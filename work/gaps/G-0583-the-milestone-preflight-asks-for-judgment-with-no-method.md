@@ -2,6 +2,7 @@
 id: G-0583
 title: The milestone preflight asks for judgment with no method
 status: open
+priority: medium
 ---
 ## What's missing
 
