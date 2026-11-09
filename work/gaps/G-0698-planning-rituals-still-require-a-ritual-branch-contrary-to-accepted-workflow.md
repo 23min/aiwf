@@ -2,6 +2,7 @@
 id: G-0698
 title: Planning rituals still require a ritual branch contrary to accepted workflow
 status: open
+priority: medium
 discovered_in: M-0341
 ---
 ## What's missing
