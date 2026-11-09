@@ -2,6 +2,7 @@
 id: G-0634
 title: aiwf worktree add has no documented inverse, and wrap-epic inherits the silence
 status: open
+priority: low
 ---
 ## What's missing
 
