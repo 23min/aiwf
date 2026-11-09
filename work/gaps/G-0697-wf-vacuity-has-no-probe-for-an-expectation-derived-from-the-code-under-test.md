@@ -2,6 +2,7 @@
 id: G-0697
 title: wf-vacuity has no probe for an expectation derived from the code under test
 status: open
+priority: medium
 ---
 ## What's missing
 
