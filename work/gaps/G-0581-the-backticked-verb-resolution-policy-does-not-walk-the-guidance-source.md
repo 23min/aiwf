@@ -2,6 +2,7 @@
 id: G-0581
 title: The backticked-verb resolution policy does not walk the guidance source
 status: open
+priority: low
 ---
 ## What's missing
 
