@@ -2,6 +2,7 @@
 id: G-0656
 title: No rule records whether it keys to the kernel's scaffold set or the template's
 status: open
+priority: low
 ---
 
 ## What's missing
