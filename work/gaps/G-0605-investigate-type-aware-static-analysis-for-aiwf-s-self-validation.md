@@ -2,6 +2,7 @@
 id: G-0605
 title: Investigate type-aware static analysis for aiwf's self-validation
 status: open
+priority: low
 discovered_in: M-0313
 ---
 ## What's missing
