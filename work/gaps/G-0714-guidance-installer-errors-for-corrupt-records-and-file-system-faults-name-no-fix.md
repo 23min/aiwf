@@ -2,6 +2,7 @@
 id: G-0714
 title: Guidance installer errors for corrupt records and file-system faults name no fix
 status: open
+priority: low
 discovered_in: M-0352
 ---
 ## What's missing
