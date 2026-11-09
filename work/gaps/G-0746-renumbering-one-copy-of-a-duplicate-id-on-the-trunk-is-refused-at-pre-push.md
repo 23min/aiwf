@@ -2,6 +2,7 @@
 id: G-0746
 title: Renumbering one copy of a duplicate id on the trunk is refused at pre-push
 status: open
+priority: medium
 ---
 ## What's missing
 
