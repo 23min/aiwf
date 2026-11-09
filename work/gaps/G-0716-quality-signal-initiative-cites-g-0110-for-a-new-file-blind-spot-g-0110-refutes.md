@@ -2,6 +2,7 @@
 id: G-0716
 title: quality-signal initiative cites G-0110 for a new-file blind spot G-0110 refutes
 status: open
+priority: low
 ---
 ## What's missing
 
