@@ -2,6 +2,7 @@
 id: G-0731
 title: aiwf check reads a shallow boundary commit as adding every file it carries
 status: open
+priority: medium
 discovered_in: M-0350
 ---
 ## What's missing
