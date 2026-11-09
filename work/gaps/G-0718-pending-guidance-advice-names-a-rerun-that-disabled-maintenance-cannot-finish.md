@@ -2,6 +2,7 @@
 id: G-0718
 title: Pending guidance advice names a rerun that disabled maintenance cannot finish
 status: open
+priority: low
 discovered_in: M-0352
 ---
 ## What's missing
