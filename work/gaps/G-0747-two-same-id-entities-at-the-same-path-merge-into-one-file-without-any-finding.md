@@ -2,6 +2,7 @@
 id: G-0747
 title: Two same-id entities at the same path merge into one file without any finding
 status: open
+priority: high
 ---
 ## What's missing
 
