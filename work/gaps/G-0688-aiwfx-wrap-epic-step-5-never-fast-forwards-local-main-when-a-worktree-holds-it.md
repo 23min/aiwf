@@ -2,6 +2,7 @@
 id: G-0688
 title: aiwfx-wrap-epic step 5 never fast-forwards local main when a worktree holds it
 status: open
+priority: medium
 ---
 ## What's missing
 
