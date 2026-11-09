@@ -2,6 +2,7 @@
 id: G-0729
 title: design-decisions.md and ANTI-0008 describe a doctor setting no code reads
 status: open
+priority: low
 discovered_in: E-0098
 ---
 ## What's missing
