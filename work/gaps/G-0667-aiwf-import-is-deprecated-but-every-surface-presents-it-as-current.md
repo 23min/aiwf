@@ -2,6 +2,7 @@
 id: G-0667
 title: aiwf import is deprecated but every surface presents it as current
 status: open
+priority: low
 discovered_in: M-0329
 ---
 ## What's missing
