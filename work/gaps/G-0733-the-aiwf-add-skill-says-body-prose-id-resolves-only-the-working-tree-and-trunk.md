@@ -2,6 +2,7 @@
 id: G-0733
 title: The aiwf-add skill says body-prose-id resolves only the working tree and trunk
 status: open
+priority: low
 discovered_in: M-0336
 ---
 ## What's missing
