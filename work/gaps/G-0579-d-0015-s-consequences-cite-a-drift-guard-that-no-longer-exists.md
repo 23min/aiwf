@@ -2,6 +2,7 @@
 id: G-0579
 title: D-0015's consequences cite a drift guard that no longer exists
 status: open
+priority: low
 ---
 ## What's missing
 
