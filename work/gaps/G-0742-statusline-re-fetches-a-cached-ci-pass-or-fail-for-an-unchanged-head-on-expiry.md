@@ -2,6 +2,7 @@
 id: G-0742
 title: Statusline re-fetches a cached CI pass or fail for an unchanged HEAD on expiry
 status: open
+priority: low
 ---
 ## What's missing
 
