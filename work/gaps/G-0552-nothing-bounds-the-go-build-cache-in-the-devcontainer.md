@@ -2,6 +2,7 @@
 id: G-0552
 title: Nothing bounds the Go build cache in the devcontainer
 status: open
+priority: low
 discovered_in: M-0291
 ---
 ## What's missing
