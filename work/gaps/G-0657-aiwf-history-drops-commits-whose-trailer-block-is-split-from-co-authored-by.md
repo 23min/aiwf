@@ -2,6 +2,7 @@
 id: G-0657
 title: aiwf history drops commits whose trailer block is split from Co-Authored-By
 status: open
+priority: low
 discovered_in: M-0327
 ---
 ## What's missing
