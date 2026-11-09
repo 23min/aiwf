@@ -2,6 +2,7 @@
 id: G-0651
 title: Backticked prose in a flag usage string renders as its value placeholder
 status: open
+priority: low
 discovered_in: M-0325
 ---
 ## What's missing
