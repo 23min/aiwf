@@ -2,6 +2,7 @@
 id: G-0738
 title: Claude reads go-conventions.md in Go tasks far more often than the Go pack
 status: open
+priority: low
 discovered_in: M-0361
 ---
 ## What's missing
