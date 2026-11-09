@@ -2,6 +2,7 @@
 id: G-0672
 title: Two policies duplicate the git range scan over a commit range
 status: open
+priority: low
 discovered_in: M-0330
 ---
 ## What's missing
