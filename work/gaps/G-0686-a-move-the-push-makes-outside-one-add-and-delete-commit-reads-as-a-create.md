@@ -2,6 +2,7 @@
 id: G-0686
 title: A move the push makes outside one add-and-delete commit reads as a create
 status: open
+priority: low
 discovered_in: M-0331
 ---
 ## What's missing
