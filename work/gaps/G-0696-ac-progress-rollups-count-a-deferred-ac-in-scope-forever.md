@@ -2,6 +2,7 @@
 id: G-0696
 title: AC progress rollups count a deferred AC in scope forever
 status: open
+priority: medium
 ---
 ## What's missing
 
