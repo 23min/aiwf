@@ -2,6 +2,7 @@
 id: G-0702
 title: Configuration reference incorrectly requires aiwf_version
 status: open
+priority: low
 discovered_in: M-0346
 ---
 ## What's missing
