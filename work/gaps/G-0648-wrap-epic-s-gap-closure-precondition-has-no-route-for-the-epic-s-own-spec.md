@@ -2,6 +2,7 @@
 id: G-0648
 title: wrap-epic's gap-closure precondition has no route for the epic's own spec
 status: open
+priority: low
 ---
 ## What's missing
 
