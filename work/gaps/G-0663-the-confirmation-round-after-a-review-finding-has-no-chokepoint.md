@@ -2,6 +2,7 @@
 id: G-0663
 title: The confirmation round after a review finding has no chokepoint
 status: open
+priority: low
 discovered_in: M-0327
 ---
 ## What's missing
