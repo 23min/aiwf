@@ -2,6 +2,7 @@
 id: G-0607
 title: Regexp content matching over shipped surfaces bypasses the shipped-prose ban
 status: open
+priority: low
 discovered_in: M-0313
 ---
 ## What's missing
