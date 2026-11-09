@@ -2,6 +2,7 @@
 id: G-0727
 title: aiwf doctor --self-check hangs when its input is a terminal
 status: open
+priority: medium
 discovered_in: M-0360
 ---
 ## What's missing
