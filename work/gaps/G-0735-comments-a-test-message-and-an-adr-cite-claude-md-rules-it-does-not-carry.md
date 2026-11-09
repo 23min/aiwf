@@ -2,6 +2,7 @@
 id: G-0735
 title: Comments, a test message and an ADR cite CLAUDE.md rules it does not carry
 status: open
+priority: low
 discovered_in: M-0335
 ---
 ## What's missing
