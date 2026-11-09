@@ -2,6 +2,7 @@
 id: G-0748
 title: aiwf history lists the other entity's commits after a collision is reallocated
 status: open
+priority: medium
 ---
 ## What's missing
 
