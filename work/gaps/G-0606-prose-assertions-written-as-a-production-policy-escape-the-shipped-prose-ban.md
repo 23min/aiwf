@@ -2,6 +2,7 @@
 id: G-0606
 title: Prose assertions written as a production policy escape the shipped-prose ban
 status: open
+priority: low
 discovered_in: M-0313
 ---
 ## What's missing
