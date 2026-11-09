@@ -2,6 +2,7 @@
 id: G-0709
 title: aiwf verbs wait on stdin for a person while holding the repo lock
 status: open
+priority: medium
 discovered_in: E-0095
 ---
 ## What's missing
