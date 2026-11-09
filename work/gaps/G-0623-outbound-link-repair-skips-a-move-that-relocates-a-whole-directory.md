@@ -2,6 +2,7 @@
 id: G-0623
 title: Outbound link repair skips a move that relocates a whole directory
 status: open
+priority: medium
 discovered_in: M-0315
 ---
 ## What's missing
