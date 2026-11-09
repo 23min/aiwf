@@ -2,6 +2,7 @@
 id: G-0732
 title: The aiwf-add skill's step 1 says allocation scans only working tree and trunk
 status: open
+priority: low
 discovered_in: M-0336
 ---
 ## What's missing
