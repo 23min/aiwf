@@ -2,6 +2,7 @@
 id: G-0689
 title: Go-held init, help and check text spells aiwf add <kind> with only a title
 status: open
+priority: low
 ---
 ## What's missing
 
