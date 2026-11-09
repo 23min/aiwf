@@ -2,6 +2,7 @@
 id: G-0720
 title: initcmd and update tests run init and update against the real HOME and PATH
 status: open
+priority: medium
 discovered_in: M-0352
 ---
 ## What's missing
