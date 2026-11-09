@@ -2,6 +2,7 @@
 id: G-0585
 title: Rituals clear a question by reading it
 status: open
+priority: medium
 ---
 ## What's missing
 
