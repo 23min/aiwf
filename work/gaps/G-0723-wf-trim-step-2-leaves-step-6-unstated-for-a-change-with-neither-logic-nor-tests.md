@@ -2,6 +2,7 @@
 id: G-0723
 title: wf-trim step 2 leaves step 6 unstated for a change with neither logic nor tests
 status: open
+priority: low
 discovered_in: M-0357
 ---
 ## What's missing
