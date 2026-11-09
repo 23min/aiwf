@@ -2,6 +2,7 @@
 id: G-0661
 title: No check caps an in-function comment at the length D-0084 sets
 status: open
+priority: low
 discovered_in: M-0327
 ---
 ## What's missing
