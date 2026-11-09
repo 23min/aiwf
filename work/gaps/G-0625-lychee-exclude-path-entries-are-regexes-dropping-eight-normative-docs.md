@@ -2,6 +2,7 @@
 id: G-0625
 title: lychee exclude_path entries are regexes, dropping eight Normative docs
 status: open
+priority: medium
 discovered_in: M-0317
 ---
 ## What's missing
