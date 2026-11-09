@@ -2,6 +2,7 @@
 id: G-0713
 title: aiwf.yaml append writers break a flow-style or indented root
 status: open
+priority: medium
 discovered_in: M-0351
 ---
 ## What's missing
