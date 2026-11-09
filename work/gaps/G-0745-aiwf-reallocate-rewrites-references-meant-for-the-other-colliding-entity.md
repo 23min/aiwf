@@ -2,6 +2,7 @@
 id: G-0745
 title: aiwf reallocate rewrites references meant for the other colliding entity
 status: open
+priority: high
 ---
 ## What's missing
 
