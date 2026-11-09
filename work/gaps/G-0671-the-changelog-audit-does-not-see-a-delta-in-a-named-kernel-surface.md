@@ -2,6 +2,7 @@
 id: G-0671
 title: The changelog audit does not see a delta in a named kernel surface
 status: open
+priority: medium
 discovered_in: M-0330
 ---
 ## What's missing
