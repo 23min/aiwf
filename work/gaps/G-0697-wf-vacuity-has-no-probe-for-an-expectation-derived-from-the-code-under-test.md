@@ -19,21 +19,24 @@ tautological, over-narrowed antecedent, can't-fail property, asserting on a mock
 — and a derived expectation is none of them: its assertions are specific, its
 input space is complete, the property can fail, and no mock is involved.
 
-Measured on the tree at `5179769a5`. A test helper there builds its rows by
-filtering a status set through `entity.IsTerminalACStatus`, then two tables
-assert that the lint is silent for the statuses the helper calls terminal and
-fires for the rest. Mutating `IsTerminalACStatus` so that `cancelled` reports
-non-terminal, and separately so that `deferred` does, leaves the package green
-both times: the row moves from one table to the other and both still pass. Two
-further mutants that move a status the other way, into the terminal set, are
-caught — so the blindness is specific to the derivation, not general.
+Measured on the tree at `5179769a5`, an unmerged experiment commit for G-0464.
+It exists only in the maintainer's clone, under the local tag
+`exp/g0464-fable-b`, and no pushed branch or tag reaches it. A test helper there
+builds its rows by filtering a status set through `entity.IsTerminalACStatus`,
+then two tables assert that the lint is silent for the statuses the helper calls
+terminal and fires for the rest. Mutating `IsTerminalACStatus` so that
+`cancelled` reports non-terminal, and separately so that `deferred` does, leaves
+the package green both times: the row moves from one table to the other and both
+still pass. Two further mutants that move a status the other way, into the
+terminal set, are caught — so the blindness is specific to the derivation, not
+general.
 
-That branch was reviewed under this skill by two fresh reviewers. Both ran §1's
-probe against the lint predicate and killed every mutant they wrote. The
-confirming reviewer went further and added a hypothetical third terminal status
-to the FSM, observed a new subtest appear and pass with no test edit, and
-recorded that as evidence the tests were sound — the same property, read as a
-strength.
+The experiment's branch was reviewed under this skill by two fresh reviewers.
+Both ran §1's probe against the lint predicate and killed every mutant they
+wrote. The confirming reviewer went further and added a hypothetical third
+terminal status to the FSM, observed a new subtest appear and pass with no test
+edit, and recorded that as evidence the tests were sound — the same property,
+read as a strength.
 
 ## Why it matters
 
