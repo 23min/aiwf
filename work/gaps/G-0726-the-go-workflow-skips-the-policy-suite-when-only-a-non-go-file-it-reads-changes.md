@@ -2,6 +2,7 @@
 id: G-0726
 title: The go workflow skips the policy suite when only a non-Go file it reads changes
 status: open
+priority: medium
 discovered_in: M-0359
 ---
 ## What's missing
