@@ -2,6 +2,7 @@
 id: G-0683
 title: No automated gate catches a deleted CHANGELOG entry before the release tag
 status: open
+priority: medium
 ---
 ## What's missing
 
