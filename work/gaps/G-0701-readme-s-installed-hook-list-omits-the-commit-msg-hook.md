@@ -2,6 +2,7 @@
 id: G-0701
 title: README's installed-hook list omits the commit-msg hook
 status: open
+priority: low
 ---
 ## What's missing
 
