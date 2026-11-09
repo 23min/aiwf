@@ -2,6 +2,7 @@
 id: G-0602
 title: A conflict resolved inside a shipped skill escapes the provenance gate
 status: open
+priority: low
 discovered_in: M-0312
 ---
 ## What's missing
