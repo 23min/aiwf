@@ -2,6 +2,7 @@
 id: G-0724
 title: aiwf's managed .gitignore omits .claude/health.aiwf.json, which aiwf writes
 status: open
+priority: medium
 ---
 ## What's missing
 
