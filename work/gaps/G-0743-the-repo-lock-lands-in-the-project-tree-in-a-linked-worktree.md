@@ -2,6 +2,7 @@
 id: G-0743
 title: The repo lock lands in the project tree in a linked worktree
 status: open
+priority: high
 ---
 ## What's missing
 
