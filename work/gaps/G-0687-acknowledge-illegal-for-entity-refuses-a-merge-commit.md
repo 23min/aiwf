@@ -2,6 +2,7 @@
 id: G-0687
 title: acknowledge illegal --for-entity refuses a merge commit
 status: open
+priority: medium
 discovered_in: M-0331
 ---
 ## What's missing
