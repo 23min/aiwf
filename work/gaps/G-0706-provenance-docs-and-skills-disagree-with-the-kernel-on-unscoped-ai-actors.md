@@ -2,6 +2,7 @@
 id: G-0706
 title: Provenance docs and skills disagree with the kernel on unscoped ai/ actors
 status: open
+priority: medium
 ---
 ## What's missing
 
