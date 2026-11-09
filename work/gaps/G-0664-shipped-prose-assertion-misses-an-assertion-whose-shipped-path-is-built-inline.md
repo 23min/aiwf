@@ -2,6 +2,7 @@
 id: G-0664
 title: shipped-prose-assertion misses an assertion whose shipped path is built inline
 status: open
+priority: low
 discovered_in: M-0328
 ---
 ## What's missing
