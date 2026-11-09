@@ -2,6 +2,7 @@
 id: G-0730
 title: aiwf check runs a whole-repository git fsck once per hinted history finding
 status: open
+priority: medium
 discovered_in: E-0092
 ---
 ## What's missing
