@@ -2,6 +2,7 @@
 id: G-0744
 title: The untrailered-entity audit trusts any commit carrying an aiwf-verb trailer
 status: open
+priority: high
 ---
 ## What's missing
 
