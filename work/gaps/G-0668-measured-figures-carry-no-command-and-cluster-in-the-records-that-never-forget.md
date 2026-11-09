@@ -2,6 +2,7 @@
 id: G-0668
 title: Measured figures carry no command, and cluster in the records that never forget
 status: open
+priority: low
 ---
 ## What's missing
 
