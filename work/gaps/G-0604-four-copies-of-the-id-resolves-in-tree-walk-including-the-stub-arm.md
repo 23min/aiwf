@@ -2,6 +2,7 @@
 id: G-0604
 title: Four copies of the id-resolves-in-tree walk, including the stub arm
 status: open
+priority: low
 discovered_in: M-0312
 ---
 ## What's missing
