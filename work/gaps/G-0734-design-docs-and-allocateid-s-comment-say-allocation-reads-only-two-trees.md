@@ -2,6 +2,7 @@
 id: G-0734
 title: Design docs and AllocateID's comment say allocation reads only two trees
 status: open
+priority: low
 discovered_in: M-0336
 ---
 ## What's missing
