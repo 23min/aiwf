@@ -2,6 +2,7 @@
 id: G-0658
 title: Nothing pins that --root reaches the commit-msg guard that reads the index
 status: open
+priority: low
 discovered_in: M-0327
 ---
 ## What's missing
