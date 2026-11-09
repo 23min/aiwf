@@ -2,6 +2,7 @@
 id: G-0586
 title: The handoff block carries settled findings and drops open ones
 status: open
+priority: low
 ---
 ## What's missing
 
