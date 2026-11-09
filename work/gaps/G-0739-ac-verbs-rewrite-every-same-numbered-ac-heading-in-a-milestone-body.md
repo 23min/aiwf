@@ -2,6 +2,7 @@
 id: G-0739
 title: AC verbs rewrite every same-numbered AC heading in a milestone body
 status: open
+priority: high
 discovered_in: M-0361
 ---
 ## What's missing
