@@ -2,7 +2,10 @@
 id: D-0082
 title: Milestones contribute release notes, reversing a D-0031 rejected alternative
 status: accepted
+relates_to:
+    - D-0031
 ---
+
 > **Date:** 2026-08-31 · **Decided by:** human/peter
 
 ## Question
