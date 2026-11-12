@@ -16,7 +16,7 @@ jobs:
   markdownlint:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
 
       # The two audit inventories at the end of `globs:` are dated, worked down
       # rather than kept current, and their per-finding headings repeat by
@@ -25,7 +25,7 @@ jobs:
       # This rationale sits here rather than inside `globs:` because that is a
       # YAML block scalar: every line in it reaches markdownlint-cli2 as a
       # literal glob pattern, `#` included. A comment placed there is data.
-      - uses: DavidAnson/markdownlint-cli2-action@v18
+      - uses: DavidAnson/markdownlint-cli2-action@v25
         with:
           globs: |
             **/*.md

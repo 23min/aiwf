@@ -16,6 +16,10 @@ section in this file.
 
 ## [Unreleased]
 
+### Changed (internal) — CI actions move to their Node 24 releases
+
+The CI workflows use the releases of `actions/checkout`, `actions/setup-go`, `actions/upload-artifact`, `golangci/golangci-lint-action` and `DavidAnson/markdownlint-cli2-action` that run on Node 24, so GitHub's Node 20 deprecation warning no longer appears on every run; nothing user-facing changed.
+
 ### Changed (internal) — trailer-order comments state that commits keep their trailers in append order
 
 The code comments on trailer order no longer say a commit's trailers are re-sorted when written; nothing user-facing changed.
