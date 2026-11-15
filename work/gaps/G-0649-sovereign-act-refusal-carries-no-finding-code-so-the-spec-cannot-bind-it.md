@@ -1,7 +1,7 @@
 ---
 id: G-0649
 title: Sovereign-act refusal carries no finding code, so the spec cannot bind it
-status: open
+status: wontfix
 priority: low
 discovered_in: M-0324
 ---
