@@ -1,7 +1,7 @@
 ---
 id: G-0328
 title: Golden-fixture byte-identity comparator for aiwf check
-status: open
+status: wontfix
 priority: medium
 discovered_in: M-0216
 ---
