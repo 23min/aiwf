@@ -1,7 +1,7 @@
 ---
 id: G-0760
 title: Comments on the orphan walk's and the oracle's branch filters misdescribe both
-status: open
+status: wontfix
 priority: low
 ---
 ## What's missing
