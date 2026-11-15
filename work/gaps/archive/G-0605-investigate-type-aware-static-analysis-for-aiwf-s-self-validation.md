@@ -33,7 +33,7 @@ a view on whether type-aware checks belong in CI rather than the inner loop;
 and a shape for the layer that is shared rather than per-policy.
 
 Analysis, including the advantages and disadvantages in full, is written up in
-[`docs/explorations/10-type-aware-static-analysis.md`](../../docs/explorations/10-type-aware-static-analysis.md).
+[`docs/explorations/10-type-aware-static-analysis.md`](../../../docs/explorations/10-type-aware-static-analysis.md).
 
 ## Why it matters
 

@@ -5,7 +5,7 @@ status: wontfix
 priority: low
 ---
 
-The I2.5 provenance model ([`docs/design/provenance-model.md`](../../docs/design/provenance-model.md)) deliberately keeps the verb surface narrow. Six known extensions are filed here for future evaluation, all YAGNI for the PoC:
+The I2.5 provenance model ([`docs/design/provenance-model.md`](../../../docs/design/provenance-model.md)) deliberately keeps the verb surface narrow. Six known extensions are filed here for future evaluation, all YAGNI for the PoC:
 
 1. **Explicit scope end — delivered.** A human ends an in-flight scope with `aiwf authorize <id> --end`, which retires one named scope without moving its entity's status (ADR-0047). It ships as a mode of `authorize` rather than the `aiwf revoke` verb sketched here, and writes the `aiwf-scope-ends:` trailer the replay already reads — so the reserved `aiwf-revoked-by:` slot stays unused, and nothing further is owed on this item.
 2. **Time-bound scopes (`--until <date>` or `--for <duration>`).** Auto-end on a wall-clock deadline. Adds a clock dependency to the kernel; not present today.

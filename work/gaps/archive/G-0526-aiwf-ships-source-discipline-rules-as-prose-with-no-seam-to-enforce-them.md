@@ -39,7 +39,7 @@ this tree's layout. `docs/` as a non-implementation path is already the recorded
 failure of that reflex.
 
 Nor a shipped chokepoint corpus, whatever its contents. The classification in
-[`growth.md`](../../docs/design/growth.md) finds most of this repo's chokepoints
+[`growth.md`](../../../docs/design/growth.md) finds most of this repo's chokepoints
 are mandates, satisfied only by adding an artifact once per subject, with no
 retirement path. Exporting that wholesale hands a consumer a cost that recurs
 with their codebase and a decision they never made.

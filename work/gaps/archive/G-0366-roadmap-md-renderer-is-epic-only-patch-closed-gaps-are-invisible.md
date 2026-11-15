@@ -23,7 +23,7 @@ anywhere in `ROADMAP.md`.
 ## Why it matters
 
 The roadmap, rendered on demand by `aiwf render roadmap`
-([D-0106](../decisions/D-0106-stop-committing-roadmap-md-render-it-on-demand.md)),
+([D-0106](../../decisions/D-0106-stop-committing-roadmap-md-render-it-on-demand.md)),
 is the at-a-glance "what's the state of this project" view. It silently
 under-represents real, shipped work — a reader has no way to learn from it
 that a patch closed a gap, even though the same information is in git
