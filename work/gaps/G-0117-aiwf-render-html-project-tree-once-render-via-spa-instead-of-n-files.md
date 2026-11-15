@@ -1,7 +1,7 @@
 ---
 id: G-0117
 title: 'aiwf render html: project tree once, render via SPA instead of N files'
-status: open
+status: wontfix
 priority: medium
 ---
 ## What's missing
