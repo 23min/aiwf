@@ -1,7 +1,7 @@
 ---
 id: G-0551
 title: Nothing checks that the verb-side and check-side rule sets agree
-status: open
+status: wontfix
 priority: medium
 discovered_in: M-0291
 ---
