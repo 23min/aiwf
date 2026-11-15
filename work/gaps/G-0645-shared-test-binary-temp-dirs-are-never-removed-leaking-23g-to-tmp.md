@@ -1,7 +1,7 @@
 ---
 id: G-0645
 title: Shared test-binary temp dirs are never removed, leaking ~23G to /tmp
-status: open
+status: wontfix
 priority: medium
 ---
 ## What's missing
