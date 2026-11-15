@@ -1,7 +1,7 @@
 ---
 id: G-0594
 title: Two authoring rules shipped, and the next spec written breached both
-status: open
+status: wontfix
 priority: low
 discovered_in: E-0086
 ---
