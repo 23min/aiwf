@@ -1,9 +1,11 @@
 ---
 id: G-0430
 title: aiwf upgrade has no automated rollback for a bad binary swap
-status: open
+status: addressed
 priority: low
 discovered_in: M-0270
+addressed_by:
+    - D-0108
 ---
 ## What's missing
 
