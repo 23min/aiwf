@@ -1,7 +1,7 @@
 ---
 id: G-0369
 title: Body-prose-id check misses unhyphenated real-entity references
-status: open
+status: wontfix
 priority: low
 ---
 ## Problem
