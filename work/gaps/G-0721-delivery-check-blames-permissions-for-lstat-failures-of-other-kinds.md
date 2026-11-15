@@ -1,7 +1,7 @@
 ---
 id: G-0721
 title: Delivery check blames permissions for lstat failures of other kinds
-status: open
+status: wontfix
 priority: low
 discovered_in: M-0352
 ---
