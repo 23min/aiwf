@@ -22,20 +22,24 @@ condition. A staged file under the entity tree, in a commit no verb is driving,
 is the defect in full.
 
 **The finding then hides.** On a branch with no upstream and no `--since`, the
-provenance audit does not run. It reports `provenance-untrailered-scope-undefined`
-at warning severity and moves on, so `aiwf check` returns 0 errors over a tree
-that has two. Only an explicit `aiwf check --since <ref>` surfaces them. A branch
-cut by `aiwf worktree add` has no upstream until it is pushed, which is the
-normal state for a patch branch's entire life.
+untrailered-entity audit does not run. `aiwf check` reports
+`provenance-untrailered-scope-undefined` at warning severity and moves on, so it
+returns 0 errors over a tree that has two. Only an explicit
+`aiwf check --since <ref>` surfaces them. A branch cut from a local ref, as
+`wf-patch` cuts one with `aiwf worktree add <branch> --base main`, has no
+upstream until it is pushed, which is the normal state for a patch branch's
+entire life.
 
 ## Why it matters
 
 Observed in this repo: a patch branch committed two entity bodies via
 `git add -A`. Pre-commit passed. `aiwf check` reported 0 errors.
-`aiwf check --since main` reported 2. The defect would have reached the push
-before anything said so, and the push is where unwinding costs most — the
-recovery paths there are `aiwf acknowledge illegal` or `promote --audit-only`,
-both of which record a sovereign exemption rather than repair the history.
+`aiwf check --since main` reported 2. Nothing would have said so before the
+push, and after a `--no-ff` merge into `main`, as `wf-patch` merges, the push
+says nothing either (G-0765). Where the push does report it, unwinding costs
+most — the recovery paths there are `aiwf acknowledge illegal` or
+`promote --audit-only`, both of which record a sovereign exemption rather than
+repair the history.
 
 The kernel holds that framework correctness must not depend on an assistant
 remembering to invoke the right verb. Here the verb exists and the discipline is
