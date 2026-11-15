@@ -1,9 +1,11 @@
 ---
 id: G-0506
 title: PromoteACPhase refuses from working-copy bytes no verb wrote
-status: open
+status: addressed
 priority: medium
 discovered_in: M-0285
+addressed_by_commit:
+    - 70146b9b3
 ---
 ## What's missing
 
