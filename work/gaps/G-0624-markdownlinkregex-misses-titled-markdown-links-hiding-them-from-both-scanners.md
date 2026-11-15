@@ -1,7 +1,7 @@
 ---
 id: G-0624
 title: markdownLinkRegex misses titled markdown links, hiding them from both scanners
-status: open
+status: wontfix
 priority: low
 discovered_in: M-0317
 ---
