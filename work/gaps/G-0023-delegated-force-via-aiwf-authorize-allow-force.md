@@ -1,7 +1,7 @@
 ---
 id: G-0023
 title: Delegated `--force` via `aiwf authorize --allow-force`
-status: open
+status: wontfix
 priority: low
 ---
 
