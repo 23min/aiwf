@@ -1,7 +1,7 @@
 ---
 id: G-0608
 title: Negative regression pins over shipped surfaces are a class D-0070 does not name
-status: open
+status: wontfix
 priority: low
 discovered_in: M-0313
 ---
