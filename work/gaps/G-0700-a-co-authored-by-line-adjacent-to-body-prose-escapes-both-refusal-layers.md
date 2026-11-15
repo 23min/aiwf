@@ -1,7 +1,7 @@
 ---
 id: G-0700
 title: A Co-Authored-By line adjacent to body prose escapes both refusal layers
-status: open
+status: wontfix
 priority: low
 ---
 ## What's missing
