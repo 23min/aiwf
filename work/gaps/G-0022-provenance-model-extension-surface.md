@@ -1,7 +1,7 @@
 ---
 id: G-0022
 title: Provenance model extension surface
-status: open
+status: wontfix
 priority: low
 ---
 
