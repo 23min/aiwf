@@ -1,7 +1,7 @@
 ---
 id: G-0161
 title: 'AntiRules() negative coverage: assert kernel does NOT enforce each ANTI'
-status: open
+status: wontfix
 priority: medium
 ---
 ## Problem
