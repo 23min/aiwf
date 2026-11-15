@@ -1,7 +1,7 @@
 ---
 id: G-0512
 title: A directory at a move's destination is invisible to archive's decline
-status: open
+status: wontfix
 priority: medium
 discovered_in: M-0286
 ---
