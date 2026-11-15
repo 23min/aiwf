@@ -1,7 +1,7 @@
 ---
 id: G-0366
 title: ROADMAP.md renderer is epic-only; patch-closed gaps are invisible
-status: open
+status: wontfix
 priority: medium
 ---
 ## Problem
