@@ -1,8 +1,10 @@
 ---
 id: G-0644
 title: Orphan walk reports a commit still on trunk or back on its own branch
-status: open
+status: addressed
 priority: medium
+addressed_by_commit:
+    - 1f94391cc
 ---
 ## What's missing
 
