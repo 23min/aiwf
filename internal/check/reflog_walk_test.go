@@ -101,7 +101,7 @@ func TestRunOrphanedAICommits_AC5_SingleOrphan_EmitsWarningWithHint(t *testing.T
 // per-SHA dedup at the rule layer: an orphan that appears on
 // multiple ritual branches (e.g., the tip of two branches at
 // different times) fires once, naming the first-seen branch.
-// The doc comment at reflog_walk.go:70-74 names this as the
+// WalkOrphanedAICommits's doc comment names this as the
 // rule-layer policy.
 func TestRunOrphanedAICommits_AC5_DuplicateSHADedup(t *testing.T) {
 	t.Parallel()
@@ -145,7 +145,7 @@ func TestRunOrphanedAICommits_AC5_AcknowledgedSHAExempted(t *testing.T) {
 }
 
 // TestRunOrphanedAICommits_AC5_EmptyShaFiltered pins the
-// defensive filter at reflog_walk.go:268: an orphan entry
+// defensive filter in RunOrphanedAICommits: an orphan entry
 // with an empty SHA does NOT produce a finding (would otherwise
 // emit a meaningless "commit  was orphaned" message). Defends
 // against a future gather-helper bug emitting empty entries.

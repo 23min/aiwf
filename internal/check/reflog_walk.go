@@ -55,8 +55,13 @@ type OrphanedAICommit struct {
 //     ref's tip BEFORE the update that landed at newer.
 //  3. If older is NOT an ancestor of newer (`git merge-base
 //     --is-ancestor older newer` exits non-zero), the update
-//     was a non-fast-forward and older was orphaned.
-//  4. Read older's trailers via `git log -1 --pretty=%B older`.
+//     was a non-fast-forward.
+//  4. older is orphaned only if oracle places it on no indexed
+//     branch's first-parent line. A commit the oracle places,
+//     isolation-escape can still judge from any checkout that
+//     reaches it; one it cannot place, such as a commit only a
+//     merge's second parent reaches, is beyond that rule.
+//  5. Read older's trailers via `git log -1 --pretty=%B older`.
 //     If aiwf-actor starts with "ai/" AND aiwf-entity is
 //     non-empty, surface the orphan.
 //
@@ -67,12 +72,15 @@ type OrphanedAICommit struct {
 // disabled" → isolation-escape-oracle-failure advisory); this
 // walker simply finds no entries to inspect.
 //
+// oracle must be non-nil: it is the isolation-escape oracle the
+// caller has already built.
+//
 // Per-SHA deduplication: an orphan that appears across multiple
 // ref reflogs (rare; would require the orphan tip to have been
 // the tip on multiple refs at different times) surfaces once
 // per (SHA, Branch) pair; the rule consumer deduplicates by
 // SHA when emitting findings.
-func WalkOrphanedAICommits(ctx context.Context, root string, dag *CommitDAG, trunkShort string) []OrphanedAICommit {
+func WalkOrphanedAICommits(ctx context.Context, root string, dag *CommitDAG, trunkShort string, oracle BranchOracle) []OrphanedAICommit {
 	if root == "" {
 		return nil
 	}
@@ -112,6 +120,9 @@ func WalkOrphanedAICommits(ctx context.Context, root string, dag *CommitDAG, tru
 			}
 			if isAncestor(older.SHA, newer.SHA) {
 				continue // fast-forward; not orphaned
+			}
+			if len(oracle.FirstParentBranches(older.SHA)) > 0 {
+				continue
 			}
 			actor, entity := readActorAndEntity(ctx, root, older.SHA)
 			if !strings.HasPrefix(actor, "ai/") || entity == "" {

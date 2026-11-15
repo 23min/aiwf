@@ -16,6 +16,14 @@ section in this file.
 
 ## [Unreleased]
 
+### Fixed — G-0644: the orphaned-AI-commit warning no longer names a commit `isolation-escape` can still place
+
+`isolation-escape-orphaned-ai-commit` named an AI-actor commit whenever a
+non-fast-forward update moved a branch off it, even when trunk or a ritual branch
+still held it on its first-parent history, for example after the branch moved
+back onto it. Such a commit is no longer reported. One held only through a merge's
+second parent still is, since `isolation-escape` cannot place it.
+
 ### Changed (internal) — CI actions move to their Node 24 releases
 
 The CI workflows use the releases of `actions/checkout`, `actions/setup-go`, `actions/upload-artifact`, `golangci/golangci-lint-action` and `DavidAnson/markdownlint-cli2-action` that run on Node 24, so GitHub's Node 20 deprecation warning no longer appears on every run; nothing user-facing changed.
