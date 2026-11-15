@@ -1,7 +1,7 @@
 ---
 id: D-0108
 title: Keep aiwf upgrade without a rollback and document the manual recovery
-status: proposed
+status: accepted
 relates_to:
     - D-0043
     - G-0430
