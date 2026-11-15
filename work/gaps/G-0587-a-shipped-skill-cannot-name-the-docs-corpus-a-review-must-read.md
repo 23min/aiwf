@@ -1,7 +1,7 @@
 ---
 id: G-0587
 title: A shipped skill cannot name the docs corpus a review must read
-status: open
+status: wontfix
 priority: low
 ---
 ## What's missing
