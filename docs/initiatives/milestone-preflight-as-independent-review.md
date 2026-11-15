@@ -749,7 +749,7 @@ What survives the cancellation is this document, plus:
   clearance phrase recurs across surfaces.
 - [G-0586](../../work/gaps/G-0586-the-handoff-block-carries-settled-findings-and-drops-open-ones.md)
   — the compaction handoff forwards settled conclusions and has no slot for an open question.
-- [G-0587](../../work/gaps/G-0587-a-shipped-skill-cannot-name-the-docs-corpus-a-review-must-read.md)
+- [G-0587](../../work/gaps/archive/G-0587-a-shipped-skill-cannot-name-the-docs-corpus-a-review-must-read.md)
   — a shipped ritual is barred from naming the corpus this pass must read.
 
 [E-0086](../../work/epics/archive/E-0086-reduce-the-preflight-pass-to-the-lab-rule/epic.md)

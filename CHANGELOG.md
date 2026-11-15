@@ -16,6 +16,13 @@ section in this file.
 
 ## [Unreleased]
 
+### Changed — G-0430: the README says how to go back to an earlier release
+
+`aiwf upgrade` keeps no rollback of its own, by decision D-0108. The README's
+Upgrade section now says how to return to an earlier release: `aiwf upgrade
+--version vX.Y.Z` while the installed binary still runs, or `go install …@vX.Y.Z`
+followed by `aiwf update` in each consumer repo when it does not.
+
 ### Fixed — G-0644: the orphaned-AI-commit warning no longer names a commit `isolation-escape` can still place
 
 `isolation-escape-orphaned-ai-commit` named an AI-actor commit whenever a

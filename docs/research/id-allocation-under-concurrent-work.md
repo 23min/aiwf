@@ -176,8 +176,8 @@ The comparison is with §"Protocol specification" of the [id-lifecycle initiativ
 2. [G-0746](../../work/gaps/G-0746-renumbering-one-copy-of-a-duplicate-id-on-the-trunk-is-refused-at-pre-push.md): renumbering one copy of a landed duplicate is refused at pre-push (§6, item 2).
 3. [G-0747](../../work/gaps/G-0747-two-same-id-entities-at-the-same-path-merge-into-one-file-without-any-finding.md): a same-id, same-path collision is never reported (§4). `DisputedTrunkIDs` skips an id at the same path, and Git merges identical additions.
 4. [G-0748](../../work/gaps/G-0748-aiwf-history-lists-the-other-entity-s-commits-after-a-collision-is-reallocated.md): after a reallocate, `aiwf history` lists the other entity's commits for both entities, even when the repair was done in the right order. Archived [G-0037](../../work/gaps/archive/G-0037-cross-branch-id-collisions-split-the-audit-trail-allocator-is-local-tree-only.md) named this symptom and is marked addressed.
-5. [G-0749](../../work/gaps/G-0749-a-deleted-and-pruned-branch-s-ids-are-allocated-again.md): a deleted and pruned branch's ids are allocated again (§4).
-6. [G-0750](../../work/gaps/G-0750-aiwf-list-reports-the-checked-out-branch-as-a-cross-branch-ref.md): `aiwf list` reports the checked-out branch as a cross-branch ref, and lists an entity twice when its frontmatter id and path id differ.
+5. [G-0749](../../work/gaps/archive/G-0749-a-deleted-and-pruned-branch-s-ids-are-allocated-again.md): a deleted and pruned branch's ids are allocated again (§4).
+6. [G-0750](../../work/gaps/archive/G-0750-aiwf-list-reports-the-checked-out-branch-as-a-cross-branch-ref.md): `aiwf list` reports the checked-out branch as a cross-branch ref, and lists an entity twice when its frontmatter id and path id differ.
 
 ## 9. Not settled
 

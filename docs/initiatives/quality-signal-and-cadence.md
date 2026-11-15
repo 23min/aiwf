@@ -213,7 +213,7 @@ most of those policies pin something real. But adding a 67th policy is
 consistently cheaper than deepening one of the existing 66, and cheapness is
 the wrong selector when the existing ones have known depth gaps:
 
-- **[G-0253](../../work/gaps/G-0253-branch-coverage-audit-is-statement-scoped-not-per-arm-branch-coverage.md)**
+- **[G-0253](../../work/gaps/archive/G-0253-branch-coverage-audit-is-statement-scoped-not-per-arm-branch-coverage.md)**
   — the diff-scoped coverage gate, the single most load-bearing quality
   chokepoint in the repo, is *statement*-scoped with a `//coverage:ignore`
   escape hatch. A defensive branch whose untested arm never executes can
@@ -226,7 +226,7 @@ the wrong selector when the existing ones have known depth gaps:
 - **[G-0317](../../work/gaps/archive/G-0317-skill-edit-backstop-checks-test-references-path-not-asserts-changed-section.md)**
   — the ritual-content backstop checks that *some* test references the edited
   `SKILL.md` path, not that a test asserts against the section that changed.
-- **[G-0328](../../work/gaps/G-0328-golden-fixture-byte-identity-comparator-for-aiwf-check.md)**
+- **[G-0328](../../work/gaps/archive/G-0328-golden-fixture-byte-identity-comparator-for-aiwf-check.md)**
   — `aiwf check` has no golden-fixture byte-identity comparator, so output
   drift is caught by substring assertions, which `CLAUDE.md` itself already
   names as insufficient ("substring assertions are not structural
@@ -267,11 +267,11 @@ ritual, run once, produced four well-scoped findings:
 (check rules dispatched from two parallel surfaces split by function
 signature rather than by design, with nothing able to enumerate "all the
 rules" from one place),
-[G-0453](../../work/gaps/G-0453-unify-shorthash-short-sha-abbreviation-helpers-in-check-width-decision.md)
+[G-0453](../../work/gaps/archive/G-0453-unify-shorthash-short-sha-abbreviation-helpers-in-check-width-decision.md)
 (two SHA-abbreviation helpers at 7 and 8 chars),
 [G-0454](../../work/gaps/G-0454-unify-the-three-id-shape-parsers-in-entity-parseidnumber-vs-canonicalize.md)
 (three id-shape parsers in `entity`), and
-[G-0455](../../work/gaps/G-0455-consolidate-markdown-heading-walk-state-machines-in-body-go-evaluate-first.md)
+[G-0455](../../work/gaps/archive/G-0455-consolidate-markdown-heading-walk-state-machines-in-body-go-evaluate-first.md)
 (three-to-four markdown heading-walk state machines in one file). The earlier
 verb-layer audit fed [E-0069](../../work/epics/archive/E-0069-close-the-verb-layer-call-graph-audit-findings/epic.md)
 and [E-0072](../../work/epics/archive/E-0072-cli-verb-scaffold-convergence/epic.md),
@@ -444,7 +444,7 @@ item 4 down is independently actionable.
 
 **Already tracked — depth over breadth, per Q2:**
 
-5. [G-0253](../../work/gaps/G-0253-branch-coverage-audit-is-statement-scoped-not-per-arm-branch-coverage.md)
+5. [G-0253](../../work/gaps/archive/G-0253-branch-coverage-audit-is-statement-scoped-not-per-arm-branch-coverage.md)
    — per-arm branch coverage. The largest single lift here and the one that
    most improves what a green gate is worth. Deferred once already, in
    [`tdd-cycle-subagent-boundaries.md`](tdd-cycle-subagent-boundaries.md),
@@ -454,7 +454,7 @@ item 4 down is independently actionable.
    — mutation testing's new-file blind spot.
 7. [G-0317](../../work/gaps/archive/G-0317-skill-edit-backstop-checks-test-references-path-not-asserts-changed-section.md)
    — assert-the-changed-section, not reference-the-path.
-8. [G-0328](../../work/gaps/G-0328-golden-fixture-byte-identity-comparator-for-aiwf-check.md)
+8. [G-0328](../../work/gaps/archive/G-0328-golden-fixture-byte-identity-comparator-for-aiwf-check.md)
    — golden-fixture comparator for `aiwf check` output.
 
 **Already tracked — the duplication queue, per Q3:**
@@ -463,11 +463,11 @@ item 4 down is independently actionable.
    — one rule registry. The highest-leverage of the four: every future check
    rule pays the "which of the two surfaces does this go in?" tax, and the
    answer is currently determined by function signature.
-10. [G-0453](../../work/gaps/G-0453-unify-shorthash-short-sha-abbreviation-helpers-in-check-width-decision.md)
+10. [G-0453](../../work/gaps/archive/G-0453-unify-shorthash-short-sha-abbreviation-helpers-in-check-width-decision.md)
    /
    [G-0454](../../work/gaps/G-0454-unify-the-three-id-shape-parsers-in-entity-parseidnumber-vs-canonicalize.md)
    /
-   [G-0455](../../work/gaps/G-0455-consolidate-markdown-heading-walk-state-machines-in-body-go-evaluate-first.md)
+   [G-0455](../../work/gaps/archive/G-0455-consolidate-markdown-heading-walk-state-machines-in-body-go-evaluate-first.md)
    — the current sweep output. G-0455 explicitly may close as won't-do; that
    is a legitimate outcome and the determination is the work, not the
    refactor.

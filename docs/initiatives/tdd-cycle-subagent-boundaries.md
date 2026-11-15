@@ -119,7 +119,7 @@ change:
 
 **Deferred, re-litigate once 1-4 land:**
 
-- **[G-0253](../../work/gaps/G-0253-branch-coverage-audit-is-statement-scoped-not-per-arm-branch-coverage.md)**
+- **[G-0253](../../work/gaps/archive/G-0253-branch-coverage-audit-is-statement-scoped-not-per-arm-branch-coverage.md)**
   — branch-coverage-audit is statement-scoped, not per-arm. Real gap
   (a defensive branch's untested arm can still read as "covered"), but the
   fix needs AST-level arm enumeration or new toolchain support — a
