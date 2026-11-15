@@ -1,7 +1,7 @@
 ---
 id: D-0107
 title: Commit the milestone wrap through edit-body
-status: proposed
+status: accepted
 relates_to:
     - ADR-0058
     - D-0106
