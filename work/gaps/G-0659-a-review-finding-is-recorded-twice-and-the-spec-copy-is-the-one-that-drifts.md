@@ -1,7 +1,7 @@
 ---
 id: G-0659
 title: A review finding is recorded twice, and the spec copy is the one that drifts
-status: open
+status: wontfix
 priority: low
 discovered_in: M-0327
 ---
