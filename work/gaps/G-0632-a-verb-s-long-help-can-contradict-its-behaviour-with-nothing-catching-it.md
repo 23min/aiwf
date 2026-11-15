@@ -1,7 +1,7 @@
 ---
 id: G-0632
 title: A verb's long help can contradict its behaviour with nothing catching it
-status: open
+status: wontfix
 priority: low
 discovered_in: M-0316
 ---
