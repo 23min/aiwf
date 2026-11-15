@@ -1,7 +1,7 @@
 ---
 id: G-0387
 title: Add duration to the verb.completed/verb.failed diagnostic event
-status: open
+status: wontfix
 priority: low
 discovered_in: M-0238
 ---
