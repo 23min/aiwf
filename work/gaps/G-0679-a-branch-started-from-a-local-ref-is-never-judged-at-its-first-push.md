@@ -38,11 +38,9 @@ except the instruction-file fence where this repository's CI runs it. The push
 that carried it had no range, and no later local push carries it.
 
 A branch merged locally is judged only in part when the branch receiving the
-merge is pushed against its upstream. The dropped-body-section gate and the
-instruction-file fence see the merged commits. The untrailered-entity audit and
-`trailer-verb-unknown` read the first-parent line (`ReadUntrailedCommits` in
-`internal/cli/check/provenance.go`), so a `--no-ff` merge hides the branch's own
-commits from them.
+merge is pushed against its upstream: the dropped-body-section gate and the
+instruction-file fence see the merged commits, and a `--no-ff` merge hides them
+from the untrailered-entity audit and `trailer-verb-unknown` (G-0765).
 
 Measured at `3c5bd7546` (git 2.51.1, Linux) in a throwaway repository whose
 `main` tracks a bare remote. A branch carries an untrailered hand edit to a gap,
