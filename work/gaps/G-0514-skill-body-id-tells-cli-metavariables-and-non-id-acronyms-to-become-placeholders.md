@@ -1,7 +1,7 @@
 ---
 id: G-0514
 title: skill-body-id tells CLI metavariables and non-id acronyms to become placeholders
-status: open
+status: wontfix
 priority: medium
 discovered_in: M-0287
 ---
