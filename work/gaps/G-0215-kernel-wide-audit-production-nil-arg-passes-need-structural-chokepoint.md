@@ -1,7 +1,7 @@
 ---
 id: G-0215
 title: 'Kernel-wide audit: production nil-arg passes need structural chokepoint'
-status: open
+status: wontfix
 priority: low
 discovered_in: M-0159
 ---
