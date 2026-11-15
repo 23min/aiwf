@@ -1,6 +1,6 @@
 ---
 id: G-0638
-title: The epic branch guard's --force bypass is recorded nowhere and gated by nothing
+title: Forcing past the epic branch guard leaves no record and no human-only check
 status: open
 priority: medium
 ---
