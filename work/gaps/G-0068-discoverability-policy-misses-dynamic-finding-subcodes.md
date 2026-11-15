@@ -1,7 +1,7 @@
 ---
 id: G-0068
 title: Discoverability policy misses dynamic finding subcodes
-status: open
+status: wontfix
 priority: medium
 discovered_in: M-0066
 ---
