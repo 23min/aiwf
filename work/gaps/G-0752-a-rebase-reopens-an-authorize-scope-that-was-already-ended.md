@@ -2,7 +2,7 @@
 id: G-0752
 title: A rebase reopens an authorize scope that was already ended
 status: open
-priority: high
+priority: medium
 ---
 ## What's missing
 
