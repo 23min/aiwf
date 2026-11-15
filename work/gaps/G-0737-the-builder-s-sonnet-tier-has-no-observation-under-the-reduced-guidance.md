@@ -1,7 +1,7 @@
 ---
 id: G-0737
 title: The builder's Sonnet tier has no observation under the reduced guidance
-status: open
+status: wontfix
 priority: low
 discovered_in: M-0338
 ---
