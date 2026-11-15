@@ -1,7 +1,7 @@
 ---
 id: G-0749
 title: A deleted and pruned branch's ids are allocated again
-status: open
+status: wontfix
 priority: low
 ---
 ## What's missing
