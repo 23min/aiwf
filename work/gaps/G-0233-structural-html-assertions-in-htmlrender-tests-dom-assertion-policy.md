@@ -1,7 +1,7 @@
 ---
 id: G-0233
 title: Structural HTML assertions in htmlrender tests + DOM-assertion policy
-status: open
+status: wontfix
 priority: medium
 ---
 ## What's missing
