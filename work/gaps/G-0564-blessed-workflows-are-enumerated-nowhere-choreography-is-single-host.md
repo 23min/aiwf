@@ -1,7 +1,7 @@
 ---
 id: G-0564
 title: Blessed workflows are enumerated nowhere; choreography is single-host
-status: open
+status: wontfix
 priority: medium
 ---
 ## What's missing
