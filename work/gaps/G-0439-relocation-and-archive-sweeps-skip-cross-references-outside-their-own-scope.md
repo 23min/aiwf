@@ -1,7 +1,7 @@
 ---
 id: G-0439
 title: Relocation and archive sweeps skip cross-references outside their own scope
-status: open
+status: wontfix
 priority: medium
 discovered_in: E-0034
 ---
