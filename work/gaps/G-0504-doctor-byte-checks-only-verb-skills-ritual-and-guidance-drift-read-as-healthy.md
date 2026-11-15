@@ -1,7 +1,7 @@
 ---
 id: G-0504
 title: doctor byte-checks only verb skills; ritual and guidance drift read as healthy
-status: open
+status: wontfix
 priority: high
 ---
 ## What's missing
