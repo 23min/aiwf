@@ -1,7 +1,7 @@
 ---
 id: G-0527
 title: Worktree creation is a verb; teardown is plain git, and the absence is silent
-status: open
+status: wontfix
 priority: low
 ---
 ## What's missing
