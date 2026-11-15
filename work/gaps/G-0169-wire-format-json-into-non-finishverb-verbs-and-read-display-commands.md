@@ -1,7 +1,7 @@
 ---
 id: G-0169
 title: Wire --format=json into non-FinishVerb verbs and read-display commands
-status: open
+status: wontfix
 priority: low
 discovered_in: M-0143
 ---
