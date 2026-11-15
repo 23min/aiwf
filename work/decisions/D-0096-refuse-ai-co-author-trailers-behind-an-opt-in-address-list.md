@@ -103,3 +103,8 @@ Adding the address is the whole of the repair.
 The range check is aiwf's own CI policy and does not ship, so a consumer repo
 gets the hook alone: it binds only where `aiwf init` has wired it, and only as
 the `aiwf` on PATH.
+
+Both layers find the `Co-Authored-By:` line where git finds trailers, so a line
+git does not read as one, written directly under body prose with no blank line
+before it, passes both. That is accepted: git's trailer parser decides what
+counts as a trailer here (G-0700).
