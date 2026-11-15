@@ -1,7 +1,7 @@
 ---
 id: G-0580
 title: The skill-edit backstop reaches neither agent cards nor verb skills
-status: open
+status: wontfix
 priority: low
 ---
 ## What's missing
