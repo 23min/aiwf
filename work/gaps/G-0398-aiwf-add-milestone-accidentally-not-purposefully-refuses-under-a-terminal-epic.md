@@ -1,7 +1,7 @@
 ---
 id: G-0398
 title: aiwf add milestone accidentally-not-purposefully refuses under a terminal epic
-status: open
+status: wontfix
 priority: medium
 discovered_in: M-0244
 ---
