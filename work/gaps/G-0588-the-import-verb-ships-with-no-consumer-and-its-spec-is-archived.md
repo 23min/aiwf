@@ -1,7 +1,7 @@
 ---
 id: G-0588
 title: The import verb ships with no consumer and its spec is archived
-status: open
+status: wontfix
 priority: low
 ---
 ## What's missing
