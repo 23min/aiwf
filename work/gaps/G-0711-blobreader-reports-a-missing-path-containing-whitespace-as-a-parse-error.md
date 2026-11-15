@@ -1,7 +1,7 @@
 ---
 id: G-0711
 title: BlobReader reports a missing path containing whitespace as a parse error
-status: open
+status: wontfix
 priority: low
 discovered_in: M-0333
 ---
