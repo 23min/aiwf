@@ -1,7 +1,7 @@
 ---
 id: G-0111
 title: Scope-end is welded to the terminal promote; no operator-driven way to end one
-status: open
+status: wontfix
 priority: high
 discovered_in: M-0096
 ---
