@@ -1,7 +1,7 @@
 ---
 id: G-0630
 title: archive.go's 19 surviving mutants are all in verb code, not link code
-status: open
+status: wontfix
 priority: low
 discovered_in: M-0316
 ---
