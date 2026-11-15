@@ -10,10 +10,10 @@ priority: low
 Two surfaces describe a spec's sections, at different layers, and nothing
 records which one a new rule should read.
 
-`internal/entity/required_sections.go` holds the kernel set. Its own doc comment
-is explicit about what that set is: *"'Required' names what the scaffold writes,
-not a guarantee anything verifies."* It is the load-bearing minimum `aiwf add`
-emits, and `entity-body-empty` reports one of those headings present and empty.
+`internal/entity/required_sections.go` holds the kernel set: the load-bearing
+minimum `aiwf add` scaffolds, and the set ADR-0049's create, edit and push seams
+judge a write against. `entity-body-empty` reports one of those headings present
+and empty.
 
 The shipped entity templates under the rituals are a superset, and they are the
 vocabulary authors and rituals actually use. That layering is deliberate. What is
@@ -62,16 +62,14 @@ does when it wants a section only the template ships — accept that it can only
 warn, or extend the scaffold so the kernel writes it too.
 
 Extending the scaffold is not free: it changes what every new entity of that kind
-carries, and for milestone it would grow a two-entry set toward seventeen. The
-enforcement half of that blast radius is measured in ADR-0049.
+carries, and for milestone it would grow a two-entry set toward the template's
+full set.
 
 ## References
 
-- G-0571 — nothing enforces that an entity body carries its kind's required
-  sections. The enforcement half, and it carries an inherited obligation from
-  M-0326.
-- G-0636 — milestone-spec section rules are restated across five surfaces with no
-  owner. The prose half.
+- G-0571 — the enforcement half: whether an entity body carries its kind's
+  required sections.
+- G-0636 — the prose half: where milestone-spec section rules are stated.
 - M-0326 — added the rule that surfaced this, and reverted its severity rather
   than resolving it.
 - D-0082 — records the changelog-input reversal that milestone made.
