@@ -28,8 +28,9 @@ Reachable from trunk, measured in a throwaway repository:
 - `epic/E-0002-y` carries two `ai/` commits, merged to `main`, then the branch is
   moved back with `git reset --hard HEAD~2`.
 - older tip an ancestor of newer tip → **no**, so the walk reports an orphan.
-- older tip reachable from `main` → **yes**, so the commit is on the mainline and
-  fully auditable.
+- older tip reachable from `main` → **yes**. On `main`'s first-parent line,
+  isolation-escape places the commit; reached only through a merge's second
+  parent, where a `--no-ff` merge leaves a branch's commits, it cannot.
 
 Back on its own branch, and before that on another branch. Reproduced 2026-11-01
 with aiwf built from `main` at `c06ffdaf9` (`vcs.modified=false`), git 2.51.1,
@@ -84,12 +85,13 @@ exit 0
 After the fast-forward `3472881` is the branch's own tip, and the walk still
 reports it orphaned on that branch; the provenance audit, which walks the commits
 reachable from the checked-out branch (`provenanceCommitsFromHead`,
-`internal/cli/check/provenance.go`), reaches it. G-0755's reproduction meets the
-same shape after an ordinary rebase and merge: the warning there names `1ebff00`,
-which the merge made an ancestor of the branch's tip again.
+`internal/cli/check/provenance.go`), reaches it. G-0755's reproduction reaches a
+neighbouring shape after an ordinary rebase and merge: the warning there names
+`1ebff00`, which the merge made an ancestor of the branch's tip again, but not on
+any indexed branch's first-parent line, so isolation-escape cannot place it.
 
 Between the reset and the fast-forward, `3472881` is held only by `keep`, and the
-walk reports it too. Whether it should is open. Checked from the rewound branch,
+walk reports it too, rightly. Checked from the rewound branch,
 no audit reaches the commit: the provenance audit walks only that branch, and the
 isolation-escape oracle indexes trunk and the branches
 `branchparse.ParseEntityFromBranch` accepts, which `keep` is not. G-0205 calls
@@ -97,13 +99,13 @@ the oracle's silence on such a commit "correct only when the commit is genuinely
 on a branch the oracle doesn't index (the documented gap in G-0203)", a policy
 rather than an audit that reaches it.
 
-The precondition is that trunk, or the branch the walk read, reaches the older
-tip when the check runs. Two neighbouring shapes do not trigger it, both
-measured: resetting a merged branch to trunk itself leaves the previous tip an
-ancestor of the new one, so the pair is a fast-forward the walk skips; and a
+The precondition is that trunk, or a ritual branch, holds the older tip on its
+first-parent line when the check runs. Two neighbouring shapes do not trigger it,
+both measured: resetting a merged branch to trunk itself leaves the previous tip
+an ancestor of the new one, so the pair is a fast-forward the walk skips; and a
 branch rewound before its work ever reached trunk yields a genuine orphan,
-reported correctly — with another branch still holding the commit, it is the open
-case above.
+reported correctly — with a non-ritual branch still holding the commit, it is the
+`keep` case above.
 
 One false finding per rewind is an upper bound. `RunOrphanedAICommits`
 deduplicates per SHA, and a pre-rewind tip carrying a human actor is filtered
@@ -113,8 +115,8 @@ before it reaches a finding.
 
 The finding exists to surface AI commits that a non-fast-forward update removed
 from every ref — work that landed nowhere and that no audit reaches. A commit on
-trunk, or back on its own branch, is the opposite of that case, and reporting it
-teaches the reader that the finding does not mean what it says.
+trunk's or its own branch's first-parent line is the opposite of that case, and
+reporting it teaches the reader that the finding does not mean what it says.
 
 An operator who meets one of these has no way to tell it from a real orphan
 without checking reachability by hand, which is the check's own job.
@@ -127,29 +129,25 @@ nothing is wrong with.
 
 ## Resolution shape
 
-Filter the orphan by reachability before reporting: an older tip reachable from
-the trunk head, or from the current tip of the branch whose reflog recorded the
-update, is not orphaned.
+Ask the isolation-escape oracle before reporting: an older tip it places on any
+indexed branch's first-parent line (`FirstParentBranches`,
+`internal/cli/check/isolation_escape_oracle.go`) is not orphaned, since
+isolation-escape can still judge it from a checkout that reaches it. The check
+builds the oracle from the branches' current tips before the walk runs, so this
+costs a map lookup per candidate.
 
-The ancestry machinery is in hand: `reflog_walk.go` holds a `*CommitDAG` built by
-one `git rev-list --all --reflog --parents` (`internal/check/orphan_dag.go`), and
-the walk already calls `dag.isAncestor` in the same loop.
+Reachability through any parent, from trunk or from the branch's own tip, is not
+enough. A `--no-ff` merge leaves a branch's commits on trunk's second-parent side,
+which the oracle does not index. Filtering on that reachability let an AI commit
+made on the wrong branch, merged with `--no-ff` and then rewound off its branch,
+go unreported by every check — measured 2026-11-15 with `aiwf` built from
+`a7c1e1e12` plus such a filter, git 2.51.1, Linux. A commit reached only through a
+merge's second parent therefore stays reported, as do G-0755's shape and the
+`keep` case.
 
-The trunk head is not. `trunkShort` is a branch short name — `"main"`, derived by
-`Config.TrunkBranchShortName` — while `dag.isAncestor` compares two SHAs over a
-`parents` map that carries no ref information. Resolving the tip costs one
-`git rev-parse`, or a signature change threading in the
-`branchTips map[string]string` that `RunPromoteOnWrongBranch` already takes for
-this same comparison; threading it reorders the caller, since
-`internal/cli/check/provenance.go` builds `branchTips` after it calls the walk.
-
-Two conditions to settle. `trunkShort` can be empty, which `listRitualHeads`
-already guards for; and the default trunk ref is remote-tracking, so the short
-name may not resolve — measured, `git rev-parse main` fails in a clone carrying
-`refs/remotes/origin/main` but no local `main`. With no resolvable trunk head,
-report as today, the way `RunPromoteOnWrongBranch` does. `CommitDAG.isAncestor`
-further documents that a SHA not sourced from its own `--all --reflog` build
-needs the explicit unknown-key guard re-established.
+A commit another ritual branch holds on its first-parent line is not reported by
+this walk from any checkout; isolation-escape judges it from that branch, as it
+judges every other commit there.
 
 Separate from the per-ref reflog cost recorded in G-0324, which is `wontfix`:
 that one changes what the walk spends, this one changes what it reports. Its

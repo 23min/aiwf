@@ -103,7 +103,7 @@ func RunProvenanceCheck(ctx context.Context, root string, t *tree.Tree, since st
 		// isolation-escape-orphaned-ai-commit warnings. Composes
 		// with M-0159/AC-3 acknowledge-illegal via the shared
 		// ackedSHAs map.
-		orphans := check.WalkOrphanedAICommits(ctx, root, dag, trunkShort)
+		orphans := check.WalkOrphanedAICommits(ctx, root, dag, trunkShort, oracle)
 		findings = append(findings, check.RunOrphanedAICommits(orphans, ackedSHAs)...)
 		// M-0161/AC-3 + AC-4 + AC-5 / D-0019: surface oracle
 		// coverage gaps. Per-ref failures emit isolation-escape
