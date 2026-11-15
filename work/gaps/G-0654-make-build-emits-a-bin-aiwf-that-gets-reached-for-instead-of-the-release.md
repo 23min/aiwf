@@ -1,7 +1,7 @@
 ---
 id: G-0654
 title: make build emits a bin/aiwf that gets reached for instead of the release
-status: open
+status: wontfix
 priority: medium
 ---
 ## What's missing
