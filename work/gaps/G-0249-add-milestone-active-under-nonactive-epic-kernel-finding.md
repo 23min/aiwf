@@ -1,7 +1,7 @@
 ---
 id: G-0249
 title: add milestone-active-under-nonactive-epic kernel finding
-status: open
+status: wontfix
 priority: low
 ---
 ## What's missing
