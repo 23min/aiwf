@@ -1,7 +1,7 @@
 ---
 id: G-0607
 title: Regexp content matching over shipped surfaces bypasses the shipped-prose ban
-status: open
+status: wontfix
 priority: low
 discovered_in: M-0313
 ---
