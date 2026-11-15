@@ -1,7 +1,7 @@
 ---
 id: G-0274
 title: No batch resolution for id collisions; reallocate is one-at-a-time
-status: open
+status: wontfix
 priority: medium
 ---
 ## Problem
