@@ -1,7 +1,7 @@
 ---
 id: D-0106
 title: Stop committing ROADMAP.md; render it on demand
-status: proposed
+status: accepted
 relates_to:
     - ADR-0058
 ---
