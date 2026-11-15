@@ -1,7 +1,7 @@
 ---
 id: G-0563
 title: Bare-loading verbs refuse a reference that resolves only on another branch
-status: open
+status: wontfix
 priority: low
 ---
 ## What's missing
