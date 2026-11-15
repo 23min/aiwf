@@ -74,6 +74,7 @@ A step can also be claimed twice. After a push whose reply was lost, `git pull -
 - **An older release misreads an amended commit** (Context), and no finding says so. A clone that stays on an older release keeps misreading.
 - **A commit made by `git commit` is never amended,** even one carrying a verb trailer, because the reflog clause refuses any HEAD a git command moved last.
 - **Signing follows today's commit path:** `commit.gpgsign` signs the amended commit. Signing, `post-rewrite` and notes under amend are not measured (§6).
+- **The orphan walk reports the commit an agent's amend replaced,** until it is taught otherwise. The amend moves the branch off that commit and no ref holds it after, so `isolation-escape-orphaned-ai-commit` names it, though its operations live on in the commit that replaced it. Measured 2026-11-15 with `aiwf` built from `main` at `417f992f7` (`-dirty`: an uncommitted doc edit and an untracked directory), git 2.51.1, Linux: `git commit --amend` of an `ai/` actor's verb commit on its epic branch drew the warning, as the prototype found ([its report](../research/fewer-planning-commits/reports/03-amend-prototype.md), R13). The walk has to tell an amend by what the replacing commit records, not by the `aiwf:` reflog message: `git update-ref -m "aiwf: …"` writes that message on a hand rewind too.
 - **What changes:**
   - the commit path in `internal/gitops`: the eligibility test, the amend, and a reflog message on every verb's ref update;
   - a trailer key, `aiwf-op-time`, and the [provenance model](../design/provenance-model.md)'s trailer table;
@@ -81,6 +82,7 @@ A step can also be claimed twice. After a push whose reply was lost, `git pull -
   - on top of that reader:
     - the history readers, `aiwf status` and the render pass;
     - `fsm-history-consistent` and the other rules that read `aiwf-force`;
+    - the orphan walk (`WalkOrphanedAICommits`, `internal/check/reflog_walk.go`), which skips a replaced commit when the commit that replaced it records every one of its operations, by ADR-0057's `aiwf-op-id`;
   - the docs that state commitment 7:
     - `CLAUDE.md` and [design-decisions.md](../design/design-decisions.md) §"One git commit per mutating verb" gain the sentence, as do the rule tables that restate it;
     - [workflows.md](../workflows.md)'s "a six-step sequence below is six commits" is reworded;
