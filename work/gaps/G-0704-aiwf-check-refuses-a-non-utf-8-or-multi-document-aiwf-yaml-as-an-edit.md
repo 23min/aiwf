@@ -1,7 +1,7 @@
 ---
 id: G-0704
 title: aiwf check refuses a non-UTF-8 or multi-document aiwf.yaml as an edit
-status: open
+status: wontfix
 priority: medium
 discovered_in: E-0094
 ---
