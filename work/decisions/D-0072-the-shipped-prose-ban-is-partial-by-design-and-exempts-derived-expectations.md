@@ -84,10 +84,10 @@ rather than from this one motivating case.
 - A green policy suite means less than the phrase "the corpus is gone" would
   suggest, and the acceptance criterion says so explicitly. Overstating it was
   the defect review caught before this milestone closed.
-- Known escapes are tracked rather than closed: a prose assertion written as
-  a production policy (G-0606), a regexp match (G-0607), the negative
-  regression pin, which is a shape D-0070 does not name at all (G-0608), and
-  an assertion outside an `if` condition (G-0710).
+- The ban is partial, and its known escapes are accepted rather than closed:
+  a prose assertion written as a production policy (G-0606), a regexp match
+  (G-0607), the negative regression pin, which is a shape D-0070 does not name
+  at all (G-0608), and an assertion outside an `if` condition (G-0710).
 - Adding an exemption now requires choosing a class. A case fitting neither is a
   signal that the class set needs a decision, not that the allowlist needs an
   entry.
