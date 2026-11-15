@@ -1,8 +1,10 @@
 ---
 id: G-0333
 title: Force override boundary between Tier-1 and Tier-2 is undocumented
-status: open
+status: addressed
 priority: medium
+addressed_by_commit:
+    - 527caf70d
 ---
 ## What's missing
 
