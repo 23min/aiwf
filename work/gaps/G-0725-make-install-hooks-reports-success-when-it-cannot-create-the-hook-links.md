@@ -1,7 +1,7 @@
 ---
 id: G-0725
 title: make install-hooks reports success when it cannot create the hook links
-status: open
+status: wontfix
 priority: low
 discovered_in: M-0359
 ---
