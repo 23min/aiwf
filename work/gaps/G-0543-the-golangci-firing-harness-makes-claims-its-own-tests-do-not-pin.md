@@ -1,7 +1,7 @@
 ---
 id: G-0543
 title: The golangci firing harness makes claims its own tests do not pin
-status: open
+status: wontfix
 priority: medium
 ---
 ## Problem
