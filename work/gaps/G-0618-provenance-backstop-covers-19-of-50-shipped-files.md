@@ -1,7 +1,7 @@
 ---
 id: G-0618
 title: Provenance backstop covers 19 of 50 shipped files
-status: open
+status: wontfix
 priority: low
 ---
 ## What's missing
