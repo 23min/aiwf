@@ -1,7 +1,7 @@
 ---
 id: G-0710
 title: An assertion outside an if condition passes the shipped-prose ban
-status: open
+status: wontfix
 priority: low
 discovered_in: M-0333
 ---
