@@ -27,16 +27,14 @@ line saying what it is.
 - Area skill perhaps too big?
 - Do we have anything in CLAUDE.md that really should belong in shipped surfaces?
 - E-0019 and ADR-0001 both still `proposed` — deferred, no forcing function yet
-- G-0375 has a live sighting: a probe wrote user.email into the repo's own
-  .git/config and broke TestResolveActor_*; the failures read as environmental
 - `readStatusAt` and the walker's path-resolving fallback arm are dead in
   production — reachable only through conditions no BulkRevwalk flag produces.
   Annotated rather than deleted, deliberately; nothing tracks the choice
 
-## Next, in order (2026-10-24)
+## Next, in order (2026-11-15)
 
-Clusters 1–9 and 11 cover the *defect* surface; cluster 12 covers the machine the
-gates run on. Cluster 10 is the exception: absences in what the kernel can
+Clusters 1–9, 11 and 13 cover the *defect* surface; cluster 12 covers the machine
+the gates run on. Cluster 10 is the exception: absences in what the kernel can
 express, which are not defects and each need a decision first.
 Feature and enhancement gaps fit none and are not listed, at any priority — the
 filter is what the gap is, not how urgent it is. Each gap sits in exactly one
@@ -62,58 +60,28 @@ wrong thing, and no gate at the point one would still be cheap.
 
 The gate exists and runs; what it looks at stops short of where the defect is.
 
-- **G-0563** *(low)* — bare-loading verbs refuse a reference that resolves only on
-  another branch. The remaining surface of the gate G-0558 fixed for read paths
-- **G-0516** — the comment-attrition scan is diff-scoped, so a stale comment
-  outside the changed hunk is never examined. Its title-bearing shape widens the
-  diff filter and leaves the phrase set alone; only the second shape asks to
-  reverse the calibration argued in the source
-- **G-0580** — the skill-edit backstop reaches embedded rituals only, so an agent
-  card or a verb skill changes with nothing asking who owns it
-- **G-0581** — the backticked-verb resolution policy walks the `aiwfx-*` skills only,
-  so a retired verb would survive in the guidance source, the `wf-*` skills, the
-  agent cards and the templates alike — none of them walked
-- **G-0602** — `git log --name-only` emits no diff for a merge, so prose written
-  into a shipped skill while resolving a conflict passes the provenance gate
-- **G-0606** — the shipped-prose ban walks test functions, so the same assertion
-  written as a production policy sits outside it by construction
-- **G-0607** — a regexp carries its needle inside the compiled pattern, so regexp
-  matching over shipped content bypasses that same ban
-- **G-0618** — the provenance backstop's path scoping reaches under half the shipped
-  files; duplicated by G-0580, which describes the same hole against a retired predicate
-- **G-0369** *(low)* — `body-prose-id` misses an unhyphenated reference to a real entity
+- **G-0744** *(high)* — the untrailered-entity audit skips any commit carrying an
+  `aiwf-verb` trailer, so a hand edit folded into a verb commit by a squash or
+  fixup passes it and drops out of `aiwf history`
+- **G-0765** — a `--no-ff` merge hides the merged branch's commits from the
+  untrailered audit; `wf-patch` merges that way and never pushes the branch.
+  Pairs with G-0539 and G-0679
 - **G-0302** *(low)* — `check --fast` skips in-memory contract-config validation
 - **G-0307** *(low)* — the top-level `aiwf.yaml` decode stays non-strict; the areas
   and `docs:` blocks reject an unknown key, the top level does not
 - **G-0535** — three more policies scope their AST walk to `cmd/aiwf`, one file with
   no tests; two inspect nothing and the third is degenerate rather than vacuous
-- **G-0068** — the discoverability policy substring-matches finding codes and misses
-  every composite subcode `internal/check` emits, dynamic or literal
 - **G-0550** — a commit carrying `aiwf-force` and no actor at all is refused by
   neither rule set: both test the actor for being non-human, which absent is not
 - **G-0576** — `acs-tdd-tests-missing` reads an AC's whole history, so one cycle's
   trailer satisfies it for that criterion's entire life
 - **G-0625** — lychee's `exclude_path` entries are read as regexes, dropping eight
   Normative paths out of the link gate's reach
-- **G-0624** — `markdownLinkRegex` misses titled markdown links, so they are
-  invisible to the walk that is supposed to see every link
 - **G-0623** — outbound link repair covers single-file moves only, so a move that
   relocates a whole directory leaves ADR-0046's commitment unmet. E-0088's residue
-- **G-0657** — `aiwf history` drops a commit whose trailer block git splits from
-  `Co-Authored-By`, so the projection loses edits it owns
-- **G-0664** — `shipped-prose-assertion` misses an assertion whose shipped path is
-  built inline rather than spelled
 - **G-0671** — the changelog audit does not see a delta in a named kernel surface
-- **G-0675** — the section-set scan's corpus is hand-maintained, so it narrows in
-  silence
-- **G-0686** — a move the push makes outside one add-and-delete commit reads as a
-  create
-- **G-0700** — a `Co-Authored-By` line directly under body prose is not a trailer to
-  git, so both refusal layers miss it
 - **G-0705** *(low)* — `BulkRevwalk` ends the walk silently at a `git log` line of
   1 MiB or more and returns the records before it as the whole history
-- **G-0710** — the shipped-prose ban counts a call as an assertion only in an `if`
-  condition, so a statement helper, a `switch` case or an `if` init passes it
 - **G-0726** — the `go` workflow's path filters omit files the policy suite reads, so
   a push changing only such a file runs no policy that judges it
 
@@ -121,24 +89,15 @@ The gate exists and runs; what it looks at stops short of where the defect is.
 
 The gate runs and returns a verdict about a subject that is not the one claimed.
 
-- **G-0543** — the golangci firing harness asserts its isolation against the
-  command constructor, not against the harness that must use it; reverting the
-  call site leaves every test green. The instance form of this cluster's thesis:
-  the gate built to catch a dormant rule has claims nothing checks
-- **G-0233** — most of the htmlrender suite asserts structure with `strings.Contains`,
-  proving a literal exists somewhere rather than in the right element, and no AST
-  policy stops the pattern creeping back
-- **G-0540** — the assertions that replaced three vacuous policies were each accepted
-  as narrower than their names; one of the three has since been deleted outright,
-  so the live worklist is the other two
-- **G-0608** — negative regression pins over shipped surfaces fit neither class
-  D-0070 names; one site was dropped rather than invent a third, and a second pin
-  is invisible to the ban entirely
+- **G-0751 / G-0752 / G-0755** *(high)* — authorize scopes are keyed by the opening
+  commit's SHA, so a rebase turns every scoped commit into an error (G-0751),
+  reopens an ended scope (G-0752), and a copy of the opening commit opens a second
+  scope (G-0755). ADR-0056 decides the fix, a scope id of its own; not built
+- **G-0766** — `aiwf add` judges an `ai/` create by the flags it was given and
+  `aiwf check` by what the entity stores, so a create admitted by a `relates_to` or
+  `depends_on` link commits and then fails the push
 - **G-0629** — nothing fails when an m0127 allowlist entry stops matching the file
   it exempts; the exemption outlives its subject and the scan still reports green
-- **G-0630** — `archive.go`'s 19 surviving mutants sit in the verb's own commit
-  builder and planning path, not the link code E-0088's Context named. The measure
-  that justified the epic did not measure what the epic changed
 - **G-0573** — **already addressed.** `29eb2a94c` composed all four severity passes
   into the guard, and ADR-0042 rules the behavioural residue moot rather than
   pending. Promote `addressed --by-commit 29eb2a94c`
@@ -154,12 +113,14 @@ Nothing fires at the point the defect is cheapest to catch.
 - **G-0539** — a plain commit staging entity files passes pre-commit, and the finding
   it produces never surfaces in the default flow at all — not at the push, and not
   after, once the upstream is set
+- **G-0767** — `aiwf add` accepts `--relates-to`, `--epic` or `--discovered-in` on a
+  kind that does not store it, exits 0 and drops the link
 - **G-0640** — nothing surfaces an existing gap at filing time, so duplicates land.
   The one entry in this file that reduces how many gaps get filed rather than how
   many are wrong; G-0562 and G-0578, filed five days apart against one call site
   with neither referencing the other, are what it would have caught
-- **G-0638** — the epic branch guard's `--force` bypass is recorded nowhere and
-  gated by nothing, so the escape hatch leaves no trace the next reader can find
+- **G-0638** — forcing past the epic branch guard leaves no `aiwf-force:` record and
+  meets no human-only check; the reason `--force` demands is discarded
 - **G-0658** — nothing pins that `--root` reaches the commit-msg guard that reads the
   index
 - **G-0661** — no check caps an in-function comment at the length D-0084 sets
@@ -196,40 +157,27 @@ neither reads what it says.
   nothing reports it when that entity is later cancelled
 - **G-0589** — the doc authority tiering classifies every `docs/` subtree and leaves
   root and derived documents unassigned
-- **G-0217** — `status --worktrees` cannot tell a wrapped milestone merged to its epic
-  from one merged nowhere; the two-state conflation the body claims does not exist,
-  since the label is gated on a terminal status
-- **G-0366** — the roadmap renderer is epic-only, so a gap closed by a patch is
-  invisible in it. Two of its three Direction items are dead: the CHANGELOG sibling
-  shipped, and wiring roadmap regen into `wf-patch` is forbidden by that ritual
 - **G-0385** — `upgrade` resolves latest from the proxy list endpoint and under-reports
   right after a fresh tag
-- **G-0333** — the two-tier `--force` boundary is load-bearing and stated in six
-  shipped and Normative surfaces; only `CLAUDE.md` and the provenance model omit it.
-  The body's "undocumented" premise is dead — it is an instance of this cluster, not
-  a report of one
-- **G-0632** — a verb's long help can contradict its behaviour with nothing catching
-  it; the help text is the surface a reader trusts before they run anything
+- **G-0421** *(low)* — `show --area` reports a milestone found on another branch as
+  untagged, though its parent epic is in the area
 - **G-0643** — `aiwfx-whiteboard` calls an operator ordering file uncommitted; this
   one is not
 - **G-0667** — `aiwf import` is deprecated but every surface presents it as current
-- **G-0668** — measured figures carry no command, and cluster in the records that
-  never forget
 - **G-0701** — `README.md` lists the hooks `init` and `update` install and omits
   `commit-msg`
-- **G-0702** — the `aiwf.yaml` table in `design-decisions.md` marks `aiwf_version`
-  required; the loader accepts a config without it
 - **G-0706** — the provenance docs and skills give two rules for an unscoped
   non-human actor carrying a principal; the kernel refuses the combination
 - **G-0689** — `aiwf --help`, the `init`-written `CLAUDE.md` and check text spell
   `aiwf add <kind> --title` alone, which `add` refuses for every kind but an epic
 - **G-0729** — `design-decisions.md` and ANTI-0008 describe a `doctor.recommended_plugins`
   setting no code reads
-- **G-0732 / G-0733 / G-0734** — the `aiwf-add` skill and the design docs state a
-  narrower allocation and `body-prose-id` scope than the code runs. One claim in three
-  places
-- **G-0736** — the PR and task templates ask for checklists, files and commands the
-  repository does not hold
+- **G-0733 / G-0734** — the `aiwf-add` skill and the design docs state a narrower
+  allocation and `body-prose-id` scope than the code runs. One claim in two places
+- **G-0757** *(low)* — the docs say `adr-supersession-mutual` flags a missing
+  successor; it never does. Same function as G-0756
+- **G-0758** *(low)* — `edit-body --help` says any dropped section is refused; only
+  required ones are
 
 
 ### 3. Oracles — what tells the builder it is wrong *(design first)*
@@ -241,19 +189,15 @@ apparatus decides *shape* well and decides nothing about whether the spec going
 in is any good. Vocabulary in `docs/design/oracles.md`; initiative context in
 `quality-signal-and-cadence.md` Q2 and Q6.
 
-- **G-0375** *(high)* — a contributor whose global config sets `commit.gpgsign` sees
-  every commit-based test in `internal/verb` and `internal/gitops` fail, saying
-  nothing about their change; the count grows with the suite. The fix is per-key, not
-  one blanket cut-off — actor resolution depends on inheriting global identity
+- **G-0768** — four actor tests isolate the global git config but not the checkout
+  they run in, so a `user.email` set in the checkout fails them, saying nothing about
+  the change under test
 - **G-0720** — the `initcmd` and `update` in-process tests run against the real HOME and
   PATH, so an installed `dotfiles-guidance-check` or personal instruction file decides
-  their verdict. G-0375's shape, for guidance
+  their verdict. G-0768's shape, for HOME and PATH
 - **G-0282** *(high)* — "what verb undoes this?" has no chokepoint; code review is
   the whole enforcement, and it never audits verbs that already shipped. The
   filed form of the agent-performed audit two entries below
-- **G-0564** — what cancelled E-0080 left behind: no declarative enumeration of
-  blessed workflows, and choreography pinned to a single host. Neither has a settled
-  design question. Its body still reads as though E-0080 were live
 - **G-0565** — an archive-migration test's verdict turns on refs its fixture never
   stages. G-0468's family: an oracle answering about something other than its
   subject
@@ -261,42 +205,28 @@ in is any good. Vocabulary in `docs/design/oracles.md`; initiative context in
   half. The body's first move is the *threshold raise*, not diff-scoping, which it
   prices at a config file, a Make target, hook and CI wiring, and a host CI lacks.
   Unblocked — G-0462 repaired the instrument this was waiting on
-- **G-0253** — the coverage gate is statement-scoped, so an arm with no block of its
-  own — an implicit else, a co-listed `case`, a short-circuited sub-condition — reads
-  as covered. A defensive arm with a body is caught
 - **G-0121** *(high)* — legal workflows and verb composition are not pinned
   mechanically. Listed again: E-0080 was the mechanized half and is cancelled, so
-  nothing closes this at anyone's wrap. Its remainder is G-0564 above
+  nothing closes this at anyone's wrap
 - **G-0583** — the milestone preflight asks the reader to confirm every criterion is
   concrete and testable and supplies no method for deciding that. The filed form of
   the spec-adequacy absence below, which has since been attempted and withdrawn
 - **G-0585** — shipped skills grant a verdict on the basis of reading; the appendix
   listing the sites is itself a reading rather than a census
-- **G-0587** — the collision it names is not live: one side is a specification D-0069
-  rejected, and a shipped agent card satisfies both today. A real rule-vs-rule
-  collision exists elsewhere — `CLAUDE.md`'s doc-link carve-out against the
-  record-decision skill's ban on exactly that
-- **G-0551** — the coherence rules exist twice, verb-side and history-walking, and
-  nothing checks that the two agree
 - **G-0574** — finding identity concatenates the message and several rules interpolate
-  live state into it, so a verb self-refuses while making progress
+  live state into it, so a verb self-refuses while making progress. The root cause of
+  the refusals in G-0572 and G-0575
 - **G-0577** — `PolicyFSMInvariants` guards terminal preservation and acyclicity with
   one mechanism
 - **G-0400** — the stress catalog reaches under half the leaf verbs; the body's own
   Notes already correct the counts its headline carries
 - **G-0537** *(low)* — aiwf declares no contracts, so `verify` and `evolve` never run
   against this repo
-- **G-0328** — no byte-identity golden comparator for `check`
-- **G-0161** — `AntiRules()` has no negative coverage: nothing asserts the kernel does
-  *not* enforce each ANTI cell
-- **G-0605** — the Go-source checks match syntax where the rules are written about
-  meaning; some parse a tree, some scan raw bytes, and neither resolves a type.
-  Analysis in `docs/explorations/10-type-aware-static-analysis.md`
 - **The branch-coverage audit is agent-performed** — `wf-tdd-cycle` is explicit
   that no tool enforces it, so the agent that wrote the code certifies its own
-  coverage. Independence, not depth; orthogonal to G-0253. *(unfiled)*
+  coverage. Independence, not depth *(unfiled)*
 - **Wiring `make mutate-diff` into the AC's green→done** is the compensating
-  control for the two above — an independent verdict at the moment an AC is
+  control for the one above — an independent verdict at the moment an AC is
   claimed done. Unblocked; the target already exists *(unfiled)*
 - **Spec adequacy has no oracle** — nothing decides whether an AC states an
   observable condition. Attempted once: `wf-measure-spec` shipped 2026-08-14 and was
@@ -310,28 +240,20 @@ in is any good. Vocabulary in `docs/design/oracles.md`; initiative context in
 
 ### 4. Cheap fixes, batchable now
 
-Small and design-free down to the rule, which is where the two that pose a decision
-begin.
+Small and design-free down to the rule.
 
 - **G-0696** — three AC progress rollups count a `deferred` AC in scope forever — the
   rollup half of what G-0464 fixed for the check predicates
 - **G-0502** — an *uninitialized* submodule under a moved directory is stranded; a
   checked-out one refuses at exit 3 instead
-- **G-0513** — the archive sweep reports "converged" when a candidate won't parse
-- **G-0711** — `BlobReader` reports a missing path containing whitespace as a parse
-  error rather than `ErrBlobMissing`
 - **G-0477** *(low)* — a boundary guard that can never be false, under a comment
   describing the rejection the guard above it already performs
 - **G-0497** *(low)* — the sites the `test-executable-write` detector reports
   whole-tree, across 13 packages, remain outside `WriteExecutable`. Most of
   `internal/initrepo`'s share runs `sh <path>` rather than `execve`, so that part is
   uniformity debt rather than race exposure
-
-Decisions, not sweeps:
-
-- **G-0493** — `edit-body`'s two modes judge frontmatter divergence by different
-  rules. Three mutually-exclusive resolution routes; the `Apply` guard already
-  answers the same question field-based for both modes
+- **G-0762** *(low)* — the HTML render code still fills an all-set page it no longer
+  writes, and every index page is headed "All …" above an Active/All toggle
 
 ### 5. Write scope — what a verb may commit *(spec first)*
 
@@ -348,12 +270,10 @@ trailers.
 - **G-0442** — `addressed_by` / `superseded_by` can be backfilled and force-re-pointed
   but never *cleared*
 - **G-0756** — a forced re-point of `superseded_by` leaves a stale reciprocal that
-  `adr-supersession-mutual` structurally cannot see
+  `adr-supersession-mutual` structurally cannot see. G-0757 is the same function's doc
 - **G-0486** — a directory move drops the exec bit, and `rename-area` drops it on
   `aiwf.yaml` with no move at all and no permanent-`M` signal. The symlink half now
   refuses at exit 2
-- **G-0506** — the AC phase promote refuses from working-copy bytes HEAD contradicts
-- **G-0512** — a directory sitting at a move's destination is invisible to the decline
 - **G-0572** *(high)* — two verbs, each legal where it ran, compose across a branch
   boundary into an AC state the kernel reports at error severity whose only
   criterion-preserving repair is sovereign. Sits with G-0121's composition axis
@@ -362,19 +282,7 @@ trailers.
   through the provenance-decoration layer
 - **G-0575** — a clean merge of two legal branches closes a milestone while adding
   criteria to it
-- **G-0546** *(low)* — a verb's trailer set is incomplete when the verb returns; the
-  CLI layer completes it afterwards
 - **G-0498** *(low)* — verb commits write blobs directly, so git's clean filter never runs
-- **G-0527** *(low)* — worktree creation is a verb and teardown is plain git. Not
-  silent — `aiwf worktree remove` exits 2, `aiwf status` prints the hint, two rituals
-  ship the pair — so what is left is a one-sentence doc ask
-- **G-0398** — `add milestone` has no precondition against a terminal parent epic, so
-  it refuses accidentally rather than purposefully
-- **G-0249** *(low)* — no reciprocal guard for a milestone `in_progress` under a
-  non-active epic
-- **G-0434** — `resolveViaPriorIDs` prefers a stale `prior_ids` match over a reused live id
-- **G-0212** — the systematic data-loss audit across verb composition; the scope
-  crosses the entity surface rather than sitting under one verb
 - **G-0739** — `retitle`, `rename` and `add ac` rewrite every same-numbered
   `### AC-N` heading in the body, so a per-criterion `## Validation` subsection changes
   silently
@@ -404,17 +312,20 @@ silently goes stale, or it cannot be enforced at all.
   no `aiwf check` at all. Every other locally-firing gate has a second position on
   push. **Unblocked** — G-0556 landed, so a CI-shaped clone reports clean; the body
   still says otherwise. What remains is picking a job, giving it a non-shallow
-  checkout, and deciding whether it runs on planning-only pushes
-- **G-0504** *(high)* — `doctor` byte-checks verb skills only; ritual and guidance drift read as healthy
+  checkout, and deciding whether it runs on planning-only pushes. Size it with
+  G-0679 and G-0731: such a job judges what G-0679 leaves unjudged, and meets G-0731
+  under a shallow checkout
+- **G-0754** *(high)* — worktrees made by `aiwf worktree add` sit under
+  `.claude/worktrees` with no managed ignore pattern, so `git add -A` commits a broken
+  gitlink in a consumer repo
+- **G-0743** *(high)* — in a linked worktree the repo lock lands in the project tree,
+  where no ignore rule covers it, so `git worktree remove` refuses and `git add -A`
+  stages it
+- **G-0761** *(high)* — the hook installers overwrite a user hook that merely mentions
+  an aiwf marker, with no copy kept
 - **G-0370** *(high)* — ADR-0028 decided the always-on fragment should name
   dispatch triggers for all four role agents. The decision landed; the content
   never did, so the one surface in context every turn stays silent on it
-- **G-0526** — source-discipline rules ship as prose with no rule or envelope of
-  aiwf's own to enforce them. A seam does exist: the materialized hooks chain to a
-  consumer's `<hook>.local`, which is what this repo's own instance rides
-- **G-0514** — `skill-body-id` would tell a CLI metavariable or a non-id acronym to
-  become a placeholder. Latent: the M-0288 sweep emptied the population, so nothing
-  is being misdirected today
 - **G-0530** — the milestone template carries four sections that largely duplicate
   structured data. Nothing in the kernel mandates them — `RequiredSections` is Goal
   and Acceptance criteria — so this is template sprawl, and its `growth.md` half is
@@ -424,13 +335,8 @@ silently goes stale, or it cannot be enforced at all.
   success. E-0099 cancelled a tagged-release guard, since no recorded incident was
   between two tags; inside this repo the pre-verb stale warning now fires, a consumer
   sees nothing
-- **G-0588** — `import` ships as a live verb with no consumer and its spec archived
 - **G-0586** — the handoff block carries settled conclusions and has no slot for an
   open question
-- **G-0594** — two authoring rules shipped and the next spec written breached both.
-  Recorded as a measurement; the remedy it invites is sharpening the wording again,
-  which is what failed. Nine of its ten attributions hold; the tenth fails in the
-  class it exists to record
 - **G-0538** — aiwf-internal ids reach a consumer through Go string literals in
   operator-facing output; the persisted-artifact half is already fixed, so only the
   printed surface still leaks
@@ -448,46 +354,31 @@ silently goes stale, or it cannot be enforced at all.
   holds it
 - **G-0698** — `aiwfx-plan-epic` and `aiwfx-plan-milestones` still route planning
   through a ritual branch and merge, contrary to D-0073
-- **G-0709** — `init`, `update` and `add --body-file -` wait on stdin for a person
-  while holding the repo lock; G-0708 fixed only the unattended-update case
 - **G-0727** — `doctor --self-check` runs `init` and `update` without `--no-prompt`, so
-  at a terminal it waits on a question it never shows and `make ci` hangs. G-0709's
-  root
+  at a terminal it waits on a question it never shows and `make ci` hangs
 - **G-0738** — in Go tasks Claude reads `go-conventions.md` and rarely the Go pack, so
   a rule only the pack states goes unread. Measures E-0092's routing here
-- **G-0737** — the builder's Sonnet tier has no observation under the reduced guidance
 - **G-0724** — aiwf's managed `.gitignore` block omits `.claude/health.aiwf.json`, which
-  aiwf writes
+  aiwf writes. Same fix site as G-0743 and G-0754: the managed ignore patterns
 - **G-0723** — `wf-trim` step 2 leaves step 6 unstated for a change with neither logic
   nor tests
-- **G-0714 / G-0718 / G-0721** — guidance recovery advice that names no fix, a rerun
-  that cannot finish, or permissions for a non-permission fault. Each reproduced only
-  by injecting the fault; left until one is met in use
+- **G-0714** — guidance recovery advice names no fix for a corrupt ownership record.
+  Reproduced only by injecting the fault; left until one is met in use
 
 
 ### 8. Error contract *(parallel any time)*
 
-Everything a machine caller reads when a verb refuses. One surface, and one fork to
-settle before most of it: G-0483 and G-0561 propose opposite moves on the same
-exit-2/exit-3 boundary, which D-0044 already ratified a three-class contract for.
+Everything a machine caller reads when a verb refuses. G-0483's exit-2/exit-3
+boundary is the one D-0044 already ratified a three-class contract for.
 
 - **G-0483** — uncoded verb errors exit 2, the usage bucket *(absorbed G-0494's
   prose-flattened refusal and split exit code)*
-- **G-0561** — the install verbs report an operator's permission fault as an
-  internal error, so the exit code sends the reader after a bug in aiwf
-- **G-0456** — prelude resolution errors ignore `--format=json`
-- **G-0234** — typed `Coded` coverage, allowed sets inline, remediation sentences
-- **G-0169** — three subverbs have no JSON envelope: `contract recipes`,
-  `contract recipe show`, `render roadmap`. `import` ships one
-- **G-0070** — `doctor` has no `--format=json`
 - **G-0568** — `status` rows omit `subcode`, so they cannot be matched against the
   findings envelope. Carry it when someone next touches the struct; the body declines
   severity outright and says to close this if no comparator materialises
-- **G-0649** — a sovereign-act refusal carries no finding code, so the spec cannot
-  bind it
 - **G-0687** — `acknowledge illegal --for-entity` refuses a merge commit
-- **G-0704** *(medium)* — `aiwf check` refuses a non-UTF-8 or multi-document
-  `aiwf.yaml` and reports it as an editing failure
+- **G-0759** — verb-time `body-prose-id` findings give a body line number against the
+  file's path
 
 
 ### 9. Duplication and the instrument that measures it *(any order)*
@@ -502,9 +393,9 @@ inventory question is the one that stands on its own.
 - **G-0472** — four near-identical function families; only one worth collapsing
 - **G-0508** — eight policies carry the `internal/verb` AST scan and drift apart; the
   gap's title says three and its body four, so fixing it needs an `aiwf retitle` too
-- **G-0453 / G-0454 / G-0455** *(low)* — the remainder, each needing a design or
-  decision pass before extracting. G-0454's body prescribes rather than asks, and
-  the prescription is measurably not behaviour-preserving
+- **G-0454** *(low)* — the id-shape parser's prefix strip is still written three times;
+  G-0633 closed the one disagreement between them. The body prescribes rather than
+  asks, and the prescription is measurably not behaviour-preserving
 - **G-0604** — five sites walk entities and stubs together, but only one resolves
   ids; the shared walk the body describes does not exist, and extracting to its
   description would widen four rules, one of which blocks pushes
@@ -512,10 +403,6 @@ inventory question is the one that stands on its own.
 - **G-0448** — the check rule list is split across four dispatch surfaces, and the
   split is a declared layering boundary rather than an accident. What is missing is a
   wiring chokepoint; `Where to fix` omits the surface carrying seven rules
-- **G-0656** — no rule records whether it keys to the kernel's scaffold set or the
-  template's
-- **G-0659** — a review finding is recorded twice, and the spec copy is the one that
-  drifts
 - **G-0672** — two policies duplicate the git range scan over a commit range
 
 
@@ -541,27 +428,17 @@ only in someone's head.
   area-atom, so cross-cutting work splits into peer epics that cannot even be wired,
   since epics carry no `depends_on`. `docs/initiatives/` is the in-tree workaround.
   The body's sibling-project evidence is external and unverifiable from here
-- **G-0111** *(high)* — the wrap side of the epic ritual: scope-end bundled into
-  `promote done` and no human-only rule on `done`, both measured. The closure
-  mechanism shipped in 2026-07 as G-0431, so only the declarative `closes:` field is
-  absent — and only that part is a vocabulary gap. Recommends its own epic
 - **G-0246** — the ADR relation schema expresses only supersession, and only ADR→ADR
-- **G-0569** — the AC `tdd_phase` FSM is linear and terminal, with no vocabulary for a
-  second cycle after rework
 - **G-0396** *(low)* — `addressed_by_commit` denormalizes a fact git owns, and the copy
   is rewrite-fragile: a merge preserves the SHA, a rebase orphans it. A
   single-source-of-truth issue rather than a vocabulary absence
 
 ### 11. Doc drift *(whenever)*
 
-Mostly citations that no longer resolve — cheap and isolated. Three members are
-not that: G-0439 is a behavioural mover gap with an ADR collision, and G-0519 and
-G-0548 are missing chokepoints rather than stale text.
+Mostly citations that no longer resolve — cheap and isolated. Two members are not
+that: G-0519 and G-0548 are missing chokepoints rather than stale text.
 
-- **G-0412** — coverage-ignore rationale text is inaccurate across several files
 - **G-0414** — stale test naming in a real-binary test
-- **G-0439** — relocation and archive sweeps skip references outside their own scope.
-  Its leading resolution is what ADR-0033 declines
 - **G-0444** — comments and test messages name history-verb code that no longer
   exists: `readHistory`, `runHistory`, `readHistoryChain`, `admin_cmd.go`
 - **G-0517** — narrow ids remain in the design docs, overview and architecture — but
@@ -585,8 +462,6 @@ G-0548 are missing chokepoints rather than stale text.
   G-0110 now records as false
 - **G-0717** — the same initiative credits `oracles.md` with *depth*, *reach* and
   *specificity*, which that file has never defined
-- **G-0735** — comments, a test message and an ADR cite `CLAUDE.md` rules by names it
-  does not carry
 
 
 ### 12. Development environment — the machine the gates run on
@@ -608,10 +483,29 @@ review cycles, and a green run on a nearly-full disk is not evidence either way.
   Same thesis as G-0555: unbounded growth with no reclaim path
 - **G-0372** — the history-dependent check rules walk all reachable history from
   scratch on every push
-- **G-0645** — shared test-binary temp dirs are never removed, leaking ~23G to /tmp
-- **G-0654** — `make build` emits a `bin/aiwf` that gets reached for instead of the
-  release. E-0099 reverted renaming it: `doctor --self-check` needs the name `aiwf`
 - **G-0730** — `aiwf check` runs a whole-repository `git fsck` once per hinted history
   finding. Same family as G-0372
-- **G-0725** — `make install-hooks` reports success when it cannot create the links
+- **G-0763 / G-0764** — the `flake-hunt` workflow runs the suite without `aiwf` on
+  PATH, and a run on any branch but `main` lacks `origin/main`; both fail packages for
+  setup reasons rather than flakiness. One workflow file
 
+
+### 13. Id collisions and their repair *(after ADR-0001)*
+
+Two clones can mint the same id. Around a collision, the detectors and the repair
+path misplace references, history or the entity itself, and most of it passes every
+check. ADR-0001, still proposed, would mint ids at trunk integration and shrink the
+whole class; until it is decided, each member stands on its own.
+
+- **G-0745** *(high)* — when `aiwf reallocate` runs on a tree holding both colliding
+  entities, it rewrites every reference to the old id, so the winner's referrers end
+  up pointing at the renumbered loser; every check passes
+- **G-0747** *(high)* — two same-id entities at the same path merge into one file with
+  no finding
+- **G-0746** — once a duplicate id is on the trunk, renumbering one copy is refused at
+  pre-push, the hint's own repair included
+- **G-0748** — after a collision is reallocated, `aiwf history` lists the other
+  entity's commits
+- **G-0753** — `aiwf reallocate` does not rewrite a contract's `linked_adrs`
+- **G-0434** — `resolveViaPriorIDs` prefers a stale `prior_ids` match over a reused
+  live id; G-0748's reader-side twin
