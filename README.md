@@ -131,6 +131,13 @@ aiwf upgrade
 
 This runs `go install <pkg>@latest` and re-execs the new binary into `aiwf update` against the current consumer repo, refreshing every marker-managed artifact (skills, `.gitignore` entries, pre-push hook, pre-commit hook) in one shot. Add `--version vX.Y.Z` to pin a specific release; `--check` reports the current/target comparison without installing.
 
+`aiwf upgrade` keeps no copy of the binary it replaces. To go back to an earlier release while the installed binary still runs, use `aiwf upgrade --version vX.Y.Z`: it installs that release and refreshes the repo like any upgrade. If the binary is too broken to run, reinstall the earlier release directly and refresh each consumer repo with it:
+
+```bash
+go install github.com/23min/aiwf/cmd/aiwf@vX.Y.Z
+aiwf update   # in each consumer repo
+```
+
 ### Upgrading from a pre-`v0.1.0` install
 
 The `aiwf upgrade` verb shipped in `v0.1.0`. If your installed binary predates that — installed via `go install …@poc/aiwf-v3` or pinned to a pre-release SHA — you don't have `aiwf upgrade` yet. One-time bootstrap:
