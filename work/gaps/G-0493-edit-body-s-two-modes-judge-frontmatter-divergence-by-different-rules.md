@@ -1,7 +1,7 @@
 ---
 id: G-0493
 title: edit-body's two modes judge frontmatter divergence by different rules
-status: open
+status: wontfix
 priority: medium
 discovered_in: M-0283
 ---
