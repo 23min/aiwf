@@ -1,6 +1,7 @@
 # Transactions and planning commits: collaborative planning with quiet history
 
 > **Status:** thesis-draft
+> **Followed by:** [Fewer planning commits](fewer-planning-commits.md), which measures this document's fold (§4.2) against batching and amending, and recommends amending the operator's unpushed verb commit instead; [ADR-0058](../adr/ADR-0058-amend-the-unpushed-verb-commit-instead-of-adding-one.md) carries that decision. It does not revisit the id allocation of §6.
 > **Date:** 2026-10-28
 > **Question:** How can people and AI agents plan and execute in parallel, on Git hosts whose settings aiwf does not control, while ordinary branch history stays readable and a visitor to the default branch still sees the plan?
 > **Working answer:** Treat each bounded piece of work as a *transaction* on one branch. Its planning verbs commit there as they do today; submitting the transaction folds them into one planning commit at the tip, carrying a record of every operation; the host's merge commits it. Ids need a serialization point only where several clones integrate through merge requests, so the allocation strategy is a project setting: today's allocator by default, or a ledger branch, each the design modelling and measurement support for its case. Everything beyond a small core is opt-in.
