@@ -1,7 +1,7 @@
 ---
 id: G-0166
 title: Data-field mutation refusals lack workflow-spec coverage
-status: open
+status: wontfix
 priority: low
 discovered_in: M-0125
 ---
