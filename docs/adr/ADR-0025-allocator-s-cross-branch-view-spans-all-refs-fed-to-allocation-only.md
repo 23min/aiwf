@@ -47,9 +47,14 @@ this decision, not rejected.
 - The dominant collision classes (local worktrees, a stale trunk view, pushed feature
   branches) are caught at allocation rather than at push — far fewer `aiwf reallocate`
   repairs in solo + agent and small-team work.
-- An id is now "taken" the moment it is pushed *anywhere*, not only when it lands on
-  trunk. An id consumed by a remote branch that is later abandoned is burned permanently.
-  Accepted: ids are cheap and monotonic.
+- An id is now "taken" while the allocating clone's working tree or any ref it holds
+  carries it — trunk, a local branch or a remote-tracking ref — not only once it lands
+  on trunk. An id on an abandoned branch stays taken while such a ref remains. Once the
+  branch is deleted and the clone prunes its remote-tracking ref, the id is skipped only
+  if a higher id of its kind is still visible; if it was the highest, the next
+  `aiwf add` hands it out again (G-0749). Accepted: the planning tree stays consistent,
+  and only citations of the abandoned entity made outside it — in a merge request, a
+  ticket, a conversation — then name the new one.
 - The scan costs O(local + remote branches) `git ls-tree` invocations per `aiwf add`.
   Trivial at the solo / handful-of-branches scale this targets; it grows linearly, so a
   repo carrying hundreds of stale branches would pay for them on every allocation.
