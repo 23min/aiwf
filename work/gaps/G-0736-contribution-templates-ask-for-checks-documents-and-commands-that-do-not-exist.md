@@ -1,7 +1,7 @@
 ---
 id: G-0736
 title: Contribution templates ask for checks, documents and commands that do not exist
-status: open
+status: wontfix
 priority: low
 discovered_in: M-0335
 ---
