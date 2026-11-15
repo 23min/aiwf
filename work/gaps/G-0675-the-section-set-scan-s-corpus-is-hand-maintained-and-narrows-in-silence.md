@@ -1,7 +1,7 @@
 ---
 id: G-0675
 title: The section-set scan's corpus is hand-maintained and narrows in silence
-status: open
+status: wontfix
 priority: low
 discovered_in: M-0332
 ---
