@@ -1,7 +1,7 @@
 ---
 id: G-0225
 title: Legacy scopes lack aiwf-branch-sha trailer; rename triggers false positive
-status: open
+status: wontfix
 prior_ids:
     - G-0221
     - G-0223
