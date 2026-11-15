@@ -7,7 +7,7 @@ discovered_in: M-0359
 ---
 ## What's missing
 
-The `install-hooks` target in `Makefile` (lines 326-333) runs its `mkdir -p` and two `ln -sfn`
+The `install-hooks` target in `Makefile` runs its `mkdir -p` and two `ln -sfn`
 commands as one `;`-joined shell line without `set -e`, so a failed step does not stop the
 recipe: it prints its "Symlinked ..." lines and exits 0 whether or not the links were made.
 
@@ -47,10 +47,14 @@ make install-hooks exit: 0
 
 ## Why it matters
 
-Commits and pushes skip the kernel's pre-commit and pre-push checks without a sign. aiwf's own
-hooks run the `.local` hook only when the file exists (`chainPrelude` in
-`internal/initrepo/initrepo.go`, `if [ -e "$local_hook" ]`), so with the links absent every
-commit and push passes over the kernel chain silently, while the target has reported "Symlinked".
+Commits and pushes skip this repository's own hook checks without a sign:
+`scripts/git-hooks/pre-commit` runs the policy suite when a commit stages Go, module, build,
+workflow or hook files or anything under `internal/skills/`, and `scripts/git-hooks/pre-push`
+runs golangci-lint, gitleaks and the comment-history scan. aiwf's own hooks run the `.local`
+hook only when the file exists (`chainPrelude` in `internal/initrepo/initrepo.go`,
+`if [ -e "$local_hook" ]`), so with the links absent every commit and push passes over those
+checks silently, while the target has reported "Symlinked". aiwf's own checks still run after
+the chain: `aiwf check --shape-only` at commit and `aiwf check` at push.
 
 A caller that checks the exit status cannot tell either. `.devcontainer/project/post-create.sh`
 runs the target under `set -euo pipefail`, so a container is created with the chain missing.
