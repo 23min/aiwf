@@ -1,7 +1,7 @@
 ---
 id: G-0526
 title: aiwf ships source-discipline rules as prose with no seam to enforce them
-status: open
+status: wontfix
 priority: medium
 ---
 ## What's missing
