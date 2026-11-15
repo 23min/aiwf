@@ -1,7 +1,7 @@
 ---
 id: G-0561
 title: The install verbs report an operator's permission fault as an internal error
-status: open
+status: wontfix
 priority: medium
 ---
 ## What's missing
