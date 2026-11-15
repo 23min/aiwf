@@ -16,7 +16,7 @@ until its epic wraps, so asking earlier would need an in-flight-epic exemption."
 The same placement governs an entry that existed and was *deleted*, which that
 reasoning does not cover. Committed to trunk, such a deletion passes every
 automated check that runs before the tag. Before the tag it is caught only by
-running `make changelog-audit` by hand, which `CLAUDE.md` § "Release process"
+running `make changelog-audit` by hand, which `.guidance/project/release.md`
 asks for and the `aiwfx-release` ritual does not name:
 
 ```
@@ -60,8 +60,8 @@ Every automated gate before the tag runs the test suite without
 `AIWF_CHANGELOG_BASE`, so the audit skips as above:
 
 ```
-$ grep -n '^ci:' Makefile
-291:ci: vet lint test-cov coverage-gate-only selfcheck
+$ grep '^ci:' Makefile
+ci: vet lint test-cov coverage-gate-only selfcheck
 $ grep -rln 'AIWF_CHANGELOG_BASE' .github/workflows/; echo "exit=$?"
 exit=1
 $ grep -rln 'make changelog-audit' .github/workflows/
