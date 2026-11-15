@@ -57,8 +57,7 @@ by this decision, it remains the referenceable record it said it would be.
   over newer ones, which is what G-0600 records as a defect. Its fix must keep a
   deliberate way to do that, such as the override G-0600 already names, and the
   README paragraph names that way when the fix ships.
-- `TestM0270_AC6_GapTracksUpgradeRollbackAbsence` pins G-0430 as `open`. It changes
-  in the same patch as the README so that it accepts G-0430 either `open` or
+- `TestM0270_AC6_GapTracksUpgradeRollbackAbsence` accepts G-0430 either `open` or
   `addressed` with an accepted decision in `addressed_by`, keeping its guard
   against the gap closing without one.
 - A user-level statusline installed by a newer release is not downgraded by the
