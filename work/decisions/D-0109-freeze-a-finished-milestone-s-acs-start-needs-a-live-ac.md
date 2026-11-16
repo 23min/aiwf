@@ -1,7 +1,7 @@
 ---
 id: D-0109
 title: Freeze a finished milestone's ACs; start needs a live AC
-status: proposed
+status: accepted
 relates_to:
     - D-0039
     - D-0004
