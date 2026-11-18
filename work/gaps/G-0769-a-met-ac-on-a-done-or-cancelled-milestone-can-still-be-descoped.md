@@ -13,11 +13,10 @@ error. The same moves are stated without the parent's status in the spec table's
 `internal/workflows/spec/rules.go`, the comment on `acTransitions` in
 `internal/entity/transition.go`, and design-decisions.md ("if scope changes after the fact").
 
-Measured on Linux 7.0.14 in the devcontainer, with the installed `aiwf` built from main at
-417f992f7 (no Go change since, up to 2de605437), in a scratch repository: E-0001 `active`,
-M-0001 `draft` with `tdd: none` and AC-1 `open`, on the epic branch. Every entity id in this
-section is the scratch repository's own; in this tree those ids name unrelated archived
-entities.
+Measured on Linux 7.0.14 in the devcontainer, with `aiwf` built from a `git archive` of main at
+bd818e14d, in a scratch repository: E-0001 `active`, M-0001 `draft` with `tdd: none` and AC-1
+`open`, on the epic branch. E-0001 and M-0001 here are the scratch repository's own; in this
+tree those ids name unrelated archived entities.
 
 ```
 $ aiwf promote M-0001 in_progress
