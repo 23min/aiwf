@@ -1,7 +1,7 @@
 ---
 id: D-0110
 title: Defer or cancel an AC only with a reason; no forced done
-status: proposed
+status: accepted
 relates_to:
     - D-0109
 ---
