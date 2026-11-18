@@ -14,11 +14,10 @@ stays there, so a milestone whose every AC is deferred or cancelled passes:
 - the draft-stage `zero-acs` warning and `milestone-done-zero-acs` in `internal/check/acs.go`
   test `len(e.ACs)` the same way, so neither fires.
 
-Measured on Linux 7.0.14 in the devcontainer, with the installed `aiwf` built from main at
-417f992f7 (no Go change since, up to 2de605437), in a scratch repository: E-0001 `active`,
-M-0001 `draft` with `tdd: none` and AC-1 `open`, on the epic branch. Every entity id in this
-section is the scratch repository's own; in this tree those ids name unrelated archived
-entities.
+Measured on Linux 7.0.14 in the devcontainer, with `aiwf` built from a `git archive` of main at
+bd818e14d, in a scratch repository: E-0001 `active`, M-0001 `draft` with `tdd: none` and AC-1
+`open`, on the epic branch. E-0001, M-0001 and M-0002 here are the scratch repository's own; in
+this tree those ids name unrelated archived entities.
 
 ```
 $ aiwf cancel M-0001/AC-1
@@ -38,10 +37,12 @@ $ aiwf check | grep -c zero-acs
 ```
 
 On a fresh copy, `aiwf promote M-0001/AC-1 deferred` (`open -> deferred`, exit 0) followed by
-`aiwf promote M-0001 in_progress` printed `aiwf promote M-0001 draft -> in_progress`, exit 0. For
-comparison, a milestone with no AC at all, started with `--force` and promoted to `done`, makes
-`aiwf check` print `milestone-done-zero-acs (warning) × 1 — milestone M-0002 is done with zero
-acceptance criteria`.
+`aiwf promote M-0001 in_progress` printed `aiwf promote M-0001 draft -> in_progress`, exit 0. On
+another, `aiwf cancel M-0001/AC-1` alone, with the milestone still `draft`, left
+`aiwf check | grep -c milestone-draft-incomplete-acs` at `0`. For comparison, a milestone with
+no AC at all, started with `--force` and promoted to `done`, makes `aiwf check` print
+`milestone-done-zero-acs (warning) × 1 — milestone M-0002 is done with zero acceptance
+criteria`.
 
 ## Why it matters
 
