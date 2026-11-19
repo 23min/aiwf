@@ -1,0 +1,189 @@
+# One milestone (tdd: none) and its one acceptance criterion, M-0001/AC-1, as
+# spec/milestone/chapter.md states it. Built from readings/reading-a.yaml and the answers in
+# answers.md (Q1 to Q4). Ratified by the reviewed merge of this file.
+machine: milestone
+section: chapter.md
+states:
+  draft_open:            {kind: policy}
+  draft_met:             {kind: policy}
+  draft_deferred:        {kind: policy}
+  draft_cancelled:       {kind: policy}
+  in_progress_open:      {kind: policy}
+  in_progress_met:       {kind: policy}
+  in_progress_deferred:  {kind: policy}
+  in_progress_cancelled: {kind: policy}
+  done_met:              {kind: fact}
+  done_deferred:         {kind: fact}
+  done_cancelled:        {kind: fact}
+  cancelled_met:         {kind: fact}
+  cancelled_deferred:    {kind: fact}
+  cancelled_cancelled:   {kind: fact}
+initial: draft_open
+events: [start, finish, back, cancel, meet, defer, drop, reopen, check]
+outputs: [commit]
+rules:
+  # draft_open
+  - {from: draft_open, event: start,  to: in_progress_open, outputs: [commit]}
+  - {from: draft_open, event: finish, reject: true}
+  - {from: draft_open, event: back,   stay: true, outputs: []}
+  - {from: draft_open, event: cancel, reject: true}
+  - {from: draft_open, event: meet,   to: draft_met, outputs: [commit]}
+  - {from: draft_open, event: defer,  to: draft_deferred, outputs: [commit]}
+  - {from: draft_open, event: drop,   to: draft_cancelled, outputs: [commit]}
+  - {from: draft_open, event: reopen, stay: true, outputs: []}
+  - {from: draft_open, event: check,  stay: true, outputs: []}
+
+  # draft_met
+  - {from: draft_met, event: start,  to: in_progress_met, outputs: [commit]}
+  - {from: draft_met, event: finish, reject: true}
+  - {from: draft_met, event: back,   stay: true, outputs: []}
+  - {from: draft_met, event: cancel, to: cancelled_met, outputs: [commit]}
+  - {from: draft_met, event: meet,   stay: true, outputs: []}
+  - {from: draft_met, event: defer,  to: draft_deferred, outputs: [commit]}
+  - {from: draft_met, event: drop,   to: draft_cancelled, outputs: [commit]}
+  - {from: draft_met, event: reopen, reject: true}
+  - {from: draft_met, event: check,  stay: true, outputs: []}
+
+  # draft_deferred
+  - {from: draft_deferred, event: start,  reject: true}
+  - {from: draft_deferred, event: finish, reject: true}
+  - {from: draft_deferred, event: back,   stay: true, outputs: []}
+  - {from: draft_deferred, event: cancel, to: cancelled_deferred, outputs: [commit]}
+  - {from: draft_deferred, event: meet,   reject: true}
+  - {from: draft_deferred, event: defer,  stay: true, outputs: []}
+  - {from: draft_deferred, event: drop,   stay: true, outputs: []}
+  - {from: draft_deferred, event: reopen, reject: true}
+  - {from: draft_deferred, event: check,  stay: true, outputs: []}
+
+  # draft_cancelled
+  - {from: draft_cancelled, event: start,  reject: true}
+  - {from: draft_cancelled, event: finish, reject: true}
+  - {from: draft_cancelled, event: back,   stay: true, outputs: []}
+  - {from: draft_cancelled, event: cancel, to: cancelled_cancelled, outputs: [commit]}
+  - {from: draft_cancelled, event: meet,   reject: true}
+  - {from: draft_cancelled, event: defer,  reject: true}
+  - {from: draft_cancelled, event: drop,   stay: true, outputs: []}
+  - {from: draft_cancelled, event: reopen, reject: true}
+  - {from: draft_cancelled, event: check,  stay: true, outputs: []}
+
+  # in_progress_open
+  - {from: in_progress_open, event: start,  stay: true, outputs: []}
+  - {from: in_progress_open, event: finish, reject: true}
+  - {from: in_progress_open, event: back,   reject: true}
+  - {from: in_progress_open, event: cancel, reject: true}
+  - {from: in_progress_open, event: meet,   to: in_progress_met, outputs: [commit]}
+  - {from: in_progress_open, event: defer,  to: in_progress_deferred, outputs: [commit]}
+  - {from: in_progress_open, event: drop,   to: in_progress_cancelled, outputs: [commit]}
+  - {from: in_progress_open, event: reopen, stay: true, outputs: []}
+  - {from: in_progress_open, event: check,  stay: true, outputs: []}
+
+  # in_progress_met
+  - {from: in_progress_met, event: start,  stay: true, outputs: []}
+  - {from: in_progress_met, event: finish, to: done_met, outputs: [commit]}
+  - {from: in_progress_met, event: back,   reject: true}
+  - {from: in_progress_met, event: cancel, to: cancelled_met, outputs: [commit]}
+  - {from: in_progress_met, event: meet,   stay: true, outputs: []}
+  - {from: in_progress_met, event: defer,  to: in_progress_deferred, outputs: [commit]}
+  - {from: in_progress_met, event: drop,   to: in_progress_cancelled, outputs: [commit]}
+  - {from: in_progress_met, event: reopen, reject: true}
+  - {from: in_progress_met, event: check,  stay: true, outputs: []}
+
+  # in_progress_deferred
+  - {from: in_progress_deferred, event: start,  stay: true, outputs: []}
+  - {from: in_progress_deferred, event: finish, to: done_deferred, outputs: [commit]}
+  - {from: in_progress_deferred, event: back,   reject: true}
+  - {from: in_progress_deferred, event: cancel, to: cancelled_deferred, outputs: [commit]}
+  - {from: in_progress_deferred, event: meet,   reject: true}
+  - {from: in_progress_deferred, event: defer,  stay: true, outputs: []}
+  - {from: in_progress_deferred, event: drop,   stay: true, outputs: []}
+  - {from: in_progress_deferred, event: reopen, reject: true}
+  - {from: in_progress_deferred, event: check,  stay: true, outputs: []}
+
+  # in_progress_cancelled
+  - {from: in_progress_cancelled, event: start,  stay: true, outputs: []}
+  - {from: in_progress_cancelled, event: finish, to: done_cancelled, outputs: [commit]}
+  - {from: in_progress_cancelled, event: back,   reject: true}
+  - {from: in_progress_cancelled, event: cancel, to: cancelled_cancelled, outputs: [commit]}
+  - {from: in_progress_cancelled, event: meet,   reject: true}
+  - {from: in_progress_cancelled, event: defer,  reject: true}
+  - {from: in_progress_cancelled, event: drop,   stay: true, outputs: []}
+  - {from: in_progress_cancelled, event: reopen, reject: true}
+  - {from: in_progress_cancelled, event: check,  stay: true, outputs: []}
+
+  # done_met: the AC is frozen (Q3); a same-status request converges (Q1)
+  - {from: done_met, event: start,  reject: true}
+  - {from: done_met, event: finish, stay: true, outputs: []}
+  - {from: done_met, event: back,   reject: true}
+  - {from: done_met, event: cancel, stay: true, outputs: []}
+  - {from: done_met, event: meet,   stay: true, outputs: []}
+  - {from: done_met, event: defer,  reject: true}
+  - {from: done_met, event: drop,   reject: true}
+  - {from: done_met, event: reopen, reject: true}
+  - {from: done_met, event: check,  stay: true, outputs: []}
+
+  # done_deferred
+  - {from: done_deferred, event: start,  reject: true}
+  - {from: done_deferred, event: finish, stay: true, outputs: []}
+  - {from: done_deferred, event: back,   reject: true}
+  - {from: done_deferred, event: cancel, stay: true, outputs: []}
+  - {from: done_deferred, event: meet,   reject: true}
+  - {from: done_deferred, event: defer,  stay: true, outputs: []}
+  - {from: done_deferred, event: drop,   stay: true, outputs: []}
+  - {from: done_deferred, event: reopen, reject: true}
+  - {from: done_deferred, event: check,  stay: true, outputs: []}
+
+  # done_cancelled
+  - {from: done_cancelled, event: start,  reject: true}
+  - {from: done_cancelled, event: finish, stay: true, outputs: []}
+  - {from: done_cancelled, event: back,   reject: true}
+  - {from: done_cancelled, event: cancel, stay: true, outputs: []}
+  - {from: done_cancelled, event: meet,   reject: true}
+  - {from: done_cancelled, event: defer,  reject: true}
+  - {from: done_cancelled, event: drop,   stay: true, outputs: []}
+  - {from: done_cancelled, event: reopen, reject: true}
+  - {from: done_cancelled, event: check,  stay: true, outputs: []}
+
+  # cancelled_met
+  - {from: cancelled_met, event: start,  reject: true}
+  - {from: cancelled_met, event: finish, reject: true}
+  - {from: cancelled_met, event: back,   reject: true}
+  - {from: cancelled_met, event: cancel, stay: true, outputs: []}
+  - {from: cancelled_met, event: meet,   stay: true, outputs: []}
+  - {from: cancelled_met, event: defer,  reject: true}
+  - {from: cancelled_met, event: drop,   reject: true}
+  - {from: cancelled_met, event: reopen, reject: true}
+  - {from: cancelled_met, event: check,  stay: true, outputs: []}
+
+  # cancelled_deferred
+  - {from: cancelled_deferred, event: start,  reject: true}
+  - {from: cancelled_deferred, event: finish, reject: true}
+  - {from: cancelled_deferred, event: back,   reject: true}
+  - {from: cancelled_deferred, event: cancel, stay: true, outputs: []}
+  - {from: cancelled_deferred, event: meet,   reject: true}
+  - {from: cancelled_deferred, event: defer,  stay: true, outputs: []}
+  - {from: cancelled_deferred, event: drop,   stay: true, outputs: []}
+  - {from: cancelled_deferred, event: reopen, reject: true}
+  - {from: cancelled_deferred, event: check,  stay: true, outputs: []}
+
+  # cancelled_cancelled
+  - {from: cancelled_cancelled, event: start,  reject: true}
+  - {from: cancelled_cancelled, event: finish, reject: true}
+  - {from: cancelled_cancelled, event: back,   reject: true}
+  - {from: cancelled_cancelled, event: cancel, stay: true, outputs: []}
+  - {from: cancelled_cancelled, event: meet,   reject: true}
+  - {from: cancelled_cancelled, event: defer,  reject: true}
+  - {from: cancelled_cancelled, event: drop,   stay: true, outputs: []}
+  - {from: cancelled_cancelled, event: reopen, reject: true}
+  - {from: cancelled_cancelled, event: check,  stay: true, outputs: []}
+examples:
+  - {name: S01 meet then finish, steps: ["start", "meet", "finish"], expect: done_met}
+  - {name: S02 finish with the AC open, steps: ["start", "finish"], expect: rejected}
+  - {name: S03 defer then finish, steps: ["start", "defer", "finish"], expect: done_deferred}
+  - {name: S04 cancel with the AC open, steps: ["cancel"], expect: rejected}
+  - {name: S05 drop then cancel, steps: ["start", "drop", "cancel"], expect: cancelled_cancelled}
+  - {name: S06 draft to done, steps: ["finish"], expect: rejected}
+  - {name: S07 no demotion, steps: ["start", "back"], expect: rejected}
+  - {name: S08 start twice, steps: ["start", "start"], expect: in_progress_open}
+  - {name: S09 cancel a done milestone, steps: ["start", "meet", "finish", "cancel"], expect: done_met}
+  - {name: S10 deferred is terminal, steps: ["start", "defer", "reopen"], expect: rejected}
+  - {name: S11 met does not reopen, steps: ["start", "meet", "reopen"], expect: rejected}

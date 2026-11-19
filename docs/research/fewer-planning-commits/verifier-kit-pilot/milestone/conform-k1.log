@@ -1,0 +1,9 @@
+error   diverges           draft_deferred/start: after defer() -> start(): spine expects rejected in draft_deferred, code gave ok / commit in in_progress_deferred
+error   diverges           draft_cancelled/start: after drop() -> start(): spine expects rejected in draft_cancelled, code gave ok / commit in in_progress_cancelled
+error   diverges           cancelled_met/defer: after meet() -> cancel() -> defer(): spine expects rejected in cancelled_met, code gave ok / commit in cancelled_deferred
+error   diverges           cancelled_met/drop: after meet() -> cancel() -> drop(): spine expects rejected in cancelled_met, code gave ok / commit in cancelled_cancelled
+error   diverges           done_met/defer: after start() -> meet() -> finish() -> defer(): spine expects rejected in done_met, code gave ok / commit in done_deferred
+error   diverges           done_met/drop: after start() -> meet() -> finish() -> drop(): spine expects rejected in done_met, code gave ok / commit in done_cancelled
+info    coverage           639 sequences, margin 1: 126 of 126 state/event/variable cases exercised
+-- 6 errors, 7 findings
+exit 1 seconds 213

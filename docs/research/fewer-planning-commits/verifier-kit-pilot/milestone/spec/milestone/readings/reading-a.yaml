@@ -1,0 +1,111 @@
+# Reading A of the milestone chapter, by claude-sonnet-5-5, 2026-11-16. Made from (git hash-object):
+# chapter.md a43a6fa48bfce5c832be8c44310e1d37cc60bc84, readings/prompt.md bcbfb148f4e4f22373f6fe903d371fa5dad4a766,
+# docs/reference/spine-format.md 195c96437c338f026e1570510471f2efdafc77f5. The reader was given the filled-in
+# prompt as one file to read. The reply below is unedited.
+machine: milestone
+states:
+  draft_open: {kind: policy}
+  draft_met: {kind: policy}
+  draft_deferred: {kind: policy}
+  draft_cancelled: {kind: policy}
+  in_progress_open: {kind: policy}
+  in_progress_met: {kind: policy}
+  in_progress_deferred: {kind: policy}
+  in_progress_cancelled: {kind: policy}
+  done_met: {kind: fact, terminal: true}
+  done_deferred: {kind: fact, terminal: true}
+  done_cancelled: {kind: fact, terminal: true}
+  cancelled_met: {kind: fact, terminal: true}
+  cancelled_deferred: {kind: fact, terminal: true}
+  cancelled_cancelled: {kind: fact, terminal: true}
+initial: draft_open
+events: [start, finish, back, cancel, meet, defer, drop, reopen, check]
+outputs: [commit]
+rules:
+  # draft_open
+  - {from: draft_open, event: start, to: in_progress_open, outputs: [commit]}
+  - {from: draft_open, event: finish, reject: true}
+  - {from: draft_open, event: back, stay: true, outputs: []}
+  - {from: draft_open, event: cancel, reject: true}
+  # undecided: whether meet is allowed on the AC while the milestone is draft
+  # undecided: whether defer is allowed on the AC while the milestone is draft
+  # undecided: whether drop is allowed on the AC while the milestone is draft
+  # undecided: whether reopen on an open AC is a no-op or refused (ADR-0036 for ACs), and whether the AC may move while the milestone is draft
+  - {from: draft_open, event: check, stay: true, outputs: []}
+
+  # draft_met
+  - {from: draft_met, event: start, to: in_progress_met, outputs: [commit]}
+  - {from: draft_met, event: finish, reject: true}
+  - {from: draft_met, event: back, stay: true, outputs: []}
+  - {from: draft_met, event: cancel, to: cancelled_met, outputs: [commit]}
+  # undecided: whether meet on a met AC is a no-op or refused (ADR-0036 for ACs), and whether the AC may move while the milestone is draft
+  # undecided: whether defer is allowed on the AC while the milestone is draft
+  # undecided: whether drop is allowed on the AC while the milestone is draft
+  - {from: draft_met, event: reopen, reject: true}
+  - {from: draft_met, event: check, stay: true, outputs: []}
+
+  # draft_deferred
+  # undecided: whether start is allowed when the only AC is deferred (does it count as having an AC under D-0039)
+  - {from: draft_deferred, event: finish, reject: true}
+  - {from: draft_deferred, event: back, stay: true, outputs: []}
+  - {from: draft_deferred, event: cancel, to: cancelled_deferred, outputs: [commit]}
+  - {from: draft_deferred, event: meet, reject: true}
+  # undecided: whether defer on a deferred AC is a no-op or refused (ADR-0036 for ACs), and whether the AC may move while the milestone is draft
+  # undecided: whether drop on a deferred AC is a no-op or refused (ADR-0036 for ACs), and whether the AC may move while the milestone is draft
+  - {from: draft_deferred, event: reopen, reject: true}
+  - {from: draft_deferred, event: check, stay: true, outputs: []}
+
+  # draft_cancelled
+  # undecided: whether start is allowed when the only AC is cancelled (does it count as having an AC under D-0039)
+  - {from: draft_cancelled, event: finish, reject: true}
+  - {from: draft_cancelled, event: back, stay: true, outputs: []}
+  - {from: draft_cancelled, event: cancel, to: cancelled_cancelled, outputs: [commit]}
+  - {from: draft_cancelled, event: meet, reject: true}
+  - {from: draft_cancelled, event: defer, reject: true}
+  # undecided: whether drop on a cancelled AC is a no-op or refused (ADR-0036 for ACs), and whether the AC may move while the milestone is draft
+  - {from: draft_cancelled, event: reopen, reject: true}
+  - {from: draft_cancelled, event: check, stay: true, outputs: []}
+
+  # in_progress_open
+  - {from: in_progress_open, event: start, stay: true, outputs: []}
+  - {from: in_progress_open, event: finish, reject: true}
+  - {from: in_progress_open, event: back, reject: true}
+  - {from: in_progress_open, event: cancel, reject: true}
+  - {from: in_progress_open, event: meet, to: in_progress_met, outputs: [commit]}
+  - {from: in_progress_open, event: defer, to: in_progress_deferred, outputs: [commit]}
+  - {from: in_progress_open, event: drop, to: in_progress_cancelled, outputs: [commit]}
+  # undecided: whether reopen on an open AC is a no-op or refused (ADR-0036 for ACs)
+  - {from: in_progress_open, event: check, stay: true, outputs: []}
+
+  # in_progress_met
+  - {from: in_progress_met, event: start, stay: true, outputs: []}
+  - {from: in_progress_met, event: finish, to: done_met, outputs: [commit]}
+  - {from: in_progress_met, event: back, reject: true}
+  - {from: in_progress_met, event: cancel, to: cancelled_met, outputs: [commit]}
+  # undecided: whether meet on a met AC is a no-op or refused (ADR-0036 for ACs)
+  - {from: in_progress_met, event: defer, to: in_progress_deferred, outputs: [commit]}
+  - {from: in_progress_met, event: drop, to: in_progress_cancelled, outputs: [commit]}
+  - {from: in_progress_met, event: reopen, reject: true}
+  - {from: in_progress_met, event: check, stay: true, outputs: []}
+
+  # in_progress_deferred
+  - {from: in_progress_deferred, event: start, stay: true, outputs: []}
+  - {from: in_progress_deferred, event: finish, to: done_deferred, outputs: [commit]}
+  - {from: in_progress_deferred, event: back, reject: true}
+  - {from: in_progress_deferred, event: cancel, to: cancelled_deferred, outputs: [commit]}
+  - {from: in_progress_deferred, event: meet, reject: true}
+  # undecided: whether defer on a deferred AC is a no-op or refused (ADR-0036 for ACs)
+  # undecided: whether drop on a deferred AC is a no-op or refused (ADR-0036 for ACs)
+  - {from: in_progress_deferred, event: reopen, reject: true}
+  - {from: in_progress_deferred, event: check, stay: true, outputs: []}
+
+  # in_progress_cancelled
+  - {from: in_progress_cancelled, event: start, stay: true, outputs: []}
+  - {from: in_progress_cancelled, event: finish, to: done_cancelled, outputs: [commit]}
+  - {from: in_progress_cancelled, event: back, reject: true}
+  - {from: in_progress_cancelled, event: cancel, to: cancelled_cancelled, outputs: [commit]}
+  - {from: in_progress_cancelled, event: meet, reject: true}
+  - {from: in_progress_cancelled, event: defer, reject: true}
+  # undecided: whether drop on a cancelled AC is a no-op or refused (ADR-0036 for ACs)
+  - {from: in_progress_cancelled, event: reopen, reject: true}
+  - {from: in_progress_cancelled, event: check, stay: true, outputs: []}

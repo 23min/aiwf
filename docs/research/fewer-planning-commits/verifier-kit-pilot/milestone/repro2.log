@@ -1,0 +1,59 @@
+aiwf version: main@v0.42.0-327-g417f992f7-dirty
+=== gap A: a met AC on a done milestone, deferred
+$ aiwf promote M-0001 in_progress
+aiwf promote M-0001 draft -> in_progress
+exit 0
+$ aiwf promote M-0001/AC-1 met
+aiwf promote M-0001/AC-1 open -> met
+exit 0
+$ aiwf promote M-0001 done
+aiwf promote M-0001 in_progress -> done
+exit 0
+$ aiwf promote M-0001/AC-1 deferred
+aiwf promote M-0001/AC-1 met -> deferred
+exit 0
+$ grep -E "^status:|^      status:" work/epics/*/M-0001-*.md
+status: done
+      status: deferred
+=== gap A: a met AC on a done milestone, cancelled
+$ aiwf cancel M-0001/AC-1
+aiwf cancel M-0001/AC-1 -> cancelled
+exit 0
+$ grep -E "^status:|^      status:" work/epics/*/M-0001-*.md
+status: done
+      status: cancelled
+=== gap A: a met AC on a cancelled milestone
+$ aiwf cancel M-0001
+aiwf cancel M-0001 -> cancelled
+exit 0
+$ aiwf promote M-0001/AC-1 deferred
+aiwf promote M-0001/AC-1 met -> deferred
+exit 0
+$ grep -E "^status:|^      status:" work/epics/*/M-0001-*.md
+status: cancelled
+      status: deferred
+=== gap B: start with the only AC cancelled, then done
+$ aiwf cancel M-0001/AC-1
+aiwf cancel M-0001/AC-1 -> cancelled
+exit 0
+$ aiwf promote M-0001 in_progress
+aiwf promote M-0001 draft -> in_progress
+exit 0
+$ aiwf promote M-0001 done
+aiwf promote M-0001 in_progress -> done
+exit 0
+$ grep -E "^status:|^      status:" work/epics/*/M-0001-*.md
+status: done
+      status: cancelled
+$ aiwf check | grep -c zero-acs
+0
+=== gap B: start with the only AC deferred
+$ aiwf promote M-0001/AC-1 deferred
+aiwf promote M-0001/AC-1 open -> deferred
+exit 0
+$ aiwf promote M-0001 in_progress
+aiwf promote M-0001 draft -> in_progress
+exit 0
+$ grep -E "^status:|^      status:" work/epics/*/M-0001-*.md
+status: in_progress
+      status: deferred

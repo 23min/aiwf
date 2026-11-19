@@ -1,0 +1,31 @@
+# One agent's delegation on one milestone, as the provenance model states it
+# (docs/design/provenance-model.md, "Scope states"), with two ordinary git moves added as
+# events: main moving and the branch being rebased onto it, and running aiwf check.
+machine: scope
+section: provenance-model / Scope states
+states:
+  none:   {kind: policy}
+  active: {kind: policy}
+  ended:  {kind: policy}
+initial: none
+events: [authorize, act, end, rebase, check]
+rules:
+  - {from: none,   event: authorize, to: active}
+  - {from: none,   event: act,       reject: true}
+  - {from: none,   event: end,       reject: true}
+  - {from: none,   event: rebase,    stay: true}
+  - {from: none,   event: check,     stay: true}
+  - {from: active, event: authorize, stay: true}
+  - {from: active, event: act,       stay: true}
+  - {from: active, event: end,       to: ended}
+  - {from: active, event: rebase,    stay: true}
+  - {from: active, event: check,     stay: true}
+  - {from: ended,  event: authorize, to: active}
+  - {from: ended,  event: act,       reject: true}
+  - {from: ended,  event: end,       reject: true}
+  - {from: ended,  event: rebase,    stay: true}
+  - {from: ended,  event: check,     stay: true}
+examples:
+  - name: a delegation ended is not reopened by a rebase
+    steps: ["authorize", "end", "rebase", "act"]
+    expect: rejected

@@ -1,0 +1,33 @@
+error   case-disagrees     cancelled_met/start: this case: A says nothing (no rule matches), B says reject
+error   case-disagrees     cancelled_met/finish: this case: A says nothing (no rule matches), B says reject
+error   case-disagrees     cancelled_met/back: this case: A says nothing (no rule matches), B says reject
+error   case-disagrees     cancelled_met/cancel: this case: A says nothing (no rule matches), B says ignore
+error   case-disagrees     cancelled_met/reopen: this case: A says nothing (no rule matches), B says reject
+error   case-disagrees     cancelled_met/check: this case: A says nothing (no rule matches), B says stay
+error   case-disagrees     done_met/start: this case: A says nothing (no rule matches), B says reject
+error   case-disagrees     done_met/finish: this case: A says nothing (no rule matches), B says ignore
+error   case-disagrees     done_met/back: this case: A says nothing (no rule matches), B says reject
+error   case-disagrees     done_met/cancel: this case: A says nothing (no rule matches), B says ignore
+error   case-disagrees     done_met/reopen: this case: A says nothing (no rule matches), B says reject
+error   case-disagrees     done_met/check: this case: A says nothing (no rule matches), B says stay
+error   case-disagrees     draft_cancelled/back: this case: A says stay, B says ignore
+error   case-disagrees     draft_deferred/back: this case: A says stay, B says ignore
+error   case-disagrees     draft_met/back: this case: A says stay, B says ignore
+error   case-disagrees     draft_open/back: this case: A says stay, B says ignore
+error   case-disagrees     in_progress_cancelled/start: this case: A says stay, B says ignore
+error   case-disagrees     in_progress_deferred/start: this case: A says stay, B says ignore
+error   case-disagrees     in_progress_met/start: this case: A says stay, B says ignore
+error   case-disagrees     in_progress_open/start: this case: A says stay, B says ignore
+error   behavior-differs   start() -> meet() -> finish() -> start(): A ends undefined, B ends rejected
+error   behavior-differs   start() -> meet() -> finish() -> finish(): A ends undefined, B ends done_met
+error   behavior-differs   start() -> meet() -> finish() -> back(): A ends undefined, B ends rejected
+error   behavior-differs   start() -> meet() -> finish() -> cancel(): A ends undefined, B ends done_met
+error   behavior-differs   start() -> meet() -> finish() -> reopen(): A ends undefined, B ends rejected
+error   behavior-differs   start() -> meet() -> finish() -> check(): A ends undefined, B ends done_met
+error   behavior-differs   start() -> meet() -> cancel() -> start(): A ends undefined, B ends rejected
+error   behavior-differs   start() -> meet() -> cancel() -> finish(): A ends undefined, B ends rejected
+error   behavior-differs   start() -> meet() -> cancel() -> back(): A ends undefined, B ends rejected
+error   behavior-differs   start() -> meet() -> cancel() -> cancel(): A ends undefined, B ends cancelled_met
+error   behavior-differs   start() -> meet() -> cancel() -> reopen(): A ends undefined, B ends rejected
+error   behavior-differs   start() -> meet() -> cancel() -> check(): A ends undefined, B ends cancelled_met
+-- 32 errors, 32 findings

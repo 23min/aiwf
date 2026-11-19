@@ -1,0 +1,4 @@
+error   diverges           ended/rebase : after authorize() -> end() -> rebase(): spine expects ok in ended, code gave ok in active
+error   diverges           active/check : after authorize() -> act() -> rebase() -> check(): spine expects ok in active, code gave rejected in active
+info    coverage           296 sequences up to 4 steps: 15 of 15 state/event/variable cases exercised
+-- 2 errors, 3 findings
