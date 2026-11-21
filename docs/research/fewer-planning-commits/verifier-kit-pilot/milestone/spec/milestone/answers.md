@@ -10,7 +10,7 @@ reading-b and `spine check` of each. The chapter carries each answer at the rule
   (Chapter rule 10.)
 - **Q3. May the AC change once the milestone is `done` or `cancelled`?** No: a finished
   milestone's AC is frozen, so a `met` AC can't be descoped after the milestone closed. One
-  exception: an `open` AC on a finished milestone, an error state that only `--force`, a merge
+  exception: an `open` AC on a finished milestone, an error state that only a merge
   (G-0575) or a hand edit produces, may still be met, deferred or cancelled, since closing it
   ends the error without reopening the milestone. A step that asks for the status already there
   still converges under Q1. Evidence weighed: `sources-ac-less.md`. (Chapter rule 10.)

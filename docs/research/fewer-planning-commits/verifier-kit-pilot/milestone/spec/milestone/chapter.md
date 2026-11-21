@@ -96,7 +96,7 @@ A refused step changes nothing.
     (answers.md, Q3), as PB R-FP-0064's "ACs cannot outlive the milestone" reads. DD's
     "`met` may move … if scope changes after the fact" means after `met`, while the milestone
     is live. The one exception is an `open` AC on a finished milestone, which may still be
-    closed; no step here reaches that state, which only `--force`, a merge or a hand edit
+    closed; no step here reaches that state, which only a merge or a hand edit
     produces. A step that asks for the status the AC already has still changes nothing, and
     rule 11 applies to it.
 
