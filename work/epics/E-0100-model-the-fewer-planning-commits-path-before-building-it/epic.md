@@ -100,10 +100,10 @@ work its ADR leaves and finds defects.
 
 ## Milestones
 
-- The scope machine (ADR-0056) · depends on: —
-- Operation identity (ADR-0057) · depends on: —
-- Verb commit output (ADR-0058) · depends on: the scope machine and operation identity, whose ids
-  an amended commit carries
+- `M-0364` — The scope machine (ADR-0056) · depends on: —
+- `M-0365` — Operation identity (ADR-0057) · depends on: —
+- `M-0366` — Verb commit output (ADR-0058) · depends on: `M-0364`, `M-0365`, whose ids an amended
+  commit carries
 
 ## References
 
