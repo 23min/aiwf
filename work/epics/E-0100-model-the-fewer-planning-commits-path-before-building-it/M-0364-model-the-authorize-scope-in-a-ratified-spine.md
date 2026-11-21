@@ -1,7 +1,7 @@
 ---
 id: M-0364
 title: Model the authorize scope in a ratified spine
-status: draft
+status: in_progress
 parent: E-0100
 tdd: none
 acs:
