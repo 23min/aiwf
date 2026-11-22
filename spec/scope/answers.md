@@ -1,12 +1,13 @@
 # Answers to the scope readings' questions
 
 Decided by human/peter on 2026-11-22, in conversation, from `spine diff` of reading-a against
-reading-b and `spine check` of each. The chapter carries each answer at the rule it settles.
+reading-b, `spine check` of each, and the kind each reading gives each state, which neither tool
+compares. The chapter carries each answer at the rule it settles.
 
 - **Q1. Is closed final?** No. Nothing leaves closed, but every step there is decided as the
   chapter's §2 says, so `spine conform` checks what aiwf does after a close: the refused
-  authorize (audit Q11), and the refused pause and resume and the close that is a no-op (audit
-  Q9).
+  authorize (audit Q11), the refused pause and resume, and a close that is allowed and leaves
+  closed as it is (audit Q9).
   Reading A made closed final and reading B did not, so they split on closed/authorize,
   closed/act, closed/pause, closed/resume, closed/end, closed/close, closed/rebase,
   closed/reallocate and closed/check. (Chapter S3.)
@@ -17,8 +18,10 @@ reading-b and `spine check` of each. The chapter carries each answer at the rule
   undecided, and reading B closed/copy too. (Chapter rule 17, and the glossary's rebase and
   copy, which audit Q13 defines by their git steps.)
 - **Q3. Which kind is each state?** none, active and paused are policy; ended and closed are
-  fact. Each of the two records an act aiwf never reverses: "The inverse of an end is a fresh
-  grant" (ADR-0047, §"Nothing undoes an end"), and a `done` milestone has no transition out
-  (`internal/entity/transition.go`), so changing either needs a new decision. The readings
+  fact. Each of the two records an act no ordinary verb reverses: "The inverse of an end is a
+  fresh grant" (ADR-0047, §"Nothing undoes an end"), and a `done` milestone has no transition
+  out (`internal/entity/transition.go`); only the human override `aiwf promote --force` moves it
+  ("force=true relaxes the FSM transition rule so any-to-any moves are permitted",
+  `internal/verb/promote.go`). Changing either rule needs a new decision. The readings
   differed only on ended, which reading A made policy; `spine diff` does not compare kinds.
   (Chapter §1, States.)
