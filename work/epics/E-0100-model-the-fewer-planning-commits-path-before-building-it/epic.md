@@ -86,7 +86,7 @@ work its ADR leaves and finds defects.
 | Question | Blocking? | Resolution path |
 |---|---|---|
 | Does each audit add the history reader to the docs reader? | yes, for that milestone's audit | Decided at each milestone's audit step |
-| Is the toolkit installed into the repository (`verify` and `.verifier-kit/`), or is `spine` run from a pinned clone outside it? | yes, for the first milestone | Decided when the first milestone starts |
+| Is the toolkit installed into the repository (`verify` and `.verifier-kit/`), or is `spine` run from a pinned clone outside it? | no: settled | A pinned clone of v0.3.3 outside the repository, decided 2026-11-22 in M-0364; `spec/README.md` gives the commands. Installing is taken up again when the first build epic makes `spine conform` its done-check |
 | Which two models do the readings? | yes, for that milestone's readings | Decided at each milestone's reading step |
 
 ## Risks
