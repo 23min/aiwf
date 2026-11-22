@@ -1,0 +1,236 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 860 993.1" width="860" height="993.1">
+  <title>Machine scope</title>
+  <style>
+    :root {
+      --surface: #ffffff; --ink: #141414; --ink-2: #333333; --muted: #6a6a6a; --rule: #c4c4c4;
+      --fact: #b4b4b4; --policy: #dadada; --design: #f2f2f2;
+      --serif: "Latin Modern Roman", "CMU Serif", "Times New Roman", Times, serif;
+    }
+    @media (prefers-color-scheme: dark) {
+      :root { --surface: #161616; --ink: #ececec; --ink-2: #cfcfcf; --muted: #9d9d9d; --rule: #444444;
+              --fact: #5a5a5a; --policy: #3a3a3a; --design: #242424; }
+    }
+    .bg, .none { fill: var(--surface); }
+    .fact { fill: var(--fact); } .policy { fill: var(--policy); } .design { fill: var(--design); }
+    .st { stroke: var(--ink); stroke-width: 1.4; }
+    .ring { fill: none; stroke: var(--ink); stroke-width: 1.4; }
+    .e { fill: none; stroke: var(--ink-2); stroke-width: 1.15; }
+    .mk { fill: var(--ink-2); }
+    .rule { stroke: var(--rule); stroke-width: 1; }
+    .sn { font: italic 400 18px var(--serif); fill: var(--ink); }
+    .lb { font: 400 14px var(--serif); fill: var(--ink); paint-order: stroke; stroke: var(--surface); stroke-width: 5px; stroke-linejoin: round; }
+    .ti { font: 400 17px var(--serif); fill: var(--ink); }
+    .tx { font: 400 14px var(--serif); fill: var(--ink); }
+    .it { font-style: italic; }
+    .nt { font: 400 13px var(--serif); fill: var(--muted); }
+  </style>
+  <defs>
+    <marker id="arr" viewBox="0 0 10 8" refX="10" refY="4" markerWidth="10" markerHeight="8" markerUnits="userSpaceOnUse" orient="auto">
+      <path class="mk" d="M0,0 L10,4 L0,8 z"/>
+    </marker>
+  </defs>
+  <rect class="bg" x="0" y="0" width="860" height="993.1"/>
+  <text class="ti" x="24" y="34" text-anchor="start"><tspan x="24" dy="0">Machine scope</tspan></text>
+  <circle class="st fact" cx="594.3" cy="52" r="8"/>
+  <text class="nt" x="610.3" y="56" text-anchor="start"><tspan x="610.3" dy="0">fact: irreversible in the world</tspan></text>
+  <circle class="st policy" cx="594.3" cy="74" r="8"/>
+  <text class="nt" x="610.3" y="78" text-anchor="start"><tspan x="610.3" dy="0">policy: a business choice</tspan></text>
+  <path class="e" d="M5,300 L49,300" marker-end="url(#arr)"/>
+  <g class="move"><title>none → active</title>
+  <path class="e" d="M130,300 Q195,300 259,300" marker-end="url(#arr)"/>
+  <text class="lb" x="194.8" y="290" text-anchor="middle"><tspan x="194.8" dy="0">authorize</tspan></text>
+  </g>
+  <g class="move"><title>none → closed</title>
+  <path class="e" d="M111.3,333.8 Q430,840 748.2,334.7" marker-end="url(#arr)"/>
+  <text class="lb" x="429.9" y="607.1" text-anchor="middle"><tspan x="429.9" dy="0">close</tspan></text>
+  </g>
+  <g class="move"><title>active → paused</title>
+  <path class="e" d="M325.5,269.2 Q387,195 480,174" marker-end="url(#arr)"/>
+  <text class="lb" x="382.4" y="192.9" text-anchor="middle"><tspan x="382.4" dy="0">pause</tspan></text>
+  </g>
+  <g class="move"><title>active → ended</title>
+  <path class="e" d="M339,308.8 Q433,330 493.8,403.4" marker-end="url(#arr)"/>
+  <text class="lb" x="435.1" y="331.2" text-anchor="middle"><tspan x="435.1" dy="0">end</tspan></text>
+  </g>
+  <g class="move"><title>active → closed</title>
+  <path class="e" d="M340,300 Q535,300 729,300" marker-end="url(#arr)"/>
+  <text class="lb" x="650" y="291" text-anchor="middle"><tspan x="650" dy="0">close</tspan></text>
+  </g>
+  <g class="move"><title>paused → active</title>
+  <path class="e" d="M494.5,195.8 Q433,270 340,291" marker-end="url(#arr)"/>
+  <text class="lb" x="470" y="271" text-anchor="middle"><tspan x="470" dy="0">resume</tspan></text>
+  </g>
+  <g class="move"><title>paused → ended</title>
+  <path class="e" d="M520,205 Q520,300 520,394" marker-end="url(#arr)"/>
+  <text class="lb" x="542" y="250" text-anchor="middle"><tspan x="542" dy="0">end</tspan></text>
+  </g>
+  <g class="move"><title>paused → closed</title>
+  <path class="e" d="M555.2,184 Q645,232.5 733.9,280.5" marker-end="url(#arr)"/>
+  <text class="lb" x="655.8" y="216.9" text-anchor="middle"><tspan x="655.8" dy="0">close</tspan></text>
+  </g>
+  <g class="move"><title>ended → active</title>
+  <path class="e" d="M481,426.2 Q387,405 326.2,331.6" marker-end="url(#arr)"/>
+  <text class="lb" x="378.5" y="424.3" text-anchor="middle"><tspan x="378.5" dy="0">authorize</tspan></text>
+  </g>
+  <g class="move"><title>ended → closed</title>
+  <path class="e" d="M555.2,416 Q645,367.5 733.9,319.5" marker-end="url(#arr)"/>
+  <text class="lb" x="633.7" y="352.2" text-anchor="middle"><tspan x="633.7" dy="0">close</tspan></text>
+  </g>
+  <ellipse class="st policy" cx="90" cy="300" rx="40" ry="40"/>
+  <text class="sn" x="90" y="306" text-anchor="middle">none</text>
+  <ellipse class="st policy" cx="300" cy="300" rx="40" ry="40"/>
+  <text class="sn" x="300" y="306" text-anchor="middle">active</text>
+  <ellipse class="st policy" cx="520" cy="165" rx="40" ry="40"/>
+  <text class="sn" x="520" y="171" text-anchor="middle">paused</text>
+  <ellipse class="st fact" cx="520" cy="435" rx="40" ry="40"/>
+  <text class="sn" x="520" y="441" text-anchor="middle">ended</text>
+  <ellipse class="st fact" cx="770" cy="300" rx="40" ry="40"/>
+  <text class="sn" x="770" y="306" text-anchor="middle">closed</text>
+  <text class="nt" x="24" y="651.1" text-anchor="start"><tspan x="24" dy="0">Every rule that doesn't change the state, by event and state. The moves are the edges above.</tspan></text>
+  <text class="tx it" x="24" y="681.1">event</text>
+  <text class="tx it" x="126.4" y="681.1">none</text>
+  <text class="tx it" x="268.3" y="681.1">active</text>
+  <text class="tx it" x="410.2" y="681.1">paused</text>
+  <text class="tx it" x="552.2" y="681.1">ended</text>
+  <text class="tx it" x="694.1" y="681.1">closed</text>
+  <line class="rule" x1="24" y1="689.1" x2="836" y2="689.1"/>
+  <text class="tx" x="24" y="709.1">authorize</text>
+  <g class="rules"><title>active/authorize</title>
+  <text class="tx" x="268.3" y="709.1">ignore</text>
+  </g>
+  <g class="rules"><title>paused/authorize</title>
+  <text class="tx" x="410.2" y="709.1">reject</text>
+  </g>
+  <g class="rules"><title>closed/authorize</title>
+  <text class="tx" x="694.1" y="709.1">reject</text>
+  </g>
+  <line class="rule" x1="24" y1="717.1" x2="836" y2="717.1"/>
+  <text class="tx" x="24" y="737.1">act</text>
+  <g class="rules"><title>none/act</title>
+  <text class="tx" x="126.4" y="737.1">reject</text>
+  </g>
+  <g class="rules"><title>active/act</title>
+  <text class="tx" x="268.3" y="737.1">stay</text>
+  </g>
+  <g class="rules"><title>paused/act</title>
+  <text class="tx" x="410.2" y="737.1">reject</text>
+  </g>
+  <g class="rules"><title>ended/act</title>
+  <text class="tx" x="552.2" y="737.1">reject</text>
+  </g>
+  <g class="rules"><title>closed/act</title>
+  <text class="tx" x="694.1" y="737.1">reject</text>
+  </g>
+  <line class="rule" x1="24" y1="745.1" x2="836" y2="745.1"/>
+  <text class="tx" x="24" y="765.1">pause</text>
+  <g class="rules"><title>none/pause</title>
+  <text class="tx" x="126.4" y="765.1">reject</text>
+  </g>
+  <g class="rules"><title>paused/pause</title>
+  <text class="tx" x="410.2" y="765.1">ignore</text>
+  </g>
+  <g class="rules"><title>ended/pause</title>
+  <text class="tx" x="552.2" y="765.1">reject</text>
+  </g>
+  <g class="rules"><title>closed/pause</title>
+  <text class="tx" x="694.1" y="765.1">reject</text>
+  </g>
+  <line class="rule" x1="24" y1="773.1" x2="836" y2="773.1"/>
+  <text class="tx" x="24" y="793.1">resume</text>
+  <g class="rules"><title>none/resume</title>
+  <text class="tx" x="126.4" y="793.1">reject</text>
+  </g>
+  <g class="rules"><title>active/resume</title>
+  <text class="tx" x="268.3" y="793.1">ignore</text>
+  </g>
+  <g class="rules"><title>ended/resume</title>
+  <text class="tx" x="552.2" y="793.1">reject</text>
+  </g>
+  <g class="rules"><title>closed/resume</title>
+  <text class="tx" x="694.1" y="793.1">reject</text>
+  </g>
+  <line class="rule" x1="24" y1="801.1" x2="836" y2="801.1"/>
+  <text class="tx" x="24" y="821.1">end</text>
+  <g class="rules"><title>none/end</title>
+  <text class="tx" x="126.4" y="821.1">reject</text>
+  </g>
+  <g class="rules"><title>ended/end</title>
+  <text class="tx" x="552.2" y="821.1">reject</text>
+  </g>
+  <g class="rules"><title>closed/end</title>
+  <text class="tx" x="694.1" y="821.1">reject</text>
+  </g>
+  <line class="rule" x1="24" y1="829.1" x2="836" y2="829.1"/>
+  <text class="tx" x="24" y="849.1">close</text>
+  <g class="rules"><title>closed/close</title>
+  <text class="tx" x="694.1" y="849.1">ignore</text>
+  </g>
+  <line class="rule" x1="24" y1="857.1" x2="836" y2="857.1"/>
+  <text class="tx" x="24" y="877.1">rebase</text>
+  <g class="rules"><title>none/rebase</title>
+  <text class="tx" x="126.4" y="877.1">stay</text>
+  </g>
+  <g class="rules"><title>active/rebase</title>
+  <text class="tx" x="268.3" y="877.1">stay</text>
+  </g>
+  <g class="rules"><title>paused/rebase</title>
+  <text class="tx" x="410.2" y="877.1">stay</text>
+  </g>
+  <g class="rules"><title>ended/rebase</title>
+  <text class="tx" x="552.2" y="877.1">stay</text>
+  </g>
+  <g class="rules"><title>closed/rebase</title>
+  <text class="tx" x="694.1" y="877.1">stay</text>
+  </g>
+  <line class="rule" x1="24" y1="885.1" x2="836" y2="885.1"/>
+  <text class="tx" x="24" y="905.1">copy</text>
+  <g class="rules"><title>none/copy</title>
+  <text class="tx" x="126.4" y="905.1">stay</text>
+  </g>
+  <g class="rules"><title>active/copy</title>
+  <text class="tx" x="268.3" y="905.1">stay</text>
+  </g>
+  <g class="rules"><title>paused/copy</title>
+  <text class="tx" x="410.2" y="905.1">stay</text>
+  </g>
+  <g class="rules"><title>ended/copy</title>
+  <text class="tx" x="552.2" y="905.1">stay</text>
+  </g>
+  <g class="rules"><title>closed/copy</title>
+  <text class="tx" x="694.1" y="905.1">stay</text>
+  </g>
+  <line class="rule" x1="24" y1="913.1" x2="836" y2="913.1"/>
+  <text class="tx" x="24" y="933.1">reallocate</text>
+  <g class="rules"><title>none/reallocate</title>
+  <text class="tx" x="126.4" y="933.1">stay</text>
+  </g>
+  <g class="rules"><title>active/reallocate</title>
+  <text class="tx" x="268.3" y="933.1">stay</text>
+  </g>
+  <g class="rules"><title>paused/reallocate</title>
+  <text class="tx" x="410.2" y="933.1">stay</text>
+  </g>
+  <g class="rules"><title>ended/reallocate</title>
+  <text class="tx" x="552.2" y="933.1">stay</text>
+  </g>
+  <g class="rules"><title>closed/reallocate</title>
+  <text class="tx" x="694.1" y="933.1">stay</text>
+  </g>
+  <line class="rule" x1="24" y1="941.1" x2="836" y2="941.1"/>
+  <text class="tx" x="24" y="961.1">check</text>
+  <g class="rules"><title>none/check</title>
+  <text class="tx" x="126.4" y="961.1">stay</text>
+  </g>
+  <g class="rules"><title>active/check</title>
+  <text class="tx" x="268.3" y="961.1">stay</text>
+  </g>
+  <g class="rules"><title>paused/check</title>
+  <text class="tx" x="410.2" y="961.1">stay</text>
+  </g>
+  <g class="rules"><title>ended/check</title>
+  <text class="tx" x="552.2" y="961.1">stay</text>
+  </g>
+  <g class="rules"><title>closed/check</title>
+  <text class="tx" x="694.1" y="961.1">stay</text>
+  </g>
+</svg>

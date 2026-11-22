@@ -1,0 +1,16 @@
+# Where each state of spine.yaml sits in drawing.svg, in units of the 860-wide drawing.
+# Written again, from the folder this file is in, with: spine draw spine.yaml drawing.yaml > drawing.svg
+states:
+  none:   [90, 300]
+  active: [300, 300]
+  paused: [520, 165]
+  ended:  [520, 435]
+  closed: [770, 300]
+edges:
+  none:
+    closed: {bend: -270}
+  active:
+    closed: {label: [650, 286]}
+  paused:
+    active: {label: [470, 266]}
+    ended: {label: [542, 245]}

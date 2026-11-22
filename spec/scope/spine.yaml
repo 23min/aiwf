@@ -1,0 +1,69 @@
+# The lifecycle of one agent's scope on one milestone (chapter.md, section 2). Built on
+# 2026-11-22 from readings/ and the owner's answers in answers.md: reading A, with every step in
+# closed decided and closed not final (Q1), copy allowed where no scope was opened (Q2), and ended
+# a fact (Q3). Ratified by the reviewed merge of this file.
+machine: scope
+states:
+  none:   {kind: policy}
+  active: {kind: policy}
+  paused: {kind: policy}
+  ended:  {kind: fact}
+  closed: {kind: fact}
+initial: none
+events: [authorize, act, pause, resume, end, close, rebase, copy, reallocate, check]
+rules:
+  # none
+  - {from: none, event: authorize, to: active}
+  - {from: none, event: act, reject: true}
+  - {from: none, event: pause, reject: true}
+  - {from: none, event: resume, reject: true}
+  - {from: none, event: end, reject: true}
+  - {from: none, event: close, to: closed}
+  - {from: none, event: rebase, stay: true}
+  - {from: none, event: copy, stay: true}
+  - {from: none, event: reallocate, stay: true}
+  - {from: none, event: check, stay: true}
+  # active
+  - {from: active, event: authorize, ignore: true}
+  - {from: active, event: act, stay: true}
+  - {from: active, event: pause, to: paused}
+  - {from: active, event: resume, ignore: true}
+  - {from: active, event: end, to: ended}
+  - {from: active, event: close, to: closed}
+  - {from: active, event: rebase, stay: true}
+  - {from: active, event: copy, stay: true}
+  - {from: active, event: reallocate, stay: true}
+  - {from: active, event: check, stay: true}
+  # paused
+  - {from: paused, event: authorize, reject: true}
+  - {from: paused, event: act, reject: true}
+  - {from: paused, event: pause, ignore: true}
+  - {from: paused, event: resume, to: active}
+  - {from: paused, event: end, to: ended}
+  - {from: paused, event: close, to: closed}
+  - {from: paused, event: rebase, stay: true}
+  - {from: paused, event: copy, stay: true}
+  - {from: paused, event: reallocate, stay: true}
+  - {from: paused, event: check, stay: true}
+  # ended
+  - {from: ended, event: authorize, to: active}
+  - {from: ended, event: act, reject: true}
+  - {from: ended, event: pause, reject: true}
+  - {from: ended, event: resume, reject: true}
+  - {from: ended, event: end, reject: true}
+  - {from: ended, event: close, to: closed}
+  - {from: ended, event: rebase, stay: true}
+  - {from: ended, event: copy, stay: true}
+  - {from: ended, event: reallocate, stay: true}
+  - {from: ended, event: check, stay: true}
+  # closed
+  - {from: closed, event: authorize, reject: true}
+  - {from: closed, event: act, reject: true}
+  - {from: closed, event: pause, reject: true}
+  - {from: closed, event: resume, reject: true}
+  - {from: closed, event: end, reject: true}
+  - {from: closed, event: close, ignore: true}
+  - {from: closed, event: rebase, stay: true}
+  - {from: closed, event: copy, stay: true}
+  - {from: closed, event: reallocate, stay: true}
+  - {from: closed, event: check, stay: true}
