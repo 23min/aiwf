@@ -7,7 +7,7 @@ tdd: none
 acs:
     - id: AC-1
       title: Every question the audit raises has a recorded answer
-      status: open
+      status: met
     - id: AC-2
       title: The chapter answers every case the two readings split or leave open
       status: open
