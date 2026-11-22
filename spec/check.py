@@ -6,9 +6,10 @@ Run from the repository root, with the verifier-kit checkout spec/README.md buil
 
 It prints one line per check and exits 1 when any fails.
 
-  audit     Every answer in audit/decisions.md gives its date, answer, reason, the sources it
-            makes wrong and the claims it settles. Every claim id that a Conflicts or Not covered
-            section of audit/docs.md or audit/history.md cites is among the claims settled, and
+  audit     Every answer in audit/decisions.md fills in its date, answer, reason, the sources it
+            makes wrong and the claims it settles. audit/docs.md, and audit/history.md where the
+            history reader ran, each have a Conflicts, a Not covered and a Names section. Every
+            claim id a Conflicts or Not covered section cites is among the claims settled, and
             each Names section is settled by section ("`docs.md` §4"). Each (state, event) pair a
             Not covered section lists is named, as "`state, event`", in an answer's claims
             settled or in the section on cases no source covers.
@@ -16,15 +17,17 @@ It prints one line per check and exits 1 when any fails.
             chapter.md in this repository's history, of readings/prompt.md, and of the checkout's
             docs/reference/spine-format.md. Every case that `spine diff` of the two readings or
             `spine check` of either reports is named, as state/event, by an answer in answers.md
-            that the chapter cites as "answers.md, Q<n>".
+            that the chapter cites as "(answers.md, Q<n>".
   spine     `spine check` of spine.yaml passes; `spine diff` of it against each reading reports
             only those cases; `spine draw` prints no warning and writes drawing.svg byte for
             byte; the header names readings/ and answers.md and says it is ratified by the
             reviewed merge of the file.
-  conform   conform.md records the verifier-kit version and commit, the aiwf version, the run
-            time, a margin of 2 or more, and the git hash-object of the committed spine and
-            adapter. The cases of the run's error lines are exactly the cases of the
-            classification rows, and each row cites a gap.
+  conform   adapter_<machine>.cmd is one line that starts conformance/adapter_<machine>.py, and
+            it is the --adapter-cmd conform.md records. conform.md records the checkout's
+            verifier-kit version and commit, the aiwf version, the run time, a margin of 2 or
+            more, and the git hash-object of the committed spine and adapter. The cases of the
+            run's error lines are exactly the cases of the classification rows, and each row
+            cites a gap.
 
 `spine diff` reports a case once as case-disagrees and again as behavior-differs, its shortest
 witness; any other finding code is reported as one the check does not know.
@@ -100,13 +103,17 @@ def check_audit(root, states, events):
     cases_text = next((t for h, t in dec.items() if h.startswith("Cases no source covers")), "")
     fields = (("date", r"\*\*Date:\*\*"), ("answer", r"\*\*Answer:\*\*"), ("reason", r"\*\*Reason:\*\*"),
               ("sources", r"\*\*Sources this makes wrong[^*]*:\*\*"), ("claims settled", r"\*\*Claims settled:\*\*"))
-    missing = [f"{q} has no {name}" for q, t in answers.items() for name, pat in fields if not re.search(pat, t)]
+    missing = [f"{q} has no {name}" for q, t in answers.items() for name, pat in fields
+               if not re.search(pat + r"(?:[ \t]*\S|[ \t]*\n[ \t]+\S)", t)]
     report(answers and not missing, f"audit: each of {len(answers)} answers gives every field", "; ".join(missing))
 
     settled_text = {q: (re.search(r"\*\*Claims settled:\*\*(.*?)(?=\n- \*\*|\Z)", t, re.S) or [None, ""])[1]
                     for q, t in answers.items()}
     settled = set().union(set(), *(claim_ids(t) for t in settled_text.values()))
     files = [p for p in (audit / "docs.md", audit / "history.md") if p.exists()]
+    absent = [f"{p.name} {t}" for p in files for t in ("Conflicts", "Not covered", "Names that don't fit")
+              if numbered(p, t)[0] is None]
+    report(not absent, "audit: each audit file has its Conflicts, Not covered and Names sections", ", ".join(absent))
     raised = set().union(set(), *(claim_ids(numbered(p, t)[1]) for p in files for t in ("Conflicts", "Not covered")))
     unsettled = sorted(raised - settled, key=lambda i: (i[0], int(i[1:])))
     report(not unsettled, f"audit: each of {len(raised)} claim ids raised is settled", ", ".join(unsettled))
@@ -153,7 +160,7 @@ def check_readings(root, spine, vk):
 
     text = (root / "answers.md").read_text(encoding="utf-8")
     entries = dict(re.findall(r"(?ms)^- \*\*(Q\d+)\.(.*?)(?=^- \*\*Q\d+\.|\Z)", text))
-    cited = set(re.findall(r"answers\.md, (Q\d+)", (root / "chapter.md").read_text(encoding="utf-8")))
+    cited = set(re.findall(r"\(answers\.md,\s+(Q\d+)", (root / "chapter.md").read_text(encoding="utf-8")))
     unanswered = sorted(c for c in found
                         if not any(re.search(rf"(?<![\w/]){re.escape(c)}(?![\w/])", t) and q in cited
                                    for q, t in entries.items()))
@@ -178,13 +185,19 @@ def check_spine(root, spine, decided):
            "spine: the header names readings/ and answers.md and the ratifying merge")
 
 
-def check_conform(root, machine):
+def check_conform(root, machine, vk):
     adapter, cmd = Path(f"conformance/adapter_{machine}.py"), Path(f"conformance/adapter_{machine}.cmd")
-    report(adapter.exists() and cmd.exists() and len(cmd.read_text().splitlines()) == 1,
-           f"conform: {adapter} and a one-line {cmd}")
     text = (root / "conform.md").read_text(encoding="utf-8")
-    for what, pat in (("the verifier-kit version and commit", r"\*\*verifier-kit:\*\* v\d+\.\d+\.\d+ at `[0-9a-f]{7,40}`"),
-                      ("the aiwf version", r"\*\*aiwf:\*\* `[^`]+`"), ("the run time", r"run time \d+ seconds")):
+    lines = cmd.read_text().splitlines() if cmd.exists() else []
+    recorded = (re.search(r'--adapter-cmd "([^"]+)"', text) or [None, None])[1]
+    report(adapter.exists() and len(lines) == 1 and str(adapter) in lines[0].split() and lines[0] == recorded,
+           f"conform: {cmd} is one line that starts {adapter}, the one conform.md records", f"{lines} vs {recorded!r}")
+    vk_run = re.search(r"\*\*verifier-kit:\*\* (v\d+\.\d+\.\d+) at `([0-9a-f]{7,40})`", text)
+    tag = subprocess.run(["git", "-C", str(vk), "describe", "--tags", "--exact-match"], capture_output=True, text=True)
+    report(vk_run is not None and vk_run[1] == tag.stdout.strip()
+           and git("-C", str(vk), "rev-parse", "HEAD").startswith(vk_run[2]),
+           "conform: conform.md records the checkout's verifier-kit version and commit")
+    for what, pat in (("the aiwf version", r"\*\*aiwf:\*\* `[^`]+`"), ("the run time", r"run time \d+ seconds")):
         report(re.search(pat, text) is not None, f"conform: conform.md records {what}")
     margin = re.search(r"--margin (\d+)", text)
     report(margin is not None and int(margin.group(1)) >= 2, f"conform: margin {margin and margin.group(1)}, 2 or more")
@@ -208,7 +221,7 @@ def main(machine, vk):
     check_audit(root, states, events)
     decided = check_readings(root, spine, vk)
     check_spine(root, spine, decided)
-    check_conform(root, machine)
+    check_conform(root, machine, vk)
     print(f"{len(failures)} failed" if failures else "all passed")
     return 1 if failures else 0
 

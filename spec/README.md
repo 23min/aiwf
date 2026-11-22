@@ -34,3 +34,6 @@ the spine against the `aiwf` it finds on `PATH`; until the build epics change ai
 divergences `spec/<m>/conform.md` classifies. The adapter's header says what it needs from
 `aiwf`, and where it puts its throwaway repositories. `check.py` checks the machine's records
 against what E-0100's milestones ask of them, as its header lists, and exits 1 when one fails.
+It reads the records in the shapes these files have, so a change to one of those shapes changes
+it too. E-0100 owns both until a build epic installs verifier-kit and makes `spine conform` its
+done-check (E-0100, §"Open questions").
