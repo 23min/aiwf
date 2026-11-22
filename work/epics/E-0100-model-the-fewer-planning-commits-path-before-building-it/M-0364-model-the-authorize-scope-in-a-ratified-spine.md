@@ -16,7 +16,7 @@ acs:
       status: met
     - id: AC-4
       title: Every divergence conform reports against today's aiwf is classified
-      status: open
+      status: met
 ---
 ## Goal
 
