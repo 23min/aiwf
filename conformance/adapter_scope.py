@@ -6,9 +6,10 @@ What aiwf must offer it:
   - the verbs below, exiting 0 when a step succeeds or converges and non-zero when it refuses;
   - `aiwf list --kind milestone --archived --format json`, whose `result` lists the milestone
     in this checkout, done or not, with its `id`; a row for an id found on another branch carries
-    `cross_branch_ref` or `cross_branch_collision`, and the adapter skips it;
+    `cross_branch_ref` or `cross_branch_collision`, and the adapter skips it, since after a
+    reallocate the old id is still on main and on any side branch;
   - `aiwf show <id> --format json`, whose `result` gives the milestone's `status`, its `acs`
-    with each `id` and `status`, and its `scopes` with each `agent` and `state`.
+    with each `id` and `status`, and its `scopes` with each `state`.
 
 The world new() starts from, built once per run with the aiwf on PATH: one repository where
 `aiwf init` ran with `hosts: []`, epic E-0001 active, milestone M-0001 in progress with two ACs
@@ -34,8 +35,8 @@ rebase with --rebase-merges, which keeps a copy's merge: a plain rebase replays 
 and its twin one after the other, and the twin of a status change then conflicts with the
 change after it.
 
-observe() takes the milestone's id from `aiwf list` and its status and ai/claude's scopes from
-`aiwf show`, and names:
+observe() takes the milestone's id from `aiwf list` and its status and scopes from `aiwf show`,
+and names:
   none      the milestone is in progress and has no scope
   active    in progress, with exactly one scope that is not ended, and it is active
   paused    in progress, with exactly one scope that is not ended, and it is paused
@@ -112,7 +113,7 @@ def build_template():
 
 
 def new():
-    if not TEMPLATE.exists():
+    if _runs[0] == 0:
         build_template()
     for old in RUNS.glob("run-*"):
         shutil.rmtree(old)
@@ -182,15 +183,13 @@ def apply(h, event, env):
         ok = aiwf(h, "reallocate", m)
     elif event == "check":
         ok = aiwf(h, "check")
-    else:
-        raise ValueError(f"unknown event {event!r}")
     return "ok" if ok else "rejected"
 
 
 def observe(h):
     d = show(h, milestone_id(h))
     status = d["status"]
-    scopes = [s["state"] for s in d.get("scopes") or [] if s["agent"] == AGENT]
+    scopes = [s["state"] for s in d.get("scopes") or []]
     live = [s for s in scopes if s != "ended"]
     if status == "done" and not live:
         return "closed"

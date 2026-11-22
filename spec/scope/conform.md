@@ -6,20 +6,20 @@ ADR-0056 makes or as a defect with a gap (M-0364/AC-4).
 
 ## The run
 
-- **Date:** 2026-11-22, started 14:06:56 UTC; run time 1039 seconds.
-- **verifier-kit:** v0.3.3 at `0952e0f`; `spine` built from its `tools/` with
-  `GOTOOLCHAIN=auto go build -o <dir>/spine ./cmd/spine`.
+- **Date:** 2026-11-22, started 20:35:40 UTC; run time 1164 seconds.
+- **verifier-kit:** v0.3.3 at `0952e0f`, a fresh clone with `spine` built as `spec/README.md`
+  says.
 - **aiwf:** `v0.42.1-0.20261121183124-0c00b37c47b3+dirty`, built from a tree whose code is `main`
-  at `0c00b37c4`; no Go file differs at `main` `e369a83c7`.
-- **Environment:** Linux devcontainer, Go 1.25.12, git 2.51.1, Python 3 for the adapter.
+  at `0c00b37c4`; no Go or module file differs at `main` `bc25461e1`.
+- **Environment:** Linux devcontainer, Go 1.25.12, git 2.51.1, Python 3.12.3.
 - **Inputs (git hash-object):** `spec/scope/spine.yaml` `917b06ae67c7d9e65a818504e50ccb7686dba0cf`,
-  `conformance/adapter_scope.py` `a315c3c2db3b94c479166f0aa956264122702bbe`.
+  `conformance/adapter_scope.py` `844eb1913dc8cf5e4186cb5b09c2878b44268161`.
 - **Command,** from the repository root, with verifier-kit's `tools/` and the folder holding that
   `aiwf` first on `PATH`:
 
   ```
   spine conform spec/scope/spine.yaml --margin 2 \
-    --adapter-cmd "env PYTHONDONTWRITEBYTECODE=1 adapter_shim.py conformance/adapter_scope.py"
+    --adapter-cmd "adapter_shim.py conformance/adapter_scope.py"
   ```
 
 - **Expected:** divergences only where the audit recorded that today's aiwf differs: a rebase or
@@ -72,13 +72,6 @@ for those scopes."
 | active/authorize, paused/authorize | a second authorize opens a second scope, where audit Q4 makes it a no-op from active and a refusal from paused | G-0460 |
 | active/resume, paused/pause | a repeat resume or pause is refused, where audit Q9 makes it a no-op | G-0786 |
 
-A run stops at its first divergence, so the reallocate runs end at `observe`. What else G-0776
-records after a reallocate, the refused pause, resume and end and the close that leaves the scope
-open, is not reached.
-
-## Earlier runs
-
-Two runs earlier the same day stopped at `adapter-failed`, each a fault in the adapter, fixed
-before this run: a plain rebase after a copy conflicted, so rebase and copy now rebase with
-`--rebase-merges`; and after a reallocate `aiwf list` also lists the old id from other branches,
-so `observe` now skips rows that carry `cross_branch_ref` or `cross_branch_collision`.
+Conform stops a sequence at its first divergence, so the reallocate sequences end at `observe`.
+What else G-0776 records after a reallocate, the refused pause, resume and end and the close that
+leaves the scope open, is not reached.
