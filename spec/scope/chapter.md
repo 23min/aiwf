@@ -11,7 +11,8 @@ It is taken from aiwf's records, not its code: the provenance model
 (`docs/design/provenance-model.md`), ADR-0047, ADR-0056, CLAUDE.md, and the maintainer's answers
 in `spec/scope/audit/decisions.md` (cited as Q1 to Q18), which settle where those records and
 aiwf's history disagree. The claims behind the answers are in `audit/docs.md` and
-`audit/history.md`.
+`audit/history.md`. The answers to the questions the chapter's two readings raised are in
+`spec/scope/answers.md`, cited as "answers.md, Q1" and on.
 
 ## 1. Glossary
 
@@ -38,7 +39,10 @@ States:
 - **ended**: the human ended the scope, and the milestone is not `done`.
 - **closed**: the milestone is `done`, and any scope on it is ended (Q10).
 
-Every run starts in none.
+Every run starts in none. None, active and paused are policy: what the agent may do in each is a
+choice a later decision can change. Ended and closed are facts: each records an act aiwf never
+reverses, an end, which only a new scope follows (ADR-0047, §"Nothing undoes an end"), and a
+`done` milestone (answers.md, Q3).
 
 Events. Each is one thing the human, the agent or git does:
 
@@ -50,11 +54,12 @@ Events. Each is one thing the human, the agent or git does:
 - **end**: the human runs `aiwf authorize <milestone> --end --reason "<text>"`, without
   `--scope`, which ends the milestone's one scope that is not ended (Q9).
 - **close**: the human meets the milestone's open ACs and promotes the milestone to `done`.
-- **rebase**: `main` gains one commit that touches nothing of the scope, and the branch, which
-  holds the scope's opening commit, is rebased onto it, so that commit gets a new hash (Q13).
-- **copy**: a second copy of the opening commit lands in the branch's history: the branch as it
-  stands is kept, `main` gains a commit and the branch is rebased onto it, and the kept branch is
-  then merged back in, so the original opening commit sits beside its rebased twin (Q13).
+- **rebase**: `main` gains one commit that touches nothing of the scope, and the branch is
+  rebased onto it, so the branch's own commits get new hashes, a scope's opening commit among
+  them where one was opened (Q13).
+- **copy**: the branch as it stands is kept, `main` gains a commit and the branch is rebased onto
+  it, and the kept branch is then merged back in, so each of the branch's own commits sits beside
+  its rebased twin, a scope's opening commit among them where one was opened (Q13).
 - **reallocate**: the human runs `aiwf reallocate <milestone>`, which gives the milestone a new
   id (Q15).
 - **check**: the human runs `aiwf check`.
@@ -116,8 +121,9 @@ changes nothing and makes no commit.
 16. reallocate leaves every state as it is: the milestone's number changes, the permission does
     not (Q15). The scope stays the milestone's under its new id, so every later step on it
     behaves as these rules say.
-17. In none, and in closed when no scope was opened, there is no opening commit, so copy has
-    nothing to copy.
+17. In none, and in closed when no scope was opened, copy's git steps run as they do anywhere
+    else, with no opening commit among the commits they copy, and the state stays as it is
+    (answers.md, Q2).
 
 ### 2.7 check
 
@@ -134,7 +140,8 @@ changes nothing and makes no commit.
 - **S2. Only the human moves the scope.** authorize, pause, resume, end and close are the only
   steps that change the state; rebase, copy, reallocate and check never do.
 - **S3. Ended stays ended.** Nothing brings an ended scope back; from ended, only authorize
-  opens a scope, and it is a new one. Nothing leaves closed.
+  opens a scope, and it is a new one. Nothing leaves closed. Closed is not final: §2 decides
+  every step there, and each is refused, is a no-op or leaves closed as it is (answers.md, Q1).
 - **S4. Asking for what already holds changes nothing.** A repeated authorize, pause, resume
   or close is a no-op.
 - **S5. check passes.** In every state the steps reach, `aiwf check` reports no errors.
