@@ -94,8 +94,8 @@ makes wrong and the claims it settles. Claim ids C-n are rows of `docs.md`, H-n 
     milestone `status: done`, the ended scope and a new one `state: active`; the agent's retitle
     exit 0; `check` exit 0, no error.
 - **Sources this makes wrong:** none of the docs. Today's binary differs in every state with a
-  scope. G-0755 (2026-11-01) records the `active` case, and since 2026-11-22, decided at
-  M-0364/AC-4, a copy that reopens a paused, ended or closed scope.
+  scope. G-0755 (2026-11-01) records the `active` case and a copy that reopens a paused, ended
+  or closed scope.
 - **Claims settled:** C102, C108–C113; H76; not covered: `none, copy`, `paused, copy`,
   `ended, copy`, `closed, copy`.
 
@@ -108,21 +108,26 @@ makes wrong and the claims it settles. Claim ids C-n are rows of `docs.md`, H-n 
   the permission is already there, so the request is already satisfied, which CLAUDE.md item 7
   makes a NoOp ("a request already satisfied is a NoOp at exit 0 with no commit"). While it is
   paused the request is not satisfied, and lifting a pause stays one deliberate step,
-  `--resume`. G-0460 argues that a no-op on a repeat "would hide the condition rather than
-  resolve it"; that holds while more than one scope per agent and milestone might be legal.
+  `--resume`. The comment that exempts `Authorize` from the same-state check argues that "a
+  silent NoOp would mask the two-active-scopes defect"
+  (`internal/policies/verb_result_noop_invariant.go:54`); that holds while more than one scope
+  per agent and milestone might be legal.
   Questions 2–4 leave one, so a no-op hides no second scope.
 - **Outside the machine's names:** a repeat that names another branch, and a grant to another
   agent, which is another machine (question 16).
 - **Applies to:** every scope. An `authorize` writes a new opening commit whatever release opened
   the scope it repeats.
 - **Sources this makes wrong:**
-  - G-0460 (2026-07-27), §"Resolution shape", asks whether more than one active scope per entity
-    is legal and, if not, proposes "a verb-time refusal (or an FSM guard) on opening a scope
-    while one is already active". This answer settles the question and makes the repeat from
-    `active` a no-op, not a refusal. G-0460 stays the record of today's defect; its body was
-    corrected on 2026-11-22, citing this answer.
+  - G-0460 (2026-07-27), §"Resolution shape", proposes "a verb-time refusal (or an FSM guard) on
+    opening a scope while one is already active" if more than one active scope per entity is
+    not legal. This answer settles that for a milestone and makes the repeat from `active` a
+    no-op, not a refusal. G-0460's body cites this answer, keeps the question open for an epic,
+    and stays the record of today's defect.
   - Code comment, `internal/cli/cliutil/scopes.go`: "Multiple parallel scopes on the same entity
     are supported". It changes with the code.
+  - Code comment, `internal/policies/verb_result_noop_invariant.go:54`, the reason `Authorize` is
+    exempt from the same-state check: "a silent NoOp would mask the two-active-scopes defect". It
+    changes with the code.
   - Not wrong: design-decisions.md ("Multiple parallel scopes are supported") and the provenance
     model §"Multiple parallel scopes", whose example is one agent on two entities; the
     start-milestone skill's "one scope per entity".
@@ -196,14 +201,10 @@ makes wrong and the claims it settles. Claim ids C-n are rows of `docs.md`, H-n 
 - **Reason:** CLAUDE.md item 9: "An LLM the human directs in conversation is the human's tool,
   not a co-actor; `aiwf authorize` opens a scope an agent works within." A commit made in
   conversation has the human as its actor; an `ai/` actor is an agent working on its own, which
-  needs a scope. Today's code refuses at the verb and `check` reports such a commit at error
-  (G-0706, measured; H84 for `bot/`).
-- **Sources this makes wrong:** the ones G-0706 (open, 2026-09-24) lists: the provenance model
-  §"Worked examples", Example 2 (C37); the `aiwf-authorize` skill's "Tool mode (HITL)" bullet
-  and closing "Don't" list (C38); the `aiwf-add` skill §"Provenance flags";
-  `docs/design/legal-workflows-audit.md` R-AUDIT-0104 (C39, revision 2 dated 2026-05-18); and
-  the `aiwf-add` skill §"What aiwf does" step 5 (C40). The last two were added to G-0706 on
-  2026-11-22, citing this answer.
+  needs a scope. Today's code refuses at the verb (G-0706, measured) and `check` reports such a
+  commit at error (H82). A `bot/` actor is refused at the verb too, but `check` reports nothing
+  for its commit (H84; G-0778).
+- **Sources this makes wrong:** the passages G-0706 (open, 2026-09-24) lists.
 - **Claims settled:** C29, C32–C40; H84 (the verb's refusal).
 
 ## Q9. Repeated and targetless requests: `pause`, `resume`, `end`, `close`
@@ -307,7 +308,18 @@ makes wrong and the claims it settles. Claim ids C-n are rows of `docs.md`, H-n 
   outputs, so the name reaches the spine only through what rebase and copy do. A doc corrected
   before the build would describe behaviour aiwf does not have.
 - **Sources this makes wrong, once ADR-0056 is built:** deferred to the epic that builds
-  ADR-0056 (M-0364, §Deferrals), listing:
+  ADR-0056 (M-0364, §Deferrals): every passage of the docs and skills that names a scope by its
+  opening commit's SHA, or gives `aiwf-authorized-by` or `aiwf-scope-ends` a SHA's shape.
+  ADR-0056 names the provenance model's (§Consequences, "What changes"). This finds them and the
+  rest, leaving out the ADRs and the dated records under `docs/research`, `docs/archive` and
+  `docs/audits`, which are not corrected:
+
+  ```sh
+  git grep -n -E 'auth-sha|addressed by the SHA|SHA of (its|the) .?authorize|SHA is the scope id|7.40 hex' \
+    -- docs internal/skills/embedded ':!docs/research' ':!docs/adr' ':!docs/archive' ':!docs/audits'
+  ```
+
+  Among them:
   - the `aiwf-authorize` skill, §Lifecycle: "The commit's SHA is the scope id; subsequent verbs
     inside the scope reference it via `aiwf-authorized-by:`." (C9);
   - the provenance model, §"Scope id": "A scope is addressed by the SHA of its `authorize`
@@ -372,9 +384,9 @@ makes wrong and the claims it settles. Claim ids C-n are rows of `docs.md`, H-n 
     the bound branch, an agent's code commit that is not a verb, `git cherry-pick -x` of an
     agent commit, force-push and `git reset --hard`, a rebase in progress;
   - changes the milestone: `aiwf archive` and `aiwf promote --audit-only` to a terminal status.
-    Not measured; `aiwf archive --apply` after a close, and `aiwf promote M-0001 done
-    --audit-only` with an active scope, each followed by `aiwf show M-0001` and an agent verb,
-    would settle whether the scope follows;
+    Not measured. For archive, C121 says the scope survives the sweep; `aiwf archive --apply`
+    after a close, and `aiwf promote M-0001 done --audit-only` with an active scope, each
+    followed by `aiwf show M-0001` and an agent verb, would settle whether the scope follows;
   - proposed and never built: scope rebind, an agent authorizing another, time-, verb- and
     pattern-limited scopes;
   - the verb commit output machine's (M-0366): amend, squash and the host's merge methods;
@@ -424,10 +436,10 @@ makes wrong and the claims it settles. Claim ids C-n are rows of `docs.md`, H-n 
   before this release stays breakable until it ends"). A unit test reaches the reader directly.
   Scopes in this repository's history are not the test's input: six were ever opened, all on
   epics and all ended, and only this project is in scope until aiwf is released to others.
-- **Measured 2026-11-21**, the binary of question 2, in this repository: the commits carrying
-  `aiwf-scope: opened` open scopes on E-0014 (two), E-0029, E-0032, E-0034 and E-0056, and
-  `aiwf show` reads each `state: ended` (a seventh match, 03ceea8b3 on M-0106, is a code commit
-  whose message quotes the trailer). `aiwf check --since f0aaa3e30` (the root commit) reported
+- **Measured 2026-11-21**, the binary of question 2, in this repository: the commits
+  `git log --grep='^aiwf-scope: opened'` lists open scopes on E-0014 (two), E-0029, E-0032,
+  E-0034 and E-0056, and `aiwf show` reads each `state: ended`. Without the `^` it also lists
+  03ceea8b3 and f8315c0e1, code commits whose messages quote the trailer. `aiwf check --since f0aaa3e30` (the root commit) reported
   `79 findings (57 errors, 22 warnings)`, every error `trailer-verb-unknown` and no
   `provenance-` or `isolation-escape` finding.
 - **The rest of the variables both tables list:** the actor's kind and `--principal`
@@ -445,9 +457,7 @@ makes wrong and the claims it settles. Claim ids C-n are rows of `docs.md`, H-n 
 ## Q17. Defects in today's code that the machine does not reach
 
 - **Date:** 2026-11-21.
-- **Answer:** five are filed as gaps in one batch at the end of the audit, with the reallocate
-  gap (question 15, G-0776) and the doc items the answers draft, through the record-gap ritual:
-  each reproduced, one fresh reviewer for the batch, one gate.
+- **Answer:** five are filed as gaps, each with its reproduction:
   1. `aiwf check` has no rule for pause state, so an agent commit made by hand while its scope
      is paused passes (H59; run p, H74), where the verb refuses the same act (H12, H64). G-0777.
   2. `aiwf check`'s no-active-scope rule tests only the `ai/` prefix, so a hand-made `bot/`
