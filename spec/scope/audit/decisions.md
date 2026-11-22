@@ -94,9 +94,8 @@ makes wrong and the claims it settles. Claim ids C-n are rows of `docs.md`, H-n 
     milestone `status: done`, the ended scope and a new one `state: active`; the agent's retitle
     exit 0; `check` exit 0, no error.
 - **Sources this makes wrong:** none of the docs. Today's binary differs in every state with a
-  scope. G-0755 (2026-11-01) records the `active` case; it does not say that a copy reopens a
-  paused, ended or closed scope. Whether that goes into G-0755 or a gap of its own is settled
-  when conform's divergences are classified (M-0364/AC-4).
+  scope. G-0755 (2026-11-01) records the `active` case, and since 2026-11-22, decided at
+  M-0364/AC-4, a copy that reopens a paused, ended or closed scope.
 - **Claims settled:** C102, C108–C113; H76.
 
 ## Q4. A second `authorize` while the scope is `active` or `paused`
@@ -119,8 +118,8 @@ makes wrong and the claims it settles. Claim ids C-n are rows of `docs.md`, H-n 
   - G-0460 (2026-07-27), §"Resolution shape", asks whether more than one active scope per entity
     is legal and, if not, proposes "a verb-time refusal (or an FSM guard) on opening a scope
     while one is already active". This answer settles the question and makes the repeat from
-    `active` a no-op, not a refusal. G-0460 stays the record of today's defect; its body is
-    corrected with the other docs after the spine is ratified, citing this answer.
+    `active` a no-op, not a refusal. G-0460 stays the record of today's defect; its body was
+    corrected on 2026-11-22, citing this answer.
   - Code comment, `internal/cli/cliutil/scopes.go`: "Multiple parallel scopes on the same entity
     are supported". It changes with the code.
   - Not wrong: design-decisions.md ("Multiple parallel scopes are supported") and the provenance
@@ -159,7 +158,8 @@ makes wrong and the claims it settles. Claim ids C-n are rows of `docs.md`, H-n 
   `docs/audits/gap-truth-audit.md` (C77, dated 2026-08-23), dated audits from before the end
   mode; `docs/archive/pocv3/gaps-pre-migration.md` (C79) and E-0028's §Constraints (C80),
   archived.
-- **Claims settled:** C67–C80; H45, H52.
+- **Claims settled:** C67–C80; H45, H52; H15, H20, H39 (history conflict 8, the window before
+  the operator's end existed; G-0225 is archived as wontfix).
 
 ## Q7. `ended` or `closed`, then `act`
 
@@ -236,8 +236,8 @@ makes wrong and the claims it settles. Claim ids C-n are rows of `docs.md`, H-n 
   both `closed`, exit 2, no commit, "no non-ended scope on M-0001 to end"; the named `--end` on
   an ended scope, exit 0, no commit, "scope … on M-0001 is already ended; nothing to end"; the
   unknown id, exit 2, "no scope on M-0001 matches --scope "1234567"".
-- **Today's binary differs:** `paused, pause` and `active, resume` are refused (H64). No gap
-  records it; conform will show it, and its classification goes with M-0364/AC-4.
+- **Today's binary differs:** `paused, pause` and `active, resume` are refused (H64). M-0364/AC-4
+  classifies it as a defect in the code, G-0786.
 - **Sources this makes wrong:** none while the code refuses a repeat; these describe that
   refusal, in words that read as covering a repeat:
   - the provenance model, §"Verb behavior": "If none active, refuses with
@@ -247,9 +247,8 @@ makes wrong and the claims it settles. Claim ids C-n are rows of `docs.md`, H-n 
   - the `aiwf-authorize` skill, §"Common refusals": "`--pause` with no active scope on the
     entity: nothing to pause; the verb refuses." and "`--resume` with no paused scope on the
     entity: nothing to resume." (C55, C63).
-  If M-0364/AC-4 classifies the difference as a defect in the code, the gap filed for it also
-  narrows each of these to a scope with nothing to pause or resume (decided 2026-11-22). Not
-  corrected in any case: `docs/archive/pocv3/health-scorecard-2026-06-16.md` (C58), archived.
+  G-0786, the defect M-0364/AC-4 filed for the code, lists each of these. Not corrected in any
+  case: `docs/archive/pocv3/health-scorecard-2026-06-16.md` (C58), archived.
 - **Claims settled:** C53–C55, C58, C59, C62, C63, C70, C72, C73; H6, H64, H80 (the repeat).
   The refusal codes (C53, C54, C56, C57, C62) are question 18.
 
@@ -304,8 +303,8 @@ makes wrong and the claims it settles. Claim ids C-n are rows of `docs.md`, H-n 
   writes no amended commit "unless it also writes ADR-0056's scope ids". The machine has no
   outputs, so the name reaches the spine only through what rebase and copy do. A doc corrected
   before the build would describe behaviour aiwf does not have.
-- **Sources this makes wrong, once ADR-0056 is built:** item to draft, for the ADR-0056 build
-  epic, listing:
+- **Sources this makes wrong, once ADR-0056 is built:** deferred to the epic that builds
+  ADR-0056 (M-0364, §Deferrals), listing:
   - the `aiwf-authorize` skill, §Lifecycle: "The commit's SHA is the scope id; subsequent verbs
     inside the scope reference it via `aiwf-authorized-by:`." (C9);
   - the provenance model, §"Scope id": "A scope is addressed by the SHA of its `authorize`
@@ -461,11 +460,14 @@ makes wrong and the claims it settles. Claim ids C-n are rows of `docs.md`, H-n 
      G-0781.
 - **Not filed:** `aiwf import` applies no scope gating (H16). Import is deprecated (G-0667,
   open, which records the surfaces that still present it as current).
+- **Sources this makes wrong:** M-0106, for item 3, whose claim G-0779 records. For item 4,
+  D-0007 or the code: G-0780 leaves which one changes to whoever takes it up. Items 1, 2 and 5
+  are defects in the code that no doc describes otherwise.
 - **Reason:** each is a defect the audit found in code this machine does not reach (hand-made
   commits, other actors, branch rules, another entity kind, dead code), so conform will not
   report it and nothing else tracks it. CLAUDE.md's engineering principle makes `aiwf check`
   the authority, which is why items 1 and 2 are defects, not gaps in a convenience.
-- **Claims settled:** H5, H11, H16, H25, H26, H36, H56, H57, H59–H61, H74, H84, H85.
+- **Claims settled:** H5, H11, H16, H18, H25, H26, H36, H56, H57, H59–H61, H74, H84, H85.
 
 ## Q18. Smaller conflicts among the docs
 
@@ -475,8 +477,8 @@ makes wrong and the claims it settles. Claim ids C-n are rows of `docs.md`, H-n 
     `provenance-no-paused-scope-to-resume` come out of the docs that name them (the provenance
     model §"Verb behavior", C53, C62; R-FP-0135 and R-FP-0136, C54); the code's refusals carry
     no code (H6; `docs/audits/normative-docs-drift-audit.md`, 2026-08-06, C56;
-    `docs/audits/entity-truth-audit.md`, 2026-08-19, C57). Filed as G-0783. Question 9's
-    narrowing, if M-0364/AC-4 calls for it, edits the same sentences.
+    `docs/audits/entity-truth-audit.md`, 2026-08-19, C57). Filed as G-0783. G-0786, from
+    question 9, lists the same sentences.
   - Filed as G-0784: the start-milestone ritual's §"Anti-patterns",
     `internal/skills/embedded-rituals/plugins/aiwf-extensions/skills/aiwfx-start-milestone/
     SKILL.md`: "The kernel's preflight refuses authorize-on-milestone-branch with
@@ -493,6 +495,8 @@ makes wrong and the claims it settles. Claim ids C-n are rows of `docs.md`, H-n 
     inside a scope someone already holds" (C22), an accepted ADR, beside D-0007 and the
     start-milestone ritual, which open scopes on milestones (C10, C21); M-0103's AC-2 title,
     which names the `branch-not-found` that D-0018 retired (C24, C26), archived.
+- **Sources this makes wrong:** the docs each bullet of the answer names, listed by G-0783,
+  G-0784 and G-0785; those its last bullet names stay as they are.
 - **Reason:** the machine has no outputs, so the codes are not its to decide, and the smallest
   change makes the docs true. Codes on those refusals would be a new feature, with a decision of
   its own.
