@@ -23,10 +23,6 @@ acs:
 A ratified spine for one agent's delegation scope as ADR-0056 has it, and a record of where
 today's `aiwf` departs from it.
 
-## Closes
-
-- (none)
-
 ## Context
 
 The pilot's scope spine in `docs/research/fewer-planning-commits/verifier-kit-pilot/scope/` has
@@ -97,10 +93,29 @@ that gap instead of filing another. **Code references**: `conformance/`; the pil
 ## Dependencies
 
 - None among E-0100's milestones.
-- E-0100's open question on installing verifier-kit into the repository, decided when this
-  milestone starts.
+- E-0100's open question on installing verifier-kit into the repository, settled on
+  2026-11-22: a pinned clone outside it (E-0100, §"Open questions").
 
 ## References
 
 - ADR-0056.
 - G-0751, G-0752 and G-0755.
+
+## Decisions made during implementation
+
+- The audit's answers, Q1 to Q18, each with its date, reason and the sources it makes wrong:
+  `spec/scope/audit/decisions.md`.
+- The answers to the readings' questions, Q1 to Q3: `spec/scope/answers.md`.
+- verifier-kit runs from a pinned clone of v0.3.3 outside the repository: E-0100, §"Open
+  questions"; the commands are in `spec/README.md`.
+- The readings are by Claude Sonnet 5.5 and Claude Fable 5.2, named in each reading's header.
+- At M-0364/AC-4: a copy that lands after a pause, an end or a close goes into G-0755 (audit Q3),
+  and a refused repeat pause or resume is a defect in aiwf, G-0786 (audit Q9).
+
+## Deferrals
+
+- Defects in aiwf found here, left alone because this milestone changes no aiwf code: G-0776,
+  G-0777, G-0778, G-0779, G-0780, G-0781, G-0782, G-0783, G-0784, G-0785 and G-0786. Of these,
+  G-0776, G-0777, G-0779 and G-0781 go to the epic that builds ADR-0056.
+- For the epic that builds ADR-0056: the docs ADR-0056 makes wrong (audit Q12) and the unit test
+  that its readers still read a scope opened before its release (audit Q16).
