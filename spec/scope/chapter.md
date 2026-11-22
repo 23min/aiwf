@@ -37,7 +37,9 @@ States:
 - **active**: the scope is active.
 - **paused**: the scope is paused.
 - **ended**: the human ended the scope, and the milestone is not `done`.
-- **closed**: the milestone is `done`, and any scope on it is ended (Q10).
+- **closed**: the milestone is `done`, and any scope on it is ended (Q10). aiwf records the scope
+  as ended in both ended and closed; what tells them apart is that a `done` milestone takes no new
+  scope (Q11), where after an end the human may open one.
 
 Every run starts in none. None, active and paused are policy: what the agent may do in each is a
 choice a later decision can change. Ended and closed are facts: each records an act aiwf never
