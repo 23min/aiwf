@@ -13,7 +13,7 @@ acs:
       status: met
     - id: AC-3
       title: The ratified spine passes spine check and matches its drawing
-      status: open
+      status: met
     - id: AC-4
       title: Every divergence conform reports against today's aiwf is classified
       status: open
