@@ -346,3 +346,22 @@ inventories were sorted again.
 | Artifact | Original SHA-256 | Updated SHA-256 |
 | --- | --- | --- |
 | `aiwfx-wrap-milestone/SKILL.md` | `63d3b774e56052759c678480af61171a48f70f6033e01806c567cfa24baec637` | `f13607c591b8440bdc37127f85252748d146308ec6bd7484edba824860aaa6d6` |
+
+## Start-milestone branch-order correction
+
+G-0784 corrects what the start-milestone ritual says the kernel does when the
+milestone branch is cut before the sovereign acts. The six inventories change only
+the record of `.claude/skills/aiwfx-start-milestone/SKILL.md`; all other records stay
+frozen.
+
+Provenance: derived in the Linux development container on 2026-11-22 without the
+renderer. The start-milestone adapter is rendered from fragments, so the record
+applies only the source edit's text replacements to the pre-change materialized
+bytes: an `init --no-prompt` run with a `v0.36.0`-stamped binary built from `main`
+at `e369a83c7` reproduced the frozen record, the replacements over those bytes gave
+the updated record, and the candidate binary's materialized file matched it. The
+inventories were sorted again.
+
+| Artifact | Original SHA-256 | Updated SHA-256 |
+| --- | --- | --- |
+| `aiwfx-start-milestone/SKILL.md` | `dceafde94f955c60d7c87ccb87b184f0f399c75eee9b3a3d79a5d606c63a4f7c` | `d70711d2376991ba8324f2db06b0a9af2877637a5909f40b52adb022f8ec8848` |

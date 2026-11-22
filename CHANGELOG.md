@@ -16,6 +16,18 @@ section in this file.
 
 ## [Unreleased]
 
+### Fixed — G-0784: the start-milestone ritual says what the kernel does when the milestone branch is cut first
+
+`aiwfx-start-milestone` said the kernel refuses an authorize run from the milestone
+branch with `branch-context-required`, that `isolation-escape` reports it at
+`aiwf check`, and that the preflight keeps the authorize commit on the parent epic
+branch. None holds: the ritual's step-4 command, with `--branch milestone/…`, is
+refused there with `rung-pair-illegal`; an authorize without `--branch` is accepted,
+lands on the milestone branch, binds the scope to it and draws no finding; and the
+preflight accepts step 4's command from any epic branch. The kernel holds step 3's
+promote to the parent epic branch. The ritual now says so. Run `aiwf update` to
+refresh installed rituals.
+
 ### Changed — G-0430: the README says how to go back to an earlier release
 
 `aiwf upgrade` keeps no rollback of its own, by decision D-0108. The README's
