@@ -9,7 +9,7 @@ carries, which a rebase or a copy keeps.
 
 It is taken from aiwf's records, not its code: the provenance model
 (`docs/design/provenance-model.md`), ADR-0047, ADR-0056, CLAUDE.md, and the maintainer's answers
-in `spec/scope/audit/decisions.md` (cited as Q1 to Q18), which settle where those records and
+in `spec/scope/audit/decisions.md` (cited as Q1 and on), which settle where those records and
 aiwf's history disagree. The claims behind the answers are in `audit/docs.md` and
 `audit/history.md`. The answers to the questions the chapter's two readings raised are in
 `spec/scope/answers.md`, cited as "answers.md, Q1" and on.
@@ -44,16 +44,17 @@ States:
 Every run starts in none. None, active and paused are policy: what the agent may do in each is a
 choice a later decision can change. Ended and closed are facts: each records an act no ordinary
 aiwf verb reverses, an end, which only a new scope follows (ADR-0047, §"Nothing undoes an end"),
-and a `done` milestone, which only the human override `aiwf promote --force` moves (answers.md,
-Q3).
+and a `done` milestone, which only the human override `aiwf promote --force` moves, apart from
+the deprecated `aiwf import`, which `aiwf check` then reports (answers.md, Q3).
 
 Events. Each is one thing the human, the agent or git does:
 
 - **authorize**: the human runs `aiwf authorize <milestone> --to ai/claude --reason "<text>"`.
-- **act**: the agent runs one aiwf verb that changes the milestone and leaves no error for
-  `aiwf check` to report, such as `aiwf retitle <milestone> "<title>"`, with
-  `--actor ai/claude --principal human/t`. A verb that leaves an error, such as `aiwf add ac`
-  with no body, which `acs-empty-body` reports, is not an act.
+- **act**: the agent runs one aiwf verb that changes the milestone, leaves its status as it is
+  and leaves no error for `aiwf check` to report, such as `aiwf retitle <milestone> "<title>"`,
+  with `--actor ai/claude --principal human/t`. The agent's own close or cancel, and a verb that
+  leaves an error, such as `aiwf add ac` with no body, which `acs-empty-body` reports, are not
+  acts (Q19).
 - **pause**: the human runs `aiwf authorize <milestone> --pause "<reason>"`.
 - **resume**: the human runs `aiwf authorize <milestone> --resume "<reason>"`.
 - **end**: the human runs `aiwf authorize <milestone> --end --reason "<text>"`, without
@@ -135,8 +136,9 @@ changes nothing and makes no commit.
 18. check passes when `aiwf check` reports no errors; warnings are allowed. check never changes
     the state.
 19. check passes in every state. An agent's verb commits only under an active scope (rules 6
-    and 7), and rebase, copy and reallocate change nothing about the scope (rules 15 and 16), so
-    no step leaves a commit that names a scope it should not.
+    and 7) and leaves no error of its own (§1, act), and rebase, copy and reallocate change
+    nothing about the scope (rules 15 and 16), so no step leaves a commit that names a scope it
+    should not.
 
 ## 3. What must hold
 
@@ -199,16 +201,18 @@ Left out of the machine, each with the answer that leaves it out:
 - **Ending a scope by naming it**, `--end --scope <its id>`, which does nothing when that scope
   is already ended (Q9).
 - **cancel** of the milestone, which ends a scope as close does (Q14).
+- **The agent's own close or cancel** of the milestone, which ends its scope with
+  `aiwf-scope-ends` on the agent's commit, as the human's close does (Q19).
 - **authorize `--force`** on a `done` milestone, a human override (Q11).
 - **promote `--force`** out of `done` or `cancelled`, a human override. No ordinary transition
-  leaves either, so there is no un-cancel (answers.md, Q3; Q15).
+  leaves either, so there is no ordinary un-cancel (answers.md, Q3; Q15).
 - **Other actors and other scopes**: another agent's scope, a `bot/` actor, a scope delegated to
   a human, and a scope on the parent epic, which also lets the agent act on the milestone
   (D-0007) (Q14, Q16).
 - **Commits made around the verbs**: an agent commit made by hand, which `aiwf check` should
   judge; Q17 records where it does not.
-- **Other ways git copies a commit**: a cherry-pick of the opening commit alone, which is
-  narrower than copy, and a merge of `main` in place of a rebase, which keeps every hash (Q13).
+- **Other git steps on the branch**: a cherry-pick of the opening commit alone, which copies
+  less than copy does, and a merge of `main` in place of a rebase, which keeps every hash (Q13).
 - **Names with no event behind them**: `revoke` and `authorize-end`, names proposed for what
   `--end` does (Q15).
 - **Scopes proposed and never built**: re-binding a scope to another branch, an agent
@@ -218,9 +222,11 @@ Left out of the machine, each with the answer that leaves it out:
 - **Other git and aiwf steps** that change what `aiwf check` reports or what the branch rules
   say, not the scope: push, wrap commits after a close, `aiwf acknowledge illegal`, a branch
   rename, `git cherry-pick -x` of an agent commit, which copies an act and not the opening
-  commit, force-push and `git reset --hard`, a rebase in progress (Q15).
-- **`aiwf archive` and `aiwf promote --audit-only`**, which change the milestone; whether the
-  scope follows them is not measured (Q15).
+  commit, a merge of a ritual branch into `main`, judged by first-parent ancestry, force-push and
+  `git reset --hard`, a rebase in progress (Q15).
+- **`aiwf archive`**, which moves the milestone's file, and **`aiwf promote --audit-only`**,
+  which records a status the milestone's file already has; whether the scope follows them is not
+  measured (Q15).
 - **Amend, squash and the host's merge methods**, which the verb commit output machine (M-0366)
   takes up. A squash that keeps only a commit's title loses its trailers and with them the scope
   (ADR-0056, §Consequences) (Q15).

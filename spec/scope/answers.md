@@ -5,9 +5,9 @@ reading-b, `spine check` of each, and the kind each reading gives each state, wh
 compares. The chapter carries each answer at the rule it settles.
 
 - **Q1. Is closed final?** No. Nothing leaves closed, but every step there is decided as the
-  chapter's §2 says, so `spine conform` checks what aiwf does after a close: the refused
-  authorize (audit Q11), the refused pause and resume, and a close that is allowed and leaves
-  closed as it is (audit Q9).
+  chapter's §2 says, so `spine conform` checks every step aiwf takes after a close, among them
+  the refused authorize (audit Q11), the refused pause and resume, and a close that is allowed
+  and leaves closed as it is (audit Q9).
   Reading A made closed final and reading B did not, so they split on closed/authorize,
   closed/act, closed/pause, closed/resume, closed/end, closed/close, closed/rebase,
   closed/reallocate and closed/check. (Chapter S3.)
@@ -22,6 +22,8 @@ compares. The chapter carries each answer at the rule it settles.
   fresh grant" (ADR-0047, §"Nothing undoes an end"), and a `done` milestone has no transition
   out (`internal/entity/transition.go`); only the human override `aiwf promote --force` moves it
   ("force=true relaxes the FSM transition rule so any-to-any moves are permitted",
-  `internal/verb/promote.go`). Changing either rule needs a new decision. The readings
-  differed only on ended, which reading A made policy; `spine diff` does not compare kinds.
-  (Chapter §1, States.)
+  `internal/verb/promote.go`). The deprecated `aiwf import --on-collision update` also moves it,
+  and `aiwf check` reports that as `fsm-history-consistent/illegal-transition` (measured
+  2026-11-22 with the `aiwf` `conform.md` names). Changing either rule needs a new decision. The
+  readings differed only on ended, which reading A made policy; `spine diff` does not compare
+  kinds. (Chapter §1, States.)
