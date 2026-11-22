@@ -172,7 +172,7 @@ makes wrong and the claims it settles. Claim ids C-n are rows of `docs.md`, H-n 
   `internal/policies/authorized_by_via_allow.go` enforces. A commit made by hand under an ended
   scope is `check`'s to report, as `provenance-authorization-ended` at error (C115, measured by
   G-0752); the machine's `act` is a verb, not a hand-made commit.
-- **Sources this makes wrong:** item to draft, listing:
+- **Sources this makes wrong:** filed as G-0782:
   - the wrap-milestone skill, §10 and anti-patterns: "A verb-driven commit produced after that
     point risks an ended-scope `aiwf-authorized-by:` trailer on push" (C46);
   - the wrap-epic skill, §7 "Why promote is last among verb-driven commits": "Any commit
@@ -198,10 +198,10 @@ makes wrong and the claims it settles. Claim ids C-n are rows of `docs.md`, H-n 
   (G-0706, measured; H84 for `bot/`).
 - **Sources this makes wrong:** the ones G-0706 (open, 2026-09-24) lists: the provenance model
   §"Worked examples", Example 2 (C37); the `aiwf-authorize` skill's "Tool mode (HITL)" bullet
-  and closing "Don't" list (C38); the `aiwf-add` skill §"Provenance flags". Two more, not in
-  G-0706's list: `docs/design/legal-workflows-audit.md` R-AUDIT-0104 (C39, revision 2 dated
-  2026-05-18), and the `aiwf-add` skill §"What aiwf does" step 5 (C40). Item to draft: add
-  those two to G-0706, citing this answer, rather than file another gap.
+  and closing "Don't" list (C38); the `aiwf-add` skill §"Provenance flags";
+  `docs/design/legal-workflows-audit.md` R-AUDIT-0104 (C39, revision 2 dated 2026-05-18); and
+  the `aiwf-add` skill §"What aiwf does" step 5 (C40). The last two were added to G-0706 on
+  2026-11-22, citing this answer.
 - **Claims settled:** C29, C32–C40; H84 (the verb's refusal).
 
 ## Q9. Repeated and targetless requests: `pause`, `resume`, `end`, `close`
@@ -401,10 +401,9 @@ makes wrong and the claims it settles. Claim ids C-n are rows of `docs.md`, H-n 
     agent's title-only ACs).
   - With `aiwf authorize M-0001 --end --reason over` before the reallocate, the agent's `add ac`
     on M-0002 was refused, `provenance-no-active-scope`.
-- **Sources this makes wrong:** none. The defect is a new item to draft: a gap for the behaviour
-  observed above, with the code that pause, resume and the close's end use to find a scope
-  located when it is drafted; no open gap records it (G-0118, addressed, covered `aiwf check`'s
-  side).
+- **Sources this makes wrong:** none. The defect is filed as G-0776, which locates the code
+  that pause, resume, `--end` and the close's end use to find a scope (G-0118, addressed,
+  covered `aiwf check`'s side).
 - **Claims settled:** the event names in `docs.md` §4 and `history.md` §5.
 
 ## Q16. Variables the sources depend on
@@ -445,19 +444,21 @@ makes wrong and the claims it settles. Claim ids C-n are rows of `docs.md`, H-n 
 
 - **Date:** 2026-11-21.
 - **Answer:** five are filed as gaps in one batch at the end of the audit, with the reallocate
-  gap (question 15) and the doc items the answers draft, through the record-gap ritual: each
-  reproduced, one fresh reviewer for the batch, one gate.
+  gap (question 15, G-0776) and the doc items the answers draft, through the record-gap ritual:
+  each reproduced, one fresh reviewer for the batch, one gate.
   1. `aiwf check` has no rule for pause state, so an agent commit made by hand while its scope
-     is paused passes (H59; run p, H74), where the verb refuses the same act (H12, H64).
+     is paused passes (H59; run p, H74), where the verb refuses the same act (H12, H64). G-0777.
   2. `aiwf check`'s no-active-scope rule tests only the `ai/` prefix, so a hand-made `bot/`
-     commit with no scope passes (H61; run bt, H84), where the verb refuses it (H11).
+     commit with no scope passes (H61; run bt, H84), where the verb refuses it (H11). G-0778.
   3. `isolation-escape` keys openers by exact `aiwf-entity`, so an agent commit naming
      `M-…/AC-N` on the wrong branch is never reported (H60; run ie, H85), where M-0106 says it
-     is (H36).
+     is (H36). G-0779, which also records an agent commit on a milestone made under its
+     epic's scope.
   4. D-0007 says `--force` overrides the refusal to authorize a gap, decision, contract or ADR
-     (H26); the code refuses those kinds before reading `--force` (H25; run g).
+     (H26); the code refuses those kinds before reading `--force` (H25; run g). G-0780.
   5. `scope.LoadScope` and `scope.IsLegalScopeTransition` have no production caller (H57), and
      `LoadScope` refuses a history that the replay production uses skips silently (H5, H56).
+     G-0781.
 - **Not filed:** `aiwf import` applies no scope gating (H16). Import is deprecated (G-0667,
   open, which records the surfaces that still present it as current).
 - **Reason:** each is a defect the audit found in code this machine does not reach (hand-made
@@ -474,14 +475,14 @@ makes wrong and the claims it settles. Claim ids C-n are rows of `docs.md`, H-n 
     `provenance-no-paused-scope-to-resume` come out of the docs that name them (the provenance
     model §"Verb behavior", C53, C62; R-FP-0135 and R-FP-0136, C54); the code's refusals carry
     no code (H6; `docs/audits/normative-docs-drift-audit.md`, 2026-08-06, C56;
-    `docs/audits/entity-truth-audit.md`, 2026-08-19, C57). Question 9's narrowing, if
-    M-0364/AC-4 calls for it, edits the same sentences.
-  - Item to draft, listing: the start-milestone ritual's §"Anti-patterns",
+    `docs/audits/entity-truth-audit.md`, 2026-08-19, C57). Filed as G-0783. Question 9's
+    narrowing, if M-0364/AC-4 calls for it, edits the same sentences.
+  - Filed as G-0784: the start-milestone ritual's §"Anti-patterns",
     `internal/skills/embedded-rituals/plugins/aiwf-extensions/skills/aiwfx-start-milestone/
     SKILL.md`: "The kernel's preflight refuses authorize-on-milestone-branch with
     `branch-context-required` at the verb layer; the `isolation-escape` kernel finding catches
     the same shape post-hoc at `aiwf check`" (C27), both halves false.
-  - Item to draft: which paused scope a resume picks. The verb picks the most recently opened
+  - Filed as G-0785: which paused scope a resume picks. The verb picks the most recently opened
     paused scope (`mostRecentScopeInState`, `internal/verb/authorize.go`; measured 2026-11-21
     with two paused scopes); the provenance model §"Verb behavior" (C61), R-FP-0136,
     R-AUDIT-0219, R-RULE-072, the `aiwf-authorize` skill and the verb's help text say "the
