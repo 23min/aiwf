@@ -1,0 +1,79 @@
+# Reading B of the scope chapter, by claude-fable-5-2, 2026-11-22. Made from (git hash-object):
+# chapter.md 7bbe9401f25bd779a5b242bcf2fd75a6f5fe3e26, readings/prompt.md 098b2d72d9e5754758ef50af787716761accf618,
+# docs/reference/spine-format.md 195c96437c338f026e1570510471f2efdafc77f5. The reader was given the filled-in
+# prompt as one file to read. The reply below is unedited, apart from the Markdown code fence around it.
+# Reading of the chapter "scope: one agent's delegation on one milestone".
+# The chapter names no state kinds; the kinds below are this reader's.
+# No-ops ("what it asks for already holds") are written `ignore: true`;
+# allowed steps that leave the state as it is are written `stay: true`.
+machine: scope
+states:
+  none:   {kind: policy}
+  active: {kind: policy}
+  paused: {kind: policy}
+  ended:  {kind: fact}
+  # closed is not marked terminal: the chapter says "Nothing leaves closed" (S3) but
+  # never calls it final, and it decides each event there (rules 5, 7, 10, 12, 14, 15, 16, 19).
+  closed: {kind: fact}
+initial: none
+events: [authorize, act, pause, resume, end, close, rebase, copy, reallocate, check]
+rules:
+  # none
+  - {from: none, event: authorize, to: active}
+  - {from: none, event: act, reject: true}
+  - {from: none, event: pause, reject: true}
+  - {from: none, event: resume, reject: true}
+  - {from: none, event: end, reject: true}
+  - {from: none, event: close, to: closed}
+  - {from: none, event: rebase, stay: true}
+  # undecided: none/copy. Rule 15 says copy leaves every state as it is, but rule 17 says that in none there is no opening commit, so copy has nothing to copy; the chapter does not say whether that step is allowed, a no-op or refused.
+  - {from: none, event: reallocate, stay: true}
+  - {from: none, event: check, stay: true}
+
+  # active
+  - {from: active, event: authorize, ignore: true}
+  - {from: active, event: act, stay: true}
+  - {from: active, event: pause, to: paused}
+  - {from: active, event: resume, ignore: true}
+  - {from: active, event: end, to: ended}
+  - {from: active, event: close, to: closed}
+  - {from: active, event: rebase, stay: true}
+  - {from: active, event: copy, stay: true}
+  - {from: active, event: reallocate, stay: true}
+  - {from: active, event: check, stay: true}
+
+  # paused
+  - {from: paused, event: authorize, reject: true}
+  - {from: paused, event: act, reject: true}
+  - {from: paused, event: pause, ignore: true}
+  - {from: paused, event: resume, to: active}
+  - {from: paused, event: end, to: ended}
+  - {from: paused, event: close, to: closed}
+  - {from: paused, event: rebase, stay: true}
+  - {from: paused, event: copy, stay: true}
+  - {from: paused, event: reallocate, stay: true}
+  - {from: paused, event: check, stay: true}
+
+  # ended
+  - {from: ended, event: authorize, to: active}
+  - {from: ended, event: act, reject: true}
+  - {from: ended, event: pause, reject: true}
+  - {from: ended, event: resume, reject: true}
+  - {from: ended, event: end, reject: true}
+  - {from: ended, event: close, to: closed}
+  - {from: ended, event: rebase, stay: true}
+  - {from: ended, event: copy, stay: true}
+  - {from: ended, event: reallocate, stay: true}
+  - {from: ended, event: check, stay: true}
+
+  # closed
+  - {from: closed, event: authorize, reject: true}
+  - {from: closed, event: act, reject: true}
+  - {from: closed, event: pause, reject: true}
+  - {from: closed, event: resume, reject: true}
+  - {from: closed, event: end, reject: true}
+  - {from: closed, event: close, ignore: true}
+  - {from: closed, event: rebase, stay: true}
+  # undecided: closed/copy. Rule 15 leaves closed as it is when a scope was opened, but rule 17 says that in closed with no scope opened copy has nothing to copy, without saying whether the step is allowed, a no-op or refused; the glossary declares no variable to tell the two cases of closed apart.
+  - {from: closed, event: reallocate, stay: true}
+  - {from: closed, event: check, stay: true}
