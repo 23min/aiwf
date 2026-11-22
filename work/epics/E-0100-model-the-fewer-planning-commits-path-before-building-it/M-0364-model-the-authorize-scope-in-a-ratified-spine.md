@@ -10,7 +10,7 @@ acs:
       status: met
     - id: AC-2
       title: The chapter answers every case the two readings split or leave open
-      status: open
+      status: met
     - id: AC-3
       title: The ratified spine passes spine check and matches its drawing
       status: open
