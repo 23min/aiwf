@@ -108,8 +108,8 @@ makes wrong and the claims it settles. Claim ids C-n are rows of `docs.md`, H-n 
   the permission is already there, so the request is already satisfied, which CLAUDE.md item 7
   makes a NoOp ("a request already satisfied is a NoOp at exit 0 with no commit"). While it is
   paused the request is not satisfied, and lifting a pause stays one deliberate step,
-  `--resume`. The comment that exempts `Authorize` from the same-state check argues that "a
-  silent NoOp would mask the two-active-scopes defect"
+  `--resume`. The `Authorize` entry of `noopExemptVerbs`, which exempts it from the same-state
+  check, gives as its reason that "a silent NoOp would mask the two-active-scopes defect"
   (`internal/policies/verb_result_noop_invariant.go:54`); that holds while more than one scope
   per agent and milestone might be legal.
   Questions 2–4 leave one, so a no-op hides no second scope.
@@ -118,19 +118,15 @@ makes wrong and the claims it settles. Claim ids C-n are rows of `docs.md`, H-n 
 - **Applies to:** every scope. An `authorize` writes a new opening commit whatever release opened
   the scope it repeats.
 - **Sources this makes wrong:**
-  - G-0460 (2026-07-27), §"Resolution shape", proposes "a verb-time refusal (or an FSM guard) on
-    opening a scope while one is already active" if more than one active scope per entity is
-    not legal. This answer settles that for a milestone and makes the repeat from `active` a
-    no-op, not a refusal. G-0460's body cites this answer, keeps the question open for an epic,
-    and stays the record of today's defect.
   - Code comment, `internal/cli/cliutil/scopes.go`: "Multiple parallel scopes on the same entity
     are supported". It changes with the code.
-  - Code comment, `internal/policies/verb_result_noop_invariant.go:54`, the reason `Authorize` is
-    exempt from the same-state check: "a silent NoOp would mask the two-active-scopes defect". It
-    changes with the code.
+  - The `Authorize` entry of `noopExemptVerbs`
+    (`internal/policies/verb_result_noop_invariant.go:54`), whose reason is that "a silent NoOp
+    would mask the two-active-scopes defect". It comes out when the code changes.
   - Not wrong: design-decisions.md ("Multiple parallel scopes are supported") and the provenance
     model §"Multiple parallel scopes", whose example is one agent on two entities; the
-    start-milestone skill's "one scope per entity".
+    start-milestone skill's "one scope per entity"; G-0460 (2026-07-27), whose §"Resolution
+    shape" cites this answer for a milestone and leaves the question open for an epic.
 - **Today's binary differs:** a repeat opens a second scope from either state (G-0460; H8, H50,
   H66, H68). G-0460 records it, so no new item is drafted.
 - **Claims settled:** C2, C17–C20, C31 (for one milestone); H8, H50, H66, H68; not covered:
@@ -196,8 +192,9 @@ makes wrong and the claims it settles. Claim ids C-n are rows of `docs.md`, H-n 
 ## Q8. `none`, then `act`
 
 - **Date:** 2026-11-21.
-- **Answer:** an agent's verb with no scope is refused (`provenance-no-active-scope`) and writes
-  no commit, whether or not it names a principal.
+- **Answer:** an agent's verb with no scope is refused and writes no commit, whether or not it
+  names a principal: with `--principal` as `provenance-no-active-scope`, without it as
+  "principal required for non-human actor" (H83).
 - **Reason:** CLAUDE.md item 9: "An LLM the human directs in conversation is the human's tool,
   not a co-actor; `aiwf authorize` opens a scope an agent works within." A commit made in
   conversation has the human as its actor; an `ai/` actor is an agent working on its own, which
@@ -310,13 +307,19 @@ makes wrong and the claims it settles. Claim ids C-n are rows of `docs.md`, H-n 
 - **Sources this makes wrong, once ADR-0056 is built:** deferred to the epic that builds
   ADR-0056 (M-0364, §Deferrals): every passage of the docs and skills that names a scope by its
   opening commit's SHA, or gives `aiwf-authorized-by` or `aiwf-scope-ends` a SHA's shape.
-  ADR-0056 names the provenance model's (§Consequences, "What changes"). This finds them and the
-  rest, leaving out the ADRs and the dated records under `docs/research`, `docs/archive` and
-  `docs/audits`, which are not corrected:
+  ADR-0056 names the provenance model's (§Consequences, "What changes"). This search finds them
+  and the others, leaving out the ADRs and the dated records under `docs/research`,
+  `docs/archive` and `docs/audits`, which are not corrected. On `main` on 2026-11-22 it found 49
+  lines in nine files, and every one was such a passage; a search cannot be shown complete, so
+  the build epic runs it again and reads what it finds:
 
   ```sh
-  git grep -n -E 'auth-sha|addressed by the SHA|SHA of (its|the) .?authorize|SHA is the scope id|7.40 hex' \
-    -- docs internal/skills/embedded ':!docs/research' ':!docs/adr' ':!docs/archive' ':!docs/audits'
+  LC_ALL=C git grep -n -i -E \
+    -e 'auth[- ]?sha|auth-short|addressed by the sha|sha of (its|the) .?authorize|sha is the scope id' \
+    -e '7.{1,3}40 hex|authoriz[a-z]* shas?\b|(authorized-by|scope-ends):?`? shas?\b|git sha of the' \
+    -e 'shas of authorize|sha-points-to|authorize[- ]commit sha|(authorized-by|scope-ends): [0-9a-f]{7}' \
+    -e 'original sha|scope `[0-9a-f]{7}' \
+    -- docs internal/skills/embedded README.md ':!docs/research' ':!docs/adr' ':!docs/archive' ':!docs/audits'
   ```
 
   Among them:
@@ -382,11 +385,15 @@ makes wrong and the claims it settles. Claim ids C-n are rows of `docs.md`, H-n 
   - changes what `check` reports or what the branch rules say, not the scope: push (the hook
     runs `aiwf check`), wrap commits after a close (H22), `aiwf acknowledge illegal`, a rename of
     the bound branch, an agent's code commit that is not a verb, `git cherry-pick -x` of an
-    agent commit, force-push and `git reset --hard`, a rebase in progress;
-  - changes the milestone: `aiwf archive` and `aiwf promote --audit-only` to a terminal status.
-    Not measured. For archive, C121 says the scope survives the sweep; `aiwf archive --apply`
-    after a close, and `aiwf promote M-0001 done --audit-only` with an active scope, each
-    followed by `aiwf show M-0001` and an agent verb, would settle whether the scope follows;
+    agent commit, a merge of a ritual branch into `main` (judged by first-parent ancestry),
+    force-push and `git reset --hard`, a rebase in progress;
+  - acts on the milestone without changing its status: `aiwf archive`, which moves its file, and
+    `aiwf promote --audit-only`, which records a terminal status the file already has (on an
+    `in_progress` milestone it refuses: "audit-only records what's already true"). Not measured.
+    For archive, C121 says a scope still active when its milestone is swept survives the sweep;
+    `aiwf archive --apply` after a close, and `aiwf promote M-0001 done --audit-only` after the
+    file's status is set to `done` by hand with a scope active, each followed by
+    `aiwf show M-0001` and an agent verb, would settle whether the scope follows;
   - proposed and never built: scope rebind, an agent authorizing another, time-, verb- and
     pattern-limited scopes;
   - the verb commit output machine's (M-0366): amend, squash and the host's merge methods;
@@ -439,7 +446,8 @@ makes wrong and the claims it settles. Claim ids C-n are rows of `docs.md`, H-n 
 - **Measured 2026-11-21**, the binary of question 2, in this repository: the commits
   `git log --grep='^aiwf-scope: opened'` lists open scopes on E-0014 (two), E-0029, E-0032,
   E-0034 and E-0056, and `aiwf show` reads each `state: ended`. Without the `^` it also lists
-  03ceea8b3 and f8315c0e1, code commits whose messages quote the trailer. `aiwf check --since f0aaa3e30` (the root commit) reported
+  03ceea8b3 and f8315c0e1, code commits whose messages quote the trailer.
+  `aiwf check --since f0aaa3e30` (the root commit) reported
   `79 findings (57 errors, 22 warnings)`, every error `trailer-verb-unknown` and no
   `provenance-` or `isolation-escape` finding.
 - **The rest of the variables both tables list:** the actor's kind and `--principal`
@@ -517,6 +525,30 @@ makes wrong and the claims it settles. Claim ids C-n are rows of `docs.md`, H-n 
   M-0001 --to ai/claude --reason go` with `milestone/M-0001-first-milestone` checked out and no
   `--branch`, and each printed `authorize exit 0`, as M-0103's AC-3 title has it (C28).
 - **Claims settled:** C10, C19, C21–C28, C53, C54, C56, C57, C61, C62, C65.
+
+## Q19. The agent's own close or cancel, and verbs that leave an error
+
+- **Date:** 2026-11-22.
+- **Answer:** the machine leaves both out. Its `act` is an agent verb that changes the
+  milestone, leaves the milestone's status as it is and leaves no error for `aiwf check` to
+  report. The agent's own promote to `done` or cancel of the milestone is not an `act`, nor is a
+  verb that leaves an error.
+- **Reason:** the docs allow the agent's close by design ("The agent can close its own scope by
+  design", C90; C89), and its closing commit ends the scope with `aiwf-scope-ends`, the side
+  effect the human's close has (H13), so as an event of its own it would differ from `close`
+  only in who runs it and in being refused where the agent has no active scope. A verb that
+  leaves an error, such as `aiwf add ac` with no body (`acs-empty-body`), fails `check` for a
+  reason that is not the scope's.
+- **Measured 2026-11-22**, with the `aiwf` `conform.md` names, on the adapter's starting
+  repository: `aiwf authorize M-0001 --to ai/claude --reason go`, then the agent's
+  `aiwf promote M-0001/AC-1 met`, `AC-2 met` and `aiwf promote M-0001 done`, each with
+  `--actor ai/claude --principal human/t`. Expected, by C90: the close allowed and the scope
+  ended. Observed: exit 0, status `done`, the scope `ended`, the closing commit carrying
+  `aiwf-actor: ai/claude`, `aiwf-authorized-by` and `aiwf-scope-ends`; `aiwf check --since main`
+  0 errors. With the agent's `aiwf cancel` of both ACs and then of `M-0001`: exit 0, status
+  `cancelled`, the scope `ended`, `aiwf-scope-ends` on the agent's commit, 0 errors.
+- **Sources this makes wrong:** none.
+- **Claims settled:** C89, C90 (for the machine).
 
 ## Cases no source covers, answered from the answers above
 
