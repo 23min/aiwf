@@ -11,10 +11,11 @@ What aiwf must offer it:
   - `aiwf show <id> --format json`, whose `result` gives the milestone's `status`, its `acs`
     with each `id` and `status`, and its `scopes` with each `state`.
 
-The world new() starts from, built once per run with the aiwf on PATH: one repository where
-`aiwf init` ran with `hosts: []`, epic E-0001 active, milestone M-0001 in progress with two ACs
-whose bodies are written, and the branch milestone/M-0001-first-milestone checked out. git's
-identity is t@example.com, so the human is human/t. git reads no global or system config.
+The world new() starts from, built with the aiwf on PATH by the first new() of the adapter's
+process, which spine conform starts once per run: one repository where `aiwf init` ran with
+`hosts: []`, epic E-0001 active, milestone M-0001 in progress with two ACs whose bodies are
+written, and the branch milestone/M-0001-first-milestone checked out. git's identity is
+t@example.com, so the human is human/t. git reads no global or system config.
 
 Events (chapter.md, §1), each on the milestone's current id <m>:
   authorize   aiwf authorize <m> --to ai/claude --reason go
@@ -45,7 +46,9 @@ and names:
 Anything else is named as aiwf shows it, such as "in_progress; scopes not ended: active, active",
 which no spine state matches, so conform reports it.
 
-SCOPE_RUNS names the folder the repositories go in; a new temporary folder when it is unset.
+SCOPE_RUNS names the folder the repositories go in, a new temporary folder when it is unset.
+Building the world replaces template/ there, and each new() deletes the run-* folders the
+sequence before it left.
 """
 import json
 import os
