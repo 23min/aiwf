@@ -10,8 +10,8 @@ in `conformance/adapter_<machine>.cmd`.
 ## Running verifier-kit
 
 verifier-kit is not installed in this repository. Its tools run from a separate checkout at the
-version the models were made with, v0.3.3 (E-0100, §"Open questions"). With `$VK` a folder
-outside this repository:
+version the models were made with, v0.3.3 (E-0100, §"Open questions"). With `$VK` the absolute
+path of a folder outside this repository, since the draw line below runs from `spec/<m>`:
 
 ```sh
 git clone -q https://github.com/23min/verifier-kit.git "$VK"
