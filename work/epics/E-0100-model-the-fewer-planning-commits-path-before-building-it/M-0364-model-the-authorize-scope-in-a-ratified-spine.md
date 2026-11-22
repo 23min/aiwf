@@ -104,20 +104,20 @@ that gap instead of filing another. **Code references**: `conformance/`; the pil
 ## Release note
 
 Nothing user-facing changes: aiwf's code and docs are as they were. For maintainers, the
-repository gains `spec/scope/`, verifier-kit's model of one agent's authorize scope on a
-milestone as ADR-0056 has it, and `conformance/adapter_scope.py`, which compares that model
-with an `aiwf` binary; `spec/README.md` says how to run them.
+repository gains `spec/scope/`, a verifier-kit model of one agent's authorize scope on a
+milestone as ADR-0056 has it; `conformance/adapter_scope.py`, which compares that model with an
+`aiwf` binary; and `spec/check.py`, which re-checks a machine's records against what E-0100's
+milestones ask of them. `spec/README.md` says how to run them.
 
 ## Decisions made during implementation
 
-- The audit's answers, Q1 to Q18, each with its date, reason and the sources it makes wrong:
+- The audit's answers, each with its date, reason and the sources it makes wrong:
   `spec/scope/audit/decisions.md`.
 - The answers to the readings' questions, Q1 to Q3: `spec/scope/answers.md`.
 - verifier-kit runs from a pinned clone of v0.3.3 outside the repository: E-0100, §"Open
   questions"; the commands are in `spec/README.md`.
 - The readings are by Claude Sonnet 5.5 and Claude Fable 5.2, named in each reading's header.
-- The classifications made at M-0364/AC-4: `spec/scope/conform.md`, with the answers they rest
-  on in audit Q3 and Q9.
+- The classifications made at M-0364/AC-4: `spec/scope/conform.md`.
 
 ## Validation
 
@@ -131,15 +131,24 @@ says (`$VK`), and the `aiwf` that `spec/scope/conform.md` names.
   guidance file changes (`git diff --name-only cc0d64cff..HEAD` over those paths is empty), so
   CLAUDE.md's cadence skips them. `python3 -m py_compile conformance/adapter_scope.py
   spec/check.py`: exit 0.
-- M-0364/AC-1 to M-0364/AC-4: `python3 spec/check.py scope "$VK"` checks the records each asks
-  for, as its header lists. Expected: every line `ok`, exit 0. Observed: `all passed`, exit 0.
-  Each rule was then broken once in the working tree, and each time the check exited 1 naming
-  that rule: an answer's sources field, a claim id, the names settlements, a not-covered pair or
-  a case removed from the records; the readings given one model; a header hash changed; a
-  chapter citation removed; a reading's rule or initial state changed; a spine rule removed or
-  changed; a state moved in `drawing.yaml`; the spine header's ratification removed; a run field,
-  a hash, a classification row or a row's gap changed in `conform.md`; a second line in the
-  `.cmd`.
+- M-0364/AC-1 to M-0364/AC-4: `python3 spec/check.py scope "$VK"` checks what its header lists.
+  Expected: every line `ok`, exit 0. Observed: `all passed`, exit 0. Each rule was then broken
+  once in the working tree, and each time the check exited 1 naming that rule: an answer's
+  field emptied or removed; an audit section renamed; a claim id, the names settlements, a
+  not-covered pair or a case removed from the records; the readings given one model; a header
+  hash changed; the chapter's citation of an answer removed; a reading's rule or initial state
+  changed; a spine rule removed or changed; a state moved in `drawing.yaml`; the spine header's
+  ratification removed; a run field, a hash or another verifier-kit version written into
+  `conform.md`; a classification row or a row's gap removed; the `.cmd` naming another adapter
+  or given a second line.
+- What the check does not reach, each read rather than pinned:
+  - M-0364/AC-1, that an answer whose docs are wrong cites the gap listing them: Q7, Q8, Q9,
+    Q17 and Q18 cite theirs; Q4's are code comments, which change with the code G-0460
+    records; Q2's and Q12's describe aiwf correctly until ADR-0056 is built, and Q12 records
+    the decision to list them for the build epic instead of filing a gap.
+  - M-0364/AC-3, that the spine's header names the lifecycle: its first sentence does.
+  - M-0364/AC-4, that the adapter only translates: each event runs the command its header
+    names, and `observe` names the states as chapter §1 defines them.
 - M-0364/AC-2, beyond the check: each reading is byte-identical to its reader's reply taken again
   from the reader's transcript. The transcripts are not in the repository, so this stays an
   observation of 2026-11-22.
@@ -150,7 +159,9 @@ says (`$VK`), and the `aiwf` that `spec/scope/conform.md` names.
 
 - The defects in aiwf found here are gaps discovered in M-0364, which
   `git grep -l 'discovered_in: M-0364' main -- work/gaps` lists. This milestone changes no aiwf
-  code, so it fixes none of them. G-0776, G-0777, G-0779 and G-0781 go to the epic that builds
-  ADR-0056.
+  code, so it fixes none of them. The owner routed G-0776, G-0777, G-0779 and G-0781 to the
+  epic that builds ADR-0056. G-0460, G-0776 and G-0786 are differences `spec/scope/conform.md`
+  classifies as defects, so an epic that makes `spine conform` its done-check meets all three;
+  G-0460 and G-0786 are not routed.
 - For the epic that builds ADR-0056: the docs ADR-0056 makes wrong (audit Q12) and the unit test
   that its readers still read a scope opened before its release (audit Q16).
