@@ -27,6 +27,16 @@ entity FSMs" and its check-rules table, and R-FP-0130 in
 - `internal/skills/embedded/aiwf-add/SKILL.md` §"Provenance flags", which says to pass
   `--actor ai/<id> --principal human/<id>` in tool mode and, a few lines later, not to
   pass `--actor` at all.
+- `docs/design/legal-workflows-audit.md` R-AUDIT-0104: "When `--actor` is non-human (`ai/...`,
+  `bot/...`), `--principal human/<id>` must be supplied OR an active authorization scope must
+  cover the entity; otherwise the verb errors before any write", and R-RULE-066, which restates
+  it.
+- `internal/skills/embedded/aiwf-add/SKILL.md` §"What aiwf does", step 5, which implies it: it
+  makes the principal required and the scope trailers conditional, "When the operator is
+  non-human (`ai/<id>`, `bot/<id>`), the kernel additionally requires a `--principal human/<id>`
+  flag and stamps `aiwf-principal:` on the commit. If an active authorization scope (see
+  `aiwf-authorize`) covers the new entity's parent / references, `aiwf-on-behalf-of:` and
+  `aiwf-authorized-by:` are added too."
 
 Measured on Linux (go 1.25.11, git 2.54.0) with an `aiwf` binary built from
 `716f3b4b5`, in a fresh repository after `aiwf init --skip-hook` with `hosts: []`, no
