@@ -1,0 +1,34 @@
+# spec/
+
+Models of aiwf's state machines, made with [verifier-kit](https://github.com/23min/verifier-kit)
+(E-0100). Each machine has a folder, `spec/<machine>/`, holding its audit, its chapter, the two
+readings and the answers to their questions, the ratified `spine.yaml` with its drawing, and
+`conform.md`, the record of the last comparison with the `aiwf` binary. The adapter that makes
+that comparison is `conformance/adapter_<machine>.py` at the repository root, started by the line
+in `conformance/adapter_<machine>.cmd`.
+
+## Running verifier-kit
+
+verifier-kit is not installed in this repository. Its tools run from a separate checkout at the
+version the models were made with, v0.3.3 (E-0100, §"Open questions"). With `$VK` a folder
+outside this repository:
+
+```sh
+git clone -q https://github.com/23min/verifier-kit.git "$VK"
+git -C "$VK" checkout -q v0.3.3
+(cd "$VK/tools" && GOTOOLCHAIN=auto go build -o bin/spine ./cmd/spine)
+```
+
+Then, from this repository's root, for a machine `<m>`:
+
+```sh
+"$VK/tools/bin/spine" check spec/<m>/spine.yaml
+(cd spec/<m> && "$VK/tools/bin/spine" draw spine.yaml drawing.yaml > drawing.svg && git diff --exit-code drawing.svg)
+PATH="$VK/tools:<folder holding the aiwf to compare>:$PATH" "$VK/tools/bin/spine" conform \
+  spec/<m>/spine.yaml --margin 2 --adapter-cmd "$(cat conformance/adapter_<m>.cmd)"
+```
+
+`check` passes with no findings, and `draw` writes the committed drawing again. `conform` plays
+the spine against the `aiwf` it finds on `PATH`; until the build epics change aiwf it reports the
+divergences `spec/<m>/conform.md` classifies. The adapter's header says what it needs from
+`aiwf`, and where it puts its throwaway repositories.
