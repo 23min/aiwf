@@ -116,47 +116,41 @@ with an `aiwf` binary; `spec/README.md` says how to run them.
 - verifier-kit runs from a pinned clone of v0.3.3 outside the repository: E-0100, §"Open
   questions"; the commands are in `spec/README.md`.
 - The readings are by Claude Sonnet 5.5 and Claude Fable 5.2, named in each reading's header.
-- At M-0364/AC-4: a copy that lands after a pause, an end or a close goes into G-0755 (audit Q3),
-  and a refused repeat pause or resume is a defect in aiwf, G-0786 (audit Q9).
+- The classifications made at M-0364/AC-4: `spec/scope/conform.md`, with the answers they rest
+  on in audit Q3 and Q9.
 
 ## Validation
 
 Run 2026-11-22 on this milestone's branch in the Linux devcontainer: Go 1.25.12, git 2.51.1,
-Python 3.12.3, verifier-kit v0.3.3 at `0952e0f` built from a fresh clone, and the `aiwf` that
-`spec/scope/conform.md` names.
+Python 3.12.3, verifier-kit v0.3.3 at `0952e0f` from a fresh clone built as `spec/README.md`
+says (`$VK`), and the `aiwf` that `spec/scope/conform.md` names.
 
 - `aiwf check`: exit 0, 0 errors, 1 warning, `provenance-untrailered-scope-undefined` (the
   branch has no upstream).
 - Go tests, build and lint: not run. No Go, module, `Makefile`, lint, workflow, embedded or
   guidance file changes (`git diff --name-only cc0d64cff..HEAD` over those paths is empty), so
-  CLAUDE.md's cadence skips them. `python3 -m py_compile conformance/adapter_scope.py`: exit 0.
-- M-0364/AC-1, by a cross-check of `spec/scope/audit/` kept outside the repository. Expected:
-  every answer in `decisions.md` gives its date, answer, reason and the sources it makes wrong;
-  every claim id that a conflict or not-covered section of `docs.md` or `history.md` cites is in
-  some answer's "Claims settled"; each names section is settled by section; each not-covered
-  pair has an answer. Observed: exit 0, 18 answers, 118 ids all settled, `docs.md` §4 and
-  `history.md` §5 settled by Q15 and Q16, 13 pairs answered. With H18 removed from Q17, or Q18's
-  sources field removed, the same check exits 1.
-- M-0364/AC-2: the readings' headers name `claude-sonnet-5-5` and `claude-fable-5-2` and the
-  `git hash-object` of the chapter at `b2abebae0`, of `readings/prompt.md` and of v0.3.3's spine
-  format; each reading is byte-identical to its reader's reply taken again from the transcript.
-  `spine diff` of the two readings and `spine check` of each find closed/authorize, act, pause,
-  resume, end, close, rebase, reallocate and check (answered by `answers.md` Q1) and none/copy
-  and closed/copy (Q2), each cited in the chapter.
-- M-0364/AC-3: `spine check spec/scope/spine.yaml` exits 0 with no findings; `spine diff` of
-  the spine against each reading reports only the cases Q1 and Q2 decide; `spine draw` prints no
-  warning and its output is byte-identical to `drawing.svg`; the header names `readings/` and
-  `answers.md` and says "Ratified by the reviewed merge of this file."
-- M-0364/AC-4: `spec/scope/conform.md` records the run at margin 2, every divergence in its
-  output classified with a gap; the run's adapter is the committed one by `git hash-object`.
-  `spec/README.md`'s command, from the fresh clone, gave the same 16 divergences and coverage in
-  1049 seconds. A classification row removed, a reading's rule changed, or a state moved in
-  `drawing.yaml` each makes the AC-2 to AC-4 check exit 1.
+  CLAUDE.md's cadence skips them. `python3 -m py_compile conformance/adapter_scope.py
+  spec/check.py`: exit 0.
+- M-0364/AC-1 to M-0364/AC-4: `python3 spec/check.py scope "$VK"` checks the records each asks
+  for, as its header lists. Expected: every line `ok`, exit 0. Observed: `all passed`, exit 0.
+  Each rule was then broken once in the working tree, and each time the check exited 1 naming
+  that rule: an answer's sources field, a claim id, the names settlements, a not-covered pair or
+  a case removed from the records; the readings given one model; a header hash changed; a
+  chapter citation removed; a reading's rule or initial state changed; a spine rule removed or
+  changed; a state moved in `drawing.yaml`; the spine header's ratification removed; a run field,
+  a hash, a classification row or a row's gap changed in `conform.md`; a second line in the
+  `.cmd`.
+- M-0364/AC-2, beyond the check: each reading is byte-identical to its reader's reply taken again
+  from the reader's transcript. The transcripts are not in the repository, so this stays an
+  observation of 2026-11-22.
+- M-0364/AC-4: `spec/scope/conform.md` records the run, made with `spec/README.md`'s command
+  from the fresh clone.
 
 ## Deferrals
 
-- Defects in aiwf found here, left alone because this milestone changes no aiwf code: G-0776,
-  G-0777, G-0778, G-0779, G-0780, G-0781, G-0782, G-0783, G-0784, G-0785 and G-0786. Of these,
-  G-0776, G-0777, G-0779 and G-0781 go to the epic that builds ADR-0056.
+- The defects in aiwf found here are gaps discovered in M-0364, which
+  `git grep -l 'discovered_in: M-0364' main -- work/gaps` lists. This milestone changes no aiwf
+  code, so it fixes none of them. G-0776, G-0777, G-0779 and G-0781 go to the epic that builds
+  ADR-0056.
 - For the epic that builds ADR-0056: the docs ADR-0056 makes wrong (audit Q12) and the unit test
   that its readers still read a scope opened before its release (audit Q16).
