@@ -64,7 +64,7 @@ makes wrong and the claims it settles. Claim ids C-n are rows of `docs.md`, H-n 
   ADR-0056 already makes it wrong; question 12 takes it up. Today's binary differs where the
   agent committed before the rebase (G-0751, H75, and the paused measurement above); G-0751
   records that divergence, so no new item is drafted.
-- **Claims settled:** C94–C102; H21, H62, H75, H79.
+- **Claims settled:** C94–C102; H21, H62, H75, H79; not covered: `paused, rebase`.
 
 ## Q3. `copy`, in every state
 
@@ -96,7 +96,8 @@ makes wrong and the claims it settles. Claim ids C-n are rows of `docs.md`, H-n 
 - **Sources this makes wrong:** none of the docs. Today's binary differs in every state with a
   scope. G-0755 (2026-11-01) records the `active` case, and since 2026-11-22, decided at
   M-0364/AC-4, a copy that reopens a paused, ended or closed scope.
-- **Claims settled:** C102, C108–C113; H76.
+- **Claims settled:** C102, C108–C113; H76; not covered: `none, copy`, `paused, copy`,
+  `ended, copy`, `closed, copy`.
 
 ## Q4. A second `authorize` while the scope is `active` or `paused`
 
@@ -127,7 +128,8 @@ makes wrong and the claims it settles. Claim ids C-n are rows of `docs.md`, H-n 
     start-milestone skill's "one scope per entity".
 - **Today's binary differs:** a repeat opens a second scope from either state (G-0460; H8, H50,
   H66, H68). G-0460 records it, so no new item is drafted.
-- **Claims settled:** C2, C17–C20, C31 (for one milestone); H8, H50, H66, H68.
+- **Claims settled:** C2, C17–C20, C31 (for one milestone); H8, H50, H66, H68; not covered:
+  `paused, authorize`.
 
 ## Q5. `paused`, then `close`
 
@@ -249,7 +251,8 @@ makes wrong and the claims it settles. Claim ids C-n are rows of `docs.md`, H-n 
     entity: nothing to resume." (C55, C63).
   G-0786, the defect M-0364/AC-4 filed for the code, lists each of these. Not corrected in any
   case: `docs/archive/pocv3/health-scorecard-2026-06-16.md` (C58), archived.
-- **Claims settled:** C53–C55, C58, C59, C62, C63, C70, C72, C73; H6, H64, H80 (the repeat).
+- **Claims settled:** C53–C55, C58, C59, C62, C63, C70, C72, C73; H6, H64, H80 (the repeat); not
+  covered: `closed, close`, `ended, pause`, `closed, pause`, `ended, resume`, `closed, end`.
   The refusal codes (C53, C54, C56, C57, C62) are question 18.
 
 ## Q10. `none` or `ended`, then `close`; what `closed` means
@@ -271,7 +274,7 @@ makes wrong and the claims it settles. Claim ids C-n are rows of `docs.md`, H-n 
   the authorize exit 2, "M-0001 is at terminal status "done"; pass --force --reason "..." to
   authorize work on a terminal entity".
 - **Sources this makes wrong:** none; no source covers these two cases.
-- **Claims settled:** C81 (the ended scope gets no end); H55, H80.
+- **Claims settled:** C81 (the ended scope gets no end); H55, H80; not covered: `none, close`.
 
 ## Q11. `closed`, then `authorize`
 

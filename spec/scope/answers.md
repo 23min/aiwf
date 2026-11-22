@@ -7,7 +7,9 @@ reading-b and `spine check` of each. The chapter carries each answer at the rule
   chapter's §2 says, so `spine conform` checks what aiwf does after a close: the refused
   authorize (audit Q11), and the refused pause and resume and the close that is a no-op (audit
   Q9).
-  Reading A made closed final; reading B did not. (Chapter S3.)
+  Reading A made closed final and reading B did not, so they split on closed/authorize,
+  closed/act, closed/pause, closed/resume, closed/end, closed/close, closed/rebase,
+  closed/reallocate and closed/check. (Chapter S3.)
 - **Q2. What does copy do where no scope was opened?** In none, and in closed when no scope was
   opened, copy is allowed and leaves the state as it is: its git steps run as anywhere else,
   with no opening commit among the commits they copy. No aiwf verb runs, so nothing refuses, and

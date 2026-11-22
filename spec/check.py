@@ -1,0 +1,219 @@
+"""Checks a machine's records under spec/<machine>/ against what E-0100's milestones ask of them.
+
+Run from the repository root, with the verifier-kit checkout spec/README.md builds:
+
+    python3 spec/check.py <machine> "$VK"
+
+It prints one line per check and exits 1 when any fails.
+
+  audit     Every answer in audit/decisions.md gives its date, answer, reason, the sources it
+            makes wrong and the claims it settles. Every claim id that a Conflicts or Not covered
+            section of audit/docs.md or audit/history.md cites is among the claims settled, and
+            each Names section is settled by section ("`docs.md` §4"). Each (state, event) pair a
+            Not covered section lists is named, as "`state, event`", in an answer's claims
+            settled or in the section on cases no source covers.
+  readings  The two readings name different models. Each header gives the hash of a version of
+            chapter.md in this repository's history, of readings/prompt.md, and of the checkout's
+            docs/reference/spine-format.md. Every case that `spine diff` of the two readings or
+            `spine check` of either reports is named, as state/event, by an answer in answers.md
+            that the chapter cites as "answers.md, Q<n>".
+  spine     `spine check` of spine.yaml passes; `spine diff` of it against each reading reports
+            only those cases; `spine draw` prints no warning and writes drawing.svg byte for
+            byte; the header names readings/ and answers.md and says it is ratified by the
+            reviewed merge of the file.
+  conform   conform.md records the verifier-kit version and commit, the aiwf version, the run
+            time, a margin of 2 or more, and the git hash-object of the committed spine and
+            adapter. The cases of the run's error lines are exactly the cases of the
+            classification rows, and each row cites a gap.
+
+`spine diff` reports a case once as case-disagrees and again as behavior-differs, its shortest
+witness; any other finding code is reported as one the check does not know.
+"""
+import re
+import subprocess
+import sys
+from pathlib import Path
+
+CASE_CODES = {"case-disagrees", "undecided-cell", "missing-case"}
+WITNESS_CODES = {"behavior-differs"}
+failures = []
+
+
+def report(ok, what, detail=""):
+    print(("ok: " if ok else "FAIL: ") + what + ("" if ok or not detail else f": {detail}"))
+    if not ok:
+        failures.append(what)
+
+
+def git(*args):
+    return subprocess.run(["git", *args], capture_output=True, text=True, check=True).stdout.strip()
+
+
+def sections(path):
+    """A markdown file's level-2 sections, by heading."""
+    parts = re.split(r"(?m)^## ", path.read_text(encoding="utf-8"))[1:]
+    return {p.split("\n", 1)[0].strip(): p for p in parts}
+
+
+def numbered(path, title):
+    """The number and text of a section headed "<n>. <title>", or (None, "") when there is none."""
+    for heading, text in sections(path).items():
+        m = re.fullmatch(rf"(\d+)\. {re.escape(title)}", heading)
+        if m:
+            return m.group(1), text
+    return None, ""
+
+
+def claim_ids(text):
+    out = set()
+    for m in re.finditer(r"\b([CH])(\d+)(?:\s*[–-]\s*\1?(\d+))?\b", text):
+        kind, first, last = m.group(1), int(m.group(2)), m.group(3)
+        out.update(f"{kind}{n}" for n in range(first, int(last or first) + 1))
+    return out
+
+
+def names(spine_text):
+    states = re.findall(r"(?m)^  ([a-z_]+):", spine_text.split("\nevents:")[0].split("\nstates:")[1])
+    events = re.search(r"(?m)^events: \[(.*)\]", spine_text).group(1).replace(" ", "").split(",")
+    return states, events
+
+
+def spine_cases(spine, *args):
+    """The cases a `spine diff` or `spine check` reports, and any finding code not known here."""
+    out = subprocess.run([spine, *args], capture_output=True, text=True).stdout
+    cases, unknown = set(), []
+    for line in out.splitlines():
+        fields = line.split()
+        if len(fields) < 3 or fields[0] not in ("error", "warning"):
+            continue
+        if fields[1] in CASE_CODES:
+            cases.add(fields[2].rstrip(":"))
+        elif fields[1] not in WITNESS_CODES:
+            unknown.append(line.strip())
+    return cases, unknown
+
+
+def check_audit(root, states, events):
+    audit = root / "audit"
+    dec = sections(audit / "decisions.md")
+    answers = {h.split(".", 1)[0]: t for h, t in dec.items() if re.match(r"Q\d+\. ", h)}
+    cases_text = next((t for h, t in dec.items() if h.startswith("Cases no source covers")), "")
+    fields = (("date", r"\*\*Date:\*\*"), ("answer", r"\*\*Answer:\*\*"), ("reason", r"\*\*Reason:\*\*"),
+              ("sources", r"\*\*Sources this makes wrong[^*]*:\*\*"), ("claims settled", r"\*\*Claims settled:\*\*"))
+    missing = [f"{q} has no {name}" for q, t in answers.items() for name, pat in fields if not re.search(pat, t)]
+    report(answers and not missing, f"audit: each of {len(answers)} answers gives every field", "; ".join(missing))
+
+    settled_text = {q: (re.search(r"\*\*Claims settled:\*\*(.*?)(?=\n- \*\*|\Z)", t, re.S) or [None, ""])[1]
+                    for q, t in answers.items()}
+    settled = set().union(set(), *(claim_ids(t) for t in settled_text.values()))
+    files = [p for p in (audit / "docs.md", audit / "history.md") if p.exists()]
+    raised = set().union(set(), *(claim_ids(numbered(p, t)[1]) for p in files for t in ("Conflicts", "Not covered")))
+    unsettled = sorted(raised - settled, key=lambda i: (i[0], int(i[1:])))
+    report(not unsettled, f"audit: each of {len(raised)} claim ids raised is settled", ", ".join(unsettled))
+
+    for p in files:
+        n, _ = numbered(p, "Names that don't fit")
+        by = [q for q, t in settled_text.items() if n and re.search(rf"`{p.name}`\s+§{n}", t)]
+        report(bool(by), f"audit: {p.name} §{n} (names) is settled by section, in {', '.join(by) or 'none'}")
+
+    pair = re.compile(rf"`?\b({'|'.join(states)})`?,\s*`?({'|'.join(events)})\b`?")
+    listed = {m.groups() for p in files for line in numbered(p, "Not covered")[1].splitlines()
+              if line.startswith("- ") for m in pair.finditer(line)}
+    answered = "\n".join(settled_text.values()) + cases_text
+    open_pairs = sorted(f"{s}, {e}" for s, e in listed if f"`{s}, {e}`" not in answered)
+    report(listed and not open_pairs, f"audit: each of {len(listed)} not-covered pairs is answered", "; ".join(open_pairs))
+
+
+def check_readings(root, spine, vk):
+    r = root / "readings"
+    heads = {x: "".join(l for l in (r / f"reading-{x}.yaml").read_text().splitlines(True) if l.startswith("#"))
+             for x in "ab"}
+    models = {x: (re.search(r"by ([\w.-]+), \d{4}-\d{2}-\d{2}", h) or [None, None])[1] for x, h in heads.items()}
+    report(all(models.values()) and models["a"] != models["b"],
+           f"readings: by two different models, {models['a']} and {models['b']}")
+
+    chapter = f"{root}/chapter.md"
+    versions = {git("rev-parse", f"{c}:{chapter}"): c[:9]
+                for c in git("log", "--format=%H", "--", chapter).split()}
+    prompt = git("hash-object", str(r / "prompt.md"))
+    fmt = git("-C", str(vk), "rev-parse", "HEAD:docs/reference/spine-format.md")
+    for x, h in heads.items():
+        cited = (re.search(r"chapter\.md ([0-9a-f]{40})", h) or [None, None])[1]
+        report(cited in versions, f"readings: reading-{x} cites chapter.md as of {versions.get(cited, 'no commit')}")
+        report(f"readings/prompt.md {prompt}" in h, f"readings: reading-{x} cites the committed readings/prompt.md")
+        report(f"spine-format.md {fmt}" in h, f"readings: reading-{x} cites the checkout's spine-format.md")
+
+    found, unknown = set(), []
+    for args in (("diff", r / "reading-a.yaml", r / "reading-b.yaml"),
+                 ("check", r / "reading-a.yaml"), ("check", r / "reading-b.yaml")):
+        cases, odd = spine_cases(spine, *map(str, args))
+        found |= cases
+        unknown += odd
+    report(not unknown, "readings: spine reports no finding the check does not know", "; ".join(unknown))
+
+    text = (root / "answers.md").read_text(encoding="utf-8")
+    entries = dict(re.findall(r"(?ms)^- \*\*(Q\d+)\.(.*?)(?=^- \*\*Q\d+\.|\Z)", text))
+    cited = set(re.findall(r"answers\.md, (Q\d+)", (root / "chapter.md").read_text(encoding="utf-8")))
+    unanswered = sorted(c for c in found
+                        if not any(re.search(rf"(?<![\w/]){re.escape(c)}(?![\w/])", t) and q in cited
+                                   for q, t in entries.items()))
+    report(found and not unanswered,
+           f"readings: each of {len(found)} cases they split or leave open is answered and cited by the chapter",
+           ", ".join(unanswered))
+    return found
+
+
+def check_spine(root, spine, decided):
+    p = subprocess.run([spine, "check", str(root / "spine.yaml")], capture_output=True, text=True)
+    report(p.returncode == 0, "spine: spine check passes", p.stdout.strip())
+    for x in "ab":
+        cases, unknown = spine_cases(spine, "diff", str(root / "spine.yaml"), str(root / f"readings/reading-{x}.yaml"))
+        extra = sorted(cases - decided) + unknown
+        report(not extra, f"spine: against reading-{x}, only cases an answer decided", ", ".join(extra))
+    d = subprocess.run([spine, "draw", "spine.yaml", "drawing.yaml"], capture_output=True, cwd=root)
+    report(d.returncode == 0 and not d.stderr, "spine: spine draw prints no warning", d.stderr.decode().strip())
+    report(d.stdout == (root / "drawing.svg").read_bytes(), "spine: drawing.svg is what spine draw writes")
+    head = " ".join(l for l in (root / "spine.yaml").read_text().splitlines() if l.startswith("#"))
+    report(re.search(r"readings/.*answers\.md.*Ratified by the reviewed merge of this file\.", head) is not None,
+           "spine: the header names readings/ and answers.md and the ratifying merge")
+
+
+def check_conform(root, machine):
+    adapter, cmd = Path(f"conformance/adapter_{machine}.py"), Path(f"conformance/adapter_{machine}.cmd")
+    report(adapter.exists() and cmd.exists() and len(cmd.read_text().splitlines()) == 1,
+           f"conform: {adapter} and a one-line {cmd}")
+    text = (root / "conform.md").read_text(encoding="utf-8")
+    for what, pat in (("the verifier-kit version and commit", r"\*\*verifier-kit:\*\* v\d+\.\d+\.\d+ at `[0-9a-f]{7,40}`"),
+                      ("the aiwf version", r"\*\*aiwf:\*\* `[^`]+`"), ("the run time", r"run time \d+ seconds")):
+        report(re.search(pat, text) is not None, f"conform: conform.md records {what}")
+    margin = re.search(r"--margin (\d+)", text)
+    report(margin is not None and int(margin.group(1)) >= 2, f"conform: margin {margin and margin.group(1)}, 2 or more")
+    for path in (root / "spine.yaml", adapter):
+        report(f"`{path}` `{git('hash-object', str(path))}`" in text, f"conform: the run used the committed {path}")
+    block = re.search(r"(?ms)^```\n(.*?)^```", text)
+    run = sorted(l.split()[2].rstrip(":") for l in (block.group(1) if block else "").splitlines()
+                 if l.startswith("error"))
+    rows = [l.split("|") for l in text.splitlines() if re.match(r"\| [a-z_]+/[a-z_]+", l)]
+    uncited = [r[1].strip() for r in rows if not re.search(r"G-\d{4}", r[-2])]
+    table = sorted(c.strip() for r in rows for c in r[1].split(","))
+    report(run and run == table and not uncited,
+           f"conform: each of {len(run)} errors in the run is classified, each row citing a gap",
+           f"run {run}, table {table}, rows citing no gap {uncited}")
+
+
+def main(machine, vk):
+    root, vk = Path("spec") / machine, Path(vk)
+    spine = str(vk / "tools" / "bin" / "spine")
+    states, events = names((root / "spine.yaml").read_text())
+    check_audit(root, states, events)
+    decided = check_readings(root, spine, vk)
+    check_spine(root, spine, decided)
+    check_conform(root, machine)
+    print(f"{len(failures)} failed" if failures else "all passed")
+    return 1 if failures else 0
+
+
+if __name__ == "__main__":
+    if len(sys.argv) != 3:
+        sys.exit(__doc__)
+    sys.exit(main(*sys.argv[1:]))

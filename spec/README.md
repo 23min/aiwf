@@ -26,9 +26,11 @@ Then, from this repository's root, for a machine `<m>`:
 (cd spec/<m> && "$VK/tools/bin/spine" draw spine.yaml drawing.yaml > drawing.svg && git diff --exit-code drawing.svg)
 PATH="$VK/tools:<folder holding the aiwf to compare>:$PATH" "$VK/tools/bin/spine" conform \
   spec/<m>/spine.yaml --margin 2 --adapter-cmd "$(cat conformance/adapter_<m>.cmd)"
+python3 spec/check.py <m> "$VK"
 ```
 
 `check` passes with no findings, and `draw` writes the committed drawing again. `conform` plays
 the spine against the `aiwf` it finds on `PATH`; until the build epics change aiwf it reports the
 divergences `spec/<m>/conform.md` classifies. The adapter's header says what it needs from
-`aiwf`, and where it puts its throwaway repositories.
+`aiwf`, and where it puts its throwaway repositories. `check.py` checks the machine's records
+against what E-0100's milestones ask of them, as its header lists, and exits 1 when one fails.
