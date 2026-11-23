@@ -163,7 +163,7 @@ const (
 	// AuthorizePause pauses the most-recently-opened active scope on
 	// the named entity. Reason is required (non-empty after trim).
 	AuthorizePause
-	// AuthorizeResume resumes the most-recently-paused scope on the
+	// AuthorizeResume resumes the most-recently-opened paused scope on the
 	// named entity. Reason is required (non-empty after trim).
 	AuthorizeResume
 	// AuthorizeEnd ends one non-ended scope on the named entity
@@ -178,12 +178,11 @@ const (
 // Scopes carries every scope ever opened on the target entity, in
 // open-order (oldest first), with each scope's current State derived
 // from the entity's commit history. The cmd dispatcher loads it via
-// loadEntityScopes; this package never reads git directly. For
+// cliutil.LoadEntityScopes; this package never reads git directly. For
 // AuthorizeOpen the slice is unused (a fresh scope doesn't depend on
-// existing ones); for AuthorizePause / AuthorizeResume it is the
-// source of truth for the most-recently-opened-active /
-// most-recently-paused selection, and for AuthorizeEnd it is the
-// candidate set the target is resolved against.
+// existing ones); for AuthorizePause / AuthorizeResume it decides
+// whether a scope in the source state exists, and for AuthorizeEnd it
+// is the candidate set the target is resolved against.
 type AuthorizeOptions struct {
 	Mode AuthorizeMode
 	// Agent is the role/<id> the scope authorizes (e.g. "ai/claude").
@@ -458,9 +457,11 @@ func authorizeOpen(e *entity.Entity, actor string, opts AuthorizeOptions) (*Resu
 	return result, nil
 }
 
-// authorizeTransition handles --pause and --resume: both pick the
-// most-recently-opened scope in the source state and emit one commit
-// recording the transition. Reason is required for both.
+// authorizeTransition handles --pause and --resume: both refuse unless
+// a scope is in the source state, and emit one commit recording the
+// transition. The commit names no scope; the history replay
+// (cliutil.ReplayScopes) applies it to the most-recently-opened scope
+// in that state. Reason is required for both.
 func authorizeTransition(
 	e *entity.Entity,
 	actor, reason string,

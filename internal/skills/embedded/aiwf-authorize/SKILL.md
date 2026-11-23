@@ -20,7 +20,7 @@ aiwf authorize <id> --to <agent>                  # open scope
 aiwf authorize <id> --to <agent> --reason "..."   # open scope with optional rationale
 aiwf authorize <id> --to <agent> --branch <ref>   # bind the scope to a ritual branch
 aiwf authorize <id> --pause "<reason>"            # pause the most-recently-opened active scope
-aiwf authorize <id> --resume "<reason>"           # resume the most-recently-paused scope
+aiwf authorize <id> --resume "<reason>"           # resume the most-recently-opened paused scope
 aiwf authorize <id> --end --reason "..."          # end the sole non-ended scope
 aiwf authorize <id> --end --scope <auth-sha> --reason "..."   # end one named scope
 ```
@@ -49,7 +49,7 @@ A scope's state machine has three states: `active`, `paused`, `ended`.
 
 - **`--to`** opens a new scope in state `active`. The commit's SHA is the scope id; subsequent verbs inside the scope reference it via `aiwf-authorized-by:`.
 - **`--pause "<reason>"`** flips the most-recently-opened active scope on `<id>` to `paused`. While paused, agent verbs targeting the scope refuse with `provenance-no-active-scope` until the scope is resumed.
-- **`--resume "<reason>"`** flips the most-recently-paused scope back to `active`.
+- **`--resume "<reason>"`** flips the most-recently-opened paused scope back to `active`.
 - **`--end --reason "..."`** ends one scope deliberately, leaving the scope-entity's status untouched — the way to withdraw a delegation from work that is still going. It targets the scope named by `--scope`, or the entity's sole non-ended scope when `--scope` is omitted; with more than one candidate and no `--scope` it refuses and lists them, because ending is terminal and a wrong guess is not recoverable the way a wrong pause is.
 - A `promote <id> <terminal-state>` or `cancel <id>` on the scope-entity (e.g., `aiwf promote E-NNNN done`) **auto-ends** every non-ended scope on that entity by writing one `aiwf-scope-ends: <auth-sha>` trailer per scope. Ended is terminal — un-cancelling a scope-entity does not resurrect a previously-ended scope. Issue a fresh `aiwf authorize` instead.
 

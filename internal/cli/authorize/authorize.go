@@ -26,9 +26,9 @@ import (
 //
 // Exactly one of --to / --pause / --resume / --end must be set. The
 // dispatcher resolves the actor (must be human/), locks the repo, loads
-// the existing scopes for the entity from git log (so --pause /
-// --resume / --end can find their target), and hands off to
-// verb.Authorize.
+// the existing scopes for the entity from git log (so --pause and
+// --resume can refuse when no scope is in the state they move from,
+// and --end can find its target), and hands off to verb.Authorize.
 //
 // Per docs/design/provenance-model.md §"The aiwf authorize verb"
 // the `--reason` argument has a different role per mode:
@@ -62,7 +62,7 @@ func NewCmd(correlationID string) *cobra.Command {
   # Pause the most-recently-opened active scope
   aiwf authorize E-NNNN --pause "blocked on review feedback"
 
-  # Resume the most-recently-paused scope
+  # Resume the most-recently-opened paused scope
   aiwf authorize E-NNNN --resume "review feedback addressed"
 
   # End the entity's only non-ended scope, leaving its status alone
@@ -97,7 +97,7 @@ func NewCmd(correlationID string) *cobra.Command {
 	cmd.Flags().StringVar(&root, "root", "", "consumer repo root")
 	cmd.Flags().StringVar(&to, "to", "", "agent the scope authorizes (e.g. ai/claude); opens a new scope")
 	cmd.Flags().StringVar(&pause, "pause", "", "pause the most-recently-opened active scope on <id>; the argument is the reason")
-	cmd.Flags().StringVar(&resume, "resume", "", "resume the most-recently-paused scope on <id>; the argument is the reason")
+	cmd.Flags().StringVar(&resume, "resume", "", "resume the most-recently-opened paused scope on <id>; the argument is the reason")
 	cmd.Flags().StringVar(&reason, "reason", "", "rationale text for --to (optional) / --force (required) / --end (required); ignored by --pause and --resume (their argument is the reason)")
 	cmd.Flags().BoolVar(&end, "end", false, "end a non-ended scope on <id> without changing the entity's status; requires --reason, and --scope when the entity carries more than one candidate")
 	// No backticks in this usage string: cobra reads a backticked span as

@@ -16,6 +16,14 @@ section in this file.
 
 ## [Unreleased]
 
+### Fixed — G-0785: the help text and docs say which paused scope `--resume` brings back
+
+`aiwf authorize --help`, the `aiwf-authorize` skill and the design docs said
+`--resume` brings back the most recently paused scope. It brings back the most
+recently opened of the paused scopes, the same order `--pause` uses for active
+ones; the two differ only when more than one scope on an entity is paused. The text
+now says so. Run `aiwf update` to refresh the installed `aiwf-authorize` skill.
+
 ### Fixed — G-0784: the start-milestone ritual says what the kernel does when the milestone branch is cut first
 
 `aiwfx-start-milestone` said the kernel refuses an authorize run from the milestone
