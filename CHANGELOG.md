@@ -16,6 +16,15 @@ section in this file.
 
 ## [Unreleased]
 
+### Fixed — G-0782: the wrap rituals name the refusal an agent meets after its scope ends
+
+The `aiwfx-wrap-milestone` and `aiwfx-wrap-epic` rituals, and Example 5 of the
+provenance model, said an agent's verb run after its scope ended writes a commit
+that then fails at push with `provenance-authorization-ended`. The verb refuses it
+instead and writes nothing, unless another of the agent's active scopes reaches the
+target; with no other active scope the refusal is `provenance-no-active-scope`. The
+rituals and the example now say so. Run `aiwf update` to refresh installed rituals.
+
 ### Changed — G-0430: the README says how to go back to an earlier release
 
 `aiwf upgrade` keeps no rollback of its own, by decision D-0108. The README's

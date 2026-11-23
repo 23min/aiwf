@@ -346,3 +346,24 @@ inventories were sorted again.
 | Artifact | Original SHA-256 | Updated SHA-256 |
 | --- | --- | --- |
 | `aiwfx-wrap-milestone/SKILL.md` | `63d3b774e56052759c678480af61171a48f70f6033e01806c567cfa24baec637` | `f13607c591b8440bdc37127f85252748d146308ec6bd7484edba824860aaa6d6` |
+
+## Ended-scope refusal correction
+
+G-0782 corrects what the wrap rituals say an agent meets after the closing promote
+ends its scope: the agent's next verb is refused, with no commit, unless another of
+its active scopes reaches the target, where the rituals said the commit would fail at
+push.
+The six inventories change only the records of
+`.claude/skills/aiwfx-wrap-milestone/SKILL.md` and `aiwfx-wrap-epic/SKILL.md`; all
+other records stay frozen.
+
+Provenance: derived in the Linux development container on 2026-11-23 without the
+renderer. Each artifact's embedded source on `main` at `e369a83c7`, which carries no
+`{{aiwf:…}}` token, reproduces its frozen record; the changed source gives the
+updated record, and the candidate binary's materialized files matched them. The
+inventories were sorted again.
+
+| Artifact | Original SHA-256 | Updated SHA-256 |
+| --- | --- | --- |
+| `aiwfx-wrap-milestone/SKILL.md` | `f13607c591b8440bdc37127f85252748d146308ec6bd7484edba824860aaa6d6` | `4d2080444f179e01d8fd76579695262c5aa7552d134e49786d1d08506caac2b3` |
+| `aiwfx-wrap-epic/SKILL.md` | `33ab41727141318e1243aaf29b283574eb878e852203cf04c32d3f7b0cdf88e7` | `401ea9f2e66bee3f57f197e11dae70018eadd329748d8a7be73da66ceaac202e` |
