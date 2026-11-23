@@ -365,3 +365,19 @@ inventories were sorted again.
 | Artifact | Original SHA-256 | Updated SHA-256 |
 | --- | --- | --- |
 | `aiwfx-start-milestone/SKILL.md` | `dceafde94f955c60d7c87ccb87b184f0f399c75eee9b3a3d79a5d606c63a4f7c` | `d70711d2376991ba8324f2db06b0a9af2877637a5909f40b52adb022f8ec8848` |
+
+## Resume-selection correction
+
+G-0785 corrects which paused scope the `aiwf-authorize` skill says `--resume` brings
+back. The six inventories change only the record of
+`.claude/skills/aiwf-authorize/SKILL.md`; all other records stay frozen.
+
+Provenance: derived in the Linux development container on 2026-11-23 without the
+renderer. The artifact's embedded source on `main` at `bc25461e1`, which carries no
+`{{aiwf:…}}` token, reproduces its frozen record; the changed source gives the
+updated record, and the candidate binary's materialized file matched it. The
+inventories were sorted again.
+
+| Artifact | Original SHA-256 | Updated SHA-256 |
+| --- | --- | --- |
+| `aiwf-authorize/SKILL.md` | `f4208309eabc66588c4abb58a091f36198b6dc98f10bacd773e93e2ead41c32b` | `abbf06462125ae4fd39f53ba174b6cb029c098c20887c5619be7d382a11ea7aa` |

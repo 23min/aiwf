@@ -26,17 +26,16 @@ import (
 //   - aiwf-verb=authorize, aiwf-scope=paused → flip the most-recently-
 //     opened still-active scope to paused.
 //   - aiwf-verb=authorize, aiwf-scope=resumed → flip the most-recently-
-//     paused scope to active.
+//     opened paused scope to active.
 //   - aiwf-scope-ends: <auth-sha> on any commit → mark the matching
 //     scope ended (terminal). Auto-end fires when a terminal-promote
 //     of the scope-entity carries this trailer (added by step 6); for
 //     the initial step 5 cut, hand-crafted fixtures use the same path.
 //
-// The "most recently X" rule mirrors the verb's pause/resume picker:
-// scopes are appended in chronological open-order, so a backwards
-// walk finds the latest match. Multiple parallel scopes on the same
-// entity are supported; transitions land on the freshest matching
-// state.
+// Pause and resume commits name no scope, so this walk decides which
+// scope each one moves: scopes are appended in open order, so a
+// backwards walk finds the most recently opened scope in the matching
+// state. Multiple parallel scopes on the same entity are supported.
 func LoadEntityScopes(ctx context.Context, root, id string) ([]*scope.Scope, error) {
 	if !HasCommits(ctx, root) {
 		return nil, nil
