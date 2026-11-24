@@ -1,8 +1,10 @@
 ---
 id: G-0785
 title: Docs say resume picks the latest-paused scope; the verb picks the latest-opened
-status: open
+status: addressed
 discovered_in: M-0364
+addressed_by_commit:
+    - 66fbbc69fdba9a207aa151c3104269aaac54a618
 ---
 ## What's missing
 

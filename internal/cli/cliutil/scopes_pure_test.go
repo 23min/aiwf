@@ -95,6 +95,22 @@ func TestReplayScopes(t *testing.T) {
 		}
 	})
 
+	// A resume commit names no scope, so the replay chooses one. Here p1
+	// pauses authB and p2 pauses authA.
+	t.Run("resume reactivates the most recently opened paused scope", func(t *testing.T) {
+		t.Parallel()
+		s := ReplayScopes([]CommitTrailers{
+			ct("authA", gitops.TrailerVerb, "authorize", gitops.TrailerScope, "opened", gitops.TrailerEntity, "E-0002"),
+			ct("authB", gitops.TrailerVerb, "authorize", gitops.TrailerScope, "opened", gitops.TrailerEntity, "E-0002"),
+			ct("p1", gitops.TrailerVerb, "authorize", gitops.TrailerScope, "paused", gitops.TrailerEntity, "E-0002"),
+			ct("p2", gitops.TrailerVerb, "authorize", gitops.TrailerScope, "paused", gitops.TrailerEntity, "E-0002"),
+			ct("r1", gitops.TrailerVerb, "authorize", gitops.TrailerScope, "resumed", gitops.TrailerEntity, "E-0002"),
+		})
+		if s[0].State != scope.StatePaused || s[1].State != scope.StateActive {
+			t.Errorf("states = authA %q, authB %q; want authA paused, authB active", s[0].State, s[1].State)
+		}
+	})
+
 	t.Run("repeating scope-ends on one commit ends both openers", func(t *testing.T) {
 		t.Parallel()
 		s := ReplayScopes([]CommitTrailers{

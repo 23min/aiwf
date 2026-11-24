@@ -23,10 +23,15 @@ one active scope matches a verb "the kernel picks the *most-recently-opened*
 scope deterministically and records that one." `verb.Allow` implements exactly
 that, walking scopes in reverse insertion order and citing the rule.
 
-What is undefined is narrower: whether an **exactly-duplicate** re-grant — same
+The narrower question is whether an **exactly-duplicate** re-grant — same
 entity, same agent, same branch — is a distinct event worth recording or a
-same-state input that should converge. Nothing refuses or reconciles it, and no
-finding reports the resulting pair.
+same-state input that should converge. For a milestone, M-0364's audit settles it
+(`spec/scope/audit/decisions.md`, Q4): one agent holds one scope on the milestone,
+so a repeat `authorize` while that scope is active changes nothing, and one while
+it is paused is refused, pointing to `--resume`. For an epic it is not settled.
+Today nothing refuses or reconciles a repeat from either state, and no finding
+reports the resulting pair; `spine conform` of M-0364's scope spine reports both,
+as `active/authorize` and `paused/authorize`.
 
 ## Why it matters
 
@@ -44,15 +49,19 @@ reports. And the second grant's commit records an event that conveys nothing a
 reader can act on, which is the same audit-noise class as the duplicate records
 in G-0459.
 
-This is separate from same-state verb convergence. Making `authorize` a no-op on
-a repeat would hide the condition rather than resolve it, which is why the
-companion gap on event-verb duplicate records defers `authorize` to this one.
+Where one agent holds one scope on the entity, as on a milestone (Q4), a no-op on
+a repeat hides no second scope. `noopExemptVerbs`
+(`internal/policies/verb_result_noop_invariant.go:54`) exempts `Authorize` from the
+same-state check on the ground that a no-op would hide the pair, and the companion
+gap on event-verb duplicate records, G-0459, defers `authorize` to this one.
 
 ## Resolution shape
 
-First establish the intended invariant: is more than one active scope per entity
-legal? If not, the fix is a verb-time refusal (or an FSM guard) on opening a
-scope while one is already active, plus an `aiwf check` rule so an
-already-divergent tree is reported rather than silently carried. If multiple
-active scopes are intended, then the resolution rule for "the active scope" needs
-stating explicitly and every consumer needs auditing against it.
+For a milestone the invariant is settled: one scope per agent, a repeat
+`authorize` from active a no-op and from paused a refusal (Q4). For an epic, first
+establish the intended invariant: is more than one active scope per entity legal?
+If not, the fix is a verb-time refusal (or an FSM guard) on opening a scope while
+one is already active, plus an `aiwf check` rule so an already-divergent tree is
+reported rather than silently carried. If multiple active scopes are intended,
+then the resolution rule for "the active scope" needs stating explicitly and
+every consumer needs auditing against it.

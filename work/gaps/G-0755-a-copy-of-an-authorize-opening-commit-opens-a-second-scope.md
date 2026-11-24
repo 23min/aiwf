@@ -57,11 +57,23 @@ The rebase re-created the opening commit as `f0b4e48` and the agent's first reti
 
 The end behaves the same. In the same environment, with the opening commit cherry-picked onto another branch and merged back, `aiwf authorize E-0001 --end --reason "delegation over"` refused, listing both SHAs as `2 non-ended scopes`; `--end --scope` naming the original ended it (exit 0) and left the copy `active`; the agent's retitle then succeeded (exit 0) with `aiwf-authorized-by` naming the copy, and `aiwf check` reported no error. The automatic end covers both: `aiwf promote E-0001 done` wrote an `aiwf-scope-ends` for each copy, and `aiwf show` reported both `ended`.
 
+A copy that lands after the pause, the end or the close brings back an opening commit that none of them reached, and it reads as a scope of its own. Measured 2026-11-22 in the Linux devcontainer (Go 1.25.12, git 2.51.1) with `aiwf` built from a tree whose code is `main` at 0c00b37c4 (`aiwf version`: `v0.42.1-0.20261121183124-0c00b37c47b3+dirty`; no Go file differs at `main` 1fddaa771), in a disposable repository: `aiwf init` with `hosts: []`, epic `E-0001` active, milestone `M-0001` in progress with two ACs, on `milestone/M-0001-first-milestone`. Each run: `aiwf authorize M-0001 --to ai/claude --reason go`, `git branch side/sibling`, a commit on `main`, `git rebase main`, the step in the table, `git merge --no-ff --no-edit side/sibling`, then `aiwf show M-0001`, the agent's `aiwf retitle M-0001 "Renamed by agent" --actor ai/claude --principal human/t`, and `aiwf check`. Ids name entities and commits in those repositories.
+
+| Step before the copy | Scopes after the copy | Agent's retitle | `aiwf check` |
+|---|---|---|---|
+| `aiwf authorize M-0001 --pause hold` | `d0c1d38` active, `f639ed3` paused | exit 0 | exit 0, no error |
+| `aiwf authorize M-0001 --end --reason over` | `cd3d6c1` ended, `239e85d` active | exit 0 | exit 0, no error |
+| both ACs met, `aiwf promote M-0001 done` | `b6e3b37` ended, `44d7a45` active | exit 0 | exit 0, no error |
+
+After `done`, the merge conflicted on the milestone's `status:` line, `done` against `in_progress`, and was resolved keeping `done` (`git checkout --ours`); the milestone stayed `done`.
+
 ## Why it matters
 
 Pausing a scope, or ending it while the work goes on, is how a human withdraws a delegation without closing the entity. With a copy of the opening commit in history, either reaches one copy only. `--pause` pauses one and reports nothing about the other; `--end` without `--scope` lists the two as separate scopes and asks for one, and ending that one leaves the other active. The agent's verbs then keep succeeding under the copy still active.
 
 After an end, `aiwf check` accepts those verbs too, since `provenance-authorization-ended` judges each commit by the copy it names, so the history records acts made after the delegation was withdrawn as authorized and the pre-push hook passes them. `aiwf check` has no rule for pauses, so on that path what the copy defeats is the verb's own refusal.
+
+A copy that lands after the end or the close brings the delegation back. The agent's verbs succeed again and `aiwf check` passes them, on a `done` milestone too, which takes no new scope.
 
 Nobody has to copy the commit on purpose: in the reproduction, a rebase of the branch carrying the opening commit and a merge of a branch built on its earlier version were enough.
 

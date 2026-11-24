@@ -30,6 +30,26 @@ no scope and writes no `aiwf-on-behalf-of:`, so its commits made with a `bot/` a
 now fail the same way its commits made with an `ai/` actor already did. Run
 `aiwf update` to refresh the installed `aiwf-check` skill.
 
+### Fixed — G-0785: the help text and docs say which paused scope `--resume` brings back
+
+`aiwf authorize --help`, the `aiwf-authorize` skill and the design docs said
+`--resume` brings back the most recently paused scope. It brings back the most
+recently opened of the paused scopes, the same order `--pause` uses for active
+ones; the two differ only when more than one scope on an entity is paused. The text
+now says so. Run `aiwf update` to refresh the installed `aiwf-authorize` skill.
+
+### Fixed — G-0784: the start-milestone ritual says what the kernel does when the milestone branch is cut first
+
+`aiwfx-start-milestone` said the kernel refuses an authorize run from the milestone
+branch with `branch-context-required`, that `isolation-escape` reports it at
+`aiwf check`, and that the preflight keeps the authorize commit on the parent epic
+branch. None holds: the ritual's step-4 command, with `--branch milestone/…`, is
+refused there with `rung-pair-illegal`; an authorize without `--branch` is accepted,
+lands on the milestone branch, binds the scope to it and draws no finding; and the
+preflight accepts step 4's command from any epic branch. The kernel holds step 3's
+promote to the parent epic branch. The ritual now says so. Run `aiwf update` to
+refresh installed rituals.
+
 ### Changed — G-0430: the README says how to go back to an earlier release
 
 `aiwf upgrade` keeps no rollback of its own, by decision D-0108. The README's

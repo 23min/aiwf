@@ -241,10 +241,10 @@ The kernel already uses `aiwf-to:` to record the *target state* of a `promote` e
 
 - **`--to <agent>`**: opens a new scope. Verb refuses if `<id>` is in a terminal status (you cannot authorize work on a `done` epic). Verb refuses if `<actor>` is not `human/...` (only humans authorize).
 - **`--pause "<reason>"`**: pauses the *most-recently-opened active scope* for `<id>`. If none active, refuses with `provenance-no-active-scope-to-pause`. Reason required, non-empty.
-- **`--resume "<reason>"`**: resumes the *most-recently-paused scope* for `<id>`. If none paused, refuses with `provenance-no-paused-scope-to-resume`. Reason required, non-empty.
+- **`--resume "<reason>"`**: resumes the *most-recently-opened paused scope* for `<id>`. If none paused, refuses with `provenance-no-paused-scope-to-resume`. Reason required, non-empty.
 - **`--end [--scope <auth-sha>] --reason "<text>"`**: ends one scope on `<id>` without changing the entity's status (ADR-0047) — the way a human withdraws a delegation from work that is still going. `--scope` names the target by authorize-commit SHA or an unambiguous prefix of at least four characters — the floor git holds an abbreviated revision to, and for the same reason: a shorter prefix that is unique by accident is not a name the operator meant, and this act has no inverse. Omitted, it resolves to the entity's sole non-ended scope, and refuses listing the candidates when there is more than one. Reason required, non-empty: an end moves no status, so its commit is the only artefact recording that the delegation was withdrawn.
 
-Unlike pause and resume, which re-derive their target from the FSM, `--end` names the scope it ends. Ending is terminal, so a target picked wrongly is not recoverable the way a wrong pause is — a resume undoes that, and nothing undoes an end.
+Unlike pause and resume, which re-derive their target from the FSM, `--end` names the scope it ends. Ending is terminal, so a target picked wrongly is not recoverable the way a wrong pause is: further pauses and resumes can reverse a wrong pause, though a single resume may bring back a different scope, and nothing undoes an end.
 
 Each invocation produces exactly one commit, preserving the one-commit-per-verb rule — or none, when the request already holds: `--scope` naming an already-ended scope converges at exit 0 without a commit, while a `--scope` matching no scope refuses. Resolution precedes convergence, so those two are distinguishable.
 
