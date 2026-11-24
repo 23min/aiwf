@@ -22,10 +22,11 @@ It prints one line per check and exits 1 when any fails.
             only those cases; `spine draw` prints no warning and writes drawing.svg byte for
             byte; the header names readings/ and answers.md and says it is ratified by the
             reviewed merge of the file.
-  conform   adapter_<machine>.cmd is one line that starts conformance/adapter_<machine>.py, and
-            it is the --adapter-cmd conform.md records. conform.md records the checkout's
+  conform   adapter_<machine>.cmd is one line that names conformance/adapter_<machine>.py, and it
+            is the --adapter-cmd conform.md records. conform.md records the checkout's
             verifier-kit version and commit, the aiwf version, the run time, a margin of 2 or
-            more, and the git hash-object of the committed spine and adapter. The cases of the
+            more in both the command and the run's coverage line, and the git hash-object of the
+            committed spine and adapter. The cases of the
             run's error lines are exactly the cases of the classification rows, and each row
             cites a gap.
 
@@ -191,7 +192,7 @@ def check_conform(root, machine, vk):
     lines = cmd.read_text().splitlines() if cmd.exists() else []
     recorded = (re.search(r'--adapter-cmd "([^"]+)"', text) or [None, None])[1]
     report(adapter.exists() and len(lines) == 1 and str(adapter) in lines[0].split() and lines[0] == recorded,
-           f"conform: {cmd} is one line that starts {adapter}, the one conform.md records", f"{lines} vs {recorded!r}")
+           f"conform: {cmd} is one line that names {adapter}, the one conform.md records", f"{lines} vs {recorded!r}")
     vk_run = re.search(r"\*\*verifier-kit:\*\* (v\d+\.\d+\.\d+) at `([0-9a-f]{7,40})`", text)
     tag = subprocess.run(["git", "-C", str(vk), "describe", "--tags", "--exact-match"], capture_output=True, text=True)
     report(vk_run is not None and vk_run[1] == tag.stdout.strip()
@@ -199,11 +200,13 @@ def check_conform(root, machine, vk):
            "conform: conform.md records the checkout's verifier-kit version and commit")
     for what, pat in (("the aiwf version", r"\*\*aiwf:\*\* `[^`]+`"), ("the run time", r"run time \d+ seconds")):
         report(re.search(pat, text) is not None, f"conform: conform.md records {what}")
+    block = re.search(r"(?ms)^```\n(.*?)^```", text)
     margin = re.search(r"--margin (\d+)", text)
-    report(margin is not None and int(margin.group(1)) >= 2, f"conform: margin {margin and margin.group(1)}, 2 or more")
+    covered = re.search(r"(?m)^info +coverage +.*margin (\d+):", block.group(1) if block else "")
+    report(margin is not None and covered is not None and margin[1] == covered[1] and int(margin[1]) >= 2,
+           f"conform: margin {margin and margin[1]} in the command and {covered and covered[1]} in the run, 2 or more")
     for path in (root / "spine.yaml", adapter):
         report(f"`{path}` `{git('hash-object', str(path))}`" in text, f"conform: the run used the committed {path}")
-    block = re.search(r"(?ms)^```\n(.*?)^```", text)
     run = sorted(l.split()[2].rstrip(":") for l in (block.group(1) if block else "").splitlines()
                  if l.startswith("error"))
     rows = [l.split("|") for l in text.splitlines() if re.match(r"\| [a-z_]+/[a-z_]+", l)]

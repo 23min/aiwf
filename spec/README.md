@@ -30,10 +30,11 @@ python3 spec/check.py <m> "$VK"
 ```
 
 `check` passes with no findings, and `draw` writes the committed drawing again. `conform` plays
-the spine against the `aiwf` it finds on `PATH`; until the build epics change aiwf it reports the
-divergences `spec/<m>/conform.md` classifies. The adapter's header says what it needs from
-`aiwf`, and where it puts its throwaway repositories. `check.py` checks the machine's records
+the spine against the `aiwf` it finds on `PATH`; with the `aiwf` that `spec/<m>/conform.md`
+names, it reports the divergences that file classifies. The adapter's header says what it needs
+from `aiwf`, and where it puts its throwaway repositories. `check.py` checks the machine's records
 against what E-0100's milestones ask of them, as its header lists, and exits 1 when one fails.
 It reads the records in the shapes these files have, so a change to one of those shapes changes
-it too. E-0100 owns both until a build epic installs verifier-kit and makes `spine conform` its
-done-check (E-0100, §"Open questions").
+it too. E-0100 owns `check.py`, the adapters and those shapes; when it closes they pass to the
+first build epic that makes `spine conform` its done-check, which takes up installing
+verifier-kit again (E-0100, §"Open questions").
