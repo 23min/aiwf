@@ -16,6 +16,14 @@ section in this file.
 
 ## [Unreleased]
 
+### Fixed — G-0783: the provenance docs stop naming pause and resume refusal codes aiwf never sends
+
+The provenance model's §"Verb behavior" and the first-principles catalog (R-FP-0135,
+R-FP-0136) said `aiwf authorize --pause` with no active scope refuses with
+`provenance-no-active-scope-to-pause`, and `--resume` with no paused scope with
+`provenance-no-paused-scope-to-resume`. No part of aiwf defines either code: both
+refusals carry a message and no code. The docs now say so.
+
 ### Fixed (breaking) — G-0778: `aiwf check` reports a `bot/` commit made with no scope
 
 `aiwf check`'s `provenance-no-active-scope` rule tested only for an `ai/` actor, so a
