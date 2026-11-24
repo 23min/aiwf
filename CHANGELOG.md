@@ -16,6 +16,14 @@ section in this file.
 
 ## [Unreleased]
 
+### Fixed — G-0780: the decision behind the authorize kind rule no longer offers a `--force` override
+
+D-0007, which limits `aiwf authorize` to epics and milestones, said `--force --reason`
+lifts that refusal for the other kinds. The verb refuses a gap, decision, contract or
+ADR with `authorize-kind-not-allowed`, with or without `--force --reason`. D-0111
+supersedes D-0007, keeping the rule and stating that `--force` does not lift it.
+`aiwf authorize` behaves as before.
+
 ### Fixed — G-0782: the wrap rituals name the refusal an agent meets after its scope ends
 
 The `aiwfx-wrap-milestone` and `aiwfx-wrap-epic` rituals, and Example 5 of the

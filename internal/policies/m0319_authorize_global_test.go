@@ -32,8 +32,8 @@ func TestM0319_AC1_GlobalKindRestriction(t *testing.T) {
 		t.Fatalf("got %d global kind restrictions, want one", len(rules))
 	}
 	rule := rules[0]
-	if rule.Kind != "" || rule.FromState != "" || rule.ToState != "" || rule.Verb != "authorize" || rule.Sources.Decision != "D-0007" || rule.Outcome != spec.OutcomeIllegal || rule.RejectionLayer != spec.RejectionLayerVerbTime || !rule.BlockingStrict {
-		t.Fatalf("kind restriction must be coordinate-free, source D-0007, and refuse at verb time: %+v", rule)
+	if rule.Kind != "" || rule.FromState != "" || rule.ToState != "" || rule.Verb != "authorize" || rule.Sources.Decision != "D-0111" || rule.Outcome != spec.OutcomeIllegal || rule.RejectionLayer != spec.RejectionLayerVerbTime || !rule.BlockingStrict {
+		t.Fatalf("kind restriction must be coordinate-free, source D-0111, and refuse at verb time: %+v", rule)
 	}
 	for _, kind := range entity.AllKinds() {
 		t.Run(string(kind), func(t *testing.T) {

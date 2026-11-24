@@ -16,14 +16,14 @@ import (
 
 // CodeAuthorizeKindNotAllowed is the typed kernel-code descriptor carried
 // by [AuthorizeKindError] when aiwf authorize refuses a scope-entity that
-// is not an epic or milestone (D-0007). It declares [codes.ClassLegality],
+// is not an epic or milestone (D-0111). It declares [codes.ClassLegality],
 // the marker the closed legality set is enumerated from (D-0011).
 // Consumers see its [codes.Code.ID] string via [AuthorizeKindError.Code]
 // and in the message text.
 var CodeAuthorizeKindNotAllowed = codes.Code{ID: "authorize-kind-not-allowed", Class: codes.ClassLegality}
 
 // AuthorizeKindError reports an aiwf authorize refused because the
-// scope-entity is not an epic or milestone (D-0007). It implements
+// scope-entity is not an epic or milestone (D-0111). It implements
 // [entity.Coded], carrying CodeAuthorizeKindNotAllowed. Error preserves
 // the established message text (including the code) so message-matching
 // consumers keep working while machine consumers use Code.
@@ -303,11 +303,11 @@ func Authorize(ctx context.Context, t *tree.Tree, id, actor string, opts Authori
 }
 
 func authorizeOpen(e *entity.Entity, actor string, opts AuthorizeOptions) (*Result, error) {
-	// Kind allowlist: per D-0007 (authorize-scope) only scope-entities
+	// Kind allowlist: per D-0111 only scope-entities
 	// (Epic + Milestone) carry autonomous-work scopes. Gap, Decision,
 	// Contract, and ADR are kernel ledgers — they have no notion of
 	// "open scope for an agent." Spec cell R-AUDIT-0122 / R-FP-0133 /
-	// D-0007 captures the rule; this guard is its verb-time chokepoint.
+	// D-0111 captures the rule; this guard is its verb-time chokepoint.
 	if e.Kind != entity.KindEpic && e.Kind != entity.KindMilestone {
 		return nil, &AuthorizeKindError{Kind: e.Kind}
 	}

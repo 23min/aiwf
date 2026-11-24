@@ -48,7 +48,7 @@ func Rules() []Rule {
 // below.
 func GlobalRules() []Rule {
 	return []Rule{
-		// D-0007: autonomous-work scopes belong only to epics and milestones.
+		// D-0111: autonomous-work scopes belong only to epics and milestones.
 		{
 			Verb: "authorize",
 			Preconditions: []Predicate{
@@ -59,7 +59,7 @@ func GlobalRules() []Rule {
 			ExpectedErrorCode: "authorize-kind-not-allowed",
 			RejectionLayer:    RejectionLayerVerbTime,
 			BlockingStrict:    true,
-			Sources:           RuleSource{Audit: []string{"R-AUDIT-0122"}, FP: []string{"R-FP-0133"}, Decision: "D-0007"},
+			Sources:           RuleSource{Audit: []string{"R-AUDIT-0122"}, FP: []string{"R-FP-0133"}, Decision: "D-0111"},
 		},
 		{
 			Preconditions:     []Predicate{{Subject: "scope-reach", Op: "==", Value: "false"}},
