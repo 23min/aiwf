@@ -757,7 +757,7 @@ func TestAuthorize_Open_RefusesNonHumanActor(t *testing.T) {
 	}
 }
 
-// TestAuthorize_Open_RefusesNonScopeEntityKind: per D-0007 only
+// TestAuthorize_Open_RefusesNonScopeEntityKind: per D-0111 only
 // scope-entities (epic + milestone) carry autonomous-work scopes.
 // Authorize on gap/decision/contract/adr is refused at the verb gate
 // with the authorize-kind-not-allowed token in the error message.
@@ -826,6 +826,24 @@ func TestAuthorize_Open_RefusesNonScopeEntityKind(t *testing.T) {
 				t.Errorf("entity.Code(err) = (%q, %v), want (%q, true)", code, ok, verb.CodeAuthorizeKindNotAllowed.ID)
 			}
 		})
+	}
+}
+
+// TestAuthorize_Open_ForceDoesNotLiftKindRefusal: D-0111 gives the kind
+// refusal no override, so --force --reason on a gap is refused with
+// authorize-kind-not-allowed, as the unforced request is.
+func TestAuthorize_Open_ForceDoesNotLiftKindRefusal(t *testing.T) {
+	t.Parallel()
+	r := newRunner(t)
+	r.must(verb.Add(r.ctx, r.tree(), entity.KindGap, "Test Gap", testActor, verb.AddOptions{BodyOverride: bornCompleteFixtureBody(entity.KindGap)}))
+	_, err := verb.Authorize(r.ctx, r.tree(), "G-0001", testActor, verb.AuthorizeOptions{
+		Mode:   verb.AuthorizeOpen,
+		Agent:  "ai/claude",
+		Force:  true,
+		Reason: "exceptional",
+	})
+	if code, ok := entity.Code(err); !ok || code != verb.CodeAuthorizeKindNotAllowed.ID {
+		t.Fatalf("entity.Code(err) = (%q, %v), want (%q, true); err = %v", code, ok, verb.CodeAuthorizeKindNotAllowed.ID, err)
 	}
 }
 
