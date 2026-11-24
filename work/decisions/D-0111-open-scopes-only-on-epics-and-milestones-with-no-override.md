@@ -33,8 +33,14 @@ agent: `internal/entity/sovereign.go` reserves only epic transitions for a human
 
 The alternative was to make the code match D-0007, with `--force --reason` lifting the refusal.
 It lost because it builds a route nothing has needed, and the route opens the hole above. Every
-commit on `main` whose `aiwf-verb` is `authorize` names an epic (measured 2026-11-24 over the
-trailers of `git log main`). If a real need arises for one more kind, D-0007's likely case being
+commit on `main` whose `aiwf-verb` is `authorize` names an epic: on 2026-11-24, in the Linux
+devcontainer, this command listed only epics in its third column.
+
+```
+git log main --format='%H%x09%(trailers:key=aiwf-verb,valueonly,separator=%x2C)%x09%(trailers:key=aiwf-entity,valueonly,separator=%x2C)' | awk -F'\t' '$2=="authorize"'
+```
+
+If a real need arises for one more kind, D-0007's likely case being
 an agent maintaining a contract's schema, admitting that kind is a change to the allowed set,
 made with a decision of its own.
 
