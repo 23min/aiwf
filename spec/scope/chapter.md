@@ -2,10 +2,11 @@
 
 aiwf tracks planning state as markdown files in a git repository. A human lets an AI agent work
 on a milestone on its own by opening a scope with `aiwf authorize`; the agent's verbs then run
-under that scope, and the human can pause, resume and end it. This chapter says how one such
-scope moves between states as the human, the agent and git act on it, as ADR-0056 has it for a
-scope opened from its release on: a scope is named by a random id that its opening commit
-carries, which a rebase or a copy keeps.
+under that scope, and the human can pause, resume and end it. This chapter says how the agent's
+scope on one milestone, and the next one the human opens after an end, moves between states as
+the human, the agent and git act on it, as ADR-0056 has it for a scope opened from its release
+on: a scope is named by a random id that its opening commit carries, which a rebase or a copy
+keeps.
 
 It is taken from aiwf's records, not its code: the provenance model
 (`docs/design/provenance-model.md`), ADR-0047, ADR-0056, CLAUDE.md, and the maintainer's answers
@@ -29,8 +30,8 @@ Things:
 - **scope**: the human's permission for the agent to work on the milestone. Its opening commit
   carries its id (ADR-0056).
 - **branch**: the milestone's branch, named `milestone/<milestone>-<slug>` from the milestone as
-  it was when the branch was cut, and checked out throughout. The scope is opened on it and the
-  agent works on it.
+  it was when the branch was cut, and checked out whenever an aiwf verb runs. The scope is opened
+  on it and the agent works on it.
 
 States:
 
@@ -185,8 +186,8 @@ Each starts in none.
 - The scope is opened from ADR-0056's release on, so its opening commit carries an id (Q16).
 - The agent acts only through aiwf verbs.
 - The branch's own commits are the only ones that change the milestone; `main`'s commits in
-  rebase and copy touch nothing of it. Where copy's merge meets a file both sides changed, the
-  merge keeps the branch's version.
+  rebase and copy touch nothing of it, so copy's merge meets no conflict: each kept commit and its
+  rebased twin make the same change.
 - One client plays one sequence of steps at a time (E-0100, §"Out of scope").
 
 ## 6. Not covered
@@ -196,8 +197,8 @@ Left out of the machine, each with the answer that leaves it out:
 - **Old scopes.** A scope named by its opening commit's hash, which aiwf writes before ADR-0056's
   release, rebases and copies the way G-0751, G-0752 and G-0755 record, and ADR-0056 leaves it
   so. The epic that builds ADR-0056 adds a unit test that its readers still read such a scope as
-  ended and its agent commits as authorized; a scope open across the switch to that release is
-  outside the machine (Q16).
+  ended and its agent commits as authorized; a scope opened before that release and not ended
+  when it arrives is outside the machine (Q16).
 - **Ending a scope by naming it**, `--end --scope <its id>`, which does nothing when that scope
   is already ended (Q9).
 - **cancel** of the milestone, which ends a scope as close does (Q14).
