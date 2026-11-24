@@ -394,13 +394,17 @@ makes wrong and the claims it settles. Claim ids C-n are rows of `docs.md`, H-n 
   - acts on the milestone without changing its status: `aiwf promote --audit-only`, which
     records a status the file already has (asked for `done` on an `in_progress` milestone, it
     refuses: "audit-only records what's already true"), and `aiwf archive`, which moves a
-    terminal entity's file. Measured 2026-11-22 with the `aiwf` `conform.md` names, on the
+    terminal entity's file. Measured 2026-11-24 with the `aiwf` `conform.md` names, on the
     adapter's starting repository: with a scope active, the ACs met and the file's status set to
-    `done` by hand, `aiwf promote M-0001 done --audit-only --reason record` exited 0, its commit
-    carried `aiwf-scope-ends`, the scope read `ended` and the agent's retitle was refused, as a
-    close leaves it (H55); after a close, `aiwf archive --apply` printed "no terminal-status
-    entities awaiting sweep", since a milestone moves with its epic, which the chapter keeps
-    active. C121 says a scope still active when its milestone is swept survives the sweep;
+    `done` by a hand edit committed with `git commit`,
+    `aiwf promote M-0001 done --audit-only --reason record` exited 0, its commit carried
+    `aiwf-scope-ends`, the scope read `ended` and the agent's retitle was refused with
+    `provenance-no-active-scope`, as a close leaves it (H55). With the edit left uncommitted,
+    the retitle is refused for the uncommitted file instead, which says nothing of the scope.
+    After a close, `aiwf archive --apply` printed "no terminal-status entities awaiting sweep
+    (tree is converged)" and made no commit, since a milestone moves with its epic, which the
+    chapter keeps active. C121 says a scope still active when its milestone is swept survives
+    the sweep;
   - proposed and never built: scope rebind, an agent authorizing another, time-, verb- and
     pattern-limited scopes;
   - the verb commit output machine's (M-0366): amend, squash and the host's merge methods;
