@@ -1,8 +1,10 @@
 ---
 id: G-0782
 title: Docs say an agent verb after its scope ends fails at push; the verb refuses it
-status: open
+status: addressed
 discovered_in: M-0364
+addressed_by_commit:
+    - 46050ceae
 ---
 ## What's missing
 
