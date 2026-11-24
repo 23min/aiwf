@@ -7,7 +7,7 @@ What aiwf must offer it:
   - `aiwf list --kind milestone --archived --format json`, whose `result` lists the milestone
     in this checkout, done or not, with its `id`; a row for an id found on another branch carries
     `cross_branch_ref` or `cross_branch_collision`, and the adapter skips it, since after a
-    reallocate the old id is still on main and on any side branch;
+    reallocate the old id stays on every other branch the milestone is on;
   - `aiwf show <id> --format json`, whose `result` gives the milestone's `status`, its `acs`
     with each `id` and `status`, and its `scopes` with each `state`.
 
