@@ -1,8 +1,10 @@
 ---
 id: G-0784
 title: Start-milestone ritual says authorize on a milestone branch is caught; it is not
-status: open
+status: addressed
 discovered_in: M-0364
+addressed_by_commit:
+    - 0d91ec5bbf9b68d092147dd4884bcef596f9a89a
 ---
 ## What's missing
 

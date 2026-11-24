@@ -247,8 +247,8 @@ func provenanceCoherenceFindings(c *scope.Commit, idx map[string]string) []Findi
 
 // provenanceAuthorizationFindings runs the cross-commit authorization
 // rules: -missing / -out-of-scope / -ended for commits carrying
-// aiwf-authorized-by, plus -no-active-scope for ai/... actors with no
-// authorization.
+// aiwf-authorized-by, plus -no-active-scope for non-human actors with
+// no authorization.
 //
 // authIndex maps known authorize-opener SHAs to their opener commit;
 // endedAt maps each opener SHA to the chrono index of its first
@@ -270,12 +270,14 @@ func provenanceAuthorizationFindings(
 
 	var findings []Finding
 
-	// -no-active-scope: ai/... actor with no on-behalf-of trailer.
-	// Skipped on aiwf-verb: authorize commits — those don't operate
-	// inside a scope (the scope is what they open). The verb gate
-	// already refuses non-human authorizers; this surfaces the same
-	// constraint on hand-edited history.
-	if strings.HasPrefix(actor, "ai/") && !hasOnBehalfOf && idx[gitops.TrailerVerb] != "authorize" {
+	// -no-active-scope: a non-human actor with no on-behalf-of trailer.
+	// Non-human is any actor that is not human/, the line verb.Allow
+	// draws when it refuses an actor with no active scope; a commit with
+	// no aiwf-actor is not an agent's and is left alone. Skipped on
+	// aiwf-verb: authorize commits — those don't operate inside a scope
+	// (the scope is what they open). This surfaces the verb's refusal on
+	// hand-edited history.
+	if actor != "" && !strings.HasPrefix(actor, "human/") && !hasOnBehalfOf && idx[gitops.TrailerVerb] != "authorize" {
 		findings = append(findings, Finding{
 			Code:     CodeProvenanceNoActiveScope,
 			Severity: SeverityError,

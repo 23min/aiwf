@@ -75,7 +75,7 @@ If step 2 chose delegation, the operator runs (still on the parent epic branch):
 aiwf authorize M-NNNN --to ai/<id> --branch milestone/M-NNNN-<slug> --reason "<one-sentence rationale>"
 ```
 
-The `--branch` flag names the *future* milestone branch — the one step 5 will cut. The branch does not yet exist when this verb runs. The kernel's AI-target preflight permits this combination via the ritual-current carve-out: from a ritual-shape current checkout (here `epic/E-NNNN-<slug>` satisfies that), an explicit `--branch` whose value matches the ritual shape (`milestone/` / `patch/`) accepts even when the named branch does not yet exist. The commit's `aiwf-branch:` trailer carries the future milestone ref; step 5's branch cut closes the binding.
+The `--branch` flag names the *future* milestone branch — the one step 5 will cut. The branch does not yet exist when this verb runs. The kernel's AI-target preflight accepts this combination because epic to milestone is a legal ritual rung pair; the named branch need not exist yet. The commit's `aiwf-branch:` trailer carries the future milestone ref; step 5's branch cut closes the binding.
 
 This is a *separate* commit from step 3, landed on the same parent epic branch. The scope is `active` from this commit forward; the agent operates within it until the milestone reaches a terminal status or the operator pauses the scope.
 
@@ -171,7 +171,7 @@ The implementation is already committed, per-AC, from step 6 — there is nothin
 
 - 🛑 **Never commit or push without explicit human approval.** Every commit gate is the human's, not the AI's.
 - 🛑 **Branch-coverage hard rule** (see `wf-tdd-cycle`). Audit runs before declaring complete, not after the human asks.
-- 🛑 **Sovereign acts land on the parent epic branch before the milestone-branch cut.** Steps 3 and 4 run with HEAD on `epic/E-NNNN-<slug>`; step 5 cuts `milestone/M-NNNN-<slug>` afterwards. The kernel's preflight enforces this for the authorize commit (the ritual-current carve-out allows the `--branch milestone/...` future-binding from a ritual-shape current checkout).
+- 🛑 **Sovereign acts land on the parent epic branch before the milestone-branch cut.** Steps 3 and 4 run with HEAD on `epic/E-NNNN-<slug>`; step 5 cuts `milestone/M-NNNN-<slug>` afterwards. The kernel enforces this for the promote, which it refuses off the parent epic branch, but not for the authorize commit: the preflight checks that `--branch milestone/...` is a legal next rung from the current branch, which any epic branch is, not that the current branch is the parent epic's.
 - 🛑 **Parent epic branch must exist locally and be the current checkout before this skill runs.** If it doesn't exist, the parent epic has not been activated — `aiwfx-start-epic E-NNNN` is the right entry point, not this skill. No silent fallthrough that materializes the parent branch on the operator's behalf.
 - Tests must be deterministic. No clock, no network, no flakes shipped.
 - Build must be green before declaring done.
@@ -182,7 +182,7 @@ The implementation is already committed, per-AC, from step 6 — there is nothin
 - *Promoting to `in_progress` before preflight passes.* If the baseline is broken, fix it under a `wf-patch` first, then start the milestone.
 - *Improvising the parent epic branch when it doesn't exist.* The previous version of this skill silently fell through to `git checkout -b epic/E-NNNN-<slug> origin/main # if missing`. That masks the precondition failure (the parent epic wasn't activated) and produces a parent branch with no `aiwf promote E-NNNN active` commit on it. Stop and run `aiwfx-start-epic` instead.
 - *Bundling the promote and authorize commits.* One verb = one commit. The promote (step 3) and authorize (step 4) each land on the parent epic branch in their own commit.
-- *Cutting the milestone branch before the sovereign acts.* The kernel's preflight refuses authorize-on-milestone-branch with `branch-context-required` at the verb layer; the `isolation-escape` kernel finding catches the same shape post-hoc at `aiwf check` (warning severity). Branch cut belongs at step 5, after the trailers have landed on the parent.
+- *Cutting the milestone branch before the sovereign acts.* From the milestone branch, the kernel refuses step 3's promote, which must land on the parent epic branch, and refuses step 4's command as written with `rung-pair-illegal`. An authorize run there without `--branch` is accepted: its commit lands on the milestone branch instead of the parent epic branch, and its scope binds to that branch, so `aiwf check` reports no `isolation-escape` for the agent's work. Branch cut belongs at step 5, after the trailers have landed on the parent.
 - *Hand-editing `acs[]` in frontmatter.* Use `aiwf add ac` / `aiwf promote M-NNNN/AC-<N>` / `aiwf rename M-NNNN/AC-<N>` instead — the verbs preserve position-stability and the body-coherence pairing.
 - *Mixing milestones.* One milestone per branch. Don't fold "while I was here" work into the diff.
 - *Skipping the branch-coverage audit.* "I'll catch it in review" doesn't catch it.

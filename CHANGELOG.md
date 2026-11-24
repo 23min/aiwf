@@ -25,6 +25,48 @@ instead and writes nothing, unless another of the agent's active scopes reaches 
 target; with no other active scope the refusal is `provenance-no-active-scope`. The
 rituals and the example now say so. Run `aiwf update` to refresh installed rituals.
 
+### Fixed — G-0783: the provenance docs stop naming pause and resume refusal codes aiwf never sends
+
+The provenance model's §"Verb behavior" and the first-principles catalog (R-FP-0135,
+R-FP-0136) said `aiwf authorize --pause` with no active scope refuses with
+`provenance-no-active-scope-to-pause`, and `--resume` with no paused scope with
+`provenance-no-paused-scope-to-resume`. No part of aiwf defines either code: both
+refusals carry a message and no code. The docs now say so.
+
+### Fixed (breaking) — G-0778: `aiwf check` reports a `bot/` commit made with no scope
+
+`aiwf check`'s `provenance-no-active-scope` rule tested only for an `ai/` actor, so a
+commit by any other non-human actor, such as `bot/ci`, that carried no
+`aiwf-on-behalf-of:` passed `aiwf check` and the pre-push hook, though the verbs that
+check a scope refuse that actor without an active one. The rule now covers every
+actor that is not `human/`, the line those verbs draw, and its hint and the
+`aiwf-check` skill say so. The rule reads all history reachable from HEAD, so such a
+commit, pushed or not, now fails `aiwf check` and every push until
+`aiwf acknowledge illegal <sha> --reason "<why>"` ratifies it. `aiwf archive` checks
+no scope and writes no `aiwf-on-behalf-of:`, so its commits made with a `bot/` actor
+now fail the same way its commits made with an `ai/` actor already did. Run
+`aiwf update` to refresh the installed `aiwf-check` skill.
+
+### Fixed — G-0785: the help text and docs say which paused scope `--resume` brings back
+
+`aiwf authorize --help`, the `aiwf-authorize` skill and the design docs said
+`--resume` brings back the most recently paused scope. It brings back the most
+recently opened of the paused scopes, the same order `--pause` uses for active
+ones; the two differ only when more than one scope on an entity is paused. The text
+now says so. Run `aiwf update` to refresh the installed `aiwf-authorize` skill.
+
+### Fixed — G-0784: the start-milestone ritual says what the kernel does when the milestone branch is cut first
+
+`aiwfx-start-milestone` said the kernel refuses an authorize run from the milestone
+branch with `branch-context-required`, that `isolation-escape` reports it at
+`aiwf check`, and that the preflight keeps the authorize commit on the parent epic
+branch. None holds: the ritual's step-4 command, with `--branch milestone/…`, is
+refused there with `rung-pair-illegal`; an authorize without `--branch` is accepted,
+lands on the milestone branch, binds the scope to it and draws no finding; and the
+preflight accepts step 4's command from any epic branch. The kernel holds step 3's
+promote to the parent epic branch. The ritual now says so. Run `aiwf update` to
+refresh installed rituals.
+
 ### Changed — G-0430: the README says how to go back to an earlier release
 
 `aiwf upgrade` keeps no rollback of its own, by decision D-0108. The README's

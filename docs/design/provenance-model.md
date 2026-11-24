@@ -199,7 +199,7 @@ allow(verb v on entity e by actor a) =
 
 For a `human/...` actor with no `--principal` flag, `scopeAllows` returns `true` unconditionally — the kernel does not require humans to be inside a scope to act. Scopes constrain *agents acting on a human's behalf*; humans need no such constraint.
 
-For an `ai/...` actor, `scopeAllows` checks the union of all currently-active scopes attached to that actor. If at least one active scope grants the action, the verb proceeds and writes `aiwf-on-behalf-of:` + `aiwf-authorized-by:` for the matching scope. If none grants it, the verb refuses with finding `provenance-no-active-scope` (error).
+For any actor that is not `human/...`, `scopeAllows` checks the union of all currently-active scopes attached to that actor. If at least one active scope grants the action, the verb proceeds and writes `aiwf-on-behalf-of:` + `aiwf-authorized-by:` for the matching scope. If none grants it, the verb refuses with finding `provenance-no-active-scope` (error).
 
 ### Multiple parallel scopes
 
@@ -240,11 +240,11 @@ The kernel already uses `aiwf-to:` to record the *target state* of a `promote` e
 ### Verb behavior
 
 - **`--to <agent>`**: opens a new scope. Verb refuses if `<id>` is in a terminal status (you cannot authorize work on a `done` epic). Verb refuses if `<actor>` is not `human/...` (only humans authorize).
-- **`--pause "<reason>"`**: pauses the *most-recently-opened active scope* for `<id>`. If none active, refuses with `provenance-no-active-scope-to-pause`. Reason required, non-empty.
-- **`--resume "<reason>"`**: resumes the *most-recently-paused scope* for `<id>`. If none paused, refuses with `provenance-no-paused-scope-to-resume`. Reason required, non-empty.
+- **`--pause "<reason>"`**: pauses the *most-recently-opened active scope* for `<id>`. If none active, refuses; the refusal carries no code. Reason required, non-empty.
+- **`--resume "<reason>"`**: resumes the *most-recently-opened paused scope* for `<id>`. If none paused, refuses; the refusal carries no code. Reason required, non-empty.
 - **`--end [--scope <auth-sha>] --reason "<text>"`**: ends one scope on `<id>` without changing the entity's status (ADR-0047) — the way a human withdraws a delegation from work that is still going. `--scope` names the target by authorize-commit SHA or an unambiguous prefix of at least four characters — the floor git holds an abbreviated revision to, and for the same reason: a shorter prefix that is unique by accident is not a name the operator meant, and this act has no inverse. Omitted, it resolves to the entity's sole non-ended scope, and refuses listing the candidates when there is more than one. Reason required, non-empty: an end moves no status, so its commit is the only artefact recording that the delegation was withdrawn.
 
-Unlike pause and resume, which re-derive their target from the FSM, `--end` names the scope it ends. Ending is terminal, so a target picked wrongly is not recoverable the way a wrong pause is — a resume undoes that, and nothing undoes an end.
+Unlike pause and resume, which re-derive their target from the FSM, `--end` names the scope it ends. Ending is terminal, so a target picked wrongly is not recoverable the way a wrong pause is: further pauses and resumes can reverse a wrong pause, though a single resume may bring back a different scope, and nothing undoes an end.
 
 Each invocation produces exactly one commit, preserving the one-commit-per-verb rule — or none, when the request already holds: `--scope` naming an already-ended scope converges at exit 0 without a commit, while a `--scope` matching no scope refuses. Resolution precedes convergence, so those two are distinguishable.
 
@@ -278,7 +278,7 @@ New finding codes added in I2.5. All error severity unless noted; all run as sta
 | `provenance-authorization-missing` | `aiwf-authorized-by:` SHA does not resolve, or resolves to a commit whose `aiwf-verb:` is not `authorize`. |
 | `provenance-authorization-out-of-scope` | `aiwf-authorized-by:` SHA resolves to a real authorize commit, but the referenced scope-entity has no reference path to the verb's target entity. |
 | `provenance-authorization-ended` | `aiwf-authorized-by:` SHA resolves to a real authorize commit whose scope has reached `ended` state at the time of the referencing commit. |
-| `provenance-no-active-scope` | An `ai/...` actor produced a commit with no `aiwf-on-behalf-of:` (caught at verb time; this code surfaces it on hand-edited or externally-authored commits). |
+| `provenance-no-active-scope` | An actor that is not `human/...` (`ai/...`, `bot/...`) produced a commit with no `aiwf-on-behalf-of:` (caught at verb time; this code surfaces it on hand-edited or externally-authored commits). |
 
 The pairing of write-time-refuse + standing-rule (Q3.6a/b) means each rule is enforced twice: once as the verb's pre-commit check (the chokepoint), once as the standing audit. The standing rule catches commits that bypassed the kernel verb (hand-edited, imported, pre-I2.5 history).
 

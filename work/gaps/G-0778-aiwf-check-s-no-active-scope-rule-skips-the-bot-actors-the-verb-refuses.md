@@ -1,8 +1,10 @@
 ---
 id: G-0778
 title: aiwf check's no-active-scope rule skips the bot/ actors the verb refuses
-status: open
+status: addressed
 discovered_in: M-0364
+addressed_by_commit:
+    - eeef04807
 ---
 ## What's missing
 

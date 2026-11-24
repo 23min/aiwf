@@ -1,8 +1,10 @@
 ---
 id: G-0783
 title: Provenance docs name pause and resume refusal codes the verb never sends
-status: open
+status: addressed
 discovered_in: M-0364
+addressed_by_commit:
+    - 012f2ce6e
 ---
 ## What's missing
 
