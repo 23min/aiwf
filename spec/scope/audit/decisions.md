@@ -432,7 +432,7 @@ makes wrong and the claims it settles. Claim ids C-n are rows of `docs.md`, H-n 
 - **Sources this makes wrong:** none. The defect is filed as G-0776, which locates the code
   that pause, resume, `--end` and the close's end use to find a scope (G-0118, addressed,
   covered `aiwf check`'s side).
-- **Claims settled:** the event names in `docs.md` §4 and `history.md` §5.
+- **Claims settled:** the event names in `docs.md` §4 Events and `history.md` §5 Events.
 
 ## Q16. Variables the sources depend on
 
@@ -466,8 +466,8 @@ makes wrong and the claims it settles. Claim ids C-n are rows of `docs.md`, H-n 
   scope on the parent epic (the adapter opens none; one lets the agent act on the milestone,
   D-0007).
 - **Sources this makes wrong:** none.
-- **Claims settled:** C102, C107, C113 (the release boundary); the variable lists in `docs.md`
-  §4 and `history.md` §5.
+- **Claims settled:** C102, C107, C113 (the release boundary); the variables in `docs.md` §4
+  Variables and values and the values in `history.md` §5 States and values.
 
 ## Q17. Defects in today's code that the machine does not reach
 
@@ -567,6 +567,33 @@ makes wrong and the claims it settles. Claim ids C-n are rows of `docs.md`, H-n 
   `aiwf-scope-ends` on the agent's commit, 0 errors.
 - **Sources this makes wrong:** none.
 - **Claims settled:** C89, C90 (for the machine).
+
+## Q20. Other words for the states, and what the steps write
+
+- **Date:** 2026-11-24.
+- **Answer:** none of these names is a state, an event or a variable of the machine.
+  - `opened`, `paused` and `resumed`, the values of the `aiwf-scope` trailer, mark the commits
+    authorize, pause and resume write; the machine names those steps, not the marks.
+  - `open` and `live` are other words for active, or for a scope that is not ended, and
+    `non-ended` is active or paused.
+  - `stranded`, a paused scope on a closed milestone, does not arise: a close ends a paused
+    scope (question 5).
+  - `ended-success`, `ended-failure` and `ended-discarded` end the sub-scopes of subagent cycles
+    in archived design notes; an agent authorizing another is proposed and never built
+    (question 15).
+  - The code has no `none`: no scope is the absence of an opening commit, and the adapter
+    observes it as an `in_progress` milestone that lists no scope.
+  - The trailers, `aiwf-scope-ends` and those an act carries among them, the finding and refusal
+    codes and `aiwf history`'s chips are what a step writes, and the machine has no outputs
+    (chapter §1; question 18 for the codes).
+  - `bot/` actors, `human/` as the `--to` target, a scope on the parent epic, `--scope`, and the
+    branch trailers and rungs are question 16's variables; `ended` for both ends and several
+    scopes per milestone are question 14's.
+- **Reason:** each name renames a state the machine has, names a case no step here reaches, or is
+  something a step writes, which the chapter leaves out (§7).
+- **Sources this makes wrong:** none.
+- **Claims settled:** the names in `docs.md` §4 States, `docs.md` §4 Outputs and `history.md` §5
+  States and values.
 
 ## Cases no source covers, answered from the answers above
 
