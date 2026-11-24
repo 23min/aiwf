@@ -3,9 +3,9 @@
 Models of aiwf's state machines, made with [verifier-kit](https://github.com/23min/verifier-kit)
 (E-0100). Each machine has a folder, `spec/<machine>/`, holding its audit, its chapter, the two
 readings and the answers to their questions, the ratified `spine.yaml` with its drawing, and
-`conform.md`, the record of the last comparison with the `aiwf` binary. The adapter that makes
-that comparison is `conformance/adapter_<machine>.py` at the repository root, started by the line
-in `conformance/adapter_<machine>.cmd`.
+`conform.md`, the record of the last comparison with the `aiwf` binary. `spine conform` makes that
+comparison through `conformance/adapter_<machine>.py` at the repository root, which plays each
+event against `aiwf` and is started by the line in `conformance/adapter_<machine>.cmd`.
 
 ## Running verifier-kit
 

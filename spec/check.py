@@ -1,4 +1,5 @@
-"""Checks a machine's records under spec/<machine>/ against what E-0100's milestones ask of them.
+"""Checks a machine's records under spec/<machine>/ and conformance/ against what E-0100's milestones
+ask of them.
 
 Run from the repository root, with the verifier-kit checkout spec/README.md builds:
 
@@ -7,12 +8,14 @@ Run from the repository root, with the verifier-kit checkout spec/README.md buil
 It prints one line per check and exits 1 when any fails.
 
   audit     Every answer in audit/decisions.md fills in its date, answer, reason, the sources it
-            makes wrong and the claims it settles. audit/docs.md, and audit/history.md where the
-            history reader ran, each have a Conflicts, a Not covered and a Names section. Every
-            claim id a Conflicts or Not covered section cites is among the claims settled, and
-            each Names section is settled by section ("`docs.md` §4"). Each (state, event) pair a
-            Not covered section lists is named, as "`state, event`", in an answer's claims
-            settled or in the section on cases no source covers.
+            makes wrong and the claims it settles. audit/docs.md exists, and it and
+            audit/history.md, where the history reader ran, each have a Conflicts, a Not covered
+            and a Names section. Every claim id a Conflicts or Not covered section cites is among
+            the claims settled. Each part of a Names section, a ### heading or a bold line, is
+            named in an answer's claims settled as its file, section and part ("`docs.md` §4
+            States"). Each (state, event) pair a Not covered section lists is named, as
+            "`state, event`", in an answer's claims settled or in the section on cases no source
+            covers.
   readings  The two readings name different models. Each header gives the hash of a version of
             chapter.md in this repository's history, of readings/prompt.md, and of the checkout's
             docs/reference/spine-format.md. Every case that `spine diff` of the two readings or
@@ -25,10 +28,9 @@ It prints one line per check and exits 1 when any fails.
   conform   adapter_<machine>.cmd is one line that names conformance/adapter_<machine>.py, and it
             is the --adapter-cmd conform.md records. conform.md records the checkout's
             verifier-kit version and commit, the aiwf version, the run time, a margin of 2 or
-            more in both the command and the run's coverage line, and the git hash-object of the
-            committed spine and adapter. The cases of the
-            run's error lines are exactly the cases of the classification rows, and each row
-            cites a gap.
+            more, the same in the command and in the run's coverage line, and the git hash-object
+            of the committed spine and adapter. The cases of the run's error lines are exactly the
+            cases of the classification rows, and each row cites a gap.
 
 `spine diff` reports a case once as case-disagrees and again as behavior-differs, its shortest
 witness; any other finding code is reported as one the check does not know.
@@ -111,18 +113,24 @@ def check_audit(root, states, events):
     settled_text = {q: (re.search(r"\*\*Claims settled:\*\*(.*?)(?=\n- \*\*|\Z)", t, re.S) or [None, ""])[1]
                     for q, t in answers.items()}
     settled = set().union(set(), *(claim_ids(t) for t in settled_text.values()))
-    files = [p for p in (audit / "docs.md", audit / "history.md") if p.exists()]
+    files = [audit / "docs.md"] + [p for p in (audit / "history.md",) if p.exists()]
     absent = [f"{p.name} {t}" for p in files for t in ("Conflicts", "Not covered", "Names that don't fit")
-              if numbered(p, t)[0] is None]
-    report(not absent, "audit: each audit file has its Conflicts, Not covered and Names sections", ", ".join(absent))
+              if not p.exists() or numbered(p, t)[0] is None]
+    report(not absent, "audit: docs.md, and history.md where it exists, have their Conflicts, Not covered "
+           "and Names sections", ", ".join(absent))
+    files = [p for p in files if p.exists()]
     raised = set().union(set(), *(claim_ids(numbered(p, t)[1]) for p in files for t in ("Conflicts", "Not covered")))
     unsettled = sorted(raised - settled, key=lambda i: (i[0], int(i[1:])))
     report(not unsettled, f"audit: each of {len(raised)} claim ids raised is settled", ", ".join(unsettled))
 
+    claimed = " ".join(" ".join(t.split()) for t in settled_text.values())
     for p in files:
-        n, _ = numbered(p, "Names that don't fit")
-        by = [q for q, t in settled_text.items() if n and re.search(rf"`{p.name}`\s+§{n}", t)]
-        report(bool(by), f"audit: {p.name} §{n} (names) is settled by section, in {', '.join(by) or 'none'}")
+        n, text = numbered(p, "Names that don't fit")
+        parts = [a or b for a, b in re.findall(r"(?m)^(?:### (.+?)|\*\*(.+?)\*\*)\s*$", text)]
+        open_parts = [s for s in parts if f"`{p.name}` §{n} {s}" not in claimed]
+        report(n and parts and not open_parts,
+               f"audit: each of {len(parts)} parts of {p.name} §{n} (names) is named in an answer's claims settled",
+               ", ".join(open_parts))
 
     pair = re.compile(rf"`?\b({'|'.join(states)})`?,\s*`?({'|'.join(events)})\b`?")
     listed = {m.groups() for p in files for line in numbered(p, "Not covered")[1].splitlines()
