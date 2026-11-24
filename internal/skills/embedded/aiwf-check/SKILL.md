@@ -202,7 +202,7 @@ These fire on commit history, not tree state. Each names the offending commit's 
 | `provenance-authorization-missing` | The authorize SHA does not name an `aiwf-verb: authorize / aiwf-scope: opened` commit. |
 | `provenance-authorization-out-of-scope` | The verb's target entity has no reference path to the scope-entity. |
 | `provenance-authorization-ended` | The scope was already ended — by a closing promote or cancel, or by `aiwf authorize <id> --end`. |
-| `provenance-no-active-scope` | An `ai/...` actor produced a commit with no `aiwf-on-behalf-of:`. |
+| `provenance-no-active-scope` | An actor that is not `human/...` (`ai/...`, `bot/...`) produced a commit with no `aiwf-on-behalf-of:`. |
 | `provenance-audit-only-non-human` | `aiwf-audit-only:` present on a non-human actor's commit. |
 
 ## Don't

@@ -199,7 +199,7 @@ allow(verb v on entity e by actor a) =
 
 For a `human/...` actor with no `--principal` flag, `scopeAllows` returns `true` unconditionally — the kernel does not require humans to be inside a scope to act. Scopes constrain *agents acting on a human's behalf*; humans need no such constraint.
 
-For an `ai/...` actor, `scopeAllows` checks the union of all currently-active scopes attached to that actor. If at least one active scope grants the action, the verb proceeds and writes `aiwf-on-behalf-of:` + `aiwf-authorized-by:` for the matching scope. If none grants it, the verb refuses with finding `provenance-no-active-scope` (error).
+For any actor that is not `human/...`, `scopeAllows` checks the union of all currently-active scopes attached to that actor. If at least one active scope grants the action, the verb proceeds and writes `aiwf-on-behalf-of:` + `aiwf-authorized-by:` for the matching scope. If none grants it, the verb refuses with finding `provenance-no-active-scope` (error).
 
 ### Multiple parallel scopes
 
@@ -278,7 +278,7 @@ New finding codes added in I2.5. All error severity unless noted; all run as sta
 | `provenance-authorization-missing` | `aiwf-authorized-by:` SHA does not resolve, or resolves to a commit whose `aiwf-verb:` is not `authorize`. |
 | `provenance-authorization-out-of-scope` | `aiwf-authorized-by:` SHA resolves to a real authorize commit, but the referenced scope-entity has no reference path to the verb's target entity. |
 | `provenance-authorization-ended` | `aiwf-authorized-by:` SHA resolves to a real authorize commit whose scope has reached `ended` state at the time of the referencing commit. |
-| `provenance-no-active-scope` | An `ai/...` actor produced a commit with no `aiwf-on-behalf-of:` (caught at verb time; this code surfaces it on hand-edited or externally-authored commits). |
+| `provenance-no-active-scope` | An actor that is not `human/...` (`ai/...`, `bot/...`) produced a commit with no `aiwf-on-behalf-of:` (caught at verb time; this code surfaces it on hand-edited or externally-authored commits). |
 
 The pairing of write-time-refuse + standing-rule (Q3.6a/b) means each rule is enforced twice: once as the verb's pre-commit check (the chokepoint), once as the standing audit. The standing rule catches commits that bypassed the kernel verb (hand-edited, imported, pre-I2.5 history).
 
