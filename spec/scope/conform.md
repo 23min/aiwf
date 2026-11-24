@@ -6,14 +6,14 @@ ADR-0056 makes or as a defect with a gap (M-0364/AC-4).
 
 ## The run
 
-- **Date:** 2026-11-22, started 21:28:19 UTC; run time 1036 seconds.
+- **Date:** 2026-11-22, started 22:13:14 UTC; run time 1034 seconds.
 - **verifier-kit:** v0.3.3 at `0952e0f`, a fresh clone with `spine` built as `spec/README.md`
   says.
 - **aiwf:** `v0.42.1-0.20261121183124-0c00b37c47b3+dirty`, built from a tree whose code is `main`
   at `0c00b37c4`; no Go or module file differs at `main` `bc25461e1`.
 - **Environment:** Linux devcontainer, Go 1.25.12, git 2.51.1, Python 3.12.3.
 - **Inputs (git hash-object):** `spec/scope/spine.yaml` `917b06ae67c7d9e65a818504e50ccb7686dba0cf`,
-  `conformance/adapter_scope.py` `b2164b699f51f379a56d85522d4cb3a97c102b4f`.
+  `conformance/adapter_scope.py` `0b00c7ba00905a06dc67663c8474668c65f6074f`.
 - **Command,** from the repository root, with `$VK` the verifier-kit checkout and its `tools/`
   and the folder holding that `aiwf` first on `PATH`, as `spec/README.md` gives it:
 

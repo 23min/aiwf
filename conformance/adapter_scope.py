@@ -30,11 +30,12 @@ Events (chapter.md, §1), each on the milestone's current id <m>:
               onto main; side/copy-<n> is merged back in
   reallocate  aiwf reallocate <m>
   check       aiwf check
-Each says "ok" when every aiwf command it ran exited 0, and "rejected" otherwise. rebase and copy
-run no aiwf verb, so a git step that fails raises, and conform reports the step as crashed. Both
-rebase with --rebase-merges, which keeps a copy's merge: a plain rebase replays a copied commit
-and its twin one after the other, and the twin of a status change then conflicts with the
-change after it.
+Each first reads the milestone's id with `aiwf list`, and close reads its ACs with `aiwf show`;
+a read that fails raises, and conform reports the step as crashed. Otherwise each says "ok" when
+every aiwf verb it ran exited 0, and "rejected" otherwise. rebase and copy run no aiwf verb, so a
+git step that fails raises the same way. Both rebase with --rebase-merges, which keeps a copy's
+merge: a plain rebase replays a copied commit and its twin one after the other, and the twin of a
+status change then conflicts with the change after it.
 
 observe() takes the milestone's id from `aiwf list` and its status and scopes from `aiwf show`,
 and names:
@@ -47,8 +48,7 @@ Anything else is named as aiwf shows it, such as "in_progress; scopes not ended:
 which no spine state matches, so conform reports it.
 
 SCOPE_RUNS names the folder the repositories go in, a new temporary folder when it is unset.
-Building the world replaces template/ there, and each new() deletes the run-* folders the
-sequence before it left.
+Building the world replaces template/ there, and each new() deletes every run-* folder there.
 """
 import json
 import os
