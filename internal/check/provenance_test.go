@@ -237,6 +237,25 @@ func TestRunProvenance_NoActiveScope(t *testing.T) {
 	}
 }
 
+// TestRunProvenance_NoActiveScope_AnyNonHumanActor pins the rule to the
+// verb gate's: verb.Allow refuses every actor that is not human/ when it
+// has no active scope, bot/... included. Roles are an open set, so the
+// actor here is neither ai/ nor bot/: a rule that lists known roles
+// instead of excluding human/ fails it.
+func TestRunProvenance_NoActiveScope_AnyNonHumanActor(t *testing.T) {
+	t.Parallel()
+	c := scope.Commit{SHA: "8888888", Trailers: []gitops.Trailer{
+		{Key: gitops.TrailerVerb, Value: "edit-body"},
+		{Key: gitops.TrailerEntity, Value: "M-0001"},
+		{Key: gitops.TrailerActor, Value: "svc/deployer"},
+		{Key: gitops.TrailerPrincipal, Value: "human/peter"},
+	}}
+	got := RunProvenance([]scope.Commit{c}, nil, nil)
+	if !hasFinding(got, CodeProvenanceNoActiveScope) {
+		t.Fatalf("findings = %v, want %q", findingCodes(got), CodeProvenanceNoActiveScope)
+	}
+}
+
 // TestRunProvenance_AuthorizationMissing fires when aiwf-authorized-by
 // names a SHA that isn't an authorize/opened commit in history.
 func TestRunProvenance_AuthorizationMissing(t *testing.T) {
