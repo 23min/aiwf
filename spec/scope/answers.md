@@ -5,7 +5,7 @@ reading-b, `spine check` of each, and the kind each reading gives each state, wh
 compares. The chapter carries each answer at the rule it settles.
 
 - **Q1. Is closed final?** No. Nothing leaves closed, but every step there is decided as the
-  chapter's §2 says, so `spine conform` checks every step aiwf takes after a close, among them
+  chapter's §2 says, so `spine conform` checks every event after a close, among them
   the refused authorize (audit Q11), the refused pause and resume, and a close that is allowed
   and leaves closed as it is (audit Q9).
   Reading A made closed final and reading B did not, so they split on closed/authorize,
@@ -20,10 +20,12 @@ compares. The chapter carries each answer at the rule it settles.
 - **Q3. Which kind is each state?** none, active and paused are policy; ended and closed are
   fact. Each of the two records an act no ordinary verb reverses: "The inverse of an end is a
   fresh grant" (ADR-0047, §"Nothing undoes an end"), and a `done` milestone has no transition
-  out (`internal/entity/transition.go`); only the human override `aiwf promote --force` moves it
-  ("force=true relaxes the FSM transition rule so any-to-any moves are permitted",
-  `internal/verb/promote.go`). The deprecated `aiwf import --on-collision update` also moves it,
-  and `aiwf check` reports that as `fsm-history-consistent/illegal-transition` (measured
-  2026-11-22 with the `aiwf` `conform.md` names). Changing either rule needs a new decision. The
+  out (`internal/entity/transition.go`); no aiwf verb but the human override
+  `aiwf promote --force` moves it ("force=true relaxes the FSM transition rule so any-to-any
+  moves are permitted", `internal/verb/promote.go`) without `aiwf check` reporting it. Measured
+  2026-11-22 with the `aiwf` `conform.md` names, on the adapter's starting repository closed:
+  `aiwf import` of a manifest giving M-0001 `status: in_progress`, with `--on-collision update`,
+  exited 0 and moved it, and `aiwf check --since main` reported
+  `fsm-history-consistent/illegal-transition`. Changing either rule needs a new decision. The
   readings differed only on ended, which reading A made policy; `spine diff` does not compare
   kinds. (Chapter §1, States.)

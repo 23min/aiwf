@@ -44,17 +44,15 @@ States:
 Every run starts in none. None, active and paused are policy: what the agent may do in each is a
 choice a later decision can change. Ended and closed are facts: each records an act no ordinary
 aiwf verb reverses, an end, which only a new scope follows (ADR-0047, §"Nothing undoes an end"),
-and a `done` milestone, which only the human override `aiwf promote --force` moves, apart from
-the deprecated `aiwf import`, which `aiwf check` then reports (answers.md, Q3).
+and a `done` milestone, which no aiwf verb but the human override `aiwf promote --force` moves
+without `aiwf check` reporting it (answers.md, Q3).
 
 Events. Each is one thing the human, the agent or git does:
 
 - **authorize**: the human runs `aiwf authorize <milestone> --to ai/claude --reason "<text>"`.
-- **act**: the agent runs one aiwf verb that changes the milestone, leaves its status as it is
-  and leaves no error for `aiwf check` to report, such as `aiwf retitle <milestone> "<title>"`,
-  with `--actor ai/claude --principal human/t`. The agent's own close or cancel, and a verb that
-  leaves an error, such as `aiwf add ac` with no body, which `acs-empty-body` reports, are not
-  acts (Q19).
+- **act**: the agent runs `aiwf retitle <milestone> "<title>" --actor ai/claude --principal
+  human/t`, which gives the milestone a new title. The agent's other verbs are not acts (§6;
+  Q19).
 - **pause**: the human runs `aiwf authorize <milestone> --pause "<reason>"`.
 - **resume**: the human runs `aiwf authorize <milestone> --resume "<reason>"`.
 - **end**: the human runs `aiwf authorize <milestone> --end --reason "<text>"`, without
@@ -135,10 +133,10 @@ changes nothing and makes no commit.
 
 18. check passes when `aiwf check` reports no errors; warnings are allowed. check never changes
     the state.
-19. check passes in every state. An agent's verb commits only under an active scope (rules 6
-    and 7) and leaves no error of its own (§1, act), and rebase, copy and reallocate change
-    nothing about the scope (rules 15 and 16), so no step leaves a commit that names a scope it
-    should not.
+19. check passes in every state. An act commits only under an active scope (rules 6 and 7) and
+    leaves nothing for `aiwf check` to report, and rebase, copy and reallocate change nothing
+    about the scope (rules 15 and 16), so no step leaves a commit that names a scope it should
+    not.
 
 ## 3. What must hold
 
@@ -180,8 +178,9 @@ Each starts in none.
 ## 5. Assumptions
 
 - One human, one agent and one milestone. The epic stays `active` and no scope is opened on it.
-- The milestone starts `in_progress` with its ACs' bodies written, so close can meet them and
-  promote the milestone to `done`.
+- The milestone starts `in_progress` with `tdd: none` and its ACs' bodies written, so close can
+  meet the ACs without their TDD phases and promote the milestone to `done`. No step changes
+  the TDD policy (Q19).
 - The scope is opened from ADR-0056's release on, so its opening commit carries an id (Q16).
 - The agent acts only through aiwf verbs.
 - The branch's own commits are the only ones that change the milestone; `main`'s commits in
@@ -201,14 +200,16 @@ Left out of the machine, each with the answer that leaves it out:
 - **Ending a scope by naming it**, `--end --scope <its id>`, which does nothing when that scope
   is already ended (Q9).
 - **cancel** of the milestone, which ends a scope as close does (Q14).
-- **The agent's own close or cancel** of the milestone, which ends its scope with
-  `aiwf-scope-ends` on the agent's commit, as the human's close does (Q19).
+- **The agent's other verbs** on the milestone and its ACs (Q19), among them its change of the
+  milestone's TDD policy to `required`, after which the human's close is refused in every state
+  that follows, and its own close or cancel, which ends its scope with `aiwf-scope-ends` on the
+  agent's commit, as the human's close does.
 - **authorize `--force`** on a `done` milestone, a human override (Q11).
 - **promote `--force`** out of `done` or `cancelled`, a human override. No ordinary transition
   leaves either, so there is no ordinary un-cancel (answers.md, Q3; Q15).
 - **Other actors and other scopes**: another agent's scope, a `bot/` actor, a scope delegated to
   a human, and a scope on the parent epic, which also lets the agent act on the milestone
-  (D-0007) (Q14, Q16).
+  (D-0111, §Reasoning) (Q14, Q16).
 - **Commits made around the verbs**: an agent commit made by hand, which `aiwf check` should
   judge; Q17 records where it does not.
 - **Other git steps on the branch**: a cherry-pick of the opening commit alone, which copies
@@ -224,9 +225,9 @@ Left out of the machine, each with the answer that leaves it out:
   rename, `git cherry-pick -x` of an agent commit, which copies an act and not the opening
   commit, a merge of a ritual branch into `main`, judged by first-parent ancestry, force-push and
   `git reset --hard`, a rebase in progress (Q15).
-- **`aiwf archive`**, which moves the milestone's file, and **`aiwf promote --audit-only`**,
-  which records a status the milestone's file already has; whether the scope follows them is not
-  measured (Q15).
+- **`aiwf promote --audit-only`** to `done`, which records a status the milestone's file already
+  has and ends the scope as close does, and **`aiwf archive`**, which sweeps nothing while the
+  epic is active (Q15).
 - **Amend, squash and the host's merge methods**, which the verb commit output machine (M-0366)
   takes up. A squash that keeps only a commit's title loses its trailers and with them the scope
   (ADR-0056, §Consequences) (Q15).
