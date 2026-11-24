@@ -1,7 +1,7 @@
 ---
 id: D-0111
 title: Open scopes only on epics and milestones, with no override
-status: proposed
+status: accepted
 relates_to:
     - D-0007
 ---
