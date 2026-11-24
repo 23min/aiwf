@@ -1,8 +1,10 @@
 ---
 id: G-0780
 title: D-0007 offers authorize --force on other kinds; the verb refuses them first
-status: open
+status: addressed
 discovered_in: M-0364
+addressed_by_commit:
+    - 78c92e0f6
 ---
 ## What's missing
 
