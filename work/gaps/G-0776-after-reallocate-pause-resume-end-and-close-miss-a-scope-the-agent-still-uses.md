@@ -62,3 +62,8 @@ it.
 
 A reallocate after work under a scope is how an id collision found when two branches meet is
 resolved; G-0118 records one at an epic's wrap.
+
+## Relates to
+
+G-0788 records the reallocate that ends an id collision. There the old id stays with the other
+entity, so the commits written under it belong to two entities, not to the renumbered one alone.
