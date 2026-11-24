@@ -8,12 +8,13 @@ Run from the repository root, with the verifier-kit checkout spec/README.md buil
 It prints one line per check and exits 1 when any fails.
 
   audit     Every answer in audit/decisions.md fills in its date, answer, reason, the sources it
-            makes wrong and the claims it settles. audit/docs.md exists, and it and
-            audit/history.md, where the history reader ran, each have a Conflicts, a Not covered
-            and a Names section. Every claim id a Conflicts or Not covered section cites is among
-            the claims settled. Each part of a Names section, a ### heading or a bold line, is
-            named in an answer's claims settled as its file, section and part ("`docs.md` §4
-            States"). Each (state, event) pair a Not covered section lists is named, as
+            makes wrong and the claims it settles. audit/docs.md exists, and so does
+            audit/history.md where an answer settles one of its H claims; each has a Conflicts, a
+            Not covered and a Names section. Every claim id a Conflicts or Not covered section
+            cites is among the claims settled. Each Names section has at least one part, a ###
+            heading or a bold line, and each part is named in an answer's claims settled as its
+            file, section and part, followed by punctuation, " and `" or the end ("`docs.md` §4
+            States,"). Each (state, event) pair a Not covered section lists is named, as
             "`state, event`", in an answer's claims settled or in the section on cases no source
             covers.
   readings  The two readings name different models. Each header gives the hash of a version of
@@ -113,11 +114,12 @@ def check_audit(root, states, events):
     settled_text = {q: (re.search(r"\*\*Claims settled:\*\*(.*?)(?=\n- \*\*|\Z)", t, re.S) or [None, ""])[1]
                     for q, t in answers.items()}
     settled = set().union(set(), *(claim_ids(t) for t in settled_text.values()))
-    files = [audit / "docs.md"] + [p for p in (audit / "history.md",) if p.exists()]
+    history = audit / "history.md"
+    files = [audit / "docs.md"] + ([history] if history.exists() or any(i[0] == "H" for i in settled) else [])
     absent = [f"{p.name} {t}" for p in files for t in ("Conflicts", "Not covered", "Names that don't fit")
               if not p.exists() or numbered(p, t)[0] is None]
-    report(not absent, "audit: docs.md, and history.md where it exists, have their Conflicts, Not covered "
-           "and Names sections", ", ".join(absent))
+    report(not absent, "audit: docs.md, and history.md where it exists or an answer settles an H claim, have "
+           "their Conflicts, Not covered and Names sections", ", ".join(absent))
     files = [p for p in files if p.exists()]
     raised = set().union(set(), *(claim_ids(numbered(p, t)[1]) for p in files for t in ("Conflicts", "Not covered")))
     unsettled = sorted(raised - settled, key=lambda i: (i[0], int(i[1:])))
@@ -127,7 +129,8 @@ def check_audit(root, states, events):
     for p in files:
         n, text = numbered(p, "Names that don't fit")
         parts = [a or b for a, b in re.findall(r"(?m)^(?:### (.+?)|\*\*(.+?)\*\*)\s*$", text)]
-        open_parts = [s for s in parts if f"`{p.name}` §{n} {s}" not in claimed]
+        open_parts = [s for s in parts
+                      if not re.search(rf"`{re.escape(p.name)}` §{n} {re.escape(s)}(?=[,.;)]| and `|$)", claimed)]
         report(n and parts and not open_parts,
                f"audit: each of {len(parts)} parts of {p.name} §{n} (names) is named in an answer's claims settled",
                ", ".join(open_parts))
