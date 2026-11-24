@@ -28,8 +28,9 @@ Things:
 - **agent**: `ai/claude`, the one agent the scope is for. Runs act.
 - **scope**: the human's permission for the agent to work on the milestone. Its opening commit
   carries its id (ADR-0056).
-- **branch**: the milestone's branch, `milestone/<milestone>-<slug>`, checked out throughout. The
-  scope is opened on it and the agent works on it.
+- **branch**: the milestone's branch, named `milestone/<milestone>-<slug>` from the milestone as
+  it was when the branch was cut, and checked out throughout. The scope is opened on it and the
+  agent works on it.
 
 States:
 
