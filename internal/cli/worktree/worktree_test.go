@@ -24,11 +24,19 @@ import (
 // behavior is already covered under internal/initrepo.
 func minimalRepo(t *testing.T, extraYAML string) string {
 	t.Helper()
-	ctx := context.Background()
 	root := t.TempDir()
-	if err := gitops.Init(ctx, root); err != nil {
+	if err := gitops.Init(context.Background(), root); err != nil {
 		t.Fatalf("git init: %v", err)
 	}
+	seedAiwfYAML(t, root, extraYAML)
+	return root
+}
+
+// seedAiwfYAML commits aiwf.yaml (extraYAML appended verbatim) as the
+// first commit of the git-inited checkout at root.
+func seedAiwfYAML(t *testing.T, root, extraYAML string) {
+	t.Helper()
+	ctx := context.Background()
 	content := "hosts: [claude-code]\n" + extraYAML
 	if err := os.WriteFile(filepath.Join(root, "aiwf.yaml"), []byte(content), 0o644); err != nil {
 		t.Fatal(err)
@@ -39,7 +47,6 @@ func minimalRepo(t *testing.T, extraYAML string) string {
 	if err := gitops.Commit(ctx, root, "seed", "", nil); err != nil {
 		t.Fatalf("git commit: %v", err)
 	}
-	return root
 }
 
 // createDetachedBranch creates a local branch pointing at root's HEAD
@@ -107,6 +114,50 @@ func TestRun_DefaultPathResolvesViaWorktreeDir(t *testing.T) {
 	want := filepath.Join(root, ".wt", "feature", "y")
 	if _, err := os.Stat(want); err != nil {
 		t.Errorf("worktree not created at configured worktree.dir path %s: %v", want, err)
+	}
+}
+
+// TestRun_DefaultPathFromLinkedWorktreeIsUnderMainCheckout pins that,
+// run from a linked worktree, the default path is placed under the main
+// checkout rather than inside the linked worktree. The linked worktree
+// sits outside the repo, so no path arithmetic on it finds the main
+// checkout.
+func TestRun_DefaultPathFromLinkedWorktreeIsUnderMainCheckout(t *testing.T) {
+	t.Parallel()
+	root := minimalRepo(t, "")
+	linked := filepath.Join(t.TempDir(), "one")
+	if rc := worktree.Run("one", linked, "", root, false, cliutil.OutputFormat{}); rc != cliutil.ExitOK {
+		t.Fatalf("Run(one) rc = %d, want ExitOK", rc)
+	}
+
+	if rc := worktree.Run("two", "", "", linked, false, cliutil.OutputFormat{}); rc != cliutil.ExitOK {
+		t.Fatalf("Run(two) from the linked worktree rc = %d, want ExitOK", rc)
+	}
+	want := filepath.Join(root, config.DefaultWorktreeDir, "two")
+	if branch, err := gitops.CurrentBranch(context.Background(), want); err != nil || branch != "two" {
+		t.Errorf("checkout at %s: branch %q, err %v; want the worktree of branch two", want, branch, err)
+	}
+}
+
+// TestRun_DefaultPathFromMainCheckoutIsUnderIt pins that, run from the
+// main checkout, the default path is placed under that checkout, in a
+// layout where the shared git dir lives outside it (`git init
+// --separate-git-dir`).
+func TestRun_DefaultPathFromMainCheckoutIsUnderIt(t *testing.T) {
+	t.Parallel()
+	base := t.TempDir()
+	root := filepath.Join(base, "work")
+	if out, err := testutil.RunGit(base, "init", "-q", "-b", "main", "--separate-git-dir", filepath.Join(base, "gitdir"), root); err != nil {
+		t.Fatalf("git init --separate-git-dir: %v\n%s", err, out)
+	}
+	seedAiwfYAML(t, root, "")
+
+	if rc := worktree.Run("two", "", "", root, false, cliutil.OutputFormat{}); rc != cliutil.ExitOK {
+		t.Fatalf("Run(two) rc = %d, want ExitOK", rc)
+	}
+	want := filepath.Join(root, config.DefaultWorktreeDir, "two")
+	if branch, err := gitops.CurrentBranch(context.Background(), want); err != nil || branch != "two" {
+		t.Errorf("checkout at %s: branch %q, err %v; want the worktree of branch two", want, branch, err)
 	}
 }
 

@@ -119,8 +119,27 @@ func Run(branch, path, base, root string, printPath bool, out cliutil.OutputForm
 		// which owns the repo-escape rejection (M-0190/AC-4). An
 		// explicit path (the branch above) never reaches WorktreeDir,
 		// so it is never subject to that rejection (M-0233/AC-3).
+		// Run from a linked worktree, the default goes under the parent
+		// of the shared git dir (MainCheckoutRoot), not inside the linked
+		// one: the main checkout in the usual layout, the directory
+		// holding the git dir in a bare, submodule or --separate-git-dir
+		// repo. Run from the main checkout it stays under rootDir.
+		// worktree.dir is read from rootDir, since beside a bare repo's
+		// git dir there is no aiwf.yaml.
+		placeRoot := rootDir
+		var linked bool
+		linked, err = gitops.InWorktree(ctx, rootDir)
+		if err != nil { //coverage:ignore gitops.InWorktree fails only when git rev-parse fails in rootDir, which gitops.BranchExists above already ran in; not deterministically reproducible.
+			return fail("aiwf worktree add", err, cliutil.ExitInternal)
+		}
+		if linked {
+			placeRoot, err = gitops.MainCheckoutRoot(ctx, rootDir)
+			if err != nil { //coverage:ignore gitops.MainCheckoutRoot fails only when git rev-parse fails in rootDir, which gitops.InWorktree just ran in; not deterministically reproducible.
+				return fail("aiwf worktree add", err, cliutil.ExitInternal)
+			}
+		}
 		cfg, _ := config.Load(rootDir)
-		targetPath = filepath.Join(cfg.WorktreeDir(), branch)
+		targetPath = filepath.Join(placeRoot, cfg.WorktreeDir(), branch)
 	}
 
 	if exists {

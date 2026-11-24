@@ -16,6 +16,16 @@ section in this file.
 
 ## [Unreleased]
 
+### Fixed — `aiwf worktree add` run from inside a linked worktree no longer nests the new one in it
+
+With no path argument, `aiwf worktree add` run from inside a linked worktree now puts
+the new worktree under the main checkout, in the configured worktree directory
+(`.claude/worktrees/<branch>` by default), not under the linked worktree. A run from the
+main checkout, and an explicit path argument, behave as before. In a bare repository, a
+submodule, or a repository made with `--separate-git-dir`, a run from a linked worktree
+puts the new worktree under the directory holding the shared git directory, outside
+every working copy.
+
 ### Fixed — G-0780: the decision behind the authorize kind rule no longer offers a `--force` override
 
 D-0007, which limits `aiwf authorize` to epics and milestones, said `--force --reason`
