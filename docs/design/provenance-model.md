@@ -382,7 +382,7 @@ The two scopes are independent. Each pause/resume is a distinct commit, recovera
            #          aiwf-on-behalf-of: human/peter, aiwf-authorized-by: 4b13a0f,
            #          aiwf-scope-ends: 4b13a0f.
 ```
-After this commit, scope `4b13a0f` is `ended`. Subsequent agent verbs referencing it as `aiwf-authorized-by: 4b13a0f` produce `provenance-authorization-ended` findings.
+After this commit, scope `4b13a0f` is `ended` and authorizes nothing: an agent verb that no other active scope of the agent reaches is refused with no commit written. Here the agent's only other scope, `E-09`'s, is paused, so its next verb is refused with `provenance-no-active-scope`. A commit made by hand that cites `aiwf-authorized-by: 4b13a0f` draws `provenance-authorization-ended` from `aiwf check`, unless it is a `wrap-epic` or `wrap-milestone` commit on `E-03`, which the check still counts inside the scope its promote ended.
 
 The agent can close its own scope by design: scopes constrain *what* an agent can do, not *which step within scope* requires synchronous human ratification. The auto-end is mechanical and recoverable from `aiwf history`; the human's ratification opportunity moves from synchronous-at-close to post-hoc via the audit trail. If the human wants a synchronous handoff at the close, the path is to authorize a narrower scope (e.g., the milestones inside E-0003 individually) and invoke the epic-level `done` directly.
 

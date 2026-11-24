@@ -206,7 +206,7 @@ The trailer keys are exact — `aiwf-verb`, `aiwf-entity`, `aiwf-actor`. Variant
 
 ### 10. Promote the milestone to `done`
 
-If step 1 identified any gap this milestone's own body explicitly claims to fix, close each one first — before the milestone's own promote-to-`done` step below, which ends a delegated milestone's authorize scope. A verb-driven commit produced after that point risks an ended-scope `aiwf-authorized-by:` trailer on push (the same hazard `aiwfx-wrap-epic`'s promote-last ordering exists to avoid, applied here to the reverse ordering problem: gap closure must come *before* the scope-ending act, not after it):
+If step 1 identified any gap this milestone's own body explicitly claims to fix, close each one first — before the milestone's own promote-to-`done` step below, which ends a delegated milestone's authorize scope. After that point an agent's verb runs only under another of the agent's active scopes that reaches its target, such as an epic scope; otherwise the verb refuses it (`provenance-no-active-scope` when the agent holds no other active scope) and writes no commit, so a gap promote the agent leaves until then can fail and leave the gap for the human to close (the reason `aiwfx-wrap-epic` keeps its promote last, applied here to the reverse ordering problem: gap closure must come *before* the scope-ending act, not after it):
 
 ```bash
 aiwf promote G-NNNN addressed --by-commit <sha>
@@ -277,7 +277,7 @@ After the declared-sequence gate, finish up. The origin-branch delete is an **ou
 - *Skipping doc-lint.* Doc drift compounds; the milestone wrap is the cheap moment to catch it.
 - *Slipping unrelated code into the milestone branch.* If the change isn't part of this milestone, it's a separate `wf-patch`.
 - *Wrapping without reading `## Closes`.* A milestone that recorded a gap as the thing it resolves, wrapped without closing that gap, leaves the tracker silently overstating what's still open. Reconstructing the list from prose at wrap instead of reading the section is the same failure one step earlier: it is the search that gets skipped.
-- *Promoting a claimed-fixed gap after the milestone's own promote-done.* Ordering matters (step 10) — closing gaps after `aiwf promote M-NNNN done` risks an ended-scope `aiwf-authorized-by:` trailer on the gap-promote commit.
+- *Promoting a claimed-fixed gap after the milestone's own promote-done.* Ordering matters (step 10) — once `aiwf promote M-NNNN done` has ended a delegated scope, the agent's gap promote is refused at the verb unless another of its active scopes reaches the gap.
 
 ## Next step
 
