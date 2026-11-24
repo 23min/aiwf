@@ -346,3 +346,20 @@ inventories were sorted again.
 | Artifact | Original SHA-256 | Updated SHA-256 |
 | --- | --- | --- |
 | `aiwfx-wrap-milestone/SKILL.md` | `63d3b774e56052759c678480af61171a48f70f6033e01806c567cfa24baec637` | `f13607c591b8440bdc37127f85252748d146308ec6bd7484edba824860aaa6d6` |
+
+## No-active-scope rule covers every non-human actor
+
+G-0778 widens `aiwf check`'s `provenance-no-active-scope` rule from `ai/` actors to
+every actor that is not `human/`, and the `aiwf-check` skill's findings table says so.
+The six inventories change only the record of `.claude/skills/aiwf-check/SKILL.md`;
+all other records stay frozen.
+
+Provenance: derived in the Linux development container on 2026-11-22 without the
+renderer. The artifact's embedded source on `main` at `e369a83c7`, which carries no
+`{{aiwf:…}}` token, reproduces its frozen record; the changed source gives the
+updated record, and the candidate binary's materialized file matched it. The
+inventories were sorted again.
+
+| Artifact | Original SHA-256 | Updated SHA-256 |
+| --- | --- | --- |
+| `aiwf-check/SKILL.md` | `d8ba0de6d3562ec4cb7cdc569ce80952e7fda94afcb9df2711fb2a0c98ff600d` | `c4fcef5742c34a063600e1eede1420c2eb8ef94edde330dec7e43aca34244f3b` |

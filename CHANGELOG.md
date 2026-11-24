@@ -16,6 +16,20 @@ section in this file.
 
 ## [Unreleased]
 
+### Fixed (breaking) — G-0778: `aiwf check` reports a `bot/` commit made with no scope
+
+`aiwf check`'s `provenance-no-active-scope` rule tested only for an `ai/` actor, so a
+commit by any other non-human actor, such as `bot/ci`, that carried no
+`aiwf-on-behalf-of:` passed `aiwf check` and the pre-push hook, though the verbs that
+check a scope refuse that actor without an active one. The rule now covers every
+actor that is not `human/`, the line those verbs draw, and its hint and the
+`aiwf-check` skill say so. The rule reads all history reachable from HEAD, so such a
+commit, pushed or not, now fails `aiwf check` and every push until
+`aiwf acknowledge illegal <sha> --reason "<why>"` ratifies it. `aiwf archive` checks
+no scope and writes no `aiwf-on-behalf-of:`, so its commits made with a `bot/` actor
+now fail the same way its commits made with an `ai/` actor already did. Run
+`aiwf update` to refresh the installed `aiwf-check` skill.
+
 ### Changed — G-0430: the README says how to go back to an earlier release
 
 `aiwf upgrade` keeps no rollback of its own, by decision D-0108. The README's
