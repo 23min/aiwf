@@ -113,7 +113,7 @@ milestones ask of them. `spec/README.md` says how to run them.
 
 - The audit's answers, each with its date, reason and the sources it makes wrong:
   `spec/scope/audit/decisions.md`.
-- The answers to the readings' questions, Q1 to Q3: `spec/scope/answers.md`.
+- The answers to the readings' questions: `spec/scope/answers.md`.
 - verifier-kit runs from a pinned clone of v0.3.3 outside the repository: E-0100, §"Open
   questions"; the commands are in `spec/README.md`.
 - The readings are by Claude Sonnet 5.5 and Claude Fable 5.2, named in each reading's header.
@@ -143,12 +143,20 @@ says (`$VK`), and the `aiwf` that `spec/scope/conform.md` names.
   or given a second line.
 - What the check does not reach, each read rather than pinned:
   - M-0364/AC-1, that an answer whose docs are wrong cites the gap listing them: Q7, Q8, Q9,
-    Q17 and Q18 cite theirs; Q4's are code comments, which change with the code G-0460
-    records; Q2's and Q12's describe aiwf correctly until ADR-0056 is built, and Q12 records
-    the decision to list them for the build epic instead of filing a gap.
+    Q17 and Q18 cite theirs; the dated and archived records Q5, Q6, Q7 and Q9 name are not
+    corrected, as Q12 says of such records; Q4's are code comments, which change with the code
+    G-0460 records; Q2's and Q12's describe aiwf correctly until ADR-0056 is built, and Q12
+    records the decision to list them for the build epic instead of filing a gap. The Names
+    sections are settled by section, in Q15 and Q16, not name by name.
+  - M-0364/AC-2, that each answer is written into the chapter at the rule it settles: the check
+    finds the answer's citation anywhere in the chapter.
   - M-0364/AC-3, that the spine's header names the lifecycle: its first sentence does.
   - M-0364/AC-4, that the adapter only translates: each event runs the command its header
     names, and `observe` names the states as chapter §1 defines them.
+  - M-0364/AC-4, that each divergence is classified as the change ADR-0056 makes or as a defect
+    with a gap: the check matches the classification rows to the run's errors and requires a gap
+    id in each row, but not which table a row sits under, that the gap exists, or what the row
+    says.
 - M-0364/AC-2, beyond the check: each reading is byte-identical to its reader's reply taken again
   from the reader's transcript. The transcripts are not in the repository, so this stays an
   observation of 2026-11-22.
@@ -159,9 +167,11 @@ says (`$VK`), and the `aiwf` that `spec/scope/conform.md` names.
 
 - The defects in aiwf found here are gaps discovered in M-0364, which
   `git grep -l 'discovered_in: M-0364' main -- work/gaps` lists. This milestone changes no aiwf
-  code, so it fixes none of them. The owner routed G-0776, G-0777, G-0779 and G-0781 to the
-  epic that builds ADR-0056. G-0460, G-0776 and G-0786 are differences `spec/scope/conform.md`
-  classifies as defects, so an epic that makes `spine conform` its done-check meets all three;
-  G-0460 and G-0786 are not routed.
+  code, so it fixes none of them. G-0776, G-0777, G-0779 and G-0781 go to patches of their
+  own outside E-0100, ahead of the epic that builds ADR-0056. G-0460, G-0776 and G-0786 are
+  differences `spec/scope/conform.md` classifies as defects, so an epic that makes
+  `spine conform` its done-check meets each one not fixed by then.
+  E-0074 addresses G-0460 and waits on whether a repeat grant is a new event, which audit Q4
+  settles for a milestone; G-0786 is not routed.
 - For the epic that builds ADR-0056: the docs ADR-0056 makes wrong (audit Q12) and the unit test
   that its readers still read a scope opened before its release (audit Q16).
