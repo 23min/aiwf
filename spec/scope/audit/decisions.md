@@ -194,7 +194,10 @@ makes wrong and the claims it settles. Claim ids C-n are rows of `docs.md`, H-n 
 - **Date:** 2026-11-21.
 - **Answer:** an agent's verb with no scope is refused and writes no commit, whether or not it
   names a principal: with `--principal` as `provenance-no-active-scope`, without it as
-  "principal required for non-human actor" (H83).
+  "principal required for non-human actor". Measured 2026-11-22 with the `aiwf` `conform.md`
+  names, on the adapter's starting repository: `aiwf add ac M-0001 --title x --actor ai/claude`,
+  exit 1, HEAD unchanged; with `--principal human/t`, exit 1 with
+  `provenance-no-active-scope`. H83 records the first refusal under an active scope.
 - **Reason:** CLAUDE.md item 9: "An LLM the human directs in conversation is the human's tool,
   not a co-actor; `aiwf authorize` opens a scope an agent works within." A commit made in
   conversation has the human as its actor; an `ai/` actor is an agent working on its own, which
@@ -309,7 +312,7 @@ makes wrong and the claims it settles. Claim ids C-n are rows of `docs.md`, H-n 
   opening commit's SHA, or gives `aiwf-authorized-by` or `aiwf-scope-ends` a SHA's shape.
   ADR-0056 names the provenance model's (§Consequences, "What changes"). This search finds them
   and the others, leaving out the ADRs and the dated records under `docs/research`,
-  `docs/archive` and `docs/audits`, which are not corrected. On `main` on 2026-11-22 it found 49
+  `docs/archive` and `docs/audits`, which are not corrected. On `main` on 2026-11-22 it found 50
   lines in nine files, and every one was such a passage; a search cannot be shown complete, so
   the build epic runs it again and reads what it finds:
 
@@ -318,8 +321,9 @@ makes wrong and the claims it settles. Claim ids C-n are rows of `docs.md`, H-n 
     -e 'auth[- ]?sha|auth-short|addressed by the sha|sha of (its|the) .?authorize|sha is the scope id' \
     -e '7.{1,3}40 hex|authoriz[a-z]* shas?\b|(authorized-by|scope-ends):?`? shas?\b|git sha of the' \
     -e 'shas of authorize|sha-points-to|authorize[- ]commit sha|(authorized-by|scope-ends): [0-9a-f]{7}' \
-    -e 'original sha|scope `[0-9a-f]{7}' \
-    -- docs internal/skills/embedded README.md ':!docs/research' ':!docs/adr' ':!docs/archive' ':!docs/audits'
+    -e 'original sha|scope `[0-9a-f]{7}|its sha to' \
+    -- docs internal/skills/embedded internal/skills/embedded-rituals README.md \
+    ':!docs/research' ':!docs/adr' ':!docs/archive' ':!docs/audits'
   ```
 
   Among them:
@@ -387,13 +391,16 @@ makes wrong and the claims it settles. Claim ids C-n are rows of `docs.md`, H-n 
     the bound branch, an agent's code commit that is not a verb, `git cherry-pick -x` of an
     agent commit, a merge of a ritual branch into `main` (judged by first-parent ancestry),
     force-push and `git reset --hard`, a rebase in progress;
-  - acts on the milestone without changing its status: `aiwf archive`, which moves its file, and
-    `aiwf promote --audit-only`, which records a terminal status the file already has (on an
-    `in_progress` milestone it refuses: "audit-only records what's already true"). Not measured.
-    For archive, C121 says a scope still active when its milestone is swept survives the sweep;
-    `aiwf archive --apply` after a close, and `aiwf promote M-0001 done --audit-only` after the
-    file's status is set to `done` by hand with a scope active, each followed by
-    `aiwf show M-0001` and an agent verb, would settle whether the scope follows;
+  - acts on the milestone without changing its status: `aiwf promote --audit-only`, which
+    records a status the file already has (asked for `done` on an `in_progress` milestone, it
+    refuses: "audit-only records what's already true"), and `aiwf archive`, which moves a
+    terminal entity's file. Measured 2026-11-22 with the `aiwf` `conform.md` names, on the
+    adapter's starting repository: with a scope active, the ACs met and the file's status set to
+    `done` by hand, `aiwf promote M-0001 done --audit-only --reason record` exited 0, its commit
+    carried `aiwf-scope-ends`, the scope read `ended` and the agent's retitle was refused, as a
+    close leaves it (H55); after a close, `aiwf archive --apply` printed "no terminal-status
+    entities awaiting sweep", since a milestone moves with its epic, which the chapter keeps
+    active. C121 says a scope still active when its milestone is swept survives the sweep;
   - proposed and never built: scope rebind, an agent authorizing another, time-, verb- and
     pattern-limited scopes;
   - the verb commit output machine's (M-0366): amend, squash and the host's merge methods;
@@ -526,27 +533,38 @@ makes wrong and the claims it settles. Claim ids C-n are rows of `docs.md`, H-n 
   `--branch`, and each printed `authorize exit 0`, as M-0103's AC-3 title has it (C28).
 - **Claims settled:** C10, C19, C21–C28, C53, C54, C56, C57, C61, C62, C65.
 
-## Q19. The agent's own close or cancel, and verbs that leave an error
+## Q19. Which agent verb the machine's act is
 
-- **Date:** 2026-11-22.
-- **Answer:** the machine leaves both out. Its `act` is an agent verb that changes the
-  milestone, leaves the milestone's status as it is and leaves no error for `aiwf check` to
-  report. The agent's own promote to `done` or cancel of the milestone is not an `act`, nor is a
-  verb that leaves an error.
-- **Reason:** the docs allow the agent's close by design ("The agent can close its own scope by
-  design", C90; C89), and its closing commit ends the scope with `aiwf-scope-ends`, the side
-  effect the human's close has (H13), so as an event of its own it would differ from `close`
-  only in who runs it and in being refused where the agent has no active scope. A verb that
-  leaves an error, such as `aiwf add ac` with no body (`acs-empty-body`), fails `check` for a
-  reason that is not the scope's.
+- **Date:** 2026-11-24.
+- **Answer:** the machine's `act` is the agent's `aiwf retitle` of the milestone, the verb the
+  adapter plays, and the machine leaves every other agent verb on the milestone and its ACs
+  out. The milestone is `tdd: none`, and no step changes that (chapter §5).
+- **Reason:** an `act` wider than the verb conform plays claims what no run checks, and one verb
+  inside the wider reading breaks a rule: after the agent sets the milestone's TDD policy to
+  `required`, which leaves no error, close is refused from active, paused and ended, where rule 13
+  moves it to closed (measured below). Two other verbs stay out for reasons of their own. The docs
+  allow the agent's own close by design ("The agent can close its own scope by design", C90; C89),
+  and its closing commit ends the scope with `aiwf-scope-ends`, the side effect the human's close
+  has (H13), so as an event of its own it would differ from `close` only in who runs it and in
+  being refused where the agent has no active scope. A verb that leaves an error, such as
+  `aiwf add ac` with no body (`acs-empty-body`), fails `check` for a reason that is not the
+  scope's.
+- **Measured 2026-11-24**, with the `aiwf` `conform.md` names, through the adapter's own steps
+  from its starting repository: `authorize`, then the agent's
+  `aiwf milestone tdd M-0001 --policy required --actor ai/claude --principal human/t`, then no
+  step, `pause` or `end`, then `close`. Expected, were the policy change an `act`: close moves
+  to closed (rule 13). Observed: the agent's verb exit 0; `aiwf check` exit 0 in active, paused
+  and ended; close rejected in each, the state unchanged, and `aiwf promote M-0001/AC-1 met`
+  refused with `acs-tdd-audit`: "status: met under tdd: required but tdd_phase is (absent)".
 - **Measured 2026-11-22**, with the `aiwf` `conform.md` names, on the adapter's starting
   repository: `aiwf authorize M-0001 --to ai/claude --reason go`, then the agent's
   `aiwf promote M-0001/AC-1 met`, `AC-2 met` and `aiwf promote M-0001 done`, each with
   `--actor ai/claude --principal human/t`. Expected, by C90: the close allowed and the scope
   ended. Observed: exit 0, status `done`, the scope `ended`, the closing commit carrying
   `aiwf-actor: ai/claude`, `aiwf-authorized-by` and `aiwf-scope-ends`; `aiwf check --since main`
-  0 errors. With the agent's `aiwf cancel` of both ACs and then of `M-0001`: exit 0, status
-  `cancelled`, the scope `ended`, `aiwf-scope-ends` on the agent's commit, 0 errors.
+  0 errors. With the agent's `aiwf cancel` of both ACs and then of `M-0001` instead, expected by
+  question 14 to end the scope as close does: exit 0, status `cancelled`, the scope `ended`,
+  `aiwf-scope-ends` on the agent's commit, 0 errors.
 - **Sources this makes wrong:** none.
 - **Claims settled:** C89, C90 (for the machine).
 
