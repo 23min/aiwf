@@ -61,6 +61,6 @@ so the caller cannot tell "already so" from "nothing there", the distinction R2 
 
 ## Relates to
 
-G-0783, which records the refusal codes named in the same sentences of the provenance model
+G-0783, whose fix took the refusal codes out of the same sentences of the provenance model
 §"Verb behavior" and R-FP-0135 and R-FP-0136; and G-0785, which records which paused scope a
 resume picks, in `authorizeTransition` and the same sentence of the provenance model.
