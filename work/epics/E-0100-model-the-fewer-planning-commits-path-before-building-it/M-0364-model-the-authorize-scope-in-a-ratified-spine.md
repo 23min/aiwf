@@ -135,9 +135,10 @@ go1.25.12.
 - M-0364/AC-1 to M-0364/AC-4: `python3 spec/check.py scope "$VK"` checks what its header lists.
   Expected: every line `ok`, exit 0. Observed: `all passed`, exit 0. Each rule was then broken
   once in the working tree, and each time the check exited 1 naming that rule: an answer's
-  field emptied or removed; an audit section renamed, or `audit/docs.md` removed; a claim id, a
-  not-covered pair or a case removed from the records; a part of a Names section left unnamed
-  by every answer, or a new part added; the readings given one model; a header
+  field emptied or removed; an audit section renamed, or `audit/docs.md` or `audit/history.md`
+  removed; a claim id, a not-covered pair or a case removed from the records; a part of a Names
+  section left unnamed by every answer, named by a longer word or by another part's name, or a
+  new part added; a Names section left with no part; the readings given one model; a header
   hash changed; the chapter's citation of an answer removed; a reading's rule or initial state
   changed; a spine rule removed or changed; a state moved in `drawing.yaml`; the spine header's
   ratification removed; a run field, a hash or another verifier-kit version written into
@@ -146,10 +147,11 @@ go1.25.12.
   or given a second line.
 - What the check does not reach, each read rather than pinned:
   - M-0364/AC-1, that an answer whose docs are wrong cites the gap listing them: Q7, Q8, Q9,
-    Q17 and Q18 cite theirs; the dated and archived records Q5, Q6, Q7 and Q9 name are not
-    corrected, each for the reason its answer gives; Q4's are code comments, which change with
-    the code G-0460 records; Q2's and Q12's describe aiwf correctly until ADR-0056 is built, and
-    Q12 records the decision to list them for the build epic instead of filing a gap.
+    Q17 and Q18 cite theirs; the dated, archived and accepted records Q5, Q6, Q7, Q9 and Q18
+    name are not corrected, each for the reason its answer gives; Q4's are in the code, a comment
+    and the `Authorize` entry of `noopExemptVerbs`, which change with the code G-0460 records;
+    Q2's and Q12's describe aiwf correctly until ADR-0056 is built, and Q12 records the decision
+    to list them for the build epic instead of filing a gap.
   - M-0364/AC-1, that each name that doesn't fit has an answer: the check finds each part of a
     Names section named in an answer's claims settled, not each name in the part.
   - M-0364/AC-1, that every conflict and uncovered case has an answer: the check follows the
