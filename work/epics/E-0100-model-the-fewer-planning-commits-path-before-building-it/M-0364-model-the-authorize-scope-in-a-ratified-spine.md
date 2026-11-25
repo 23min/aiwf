@@ -183,6 +183,6 @@ go1.25.12.
   differences `spec/scope/conform.md` classifies as defects, so an epic that makes
   `spine conform` its done-check meets each one not fixed by then.
   E-0074 addresses G-0460 and waits on whether a repeat grant is a new event, which audit Q4
-  settles for a milestone; G-0786 is not routed.
+  settles for a milestone; G-0786 and G-0789 are not routed.
 - For the epic that builds ADR-0056: the docs ADR-0056 makes wrong (audit Q12) and the unit test
   that its readers still read a scope opened before its release (audit Q16).
