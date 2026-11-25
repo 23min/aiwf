@@ -9,14 +9,16 @@ It prints one line per check and exits 1 when any fails.
 
   audit     Every answer in audit/decisions.md fills in its date, answer, reason, the sources it
             makes wrong and the claims it settles. audit/docs.md exists, and so does
-            audit/history.md where an answer settles one of its H claims; each has a Conflicts, a
-            Not covered and a Names section. Every claim id a Conflicts or Not covered section
-            cites is among the claims settled. Each Names section has at least one part, a ###
-            heading or a bold line, and each part is named in an answer's claims settled as its
-            file, section and part, followed by punctuation, " and `" or the end ("`docs.md` §4
-            States,"). Each (state, event) pair a Not covered section lists is named, as
+            audit/history.md where an answer settles one of its H claims; each of the two that
+            exists has a Conflicts, a Not covered and a Names section. Every claim id a Conflicts
+            or Not covered section cites is among the claims settled. Each Names section has at
+            least one part, a ### heading or a bold line, and each part is named in one answer's
+            claims settled as its file, section and part, followed by `,`, `.`, `;`, `)`,
+            " and `" or the end of that field ("`docs.md` §4 States,"). Each (state, event) pair a
+            Not covered section lists on a bulleted or numbered line is named, as
             "`state, event`", in an answer's claims settled or in the section on cases no source
-            covers.
+            covers. An id, part or pair named anywhere in a claims settled field counts as
+            settled by that answer.
   readings  The two readings name different models. Each header gives the hash of a version of
             chapter.md in this repository's history, of readings/prompt.md, and of the checkout's
             docs/reference/spine-format.md. Every case that `spine diff` of the two readings or
@@ -125,19 +127,20 @@ def check_audit(root, states, events):
     unsettled = sorted(raised - settled, key=lambda i: (i[0], int(i[1:])))
     report(not unsettled, f"audit: each of {len(raised)} claim ids raised is settled", ", ".join(unsettled))
 
-    claimed = " ".join(" ".join(t.split()) for t in settled_text.values())
+    claimed = [" ".join(t.split()) for t in settled_text.values()]
     for p in files:
         n, text = numbered(p, "Names that don't fit")
         parts = [a or b for a, b in re.findall(r"(?m)^(?:### (.+?)|\*\*(.+?)\*\*)\s*$", text)]
         open_parts = [s for s in parts
-                      if not re.search(rf"`{re.escape(p.name)}` §{n} {re.escape(s)}(?=[,.;)]| and `|$)", claimed)]
+                      if not any(re.search(rf"`{re.escape(p.name)}` §{n} {re.escape(s)}(?=[,.;)]| and `|$)", f)
+                                 for f in claimed)]
         report(n and parts and not open_parts,
                f"audit: each of {len(parts)} parts of {p.name} §{n} (names) is named in an answer's claims settled",
                ", ".join(open_parts))
 
     pair = re.compile(rf"`?\b({'|'.join(states)})`?,\s*`?({'|'.join(events)})\b`?")
     listed = {m.groups() for p in files for line in numbered(p, "Not covered")[1].splitlines()
-              if line.startswith("- ") for m in pair.finditer(line)}
+              if re.match(r"(?:- |\d+\. )", line) for m in pair.finditer(line)}
     answered = "\n".join(settled_text.values()) + cases_text
     open_pairs = sorted(f"{s}, {e}" for s, e in listed if f"`{s}, {e}`" not in answered)
     report(listed and not open_pairs, f"audit: each of {len(listed)} not-covered pairs is answered", "; ".join(open_pairs))
