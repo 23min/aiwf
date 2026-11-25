@@ -3,8 +3,8 @@
 aiwf tracks planning state as markdown files in a git repository. A human lets an AI agent work
 on a milestone on its own by opening a scope with `aiwf authorize`; the agent's verbs then run
 under that scope, and the human can pause, resume and end it. This chapter says how the agent's
-scope on one milestone, and the next one the human opens after an end, moves between states as
-the human, the agent and git act on it, as ADR-0056 has it for a scope opened from its release
+scopes on one milestone, the first and each one the human opens after an end, move between states
+as the human, the agent and git act on it, as ADR-0056 has it for a scope opened from its release
 on: a scope is named by a random id that its opening commit carries, which a rebase or a copy
 keeps.
 
@@ -30,8 +30,8 @@ Things:
 - **scope**: the human's permission for the agent to work on the milestone. Its opening commit
   carries its id (ADR-0056).
 - **branch**: the milestone's branch, named `milestone/<milestone>-<slug>` from the milestone as
-  it was when the branch was cut, and checked out whenever an aiwf verb runs. The scope is opened
-  on it and the agent works on it.
+  it was when the branch was cut, and checked out when each step starts and ends. The scope is
+  opened on it and the agent works on it.
 
 States:
 
@@ -61,11 +61,13 @@ Events. Each is one thing the human, the agent or git does:
   `--scope`, which ends the milestone's one scope that is not ended (Q9).
 - **close**: the human meets the milestone's open ACs and promotes the milestone to `done`.
 - **rebase**: `main` gains one commit that touches nothing of the scope, and the branch is
-  rebased onto it, so the branch's own commits get new hashes, a scope's opening commit among
-  them where one was opened (Q13).
+  rebased onto it, keeping any merge an earlier copy made (`git rebase --rebase-merges`), so the
+  branch's own commits get new hashes, a scope's opening commit among them where one was opened
+  (Q13).
 - **copy**: the branch as it stands is kept, `main` gains a commit and the branch is rebased onto
-  it, and the kept branch is then merged back in, so each of the branch's own commits sits beside
-  its rebased twin, a scope's opening commit among them where one was opened (Q13).
+  it as in rebase, and the kept branch is then merged back in, so each of the branch's own
+  commits sits beside its rebased twin, a scope's opening commit among them where one was opened
+  (Q13).
 - **reallocate**: the human runs `aiwf reallocate <milestone>`, which gives the milestone a new
   id (Q15).
 - **check**: the human runs `aiwf check`.
@@ -196,9 +198,9 @@ Left out of the machine, each with the answer that leaves it out:
 
 - **Old scopes.** A scope named by its opening commit's hash, which aiwf writes before ADR-0056's
   release, rebases and copies the way G-0751, G-0752 and G-0755 record, and ADR-0056 leaves it
-  so. The epic that builds ADR-0056 adds a unit test that its readers still read such a scope as
-  ended and its agent commits as authorized; a scope opened before that release and not ended
-  when it arrives is outside the machine (Q16).
+  so. The epic that builds ADR-0056 adds a unit test that its readers still read such a scope,
+  once ended, as ended and its agent commits as authorized; one not yet ended when that release
+  arrives is covered by neither (Q16).
 - **Ending a scope by naming it**, `--end --scope <its id>`, which does nothing when that scope
   is already ended (Q9).
 - **cancel** of the milestone, which ends a scope as close does (Q14).

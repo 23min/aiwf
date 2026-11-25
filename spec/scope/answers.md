@@ -13,8 +13,9 @@ compares. The chapter carries each answer at the rule it settles.
   closed/reallocate and closed/check. (Chapter S3.)
 - **Q2. What does copy do where no scope was opened?** In none, and in closed when no scope was
   opened, copy is allowed and leaves the state as it is: its git steps run as anywhere else,
-  with no opening commit among the commits they copy. No aiwf verb runs, so nothing refuses, and
-  copy asks for nothing that already holds, so it is not a no-op. Both readings left none/copy
+  with no opening commit among the commits they copy. Those steps set off the repository's
+  hooks, which run aiwf, and none refuses; copy asks for nothing that already holds, so it is not
+  a no-op. Both readings left none/copy
   undecided, and reading B closed/copy too. (Chapter rule 17, and the glossary's rebase and
   copy, which audit Q13 defines by their git steps.)
 - **Q3. Which kind is each state?** none, active and paused are policy; ended and closed are
