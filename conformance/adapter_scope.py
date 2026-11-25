@@ -32,10 +32,11 @@ Events (chapter.md, §1), each on the milestone's current id <m>:
   check       aiwf check
 Each first reads the milestone's id with `aiwf list`, and close reads its ACs with `aiwf show`;
 a read that fails raises, and conform reports the step as crashed. Otherwise each says "ok" when
-every aiwf verb it ran exited 0, and "rejected" otherwise. rebase and copy run no aiwf verb, so a
-git step that fails raises the same way. Both rebase with --rebase-merges, which keeps a copy's
-merge: a plain rebase replays a copied commit and its twin one after the other, and the twin of a
-status change then conflicts with the change after it.
+every aiwf verb it ran exited 0, and "rejected" otherwise. rebase and copy run git commands, whose
+hooks run aiwf; a git command that fails, refused by a hook or not, raises the same way. Both
+rebase with --rebase-merges, which keeps a copy's merge: a plain rebase replays a copied commit
+and its twin one after the other, and the twin of a status change then conflicts with the change
+after it.
 
 observe() takes the milestone's id from `aiwf list` and its status and scopes from `aiwf show`,
 and names:
