@@ -219,6 +219,7 @@ makes wrong and the claims it settles. Claim ids C-n are rows of `docs.md`, H-n 
     is not ended. From `none`, `ended` and `closed` it is refused: no such scope is left.
   - Outside the machine: `--end --scope` naming a scope already ended, which does nothing at
     exit 0 with no commit.
+  - The refusal codes the docs give these refusals (C53, C54, C56, C57, C62) are question 18's.
 - **Reason:** CLAUDE.md item 7, "a request already satisfied is a NoOp at exit 0 with no
   commit", and the verb-design guidance §"Same-state convergence — resolve, then converge": a
   request must name something real (R1) and converges when its effect already holds (R2). The
@@ -254,7 +255,6 @@ makes wrong and the claims it settles. Claim ids C-n are rows of `docs.md`, H-n 
   case: `docs/archive/pocv3/health-scorecard-2026-06-16.md` (C58), archived.
 - **Claims settled:** C53–C55, C58, C59, C62, C63, C70, C72, C73; H6, H64, H80 (the repeat); not
   covered: `closed, close`, `ended, pause`, `closed, pause`, `ended, resume`, `closed, end`.
-  The refusal codes (C53, C54, C56, C57, C62) are question 18.
 
 ## Q10. `none` or `ended`, then `close`; what `closed` means
 
@@ -576,8 +576,9 @@ makes wrong and the claims it settles. Claim ids C-n are rows of `docs.md`, H-n 
 ## Q20. Other words for the states, and what the steps write
 
 - **Date:** 2026-11-24.
-- **Answer:** none of these names, as the sources use them, is a state, an event or a variable of
-  the machine.
+- **Answer:** each of these names, as the sources use them, is another word for a state or an
+  event the machine has, a case no step here reaches, or something a step writes; none adds a
+  state, an event or a variable.
   - `opened`, `paused` and `resumed`, the values of the `aiwf-scope` trailer, mark the commits
     authorize, pause and resume write; the machine names those steps, not the marks.
   - `open` and `live` are other words for active, or for a scope that is not ended, and
@@ -589,9 +590,10 @@ makes wrong and the claims it settles. Claim ids C-n are rows of `docs.md`, H-n 
     (question 15).
   - The code has no `none`: no scope is the absence of an opening commit, and the adapter
     observes it as an `in_progress` milestone that lists no scope.
-  - A terminal-promote is the machine's `close` when it promotes to `done`, and `cancel` when it
-    promotes to `cancelled`, which question 14 leaves out; the auto-end is the end of the scope
-    that it writes as `aiwf-scope-ends` (question 5; H55).
+  - A terminal-promote is the human's promote to `done`, the machine's `close`, or one the
+    machine leaves out: the agent's own (question 19), one with `--audit-only` (question 15) and
+    one to `cancelled` (question 14). The auto-end is the end of the scope that each writes as
+    `aiwf-scope-ends` (question 5; H55).
   - The trailers, `aiwf-scope-ends` and those an act carries among them, and the finding and
     refusal codes are what a step writes or reports, and `aiwf history`'s chips render the
     trailers. The machine has no outputs (chapter §1; question 18 for the codes).
