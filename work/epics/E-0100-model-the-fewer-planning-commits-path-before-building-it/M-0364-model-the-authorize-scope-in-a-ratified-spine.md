@@ -136,15 +136,15 @@ go1.25.12.
   Expected: every line `ok`, exit 0. Observed: `all passed`, exit 0. Each rule was then broken
   once in the working tree, and each time the check exited 1 naming that rule: an answer's
   field emptied or removed; an audit section renamed, or `audit/docs.md` or `audit/history.md`
-  removed; a claim id, a not-covered pair or a case removed from the records; a part of a Names
-  section left unnamed by every answer, named by a longer word or by another part's name, or a
-  new part added; a Names section left with no part; the readings given one model; a header
-  hash changed; the chapter's citation of an answer removed; a reading's rule or initial state
-  changed; a spine rule removed or changed; a state moved in `drawing.yaml`; the spine header's
-  ratification removed; a run field, a hash or another verifier-kit version written into
-  `conform.md`; the command's or the run's margin changed so the two differ; a classification
-  row or a row's gap removed; the `.cmd` naming another adapter
-  or given a second line.
+  removed; a claim id, a case, or a not-covered pair on a bulleted or a numbered line, removed
+  from the records; a part of a Names section left unnamed by every answer, named by a longer
+  word or by another part's name, or a new part added; a Names section left with no part; the
+  readings given one model; a header hash changed; the chapter's citation of an answer removed;
+  a reading's rule or initial state changed; a spine rule removed or changed; a state moved in
+  `drawing.yaml`; the spine header's ratification removed; a run field, a hash or another
+  verifier-kit version written into `conform.md`; the command's or the run's margin changed so
+  the two differ; a classification row or a row's gap removed; the `.cmd` naming another
+  adapter or given a second line.
 - What the check does not reach, each read rather than pinned:
   - M-0364/AC-1, that an answer whose docs are wrong cites the gap listing them: Q7, Q8, Q9,
     Q17 and Q18 cite theirs; the dated, archived and accepted records Q5, Q6, Q7, Q9 and Q18
@@ -156,7 +156,9 @@ go1.25.12.
     Names section named in an answer's claims settled, not each name in the part.
   - M-0364/AC-1, that every conflict and uncovered case has an answer: the check follows the
     claim ids a Conflicts or Not covered entry cites and the `state, event` pairs a Not covered
-    entry names, so an entry with neither would pass unanswered.
+    entry names, so an entry with neither would pass unanswered; and an id, pair or part named
+    anywhere in an answer's claims settled counts as settled by that answer, a pointer to another
+    answer included.
   - M-0364/AC-2, that each answer is written into the chapter at the rule it settles: the check
     finds the answer's citation anywhere in the chapter.
   - M-0364/AC-3, that the spine's header names the lifecycle: its first sentence does.
