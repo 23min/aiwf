@@ -8,9 +8,9 @@ as the human, the agent and git act on them, as ADR-0056 has it for a scope open
 release on: a scope is named by a random id that its opening commit carries, which a rebase or a
 copy keeps.
 
-It is taken from aiwf's records, not its code: the provenance model
-(`docs/design/provenance-model.md`), the `aiwf-authorize` skill, ADR-0036, ADR-0047, ADR-0056,
-D-0111, E-0100, CLAUDE.md, and the maintainer's answers
+It is taken from aiwf's records: the provenance model (`docs/design/provenance-model.md`), the
+`aiwf-authorize` skill, ADR-0036, ADR-0047, ADR-0056, D-0111, E-0100, CLAUDE.md, the gaps it
+cites, and the maintainer's answers
 in `spec/scope/audit/decisions.md` (cited as Q1 and on), which settle where those records and
 aiwf's history disagree. The claims behind the answers are in `audit/docs.md` and
 `audit/history.md`. The answers to the questions the chapter's two readings raised are in
@@ -61,7 +61,7 @@ Events. Each is one thing the human, the agent or git does:
 - **end**: the human runs `aiwf authorize <milestone> --end --reason "<text>"`, without
   `--scope`, which ends the milestone's one scope that is not ended (Q9).
 - **close**: the human meets the milestone's open ACs and promotes the milestone to `done`.
-- **rebase**: `main` gains one commit that touches nothing of the scope, and the branch is
+- **rebase**: `main` gains one commit that touches nothing of the milestone, and the branch is
   rebased onto it, keeping any merge an earlier copy made (`git rebase --rebase-merges`). The
   branch's own commits get new hashes, a scope's opening commit among them where one was opened,
   except those an earlier copy merged back in, which keep theirs (Q13).
@@ -158,7 +158,7 @@ changes nothing and makes no commit.
 
 ## 4. Scenarios
 
-Each starts in none.
+Each starts in none. A gap named in a note records what today's aiwf does instead.
 
 | ID | Steps | The state after each step |
 |---|---|---|
@@ -187,6 +187,8 @@ Each starts in none.
   meet the ACs without their TDD phases and promote the milestone to `done`. No step changes
   the TDD policy (Q19).
 - The scope is opened from ADR-0056's release on, so its opening commit carries an id (Q16).
+- Every commit in the scope is made by an aiwf from that release on: one an older aiwf makes
+  names the opening commit's SHA, which a rebase can still break (ADR-0056, §Consequences).
 - The agent acts only through aiwf verbs.
 - The branch's own commits are the only ones that change the milestone; `main`'s commits in
   rebase and copy touch nothing of it, so copy's merge meets no conflict: each rebased twin
@@ -199,9 +201,9 @@ Left out of the machine, each with the answer that leaves it out:
 
 - **Old scopes.** A scope named by its opening commit's hash, which aiwf writes before ADR-0056's
   release, rebases and copies the way G-0751, G-0752 and G-0755 record, and ADR-0056 leaves it
-  so. The epic that builds ADR-0056 adds a unit test that, on one such scope made by hand and
-  never rebased, its readers still read it, once ended, as ended and its agent commit as
-  authorized (Q16).
+  so. The epic that builds ADR-0056 adds a unit test: on one such scope, made by hand as an
+  opening commit, an agent commit and an end, aiwf reads the scope as ended and the agent commit
+  as authorized (Q16).
 - **Ending a scope by naming it**, `--end --scope <its id>`, which does nothing when that scope
   is already ended (Q9).
 - **cancel** of the milestone, which ends a scope as close does (Q14).
