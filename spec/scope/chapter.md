@@ -46,7 +46,7 @@ States:
 
 Every run starts in none. None, active and paused are policy: what the agent may do in each is a
 choice a later decision can change. Ended and closed are facts: each records an act no ordinary
-aiwf verb reverses, an end, which only a new scope follows (ADR-0047, §"Nothing undoes an end"),
+aiwf verb reverses, an end, which only a new scope undoes (ADR-0047, §"Nothing undoes an end"),
 and a `done` milestone, which no aiwf verb but the human override `aiwf promote --force` moves
 without `aiwf check` reporting it (answers.md, Q3).
 
@@ -152,8 +152,8 @@ changes nothing and makes no commit.
 - **S3. Ended stays ended.** Nothing brings an ended scope back; from ended, only authorize
   opens a scope, and it is a new one. Nothing leaves closed. Closed is not final: §2 decides
   every step there, and each is refused, is a no-op or leaves closed as it is (answers.md, Q1).
-- **S4. Asking for what already holds changes nothing.** A repeat of an allowed authorize,
-  pause, resume or close is a no-op.
+- **S4. Asking for what already holds changes nothing.** An authorize, pause, resume or close
+  asked again straight after it was allowed is a no-op.
 - **S5. check passes.** In every state the steps reach, `aiwf check` reports no errors.
 
 ## 4. Scenarios
@@ -211,8 +211,8 @@ Left out of the machine, each with the answer that leaves it out:
   is already ended (Q9).
 - **cancel** of the milestone, which ends a scope as close does (Q14).
 - **The agent's other verbs** on the milestone and its ACs (Q19), among them its change of the
-  milestone's TDD policy to `required`, after which the human's close is refused in every state
-  that follows, and its own close or cancel, which ends its scope with `aiwf-scope-ends` on the
+  milestone's TDD policy to `required`, after which the human's close is refused while the policy
+  stays `required`, and its own close or cancel, which ends its scope with `aiwf-scope-ends` on the
   agent's commit, as the human's close does.
 - **authorize `--force`** on a `done` milestone, a human override (Q11).
 - **promote `--force`** out of `done` or `cancelled`, a human override. No ordinary transition
@@ -250,7 +250,8 @@ Left out of the machine, each with the answer that leaves it out:
 - What a step writes: the scope's id, the trailers and which value a pointer holds. The machine
   has no outputs; a pointer that holds the wrong value shows only through what rebase and copy
   then do.
-- Whether a step made a commit. A no-op and an allowed step that stays look the same.
+- Whether an allowed step made a commit. A no-op makes none (§2), but `spine conform` sees a
+  no-op and a step that stays alike, so no run checks S4.
 - Refusal messages and codes, and the warnings `aiwf check` prints.
 - What `aiwf show` prints beyond which state the scope is in.
 - More than one scope on the milestone that is not ended, which no step here produces (Q3,
