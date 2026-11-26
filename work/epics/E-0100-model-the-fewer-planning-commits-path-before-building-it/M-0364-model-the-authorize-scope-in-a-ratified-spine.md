@@ -127,7 +127,8 @@ verifier-kit v0.3.3 at `0952e0f` from a fresh clone built as `spec/README.md` sa
 go1.25.12.
 
 - `aiwf check`: exit 0, 0 errors, 1 warning, `provenance-untrailered-scope-undefined` (the
-  branch has no upstream).
+  branch has no upstream). `aiwf check --since cc0d64cff`, which runs the provenance audit that
+  warning names: exit 0, no findings.
 - Go tests, build and lint: not run. No Go, module, `Makefile`, lint, workflow, embedded or
   guidance file changes (`git diff --name-only cc0d64cff..HEAD` over those paths is empty), so
   CLAUDE.md's cadence skips them. `python3 -m py_compile conformance/adapter_scope.py
@@ -135,24 +136,28 @@ go1.25.12.
 - M-0364/AC-1 to M-0364/AC-4: `python3 spec/check.py scope "$VK"` checks what its header lists.
   Expected: every line `ok`, exit 0. Observed: `all passed`, exit 0. Each rule its header lists
   was then broken in a copy of the tree by the edits below, one at a time, and each time the
-  check exited 1 naming the rule broken: Q1's date emptied; Q13's sources field removed;
+  check exited 1 naming the rule broken, or stopped with an error where its header says it
+  does: Q1's date emptied; Q13's sources field removed; every answer's `Q<n>.` heading renamed;
   `docs.md`'s Conflicts and Names sections and `history.md`'s Not covered section renamed;
-  `docs.md` removed; `history.md` removed; a claim id no answer settles added to `docs.md`'s
-  Conflicts; a pair no answer names added to `docs.md`'s Not covered, on a `- ` line and on a
-  `1. ` line; every list marker taken out of both Not covered sections; the part Outputs of
-  `docs.md` §4 left unnamed by the answers, renamed Output so they name it by a longer word,
-  named as States, and named only across Q19's and Q20's fields; a part added to `docs.md` §4;
-  `docs.md` §4's headings made plain lines; reading B given reading A's model; reading A's prompt
-  hash changed in one digit, and its chapter, prompt and spine-format hashes each given one more
-  digit; the chapter's citation of answers.md Q2 removed; reading A's initial state made active,
-  its none/close rule made a refusal, and a state no rule reaches added to it; both readings
-  given the spine's own text below their headers; `spine.yaml`'s none/rebase rule removed, its
-  none/close rule made a refusal, and its ratification sentence removed; none moved and closed
-  dropped in `drawing.yaml`; `conform.md`'s aiwf version and run time removed, its spine and
-  adapter hashes and its verifier-kit version and commit changed, its command's and its run's
-  margin each changed, both margins made 1, and its error lines and classification rows all
-  removed; the classification row for ended/copy and closed/copy removed, and its gaps removed;
-  the `.cmd` naming another adapter, and given a second line.
+  `docs.md` removed; `history.md` removed; `decisions.md` removed; a claim id no answer settles
+  added to `docs.md`'s Conflicts; a pair no answer names added to `docs.md`'s Not covered, on a
+  `- ` line and on a `1. ` line; every list marker taken out of both Not covered sections; the
+  part Outputs of `docs.md` §4 left unnamed by the answers, renamed Output so they name it by a
+  longer word, named as States, and named only across Q19's and Q20's fields; a part added to
+  `docs.md` §4; `docs.md` §4's headings made plain lines; reading B given reading A's model;
+  reading A's header moved to its end; reading A's prompt hash changed in one digit, and its
+  chapter, prompt and spine-format hashes each given one more digit; the chapter's citation of
+  answers.md Q2 removed; reading A's initial state made active, its none/close rule made a
+  refusal, and a state no rule reaches added to it; both readings given the spine's own text
+  below their headers; `spine.yaml`'s none/rebase rule removed, its none/close rule made a
+  refusal, and its ratification sentence removed; none moved, none moved outside the drawing,
+  and closed dropped in `drawing.yaml`; `conform.md`'s aiwf version and run time removed, its
+  spine and adapter hashes and its verifier-kit version and commit changed, its command's and
+  its run's margin each changed, its command's margin made 1 with a `--margin 2` mentioned above
+  the command, both margins made 1, and its error lines and classification rows all removed; the
+  classification row for ended/copy and closed/copy removed, and its gaps removed; the `.cmd`
+  naming another adapter, and given a second line; and the check run with an empty folder as
+  `$VK`.
 - What the check does not reach, each read rather than pinned:
   - M-0364/AC-1, that an answer whose docs are wrong cites the gap listing them: Q7, Q8, Q9,
     Q17 and Q18 cite theirs; the dated, archived and accepted records Q5, Q6, Q7, Q9 and Q18
@@ -183,9 +188,9 @@ go1.25.12.
     in backticks for aiwf, not that it is the version the run used.
 - M-0364/AC-2, beyond the check: each reading is byte-identical to its reader's reply taken again
   from the reader's transcript. The transcripts are not in the repository, so this stays an
-  observation of 2026-11-22. The check reads a reading's rules and terminal marks only through
-  the findings spine reports, and its states' kinds not at all, so a rule changed in a case an
-  answer decides, a kind changed, or reading A's terminal mark on closed removed passes it.
+  observation of 2026-11-22. The check reads a reading's rules, terminal marks and kinds only
+  through the findings spine reports, so a rule changed in a case an answer decides, a state's
+  kind changed to another kind, or reading A's terminal mark on closed removed passes it.
 - M-0364/AC-4: `spec/scope/conform.md` records the run, made with `spec/README.md`'s command
   from the fresh clone.
 
@@ -199,5 +204,7 @@ go1.25.12.
   `spine conform` its done-check meets each one not fixed by then.
   E-0074 addresses G-0460 and waits on whether a repeat grant is a new event, which audit Q4
   settles for a milestone; G-0786 and G-0789 are not routed.
+- For M-0366: audit Q15 leaves amend, squash and the host's merge methods to it, and its spec
+  names amend but neither squash nor the host's merge methods.
 - For the epic that builds ADR-0056: the docs ADR-0056 makes wrong (audit Q12) and the unit test
   that its readers still read a scope opened before its release (audit Q16).
