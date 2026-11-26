@@ -36,6 +36,7 @@ const (
 	CodeProvenanceAuthorizedByMalformed = "provenance-authorized-by-malformed"
 	CodeProvenanceAuthorizationMissing  = "provenance-authorization-missing"
 	CodeProvenanceAuthorizationEnded    = "provenance-authorization-ended"
+	CodeProvenanceAuthorizationPaused   = "provenance-authorization-paused"
 	CodeProvenanceNoActiveScope         = "provenance-no-active-scope"
 	CodeProvenanceAuditOnlyNonHuman     = "provenance-audit-only-non-human"
 
@@ -108,6 +109,7 @@ func RunProvenance(commits []scope.Commit, t *tree.Tree, ackedSHAs map[string]bo
 	endedAt := buildEndedAtIndex(commits, chronoIdx)
 	endedBy := buildEndedByIndex(commits)
 	renameChain := buildRenameChain(commits)
+	scopeEvents := buildScopeEventIndex(commits)
 
 	var findings []Finding
 	for i := range commits {
@@ -118,7 +120,7 @@ func RunProvenance(commits []scope.Commit, t *tree.Tree, ackedSHAs map[string]bo
 		idx := indexCommitTrailersForProvenance(c.Trailers)
 		findings = append(findings, provenanceShapeFindings(c, idx)...)
 		findings = append(findings, provenanceCoherenceFindings(c, idx)...)
-		findings = append(findings, provenanceAuthorizationFindings(c, idx, authIndex, endedAt, endedBy, chronoIdx, renameChain, t)...)
+		findings = append(findings, provenanceAuthorizationFindings(c, idx, authIndex, endedAt, endedBy, chronoIdx, renameChain, scopeEvents, t)...)
 	}
 	return findings
 }
@@ -246,14 +248,16 @@ func provenanceCoherenceFindings(c *scope.Commit, idx map[string]string) []Findi
 }
 
 // provenanceAuthorizationFindings runs the cross-commit authorization
-// rules: -missing / -out-of-scope / -ended for commits carrying
-// aiwf-authorized-by, plus -no-active-scope for non-human actors with
-// no authorization.
+// rules: -missing / -out-of-scope / -ended / -paused for commits
+// carrying aiwf-authorized-by, plus -no-active-scope for non-human
+// actors with no authorization.
 //
 // authIndex maps known authorize-opener SHAs to their opener commit;
 // endedAt maps each opener SHA to the chrono index of its first
 // scope-end; endedBy maps each opener SHA to the commit that emitted
-// the scope-ends trailer; chronoIdx is the position-by-SHA lookup.
+// the scope-ends trailer; chronoIdx is the position-by-SHA lookup;
+// scopeEvents maps each opener SHA to the transitions scope.Replay
+// recorded for its scope.
 func provenanceAuthorizationFindings(
 	c *scope.Commit,
 	idx map[string]string,
@@ -262,6 +266,7 @@ func provenanceAuthorizationFindings(
 	endedBy map[string]*scope.Commit,
 	chronoIdx map[string]int,
 	renameChain map[string]string,
+	scopeEvents map[string][]scope.Event,
 	t *tree.Tree,
 ) []Finding {
 	actor := idx[gitops.TrailerActor]
@@ -317,12 +322,14 @@ func provenanceAuthorizationFindings(
 	// promote first (see G-0119 for the forward fix). The exception is
 	// narrow on purpose: same entity, wrap verb, terminating verb is
 	// `promote`. See isWrapBundleCommit for the full contract.
+	endedBefore := false
 	if endIdx, ended := endedAt[opener.SHA]; ended {
 		thisIdx, ok := chronoIdx[c.SHA]
 		if !ok {
 			thisIdx = -1
 		}
-		if endIdx < thisIdx && !isWrapBundleCommit(idx, opener, endedBy[opener.SHA], renameChain, t) {
+		endedBefore = endIdx < thisIdx
+		if endedBefore && !isWrapBundleCommit(idx, opener, endedBy[opener.SHA], renameChain, t) {
 			findings = append(findings, Finding{
 				Code:     CodeProvenanceAuthorizationEnded,
 				Severity: SeverityError,
@@ -330,6 +337,19 @@ func provenanceAuthorizationFindings(
 				EntityID: idx[gitops.TrailerEntity],
 			})
 		}
+	}
+
+	// -authorization-paused: the scope was paused when this commit
+	// landed. The state comes from scope.Replay, the replay the verbs
+	// and `aiwf show` read a scope's state from. A commit made after
+	// its scope ended is left to the -ended rule above.
+	if !endedBefore && stateBefore(scopeEvents[opener.SHA], chronoIdx[c.SHA], chronoIdx) == scope.StatePaused {
+		findings = append(findings, Finding{
+			Code:     CodeProvenanceAuthorizationPaused,
+			Severity: SeverityError,
+			Message:  fmt.Sprintf("commit %s: aiwf-authorized-by: %s references a scope that was paused", short(c.SHA), short(authSHA)),
+			EntityID: idx[gitops.TrailerEntity],
+		})
 	}
 
 	// -authorization-out-of-scope: the verb's target entity must reach
@@ -703,6 +723,40 @@ func buildEndedByIndex(commits []scope.Commit) map[string]*scope.Commit {
 		}
 	}
 	return out
+}
+
+// buildScopeEventIndex maps each authorize-opener SHA to the transitions
+// scope.Replay records for its scope. Each entity's commits are replayed
+// together. A commit is filed under its aiwf-entity trailer, canonicalized
+// so an id written at any width files with the rest; a commit carrying
+// several is filed under the last.
+func buildScopeEventIndex(commits []scope.Commit) map[string][]scope.Event {
+	byEntity := map[string][]scope.Commit{}
+	for _, c := range commits {
+		ent := entity.Canonicalize(indexCommitTrailersForProvenance(c.Trailers)[gitops.TrailerEntity])
+		byEntity[ent] = append(byEntity[ent], c)
+	}
+	out := map[string][]scope.Event{}
+	for _, entityCommits := range byEntity {
+		for _, s := range scope.Replay(entityCommits) {
+			out[s.AuthSHA] = s.Events
+		}
+	}
+	return out
+}
+
+// stateBefore returns the state a scope's events, in commit order, leave
+// it in before the commit at chrono position pos, or "" when none
+// precedes that commit.
+func stateBefore(events []scope.Event, pos int, chronoIdx map[string]int) scope.State {
+	var state scope.State
+	for _, e := range events {
+		if chronoIdx[e.SHA] >= pos {
+			break
+		}
+		state = e.State
+	}
+	return state
 }
 
 // wrapBundleVerbs is the closed set of `aiwf-verb:` values that

@@ -73,6 +73,7 @@ After the scope is open, ordinary `aiwf check` rules apply to subsequent agent c
 | `provenance-no-active-scope` | the agent ran a verb without a matching active scope. Open one with `aiwf authorize`, or run the verb as the human directly. |
 | `provenance-authorization-out-of-scope` | the verb's target entity has no reference path to the scope-entity. Either authorize the right entity or work on something the existing scope already reaches. |
 | `provenance-authorization-ended` | the scope was already ended — by a closing promote or cancel, or by `aiwf authorize <id> --end`. Open a fresh scope with a new `aiwf authorize`. |
+| `provenance-authorization-paused` | the scope was paused when the commit landed, by the commit's place in `git log` order. The verbs refuse to act under a paused scope, so the commit was written without a verb, or made by one on a branch where the scope was still active, then merged with or rebased onto a branch holding the pause. Resume the scope with `aiwf authorize <id> --resume "<reason>"` before the agent works under it again; `aiwf acknowledge illegal <sha> --reason "<why>"` ratifies a commit you accept. |
 | `provenance-authorization-missing` | the `aiwf-authorized-by:` SHA didn't resolve. Usually a typo or a force-pushed reference. |
 | `provenance-trailer-incoherent` | the trailer set violated a required-together / mutually-exclusive rule. Often: a non-human actor without `--principal`, or a human actor with a stray `--principal`. |
 

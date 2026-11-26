@@ -117,6 +117,7 @@ func TestPolicy_NarrowIDLiteralsAllowlisted(t *testing.T) {
 		"internal/check/fsm_history_walker_test.go": "rename identity guard compares canonicalized ids; narrow input proves width-insensitivity",
 		"internal/check/no_cycles_width_test.go":    "the cycle check keys nodes and edges canonically; narrow edges and nodes prove width-insensitivity",
 		"internal/check/instruction_fence_test.go":  "the instruction-file fence resolves its aiwf-entity trailer canonically; a narrow legacy id proves width-insensitivity",
+		"internal/check/provenance_paused_test.go":  "the paused-scope rule replays an entity's commits grouped by canonical aiwf-entity; a narrow legacy opener id proves width-insensitivity",
 
 		// Legacy narrow aiwf.yaml bindings and narrow bind/unbind
 		// arguments are the inputs every contracts-block write widens.
