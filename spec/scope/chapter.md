@@ -46,9 +46,9 @@ States:
 
 Every run starts in none. None, active and paused are policy: what the agent may do in each is a
 choice a later decision can change. Ended and closed are facts: each records an act no ordinary
-aiwf verb reverses, an end, which only a new scope undoes (ADR-0047, §"Nothing undoes an end"),
-and a `done` milestone, which no aiwf verb but the human override `aiwf promote --force` moves
-without `aiwf check` reporting it (answers.md, Q3).
+aiwf verb reverses, an end (ADR-0047, §"Nothing undoes an end"), and a `done` milestone, which no
+aiwf verb but the human override `aiwf promote --force` moves without `aiwf check` reporting it
+(answers.md, Q3).
 
 Events. Each is one thing the human, the agent or git does:
 
@@ -251,7 +251,7 @@ Left out of the machine, each with the answer that leaves it out:
   has no outputs; a pointer that holds the wrong value shows only through what rebase and copy
   then do.
 - Whether an allowed step made a commit. A no-op makes none (§2), but `spine conform` sees a
-  no-op and a step that stays alike, so no run checks S4.
+  no-op and a step that stays alike, so no run checks that a no-op makes no commit.
 - Refusal messages and codes, and the warnings `aiwf check` prints.
 - What `aiwf show` prints beyond which state the scope is in.
 - More than one scope on the milestone that is not ended, which no step here produces (Q3,
