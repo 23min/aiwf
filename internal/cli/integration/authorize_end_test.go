@@ -14,7 +14,7 @@ import (
 // It goes through the binary's own projection rather than replaying the
 // trailers here, because the claim under test is about what the replay
 // reports. A test that re-derived the state from the commit it just
-// wrote would agree with itself no matter what ReplayScopes did with
+// wrote would agree with itself no matter what scope.Replay did with
 // the trailer.
 func showScopes(t *testing.T, root, binDir, id string) (status string, scopes []struct {
 	AuthSHA string `json:"auth_sha"`
@@ -90,7 +90,7 @@ func TestAuthorizeEnd_EndsScope_LeavesEntityStatusUnchanged(t *testing.T) {
 // TestAuthorizeEnd_WritesTheFullAuthSHA is M-0325/AC-1's silent-failure
 // guard.
 //
-// ReplayScopes resolves `aiwf-scope-ends:` by exact lookup against the
+// scope.Replay resolves `aiwf-scope-ends:` by exact lookup against the
 // full 40-char SHA, while gitops.ValidateTrailer accepts 7-40 hex for
 // that key. A truncated value therefore passes validation, lands a
 // commit, and leaves `aiwf check` green while the scope stays open — the
@@ -124,7 +124,7 @@ func TestAuthorizeEnd_WritesTheFullAuthSHA(t *testing.T) {
 	}
 	if got := strings.TrimSpace(trailers); got != full {
 		t.Errorf("aiwf-scope-ends = %q, want the full auth SHA %q — a truncated value validates and "+
-			"commits, but ReplayScopes never matches it, so the scope silently stays open", got, full)
+			"commits, but scope.Replay never matches it, so the scope silently stays open", got, full)
 	}
 
 	if _, after := showScopes(t, root, binDir, "E-0001"); after[0].State != "ended" {

@@ -1,11 +1,11 @@
 // Package scope is the I2.5 scope FSM: the typed lifecycle of an
 // authorization grant created by `aiwf authorize`.
 //
-// A scope is the kernel's unit of "this work is authorized." Its
-// state is computed by walking commits forward from the authorize
-// commit and applying transitions in commit order. The scope's
-// "frontmatter" is the trailer set on the original authorize commit;
-// transitions are themselves commits with trailers.
+// A scope is the kernel's unit of "this work is authorized." Replay
+// computes each scope's state by walking its entity's commits in order
+// and applying the transitions they record. The scope's "frontmatter"
+// is the trailer set on the original authorize commit; transitions are
+// themselves commits with trailers.
 //
 // State machine (closed set: active | paused | ended):
 //
@@ -25,8 +25,6 @@
 package scope
 
 import (
-	"fmt"
-
 	"github.com/23min/aiwf/internal/gitops"
 )
 
@@ -46,8 +44,8 @@ const (
 
 // Commit is the minimal git-commit shape the scope package consumes:
 // a SHA plus the trailer key/value set extracted from the commit
-// message. Adapters in cmd/aiwf wrap gitops.HeadTrailers / git log
-// output into this shape so the FSM stays I/O-free and unit-testable.
+// message. Callers build it from git log output, so Replay stays
+// I/O-free and unit-testable.
 type Commit struct {
 	SHA      string
 	Trailers []gitops.Trailer
@@ -94,117 +92,86 @@ func IsLegalScopeTransition(from, to State) bool {
 	return false
 }
 
-// LoadScope reconstructs a scope's lifecycle by walking history
-// forward from the authorize commit. authSHA names the originating
-// commit; history is the commit sequence in chronological order
-// (oldest first). The walk stops at the first commit that ends the
-// scope (an aiwf-scope-ends: trailer naming authSHA).
+// Replay derives every scope opened on one entity and each scope's
+// current state. commits are that entity's commits, oldest first: those
+// whose aiwf-entity trailer names it. Scopes come back in open order.
 //
-// Errors:
-//   - the authorize commit (history[0]'s SHA == authSHA) must carry
-//     aiwf-verb: authorize and aiwf-scope: opened, else the SHA is
-//     not actually a scope opener.
-//   - a pause/resume on a state that doesn't allow it produces a
-//     malformed-history error (the FSM was driven by hand-edited
-//     commits that bypassed the verb).
+//   - An authorize commit carrying aiwf-scope: opened opens a scope,
+//     active.
+//   - An authorize commit carrying aiwf-scope: paused or resumed moves
+//     the scope Target picks. When Target picks none, the commit
+//     changes nothing.
+//   - Each aiwf-scope-ends trailer, on any commit, ends the scope opened
+//     by the commit it names, unless that scope has already ended.
 //
-// The function is pure: no I/O, no git subprocess. Adapters in
-// cmd/aiwf produce the Commit slice via gitops.
-func LoadScope(authSHA string, history []Commit) (*Scope, error) {
-	if len(history) == 0 {
-		return nil, fmt.Errorf("scope %s: empty history", authSHA)
-	}
-	opener := history[0]
-	if opener.SHA != authSHA {
-		return nil, fmt.Errorf("scope %s: history[0] SHA %q does not match authSHA", authSHA, opener.SHA)
-	}
-	idx := indexTrailers(opener.Trailers)
-	if idx[gitops.TrailerVerb] != "authorize" {
-		return nil, fmt.Errorf("scope %s: opener is not an authorize commit (verb=%q)", authSHA, idx[gitops.TrailerVerb])
-	}
-	if idx[gitops.TrailerScope] != "opened" {
-		return nil, fmt.Errorf("scope %s: opener does not carry aiwf-scope: opened (got %q)", authSHA, idx[gitops.TrailerScope])
-	}
-
-	s := &Scope{
-		AuthSHA:   authSHA,
-		Entity:    idx[gitops.TrailerEntity],
-		Agent:     idx[gitops.TrailerTo],
-		Principal: idx[gitops.TrailerActor],
-		State:     StateActive,
-		Events: []Event{
-			{SHA: opener.SHA, State: StateActive, Reason: idx[gitops.TrailerReason]},
-		},
-	}
-
-	for _, c := range history[1:] {
-		if s.State == StateEnded {
-			break
+// The verb refuses a pause or resume no scope can make, but history can
+// still hold one: merging two branches that each paused the entity's only
+// active scope leaves the second pause with none to move. Replay skips it,
+// so the entity's scopes still read rather than the whole history failing.
+//
+// The function is pure: no I/O, no git subprocess.
+func Replay(commits []Commit) []*Scope {
+	var scopes []*Scope
+	byAuth := map[string]*Scope{}
+	for _, c := range commits {
+		idx := indexTrailers(c.Trailers)
+		reason := idx[gitops.TrailerReason]
+		if idx[gitops.TrailerVerb] == "authorize" {
+			switch idx[gitops.TrailerScope] {
+			case "opened":
+				s := &Scope{
+					AuthSHA:   c.SHA,
+					Entity:    idx[gitops.TrailerEntity],
+					Agent:     idx[gitops.TrailerTo],
+					Principal: idx[gitops.TrailerActor],
+					State:     StateActive,
+					Events:    []Event{{SHA: c.SHA, State: StateActive, Reason: reason}},
+				}
+				scopes = append(scopes, s)
+				byAuth[c.SHA] = s
+			case "paused":
+				if s := Target(scopes, StatePaused); s != nil {
+					s.move(c.SHA, StatePaused, reason)
+				}
+			case "resumed":
+				if s := Target(scopes, StateActive); s != nil {
+					s.move(c.SHA, StateActive, reason)
+				}
+			}
 		}
-		next, reason, ended := classifyTransition(authSHA, c)
-		if !ended && next == "" {
-			// Not a transition for this scope — skip.
-			continue
+		// aiwf-scope-ends repeats, one trailer per scope a commit ends,
+		// so walk the trailers rather than the index.
+		for _, tr := range c.Trailers {
+			if tr.Key != gitops.TrailerScopeEnds {
+				continue
+			}
+			if s := byAuth[tr.Value]; s != nil && IsLegalScopeTransition(s.State, StateEnded) {
+				s.move(c.SHA, StateEnded, reason)
+			}
 		}
-		var resulting State
-		if ended {
-			resulting = StateEnded
-		} else {
-			resulting = next
-		}
-		if !IsLegalScopeTransition(s.State, resulting) {
-			return nil, fmt.Errorf("scope %s: illegal transition %s → %s at commit %s",
-				authSHA, s.State, resulting, c.SHA)
-		}
-		s.State = resulting
-		s.Events = append(s.Events, Event{SHA: c.SHA, State: resulting, Reason: reason})
 	}
-	return s, nil
+	return scopes
 }
 
-// classifyTransition inspects a commit and returns the resulting
-// scope state for the named auth SHA, the reason text, and whether
-// the commit carries an explicit aiwf-scope-ends: marker.
-//
-// Returns ("", "", false) for commits that don't transition this
-// scope. Recognized cases:
-//
-//   - authorize-pause / authorize-resume on this scope's entity
-//     (matched by aiwf-verb: authorize + the scope state value).
-//     Note: pause/resume commits are addressed by the entity id, not
-//     by the auth SHA; the LoadScope walker assumes any pause/resume
-//     in the history slice is for the scope being loaded. Callers
-//     pre-filter by walking entity history if multiple scopes exist
-//     on the same entity (rare).
-//
-//   - any commit carrying aiwf-scope-ends: <authSHA>: ends this
-//     scope — the automatic end a closing promote or cancel writes, or
-//     an operator's `aiwf authorize <id> --end`.
-func classifyTransition(authSHA string, c Commit) (next State, reason string, ended bool) {
-	idx := indexTrailers(c.Trailers)
-
-	// Auto-end takes precedence: a single commit that both pauses a
-	// scope and ends it (degenerate but possible if hand-crafted)
-	// resolves to ended.
-	for _, tr := range c.Trailers {
-		if tr.Key == gitops.TrailerScopeEnds && tr.Value == authSHA {
-			return "", idx[gitops.TrailerReason], true
+// Target returns the scope a pause (to = StatePaused) or a resume
+// (to = StateActive) moves: of the scopes IsLegalScopeTransition lets
+// move to `to`, the most recently opened, or nil when there is none.
+// scopes are in open order, as Replay returns them. A pause or resume
+// commit names no scope, so `aiwf authorize`, deciding whether to refuse
+// one, and Replay, reading it back, both ask Target which scope it moves.
+func Target(scopes []*Scope, to State) *Scope {
+	for i := len(scopes) - 1; i >= 0; i-- {
+		if IsLegalScopeTransition(scopes[i].State, to) {
+			return scopes[i]
 		}
 	}
+	return nil
+}
 
-	if idx[gitops.TrailerVerb] != "authorize" {
-		return "", "", false
-	}
-	switch idx[gitops.TrailerScope] {
-	case "paused":
-		return StatePaused, idx[gitops.TrailerReason], false
-	case "resumed":
-		return StateActive, idx[gitops.TrailerReason], false
-	default:
-		// "opened" on a different SHA isn't this scope's transition;
-		// any other value isn't recognized.
-		return "", "", false
-	}
+// move records the transition to `to` made by commit sha.
+func (s *Scope) move(sha string, to State, reason string) {
+	s.State = to
+	s.Events = append(s.Events, Event{SHA: sha, State: to, Reason: reason})
 }
 
 // indexTrailers builds a key→value map from a commit's trailers.
