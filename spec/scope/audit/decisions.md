@@ -68,10 +68,10 @@ makes wrong and the claims it settles. Claim ids C-n are rows of `docs.md`, H-n 
 
 ## Q3. `copy`, in every state
 
-- **Date:** 2026-11-21.
+- **Date:** 2026-11-21; `none`, 2026-11-26.
 - **Answer:** a second copy of the opening commit changes nothing. `active`, `paused`, `ended`
-  and `closed` each stay as they are, and in `none`, where there is no opening commit to copy,
-  nothing happens.
+  and `closed` each stay as they are, and `none`, where there is no opening commit to copy,
+  stays `none`; answers.md Q2 says what copy does there.
 - **Reason:** the reason given for question 2: a scope is the human's permission, and a second
   copy of the commit that recorded it does not grant it again. ADR-0056 decides the same: "**One
   id is one scope.** Every opening commit carrying an id opens the same scope. The first in
@@ -490,9 +490,9 @@ makes wrong and the claims it settles. Claim ids C-n are rows of `docs.md`, H-n 
   for the kinds `authorize` refuses); `--branch`, the checkout and the rungs (branch rules,
   outside E-0100); `--scope` (the machine's `end` takes none, question 9); the number of scopes
   (one, questions 3 and 4); the milestone's status (`closed`, questions 10 and 14); whether the
-  rebase reaches the opening commit (always, question 13; after a copy, its rebased twin and not
-  the original); squash and the host's merge methods (M-0366, question 15); a scope on the parent
-  epic (the adapter opens none; one lets the agent act on the milestone, D-0007).
+  rebase reaches the opening commit (always, question 13; after a copy, question 13 says which
+  commits keep their SHAs); squash and the host's merge methods (M-0366, question 15); a scope
+  on the parent epic (the adapter opens none; one lets the agent act on the milestone, D-0007).
 - **Sources this makes wrong:** none.
 - **Claims settled:** C102, C107, C113 (the release boundary); the variables in `docs.md` §4
   Variables and values, and the values in `history.md` §5 States and values.
