@@ -155,10 +155,11 @@ go1.25.12.
   and run time removed, its spine and adapter hashes and its verifier-kit version and commit
   changed, its command's and its run's margin each changed, its command's margin made 1 with a
   `--margin 2` mentioned above the command, the fenced command moved under **Expected:** with a
-  command in backticks left under **Command,**, both margins made 1, and its error lines and
-  classification rows all removed; the classification row for ended/copy and closed/copy removed,
-  and its gaps removed; the `.cmd` naming another adapter, and given a second line; and the check
-  run with an empty folder as `$VK`.
+  command in backticks left under **Command,**, a paragraph at the left margin put between
+  **Command,** and its fenced command, both margins made 1, and its error lines and classification
+  rows all removed; the classification row for ended/copy and closed/copy removed, and its gaps
+  removed; the `.cmd` naming another adapter, and given a second line; and the check run with an
+  empty folder as `$VK`.
 - What the check does not reach, each read rather than pinned:
   - M-0364/AC-1, that an answer whose docs are wrong cites the gap listing them: Q7, Q8, Q9,
     Q17 and Q18 cite theirs; the dated, archived and accepted records Q5, Q6, Q7, Q9 and Q18
@@ -174,7 +175,7 @@ go1.25.12.
     other line, would pass unanswered; an id, pair or part named anywhere in an answer's claims
     settled counts as settled by that answer, a pointer to another answer included; and a pair
     named in the section on cases no source covers counts as answered there, a section the check
-    reads for the pair alone, not for its date, reason or sources.
+    reads for the pair alone, not for its date, answer, reason or sources.
   - M-0364/AC-2, that each answer is written into the chapter at the rule it settles: the check
     finds the answer's citation anywhere in the chapter, and only for an answer that names a case
     the readings split or leave open, so Q3, on the states' kinds, is not checked.
@@ -207,10 +208,12 @@ go1.25.12.
   `spine conform` its done-check meets each one not fixed by then.
   E-0074 addresses G-0460 and waits on whether a repeat grant is a new event, which audit Q4
   settles for a milestone; G-0786 and G-0789 are not routed.
-- For M-0366: its spec takes up squash and the host's merge methods, which audit Q15 leaves to
-  it beside amend; the spec names amend and a merge, but neither squash nor the host's merge
-  methods. git's own squash loses a scope too when it takes in the opening commit: the combined
-  message holds the opening commit's trailers, but git reads trailers only from a message's last
-  paragraph (measured 2026-11-26, with the `aiwf` `spec/scope/conform.md` names).
+- For M-0366: its spec is to take up squash and the host's merge methods, which audit Q15 leaves
+  to it beside amend; the spec names amend and a merge, but neither squash nor the host's merge
+  methods. git's own squash that folds a later commit into the opening commit loses the scope
+  too, since git reads trailers only from the combined message's last paragraph. Measured
+  2026-11-26 with git 2.51.1 and the `aiwf` `spec/scope/conform.md` names: authorize, act, then
+  `git rebase -i HEAD~2` with the act set to squash and git's default message; the scope read
+  none, and the agent's next act was refused.
 - For the epic that builds ADR-0056: the docs ADR-0056 makes wrong (audit Q12) and the unit test
   that its readers still read a scope opened before its release (audit Q16).
