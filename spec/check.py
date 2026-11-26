@@ -5,8 +5,9 @@ Run from the repository root, with the verifier-kit checkout spec/README.md buil
 
     python3 spec/check.py <machine> "$VK"
 
-It prints one line per check, a failing check's reason on the same line, and exits 1 when any
-fails.
+It prints one line per check, with any reason a failing check gives on the same line, and exits
+1 when any fails. A missing record, or a verifier-kit path with no checkout, stops it with an
+error, exit 1.
 
   audit     Every answer in audit/decisions.md fills in its date, answer, reason, the sources it
             makes wrong and the claims it settles. audit/docs.md exists, and so does
@@ -18,25 +19,25 @@ fails.
             " and `" or the end of that field ("`docs.md` §4 States,"). Each (state, event) pair a
             Not covered section lists on a line starting "- " or "<n>. " is named, as
             "`state, event`", in an answer's claims settled or in the section on cases no source
-            covers. An id, part or pair named anywhere in a claims settled field counts as
-            settled by that answer.
+            covers, and at least one such pair is listed. An id, part or pair named anywhere in a
+            claims settled field counts as settled by that answer.
   readings  The two readings name different models. Each header gives the hash of a version of
             chapter.md in this repository's history, of readings/prompt.md as it is in the working
             tree, and of docs/reference/spine-format.md as it is in the verifier-kit checkout.
             Every case that `spine diff` of the two readings or `spine check` of either reports is
             named, as state/event, by an answer in answers.md that the chapter cites as
-            "(answers.md, Q<n>".
+            "(answers.md, Q<n>", and at least one case is reported.
   spine     `spine check` of spine.yaml passes; `spine diff` of it against each reading reports
             only those cases; `spine draw` reports no error or warning and writes drawing.svg
             byte for byte; the header names readings/ and answers.md and says it is ratified by the
             reviewed merge of the file.
   conform   adapter_<machine>.cmd is one line that names conformance/adapter_<machine>.py, and it
             is the --adapter-cmd conform.md records. conform.md records the verifier-kit
-            checkout's version and commit, an aiwf version in backticks, a run time in seconds, a
+            checkout's version and commit, a value in backticks for aiwf, a run time in seconds, a
             margin of 2 or more, the same in the command and in the run's coverage line, and the
-            git hash-object of the spine and adapter as they are in the working tree. The cases of
-            the run's error lines are exactly the cases of the classification rows, and each row
-            cites a gap.
+            git hash-object of the spine and adapter as they are in the working tree. The run has
+            at least one error line, the cases of its error lines are exactly the cases of the
+            classification rows, and each row cites a gap.
 
 `spine diff` reports each case as case-disagrees, and each behavior-differs line it prints is the
 shortest witness of a case reported so; `spine check` reports a case as undecided-cell or
@@ -165,10 +166,12 @@ def check_readings(root, spine, vk):
     prompt = git("hash-object", str(r / "prompt.md"))
     fmt = git("hash-object", str(vk / "docs" / "reference" / "spine-format.md"))
     for x, h in heads.items():
-        cited = (re.search(r"chapter\.md ([0-9a-f]{40})", h) or [None, None])[1]
+        cited = (re.search(r"chapter\.md ([0-9a-f]{40})(?![0-9a-f])", h) or [None, None])[1]
         report(cited in versions, f"readings: reading-{x} cites chapter.md as of {versions.get(cited, 'no commit')}")
-        report(f"readings/prompt.md {prompt}" in h, f"readings: reading-{x} cites readings/prompt.md as it is in the working tree")
-        report(f"spine-format.md {fmt}" in h, f"readings: reading-{x} cites spine-format.md as it is in the verifier-kit checkout")
+        report(re.search(rf"readings/prompt\.md {prompt}(?![0-9a-f])", h) is not None,
+               f"readings: reading-{x} cites readings/prompt.md as it is in the working tree")
+        report(re.search(rf"spine-format\.md {fmt}(?![0-9a-f])", h) is not None,
+               f"readings: reading-{x} cites spine-format.md as it is in the verifier-kit checkout")
 
     found, unknown = set(), []
     for args in (("diff", r / "reading-a.yaml", r / "reading-b.yaml"),
@@ -218,7 +221,7 @@ def check_conform(root, machine, vk):
     report(vk_run is not None and vk_run[1] == tag.stdout.strip()
            and git("-C", str(vk), "rev-parse", "HEAD").startswith(vk_run[2]),
            "conform: conform.md records the verifier-kit checkout's version and commit")
-    for what, pat in (("an aiwf version", r"\*\*aiwf:\*\* `[^`]+`"), ("a run time", r"run time \d+ seconds")):
+    for what, pat in (("a value in backticks for aiwf", r"\*\*aiwf:\*\* `[^`]+`"), ("a run time", r"run time \d+ seconds")):
         report(re.search(pat, text) is not None, f"conform: conform.md records {what}")
     block = re.search(r"(?ms)^```\n(.*?)^```", text)
     margin = re.search(r"--margin (\d+)", text)
