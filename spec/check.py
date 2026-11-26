@@ -10,34 +10,36 @@ It prints one line per check, with any reason a failing check gives on the same 
 a verifier-kit path with no checkout stops it with an error; either way it exits 1.
 
   audit     audit/decisions.md has at least one answer, and every answer fills in its date,
-            answer, reason, the sources it makes wrong and the claims it settles. audit/docs.md exists, and so does
-            audit/history.md where an answer settles one of its H claims; each of the two that
-            exists has a Conflicts, a Not covered and a Names section. Every claim id a Conflicts
-            or Not covered section cites is among the claims settled. Each Names section has at
-            least one part, a ### heading or a bold line, and each part is named in one answer's
-            claims settled as its file, section and part, followed by `,`, `.`, `;`, `)`,
-            " and `" or the end of that field ("`docs.md` §4 States,"). Each (state, event) pair a
-            Not covered section lists on a line starting "- " or "<n>. " is named, as
+            answer, reason, the sources it makes wrong and the claims it settles. audit/docs.md
+            exists, and so does audit/history.md where an answer settles one of its H claims; each
+            of the two that exists has a Conflicts, a Not covered and a Names section. Every claim
+            id a Conflicts or Not covered section cites is among the claims settled. Each Names
+            section has at least one part, a ### heading or a bold line, and each part is named in
+            one answer's claims settled as its file, section and part, followed by `,`, `.`, `;`,
+            `)`, " and `" or the end of that field ("`docs.md` §4 States,"). Each (state, event)
+            pair a Not covered section lists on a line starting "- " or "<n>. " is named, as
             "`state, event`", in an answer's claims settled or in the section on cases no source
             covers, and at least one such pair is listed. An id, part or pair named anywhere in a
             claims settled field counts as settled by that answer.
-  readings  The two readings name different models. Each header gives the hash of a version of
-            chapter.md in this repository's history, of readings/prompt.md as it is in the working
-            tree, and of docs/reference/spine-format.md as it is in the verifier-kit checkout.
-            Every case that `spine diff` of the two readings or `spine check` of either reports is
-            named, as state/event, by an answer in answers.md that the chapter cites as
-            "(answers.md, Q<n>", and at least one case is reported.
+  readings  The two readings name different models in their headers, the comment lines each
+            opens with. Each header gives the hash of a version of chapter.md in this repository's
+            history, of readings/prompt.md as it is in the working tree, and of
+            docs/reference/spine-format.md as it is in the verifier-kit checkout. Every case that
+            `spine diff` of the two readings or `spine check` of either reports is named, as
+            state/event, by an answer in answers.md that the chapter cites as "(answers.md, Q<n>",
+            and at least one case is reported.
   spine     `spine check` of spine.yaml passes; `spine diff` of it against each reading reports
             only those cases; `spine draw` reports no error or warning and writes drawing.svg
-            byte for byte; the header names readings/ and answers.md and says it is ratified by the
-            reviewed merge of the file.
+            byte for byte; spine.yaml's header, the comment lines it opens with, names readings/
+            and answers.md and says it is ratified by the reviewed merge of the file.
   conform   adapter_<machine>.cmd is one line that names conformance/adapter_<machine>.py, and it
-            is the --adapter-cmd conform.md records. conform.md records the verifier-kit
-            checkout's version and commit, a value in backticks for aiwf, a run time in seconds, a
-            margin of 2 or more, the same in the command and in the run's coverage line, and the
-            git hash-object of the spine and adapter as they are in the working tree. The run has
-            at least one error line, the cases of its error lines are exactly the cases of the
-            classification rows, and each row cites a gap.
+            is the --adapter-cmd of the command conform.md records under **Command,**, its lines
+            joined. conform.md records the verifier-kit checkout's version and commit, a value in
+            backticks for aiwf, a run time in seconds, a margin of 2 or more, the same in that
+            command and in the run's coverage line, and the git hash-object of the spine and
+            adapter as they are in the working tree. The run has at least one error line, the
+            cases of its error lines are exactly the cases of the classification rows, and each
+            row cites a gap.
 
 `spine diff` reports each case as case-disagrees, and each behavior-differs line it prints is the
 shortest witness of a case reported so; `spine check` reports a case as undecided-cell or
@@ -45,6 +47,7 @@ missing-case. Any other finding code is reported as one the check does not know.
 """
 import re
 import subprocess
+from itertools import takewhile
 import sys
 from pathlib import Path
 
@@ -154,7 +157,7 @@ def check_audit(root, states, events):
 
 def check_readings(root, spine, vk):
     r = root / "readings"
-    heads = {x: "".join(l for l in (r / f"reading-{x}.yaml").read_text().splitlines(True) if l.startswith("#"))
+    heads = {x: "".join(takewhile(lambda l: l.startswith("#"), (r / f"reading-{x}.yaml").read_text().splitlines(True)))
              for x in "ab"}
     models = {x: (re.search(r"by ([\w.-]+), \d{4}-\d{2}-\d{2}", h) or [None, None])[1] for x, h in heads.items()}
     report(all(models.values()) and models["a"] != models["b"],
@@ -204,7 +207,7 @@ def check_spine(root, spine, raised):
     report(d.returncode == 0 and not d.stderr, "spine: spine draw reports no error or warning",
            (d.stderr or (d.stdout if d.returncode else b"")).decode().strip())
     report(d.stdout == (root / "drawing.svg").read_bytes(), "spine: drawing.svg is what spine draw writes")
-    head = " ".join(l for l in (root / "spine.yaml").read_text().splitlines() if l.startswith("#"))
+    head = " ".join(takewhile(lambda l: l.startswith("#"), (root / "spine.yaml").read_text().splitlines()))
     report(re.search(r"readings/.*answers\.md.*Ratified by the reviewed merge of this file\.", head) is not None,
            "spine: the header names readings/ and answers.md and the ratifying merge")
 
@@ -213,7 +216,9 @@ def check_conform(root, machine, vk):
     adapter, cmd = Path(f"conformance/adapter_{machine}.py"), Path(f"conformance/adapter_{machine}.cmd")
     text = (root / "conform.md").read_text(encoding="utf-8")
     lines = cmd.read_text().splitlines() if cmd.exists() else []
-    recorded = (re.search(r'--adapter-cmd "([^"]+)"', text) or [None, None])[1]
+    command = re.search(r"(?ms)^- \*\*Command,\*\*.*?^  ```\n(.*?)^  ```", text)
+    command = " ".join(l.strip().rstrip("\\").strip() for l in (command.group(1) if command else "").splitlines())
+    recorded = (re.search(r'--adapter-cmd "([^"]+)"', command) or [None, None])[1]
     report(adapter.exists() and len(lines) == 1 and str(adapter) in lines[0].split() and lines[0] == recorded,
            f"conform: {cmd} is one line that names {adapter}, the one conform.md records", f"{lines} vs {recorded!r}")
     vk_run = re.search(r"\*\*verifier-kit:\*\* (v\d+\.\d+\.\d+) at `([0-9a-f]{7,40})`", text)
@@ -224,7 +229,7 @@ def check_conform(root, machine, vk):
     for what, pat in (("a value in backticks for aiwf", r"\*\*aiwf:\*\* `[^`]+`"), ("a run time", r"run time \d+ seconds")):
         report(re.search(pat, text) is not None, f"conform: conform.md records {what}")
     block = re.search(r"(?ms)^```\n(.*?)^```", text)
-    margin = re.search(r"\bconform \S+ --margin (\d+)", text)
+    margin = re.search(r"\bconform \S+ --margin (\d+)", command)
     covered = re.search(r"(?m)^info +coverage +.*margin (\d+):", block.group(1) if block else "")
     report(margin is not None and covered is not None and margin[1] == covered[1] and int(margin[1]) >= 2,
            f"conform: margin {margin and margin[1]} in the command and {covered and covered[1]} in the run, 2 or more")
