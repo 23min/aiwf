@@ -15,9 +15,8 @@ compares. The chapter carries each answer at the rule it settles.
   opened, copy is allowed and leaves the state as it is: its git steps run as anywhere else,
   with no opening commit among the commits they copy. Those steps set off the repository's
   hooks, which run aiwf, and none refuses; copy asks for nothing that already holds, so it is not
-  a no-op. Both readings left none/copy
-  undecided, and reading B closed/copy too. (Chapter rule 17, and the glossary's rebase and
-  copy, which audit Q13 defines by their git steps.)
+  a no-op. Both readings left none/copy undecided, and reading B closed/copy too. (Chapter rule
+  17, and the glossary's rebase and copy, which audit Q13 defines by their git steps.)
 - **Q3. Which kind is each state?** none, active and paused are policy; ended and closed are
   fact. Each of the two records an act no ordinary verb reverses: "The inverse of an end is a
   fresh grant" (ADR-0047, §"Nothing undoes an end"), and a `done` milestone has no transition
