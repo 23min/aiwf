@@ -158,9 +158,9 @@ changes nothing and makes no commit.
 
 ## 4. Scenarios
 
-Each starts in none. A note names the answer that decides a step, or a gap that records what
-today's aiwf does there instead; `conform.md` classifies each case where today's aiwf departs from
-this chapter.
+Each starts in none. A note names the answer that decides a step, or a gap that records what aiwf
+does there before ADR-0056 is built; `conform.md` classifies each divergence its margin-2 run
+found.
 
 | ID | Steps | The state after each step |
 |---|---|---|
@@ -189,9 +189,9 @@ this chapter.
   meet the ACs without their TDD phases and promote the milestone to `done`. No step changes
   the TDD policy (Q19).
 - The scope is opened from ADR-0056's release on, so its opening commit carries an id (Q16).
-- Every commit aiwf makes in the scope is made by an aiwf from that release on: the pointers in
-  one an older aiwf makes name the opening commit's SHA, and a rebase can still break them
-  (ADR-0056, §Consequences).
+- Every aiwf that commits in the scope or reads it is from that release on: an older aiwf
+  misreads an end this release writes, and a commit it makes points at the opening commit's SHA,
+  a pointer a rebase can still break (ADR-0056, §Consequences).
 - The agent acts only through aiwf verbs.
 - The branch's own commits are the only ones that change the milestone; `main`'s commits in
   rebase and copy touch nothing of it, so copy's merge meets no conflict: each rebased twin
@@ -229,7 +229,7 @@ Left out of the machine, each with the answer that leaves it out:
 - **Scopes proposed and never built**: re-binding a scope to another branch, an agent
   authorizing another, and scopes limited by time, by verb or by pattern (Q15).
 - **Branch rules**: `--branch`, the checkout, the branch rungs and `isolation-escape` (E-0100,
-  §"Out of scope").
+  §"Out of scope"; Q16).
 - **Other git and aiwf steps** that change what `aiwf check` reports or what the branch rules
   say, not the scope: push, wrap commits after a close, `aiwf acknowledge illegal`, a branch
   rename, `git cherry-pick -x` of an agent commit, which copies an act and not the opening
@@ -238,9 +238,9 @@ Left out of the machine, each with the answer that leaves it out:
 - **`aiwf promote --audit-only`** to `done`, which records a status the milestone's file already
   has and ends the scope as close does, and **`aiwf archive`**, which sweeps nothing while the
   epic is active (Q15).
-- **Amend, squash and the host's merge methods**, which Q15 leaves to the verb commit output
-  machine. A squash that keeps only a commit's title loses its trailers and with them the scope
-  (ADR-0056, §Consequences).
+- **Amend, squash and the host's merge methods**, which Q15 leaves to E-0100's verb commit
+  output machine. A squash that keeps only a commit's title loses its trailers (ADR-0056,
+  §Consequences), so one that takes in the opening commit loses the scope.
 - **A `main` that carries a change to the milestone**, such as a cancel made on another clone,
   which a rebase brings onto the branch (Q2).
 - **`aiwf import`**, which is deprecated (G-0667) (Q17).
