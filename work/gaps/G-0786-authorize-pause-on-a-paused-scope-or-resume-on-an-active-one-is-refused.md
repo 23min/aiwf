@@ -11,9 +11,9 @@ already active, are refused at exit 2. The verb-design guidance (`.guidance/proj
 §"Same-state convergence — resolve, then converge", R2) and CLAUDE.md commitment 7 ("a request
 already satisfied is a NoOp at exit 0 with no commit") make each a NoOp; M-0364's audit
 (`spec/scope/audit/decisions.md`, Q9) settled the repeat that way. `authorizeTransition`
-(`internal/verb/authorize.go:475`) looks for a scope in the source state, active for a pause and
+(`internal/verb/authorize.go:465`) looks for a scope in the source state, active for a pause and
 paused for a resume, and when there is none refuses with "no active scope on %s to pause" or "no
-paused scope on %s to resume" (`authorize.go:294` and `:298`), without asking whether a scope is
+paused scope on %s to resume" (`authorize.go:293` and `:297`), without asking whether a scope is
 already in the state the request names.
 
 Measured 2026-11-22 in the Linux devcontainer (Go 1.25.12, git 2.51.1) with `aiwf` built from a
