@@ -344,11 +344,10 @@ makes wrong and the claims it settles. Claim ids C-n are rows of `docs.md`, H-n 
 - **Date:** 2026-11-21; the branch's other commits, and a rebase or copy after a copy, 2026-11-26.
 - **Answer:** each event is played the way that breaks today's aiwf.
   - `rebase`: the scope is opened on a branch, `main` gains one commit that touches nothing of
-    the scope, and the branch is rebased onto `main`, so the opening commit gets a new SHA.
-  - `copy`: the branch as it stood before that rebase is kept and merged back after it, so the
-    original opening commit lands beside its rebased twin.
-  - The opening commit is not the only one: a rebase with no copy before it gives each of the
-    branch's own commits a new SHA, and a first copy lands each beside its rebased twin.
+    the scope, and the branch is rebased onto `main`, so each of the branch's own commits gets a
+    new SHA, the opening commit among them.
+  - `copy`: the branch as it stood before that rebase is kept and merged back after it, so each
+    original lands beside its rebased twin, the opening commit among them.
   - After a copy, `rebase` and `copy` both rebase with `git rebase --rebase-merges`, which keeps
     the copy's merge: the commits it merged back in, the original opening commit among them, keep
     their SHAs, and the rest get new ones. A second copy so lands each commit given a new SHA
