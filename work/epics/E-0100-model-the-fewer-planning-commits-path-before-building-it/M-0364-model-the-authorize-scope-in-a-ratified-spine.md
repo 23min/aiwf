@@ -217,3 +217,72 @@ go1.25.12.
   none, and the agent's next act was refused.
 - For the epic that builds ADR-0056: the docs ADR-0056 makes wrong (audit Q12) and the unit test
   that its readers still read a scope opened before its release (audit Q16).
+
+## Reviewer notes
+
+**What this milestone obliges later changes to do.** `spec/check.py` holds 22 rules
+(`grep -cE '^\s*report\(' spec/check.py`), printed as 29 checks for `scope`. No Makefile target,
+workflow or hook runs it or `spine conform` (`git grep` over those paths finds no reference), so
+each obligation below binds whoever runs them by hand. The owner of each, unless named, is E-0100,
+then the first build epic that makes `spine conform` its done-check (`spec/README.md`).
+
+- `check.py`'s spine and conform rules, and what they impose: any byte change to `spine.yaml` or
+  the adapter needs a new conform run at margin 2 or more; `drawing.svg` is drawn again after any
+  change to the spine or its layout; verifier-kit stays at v0.3.3. They retire when that build
+  epic installs verifier-kit and makes `./verify` its done-check: `./verify` runs `spine check`,
+  the byte-for-byte draw and a live conform (verifier-kit's `docs/reference/tool-contract.md`),
+  and a done-check expects no divergence, which `check.py`'s conform rule, needing at least one
+  error line, refuses.
+- `check.py`'s audit and readings rules, and the record shapes it parses, `readings/prompt.md`
+  frozen by its hash among them: nothing named retires them. They bind any later edit to a
+  machine's records.
+- E-0100 reaches `main` by a merge that keeps its history, since each reading cites the chapter
+  it was made from by a hash only that history holds. Owner: E-0100. It retires at that merge.
+- The adapter's dependence on aiwf's verb flags, exit codes and the JSON fields of `aiwf list` and
+  `aiwf show` (the adapter's header): nothing named retires it. Nothing on aiwf's side pins those
+  fields; whether something should is the build epic's to decide.
+- The Deferrals' hand-offs each retire when their target delivers them.
+
+**Kept, each for the reason given.**
+
+- `check.py` compares the whole adapter by hash, so a comment change needs a new conform run: the
+  record must name the exact adapter that ran. The adapter's header leaves out the empty
+  `gitconfig` it writes in `SCOPE_RUNS` for the same reason.
+- The spine's header says "one agent's scope": changing it means a new ratification and conform
+  run, and it is not false.
+- Two cuts proposed for the adapter: hard-coding close to promote AC-1 and AC-2, and a compressed
+  rewrite.
+- The chapter cites D-0111, which is on `main` and not yet on this branch; the chapter reaches
+  `main` with E-0100.
+- Dated records stay as written: `history.md` reads its sources at the commits it names; the
+  answers' Date lines date decisions, not the pointers an answer carries, so Q13 keeps its
+  2026-11-21 bullets beside the 2026-11-26 one; the dated or archived records Q5, Q6, Q7 and Q9
+  name are not corrected.
+- Places where `check.py` matches more loosely or strictly than its header's words, each failing
+  closed or needing a reshaped record to matter: a left-margin line inside the command's fence,
+  and fences opened as ```` ```sh ```` or `~~~`; the name rule accepts any token after "by" and
+  refuses a name with spaces, and its label says "models"; the spine's ratification sentence
+  split over two comment lines fails; a reading's hashes are read from every comment line of its
+  header, the reader's reply included, which an unedited reply cannot satisfy; `spine diff`'s
+  exit status is not read, and no edit was found that makes it print nothing; the header says
+  "this repository's history" where the code reads HEAD's.
+- Wording left as it is: §7's "so" gives what conform sees as the reason no run checks a no-op's
+  commit, where the spine declaring no outputs is the deeper one; the M-0366 bullet's "loses the
+  scope too"; the check bullet in `audit/decisions.md`'s cases section cites questions 7 and 8
+  for "an agent's verb commits only under an active scope", which neither says of paused
+  (question 17's first item does, and the adapter shows act refused in paused); that section's
+  heading does not name `closed, reallocate`, which the check bullet also settles.
+- What conform does not reach: the run stops each sequence at its first divergence, so sequences
+  past one are never played, such as check after act, pause and rebase, which today's aiwf
+  refuses with G-0751's error. The chapter's §4 says `conform.md` classifies each divergence its
+  run found.
+
+**Doc-lint** over the change-set's markdown: no broken link, no TODO marker, no structural
+issue. Every `aiwf` verb named exists, apart from `aiwf scope rebind` and `aiwf revoke`, which
+the audit names as proposed and never built. Every path resolves, under `internal/` for the
+package-relative ones, at the commits `history.md` names, or in verifier-kit's checkout.
+
+**Verdict.** The deciding pass over `cc0d64cff..HEAD`, by three reviewers (the tooling; the chapter
+and spine; the audit and specs), approved with no blocking defect. In it, the chapter's rules,
+scenarios and invariants each agreed with the spine, and every error a margin-0 conform run
+printed is one `conform.md` classifies.
