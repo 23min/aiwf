@@ -188,8 +188,8 @@ Each starts in none.
 - The scope is opened from ADR-0056's release on, so its opening commit carries an id (Q16).
 - The agent acts only through aiwf verbs.
 - The branch's own commits are the only ones that change the milestone; `main`'s commits in
-  rebase and copy touch nothing of it, so copy's merge meets no conflict: each kept commit the
-  rebase gave a new hash and its rebased twin make the same change.
+  rebase and copy touch nothing of it, so copy's merge meets no conflict: each rebased twin
+  makes the same change as the kept commit it was made from.
 - One client plays one sequence of steps at a time (E-0100, §"Out of scope").
 
 ## 6. Not covered
@@ -200,7 +200,7 @@ Left out of the machine, each with the answer that leaves it out:
   release, rebases and copies the way G-0751, G-0752 and G-0755 record, and ADR-0056 leaves it
   so. The epic that builds ADR-0056 adds a unit test that its readers still read such a scope,
   once ended, as ended and its agent commits as authorized; one not yet ended when that release
-  arrives is outside both the machine and that test (Q16).
+  arrives is outside the machine (Q16).
 - **Ending a scope by naming it**, `--end --scope <its id>`, which does nothing when that scope
   is already ended (Q9).
 - **cancel** of the milestone, which ends a scope as close does (Q14).
