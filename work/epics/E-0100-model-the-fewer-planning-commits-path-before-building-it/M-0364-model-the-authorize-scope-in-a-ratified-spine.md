@@ -133,21 +133,24 @@ go1.25.12.
   CLAUDE.md's cadence skips them. `python3 -m py_compile conformance/adapter_scope.py
   spec/check.py`: exit 0.
 - M-0364/AC-1 to M-0364/AC-4: `python3 spec/check.py scope "$VK"` checks what its header lists.
-  Expected: every line `ok`, exit 0. Observed: `all passed`, exit 0. Each rule was then broken
-  once in a copy of the tree, and each time the check exited 1 naming that rule: an answer's
-  field emptied or removed; a Conflicts, Not covered or Names section renamed, or
-  `audit/docs.md` or `audit/history.md` removed; a claim id, or a not-covered pair listed on a
-  line starting `- ` or `<n>. `, left unanswered in `audit/decisions.md`; a part of a Names
-  section left unnamed by every answer, named by a longer word, by another part's name or only
-  across two answers' fields, or a new part added; a Names section left with no part; both
-  readings given the same model name; a header hash changed to one that names no version of its
-  file; the chapter's citation of an answer that names a case removed; a reading's initial state
-  changed, a rule of it changed where no answer decides the case, or a state no rule reaches
-  added to it; a spine rule removed or changed; a state moved in `drawing.yaml` or dropped from
-  it; the spine header's ratification removed; the aiwf version or the run time removed, or the
-  spine's or adapter's hash, or the verifier-kit version or commit, changed in `conform.md`; the
-  command's or the run's margin changed so the two differ; a classification row removed, or a
-  row left citing no gap; the `.cmd` naming another adapter or given a second line.
+  Expected: every line `ok`, exit 0. Observed: `all passed`, exit 0. Each rule its header lists
+  was then broken in a copy of the tree by the edits below, one at a time, and each time the
+  check exited 1 naming the rule broken: Q1's date emptied; Q13's sources field removed;
+  `docs.md`'s Conflicts and Names sections and `history.md`'s Not covered section renamed;
+  `docs.md` removed; `history.md` removed; a claim id no answer settles added to `docs.md`'s
+  Conflicts; a pair no answer names added to `docs.md`'s Not covered, on a `- ` line and on a
+  `1. ` line; the part Outputs of `docs.md` §4 left unnamed by the answers, renamed Output so
+  they name it by a longer word, named as States, and named only across Q19's and Q20's fields;
+  a part added to `docs.md` §4; `docs.md` §4's headings made plain lines; reading B given
+  reading A's model; reading A's prompt hash changed in one digit, and its chapter, prompt and
+  spine-format hashes each given one more digit; the chapter's citation of answers.md Q2 removed; reading
+  A's initial state made active, its none/close rule made a refusal, and a state no rule
+  reaches added to it; `spine.yaml`'s none/rebase rule removed, its none/close rule made a
+  refusal, and its ratification sentence removed; none moved and closed dropped in
+  `drawing.yaml`; `conform.md`'s aiwf version and run time removed, its spine and adapter
+  hashes and its verifier-kit version and commit changed, and its command's and its run's
+  margin each changed; the classification row for ended/copy and closed/copy removed, and its
+  gaps removed; the `.cmd` naming another adapter, and given a second line.
 - What the check does not reach, each read rather than pinned:
   - M-0364/AC-1, that an answer whose docs are wrong cites the gap listing them: Q7, Q8, Q9,
     Q17 and Q18 cite theirs; the dated, archived and accepted records Q5, Q6, Q7, Q9 and Q18
@@ -174,13 +177,13 @@ go1.25.12.
     with a gap: the check matches the classification rows to the run's errors and requires a gap
     id in each row, but not which table a row sits under, that the gap exists, or what the row
     says.
-  - M-0364/AC-4, that the run is recorded with the `aiwf version` it ran: the check finds an aiwf
-    version in backticks, not which.
+  - M-0364/AC-4, that the run is recorded with the `aiwf version` it ran: the check finds a value
+    in backticks for aiwf, not that it is the version the run used.
 - M-0364/AC-2, beyond the check: each reading is byte-identical to its reader's reply taken again
   from the reader's transcript. The transcripts are not in the repository, so this stays an
   observation of 2026-11-22. The check reads a reading's rules only through the cases they raise,
-  and its states' kinds not at all, so a rule changed in a case an answer decides, or a kind
-  changed, passes it.
+  and its states' kinds and terminal marks not at all, so a rule changed in a case an answer
+  decides, or a kind or terminal mark changed, passes it.
 - M-0364/AC-4: `spec/scope/conform.md` records the run, made with `spec/README.md`'s command
   from the fresh clone.
 
