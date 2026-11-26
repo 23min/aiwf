@@ -9,7 +9,8 @@ release on: a scope is named by a random id that its opening commit carries, whi
 copy keeps.
 
 It is taken from aiwf's records, not its code: the provenance model
-(`docs/design/provenance-model.md`), ADR-0047, ADR-0056, CLAUDE.md, and the maintainer's answers
+(`docs/design/provenance-model.md`), the `aiwf-authorize` skill, ADR-0036, ADR-0047, ADR-0056,
+D-0111, E-0100, CLAUDE.md, and the maintainer's answers
 in `spec/scope/audit/decisions.md` (cited as Q1 and on), which settle where those records and
 aiwf's history disagree. The claims behind the answers are in `audit/docs.md` and
 `audit/history.md`. The answers to the questions the chapter's two readings raised are in
@@ -198,8 +199,9 @@ Left out of the machine, each with the answer that leaves it out:
 
 - **Old scopes.** A scope named by its opening commit's hash, which aiwf writes before ADR-0056's
   release, rebases and copies the way G-0751, G-0752 and G-0755 record, and ADR-0056 leaves it
-  so. The epic that builds ADR-0056 adds a unit test that its readers still read such a scope,
-  once ended, as ended and its agent commit as authorized (Q16).
+  so. The epic that builds ADR-0056 adds a unit test that, on one such scope made by hand and
+  never rebased, its readers still read it, once ended, as ended and its agent commit as
+  authorized (Q16).
 - **Ending a scope by naming it**, `--end --scope <its id>`, which does nothing when that scope
   is already ended (Q9).
 - **cancel** of the milestone, which ends a scope as close does (Q14).
