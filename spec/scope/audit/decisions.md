@@ -463,7 +463,7 @@ makes wrong and the claims it settles. Claim ids C-n are rows of `docs.md`, H-n 
 
 ## Q16. Variables the sources depend on
 
-- **Date:** 2026-11-21; the pointer to question 13 for a rebase after a copy, 2026-11-26.
+- **Date:** 2026-11-21.
 - **Answer:** the machine has no variables, and covers a scope opened from ADR-0056's release on.
   The epic that builds ADR-0056 adds a unit test with one scope written in today's format, made
   by hand (an opening commit with no `aiwf-scope-id`, an agent commit and an end naming it by
