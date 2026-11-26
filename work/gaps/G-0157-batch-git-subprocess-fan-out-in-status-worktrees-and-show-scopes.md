@@ -12,7 +12,7 @@ priority: low
 
 - **fsm-history-consistent slice: CLOSED in M-0137.** The retrofit lands the two batched helpers (`gitops.BulkRevwalk`, `gitops.BlobReader`) and the silent-swallow fix as a coupled deliverable. Per-entity `git log --follow` + per-(commit, parent) `git show` are gone from the rule's hot path; per-blob read failures surface as `history-walk-error` findings instead of being silently swallowed. See M-0137's commits for the full diff; the AC-7 perf test records the post-retrofit runtime on a synthetic 50-entity fixture (~122ms, 80× under the 10s regression budget).
 - **`aiwf status` worktree views: OPEN.** Site #1 below — `internal/cli/status/worktrees.go:102`'s per-worktree subprocess loop unchanged.
-- **`aiwf show <entity>` scope views: OPEN.** Site #2 below — `internal/cli/show/scopes.go:87`'s per-scope `git log` / `git show` loop unchanged.
+- **`aiwf show <entity>` scope views: OPEN.** Site #2 below — the per-scope `git log` / `git show` loop in `entityview.AssembleScopeViews` (`internal/entityview/scopes.go:55`) unchanged.
 
 The two open slices are perf-only — no kernel-chokepoint correctness angle (each verb's output is user-facing latency, not a guarantee surface). They can wait until consumer-tree size or worktree-count pressure makes the latency user-visible.
 
@@ -24,7 +24,7 @@ The two remaining sites:
 
 1. **`aiwf status` worktree views** — `internal/cli/status/worktrees.go:102` loops over worktrees and sequentially calls `worktreeHeadTime` (`:968`), `worktreeIsDirty` (`:987`), `branchFirstAheadCommitTime` (`:1005`), and `branchLastEntityCommitTime` (`:1023`). That's 3–4 `git` subprocesses per worktree, executed serially. On a 15-worktree workspace ~60 forks block the interactive output.
 
-2. **`aiwf show <entity>` scope views** — `internal/cli/show/scopes.go:87` calls `cliutil.LoadEntityScopes` once per scope-entity (one `git log` per entity at `cliutil/scopes.go:144`), then `:97` calls `LookupCommitDateCached` (`:176`) once per scope SHA (`git show -s --format=%aI`). The cache helps when SHAs repeat across scopes; it doesn't when they don't.
+2. **`aiwf show <entity>` scope views** — `aiwf show` calls `cliutil.LoadEntityScopes` once per scope-entity, for its own (`internal/cli/show/scopes.go:49`) and through the resolver `entityview.AssembleScopeViews` invokes for each foreign one (`internal/entityview/scopes.go:84`), one `git log` per entity (`cliutil/scopes.go:63`); then `AssembleScopeViews` (`entityview/scopes.go:96`) resolves each scope's date through `LookupCommitDateCached` (`:141`) once per scope SHA (`git show -s --format=%aI`). The cache helps when SHAs repeat across scopes; it doesn't when they don't.
 
 ## Why it matters
 
