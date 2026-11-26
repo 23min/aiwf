@@ -632,7 +632,8 @@ makes wrong and the claims it settles. Claim ids C-n are rows of `docs.md`, H-n 
 
 ## Cases no source covers, answered from the answers above
 
-Put to the maintainer on 2026-11-21 with no objection.
+Put to the maintainer on 2026-11-21 with no objection. No source covers these cases, so none is
+made wrong.
 
 - `none, rebase` stays `none`: with no scope there is nothing for a rebase to change
   (question 2's reason).
