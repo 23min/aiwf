@@ -630,7 +630,7 @@ makes wrong and the claims it settles. Claim ids C-n are rows of `docs.md`, H-n 
 - **Claims settled:** the names in `docs.md` §4 States, `docs.md` §4 Outputs and `history.md` §5
   States and values.
 
-## Cases no source covers, answered from the answers above
+## Cases no source covers, and `check` in every state, answered from the answers above
 
 Put to the maintainer on 2026-11-21 with no objection.
 
