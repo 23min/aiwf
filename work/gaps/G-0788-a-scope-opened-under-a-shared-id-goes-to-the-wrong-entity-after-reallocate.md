@@ -9,10 +9,10 @@ After `aiwf reallocate` resolves an id collision, a scope opened under the share
 that id alone, so it goes to whichever entity a reader starts from rather than the one it was
 opened on. The agent's gate gives every such scope to the renumbered entity:
 `loadActiveScopesForActor` (`internal/cli/cliutil/provenance.go:146`) maps each opener's
-`aiwf-entity` forward with `ResolveCurrentEntityID` (`internal/cli/cliutil/scopes.go:208`,
+`aiwf-entity` forward with `ResolveCurrentEntityID` (`internal/cli/cliutil/scopes.go:109`,
 called at `provenance.go:176`), which follows the reallocate's `aiwf-prior-entity` without
 regard to which of the two entities the opener named. The readers that start from the id that
-stayed put replay every commit carrying it (`LoadEntityScopes`, `scopes.go:39`), so they take the
+stayed put replay every commit carrying it (`LoadEntityScopes`, `scopes.go:23`), so they take the
 renumbered entity's scopes as that entity's own: `aiwf show` (`internal/cli/show/scopes.go:49`)
 and `aiwf authorize`'s pause, resume and end (`internal/cli/authorize/authorize.go:409`).
 
