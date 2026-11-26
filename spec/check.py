@@ -36,7 +36,8 @@ It prints one line per check and exits 1 when any fails.
             exactly the cases of the classification rows, and each row cites a gap.
 
 `spine diff` reports a case once as case-disagrees and again as behavior-differs, its shortest
-witness; any other finding code is reported as one the check does not know.
+witness, and `spine check` reports one as undecided-cell or missing-case; any other finding code
+is reported as one the check does not know.
 """
 import re
 import subprocess
@@ -220,7 +221,7 @@ def check_conform(root, machine, vk):
     report(margin is not None and covered is not None and margin[1] == covered[1] and int(margin[1]) >= 2,
            f"conform: margin {margin and margin[1]} in the command and {covered and covered[1]} in the run, 2 or more")
     for path in (root / "spine.yaml", adapter):
-        report(f"`{path}` `{git('hash-object', str(path))}`" in text, f"conform: the run used the {path} in the checkout")
+        report(f"`{path}` `{git('hash-object', str(path))}`" in text, f"conform: conform.md records the hash of the {path} in the checkout")
     run = sorted(l.split()[2].rstrip(":") for l in (block.group(1) if block else "").splitlines()
                  if l.startswith("error"))
     rows = [l.split("|") for l in text.splitlines() if re.match(r"\| [a-z_]+/[a-z_]+", l)]
