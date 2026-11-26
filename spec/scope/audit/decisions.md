@@ -463,7 +463,7 @@ makes wrong and the claims it settles. Claim ids C-n are rows of `docs.md`, H-n 
 
 ## Q16. Variables the sources depend on
 
-- **Date:** 2026-11-21.
+- **Date:** 2026-11-21; the opening commit a rebase after a copy reaches, 2026-11-26.
 - **Answer:** the machine has no variables, and covers a scope opened from ADR-0056's release on.
   The epic that builds ADR-0056 adds a unit test with one scope written in today's format, made
   by hand (an opening commit with no `aiwf-scope-id`, an agent commit and an end naming it by
@@ -490,9 +490,9 @@ makes wrong and the claims it settles. Claim ids C-n are rows of `docs.md`, H-n 
   for the kinds `authorize` refuses); `--branch`, the checkout and the rungs (branch rules,
   outside E-0100); `--scope` (the machine's `end` takes none, question 9); the number of scopes
   (one, questions 3 and 4); the milestone's status (`closed`, questions 10 and 14); whether the
-  rebase reaches the opening commit (always, question 13); squash and the host's merge methods
-  (M-0366, question 15); a scope on the parent epic (the adapter opens none; one lets the agent
-  act on the milestone, D-0007).
+  rebase reaches the opening commit (always, question 13; after a copy, its rebased twin and not
+  the original); squash and the host's merge methods (M-0366, question 15); a scope on the parent
+  epic (the adapter opens none; one lets the agent act on the milestone, D-0007).
 - **Sources this makes wrong:** none.
 - **Claims settled:** C102, C107, C113 (the release boundary); the variables in `docs.md` §4
   Variables and values, and the values in `history.md` §5 States and values.
