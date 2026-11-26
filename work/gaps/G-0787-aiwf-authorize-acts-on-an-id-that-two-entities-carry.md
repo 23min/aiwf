@@ -47,7 +47,7 @@ A scope opened, paused or resumed while the id is shared records no more than th
 two entities when the commit was written, so no reader can recover which entity the human meant.
 The pause above landed on `ai/kept`'s scope, whose opener comes later in `git log` order: the
 replay moves the most recently opened active scope among every commit carrying the id
-(`internal/cli/cliutil/scopes.go:35-38`). If the human meant "Side work", `ai/side` is still
+(`scope.Target`, `internal/scope/scope.go:156-158`). If the human meant "Side work", `ai/side` is still
 active, and nothing in the commit or in `aiwf show` says which was intended.
 
 Every later reader inherits that guess, the agent's gate included. In a third run of the same
