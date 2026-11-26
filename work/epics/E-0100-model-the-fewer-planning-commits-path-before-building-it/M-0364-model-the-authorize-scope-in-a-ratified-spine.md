@@ -141,10 +141,11 @@ go1.25.12.
   named by a longer word, by another part's name or only across two answers' fields, or a new
   part added; a Names section left with no part; the readings given one model; a header hash
   changed; the chapter's citation of an answer removed; a reading's rule or initial state
-  changed; a spine rule removed or changed; a state moved in `drawing.yaml`; the spine header's
-  ratification removed; a run field, a hash or another verifier-kit version written into
-  `conform.md`; the command's or the run's margin changed so the two differ; a classification
-  row or a row's gap removed; the `.cmd` naming another adapter or given a second line.
+  changed, or a state no rule reaches added to it; a spine rule removed or changed; a state
+  moved in `drawing.yaml` or dropped from it; the spine header's ratification removed; a run
+  field removed, or a hash or the verifier-kit version changed, in `conform.md`; the command's
+  or the run's margin changed so the two differ; a classification row or a row's gap removed;
+  the `.cmd` naming another adapter or given a second line.
 - What the check does not reach, each read rather than pinned:
   - M-0364/AC-1, that an answer whose docs are wrong cites the gap listing them: Q7, Q8, Q9,
     Q17 and Q18 cite theirs; the dated, archived and accepted records Q5, Q6, Q7, Q9 and Q18
