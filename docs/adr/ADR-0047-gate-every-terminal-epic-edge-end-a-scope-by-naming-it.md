@@ -36,7 +36,7 @@ trailer slot for a revoke verb that was never built.
 The two mechanisms that already act on a scope address their targets differently.
 `aiwf-scope-ends:` names a scope by its authorize-commit SHA and may repeat on one
 commit to end several. A pause or resume names nothing: the commit records only
-`aiwf-scope: paused`, and `ReplayScopes` re-derives the target as the
+`aiwf-scope: paused`, and `scope.Replay` re-derives the target as the
 most-recently-opened scope in the matching state. Pause can afford that, because a
 scope paused in error is restored by a resume.
 
