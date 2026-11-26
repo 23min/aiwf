@@ -199,8 +199,7 @@ Left out of the machine, each with the answer that leaves it out:
 - **Old scopes.** A scope named by its opening commit's hash, which aiwf writes before ADR-0056's
   release, rebases and copies the way G-0751, G-0752 and G-0755 record, and ADR-0056 leaves it
   so. The epic that builds ADR-0056 adds a unit test that its readers still read such a scope,
-  once ended, as ended and its agent commits as authorized; one not yet ended when that release
-  arrives is outside the machine (Q16).
+  once ended, as ended and its agent commit as authorized (Q16).
 - **Ending a scope by naming it**, `--end --scope <its id>`, which does nothing when that scope
   is already ended (Q9).
 - **cancel** of the milestone, which ends a scope as close does (Q14).
