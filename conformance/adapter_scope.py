@@ -23,20 +23,19 @@ Events (chapter.md, §1), each on the milestone's current id <m>:
   pause       aiwf authorize <m> --pause hold
   resume      aiwf authorize <m> --resume go
   end         aiwf authorize <m> --end --reason over
-  close       aiwf promote <m>/<ac> met for each AC that is open, then aiwf promote <m> done
+  close       aiwf promote <m>/<ac> met for each AC that is open, then aiwf promote <m> done,
+              stopping at the first that is refused
   rebase      main gains a commit that touches nothing of the milestone; the branch is rebased
-              onto main
+              onto main with --rebase-merges
   copy        the branch is kept as side/copy-<n>; main gains a commit; the branch is rebased
-              onto main; side/copy-<n> is merged back in
+              onto main with --rebase-merges; side/copy-<n> is merged back in
   reallocate  aiwf reallocate <m>
   check       aiwf check
 Each first reads the milestone's id with `aiwf list`, and close reads its ACs with `aiwf show`;
 a read that fails raises, and conform reports the step as crashed. Otherwise each says "ok" when
 every aiwf verb it ran exited 0, and "rejected" otherwise. rebase and copy run git commands, whose
-hooks run aiwf; a git command that fails, refused by a hook or not, raises the same way. Both
-rebase with --rebase-merges, which keeps a copy's merge: a plain rebase replays a copied commit
-and its twin one after the other, and the twin of a status change then conflicts with the change
-after it.
+hooks run aiwf; a git command that fails, refused by a hook or not, raises the same way.
+--rebase-merges keeps an earlier copy's merge (spec/scope/audit/decisions.md, Q13).
 
 observe() takes the milestone's id from `aiwf list` and its status and scopes from `aiwf show`,
 and names:
