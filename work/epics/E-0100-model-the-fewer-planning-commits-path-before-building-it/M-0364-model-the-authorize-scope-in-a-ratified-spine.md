@@ -140,12 +140,13 @@ go1.25.12.
   unanswered in `audit/decisions.md`; a part of a Names section left unnamed by every answer,
   named by a longer word, by another part's name or only across two answers' fields, or a new
   part added; a Names section left with no part; the readings given one model; a header hash
-  changed; the chapter's citation of an answer removed; a reading's rule or initial state
-  changed, or a state no rule reaches added to it; a spine rule removed or changed; a state
-  moved in `drawing.yaml` or dropped from it; the spine header's ratification removed; a run
-  field removed, or a hash or the verifier-kit version changed, in `conform.md`; the command's
-  or the run's margin changed so the two differ; a classification row or a row's gap removed;
-  the `.cmd` naming another adapter or given a second line.
+  changed; the chapter's citation of an answer removed; a reading's initial state changed, a
+  rule of it changed where no answer decides the case, or a state no rule reaches added to it; a
+  spine rule removed or changed; a state moved in `drawing.yaml` or dropped from it; the spine
+  header's ratification removed; the aiwf version or the run time removed, or a hash or the
+  verifier-kit version changed, in `conform.md`; the command's or the run's margin changed so
+  the two differ; a classification row or a row's gap removed; the `.cmd` naming another adapter
+  or given a second line.
 - What the check does not reach, each read rather than pinned:
   - M-0364/AC-1, that an answer whose docs are wrong cites the gap listing them: Q7, Q8, Q9,
     Q17 and Q18 cite theirs; the dated, archived and accepted records Q5, Q6, Q7, Q9 and Q18
@@ -171,7 +172,8 @@ go1.25.12.
     says.
 - M-0364/AC-2, beyond the check: each reading is byte-identical to its reader's reply taken again
   from the reader's transcript. The transcripts are not in the repository, so this stays an
-  observation of 2026-11-22.
+  observation of 2026-11-22. The check reads a reading's rules only through the cases they raise,
+  so a rule changed in a case an answer decides passes it.
 - M-0364/AC-4: `spec/scope/conform.md` records the run, made with `spec/README.md`'s command
   from the fresh clone.
 
