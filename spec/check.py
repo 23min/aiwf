@@ -5,7 +5,8 @@ Run from the repository root, with the verifier-kit checkout spec/README.md buil
 
     python3 spec/check.py <machine> "$VK"
 
-It prints one line per check and exits 1 when any fails.
+It prints one line per check, a failing check's reason on the same line, and exits 1 when any
+fails.
 
   audit     Every answer in audit/decisions.md fills in its date, answer, reason, the sources it
             makes wrong and the claims it settles. audit/docs.md exists, and so does
@@ -20,20 +21,22 @@ It prints one line per check and exits 1 when any fails.
             covers. An id, part or pair named anywhere in a claims settled field counts as
             settled by that answer.
   readings  The two readings name different models. Each header gives the hash of a version of
-            chapter.md in this repository's history, of readings/prompt.md, and of the checkout's
-            docs/reference/spine-format.md. Every case that `spine diff` of the two readings or
-            `spine check` of either reports is named, as state/event, by an answer in answers.md
-            that the chapter cites as "(answers.md, Q<n>".
+            chapter.md in this repository's history, of readings/prompt.md as it is in the working
+            tree, and of docs/reference/spine-format.md as it is in the verifier-kit checkout.
+            Every case that `spine diff` of the two readings or `spine check` of either reports is
+            named, as state/event, by an answer in answers.md that the chapter cites as
+            "(answers.md, Q<n>".
   spine     `spine check` of spine.yaml passes; `spine diff` of it against each reading reports
             only those cases; `spine draw` reports no error or warning and writes drawing.svg
             byte for byte; the header names readings/ and answers.md and says it is ratified by the
             reviewed merge of the file.
   conform   adapter_<machine>.cmd is one line that names conformance/adapter_<machine>.py, and it
-            is the --adapter-cmd conform.md records. conform.md records the checkout's
-            verifier-kit version and commit, the aiwf version, the run time, a margin of 2 or
-            more, the same in the command and in the run's coverage line, and the git hash-object
-            of the spine and adapter in the checkout. The cases of the run's error lines are
-            exactly the cases of the classification rows, and each row cites a gap.
+            is the --adapter-cmd conform.md records. conform.md records the verifier-kit
+            checkout's version and commit, an aiwf version in backticks, a run time in seconds, a
+            margin of 2 or more, the same in the command and in the run's coverage line, and the
+            git hash-object of the spine and adapter as they are in the working tree. The cases of
+            the run's error lines are exactly the cases of the classification rows, and each row
+            cites a gap.
 
 `spine diff` reports each case as case-disagrees, and each behavior-differs line it prints is the
 shortest witness of a case reported so; `spine check` reports a case as undecided-cell or
@@ -50,6 +53,7 @@ failures = []
 
 
 def report(ok, what, detail=""):
+    detail = "; ".join(l.strip() for l in detail.splitlines() if l.strip())
     print(("ok: " if ok else "FAIL: ") + what + ("" if ok or not detail else f": {detail}"))
     if not ok:
         failures.append(what)
@@ -159,12 +163,12 @@ def check_readings(root, spine, vk):
     versions = {git("rev-parse", f"{c}:{chapter}"): c[:9]
                 for c in git("log", "--format=%H", "--", chapter).split()}
     prompt = git("hash-object", str(r / "prompt.md"))
-    fmt = git("-C", str(vk), "rev-parse", "HEAD:docs/reference/spine-format.md")
+    fmt = git("hash-object", str(vk / "docs" / "reference" / "spine-format.md"))
     for x, h in heads.items():
         cited = (re.search(r"chapter\.md ([0-9a-f]{40})", h) or [None, None])[1]
         report(cited in versions, f"readings: reading-{x} cites chapter.md as of {versions.get(cited, 'no commit')}")
-        report(f"readings/prompt.md {prompt}" in h, f"readings: reading-{x} cites readings/prompt.md in the checkout")
-        report(f"spine-format.md {fmt}" in h, f"readings: reading-{x} cites the checkout's spine-format.md")
+        report(f"readings/prompt.md {prompt}" in h, f"readings: reading-{x} cites readings/prompt.md as it is in the working tree")
+        report(f"spine-format.md {fmt}" in h, f"readings: reading-{x} cites spine-format.md as it is in the verifier-kit checkout")
 
     found, unknown = set(), []
     for args in (("diff", r / "reading-a.yaml", r / "reading-b.yaml"),
@@ -186,12 +190,12 @@ def check_readings(root, spine, vk):
     return found
 
 
-def check_spine(root, spine, decided):
+def check_spine(root, spine, raised):
     p = subprocess.run([spine, "check", str(root / "spine.yaml")], capture_output=True, text=True)
     report(p.returncode == 0, "spine: spine check passes", p.stdout.strip())
     for x in "ab":
         cases, unknown = spine_cases(spine, "diff", str(root / "spine.yaml"), str(root / f"readings/reading-{x}.yaml"))
-        extra = sorted(cases - decided) + unknown
+        extra = sorted(cases - raised) + unknown
         report(not extra, f"spine: against reading-{x}, only cases the readings split or leave open", ", ".join(extra))
     d = subprocess.run([spine, "draw", "spine.yaml", "drawing.yaml"], capture_output=True, cwd=root)
     report(d.returncode == 0 and not d.stderr, "spine: spine draw reports no error or warning",
@@ -213,8 +217,8 @@ def check_conform(root, machine, vk):
     tag = subprocess.run(["git", "-C", str(vk), "describe", "--tags", "--exact-match"], capture_output=True, text=True)
     report(vk_run is not None and vk_run[1] == tag.stdout.strip()
            and git("-C", str(vk), "rev-parse", "HEAD").startswith(vk_run[2]),
-           "conform: conform.md records the checkout's verifier-kit version and commit")
-    for what, pat in (("the aiwf version", r"\*\*aiwf:\*\* `[^`]+`"), ("the run time", r"run time \d+ seconds")):
+           "conform: conform.md records the verifier-kit checkout's version and commit")
+    for what, pat in (("an aiwf version", r"\*\*aiwf:\*\* `[^`]+`"), ("a run time", r"run time \d+ seconds")):
         report(re.search(pat, text) is not None, f"conform: conform.md records {what}")
     block = re.search(r"(?ms)^```\n(.*?)^```", text)
     margin = re.search(r"--margin (\d+)", text)
@@ -222,14 +226,15 @@ def check_conform(root, machine, vk):
     report(margin is not None and covered is not None and margin[1] == covered[1] and int(margin[1]) >= 2,
            f"conform: margin {margin and margin[1]} in the command and {covered and covered[1]} in the run, 2 or more")
     for path in (root / "spine.yaml", adapter):
-        report(f"`{path}` `{git('hash-object', str(path))}`" in text, f"conform: conform.md records the hash of the {path} in the checkout")
+        report(f"`{path}` `{git('hash-object', str(path))}`" in text,
+               f"conform: conform.md records the hash of {path} as it is in the working tree")
     run = sorted(l.split()[2].rstrip(":") for l in (block.group(1) if block else "").splitlines()
                  if l.startswith("error"))
     rows = [l.split("|") for l in text.splitlines() if re.match(r"\| [a-z_]+/[a-z_]+", l)]
     uncited = [r[1].strip() for r in rows if not re.search(r"G-\d{4}", r[-2])]
     table = sorted(c.strip() for r in rows for c in r[1].split(","))
     report(run and run == table and not uncited,
-           f"conform: each of {len(run)} errors in the run is classified, each row citing a gap",
+           f"conform: the run's {len(run)} errors and the classification rows name the same cases, each row citing a gap",
            f"run {run}, table {table}, rows citing no gap {uncited}")
 
 
@@ -238,8 +243,8 @@ def main(machine, vk):
     spine = str(vk / "tools" / "bin" / "spine")
     states, events = names((root / "spine.yaml").read_text())
     check_audit(root, states, events)
-    decided = check_readings(root, spine, vk)
-    check_spine(root, spine, decided)
+    raised = check_readings(root, spine, vk)
+    check_spine(root, spine, raised)
     check_conform(root, machine, vk)
     print(f"{len(failures)} failed" if failures else "all passed")
     return 1 if failures else 0
