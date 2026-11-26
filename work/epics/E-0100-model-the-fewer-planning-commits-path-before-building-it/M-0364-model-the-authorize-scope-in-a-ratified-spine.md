@@ -121,7 +121,7 @@ records against what E-0100's milestones ask of them. `spec/README.md` says how 
 
 ## Validation
 
-Run 2026-11-24 on this milestone's branch in the Linux devcontainer: git 2.51.1, Python 3.12.3,
+Run 2026-11-26 on this milestone's branch in the Linux devcontainer: git 2.51.1, Python 3.12.3,
 verifier-kit v0.3.3 at `0952e0f` from a fresh clone built as `spec/README.md` says (`$VK`, its
 `spine` built by go1.27.1), and the `aiwf` that `spec/scope/conform.md` names, built by
 go1.25.12.
@@ -134,17 +134,17 @@ go1.25.12.
   spec/check.py`: exit 0.
 - M-0364/AC-1 to M-0364/AC-4: `python3 spec/check.py scope "$VK"` checks what its header lists.
   Expected: every line `ok`, exit 0. Observed: `all passed`, exit 0. Each rule was then broken
-  once in the working tree, and each time the check exited 1 naming that rule: an answer's
+  once in a copy of the tree, and each time the check exited 1 naming that rule: an answer's
   field emptied or removed; an audit section renamed, or `audit/docs.md` or `audit/history.md`
-  removed; a claim id, a case, or a not-covered pair on a bulleted or a numbered line, removed
-  from the records; a part of a Names section left unnamed by every answer, named by a longer
-  word or by another part's name, or a new part added; a Names section left with no part; the
-  readings given one model; a header hash changed; the chapter's citation of an answer removed;
-  a reading's rule or initial state changed; a spine rule removed or changed; a state moved in
-  `drawing.yaml`; the spine header's ratification removed; a run field, a hash or another
-  verifier-kit version written into `conform.md`; the command's or the run's margin changed so
-  the two differ; a classification row or a row's gap removed; the `.cmd` naming another
-  adapter or given a second line.
+  removed; a claim id, or a not-covered pair listed on a line starting `- ` or `<n>. `, left
+  unanswered in `audit/decisions.md`; a part of a Names section left unnamed by every answer,
+  named by a longer word, by another part's name or only across two answers' fields, or a new
+  part added; a Names section left with no part; the readings given one model; a header hash
+  changed; the chapter's citation of an answer removed; a reading's rule or initial state
+  changed; a spine rule removed or changed; a state moved in `drawing.yaml`; the spine header's
+  ratification removed; a run field, a hash or another verifier-kit version written into
+  `conform.md`; the command's or the run's margin changed so the two differ; a classification
+  row or a row's gap removed; the `.cmd` naming another adapter or given a second line.
 - What the check does not reach, each read rather than pinned:
   - M-0364/AC-1, that an answer whose docs are wrong cites the gap listing them: Q7, Q8, Q9,
     Q17 and Q18 cite theirs; the dated, archived and accepted records Q5, Q6, Q7, Q9 and Q18
@@ -156,9 +156,9 @@ go1.25.12.
     Names section named in an answer's claims settled, not each name in the part.
   - M-0364/AC-1, that every conflict and uncovered case has an answer: the check follows the
     claim ids a Conflicts or Not covered entry cites and the `state, event` pairs a Not covered
-    entry names, so an entry with neither would pass unanswered; and an id, pair or part named
-    anywhere in an answer's claims settled counts as settled by that answer, a pointer to another
-    answer included.
+    entry names on a line starting `- ` or `<n>. `, so an entry with neither, or a pair on any
+    other line, would pass unanswered; and an id, pair or part named anywhere in an answer's
+    claims settled counts as settled by that answer, a pointer to another answer included.
   - M-0364/AC-2, that each answer is written into the chapter at the rule it settles: the check
     finds the answer's citation anywhere in the chapter.
   - M-0364/AC-3, that the spine's header names the lifecycle: its first sentence does.
