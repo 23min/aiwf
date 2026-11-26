@@ -15,7 +15,7 @@ It prints one line per check and exits 1 when any fails.
             least one part, a ### heading or a bold line, and each part is named in one answer's
             claims settled as its file, section and part, followed by `,`, `.`, `;`, `)`,
             " and `" or the end of that field ("`docs.md` §4 States,"). Each (state, event) pair a
-            Not covered section lists on a bulleted or numbered line is named, as
+            Not covered section lists on a line starting "- " or "<n>. " is named, as
             "`state, event`", in an answer's claims settled or in the section on cases no source
             covers. An id, part or pair named anywhere in a claims settled field counts as
             settled by that answer.
@@ -32,8 +32,8 @@ It prints one line per check and exits 1 when any fails.
             is the --adapter-cmd conform.md records. conform.md records the checkout's
             verifier-kit version and commit, the aiwf version, the run time, a margin of 2 or
             more, the same in the command and in the run's coverage line, and the git hash-object
-            of the committed spine and adapter. The cases of the run's error lines are exactly the
-            cases of the classification rows, and each row cites a gap.
+            of the spine and adapter in the checkout. The cases of the run's error lines are
+            exactly the cases of the classification rows, and each row cites a gap.
 
 `spine diff` reports a case once as case-disagrees and again as behavior-differs, its shortest
 witness; any other finding code is reported as one the check does not know.
@@ -220,7 +220,7 @@ def check_conform(root, machine, vk):
     report(margin is not None and covered is not None and margin[1] == covered[1] and int(margin[1]) >= 2,
            f"conform: margin {margin and margin[1]} in the command and {covered and covered[1]} in the run, 2 or more")
     for path in (root / "spine.yaml", adapter):
-        report(f"`{path}` `{git('hash-object', str(path))}`" in text, f"conform: the run used the committed {path}")
+        report(f"`{path}` `{git('hash-object', str(path))}`" in text, f"conform: the run used the {path} in the checkout")
     run = sorted(l.split()[2].rstrip(":") for l in (block.group(1) if block else "").splitlines()
                  if l.startswith("error"))
     rows = [l.split("|") for l in text.splitlines() if re.match(r"\| [a-z_]+/[a-z_]+", l)]
