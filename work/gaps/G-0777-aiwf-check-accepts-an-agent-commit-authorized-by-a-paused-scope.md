@@ -1,8 +1,10 @@
 ---
 id: G-0777
 title: aiwf check accepts an agent commit authorized by a paused scope
-status: open
+status: addressed
 discovered_in: M-0364
+addressed_by_commit:
+    - efb78893b
 ---
 ## What's missing
 
