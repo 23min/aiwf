@@ -152,7 +152,8 @@ makes wrong and the claims it settles. Claim ids C-n are rows of `docs.md`, H-n 
   change.
 - **Reason:** the operator's end, `aiwf authorize <id> --end`, exists from 9dd1a2d7e (2026-08-29,
   M-0325/AC-1; CHANGELOG 0.34.0), and ADR-0047, the provenance model §"Scope states",
-  design-decisions.md §I2.5 and the `aiwf-authorize` skill all describe it (H45).
+  design-decisions.md §"Provenance model (added in I2.5)" and the `aiwf-authorize` skill all
+  describe it (H45).
 - **Sources this makes wrong:** none live. Not corrected: G-0282 (open), whose §"Evidence (audit,
   discovered during M-0183 design)" says "`--pause` only parks a scope; reaching `ended` needs a
   terminal-promote of the scope-entity or `--force`", a dated audit record whose §Status
@@ -219,7 +220,7 @@ makes wrong and the claims it settles. Claim ids C-n are rows of `docs.md`, H-n 
     is not ended. From `none`, `ended` and `closed` it is refused: no such scope is left.
   - Outside the machine: `--end --scope` naming a scope already ended, which does nothing at
     exit 0 with no commit.
-  - The refusal codes the docs give these refusals (C53, C54, C56, C57, C62) are question 18's.
+  - Which code these refusals carry (C53, C54, C56, C57, C62) is question 18's.
 - **Reason:** CLAUDE.md item 7, "a request already satisfied is a NoOp at exit 0 with no
   commit", and the verb-design guidance §"Same-state convergence — resolve, then converge": a
   request must name something real (R1) and converges when its effect already holds (R2). The
@@ -340,19 +341,37 @@ makes wrong and the claims it settles. Claim ids C-n are rows of `docs.md`, H-n 
 
 ## Q13. What `rebase` and `copy` do
 
-- **Date:** 2026-11-21.
+- **Date:** 2026-11-21; a rebase or copy after a copy, 2026-11-26.
 - **Answer:** each event is played the way that breaks today's aiwf.
   - `rebase`: the scope is opened on a branch, `main` gains one commit that touches nothing of
     the scope, and the branch is rebased onto `main`, so the opening commit gets a new SHA.
   - `copy`: the branch as it stood before that rebase is kept and merged back after it, so the
     original opening commit lands beside its rebased twin.
+  - After a copy, `rebase` and `copy` both rebase with `git rebase --rebase-merges`, which keeps
+    the copy's merge: the commits it merged back in, the original opening commit among them, keep
+    their SHAs, and the rest get new ones. A second copy so lands each commit given a new SHA
+    beside the one it was rebased from, and the original opening commit stays once.
 - **Reason:** under questions 1–3 no rebase or copy changes the scope, so the events are worth
   playing only in the form that tells ADR-0056's behaviour from today's. A rebase that leaves
   the opening commit alone, such as an epic scope opened on `main` (G-0751, C97), breaks nothing
   today; merging `main` in instead keeps every SHA (C98). G-0755's route for a copy is the one
   that happens by accident; a cherry-pick of the opening commit alone (ADR-0056, Consequences)
   is narrower. These are the steps measured for questions 2 and 3, and those of history runs rb,
-  rb2, rb3 and pr.
+  rb2, rb3 and pr. A plain `git rebase` after a copy drops the merge and replays the rebased
+  commits and then the originals, so after a close the original promote to `in_progress` meets
+  the `done` the rebased close wrote, and the rebase stops.
+- **Measured 2026-11-26**, with the `aiwf` `conform.md` names and git 2.51.1, through the
+  adapter's own steps from its starting repository: `authorize`, `copy`, `rebase`;
+  `authorize`, `copy`, `copy`; `authorize`, `close`, `copy`, `rebase`; then the last and
+  `authorize`, `pause`, `copy`, `rebase` with `--rebase-merges` taken out of the adapter.
+  Expected: with the flag, the commits a copy merged back in keep their SHAs and the rest get new
+  ones; without it, the rebase after `close` stops and the one after `pause` runs. Observed: with
+  the flag, both rebases kept the SHA of every commit the copy merged back in, the original
+  opening commit among them, and gave every other commit and the merge a new one; after the
+  second copy the branch held three `authorize` commits, the original once. Without it, the
+  rebase after `close` replayed the rebased commits, the close among them, then the originals,
+  and stopped at the original `aiwf promote M-0001 draft -> in_progress`, its
+  `status: in_progress` in conflict with `status: done`; the one after `pause` ran clean.
 - **Sources this makes wrong:** none.
 - **Claims settled:** C96–C98 (which rebase); H75–H79 (the steps).
 
@@ -590,10 +609,10 @@ makes wrong and the claims it settles. Claim ids C-n are rows of `docs.md`, H-n 
     (question 15).
   - The code has no `none`: no scope is the absence of an opening commit, and the adapter
     observes it as an `in_progress` milestone that lists no scope.
-  - A terminal-promote is the human's promote to `done`, the machine's `close`, or one the
-    machine leaves out: the agent's own (question 19), one with `--audit-only` (question 15) and
-    one to `cancelled` (question 14). The auto-end is the end of the scope that each writes as
-    `aiwf-scope-ends` (question 5; H55).
+  - A terminal-promote is the human's promote to `done` without `--audit-only`, the machine's
+    `close`, or one the machine leaves out: the agent's own (question 19), one with
+    `--audit-only` (question 15) and one to `cancelled` (question 14). The auto-end is the end
+    of the scope that each writes as `aiwf-scope-ends` (question 5; H55).
   - The trailers, `aiwf-scope-ends` and those an act carries among them, and the finding and
     refusal codes are what a step writes or reports, and `aiwf history`'s chips render the
     trailers. The machine has no outputs (chapter §1; question 18 for the codes).
