@@ -12,12 +12,13 @@ when the entity is not already at newStatus" (`auditonly.go:36-37`) and compares
 (`auditonly.go:58`) from the tree `aiwf promote` loads from the working copy
 (`tree.Load(ctx, rootDir)`, `internal/cli/promote/promote.go:168`). `CancelAuditOnly`
 (`auditonly.go:113`) checks `e.Status` (`auditonly.go:145`) of the tree `aiwf cancel` loads the
-same way (`internal/cli/cancel/cancel.go:128`) and passes to it (`cancel.go:141`). The
-commit-side write guard returns for each "before examining anything"
-(`internal/policies/verb_write_guard_coverage.go:29-30`), since `verb_write_guard_coverage.go:71-73`
-marks `CancelAuditOnly`, `PromoteAuditOnly` and `PromoteACPhaseAuditOnly` record-only: "there is
-nothing for an operator's working copy to be laundered into" (`verb_write_guard_coverage.go:31-32`).
-The legal-workflows audit gives the flag as the backfill
+same way (`internal/cli/cancel/cancel.go:128`) and passes to it (`cancel.go:141`). Each plans
+a commit with no file ops (`auditonly.go:66-71`, `auditonly.go:155-160`), so the commit-side write
+guard returns at once (`internal/verb/apply.go:673`), "before examining anything"
+(`internal/policies/verb_write_guard_coverage.go:29-30`). `verb_write_guard_coverage.go:71-73`
+records `CancelAuditOnly`, `PromoteAuditOnly` and `PromoteACPhaseAuditOnly` as record-only: "there
+is nothing for an operator's working copy to be laundered into"
+(`verb_write_guard_coverage.go:31-32`). The legal-workflows audit gives the flag as the backfill
 "when state was reached via manual commit; entity must already be at target state"
 (`docs/design/legal-workflows-audit.md`, R-RULE-077; R-AUDIT-0215 says the same).
 
