@@ -152,8 +152,8 @@ changes nothing and makes no commit.
 - **S3. Ended stays ended.** Nothing brings an ended scope back; from ended, only authorize
   opens a scope, and it is a new one. Nothing leaves closed. Closed is not final: §2 decides
   every step there, and each is refused, is a no-op or leaves closed as it is (answers.md, Q1).
-- **S4. Asking for what already holds changes nothing.** A repeated authorize, pause, resume
-  or close is a no-op.
+- **S4. Asking for what already holds changes nothing.** A repeat of an allowed authorize,
+  pause, resume or close is a no-op.
 - **S5. check passes.** In every state the steps reach, `aiwf check` reports no errors.
 
 ## 4. Scenarios
