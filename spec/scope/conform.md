@@ -13,8 +13,8 @@ ADR-0056 makes or as a defect with a gap (M-0364/AC-4).
   at `0c00b37c4`. Go files differ at `main` `0176635c3`; a second margin-2 run the same day, with
   `aiwf` built from that commit, printed output byte-identical to this run's. That binary reads
   `(devel)`; built again from that commit in the same folder, it matched byte for byte, and a
-  build of `0c00b37c4` there did not. Go writes the build folder into the binary, so only builds
-  made in one folder compare.
+  build of `0c00b37c4` there did not. Go writes the folder it builds from into the binary, so
+  only builds made from one folder compare.
 - **Environment:** Linux devcontainer, git 2.51.1, Python 3.12.3; `aiwf` built by go1.25.12 and
   `spine` by go1.27.1.
 - **Inputs (git hash-object):** `spec/scope/spine.yaml` `917b06ae67c7d9e65a818504e50ccb7686dba0cf`,
