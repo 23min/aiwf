@@ -632,11 +632,10 @@ makes wrong and the claims it settles. Claim ids C-n are rows of `docs.md`, H-n 
 
 ## Cases no source covers, answered from the answers above
 
-Put to the maintainer on 2026-11-21 with no objection. No source covers these cases, so none is
-made wrong.
+Put to the maintainer on 2026-11-21 with no objection.
 
 - `none, rebase` stays `none`: with no scope there is nothing for a rebase to change
-  (question 2's reason).
+  (question 2's reason). No source covers it, so it makes none wrong.
 - `check` passes in every state. An agent's verb commits only under an active scope (questions
   7 and 8), and `rebase`, `copy` and `reallocate` change nothing about the scope (questions 2, 3
   and 15). Measured 2026-11-21 with the binary of question 2: `aiwf check` exit 0 with no scope
