@@ -6,11 +6,11 @@ Run from the repository root, with the verifier-kit checkout spec/README.md buil
     python3 spec/check.py <machine> "$VK"
 
 It prints one line per check, with any reason a failing check gives on the same line, and exits
-1 when any fails. A missing record, or a verifier-kit path with no checkout, stops it with an
-error, exit 1.
+1 when any fails. A missing record fails the check that reads it or stops it with an error, and
+a verifier-kit path with no checkout stops it with an error; either way it exits 1.
 
-  audit     Every answer in audit/decisions.md fills in its date, answer, reason, the sources it
-            makes wrong and the claims it settles. audit/docs.md exists, and so does
+  audit     audit/decisions.md has at least one answer, and every answer fills in its date,
+            answer, reason, the sources it makes wrong and the claims it settles. audit/docs.md exists, and so does
             audit/history.md where an answer settles one of its H claims; each of the two that
             exists has a Conflicts, a Not covered and a Names section. Every claim id a Conflicts
             or Not covered section cites is among the claims settled. Each Names section has at
@@ -166,11 +166,11 @@ def check_readings(root, spine, vk):
     prompt = git("hash-object", str(r / "prompt.md"))
     fmt = git("hash-object", str(vk / "docs" / "reference" / "spine-format.md"))
     for x, h in heads.items():
-        cited = (re.search(r"chapter\.md ([0-9a-f]{40})(?![0-9a-f])", h) or [None, None])[1]
+        cited = (re.search(r"chapter\.md ([0-9a-f]{40})(?!\w)", h) or [None, None])[1]
         report(cited in versions, f"readings: reading-{x} cites chapter.md as of {versions.get(cited, 'no commit')}")
-        report(re.search(rf"readings/prompt\.md {prompt}(?![0-9a-f])", h) is not None,
+        report(re.search(rf"readings/prompt\.md {prompt}(?!\w)", h) is not None,
                f"readings: reading-{x} cites readings/prompt.md as it is in the working tree")
-        report(re.search(rf"spine-format\.md {fmt}(?![0-9a-f])", h) is not None,
+        report(re.search(rf"spine-format\.md {fmt}(?!\w)", h) is not None,
                f"readings: reading-{x} cites spine-format.md as it is in the verifier-kit checkout")
 
     found, unknown = set(), []
@@ -224,7 +224,7 @@ def check_conform(root, machine, vk):
     for what, pat in (("a value in backticks for aiwf", r"\*\*aiwf:\*\* `[^`]+`"), ("a run time", r"run time \d+ seconds")):
         report(re.search(pat, text) is not None, f"conform: conform.md records {what}")
     block = re.search(r"(?ms)^```\n(.*?)^```", text)
-    margin = re.search(r"--margin (\d+)", text)
+    margin = re.search(r"\bconform \S+ --margin (\d+)", text)
     covered = re.search(r"(?m)^info +coverage +.*margin (\d+):", block.group(1) if block else "")
     report(margin is not None and covered is not None and margin[1] == covered[1] and int(margin[1]) >= 2,
            f"conform: margin {margin and margin[1]} in the command and {covered and covered[1]} in the run, 2 or more")
@@ -242,7 +242,7 @@ def check_conform(root, machine, vk):
 
 
 def main(machine, vk):
-    root, vk = Path("spec") / machine, Path(vk)
+    root, vk = Path("spec") / machine, Path(vk).resolve()
     spine = str(vk / "tools" / "bin" / "spine")
     states, events = names((root / "spine.yaml").read_text())
     check_audit(root, states, events)
