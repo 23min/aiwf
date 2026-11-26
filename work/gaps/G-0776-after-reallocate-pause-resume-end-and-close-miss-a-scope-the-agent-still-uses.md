@@ -8,13 +8,13 @@ discovered_in: M-0364
 
 After `aiwf reallocate` gives a milestone a new id, the paths that look up a milestone's scopes
 by its id no longer see a scope opened under the old id, while the agent's verbs still do.
-`LoadEntityScopes` (`internal/cli/cliutil/scopes.go:40`) selects the commits whose
-`aiwf-entity` is the id it is given (`readEntityScopeCommits`, `scopes.go:151`). Pause and
+`LoadEntityScopes` (`internal/cli/cliutil/scopes.go:23`) selects the commits whose
+`aiwf-entity` is the id it is given (`readEntityScopeCommits`, `scopes.go:51`). Pause and
 resume (`internal/cli/authorize/authorize.go:409`), the end a closing promote writes
 (`loadEndableScopeAuthSHAsForEntity`, `internal/cli/cliutil/provenance.go:254`) and
 `aiwf show` (`internal/cli/show/scopes.go:49`) pass it the milestone's current id. The
 agent's path, `loadActiveScopesForActor` (`provenance.go:146`), starts from the opener's own
-`aiwf-entity` and maps it forward with `ResolveCurrentEntityID` (`scopes.go:209`).
+`aiwf-entity` and maps it forward with `ResolveCurrentEntityID` (`scopes.go:109`).
 
 Measured 2026-11-21 in the Linux devcontainer (Go 1.25.12, git 2.51.1) with `aiwf` built from a tree whose code is `main` at 0c00b37c4 (`aiwf version`: `v0.42.1-0.20261121183124-0c00b37c47b3+dirty`), in a disposable repository: `aiwf init` with `hosts: []`, epic `E-0001` active, milestone `M-0001` in progress with two ACs, and `milestone/M-0001-first-milestone` checked out. Ids in the block name entities in that repository.
 
