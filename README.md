@@ -590,7 +590,7 @@ checkout. This is separate from ordinary local-host skill and guidance refresh.
 
 **Contracts (I1):** `contract-config` with subcodes (`missing-entity`, `missing-schema`, `missing-fixtures`, `no-binding`, `path-escape`, `validator-unavailable`).
 
-**Provenance (I2.5):** `provenance-actor-malformed`, `provenance-principal-non-human`, `provenance-on-behalf-of-non-human`, `provenance-authorized-by-malformed`, `provenance-trailer-incoherent`, `provenance-authorization-missing`, `provenance-authorization-out-of-scope`, `provenance-authorization-ended`, `provenance-no-active-scope`, `provenance-force-non-human`, `provenance-audit-only-non-human`, `provenance-untrailered-entity-commit`.
+**Provenance (I2.5):** `provenance-actor-malformed`, `provenance-principal-non-human`, `provenance-on-behalf-of-non-human`, `provenance-authorized-by-malformed`, `provenance-trailer-incoherent`, `provenance-authorization-missing`, `provenance-authorization-out-of-scope`, `provenance-authorization-ended`, `provenance-authorization-paused`, `provenance-no-active-scope`, `provenance-force-non-human`, `provenance-audit-only-non-human`, `provenance-untrailered-entity-commit`.
 
 Each finding renders as `path:line: severity code[/subcode]: message — hint: <action>`. The `hint` is also exposed as `hint` in the `--format=json` envelope so downstream tools can surface it. The `aiwf-check` skill carries the full table of codes plus their fix-recipes.
 

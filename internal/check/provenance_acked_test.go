@@ -125,8 +125,9 @@ type crossCommitOffender struct {
 	tree     *tree.Tree
 }
 
-// crossCommitOffenders builds the fixtures for the two codes
-// provenanceAuthorizationFindings raises. Shared by the scoping test
+// crossCommitOffenders builds the fixtures for the codes
+// provenanceAuthorizationFindings raises by judging a commit against
+// the history around it. Shared by the scoping test
 // and by the predicate-to-rules tie in hint_ratification_test.go, so
 // the emitted set is derived from one definition rather than two that
 // can drift.
@@ -154,6 +155,16 @@ func crossCommitOffenders(t *testing.T) []crossCommitOffender {
 			commits: []scope.Commit{
 				authorizeOpenedCommit(authSHA, "E-0009", "human/peter", "ai/claude"),
 				agentCommit("bbbb222", "promote", "M-0001", "ai/claude", "human/peter", authSHA, nil),
+			},
+		},
+		{
+			code:     CodeProvenanceAuthorizationPaused,
+			offender: "cccc333",
+			tree:     buildProvenanceTree(t),
+			commits: []scope.Commit{
+				authorizeOpenedCommit(authSHA, "E-0001", "human/peter", "ai/claude"),
+				scopeStateCommit("bbbb222", "E-0001", "paused"),
+				agentCommit("cccc333", "promote", "M-0001", "ai/claude", "human/peter", authSHA, nil),
 			},
 		},
 	}
@@ -208,10 +219,11 @@ func TestRunProvenance_AcknowledgedCommitReportsNothing(t *testing.T) {
 }
 
 // TestRunProvenance_AcknowledgedCommitClearsCrossCommitRules covers
-// the two codes the table above cannot reach: they are raised by
+// the codes the table above cannot reach: they are raised by
 // provenanceAuthorizationFindings against cross-commit state — a scope
-// that has ended, a target outside the scope-entity's reach — so each
-// needs an opener commit and a tree rather than one commit's trailers.
+// that has ended or is paused, a target outside the scope-entity's
+// reach — so each needs an opener commit and a tree rather than one
+// commit's trailers.
 //
 // The fixtures are the ones the baseline rule tests use, re-run with
 // the offending commit acknowledged.

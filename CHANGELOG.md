@@ -16,6 +16,19 @@ section in this file.
 
 ## [Unreleased]
 
+### Fixed (breaking) — G-0777: `aiwf check` reports an agent commit made while its scope was paused
+
+An agent commit whose `aiwf-authorized-by` names a scope that `aiwf authorize <id> --pause`
+had paused when the commit landed passed `aiwf check` and the pre-push hook. It now draws
+the error `provenance-authorization-paused`. The rule reads the scope's state from the
+replay `aiwf show` and the verbs use and, like `provenance-authorization-ended`, judges a
+commit by its place in `git log` order, so a commit an agent made through a verb on a
+branch where the scope was still active draws the error once that branch is merged, if it
+falls after the pause. The rule reads all history reachable from HEAD, so such a commit,
+pushed or not, now fails `aiwf check` and every push until
+`aiwf acknowledge illegal <sha> --reason "<why>"` ratifies it. Run `aiwf update` to
+refresh the installed `aiwf-authorize` and `aiwf-check` skills.
+
 ### Changed (internal) — G-0781: the scope state machine's tests run on the replay aiwf uses
 
 `internal/scope` now holds the replay the verbs, `aiwf show` and `aiwf render` derive each scope's state with, and its tests exercise that replay; the unused walker that applied a pause to every active scope, and refused a history with a pause or resume no scope could make, is removed. Nothing user-facing changed.

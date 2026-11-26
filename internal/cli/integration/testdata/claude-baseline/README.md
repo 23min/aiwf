@@ -419,3 +419,21 @@ inventories were sorted again.
 | --- | --- | --- |
 | `aiwfx-wrap-milestone/SKILL.md` | `f13607c591b8440bdc37127f85252748d146308ec6bd7484edba824860aaa6d6` | `4d2080444f179e01d8fd76579695262c5aa7552d134e49786d1d08506caac2b3` |
 | `aiwfx-wrap-epic/SKILL.md` | `33ab41727141318e1243aaf29b283574eb878e852203cf04c32d3f7b0cdf88e7` | `401ea9f2e66bee3f57f197e11dae70018eadd329748d8a7be73da66ceaac202e` |
+
+## Paused-scope check rule
+
+G-0777 adds the `provenance-authorization-paused` finding, and the findings tables in the
+`aiwf-check` and `aiwf-authorize` skills list it. The six inventories change only the
+records of `.claude/skills/aiwf-check/SKILL.md` and `aiwf-authorize/SKILL.md`; all other
+records stay frozen.
+
+Provenance: derived in the Linux development container on 2026-11-26 without the
+renderer. Each artifact's embedded source on `main` at `0176635c3`, which carries no
+`{{aiwf:…}}` token, reproduces its frozen record; the changed source gives the
+updated record, and the candidate binary's materialized files matched them. The
+inventories were sorted again.
+
+| Artifact | Original SHA-256 | Updated SHA-256 |
+| --- | --- | --- |
+| `aiwf-check/SKILL.md` | `c4fcef5742c34a063600e1eede1420c2eb8ef94edde330dec7e43aca34244f3b` | `4c879807285d196f54191239359eed6300c041a9a58e5f193070606328c4427b` |
+| `aiwf-authorize/SKILL.md` | `abbf06462125ae4fd39f53ba174b6cb029c098c20887c5619be7d382a11ea7aa` | `73b9fad1b35ce5e6432a77224aba81151493ff554d41fc360bad131d5fea5295` |
