@@ -341,12 +341,14 @@ makes wrong and the claims it settles. Claim ids C-n are rows of `docs.md`, H-n 
 
 ## Q13. What `rebase` and `copy` do
 
-- **Date:** 2026-11-21; a rebase or copy after a copy, 2026-11-26.
+- **Date:** 2026-11-21; the branch's other commits, and a rebase or copy after a copy, 2026-11-26.
 - **Answer:** each event is played the way that breaks today's aiwf.
   - `rebase`: the scope is opened on a branch, `main` gains one commit that touches nothing of
     the scope, and the branch is rebased onto `main`, so the opening commit gets a new SHA.
   - `copy`: the branch as it stood before that rebase is kept and merged back after it, so the
     original opening commit lands beside its rebased twin.
+  - The opening commit is not the only one: a rebase with no copy before it gives each of the
+    branch's own commits a new SHA, and a first copy lands each beside its rebased twin.
   - After a copy, `rebase` and `copy` both rebase with `git rebase --rebase-merges`, which keeps
     the copy's merge: the commits it merged back in, the original opening commit among them, keep
     their SHAs, and the rest get new ones. A second copy so lands each commit given a new SHA
@@ -361,17 +363,20 @@ makes wrong and the claims it settles. Claim ids C-n are rows of `docs.md`, H-n 
   commits and then the originals, so after a close the original promote to `in_progress` meets
   the `done` the rebased close wrote, and the rebase stops.
 - **Measured 2026-11-26**, with the `aiwf` `conform.md` names and git 2.51.1, through the
-  adapter's own steps from its starting repository: `authorize`, `copy`, `rebase`;
-  `authorize`, `copy`, `copy`; `authorize`, `close`, `copy`, `rebase`; then the last and
-  `authorize`, `pause`, `copy`, `rebase` with `--rebase-merges` taken out of the adapter.
-  Expected: with the flag, the commits a copy merged back in keep their SHAs and the rest get new
-  ones; without it, the rebase after `close` stops and the one after `pause` runs. Observed: with
-  the flag, both rebases kept the SHA of every commit the copy merged back in, the original
-  opening commit among them, and gave every other commit and the merge a new one; after the
-  second copy the branch held three `authorize` commits, the original once. Without it, the
-  rebase after `close` replayed the rebased commits, the close among them, then the originals,
-  and stopped at the original `aiwf promote M-0001 draft -> in_progress`, its
-  `status: in_progress` in conflict with `status: done`; the one after `pause` ran clean.
+  adapter's own steps from its starting repository: `authorize`, `act`, `rebase`; `authorize`,
+  `copy`; `authorize`, `copy`, `rebase`; `authorize`, `copy`, `copy`; `authorize`, `close`,
+  `copy`, `rebase`; then the last and `authorize`, `pause`, `copy`, `rebase` with
+  `--rebase-merges` taken out of the adapter. Expected: with no earlier copy, every branch
+  commit gets a new SHA; with the flag, the commits a copy merged back in keep their SHAs and the
+  rest get new ones; without it, the rebase after `close` stops and the one after `pause` runs.
+  Observed: the rebase after `act` kept none of the branch's commits, and the first copy left
+  each original beside its rebased twin. With the flag, both rebases after a copy kept the SHA
+  of every commit the copy merged back in, the original opening commit among them, and gave
+  every other commit and the merge a new one; after the second copy the branch held three
+  `authorize` commits, the original once. Without it, the rebase after `close` replayed the
+  rebased commits, the close among them, then the originals, and stopped at the original
+  `aiwf promote M-0001 draft -> in_progress`, its `status: in_progress` in conflict with
+  `status: done`; the one after `pause` ran clean.
 - **Sources this makes wrong:** none.
 - **Claims settled:** C96–C98 (which rebase); H75–H79 (the steps).
 
