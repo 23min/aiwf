@@ -1229,10 +1229,11 @@ func TestAuthorize_Resume_RefusesWithoutPausedScope(t *testing.T) {
 	}
 }
 
-// TestAuthorize_Pause_PicksMostRecentlyOpenedActive: when multiple
-// scopes exist on the entity, --pause picks the most-recently-opened
-// active one. Ended/paused scopes are skipped over.
-func TestAuthorize_Pause_PicksMostRecentlyOpenedActive(t *testing.T) {
+// TestAuthorize_Pause_AcceptsWhenOneScopeIsActive: --pause is accepted
+// when one of the entity's scopes is active beside ended and paused ones.
+// The commit names no scope, so which one it pauses is not visible here;
+// scope.Target decides that, and internal/scope's tests pin it.
+func TestAuthorize_Pause_AcceptsWhenOneScopeIsActive(t *testing.T) {
 	t.Parallel()
 	r := newRunner(t)
 	r.must(verb.Add(r.ctx, r.tree(), entity.KindEpic, "Engine", testActor, verb.AddOptions{}))
@@ -1252,10 +1253,6 @@ func TestAuthorize_Pause_PicksMostRecentlyOpenedActive(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Authorize: %v", err)
 	}
-	// The pick is implicit (we don't write the auth-sha into the
-	// commit), but if no active existed the verb would've refused.
-	// Add a regression on subject + trailers to lock the current
-	// behaviour.
 	if got, want := res.Plan.Subject, "aiwf authorize E-0001 --pause"; got != want {
 		t.Errorf("Subject = %q, want %q", got, want)
 	}

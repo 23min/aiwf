@@ -478,7 +478,7 @@ func TestScenario_LockContentionNoLongerBlocksVerbCommit(t *testing.T) {
 // TestScenario_RepeatedPauseResumeCycle covers plan §4 (informally
 // implied by FSM cycle correctness): pause → resume → pause →
 // resume on the same scope, twice, lands the scope in `active` and
-// LoadScope walks every transition without raising.
+// the replay records every transition.
 func TestScenario_RepeatedPauseResumeCycle(t *testing.T) {
 	t.Parallel()
 	root, binDir := initRepoFor(t, "peter@example.com")

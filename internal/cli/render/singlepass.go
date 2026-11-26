@@ -35,7 +35,7 @@ import (
 //   - dateBySHA supplies the %aI the scope views used a per-SHA `git show`
 //     to fetch.
 //
-// The shared cliutil.ReplayScopes / cliutil.OpenersFrom and
+// The shared scope.Replay / cliutil.OpenersFrom and
 // entityview.EventFromCommit are the single source of truth for the replay
 // and event construction — render reuses them rather than adding a copy.
 type historyIndex struct {
@@ -55,13 +55,13 @@ func buildHistoryIndex(head []check.HeadCommit) *historyIndex {
 		openers:        map[string]string{},
 		dateBySHA:      make(map[string]string, len(head)),
 	}
-	exactCommits := map[string][]cliutil.CommitTrailers{}
-	all := make([]cliutil.CommitTrailers, 0, len(head))
+	exactCommits := map[string][]scope.Commit{}
+	all := make([]scope.Commit, 0, len(head))
 
 	for i := range head {
 		c := &head[i]
 		idx.dateBySHA[c.SHA] = c.AuthorDate
-		all = append(all, cliutil.CommitTrailers{SHA: c.SHA, Trailers: c.Trailers})
+		all = append(all, scope.Commit{SHA: c.SHA, Trailers: c.Trailers})
 
 		// History-event buckets (entity + prior-entity + composite fold).
 		// historyBucketKeys already returns de-duplicated keys, and each
@@ -88,13 +88,13 @@ func buildHistoryIndex(head []check.HeadCommit) *historyIndex {
 				continue
 			}
 			seen[key] = true
-			exactCommits[key] = append(exactCommits[key], cliutil.CommitTrailers{SHA: c.SHA, Trailers: c.Trailers})
+			exactCommits[key] = append(exactCommits[key], scope.Commit{SHA: c.SHA, Trailers: c.Trailers})
 		}
 	}
 
 	idx.openers = cliutil.OpenersFrom(all)
 	for key, commits := range exactCommits {
-		idx.scopesByEntity[key] = cliutil.ReplayScopes(commits)
+		idx.scopesByEntity[key] = scope.Replay(commits)
 	}
 	return idx
 }

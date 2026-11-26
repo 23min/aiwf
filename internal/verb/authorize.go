@@ -289,11 +289,11 @@ func Authorize(ctx context.Context, t *tree.Tree, id, actor string, opts Authori
 		return authorizeOpen(e, actor, opts)
 	case AuthorizePause:
 		return authorizeTransition(e, actor, opts.Reason, opts.Scopes,
-			scope.StateActive, "pause", "paused",
+			scope.StatePaused, "pause", "paused",
 			"no active scope on %s to pause")
 	case AuthorizeResume:
 		return authorizeTransition(e, actor, opts.Reason, opts.Scopes,
-			scope.StatePaused, "resume", "resumed",
+			scope.StateActive, "resume", "resumed",
 			"no paused scope on %s to resume")
 	case AuthorizeEnd:
 		return authorizeEnd(e, actor, opts)
@@ -458,22 +458,22 @@ func authorizeOpen(e *entity.Entity, actor string, opts AuthorizeOptions) (*Resu
 }
 
 // authorizeTransition handles --pause and --resume: both refuse unless
-// a scope is in the source state, and emit one commit recording the
-// transition. The commit names no scope; the history replay
-// (cliutil.ReplayScopes) applies it to the most-recently-opened scope
-// in that state. Reason is required for both.
+// some scope can move to state `to`, and emit one commit recording the
+// transition. The commit names no scope; scope.Target picks the one it
+// moves, here to decide whether to refuse and in scope.Replay when the
+// commit is read back. Reason is required for both.
 func authorizeTransition(
 	e *entity.Entity,
 	actor, reason string,
 	scopes []*scope.Scope,
-	source scope.State,
+	to scope.State,
 	modeWord, scopeValue, missingFmt string,
 ) (*Result, error) {
 	r := strings.TrimSpace(reason)
 	if r == "" {
 		return nil, fmt.Errorf("aiwf authorize --%s requires a non-empty reason", modeWord)
 	}
-	if mostRecentScopeInState(scopes, source) == nil {
+	if scope.Target(scopes, to) == nil {
 		return nil, fmt.Errorf(missingFmt, e.ID)
 	}
 
@@ -659,19 +659,6 @@ func renderScopeChoices(scopes []*scope.Scope) string {
 		fmt.Fprintf(&b, "  %s  %s  (%s)\n", entityview.ShortHash(s.AuthSHA), s.Agent, s.State)
 	}
 	return strings.TrimRight(b.String(), "\n")
-}
-
-// mostRecentScopeInState returns the most-recently-opened scope whose
-// current state matches `state`. Scopes are passed in open-order
-// (oldest first); we walk backward so the latest match wins. Returns
-// nil when no scope matches — the caller refuses the verb.
-func mostRecentScopeInState(scopes []*scope.Scope, state scope.State) *scope.Scope {
-	for i := len(scopes) - 1; i >= 0; i-- {
-		if scopes[i] != nil && scopes[i].State == state {
-			return scopes[i]
-		}
-	}
-	return nil
 }
 
 // validateAuthorizeTrailers runs gitops.ValidateTrailer on every

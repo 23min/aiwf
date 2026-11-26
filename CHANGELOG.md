@@ -16,6 +16,10 @@ section in this file.
 
 ## [Unreleased]
 
+### Changed (internal) — G-0781: the scope state machine's tests run on the replay aiwf uses
+
+`internal/scope` now holds the replay the verbs, `aiwf show` and `aiwf render` derive each scope's state with, and its tests exercise that replay; the unused walker that applied a pause to every active scope, and refused a history with a pause or resume no scope could make, is removed. Nothing user-facing changed.
+
 ### Fixed — `aiwf worktree add` run from inside a linked worktree no longer nests the new one in it
 
 With no path argument, `aiwf worktree add` run from inside a linked worktree now puts

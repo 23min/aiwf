@@ -17,25 +17,9 @@ import (
 // from the entity's commit history. Empty / no-commit repos return
 // (nil, nil).
 //
-// The walker scans every commit whose `aiwf-entity:` trailer matches
-// id (the same filter `aiwf history` uses) once, applying transitions
-// in commit order:
-//
-//   - aiwf-verb=authorize, aiwf-scope=opened → append a new scope
-//     starting in state active.
-//   - aiwf-verb=authorize, aiwf-scope=paused → flip the most-recently-
-//     opened still-active scope to paused.
-//   - aiwf-verb=authorize, aiwf-scope=resumed → flip the most-recently-
-//     opened paused scope to active.
-//   - aiwf-scope-ends: <auth-sha> on any commit → mark the matching
-//     scope ended (terminal). Auto-end fires when a terminal-promote
-//     of the scope-entity carries this trailer (added by step 6); for
-//     the initial step 5 cut, hand-crafted fixtures use the same path.
-//
-// Pause and resume commits name no scope, so this walk decides which
-// scope each one moves: scopes are appended in open order, so a
-// backwards walk finds the most recently opened scope in the matching
-// state. Multiple parallel scopes on the same entity are supported.
+// It reads every commit whose `aiwf-entity:` trailer matches id (the
+// same filter `aiwf history` uses) and replays them with scope.Replay,
+// which documents the transition rules.
 func LoadEntityScopes(ctx context.Context, root, id string) ([]*scope.Scope, error) {
 	if !HasCommits(ctx, root) {
 		return nil, nil
@@ -44,84 +28,12 @@ func LoadEntityScopes(ctx context.Context, root, id string) ([]*scope.Scope, err
 	if err != nil {
 		return nil, err
 	}
-	return ReplayScopes(commits), nil
-}
-
-// ReplayScopes replays the scope FSM over commits (oldest-first,
-// already filtered to one entity's `aiwf-entity:` trailer) and returns
-// every scope ever opened, in open-order, each carrying its current
-// state. It is the pure, git-free core lifted out of LoadEntityScopes
-// so render's single pass (M-0221) replays scopes from the shared HEAD
-// walk through the SAME code path — no second copy of the FSM. The
-// transition rules are documented on LoadEntityScopes.
-//
-// Callers pass a per-entity commit slice: LoadEntityScopes from its
-// grep, render from the per-entity bucket of the one HEAD pass. The
-// replay itself is identical either way.
-func ReplayScopes(commits []CommitTrailers) []*scope.Scope {
-	var scopes []*scope.Scope
-	byAuth := map[string]*scope.Scope{}
-	for _, c := range commits {
-		idx := indexCommitTrailers(c.Trailers)
-		switch {
-		case idx[gitops.TrailerVerb] == "authorize" && idx[gitops.TrailerScope] == "opened":
-			s := &scope.Scope{
-				AuthSHA:   c.SHA,
-				Entity:    idx[gitops.TrailerEntity],
-				Agent:     idx[gitops.TrailerTo],
-				Principal: idx[gitops.TrailerActor],
-				State:     scope.StateActive,
-				Events: []scope.Event{
-					{SHA: c.SHA, State: scope.StateActive, Reason: idx[gitops.TrailerReason]},
-				},
-			}
-			scopes = append(scopes, s)
-			byAuth[c.SHA] = s
-		case idx[gitops.TrailerVerb] == "authorize" && idx[gitops.TrailerScope] == "paused":
-			if s := mostRecent(scopes, scope.StateActive); s != nil {
-				s.State = scope.StatePaused
-				s.Events = append(s.Events, scope.Event{SHA: c.SHA, State: scope.StatePaused, Reason: idx[gitops.TrailerReason]})
-			}
-		case idx[gitops.TrailerVerb] == "authorize" && idx[gitops.TrailerScope] == "resumed":
-			if s := mostRecent(scopes, scope.StatePaused); s != nil {
-				s.State = scope.StateActive
-				s.Events = append(s.Events, scope.Event{SHA: c.SHA, State: scope.StateActive, Reason: idx[gitops.TrailerReason]})
-			}
-		}
-		// aiwf-scope-ends can repeat (one trailer per ended scope);
-		// walk every trailer rather than the indexed map.
-		for _, tr := range c.Trailers {
-			if tr.Key != gitops.TrailerScopeEnds {
-				continue
-			}
-			s := byAuth[tr.Value]
-			if s == nil || s.State == scope.StateEnded {
-				continue
-			}
-			s.State = scope.StateEnded
-			s.Events = append(s.Events, scope.Event{SHA: c.SHA, State: scope.StateEnded, Reason: idx[gitops.TrailerReason]})
-		}
-	}
-	return scopes
-}
-
-// mostRecent returns the most-recently-opened scope whose current
-// state matches `state`, or nil. Scopes are in open-order; we walk
-// backward.
-func mostRecent(scopes []*scope.Scope, state scope.State) *scope.Scope {
-	for i := len(scopes) - 1; i >= 0; i-- {
-		if scopes[i].State == state {
-			return scopes[i]
-		}
-	}
-	return nil
+	return scope.Replay(commits), nil
 }
 
 // indexCommitTrailers builds a key→value lookup for a commit's
 // trailers. When a key repeats (notably aiwf-scope-ends), the last
-// occurrence wins; the only loader site that cares about every value
-// of a repeating key is the scope-ends loop, which iterates the slice
-// directly.
+// occurrence wins.
 func indexCommitTrailers(trailers []gitops.Trailer) map[string]string {
 	out := make(map[string]string, len(trailers))
 	for _, tr := range trailers {
@@ -130,24 +42,13 @@ func indexCommitTrailers(trailers []gitops.Trailer) map[string]string {
 	return out
 }
 
-// CommitTrailers is the per-commit shape the pure scope/opener replays
-// consume: a commit's SHA plus its parsed trailer set. Exported so
-// render's single pass (M-0221) can feed the same ReplayScopes /
-// OpenersFrom helpers this package's grep-based loaders use — render
-// converts each check.HeadCommit to this shape (SHA + Trailers) and
-// replays through one code path rather than a fourth copy.
-type CommitTrailers struct {
-	SHA      string
-	Trailers []gitops.Trailer
-}
-
 // readEntityScopeCommits returns commits whose `aiwf-entity:` trailer
 // matches id, oldest-first. Each record carries the SHA plus every
 // trailer (not just a fixed subset, because aiwf-scope / aiwf-scope-ends
 // may appear on any verb's commit). Pre-aiwf commits whose `aiwf-entity:`
 // trailer happens to match a future id are not in scope (the regex is
 // anchored on `^aiwf-entity: <id>$`).
-func readEntityScopeCommits(ctx context.Context, root, id string) ([]CommitTrailers, error) {
+func readEntityScopeCommits(ctx context.Context, root, id string) ([]scope.Commit, error) {
 	const fieldSep = "\x1f"
 	const recSep = "\x1e\n"
 	args := []string{
@@ -169,7 +70,7 @@ func readEntityScopeCommits(ctx context.Context, root, id string) ([]CommitTrail
 		}
 		return nil, fmt.Errorf("git log: %w", err)
 	}
-	var commits []CommitTrailers
+	var commits []scope.Commit
 	for _, rec := range strings.Split(string(out), recSep) {
 		rec = strings.TrimSpace(rec)
 		if rec == "" {
@@ -179,7 +80,7 @@ func readEntityScopeCommits(ctx context.Context, root, id string) ([]CommitTrail
 		if len(parts) < 2 {
 			continue
 		}
-		commits = append(commits, CommitTrailers{
+		commits = append(commits, scope.Commit{
 			SHA:      strings.TrimSpace(parts[0]),
 			Trailers: gitops.ParseTrailers(parts[1]),
 		})
@@ -303,7 +204,7 @@ func AuthorizeOpeners(ctx context.Context, root string) (map[string]string, erro
 // trailer set. OpenersFrom re-applies the predicate, so it is equally
 // correct over this pre-filtered slice or render's unfiltered whole-HEAD
 // pass (M-0221).
-func readAuthorizeOpenerCommits(ctx context.Context, root string) ([]CommitTrailers, error) {
+func readAuthorizeOpenerCommits(ctx context.Context, root string) ([]scope.Commit, error) {
 	const fieldSep = "\x1f"
 	const recSep = "\x1e"
 	cmd := exec.CommandContext(ctx, "git", "log",
@@ -321,7 +222,7 @@ func readAuthorizeOpenerCommits(ctx context.Context, root string) ([]CommitTrail
 		// this error; the history caller swallows it and renders "?" chips.
 		return nil, fmt.Errorf("git log authorize-openers in %s: %w", root, err) //coverage:ignore reachable only on a corrupt clone arriving between the two git calls, per the note above
 	}
-	var commits []CommitTrailers
+	var commits []scope.Commit
 	for _, rec := range strings.Split(string(out), recSep) {
 		rec = strings.TrimSpace(rec)
 		if rec == "" {
@@ -331,7 +232,7 @@ func readAuthorizeOpenerCommits(ctx context.Context, root string) ([]CommitTrail
 		if len(parts) < 2 { //coverage:ignore unreachable: the \x1f is a literal in the pretty-format, so every non-empty record splits into ≥2 parts
 			continue
 		}
-		commits = append(commits, CommitTrailers{
+		commits = append(commits, scope.Commit{
 			SHA:      strings.TrimSpace(parts[0]),
 			Trailers: gitops.ParseTrailers(parts[1]),
 		})
@@ -350,7 +251,7 @@ func readAuthorizeOpenerCommits(ctx context.Context, root string) ([]CommitTrail
 // Canonicalizing the trailer-stored entity id means callers comparing
 // against tree-loaded ids never disambiguate widths (M-081 AC-2: the
 // read side owns width tolerance).
-func OpenersFrom(commits []CommitTrailers) map[string]string {
+func OpenersFrom(commits []scope.Commit) map[string]string {
 	result := map[string]string{}
 	for _, c := range commits {
 		idx := indexCommitTrailers(c.Trailers)
