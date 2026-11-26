@@ -25,8 +25,8 @@ It prints one line per check and exits 1 when any fails.
             `spine check` of either reports is named, as state/event, by an answer in answers.md
             that the chapter cites as "(answers.md, Q<n>".
   spine     `spine check` of spine.yaml passes; `spine diff` of it against each reading reports
-            only those cases; `spine draw` prints no warning and writes drawing.svg byte for
-            byte; the header names readings/ and answers.md and says it is ratified by the
+            only those cases; `spine draw` reports no error or warning and writes drawing.svg
+            byte for byte; the header names readings/ and answers.md and says it is ratified by the
             reviewed merge of the file.
   conform   adapter_<machine>.cmd is one line that names conformance/adapter_<machine>.py, and it
             is the --adapter-cmd conform.md records. conform.md records the checkout's
@@ -35,9 +35,9 @@ It prints one line per check and exits 1 when any fails.
             of the spine and adapter in the checkout. The cases of the run's error lines are
             exactly the cases of the classification rows, and each row cites a gap.
 
-`spine diff` reports a case once as case-disagrees and again as behavior-differs, its shortest
-witness, and `spine check` reports one as undecided-cell or missing-case; any other finding code
-is reported as one the check does not know.
+`spine diff` reports each case as case-disagrees, and each behavior-differs line it prints is the
+shortest witness of a case reported so; `spine check` reports a case as undecided-cell or
+missing-case. Any other finding code is reported as one the check does not know.
 """
 import re
 import subprocess
@@ -163,7 +163,7 @@ def check_readings(root, spine, vk):
     for x, h in heads.items():
         cited = (re.search(r"chapter\.md ([0-9a-f]{40})", h) or [None, None])[1]
         report(cited in versions, f"readings: reading-{x} cites chapter.md as of {versions.get(cited, 'no commit')}")
-        report(f"readings/prompt.md {prompt}" in h, f"readings: reading-{x} cites the committed readings/prompt.md")
+        report(f"readings/prompt.md {prompt}" in h, f"readings: reading-{x} cites readings/prompt.md in the checkout")
         report(f"spine-format.md {fmt}" in h, f"readings: reading-{x} cites the checkout's spine-format.md")
 
     found, unknown = set(), []
@@ -192,9 +192,10 @@ def check_spine(root, spine, decided):
     for x in "ab":
         cases, unknown = spine_cases(spine, "diff", str(root / "spine.yaml"), str(root / f"readings/reading-{x}.yaml"))
         extra = sorted(cases - decided) + unknown
-        report(not extra, f"spine: against reading-{x}, only cases an answer decided", ", ".join(extra))
+        report(not extra, f"spine: against reading-{x}, only cases the readings split or leave open", ", ".join(extra))
     d = subprocess.run([spine, "draw", "spine.yaml", "drawing.yaml"], capture_output=True, cwd=root)
-    report(d.returncode == 0 and not d.stderr, "spine: spine draw prints no warning", d.stderr.decode().strip())
+    report(d.returncode == 0 and not d.stderr, "spine: spine draw reports no error or warning",
+           (d.stderr or (d.stdout if d.returncode else b"")).decode().strip())
     report(d.stdout == (root / "drawing.svg").read_bytes(), "spine: drawing.svg is what spine draw writes")
     head = " ".join(l for l in (root / "spine.yaml").read_text().splitlines() if l.startswith("#"))
     report(re.search(r"readings/.*answers\.md.*Ratified by the reviewed merge of this file\.", head) is not None,
