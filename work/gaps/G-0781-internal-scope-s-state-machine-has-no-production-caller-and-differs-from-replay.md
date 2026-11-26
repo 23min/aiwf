@@ -1,8 +1,10 @@
 ---
 id: G-0781
 title: internal/scope's state machine has no production caller and differs from replay
-status: open
+status: addressed
 discovered_in: M-0364
+addressed_by_commit:
+    - c615eef3d11a3f4f3e3ff7b21d644b22ad8165ae
 ---
 ## What's missing
 
