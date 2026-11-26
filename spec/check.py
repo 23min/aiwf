@@ -21,17 +21,17 @@ a verifier-kit path with no checkout stops it with an error; either way it exits
             "`state, event`", in an answer's claims settled or in the section on cases no source
             covers, and at least one such pair is listed. An id, part or pair named anywhere in a
             claims settled field counts as settled by that answer.
-  readings  The two readings name different models in their headers, the comment lines each
-            opens with. Each header gives the hash of a version of chapter.md in this repository's
-            history, of readings/prompt.md as it is in the working tree, and of
-            docs/reference/spine-format.md as it is in the verifier-kit checkout. Every case that
-            `spine diff` of the two readings or `spine check` of either reports is named, as
+  readings  The two readings name different models in the first line of their headers, the
+            comment lines each opens with. Each header gives the hash of a version of chapter.md
+            in this repository's history, of readings/prompt.md as it is in the working tree, and
+            of docs/reference/spine-format.md as it is in the verifier-kit checkout. Every case
+            that `spine diff` of the two readings or `spine check` of either reports is named, as
             state/event, by an answer in answers.md that the chapter cites as "(answers.md, Q<n>",
             and at least one case is reported.
   spine     `spine check` of spine.yaml passes; `spine diff` of it against each reading reports
             only those cases; `spine draw` reports no error or warning and writes drawing.svg
-            byte for byte; spine.yaml's header, the comment lines it opens with, names readings/
-            and answers.md and says it is ratified by the reviewed merge of the file.
+            byte for byte; spine.yaml's header, the comment lines it opens with, names readings/,
+            then answers.md, then says it is ratified by the reviewed merge of the file.
   conform   adapter_<machine>.cmd is one line that names conformance/adapter_<machine>.py, and it
             is the --adapter-cmd of the command conform.md records under **Command,**, its lines
             joined. conform.md records the verifier-kit checkout's version and commit, a value in
@@ -159,7 +159,8 @@ def check_readings(root, spine, vk):
     r = root / "readings"
     heads = {x: "".join(takewhile(lambda l: l.startswith("#"), (r / f"reading-{x}.yaml").read_text().splitlines(True)))
              for x in "ab"}
-    models = {x: (re.search(r"by ([\w.-]+), \d{4}-\d{2}-\d{2}", h) or [None, None])[1] for x, h in heads.items()}
+    models = {x: (re.search(r"by ([\w.-]+), \d{4}-\d{2}-\d{2}", h.split("\n", 1)[0]) or [None, None])[1]
+              for x, h in heads.items()}
     report(all(models.values()) and models["a"] != models["b"],
            f"readings: by two different models, {models['a']} and {models['b']}")
 
@@ -216,7 +217,7 @@ def check_conform(root, machine, vk):
     adapter, cmd = Path(f"conformance/adapter_{machine}.py"), Path(f"conformance/adapter_{machine}.cmd")
     text = (root / "conform.md").read_text(encoding="utf-8")
     lines = cmd.read_text().splitlines() if cmd.exists() else []
-    command = re.search(r"(?ms)^- \*\*Command,\*\*.*?^  ```\n(.*?)^  ```", text)
+    command = re.search(r"(?ms)^- \*\*Command,\*\*(?:(?!^- |^#).)*?^  ```\n(.*?)^  ```", text)
     command = " ".join(l.strip().rstrip("\\").strip() for l in (command.group(1) if command else "").splitlines())
     recorded = (re.search(r'--adapter-cmd "([^"]+)"', command) or [None, None])[1]
     report(adapter.exists() and len(lines) == 1 and str(adapter) in lines[0].split() and lines[0] == recorded,
