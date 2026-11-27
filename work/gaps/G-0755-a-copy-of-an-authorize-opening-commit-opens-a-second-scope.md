@@ -71,7 +71,7 @@ After `done`, the merge conflicted on the milestone's `status:` line, `done` aga
 
 Pausing a scope, or ending it while the work goes on, is how a human withdraws a delegation without closing the entity. With a copy of the opening commit in history, either reaches one copy only. `--pause` pauses one and reports nothing about the other; `--end` without `--scope` lists the two as separate scopes and asks for one, and ending that one leaves the other active. The agent's verbs then keep succeeding under the copy still active.
 
-After an end, `aiwf check` accepts those verbs too, since `provenance-authorization-ended` judges each commit by the copy it names, so the history records acts made after the delegation was withdrawn as authorized and the pre-push hook passes them. `aiwf check` has no rule for pauses, so on that path what the copy defeats is the verb's own refusal.
+After a pause or an end, `aiwf check` accepts those verbs too, since `provenance-authorization-paused` and `provenance-authorization-ended` judge each commit by the copy it names, so the history records acts made after the delegation was withdrawn as authorized and the pre-push hook passes them.
 
 A copy that lands after the end or the close brings the delegation back. The agent's verbs succeed again and `aiwf check` passes them, on a `done` milestone too, which takes no new scope.
 
