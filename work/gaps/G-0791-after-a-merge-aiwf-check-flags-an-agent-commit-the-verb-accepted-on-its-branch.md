@@ -2,6 +2,7 @@
 id: G-0791
 title: After a merge, aiwf check flags an agent commit the verb accepted on its branch
 status: open
+priority: medium
 ---
 ## What's missing
 
