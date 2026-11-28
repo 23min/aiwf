@@ -2,6 +2,7 @@
 id: G-0788
 title: A scope opened under a shared id goes to the wrong entity after reallocate
 status: open
+priority: medium
 ---
 ## What's missing
 
