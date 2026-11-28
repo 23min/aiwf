@@ -2,6 +2,7 @@
 id: G-0776
 title: After reallocate, pause, resume, end and close miss a scope the agent still uses
 status: open
+priority: medium
 discovered_in: M-0364
 ---
 ## What's missing
