@@ -2,6 +2,7 @@
 id: G-0793
 title: A multi-line --reason breaks the trailer block of the commit the verb writes
 status: open
+priority: high
 ---
 ## What's missing
 
