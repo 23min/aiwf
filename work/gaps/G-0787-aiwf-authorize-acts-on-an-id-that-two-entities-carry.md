@@ -2,6 +2,7 @@
 id: G-0787
 title: aiwf authorize acts on an id that two entities carry
 status: open
+priority: low
 ---
 ## What's missing
 
