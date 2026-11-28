@@ -2,6 +2,7 @@
 id: G-0790
 title: Merging two branches that each paused an entity pauses a scope neither paused
 status: open
+priority: medium
 ---
 ## What's missing
 
