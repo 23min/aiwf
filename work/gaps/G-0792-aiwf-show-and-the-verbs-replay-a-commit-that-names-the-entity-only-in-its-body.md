@@ -2,6 +2,7 @@
 id: G-0792
 title: aiwf show and the verbs replay a commit that names the entity only in its body
 status: open
+priority: medium
 ---
 ## What's missing
 
