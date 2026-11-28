@@ -15,8 +15,12 @@ trailers, and git then reads the commit as carrying none. A line shaped like a t
 becomes one. A line that starts with whitespace continues the trailer, and the block
 survives. The write-time check `aiwf authorize` and `aiwf acknowledge illegal` run,
 `gitops.ValidateTrailer`, requires only that the value be non-empty after trim
-(`internal/gitops/trailers.go:260`); `aiwf promote` does not call it. The commit-msg hook
-passes the result: `aiwf check --commit-msg` exits 0 on the broken pause message below.
+(`internal/gitops/trailers.go:260`); `aiwf promote` does not call it. No git hook sees the
+commit: verb commits are written with `commit-tree`, which fires none
+(`internal/gitops/verbcommit.go:44`). In a run like the first below, a commit-msg hook that
+logs each run logged nothing for the opener and the two-line pause, and one run for a plain
+`git commit` made after them. Run by hand on the broken pause message,
+`aiwf check --commit-msg`, the check that hook runs, exits 0.
 
 The verbs measured below write the reason into a trailer: `aiwf authorize` when it opens,
 pauses or ends a scope (`internal/verb/authorize.go:436`, `:486`, `:557`),
@@ -145,9 +149,9 @@ $ aiwf check
 ## Why it matters
 
 A pause or an end the human ran does not take, and nothing reports it. The verb prints its
-success line at exit 0, the scope stays active, the agent's next verb succeeds, and neither
-the commit-msg hook nor `aiwf check` reports an error or a warning; only `aiwf show` still
-lists the scope as active. An opener fails the same way; the agent finds out at its first
+success line at exit 0, the scope stays active, the agent's next verb succeeds, no git hook
+runs on the verb's commit, and `aiwf check` reports no error or warning; only `aiwf show`
+still lists the scope as active. An opener fails the same way; the agent finds out at its first
 verb.
 
 A sovereign act does not count. A forced promote's commit carries no `aiwf-force`, so
