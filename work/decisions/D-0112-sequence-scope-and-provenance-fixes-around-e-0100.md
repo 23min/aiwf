@@ -1,7 +1,7 @@
 ---
 id: D-0112
 title: Sequence scope and provenance fixes around E-0100
-status: proposed
+status: accepted
 relates_to:
     - E-0100
     - M-0365
